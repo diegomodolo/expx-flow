@@ -72,6 +72,13 @@ const ClienteDetalhes = () => {
       .slice(0, 8); // Show top 8 campaigns
   }, [client?.campaigns]);
 
+  // Debug log for chart data
+  React.useEffect(() => {
+    if (cplByCampaignData.length > 0) {
+      console.log('🎯 Chart data ready:', JSON.stringify(cplByCampaignData, null, 2));
+    }
+  }, [cplByCampaignData]);
+
   // Data for Investment Distribution chart (pie chart)
   const investmentDistributionData = React.useMemo(() => {
     if (!client?.campaigns || client.campaigns.length === 0) {
