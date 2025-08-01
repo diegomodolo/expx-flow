@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { User, Building, Bell, Shield, CreditCard, Users } from "lucide-react";
+import { User, Building, Bell, Shield, CreditCard } from "lucide-react";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -39,12 +39,6 @@ const settingsNavItems = [
     href: "/configuracoes/planos",
     icon: CreditCard,
     description: "Assinatura e faturamento",
-  },
-  {
-    title: "Equipe",
-    href: "/configuracoes/equipe",
-    icon: Users,
-    description: "Gerenciar membros da equipe",
   },
 ];
 

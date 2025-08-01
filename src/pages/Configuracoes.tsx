@@ -3,6 +3,9 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 import { CompanySettings } from "@/components/company/CompanySettings";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { SecuritySettings } from "@/components/settings/SecuritySettings";
+import { PlansSettings } from "@/components/settings/PlansSettings";
 
 const Configuracoes = () => {
   return (
@@ -19,26 +22,9 @@ const Configuracoes = () => {
           <Routes>
             <Route index element={<UserProfileSettings />} />
             <Route path="empresa" element={<CompanySettings />} />
-            <Route path="notificacoes" element={
-              <div className="text-center py-12 text-muted-foreground">
-                Configurações de notificações em breve
-              </div>
-            } />
-            <Route path="seguranca" element={
-              <div className="text-center py-12 text-muted-foreground">
-                Configurações de segurança em breve
-              </div>
-            } />
-            <Route path="planos" element={
-              <div className="text-center py-12 text-muted-foreground">
-                Gerenciamento de planos em breve
-              </div>
-            } />
-            <Route path="equipe" element={
-              <div className="text-center py-12 text-muted-foreground">
-                Gerenciamento de equipe em breve
-              </div>
-            } />
+            <Route path="notificacoes" element={<NotificationSettings />} />
+            <Route path="seguranca" element={<SecuritySettings />} />
+            <Route path="planos" element={<PlansSettings />} />
           </Routes>
         </SettingsLayout>
       </div>
