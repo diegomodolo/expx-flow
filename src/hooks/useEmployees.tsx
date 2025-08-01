@@ -78,7 +78,7 @@ export function useEmployees() {
       // Gerar senha temporária
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
       
-      // 1. Verificar se o usuário já existe através de uma busca na tabela employees
+      // 1. Verificar se o usuário já existe através de uma busca na tabela employees da empresa atual
       const { data: existingEmployee, error: searchError } = await supabase
         .from('employees')
         .select('id, user_id')
@@ -97,45 +97,59 @@ export function useEmployees() {
       let userId: string;
       let isNewUser = true;
 
-      // 2. Verificar se usuário já existe através da edge function
-      try {
-        const { data: checkResult, error: checkError } = await supabase.functions.invoke('check-user', {
-          body: { email: employeeData.email }
+      // 2. Verificar se usuário já existe na plataforma (qualquer empresa)
+      const { data: checkResult, error: checkError } = await supabase.functions.invoke('check-user', {
+        body: { email: employeeData.email }
+      });
+
+      if (checkError) {
+        throw new Error(`Erro ao verificar usuário existente: ${checkError.message}`);
+      }
+
+      if (checkResult.exists) {
+        // Usuário já existe - apenas vincular à empresa
+        userId = checkResult.user_id;
+        isNewUser = false;
+
+        // Adicionar usuário existente à empresa atual
+        const { data: addResult, error: addError } = await supabase.functions.invoke('add-existing-user', {
+          body: { 
+            userId: userId, 
+            companyId: activeCompany.company_id 
+          }
         });
 
-        if (checkError) {
-          console.log("Erro ao verificar usuário:", checkError);
+        if (addError) {
+          throw new Error(`Erro ao vincular usuário existente: ${addError.message}`);
         }
 
-        if (checkResult && checkResult.exists) {
-          userId = checkResult.user_id;
-          isNewUser = false;
-        } else {
-          // Criar novo usuário usando edge function para não afetar sessão atual
-          const { data: createResult, error: createError } = await supabase.functions.invoke('create-employee-user', {
-            body: {
-              email: employeeData.email,
-              name: employeeData.name,
-              password: tempPassword,
-              companyId: activeCompany.company_id,
-              companyName: activeCompany.company?.name || 'Nossa Empresa'
-            }
-          });
+        console.log("Usuário existente vinculado:", addResult);
 
-          if (createError) {
-            throw new Error(`Erro ao criar usuário: ${createError.message}`);
+      } else {
+        // Usuário não existe - criar novo com magic link
+        const { data: createResult, error: createError } = await supabase.functions.invoke('invite-with-magic-link', {
+          body: {
+            email: employeeData.email,
+            name: employeeData.name,
+            role: employeeData.role,
+            companyId: activeCompany.company_id,
+            companyName: activeCompany.company?.name || 'Nossa Empresa',
+            redirectTo: `${window.location.origin}/`
           }
+        });
 
-          if (!createResult || !createResult.user_id) {
-            throw new Error("Erro ao criar usuário: dados não retornados");
-          }
-
-          userId = createResult.user_id;
-          isNewUser = true;
+        if (createError) {
+          throw new Error(`Erro ao criar novo usuário: ${createError.message}`);
         }
-      } catch (authErr) {
-        console.warn("Erro na criação de usuário:", authErr);
-        throw new Error("Erro ao processar criação de usuário");
+
+        if (!createResult || !createResult.user_id) {
+          throw new Error("Erro ao criar usuário: dados não retornados");
+        }
+
+        userId = createResult.user_id;
+        isNewUser = true;
+
+        console.log("Novo usuário criado com magic link:", createResult);
       }
 
       // 3. Criar registro de colaborador com company_id correto
@@ -166,16 +180,16 @@ export function useEmployees() {
       // 4. Criar registro de colaborador (user_id já foi criado pela edge function)
       // Não precisa adicionar à company_members pois a edge function já fez isso
 
-      // 5. Mostrar mensagem de sucesso
+      // 4. Mostrar mensagem de sucesso
       if (isNewUser) {
         toast({
-          title: "Colaborador criado com sucesso",
-          description: "O novo colaborador foi criado e recebeu as credenciais por email.",
+          title: "✨ Novo colaborador criado!",
+          description: `${employeeData.name} recebeu um email com magic link para acessar a plataforma. Ele será automaticamente vinculado à sua empresa.`,
         });
       } else {
         toast({
-          title: "Colaborador vinculado",
-          description: "Usuário existente foi vinculado à empresa como colaborador.",
+          title: "👥 Colaborador vinculado!",
+          description: `${employeeData.name} já tinha conta na plataforma e agora também tem acesso à sua empresa.`,
         });
       }
 

@@ -24,18 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { email }: CheckUserRequest = await req.json();
 
-    // Verificar se existe um perfil com este email
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('full_name', email) // Usando full_name como fallback
-      .maybeSingle();
-
-    if (profileError && profileError.code !== 'PGRST116') {
-      throw new Error(`Erro ao verificar perfil: ${profileError.message}`);
-    }
-
-    // Se não encontrou por full_name, buscar na tabela auth.users (usando admin)
+    // Buscar usuário existente por email usando admin API
     const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
     
     if (authError) {
@@ -44,9 +33,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     const existingUser = authUsers.users?.find(user => user.email === email);
 
+    if (existingUser) {
+      return new Response(JSON.stringify({
+        exists: true,
+        user_id: existingUser.id,
+        user_metadata: existingUser.user_metadata
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // Se não encontrou usuário existente
     return new Response(JSON.stringify({
-      exists: !!existingUser || !!profile,
-      user_id: existingUser?.id || profile?.user_id || null
+      exists: false,
+      user_id: null
     }), {
       status: 200,
       headers: {
