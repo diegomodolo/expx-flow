@@ -107,6 +107,16 @@ export function useClients() {
     fetchClients();
   }, [user?.id, activeCompany?.company_id]);
 
+  // Listen for campaign sync updates
+  useEffect(() => {
+    const handleClientsUpdated = () => {
+      fetchClients();
+    };
+
+    window.addEventListener('clientsUpdated', handleClientsUpdated);
+    return () => window.removeEventListener('clientsUpdated', handleClientsUpdated);
+  }, [fetchClients]);
+
   return {
     clients,
     loading,

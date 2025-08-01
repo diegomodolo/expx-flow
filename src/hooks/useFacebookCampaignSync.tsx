@@ -31,6 +31,9 @@ export const useFacebookCampaignSync = () => {
         description: "Dados das campanhas atualizados com sucesso!",
       });
 
+      // Trigger a refresh of clients data
+      window.dispatchEvent(new CustomEvent('clientsUpdated'));
+
       return data.data;
     } catch (error: any) {
       console.error('Error syncing campaigns:', error);
