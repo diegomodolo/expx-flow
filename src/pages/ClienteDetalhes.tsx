@@ -409,15 +409,13 @@ const ClienteDetalhes = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={cplByCampaignData}
-                      margin={{ top: 20, right: 30, left: 40, bottom: 80 }}
+                      margin={{ top: 20, right: 30, left: 40, bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name" 
-                        angle={-45}
-                        textAnchor="end"
-                        height={100}
-                        fontSize={11}
+                        tick={false}
+                        axisLine={false}
                       />
                       <YAxis 
                         tickFormatter={(value) => `R$ ${value.toFixed(0)}`}
