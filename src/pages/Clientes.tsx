@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useClients } from "@/hooks/useClients";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useClients, Client } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
+import { ClientDialog } from "@/components/clients/ClientDialog";
+import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { 
   Plus, 
   Search, 
@@ -17,7 +20,8 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 
 type StatusType = "all" | "green" | "yellow" | "red";
@@ -32,6 +36,10 @@ const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
   const { toast } = useToast();
 
@@ -77,7 +85,7 @@ const Clientes = () => {
               {totalClients} clientes
             </Badge>
           </div>
-          <Button className="flex items-center space-x-2">
+          <Button className="flex items-center space-x-2" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="w-4 h-4" />
             <span>Adicionar Cliente</span>
           </Button>
@@ -234,17 +242,37 @@ const Clientes = () => {
                           size="sm"
                           className="w-8 h-8 p-0"
                           title="Editar"
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setEditDialogOpen(true);
+                          }}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-8 h-8 p-0"
-                          title="Mais opções"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-8 h-8 p-0"
+                              title="Mais opções"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedClient(client);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -318,6 +346,29 @@ const Clientes = () => {
         </Card>
         </>
         )}
+        
+        {/* Dialogs */}
+        <ClientDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onSubmit={createClient}
+          title="Adicionar Cliente"
+        />
+        
+        <ClientDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSubmit={(clientData) => selectedClient ? updateClient(selectedClient.id, clientData) : Promise.resolve(null)}
+          client={selectedClient || undefined}
+          title="Editar Cliente"
+        />
+        
+        <DeleteClientDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={deleteClient}
+          client={selectedClient}
+        />
       </div>
     </DashboardLayout>
   );
