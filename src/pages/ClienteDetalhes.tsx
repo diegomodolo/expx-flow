@@ -55,21 +55,43 @@ const ClienteDetalhes = () => {
   // Data for CPL by Campaign chart (horizontal bar chart)
   const cplByCampaignData = React.useMemo(() => {
     if (!client?.campaigns || client.campaigns.length === 0) {
+      console.log('CPL Chart: No campaigns available');
       return [];
     }
 
-    return client.campaigns
-      .filter(campaign => (campaign.cpa || 0) > 0) // Use saved CPA instead of calculating
-      .map(campaign => ({
-        name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
-        fullName: campaign.name,
-        cpl: campaign.cpa || 0, // Use the CPA value saved during sync
-        spend: campaign.spend || 0,
-        conversions: campaign.conversions || 0,
-        status: campaign.status
-      }))
+    console.log('CPL Chart: All campaigns data:', client.campaigns.map(c => ({
+      name: c.name,
+      spend: c.spend,
+      conversions: c.conversions,
+      cpa: c.cpa,
+      status: c.status
+    })));
+
+    const filteredCampaigns = client.campaigns.filter(campaign => {
+      const hasValidCPA = (campaign.cpa || 0) > 0;
+      const hasSpend = (campaign.spend || 0) > 0;
+      const hasConversions = (campaign.conversions || 0) > 0;
+      
+      console.log(`Campaign ${campaign.name}: CPA=${campaign.cpa}, Spend=${campaign.spend}, Conversions=${campaign.conversions}, HasValidCPA=${hasValidCPA}`);
+      
+      return hasValidCPA || (hasSpend && hasConversions);
+    });
+
+    console.log('CPL Chart: Filtered campaigns:', filteredCampaigns.length);
+
+    const result = filteredCampaigns.map(campaign => ({
+      name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
+      fullName: campaign.name,
+      cpl: campaign.cpa || (campaign.conversions > 0 ? (campaign.spend / campaign.conversions) : 0),
+      spend: campaign.spend || 0,
+      conversions: campaign.conversions || 0,
+      status: campaign.status
+    }))
       .sort((a, b) => a.cpl - b.cpl) // Sort by CPL ascending (cheapest first)
       .slice(0, 8); // Show top 8 campaigns
+
+    console.log('CPL Chart: Final data for chart:', result);
+    return result;
   }, [client?.campaigns]);
 
   // Data for Investment Distribution chart (pie chart)
