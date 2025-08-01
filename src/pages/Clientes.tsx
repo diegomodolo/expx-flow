@@ -45,9 +45,9 @@ const Clientes = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    sector: "",
-    budgetRange: "",
-    campaignRange: ""
+    sector: "all",
+    budgetRange: "all",
+    campaignRange: "all"
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
@@ -59,9 +59,9 @@ const Clientes = () => {
                          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.company.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesSector = !filters.sector || client.sector.toLowerCase().includes(filters.sector.toLowerCase());
+    const matchesSector = filters.sector === "all" || client.sector.toLowerCase().includes(filters.sector.toLowerCase());
     
-    const matchesBudget = !filters.budgetRange || (() => {
+    const matchesBudget = filters.budgetRange === "all" || (() => {
       const budget = client.monthly_budget || 0;
       switch (filters.budgetRange) {
         case "0-1000": return budget >= 0 && budget <= 1000;
@@ -72,7 +72,7 @@ const Clientes = () => {
       }
     })();
     
-    const matchesCampaigns = !filters.campaignRange || (() => {
+    const matchesCampaigns = filters.campaignRange === "all" || (() => {
       const campaigns = client.active_campaigns || 0;
       switch (filters.campaignRange) {
         case "0": return campaigns === 0;
@@ -245,7 +245,7 @@ const Clientes = () => {
                       <SelectValue placeholder="Todos os setores" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos os setores</SelectItem>
+                      <SelectItem value="all">Todos os setores</SelectItem>
                       <SelectItem value="tecnologia">Tecnologia</SelectItem>
                       <SelectItem value="educacao">Educação</SelectItem>
                       <SelectItem value="saude">Saúde</SelectItem>
@@ -266,7 +266,7 @@ const Clientes = () => {
                       <SelectValue placeholder="Todas as faixas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as faixas</SelectItem>
+                      <SelectItem value="all">Todas as faixas</SelectItem>
                       <SelectItem value="0-1000">R$ 0 - R$ 1.000</SelectItem>
                       <SelectItem value="1000-5000">R$ 1.000 - R$ 5.000</SelectItem>
                       <SelectItem value="5000-10000">R$ 5.000 - R$ 10.000</SelectItem>
@@ -285,7 +285,7 @@ const Clientes = () => {
                       <SelectValue placeholder="Qualquer quantidade" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Qualquer quantidade</SelectItem>
+                      <SelectItem value="all">Qualquer quantidade</SelectItem>
                       <SelectItem value="0">0 campanhas</SelectItem>
                       <SelectItem value="1-3">1-3 campanhas</SelectItem>
                       <SelectItem value="4-10">4-10 campanhas</SelectItem>
@@ -299,7 +299,7 @@ const Clientes = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => {
-                    setFilters({ sector: "", budgetRange: "", campaignRange: "" });
+                    setFilters({ sector: "all", budgetRange: "all", campaignRange: "all" });
                     toast({
                       title: "Filtros limpos",
                       description: "Todos os filtros foram removidos.",
