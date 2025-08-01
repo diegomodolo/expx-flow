@@ -64,9 +64,11 @@ export default function AuthPage() {
         description: error.message
       });
     } else {
+      // Com confirmação de email desabilitada, o usuário já está logado
+      // O redirect automático acontecerá via ProtectedRoute
       toast({
         title: "Conta criada com sucesso!",
-        description: "Verifique seu email para confirmar a conta."
+        description: "Bem-vindo ao MarketingHub!"
       });
     }
     

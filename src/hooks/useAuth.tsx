@@ -39,19 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
-    
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName
         }
       }
     });
-    return { error };
+    
+    // Se não há erro e não precisa confirmar email, o usuário já está logado
+    return { error, data };
   };
 
   const signIn = async (email: string, password: string) => {
