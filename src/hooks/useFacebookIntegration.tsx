@@ -76,11 +76,10 @@ export const useFacebookIntegration = () => {
     try {
       console.log("Handling Facebook callback with code:", code);
       
-      const { data, error } = await supabase.functions.invoke('facebook-oauth', {
+      const { data, error } = await supabase.functions.invoke('facebook-oauth?action=exchange', {
         body: { 
           code, 
-          companyId,
-          action: 'exchange' 
+          companyId
         }
       });
 

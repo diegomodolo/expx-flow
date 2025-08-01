@@ -12,6 +12,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Facebook OAuth request received:', req.method, req.url);
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -19,15 +21,23 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url)
     const action = url.searchParams.get('action')
+    console.log('Action parameter:', action);
 
     if (action === 'exchange') {
       // Exchange authorization code for access token
       const { code, companyId } = await req.json()
+      console.log('Received code and companyId:', { code: code?.substring(0, 20) + '...', companyId });
       
       const facebookAppId = Deno.env.get('FACEBOOK_APP_ID')
       const facebookAppSecret = Deno.env.get('FACEBOOK_APP_SECRET')
       
+      console.log('Facebook credentials check:', { 
+        appIdExists: !!facebookAppId, 
+        secretExists: !!facebookAppSecret 
+      });
+      
       if (!facebookAppId || !facebookAppSecret) {
+        console.error('Facebook credentials missing');
         throw new Error('Facebook credentials not configured')
       }
 
@@ -43,28 +53,37 @@ Deno.serve(async (req) => {
       } else {
         redirectUri = 'https://controledetrafego.com.br/auth/callback'
       }
+      
+      console.log('Redirect URI determined:', redirectUri);
 
       // Exchange code for access token
-      const tokenResponse = await fetch(`https://graph.facebook.com/v20.0/oauth/access_token`, {
+      const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token`;
+      const tokenParams = new URLSearchParams({
+        client_id: facebookAppId,
+        client_secret: facebookAppSecret,
+        redirect_uri: redirectUri,
+        code: code,
+      });
+      
+      console.log('Attempting token exchange with Facebook...');
+      const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          client_id: facebookAppId,
-          client_secret: facebookAppSecret,
-          redirect_uri: redirectUri,
-          code: code,
-        }),
+        body: tokenParams,
       })
 
+      console.log('Facebook token response status:', tokenResponse.status);
+      
       if (!tokenResponse.ok) {
         const error = await tokenResponse.text()
         console.error('Facebook token exchange failed:', error)
-        throw new Error('Failed to exchange code for token')
+        throw new Error(`Facebook API error: ${error}`)
       }
 
       const tokenData = await tokenResponse.json()
+      console.log('Token exchange successful, expires in:', tokenData.expires_in);
       
       // Get user's ad accounts
       const adAccountsResponse = await fetch(`https://graph.facebook.com/v20.0/me/adaccounts?access_token=${tokenData.access_token}`)

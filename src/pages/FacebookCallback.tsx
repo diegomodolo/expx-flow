@@ -14,9 +14,13 @@ export const FacebookCallback = () => {
   
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processando conexão com Facebook...');
+  const [processed, setProcessed] = useState(false);
 
   useEffect(() => {
+    // Prevent multiple processing attempts
+    if (processed) return;
     const processCallback = async () => {
+      setProcessed(true);
       const code = searchParams.get('code');
       const error = searchParams.get('error');
       const state = searchParams.get('state');
@@ -62,7 +66,7 @@ export const FacebookCallback = () => {
     };
 
     processCallback();
-  }, [searchParams, activeCompany, handleCallback, navigate]);
+  }, [searchParams, activeCompany, handleCallback, navigate, processed]);
 
   const getIcon = () => {
     switch (status) {
