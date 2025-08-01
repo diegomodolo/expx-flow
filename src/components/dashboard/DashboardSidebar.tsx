@@ -31,6 +31,9 @@ const items = [
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
+// Debug log to verify order
+console.log("Sidebar items order:", items.map(item => item.title));
+
 export function DashboardSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
