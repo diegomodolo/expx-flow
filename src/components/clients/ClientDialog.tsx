@@ -54,11 +54,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
 
   // Update form data when client prop changes
   useEffect(() => {
-    console.log("=== ClientDialog useEffect ===");
-    console.log("Client prop:", client);
-    console.log("Dialog open:", open);
-    console.log("Title:", title);
-    
     if (client) {
       const newFormData = {
         name: client.name || "",
@@ -77,15 +72,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         campaign_type: client.campaign_type || "",
         notes: client.notes || ""
       };
-      console.log("Setting form data to:", newFormData);
       setFormData(newFormData);
-      
-      // Log after state update
-      setTimeout(() => {
-        console.log("FormData after state update should be:", newFormData);
-      }, 100);
     } else {
-      console.log("Client is null, setting empty form");
       setFormData({
         name: "",
         email: "",
@@ -209,12 +197,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       });
     }
   };
-
-  console.log("=== ClientDialog Render ===");
-  console.log("Current formData.name:", formData.name);
-  console.log("Current formData.email:", formData.email);
-  console.log("Current formData.company:", formData.company);
-  console.log("Full formData:", formData);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

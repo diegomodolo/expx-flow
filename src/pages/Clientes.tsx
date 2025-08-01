@@ -40,10 +40,8 @@ const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     sector: "all",
@@ -159,7 +157,7 @@ const Clientes = () => {
           <Button className="flex items-center space-x-2" onClick={() => {
             setDialogMode('create');
             setSelectedClient(null);
-            setCreateDialogOpen(true);
+            setDialogOpen(true);
           }}>
             <Plus className="w-4 h-4" />
             <span>Adicionar Cliente</span>
@@ -403,7 +401,7 @@ const Clientes = () => {
           onClick={() => {
             setDialogMode('view');
             setSelectedClient(client);
-            setViewDialogOpen(true);
+            setDialogOpen(true);
           }}
                         >
                           <Eye className="w-4 h-4" />
@@ -416,7 +414,7 @@ const Clientes = () => {
           onClick={() => {
             setDialogMode('edit');
             setSelectedClient(client);
-            setEditDialogOpen(true);
+            setDialogOpen(true);
           }}
         >
           <Edit className="w-4 h-4" />
@@ -521,37 +519,27 @@ const Clientes = () => {
         
         {/* Single Client Dialog for all modes */}
         <ClientDialog
-          open={createDialogOpen}
+          open={dialogOpen}
           onOpenChange={(open) => {
-            setCreateDialogOpen(open);
+            setDialogOpen(open);
             if (!open) setSelectedClient(null);
           }}
-          onSubmit={createClient}
-          client={undefined}
-          title="Adicionar Cliente"
-        />
-        
-        <ClientDialog
-          open={editDialogOpen}
-          onOpenChange={(open) => {
-            setEditDialogOpen(open);
-            if (!open) setSelectedClient(null);
-          }}
-          onSubmit={(clientData) => selectedClient ? updateClient(selectedClient.id, clientData) : Promise.resolve(null)}
-          client={selectedClient || undefined}
-          title="Editar Cliente"
-        />
-        
-        <ClientDialog
-          open={viewDialogOpen}
-          onOpenChange={(open) => {
-            setViewDialogOpen(open);
-            if (!open) setSelectedClient(null);
-          }}
-          onSubmit={() => Promise.resolve(null)}
-          client={selectedClient || undefined}
-          title="Visualizar Cliente"
-          readOnly={true}
+          onSubmit={
+            dialogMode === 'create' 
+              ? createClient 
+              : dialogMode === 'edit' && selectedClient
+                ? (clientData) => updateClient(selectedClient.id, clientData)
+                : () => Promise.resolve(null)
+          }
+          client={dialogMode === 'create' ? undefined : selectedClient || undefined}
+          title={
+            dialogMode === 'create' 
+              ? "Adicionar Cliente" 
+              : dialogMode === 'edit' 
+                ? "Editar Cliente" 
+                : "Visualizar Cliente"
+          }
+          readOnly={dialogMode === 'view'}
         />
         
         <DeleteClientDialog
