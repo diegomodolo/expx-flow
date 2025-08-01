@@ -1,106 +1,32 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-// import { TooltipProvider } from "@/components/ui/tooltip";
-// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import { CompanyProvider } from "@/contexts/CompanyContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Public pages
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
-import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
-import TermosServico from "./pages/TermosServico";
-import ExclusaoDados from "./pages/ExclusaoDados";
 import NotFound from "./pages/NotFound";
-import FacebookCallback from "./pages/FacebookCallback";
 
-// Protected pages
+// Protected pages 
 import DashboardPage from "./pages/DashboardPage";
-import Clientes from "./pages/Clientes";
-import Campanhas from "./pages/Campanhas";
-import Squad from "./pages/Squad";
-import Colaboradores from "./pages/Colaboradores";
-import Tarefas from "./pages/Tarefas";
-import Relatorios from "./pages/Relatorios";
-import Conhecimento from "./pages/Conhecimento";
 import Configuracoes from "./pages/Configuracoes";
 
-// const queryClient = new QueryClient();
-
-const App = () => (
-  <div className="min-h-screen w-full">
-    <div>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <CompanyProvider>
-            <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-            <Route path="/termos-servico" element={<TermosServico />} />
-            <Route path="/exclusao-dados" element={<ExclusaoDados />} />
-            <Route path="/auth/callback" element={<FacebookCallback />} />
-            
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/clientes" element={
-              <ProtectedRoute>
-                <Clientes />
-              </ProtectedRoute>
-            } />
-            <Route path="/campanhas" element={
-              <ProtectedRoute>
-                <Campanhas />
-              </ProtectedRoute>
-            } />
-            <Route path="/squad" element={
-              <ProtectedRoute>
-                <Squad />
-              </ProtectedRoute>
-            } />
-            <Route path="/colaboradores" element={
-              <ProtectedRoute>
-                <Colaboradores />
-              </ProtectedRoute>
-            } />
-            <Route path="/tarefas" element={
-              <ProtectedRoute>
-                <Tarefas />
-              </ProtectedRoute>
-            } />
-            <Route path="/relatorios" element={
-              <ProtectedRoute>
-                <Relatorios />
-              </ProtectedRoute>
-            } />
-            <Route path="/conhecimento" element={
-              <ProtectedRoute>
-                <Conhecimento />
-              </ProtectedRoute>
-            } />
-            <Route path="/configuracoes/*" element={
-              <ProtectedRoute>
-                <Configuracoes />
-              </ProtectedRoute>
-            } />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-            </Routes>
-      </CompanyProvider>
-    </AuthProvider>
-  </BrowserRouter>
-</div>
-</div>
-);
+const App = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        
+        {/* Protected routes - temporarily without protection */}
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/configuracoes/*" element={<Configuracoes />} />
+        
+        {/* Catch-all route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
 export default App;
