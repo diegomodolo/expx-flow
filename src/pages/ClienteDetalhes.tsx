@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,8 @@ import {
   Play,
   Pause,
   DollarSign,
-  Loader2
+  Loader2,
+  ChevronDown
 } from "lucide-react";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
@@ -36,6 +37,9 @@ const ClienteDetalhes = () => {
   const { client, loading, error, refetch } = useClientDetails(id || "");
   const { syncCampaigns, syncing: syncLoading } = useFacebookCampaignSync();
   const [activeTab, setActiveTab] = useState("campaigns");
+  const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
+  const [sortField, setSortField] = useState<'name' | 'cpc' | 'conversions' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const handleSync = async () => {
     if (!id) return;
@@ -135,6 +139,59 @@ const ClienteDetalhes = () => {
     finishedCampaigns,
     campaigns: client.campaigns
   });
+
+  // Filter and sort campaigns
+  const filteredAndSortedCampaigns = useMemo(() => {
+    let campaigns = client?.campaigns || [];
+    
+    // Filter campaigns
+    if (campaignFilter === 'active') {
+      campaigns = campaigns.filter(c => c.status === 'active');
+    } else if (campaignFilter === 'paused') {
+      campaigns = campaigns.filter(c => c.status === 'paused');
+    } else if (campaignFilter === 'finished') {
+      campaigns = campaigns.filter(c => c.status === 'finished');
+    }
+
+    // Sort campaigns
+    if (sortField) {
+      campaigns = [...campaigns].sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortField) {
+          case 'name':
+            aValue = a.name.toLowerCase();
+            bValue = b.name.toLowerCase();
+            break;
+          case 'cpc':
+            aValue = a.cpc;
+            bValue = b.cpc;
+            break;
+          case 'conversions':
+            aValue = a.conversions;
+            bValue = b.conversions;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return campaigns;
+  }, [client?.campaigns, campaignFilter, sortField, sortDirection]);
+
+  const handleSort = (field: 'name' | 'cpc' | 'conversions') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const statusConfig = {
     green: { label: "Excelente", color: "bg-green-100 text-green-800" },
@@ -341,32 +398,80 @@ const ClienteDetalhes = () => {
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Campanhas do Cliente</h4>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant={campaignFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setCampaignFilter('all')}
+                  >
+                    Todas ({totalCampaigns})
+                  </Button>
+                  <Button 
+                    variant={campaignFilter === 'active' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setCampaignFilter('active')}
+                  >
                     Ativas ({activeCampaigns})
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant={campaignFilter === 'paused' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setCampaignFilter('paused')}
+                  >
                     Pausadas ({pausedCampaigns})
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant={campaignFilter === 'finished' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setCampaignFilter('finished')}
+                  >
                     Finalizadas ({finishedCampaigns})
                   </Button>
                 </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Campanha</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plataformas</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPC</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Conversões</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {client.campaigns.map((campaign) => (
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleSort('name')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Campanha</span>
+                            {sortField === 'name' && (
+                              <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plataformas</th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleSort('cpc')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>CPC</span>
+                            {sortField === 'cpc' && (
+                              <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleSort('conversions')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Conversões</span>
+                            {sortField === 'conversions' && (
+                              <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredAndSortedCampaigns.map((campaign) => (
                       <tr key={campaign.id}>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
@@ -388,16 +493,6 @@ const ClienteDetalhes = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                           {campaign.conversions}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </div>
                         </td>
                       </tr>
                     ))}
