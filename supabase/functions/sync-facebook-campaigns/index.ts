@@ -303,15 +303,21 @@ serve(async (req) => {
       let clicks = 0
       let leads = 0
       let cpc = 0
+      let ctr = 0
+      let impressions = 0
 
       if (insights) {
         spend = parseFloat(insights.spend || 0)
         clicks = parseInt(insights.clicks || 0)
+        impressions = parseInt(insights.impressions || 0)
         
         totalSpend += spend
         totalClicks += clicks
         
-        console.log('Campaign insights:', { spend, clicks })
+        // Calculate CTR (Click Through Rate)
+        ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
+        
+        console.log('Campaign insights:', { spend, clicks, impressions, ctr })
         
         // Count leads from actions
         if (insights.actions) {
@@ -335,7 +341,7 @@ serve(async (req) => {
         platforms: 'Facebook Ads',
         status: isActive ? 'active' : 'paused',
         is_active: isActive,
-        ctr: insights?.ctr || 0,
+        ctr: ctr, // Use calculated CTR
         cpc: cpc,
         cpa: leads > 0 ? spend / leads : 0, // Calculate CPA (Cost Per Acquisition)
         conversions: leads,
