@@ -183,6 +183,50 @@ export const useFacebookIntegration = () => {
     }
   };
 
+  const refreshAdAccounts = async () => {
+    if (!integration || !activeCompany) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('facebook-oauth?action=refresh-accounts', {
+        body: { 
+          integrationId: integration.id,
+          companyId: activeCompany.company_id
+        }
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Erro na função de atualização");
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao atualizar contas");
+      }
+
+      console.log("Ad accounts refreshed:", data);
+      
+      setAdAccounts(data.adAccounts || []);
+
+      toast({
+        title: "Contas atualizadas!",
+        description: `${(data.adAccounts || []).length} conta(s) de anúncios atualizadas.`,
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error("Error refreshing ad accounts:", error);
+      toast({
+        title: "Erro ao atualizar contas",
+        description: error.message || "Ocorreu um erro inesperado",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     integration,
@@ -191,5 +235,6 @@ export const useFacebookIntegration = () => {
     handleCallback,
     loadIntegration,
     disconnectFacebook,
+    refreshAdAccounts,
   };
 };

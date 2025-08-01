@@ -166,6 +166,97 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (action === 'refresh-accounts') {
+      const { integrationId, companyId } = await req.json();
+      
+      if (!integrationId || !companyId) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Integration ID and Company ID are required' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      // Get the integration
+      const { data: integration, error: integrationError } = await supabase
+        .from('facebook_integrations')
+        .select('*')
+        .eq('id', integrationId)
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .single();
+
+      if (integrationError || !integration) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Integration not found or expired' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+
+      // Check if token is expired
+      if (new Date(integration.expires_at) < new Date()) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Integration token has expired. Please reconnect.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
+
+      // Fetch current ad accounts from Facebook
+      const adAccountsResponse = await fetch(`https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&access_token=${integration.access_token}`)
+      
+      if (!adAccountsResponse.ok) {
+        const error = await adAccountsResponse.text()
+        console.error('Failed to fetch ad accounts:', error)
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to fetch accounts from Facebook' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      const adAccountsData = await adAccountsResponse.json()
+      console.log('Refreshing ad accounts:', JSON.stringify(adAccountsData, null, 2));
+
+      // Update ad accounts in database (preserve existing relationships)
+      const savedAccounts = [];
+      for (const account of adAccountsData.data || []) {
+        console.log('Processing account:', JSON.stringify(account, null, 2));
+        
+        if (!account.id) continue;
+
+        const { data: savedAccount, error: accountError } = await supabase
+          .from('facebook_ad_accounts')
+          .upsert({
+            integration_id: integration.id,
+            account_id: account.id,
+            account_name: account.name || account.business_name || `Conta ${account.account_id || account.id}`,
+            currency: account.currency || 'USD',
+            is_active: account.account_status === 'ACTIVE' || true,
+          }, {
+            onConflict: 'integration_id,account_id'
+          })
+          .select()
+          .single();
+
+        if (accountError) {
+          console.error('Error saving account:', accountError, 'Account data:', account);
+        } else {
+          savedAccounts.push(savedAccount);
+          console.log('Successfully updated account:', savedAccount);
+        }
+      }
+
+      console.log(`Successfully refreshed ${savedAccounts.length} ad accounts out of ${adAccountsData.data?.length || 0} total accounts`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          adAccounts: savedAccounts
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     if (action === 'refresh') {
       // Refresh access token logic would go here
       // Facebook doesn't provide refresh tokens for marketing API

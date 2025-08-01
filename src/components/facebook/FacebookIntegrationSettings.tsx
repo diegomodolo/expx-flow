@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink } from "lucide-react";
+import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw } from "lucide-react";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
@@ -17,7 +17,8 @@ export const FacebookIntegrationSettings = () => {
     adAccounts, 
     loadIntegration, 
     connectFacebook, 
-    disconnectFacebook 
+    disconnectFacebook,
+    refreshAdAccounts 
   } = useFacebookIntegration();
 
   useEffect(() => {
@@ -160,10 +161,24 @@ export const FacebookIntegrationSettings = () => {
           {/* Card de Contas de Anúncios */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
                 Contas de Anúncios ({adAccounts.length})
-              </CardTitle>
+              </div>
+              {isConnected && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshAdAccounts}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Atualizar Contas
+                </Button>
+              )}
+            </CardTitle>
             </CardHeader>
             <CardContent>
               {adAccounts.length > 0 ? (
