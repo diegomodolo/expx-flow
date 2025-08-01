@@ -271,23 +271,42 @@ serve(async (req) => {
     const campaigns = campaignsData.data || []
     console.log('Number of campaigns found:', campaigns.length)
     
-    // Calculate metrics
+    // Calculate metrics and sync campaigns to database
     let activeCampaigns = 0
     let totalSpend = 0
     let totalLeads = 0
     let totalClicks = 0
 
-    campaigns.forEach((campaign: any) => {
+    // First, remove existing campaigns for this client
+    const { error: deleteError } = await supabase
+      .from('campaigns')
+      .delete()
+      .eq('client_id', clientId)
+    
+    if (deleteError) {
+      console.error('Error deleting existing campaigns:', deleteError)
+    } else {
+      console.log('Cleared existing campaigns for client')
+    }
+
+    // Process each campaign
+    for (const campaign of campaigns) {
       console.log('Processing campaign:', campaign.name, 'Status:', campaign.status)
       
-      if (campaign.status === 'ACTIVE') {
+      const isActive = campaign.status === 'ACTIVE'
+      if (isActive) {
         activeCampaigns++
       }
 
       const insights = campaign.insights?.data?.[0]
+      let spend = 0
+      let clicks = 0
+      let leads = 0
+      let cpc = 0
+
       if (insights) {
-        const spend = parseFloat(insights.spend || 0)
-        const clicks = parseInt(insights.clicks || 0)
+        spend = parseFloat(insights.spend || 0)
+        clicks = parseInt(insights.clicks || 0)
         
         totalSpend += spend
         totalClicks += clicks
@@ -298,14 +317,43 @@ serve(async (req) => {
         if (insights.actions) {
           insights.actions.forEach((action: any) => {
             if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-              const leads = parseInt(action.value || 0)
-              totalLeads += leads
-              console.log('Found leads:', leads, 'for action type:', action.action_type)
+              const actionLeads = parseInt(action.value || 0)
+              leads += actionLeads
+              totalLeads += actionLeads
+              console.log('Found leads:', actionLeads, 'for action type:', action.action_type)
             }
           })
         }
+
+        // Calculate CPC
+        cpc = clicks > 0 ? spend / clicks : 0
       }
-    })
+
+      // Save campaign to database
+      const campaignData = {
+        id: campaign.id,
+        name: campaign.name,
+        platforms: 'Facebook Ads',
+        status: isActive ? 'active' : 'paused',
+        is_active: isActive,
+        cpc: cpc,
+        conversions: leads,
+        client_id: clientId,
+        user_id: client.user_id,
+        company_id: client.company_id,
+        period: '30 dias'
+      }
+
+      const { error: campaignError } = await supabase
+        .from('campaigns')
+        .insert(campaignData)
+
+      if (campaignError) {
+        console.error('Error inserting campaign:', campaignError)
+      } else {
+        console.log('Campaign saved:', campaign.name)
+      }
+    }
 
     const avgCpl = totalLeads > 0 ? totalSpend / totalLeads : 0
 
