@@ -103,9 +103,16 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
 
   
   const handleCreateSector = async () => {
-    if (!newSectorName.trim()) return;
+    console.log("handleCreateSector called with:", newSectorName.trim());
+    if (!newSectorName.trim()) {
+      console.log("New sector name is empty, returning");
+      return;
+    }
     
+    console.log("Creating sector...");
     const newSector = await createSector(newSectorName.trim());
+    console.log("Sector creation result:", newSector);
+    
     if (newSector) {
       setFormData({ ...formData, sector: newSector.name });
       setNewSectorName("");
@@ -114,6 +121,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         title: "Setor criado",
         description: `O setor "${newSector.name}" foi criado com sucesso!`,
       });
+    } else {
+      console.log("Failed to create sector");
     }
   };
 
