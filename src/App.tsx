@@ -10,6 +10,7 @@ import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import Configuracoes from "./pages/Configuracoes";
 import Clientes from "./pages/Clientes";
+import ClienteDetalhes from "./pages/ClienteDetalhes";
 import Campanhas from "./pages/Campanhas";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
@@ -46,11 +47,16 @@ const App = () => {
                    <DashboardPage />
                  </ProtectedRoute>
                } />
-               <Route path="/clientes" element={
-                 <ProtectedRoute>
-                   <Clientes />
-                 </ProtectedRoute>
-               } />
+                <Route path="/clientes" element={
+                  <ProtectedRoute>
+                    <Clientes />
+                  </ProtectedRoute>
+                } />
+                <Route path="/clientes/:id" element={
+                  <ProtectedRoute>
+                    <ClienteDetalhes />
+                  </ProtectedRoute>
+                } />
                <Route path="/campanhas" element={
                  <ProtectedRoute>
                    <Campanhas />

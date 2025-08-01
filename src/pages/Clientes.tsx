@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -424,13 +425,10 @@ const Clientes = () => {
                           size="sm"
                           className="w-8 h-8 p-0"
                           title="Visualizar"
-          onClick={() => {
-            setDialogMode('view');
-            setSelectedClient(client);
-            setDialogOpen(true);
-          }}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Link to={`/clientes/${client.id}`}>
+                            <Eye className="w-4 h-4" />
+                          </Link>
                         </Button>
                         <Button
                           variant="ghost"
