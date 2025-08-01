@@ -31,28 +31,19 @@ serve(async (req) => {
 
     console.log('Syncing campaigns for client:', clientId)
 
-    // Get client with ad account info
+    // Get client info
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select(`
-        *,
-        facebook_ad_accounts!inner(
-          account_id,
-          facebook_integrations!inner(
-            access_token,
-            company_id
-          )
-        )
-      `)
+      .select('*')
       .eq('id', clientId)
       .single()
 
     if (clientError) {
       console.error('Error fetching client:', clientError)
-      throw new Error('Client not found or not linked to ad account')
+      throw new Error('Client not found')
     }
 
-    if (!client.facebook_ad_accounts || client.facebook_ad_accounts.length === 0) {
+    if (!client.ad_account_id) {
       console.log('No ad account linked to this client')
       return new Response(
         JSON.stringify({ 
@@ -64,8 +55,31 @@ serve(async (req) => {
       )
     }
 
-    const adAccount = client.facebook_ad_accounts[0]
-    const accessToken = adAccount.facebook_integrations.access_token
+    // Get ad account info
+    const { data: adAccount, error: adAccountError } = await supabase
+      .from('facebook_ad_accounts')
+      .select('*')
+      .eq('id', client.ad_account_id)
+      .single()
+
+    if (adAccountError) {
+      console.error('Error fetching ad account:', adAccountError)
+      throw new Error('Ad account not found')
+    }
+
+    // Get integration info
+    const { data: integration, error: integrationError } = await supabase
+      .from('facebook_integrations')
+      .select('*')
+      .eq('id', adAccount.integration_id)
+      .single()
+
+    if (integrationError) {
+      console.error('Error fetching integration:', integrationError)
+      throw new Error('Facebook integration not found')
+    }
+
+    const accessToken = integration.access_token
     const accountId = adAccount.account_id
 
     console.log('Fetching campaigns for account:', accountId)
