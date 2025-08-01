@@ -1,0 +1,106 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
+
+export interface Client {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  sector: string;
+  status: "green" | "yellow" | "red";
+  active_campaigns: number;
+  avg_cpl: number;
+  last_access: string;
+  avatar: string;
+}
+
+export function useClients() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  const fetchClients = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao buscar clientes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl">) => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from("clients")
+        .insert([{
+          ...clientData,
+          user_id: user.id,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchClients(); // Refresh the list
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar cliente");
+      return null;
+    }
+  };
+
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    try {
+      const { error } = await supabase
+        .from("clients")
+        .update(updates)
+        .eq("id", id);
+
+      if (error) throw error;
+      await fetchClients(); // Refresh the list
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar cliente");
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      await fetchClients(); // Refresh the list
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao deletar cliente");
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, [user]);
+
+  return {
+    clients,
+    loading,
+    error,
+    fetchClients,
+    createClient,
+    updateClient,
+    deleteClient,
+  };
+}

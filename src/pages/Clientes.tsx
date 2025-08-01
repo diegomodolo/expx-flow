@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useClients } from "@/hooks/useClients";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
   Search, 
@@ -14,122 +16,11 @@ import {
   Edit, 
   MoreHorizontal,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 
 type StatusType = "all" | "green" | "yellow" | "red";
-
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  company: string;
-  sector: string;
-  status: "green" | "yellow" | "red";
-  activeCampaigns: number;
-  avgCPL: number;
-  lastAccess: string;
-  avatar: string;
-}
-
-const mockClients: Client[] = [
-  {
-    id: "1",
-    name: "Carlos Eduardo Silva",
-    email: "carlos@techsolutions.com",
-    company: "TechSolutions Ltda",
-    sector: "Tecnologia",
-    status: "green",
-    activeCampaigns: 3,
-    avgCPL: 32.50,
-    lastAccess: "Hoje, 14:30",
-    avatar: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "2",
-    name: "Ana Paula Rodrigues",
-    email: "ana@inovaremarketing.com",
-    company: "Inovare Marketing",
-    sector: "Marketing Digital",
-    status: "green",
-    activeCampaigns: 5,
-    avgCPL: 38.90,
-    lastAccess: "Ontem, 16:45",
-    avatar: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "3",
-    name: "Roberto Santos",
-    email: "roberto@beachwear.com",
-    company: "BeachWear Co.",
-    sector: "Moda Praia",
-    status: "yellow",
-    activeCampaigns: 2,
-    avgCPL: 41.20,
-    lastAccess: "2 dias atrás",
-    avatar: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "4",
-    name: "Fernanda Costa",
-    email: "fernanda@fitnessacademy.com",
-    company: "Fitness Academy",
-    sector: "Academia",
-    status: "red",
-    activeCampaigns: 1,
-    avgCPL: 78.50,
-    lastAccess: "5 dias atrás",
-    avatar: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "5",
-    name: "Lucas Oliveira",
-    email: "lucas@autopecas.com",
-    company: "AutoPeças Express",
-    sector: "Autopeças",
-    status: "green",
-    activeCampaigns: 4,
-    avgCPL: 29.80,
-    lastAccess: "Hoje, 09:15",
-    avatar: "https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "6",
-    name: "Mariana Ferreira",
-    email: "mariana@consultoria.com",
-    company: "Consultoria Empresarial",
-    sector: "Consultoria",
-    status: "yellow",
-    activeCampaigns: 2,
-    avgCPL: 52.30,
-    lastAccess: "1 dia atrás",
-    avatar: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "7",
-    name: "Pedro Almeida",
-    email: "pedro@ecotech.com",
-    company: "EcoTech Solutions",
-    sector: "Sustentabilidade",
-    status: "green",
-    activeCampaigns: 3,
-    avgCPL: 35.70,
-    lastAccess: "Hoje, 11:20",
-    avatar: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=40&h=40&fit=crop&crop=face"
-  },
-  {
-    id: "8",
-    name: "Juliana Mendes",
-    email: "juliana@retailmax.com",
-    company: "RetailMax",
-    sector: "Varejo",
-    status: "red",
-    activeCampaigns: 1,
-    avgCPL: 89.40,
-    lastAccess: "1 semana atrás",
-    avatar: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=40&h=40&fit=crop&crop=face"
-  }
-];
 
 const statusConfig = {
   green: { label: "Excelente", color: "bg-green-100 text-green-800", dotColor: "bg-green-500" },
@@ -141,8 +32,10 @@ const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  
-  const filteredClients = mockClients.filter(client => {
+  const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
+  const { toast } = useToast();
+
+  const filteredClients = clients.filter(client => {
     const matchesStatus = statusFilter === "all" || client.status === statusFilter;
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,9 +49,26 @@ const Clientes = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedClients = filteredClients.slice(startIndex, startIndex + itemsPerPage);
 
+  if (error) {
+    toast({
+      title: "Erro",
+      description: error,
+      variant: "destructive",
+    });
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {loading && (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span className="ml-2">Carregando clientes...</span>
+          </div>
+        )}
+        
+        {!loading && (
+          <>
         {/* Header Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -298,16 +208,16 @@ const Clientes = () => {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {client.activeCampaigns}
+                      {client.active_campaigns}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
                       client.status === "green" ? "text-green-600" : 
                       client.status === "yellow" ? "text-yellow-600" : "text-red-600"
                     }`}>
-                      R$ {client.avgCPL.toFixed(2)}
+                      R$ {client.avg_cpl.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.lastAccess}
+                      {client.last_access}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
@@ -406,6 +316,8 @@ const Clientes = () => {
             </div>
           </div>
         </Card>
+        </>
+        )}
       </div>
     </DashboardLayout>
   );
