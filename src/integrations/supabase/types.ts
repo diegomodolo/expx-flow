@@ -577,7 +577,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_company_ids: {
+        Args: { _user_id: string }
+        Returns: {
+          company_id: string
+        }[]
+      }
+      is_company_admin_or_owner: {
+        Args: { _user_id: string; _company_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       campaign_status: "active" | "paused" | "finished"
