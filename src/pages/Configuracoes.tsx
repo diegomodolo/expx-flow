@@ -7,7 +7,7 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { PlansSettings } from "@/components/settings/PlansSettings";
 import { FacebookIntegrationCard } from "@/components/facebook/FacebookIntegrationCard";
-import { FacebookIntegrationInfo } from "@/components/facebook/FacebookIntegrationInfo";
+// import { FacebookIntegrationInfo } from "@/components/facebook/FacebookIntegrationInfo";
 
 const Configuracoes = () => {
   return (
@@ -26,7 +26,6 @@ const Configuracoes = () => {
               <div className="space-y-6">
                 <UserProfileSettings />
                 <FacebookIntegrationCard />
-                <FacebookIntegrationInfo />
               </div>
             } />
             <Route path="empresa" element={<CompanySettings />} />
