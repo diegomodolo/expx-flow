@@ -9,6 +9,13 @@ import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import Configuracoes from "./pages/Configuracoes";
+import Clientes from "./pages/Clientes";
+import Campanhas from "./pages/Campanhas";
+import Colaboradores from "./pages/Colaboradores";
+import Squad from "./pages/Squad";
+import Tarefas from "./pages/Tarefas";
+import Relatorios from "./pages/Relatorios";
+import Conhecimento from "./pages/Conhecimento";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 
@@ -33,17 +40,52 @@ const App = () => {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
               
-              {/* Protected routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/configuracoes/*" element={
-                <ProtectedRoute>
-                  <Configuracoes />
-                </ProtectedRoute>
-              } />
+               {/* Protected routes */}
+               <Route path="/dashboard" element={
+                 <ProtectedRoute>
+                   <DashboardPage />
+                 </ProtectedRoute>
+               } />
+               <Route path="/clientes" element={
+                 <ProtectedRoute>
+                   <Clientes />
+                 </ProtectedRoute>
+               } />
+               <Route path="/campanhas" element={
+                 <ProtectedRoute>
+                   <Campanhas />
+                 </ProtectedRoute>
+               } />
+               <Route path="/colaboradores" element={
+                 <ProtectedRoute>
+                   <Colaboradores />
+                 </ProtectedRoute>
+               } />
+               <Route path="/squad" element={
+                 <ProtectedRoute>
+                   <Squad />
+                 </ProtectedRoute>
+               } />
+               <Route path="/tarefas" element={
+                 <ProtectedRoute>
+                   <Tarefas />
+                 </ProtectedRoute>
+               } />
+               <Route path="/relatorios" element={
+                 <ProtectedRoute>
+                   <Relatorios />
+                 </ProtectedRoute>
+               } />
+               <Route path="/conhecimento" element={
+                 <ProtectedRoute>
+                   <Conhecimento />
+                 </ProtectedRoute>
+               } />
+               <Route path="/configuracoes/*" element={
+                 <ProtectedRoute>
+                   <Configuracoes />
+                 </ProtectedRoute>
+               } />
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
