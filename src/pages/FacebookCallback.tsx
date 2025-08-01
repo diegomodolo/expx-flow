@@ -19,11 +19,12 @@ export const FacebookCallback = () => {
   useEffect(() => {
     // Prevent multiple processing attempts
     if (processed) return;
+    
     const processCallback = async () => {
       setProcessed(true);
       const code = searchParams.get('code');
       const error = searchParams.get('error');
-      const state = searchParams.get('state');
+      const state = searchParams.get('state'); // This contains the company_id
 
       if (error) {
         setStatus('error');
@@ -37,14 +38,17 @@ export const FacebookCallback = () => {
         return;
       }
 
-      if (!activeCompany?.company_id) {
+      // Use the company_id from state parameter if activeCompany is not available
+      const companyId = activeCompany?.company_id || state;
+      
+      if (!companyId) {
         setStatus('error');
-        setMessage('Empresa não selecionada');
+        setMessage('Empresa não identificada');
         return;
       }
 
       try {
-        const success = await handleCallback(code, activeCompany.company_id);
+        const success = await handleCallback(code, companyId);
         
         if (success) {
           setStatus('success');
@@ -65,7 +69,12 @@ export const FacebookCallback = () => {
       }
     };
 
-    processCallback();
+    // Wait a bit for the company context to load before processing
+    const timer = setTimeout(() => {
+      processCallback();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [searchParams, activeCompany, handleCallback, navigate, processed]);
 
   const getIcon = () => {
