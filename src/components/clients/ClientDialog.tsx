@@ -26,21 +26,21 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const { sectors, createSector } = useSectors();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    name: client?.name || "",
-    email: client?.email || "",
-    company: client?.company || "",
-    sector: client?.sector || "",
-    status: client?.status || "green" as const,
-    avatar: client?.avatar || "",
-    last_access: client?.last_access || new Date().toLocaleDateString('pt-BR'),
-    monthly_budget: client?.monthly_budget || 0,
-    target_audience: client?.target_audience || "",
-    product_name: client?.product_name || "",
-    voice_tone: client?.voice_tone || "",
-    objectives: client?.objectives || "",
-    preferred_platforms: client?.preferred_platforms || [],
-    campaign_type: client?.campaign_type || "",
-    notes: client?.notes || ""
+    name: "",
+    email: "",
+    company: "",
+    sector: "",
+    status: "green" as "green" | "yellow" | "red",
+    avatar: "",
+    last_access: new Date().toLocaleDateString('pt-BR'),
+    monthly_budget: 0,
+    target_audience: "",
+    product_name: "",
+    voice_tone: "",
+    objectives: "",
+    preferred_platforms: [] as string[],
+    campaign_type: "",
+    notes: ""
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -331,7 +331,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value })} disabled={readOnly}>
+              <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value as "green" | "yellow" | "red" })} disabled={readOnly}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
