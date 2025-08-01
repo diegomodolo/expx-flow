@@ -27,7 +27,8 @@ import {
   DollarSign,
   Loader2,
   ChevronDown,
-  Users
+  Users,
+  BarChart3
 } from "lucide-react";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useAdSets } from "@/hooks/useAdSets";
@@ -35,6 +36,7 @@ import { useAds } from "@/hooks/useAds";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +55,8 @@ const ClienteDetalhes = () => {
   const [adSortField, setAdSortField] = useState<'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | null>(null);
   const [adSortDirection, setAdSortDirection] = useState<'asc' | 'desc'>('asc');
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [metricsModalOpen, setMetricsModalOpen] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -326,6 +330,11 @@ const ClienteDetalhes = () => {
       console.error('Erro ao sincronizar:', error);
       setSyncDialogOpen(false);
     }
+  };
+
+  const handleViewMetrics = (campaign: any) => {
+    setSelectedCampaign(campaign);
+    setMetricsModalOpen(true);
   };
   
   
@@ -796,6 +805,7 @@ const ClienteDetalhes = () => {
                             )}
                           </div>
                         </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -830,6 +840,17 @@ const ClienteDetalhes = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-orange-600">
                           R$ {campaign.spend.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewMetrics(campaign)}
+                            className="flex items-center space-x-1"
+                          >
+                            <BarChart3 className="w-4 h-4" />
+                            <span>Indicadores</span>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -1294,6 +1315,13 @@ const ClienteDetalhes = () => {
           onConfirm={handleSyncConfirm}
           syncing={syncLoading}
           title="Sincronizar Campanhas do Cliente"
+        />
+
+        {/* Campaign Metrics Modal */}
+        <CampaignMetricsModal
+          campaign={selectedCampaign}
+          isOpen={metricsModalOpen}
+          onClose={() => setMetricsModalOpen(false)}
         />
       </div>
     </DashboardLayout>
