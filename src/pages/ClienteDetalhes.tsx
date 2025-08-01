@@ -404,12 +404,12 @@ const ClienteDetalhes = () => {
               <p className="text-sm text-gray-600">Custo por Lead de cada campanha ativa</p>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
+              <div className="h-60">
                  {cplByCampaignData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={cplByCampaignData}
-                      margin={{ top: 20, right: 30, left: 40, bottom: 10 }}
+                      margin={{ top: 20, right: 30, left: 40, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
