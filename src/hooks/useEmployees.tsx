@@ -97,43 +97,45 @@ export function useEmployees() {
       let userId: string;
       let isNewUser = true;
 
-      // 2. Tentar encontrar usuário existente pelo email no sistema
-      const { data: existingProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('user_id', user.id) // Inicialmente buscar pelo próprio usuário logado para testar
-        .maybeSingle();
-
-      // Para simplificar, vamos sempre criar um novo usuário e enviar convite
-      // Em produção, aqui implementaríamos uma busca melhor por email existente
+      // 2. Verificar se usuário já existe através da edge function
       try {
-        // Criar convite/signup para o novo colaborador
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: employeeData.email,
-          password: tempPassword,
-          options: {
-            data: {
-              full_name: employeeData.name,
-            }
-          }
+        const { data: checkResult, error: checkError } = await supabase.functions.invoke('check-user', {
+          body: { email: employeeData.email }
         });
 
-        if (signUpError) {
-          // Se o usuário já existe, tentamos fazer login para obter o ID
-          console.log("Usuário já existe, tentando obter ID...");
-          
-          // Como não podemos fazer login direto, vamos criar o colaborador com user_id do admin por enquanto
-          // Em produção, implementaríamos uma edge function para gerenciar isso
-          userId = user.id; // Temporário - usa o ID do admin
+        if (checkError) {
+          console.log("Erro ao verificar usuário:", checkError);
+        }
+
+        if (checkResult && checkResult.exists) {
+          userId = checkResult.user_id;
           isNewUser = false;
         } else {
-          userId = signUpData.user?.id || user.id;
+          // Criar novo usuário usando edge function para não afetar sessão atual
+          const { data: createResult, error: createError } = await supabase.functions.invoke('create-employee-user', {
+            body: {
+              email: employeeData.email,
+              name: employeeData.name,
+              password: tempPassword,
+              companyId: activeCompany.company_id,
+              companyName: activeCompany.company?.name || 'Nossa Empresa'
+            }
+          });
+
+          if (createError) {
+            throw new Error(`Erro ao criar usuário: ${createError.message}`);
+          }
+
+          if (!createResult || !createResult.user_id) {
+            throw new Error("Erro ao criar usuário: dados não retornados");
+          }
+
+          userId = createResult.user_id;
           isNewUser = true;
         }
       } catch (authErr) {
-        console.warn("Erro na autenticação:", authErr);
-        userId = user.id; // Fallback para o admin
-        isNewUser = false;
+        console.warn("Erro na criação de usuário:", authErr);
+        throw new Error("Erro ao processar criação de usuário");
       }
 
       // 3. Criar registro de colaborador com company_id correto
@@ -161,61 +163,19 @@ export function useEmployees() {
         throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
       }
 
-      // 4. Adicionar à tabela company_members se for novo usuário
-      if (isNewUser || userId) {
-        const { error: memberError } = await supabase
-          .from("company_members")
-          .upsert({
-            user_id: userId,
-            company_id: activeCompany.company_id,
-            role: 'member',
-            joined_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id,company_id'
-          });
+      // 4. Criar registro de colaborador (user_id já foi criado pela edge function)
+      // Não precisa adicionar à company_members pois a edge function já fez isso
 
-        if (memberError) {
-          console.warn("Aviso ao adicionar membro da empresa:", memberError);
-        }
-      }
-
-      // 5. Enviar email com credenciais se for novo usuário
+      // 5. Mostrar mensagem de sucesso
       if (isNewUser) {
-        try {
-          const { error: emailError } = await supabase.functions.invoke('invite-employee', {
-            body: {
-              email: employeeData.email,
-              name: employeeData.name,
-              role: employeeData.role,
-              companyName: activeCompany.company?.name || 'Nossa Empresa',
-              tempPassword,
-            },
-          });
-
-          if (emailError) {
-            console.warn("Aviso ao enviar email:", emailError);
-            toast({
-              title: "Colaborador criado com sucesso",
-              description: `Colaborador adicionado, mas houve problema ao enviar email. Senha temporária: ${tempPassword}`,
-              variant: "default",
-            });
-          } else {
-            toast({
-              title: "Colaborador criado e email enviado",
-              description: "O colaborador recebeu as credenciais por email.",
-            });
-          }
-        } catch (emailErr) {
-          console.warn("Erro ao enviar email:", emailErr);
-          toast({
-            title: "Colaborador criado",
-            description: `Email não enviado. Senha temporária: ${tempPassword}`,
-          });
-        }
+        toast({
+          title: "Colaborador criado com sucesso",
+          description: "O novo colaborador foi criado e recebeu as credenciais por email.",
+        });
       } else {
         toast({
           title: "Colaborador vinculado",
-          description: "Usuário existente foi vinculado à empresa.",
+          description: "Usuário existente foi vinculado à empresa como colaborador.",
         });
       }
 
