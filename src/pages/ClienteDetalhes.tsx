@@ -32,7 +32,7 @@ import {
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,44 +52,45 @@ const ClienteDetalhes = () => {
   const totalLeadsGenerated = client?.leads_generated || 0;
   const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
 
-  // Chart data for CPL performance - MOVED TO TOP BEFORE ANY EARLY RETURNS
-  const chartData = React.useMemo(() => {
+  // Data for CPL by Campaign chart (horizontal bar chart)
+  const cplByCampaignData = React.useMemo(() => {
     if (!client?.campaigns || client.campaigns.length === 0) {
-      // Return empty array if no campaigns
       return [];
     }
 
-    // Generate last 7 days of data
-    const days = [];
-    const today = new Date();
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      // Calculate CPL for campaigns created before or on this date
-      const campaignsUpToDate = client.campaigns.filter(campaign => {
-        const campaignDate = new Date(campaign.created_at);
-        return campaignDate <= date;
-      });
-      
-      let totalSpend = 0;
-      let totalLeads = 0;
-      
-      campaignsUpToDate.forEach(campaign => {
-        totalSpend += campaign.spend || 0;
-        totalLeads += campaign.conversions || 0;
-      });
-      
-      const cpl = totalLeads > 0 ? totalSpend / totalLeads : 0;
-      
-      days.push({
-        date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        cpl: parseFloat(cpl.toFixed(2))
-      });
+    return client.campaigns
+      .filter(campaign => (campaign.spend || 0) > 0 && (campaign.conversions || 0) > 0)
+      .map(campaign => ({
+        name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
+        fullName: campaign.name,
+        cpl: campaign.conversions > 0 ? (campaign.spend / campaign.conversions) : 0,
+        spend: campaign.spend || 0,
+        conversions: campaign.conversions || 0,
+        status: campaign.status
+      }))
+      .sort((a, b) => a.cpl - b.cpl) // Sort by CPL ascending (cheapest first)
+      .slice(0, 8); // Show top 8 campaigns
+  }, [client?.campaigns]);
+
+  // Data for Investment Distribution chart (pie chart)
+  const investmentDistributionData = React.useMemo(() => {
+    if (!client?.campaigns || client.campaigns.length === 0) {
+      return [];
     }
+
+    const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#0088fe', '#ff0088', '#8800ff'];
     
-    return days;
+    return client.campaigns
+      .filter(campaign => (campaign.spend || 0) > 0)
+      .map((campaign, index) => ({
+        name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
+        fullName: campaign.name,
+        value: campaign.spend || 0,
+        conversions: campaign.conversions || 0,
+        color: colors[index % colors.length]
+      }))
+      .sort((a, b) => b.value - a.value) // Sort by spend descending
+      .slice(0, 6); // Show top 6 campaigns
   }, [client?.campaigns]);
 
   // Filter and sort campaigns
@@ -394,42 +395,155 @@ const ClienteDetalhes = () => {
           </Card>
         </div>
 
-        {/* CPL Performance Chart */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Performance de CPL ao Longo do Tempo</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">7 dias</Button>
-                <Button size="sm">30 dias</Button>
-                <Button variant="outline" size="sm">90 dias</Button>
+        {/* Performance Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* CPL by Campaign Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>CPL por Campanha</CardTitle>
+              <p className="text-sm text-gray-600">Custo por Lead de cada campanha ativa</p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                {cplByCampaignData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={cplByCampaignData}
+                      layout="horizontal"
+                      margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        type="number" 
+                        domain={[0, 'dataMax']}
+                        tickFormatter={(value) => `R$ ${value.toFixed(0)}`}
+                      />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={90}
+                        fontSize={11}
+                      />
+                      <Tooltip 
+                        formatter={(value, name) => [`R$ ${Number(value).toFixed(2)}`, 'CPL']}
+                        labelFormatter={(label) => cplByCampaignData.find(d => d.name === label)?.fullName || label}
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+                                <p className="font-medium text-gray-900">{data.fullName}</p>
+                                <p className="text-blue-600">CPL: R$ {data.cpl.toFixed(2)}</p>
+                                <p className="text-gray-600">Investido: R$ {data.spend.toFixed(2)}</p>
+                                <p className="text-gray-600">Conversões: {data.conversions}</p>
+                                <p className="text-gray-600">Status: {data.status === 'active' ? 'Ativa' : 'Pausada'}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar 
+                        dataKey="cpl" 
+                        fill="#3B82F6"
+                        radius={[0, 4, 4, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                      <p>Nenhum dado disponível</p>
+                      <p className="text-sm">Sincronize as campanhas para ver os dados</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => [`R$ ${value}`, 'CPL']}
-                    labelFormatter={(label) => `Data: ${label}`}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="cpl" 
-                    stroke="#2563EB" 
-                    fill="#2563EB" 
-                    fillOpacity={0.1}
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Investment Distribution Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribuição de Investimento</CardTitle>
+              <p className="text-sm text-gray-600">Proporção do orçamento por campanha</p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                {investmentDistributionData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={investmentDistributionData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={120}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {investmentDistributionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => [`R$ ${Number(value).toFixed(2)}`, 'Investido']}
+                        labelFormatter={(label) => investmentDistributionData.find(d => d.name === label)?.fullName || label}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const percentage = ((data.value / totalInvested) * 100).toFixed(1);
+                            return (
+                              <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+                                <p className="font-medium text-gray-900">{data.fullName}</p>
+                                <p className="text-blue-600">Investido: R$ {data.value.toFixed(2)} ({percentage}%)</p>
+                                <p className="text-gray-600">Conversões: {data.conversions}</p>
+                                {data.conversions > 0 && (
+                                  <p className="text-gray-600">CPL: R$ {(data.value / data.conversions).toFixed(2)}</p>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                      <p>Nenhum dado disponível</p>
+                      <p className="text-sm">Sincronize as campanhas para ver os dados</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Legend */}
+              {investmentDistributionData.length > 0 && (
+                <div className="mt-4 grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                  {investmentDistributionData.map((entry, index) => {
+                    const percentage = ((entry.value / totalInvested) * 100).toFixed(1);
+                    return (
+                      <div key={index} className="flex items-center space-x-2 text-sm">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="flex-1 text-gray-700 truncate" title={entry.fullName}>
+                          {entry.name}
+                        </span>
+                        <span className="text-gray-600">
+                          {percentage}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Tabs Section */}
         <Card>
