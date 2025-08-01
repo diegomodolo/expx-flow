@@ -26,7 +26,8 @@ import {
   Pause,
   DollarSign,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Users
 } from "lucide-react";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
@@ -48,6 +49,8 @@ const ClienteDetalhes = () => {
   const activeCampaigns = client?.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
   const pausedCampaigns = client?.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
   const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
+  const totalLeadsGenerated = client?.leads_generated || 0;
+  const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
 
   // Filter and sort campaigns
   const filteredAndSortedCampaigns = useMemo(() => {
@@ -288,15 +291,15 @@ const ClienteDetalhes = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total de Campanhas</p>
-                  <p className="text-2xl font-bold text-gray-900">{totalCampaigns}</p>
+                  <p className="text-sm font-medium text-gray-600">Total de Leads Gerados</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalLeadsGenerated}</p>
                   <div className="flex items-center space-x-1 mt-1">
                     <TrendingUp className="w-3 h-3 text-green-500" />
-                    <span className="text-xs text-green-500">vs mês anterior</span>
+                    <span className="text-xs text-green-500">este período</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Megaphone className="w-6 h-6 text-blue-600" />
+                  <Users className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -324,15 +327,17 @@ const ClienteDetalhes = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Campanhas Pausadas</p>
-                  <p className="text-2xl font-bold text-gray-900">{pausedCampaigns}</p>
+                  <p className="text-sm font-medium text-gray-600">Valor Total Investido</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    R$ {totalInvested.toFixed(2)}
+                  </p>
                   <div className="flex items-center space-x-1 mt-1">
-                    <TrendingDown className="w-3 h-3 text-red-500" />
-                    <span className="text-xs text-red-500">esta semana</span>
+                    <TrendingUp className="w-3 h-3 text-blue-500" />
+                    <span className="text-xs text-blue-500">este período</span>
                   </div>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <Pause className="w-6 h-6 text-yellow-600" />
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
