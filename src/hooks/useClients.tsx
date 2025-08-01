@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export interface Client {
   id: string;
@@ -29,15 +30,17 @@ export function useClients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
 
   const fetchClients = async () => {
-    if (!user) return;
+    if (!user || !activeCompany) return;
     
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("clients")
         .select("*")
+        .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -50,7 +53,7 @@ export function useClients() {
   };
 
   const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl">) => {
-    if (!user) return null;
+    if (!user || !activeCompany) return null;
 
     try {
       const { data, error } = await supabase
@@ -58,6 +61,7 @@ export function useClients() {
         .insert([{
           ...clientData,
           user_id: user.id,
+          company_id: activeCompany.company_id,
         }])
         .select()
         .single();
@@ -101,7 +105,7 @@ export function useClients() {
 
   useEffect(() => {
     fetchClients();
-  }, [user?.id]);
+  }, [user?.id, activeCompany?.company_id]);
 
   return {
     clients,
