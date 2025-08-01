@@ -44,6 +44,8 @@ const ClienteDetalhes = () => {
   const { syncCampaigns, syncing: syncLoading } = useFacebookCampaignSync();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
+  const [adSetFilter, setAdSetFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
+  const [adFilter, setAdFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [adSetSortField, setAdSetSortField] = useState<'name' | 'status' | 'budget' | 'cpm' | 'ctr' | 'conversions' | null>(null);
@@ -59,6 +61,18 @@ const ClienteDetalhes = () => {
   const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
   const totalLeadsGenerated = client?.leads_generated || 0;
   const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
+
+  // Calculate ad set metrics
+  const totalAdSets = adSets?.length || 0;
+  const activeAdSets = adSets?.filter(adSet => adSet.status === 'ACTIVE').length || 0;
+  const pausedAdSets = adSets?.filter(adSet => adSet.status === 'PAUSED').length || 0;
+  const finishedAdSets = adSets?.filter(adSet => adSet.status === 'ARCHIVED').length || 0;
+
+  // Calculate ad metrics
+  const totalAds = ads?.length || 0;
+  const activeAds = ads?.filter(ad => ad.status === 'ACTIVE').length || 0;
+  const pausedAds = ads?.filter(ad => ad.status === 'PAUSED').length || 0;
+  const finishedAds = ads?.filter(ad => ad.status === 'ARCHIVED').length || 0;
 
   // Data for CPL by Campaign chart (horizontal bar chart)
   const cplByCampaignData = React.useMemo(() => {
@@ -156,13 +170,22 @@ const ClienteDetalhes = () => {
   }, [client?.campaigns, campaignFilter, sortField, sortDirection]);
 
   // Filter and sort ad sets
-  const sortedAdSets = useMemo(() => {
+  const filteredAndSortedAdSets = useMemo(() => {
     if (!adSets) return [];
     
-    let sorted = [...adSets];
+    let filtered = [...adSets];
+    
+    // Filter ad sets
+    if (adSetFilter === 'active') {
+      filtered = filtered.filter(adSet => adSet.status === 'ACTIVE');
+    } else if (adSetFilter === 'paused') {
+      filtered = filtered.filter(adSet => adSet.status === 'PAUSED');
+    } else if (adSetFilter === 'finished') {
+      filtered = filtered.filter(adSet => adSet.status === 'ARCHIVED');
+    }
     
     if (adSetSortField) {
-      sorted = sorted.sort((a, b) => {
+      filtered = filtered.sort((a, b) => {
         let aValue, bValue;
         
         switch (adSetSortField) {
@@ -200,17 +223,26 @@ const ClienteDetalhes = () => {
       });
     }
 
-    return sorted;
-  }, [adSets, adSetSortField, adSetSortDirection]);
+    return filtered;
+  }, [adSets, adSetFilter, adSetSortField, adSetSortDirection]);
 
   // Filter and sort ads
-  const sortedAds = useMemo(() => {
+  const filteredAndSortedAds = useMemo(() => {
     if (!ads) return [];
     
-    let sorted = [...ads];
+    let filtered = [...ads];
+    
+    // Filter ads
+    if (adFilter === 'active') {
+      filtered = filtered.filter(ad => ad.status === 'ACTIVE');
+    } else if (adFilter === 'paused') {
+      filtered = filtered.filter(ad => ad.status === 'PAUSED');
+    } else if (adFilter === 'finished') {
+      filtered = filtered.filter(ad => ad.status === 'ARCHIVED');
+    }
     
     if (adSortField) {
-      sorted = sorted.sort((a, b) => {
+      filtered = filtered.sort((a, b) => {
         let aValue, bValue;
         
         switch (adSortField) {
@@ -248,8 +280,8 @@ const ClienteDetalhes = () => {
       });
     }
 
-    return sorted;
-  }, [ads, adSortField, adSortDirection]);
+    return filtered;
+  }, [ads, adFilter, adSortField, adSortDirection]);
 
   const handleSort = (field: 'name' | 'cpc' | 'cpa' | 'spend' | 'conversions') => {
     if (sortField === field) {
@@ -809,8 +841,35 @@ const ClienteDetalhes = () => {
             <TabsContent value="adsets" className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Conjuntos de Anúncios</h4>
-                <div className="text-sm text-gray-500">
-                  Total de conjuntos de anúncios do cliente
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant={adSetFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdSetFilter('all')}
+                  >
+                    Todos ({totalAdSets})
+                  </Button>
+                  <Button 
+                    variant={adSetFilter === 'active' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdSetFilter('active')}
+                  >
+                    Ativos ({activeAdSets})
+                  </Button>
+                  <Button 
+                    variant={adSetFilter === 'paused' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdSetFilter('paused')}
+                  >
+                    Pausados ({pausedAdSets})
+                  </Button>
+                  <Button 
+                    variant={adSetFilter === 'finished' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdSetFilter('finished')}
+                  >
+                    Finalizados ({finishedAdSets})
+                  </Button>
                 </div>
               </div>
 
@@ -897,8 +956,8 @@ const ClienteDetalhes = () => {
                            <p>Carregando conjuntos de anúncios...</p>
                          </td>
                        </tr>
-                     ) : sortedAdSets.length > 0 ? (
-                       sortedAdSets.map((adSet) => (
+                      ) : filteredAndSortedAdSets.length > 0 ? (
+                        filteredAndSortedAdSets.map((adSet) => (
                          <tr key={adSet.id}>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <div className="text-sm font-medium text-gray-900">{adSet.name}</div>
@@ -952,8 +1011,35 @@ const ClienteDetalhes = () => {
             <TabsContent value="creatives" className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Criativos</h4>
-                <div className="text-sm text-gray-500">
-                  Anúncios e criativos do cliente
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant={adFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdFilter('all')}
+                  >
+                    Todos ({totalAds})
+                  </Button>
+                  <Button 
+                    variant={adFilter === 'active' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdFilter('active')}
+                  >
+                    Ativos ({activeAds})
+                  </Button>
+                  <Button 
+                    variant={adFilter === 'paused' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdFilter('paused')}
+                  >
+                    Pausados ({pausedAds})
+                  </Button>
+                  <Button 
+                    variant={adFilter === 'finished' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setAdFilter('finished')}
+                  >
+                    Finalizados ({finishedAds})
+                  </Button>
                 </div>
               </div>
 
@@ -1040,8 +1126,8 @@ const ClienteDetalhes = () => {
                            <p>Carregando criativos...</p>
                          </td>
                        </tr>
-                     ) : sortedAds.length > 0 ? (
-                       sortedAds.map((ad) => (
+                      ) : filteredAndSortedAds.length > 0 ? (
+                        filteredAndSortedAds.map((ad) => (
                          <tr key={ad.id}>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <div className="text-sm font-medium text-gray-900">{ad.name}</div>
