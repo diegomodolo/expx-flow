@@ -17,7 +17,7 @@ import { Upload, X, Plus } from "lucide-react";
 interface ClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl">) => Promise<any>;
+  onSubmit: (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => Promise<any>;
   client?: Client;
   title: string;
   readOnly?: boolean;
@@ -36,7 +36,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         sector: client.sector || "",
         status: client.status as "green" | "yellow" | "red" || "green",
         avatar: client.avatar || "",
-        last_access: client.last_access || new Date().toLocaleDateString('pt-BR'),
         monthly_budget: client.monthly_budget || 0,
         target_audience: client.target_audience || "",
         product_name: client.product_name || "",
@@ -55,7 +54,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       sector: "",
       status: "green" as "green" | "yellow" | "red",
       avatar: "",
-      last_access: new Date().toLocaleDateString('pt-BR'),
       monthly_budget: 0,
       target_audience: "",
       product_name: "",
@@ -87,7 +85,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         sector: client.sector || "",
         status: client.status || "green",
         avatar: client.avatar || "",
-        last_access: client.last_access || new Date().toLocaleDateString('pt-BR'),
         monthly_budget: client.monthly_budget || 0,
         target_audience: client.target_audience || "",
         product_name: client.product_name || "",
@@ -142,7 +139,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         sector: "",
         status: "green",
         avatar: "",
-        last_access: new Date().toLocaleDateString('pt-BR'),
         monthly_budget: 0,
         target_audience: "",
         product_name: "",

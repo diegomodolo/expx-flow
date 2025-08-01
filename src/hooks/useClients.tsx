@@ -12,7 +12,6 @@ export interface Client {
   status: "green" | "yellow" | "red";
   active_campaigns: number;
   avg_cpl: number;
-  last_access: string;
   avatar: string;
   monthly_budget?: number;
   target_audience?: string;
@@ -23,6 +22,7 @@ export interface Client {
   campaign_type?: string;
   notes?: string;
   ad_account_id?: string;
+  leads_generated: number;
 }
 
 export function useClients() {
@@ -52,7 +52,7 @@ export function useClients() {
     }
   };
 
-  const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl">) => {
+  const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
     if (!user || !activeCompany) return null;
 
     try {

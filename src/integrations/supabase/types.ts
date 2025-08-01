@@ -92,7 +92,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
-          last_access: string | null
+          leads_generated: number | null
           monthly_budget: number | null
           name: string
           notes: string | null
@@ -117,7 +117,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
-          last_access?: string | null
+          leads_generated?: number | null
           monthly_budget?: number | null
           name: string
           notes?: string | null
@@ -142,7 +142,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
-          last_access?: string | null
+          leads_generated?: number | null
           monthly_budget?: number | null
           name?: string
           notes?: string | null

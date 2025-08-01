@@ -11,6 +11,7 @@ import { useSectors } from "@/hooks/useSectors";
 import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
+import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Trash2
+  Trash2,
+  RefreshCw
 } from "lucide-react";
 
 type StatusType = "all" | "green" | "yellow" | "red";
@@ -50,8 +52,9 @@ const Clientes = () => {
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
-  const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
+  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients } = useClients();
   const { sectors, fetchSectors } = useSectors();
+  const { syncCampaigns, syncing } = useFacebookCampaignSync();
   const { toast } = useToast();
 
   // Memoized handlers to prevent re-renders
@@ -109,7 +112,7 @@ const Clientes = () => {
 
   
   const exportToCSV = () => {
-    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Último Acesso"];
+    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Leads Gerados"];
     const csvData = filteredClients.map(client => [
       client.name,
       client.email,
@@ -118,7 +121,7 @@ const Clientes = () => {
       statusConfig[client.status].label,
       client.active_campaigns,
       `R$ ${client.avg_cpl.toFixed(2)}`,
-      client.last_access
+      client.leads_generated
     ]);
     
     const csvContent = [headers, ...csvData]
@@ -241,6 +244,22 @@ const Clientes = () => {
                   <Download className="w-4 h-4" />
                   <span>Exportar</span>
                 </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex items-center space-x-2" 
+                  onClick={async () => {
+                    // Sync campaigns for all clients with ad accounts
+                    const clientsWithAdAccounts = filteredClients.filter(c => c.ad_account_id);
+                    for (const client of clientsWithAdAccounts) {
+                      await syncCampaigns(client.id);
+                    }
+                    fetchClients(); // Refresh data after sync
+                  }}
+                  disabled={syncing}
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                  <span>Sincronizar</span>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -353,9 +372,9 @@ const Clientes = () => {
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     CPL Médio
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Último Acesso
-                  </th>
+                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     Leads Gerados
+                   </th>
                   <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ações
                   </th>
@@ -396,7 +415,7 @@ const Clientes = () => {
                       R$ {client.avg_cpl.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.last_access}
+                      {client.leads_generated}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
