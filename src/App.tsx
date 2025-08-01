@@ -16,6 +16,7 @@ import DashboardPage from "./pages/DashboardPage";
 import Clientes from "./pages/Clientes";
 import Campanhas from "./pages/Campanhas";
 import Squad from "./pages/Squad";
+import Tarefas from "./pages/Tarefas";
 import Relatorios from "./pages/Relatorios";
 import Conhecimento from "./pages/Conhecimento";
 import Configuracoes from "./pages/Configuracoes";
@@ -53,6 +54,11 @@ const App = () => (
             <Route path="/squad" element={
               <ProtectedRoute>
                 <Squad />
+              </ProtectedRoute>
+            } />
+            <Route path="/tarefas" element={
+              <ProtectedRoute>
+                <Tarefas />
               </ProtectedRoute>
             } />
             <Route path="/relatorios" element={
