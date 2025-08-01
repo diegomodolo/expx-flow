@@ -14,18 +14,34 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function DashboardHeader() {
-  const { user, signOut } = useAuth();
-  const { toast } = useToast();
+  // Check if we're within AuthProvider context
+  let user = null;
+  let signOut = null;
+  let toast = null;
+  
+  try {
+    const auth = useAuth();
+    const toastHook = useToast();
+    user = auth.user;
+    signOut = auth.signOut;
+    toast = toastHook.toast;
+  } catch (error) {
+    // Not within AuthProvider, use fallback values
+    toast = () => {}; // No-op function
+    signOut = async () => ({ error: null });
+  }
 
   const handleLogout = async () => {
+    if (!signOut) return;
+    
     const { error } = await signOut();
-    if (error) {
+    if (error && toast) {
       toast({
         variant: "destructive",
         title: "Erro ao sair",
         description: error.message
       });
-    } else {
+    } else if (toast) {
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso"
