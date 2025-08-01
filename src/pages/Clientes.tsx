@@ -54,6 +54,20 @@ const Clientes = () => {
   const { sectors, fetchSectors } = useSectors();
   const { toast } = useToast();
 
+  // Memoized handlers to prevent re-renders
+  const handleAddClient = () => {
+    setDialogMode('create');
+    setSelectedClient(null);
+    setDialogOpen(true);
+  };
+
+  const handleApplyFilters = () => {
+    toast({
+      title: "Filtros aplicados",
+      description: `${filteredClients.length} clientes encontrados.`,
+    });
+  };
+
   const filteredClients = clients.filter(client => {
     const matchesStatus = statusFilter === "all" || client.status === statusFilter;
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,11 +168,7 @@ const Clientes = () => {
               {totalClients} clientes
             </Badge>
           </div>
-          <Button className="flex items-center space-x-2" onClick={() => {
-            setDialogMode('create');
-            setSelectedClient(null);
-            setDialogOpen(true);
-          }}>
+          <Button className="flex items-center space-x-2" onClick={handleAddClient}>
             <Plus className="w-4 h-4" />
             <span>Adicionar Cliente</span>
           </Button>
@@ -312,12 +322,7 @@ const Clientes = () => {
                 >
                   Limpar Filtros
                 </Button>
-                <Button onClick={() => {
-                  toast({
-                    title: "Filtros aplicados",
-                    description: `${filteredClients.length} clientes encontrados.`,
-                  });
-                }}>
+                <Button onClick={handleApplyFilters}>
                   Aplicar ({filteredClients.length})
                 </Button>
               </div>

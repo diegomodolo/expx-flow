@@ -120,7 +120,7 @@ export const useSectors = () => {
 
   useEffect(() => {
     fetchSectors();
-  }, [user]);
+  }, [user?.id]);
 
   return {
     sectors,
