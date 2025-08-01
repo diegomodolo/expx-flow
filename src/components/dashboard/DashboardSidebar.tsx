@@ -31,9 +31,6 @@ const items = [
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
-// Debug log to verify order
-console.log("Sidebar items order:", items.map(item => item.title));
-
 export function DashboardSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
@@ -47,7 +44,7 @@ export function DashboardSidebar() {
       className={`${isCollapsed ? "w-16" : "w-64"} bg-white border-r border-gray-200`}
       collapsible="icon"
     >
-      <SidebarContent className="pt-6 px-4">
+      <SidebarContent className="pt-24 px-4">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
