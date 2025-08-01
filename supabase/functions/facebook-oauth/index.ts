@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
       const tokenData = await tokenResponse.json()
       console.log('Token exchange successful, expires in:', tokenData.expires_in);
       
-      // Get user's ad accounts
-      const adAccountsResponse = await fetch(`https://graph.facebook.com/v20.0/me/adaccounts?access_token=${tokenData.access_token}`)
+      // Get user's ad accounts with specific fields
+      const adAccountsResponse = await fetch(`https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&access_token=${tokenData.access_token}`)
       
       if (!adAccountsResponse.ok) {
         const error = await adAccountsResponse.text()
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
           .upsert({
             integration_id: integration.id,
             account_id: account.id,
-            account_name: account.name || account.account_name || `Conta ${account.id}`,
+            account_name: account.name || account.business_name || `Conta ${account.account_id || account.id}`,
             currency: account.currency || 'USD',
             is_active: account.account_status === 'ACTIVE' || true,
           }, {
