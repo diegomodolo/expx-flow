@@ -210,152 +210,205 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
           </p>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Nome
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="col-span-3"
-                required
-                disabled={readOnly}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="col-span-3"
-                required
-                disabled={readOnly}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="company" className="text-right">
-                Empresa
-              </Label>
-              <Input
-                id="company"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="col-span-3"
-                required
-                disabled={readOnly}
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sector" className="text-right">
-                Setor
-              </Label>
-              <div className="col-span-3 space-y-2">
-                {!showNewSectorInput ? (
-                  <div className="flex gap-2">
-                    <Select 
-                      value={formData.sector} 
-                      onValueChange={(value) => {
-                        if (value === "new") {
-                          setShowNewSectorInput(true);
-                        } else {
-                          setFormData({ ...formData, sector: value });
-                        }
-                      }}
-                      disabled={readOnly}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Selecione um setor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sectors.map((sector) => (
-                          <SelectItem key={sector.id} value={sector.name}>
-                            {sector.name}
-                          </SelectItem>
-                        ))}
-                        {!readOnly && (
-                          <SelectItem value="new">
-                            <div className="flex items-center gap-2">
-                              <Plus className="w-4 h-4" />
-                              Criar novo setor
-                            </div>
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Nome do novo setor"
-                      value={newSectorName}
-                      onChange={(e) => setNewSectorName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleCreateSector();
-                        }
-                        if (e.key === "Escape") {
-                          setShowNewSectorInput(false);
-                          setNewSectorName("");
-                        }
-                      }}
-                      className="flex-1"
-                    />
-                    <Button 
-                      type="button" 
-                      size="sm" 
-                      onClick={handleCreateSector}
-                      disabled={!newSectorName.trim()}
-                    >
-                      Criar
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        setShowNewSectorInput(false);
-                        setNewSectorName("");
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
+          <div className="space-y-6 py-4">
+            {/* Row 1: Basic Info - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  disabled={readOnly}
+                  placeholder="Nome completo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  disabled={readOnly}
+                  placeholder="email@exemplo.com"
+                />
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value as "green" | "yellow" | "red" })} disabled={readOnly}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="green">Excelente</SelectItem>
-                  <SelectItem value="yellow">Atenção</SelectItem>
-                  <SelectItem value="red">Crítico</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            {/* Row 2: Company Info - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="company">Empresa *</Label>
+                <Input
+                  id="company"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  required
+                  disabled={readOnly}
+                  placeholder="Nome da empresa"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sector">Setor *</Label>
+                <div className="space-y-2">
+                  {!showNewSectorInput ? (
+                    <div className="flex gap-2">
+                      <Select 
+                        value={formData.sector} 
+                        onValueChange={(value) => {
+                          if (value === "new") {
+                            setShowNewSectorInput(true);
+                          } else {
+                            setFormData({ ...formData, sector: value });
+                          }
+                        }}
+                        disabled={readOnly}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecione um setor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sectors.map((sector) => (
+                            <SelectItem key={sector.id} value={sector.name}>
+                              {sector.name}
+                            </SelectItem>
+                          ))}
+                          {!readOnly && (
+                            <SelectItem value="new">
+                              <div className="flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Criar novo setor
+                              </div>
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nome do novo setor"
+                        value={newSectorName}
+                        onChange={(e) => setNewSectorName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleCreateSector();
+                          }
+                          if (e.key === "Escape") {
+                            setShowNewSectorInput(false);
+                            setNewSectorName("");
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={handleCreateSector}
+                        disabled={!newSectorName.trim()}
+                      >
+                        Criar
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setShowNewSectorInput(false);
+                          setNewSectorName("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            {/* Avatar Upload */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Foto</Label>
-              <div className="col-span-3 space-y-2">
+
+            {/* Row 3: Status, Budget, Product - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="green">Excelente</SelectItem>
+                    <SelectItem value="yellow">Atenção</SelectItem>
+                    <SelectItem value="red">Crítico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
+                <Input
+                  id="monthly_budget"
+                  type="number"
+                  step="0.01"
+                  value={formData.monthly_budget}
+                  onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
+                  placeholder="0.00"
+                  disabled={readOnly}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product_name">Nome do Produto</Label>
+                <Input
+                  id="product_name"
+                  value={formData.product_name}
+                  onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
+                  placeholder="Ex: Aplicativo de delivery"
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            {/* Row 4: Voice Tone, Campaign Type - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="voice_tone">Tom de Voz</Label>
+                <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tom de voz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {voiceTones.map((tone) => (
+                      <SelectItem key={tone} value={tone}>{tone}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="campaign_type">Tipo de Campanha</Label>
+                <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de campanha" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaignTypes.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Row 5: Avatar Upload - Full width */}
+            <div className="space-y-2">
+              <Label>Foto do Cliente</Label>
+              <div className="flex items-center gap-4">
                 {formData.avatar && (
-                  <div className="relative w-20 h-20">
-                    <img 
-                      src={formData.avatar} 
-                      alt="Avatar" 
-                      className="w-20 h-20 rounded-full object-cover"
-                    />
+                  <div className="relative">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={formData.avatar} alt="Avatar" />
+                      <AvatarFallback>{formData.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
                     {!readOnly && (
                       <Button
                         type="button"
@@ -369,116 +422,43 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                     )}
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading || readOnly}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {uploading ? "Enviando..." : "Upload"}
-                  </Button>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || readOnly}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploading ? "Enviando..." : "Upload de Foto"}
+                </Button>
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </div>
             </div>
 
-            {/* Monthly Budget */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="monthly_budget" className="text-right">
-                Orçamento Mensal
-              </Label>
-              <Input
-                id="monthly_budget"
-                type="number"
-                step="0.01"
-                value={formData.monthly_budget}
-                onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
-                className="col-span-3"
-                placeholder="0.00"
-                disabled={readOnly}
-              />
-            </div>
-
-            {/* Product Name */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="product_name" className="text-right">
-                Nome do Produto
-              </Label>
-              <Input
-                id="product_name"
-                value={formData.product_name}
-                onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
-                className="col-span-3"
-                placeholder="Ex: Aplicativo de delivery"
-                disabled={readOnly}
-              />
-            </div>
-
-            {/* Target Audience */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="target_audience" className="text-right">
-                Público Alvo
-              </Label>
+            {/* Row 6: Target Audience - Full width */}
+            <div className="space-y-2">
+              <Label htmlFor="target_audience">Público Alvo</Label>
               <Textarea
                 id="target_audience"
                 value={formData.target_audience}
                 onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
-                className="col-span-3"
                 placeholder="Ex: Mulheres de 25-45 anos, interessadas em tecnologia..."
                 rows={3}
                 disabled={readOnly}
               />
             </div>
 
-            {/* Voice Tone */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="voice_tone" className="text-right">
-                Tom de Voz
-              </Label>
-              <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione o tom de voz" />
-                </SelectTrigger>
-                <SelectContent>
-                  {voiceTones.map((tone) => (
-                    <SelectItem key={tone} value={tone}>{tone}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Campaign Type */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="campaign_type" className="text-right">
-                Tipo de Campanha
-              </Label>
-              <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })} disabled={readOnly}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione o tipo de campanha" />
-                </SelectTrigger>
-                <SelectContent>
-                  {campaignTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Preferred Platforms */}
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right mt-2">
-                Plataformas Preferidas
-              </Label>
-              <div className="col-span-3 space-y-2">
+            {/* Row 7: Preferred Platforms - Full width */}
+            <div className="space-y-2">
+              <Label>Plataformas Preferidas</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {platforms.map((platform) => (
                   <div key={platform} className="flex items-center space-x-2">
                     <Checkbox
@@ -495,32 +475,26 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Objectives */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="objectives" className="text-right">
-                Objetivos
-              </Label>
+            {/* Row 8: Objectives - Full width */}
+            <div className="space-y-2">
+              <Label htmlFor="objectives">Objetivos</Label>
               <Textarea
                 id="objectives"
                 value={formData.objectives}
                 onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
-                className="col-span-3"
                 placeholder="Ex: Aumentar conversões em 30%, reduzir CAC..."
                 rows={3}
                 disabled={readOnly}
               />
             </div>
 
-            {/* Notes */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="notes" className="text-right">
-                Observações
-              </Label>
+            {/* Row 9: Notes - Full width */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="col-span-3"
                 placeholder="Informações adicionais sobre o cliente..."
                 rows={3}
                 disabled={readOnly}

@@ -63,13 +63,12 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    
     try {
+      setLoading(true);
       await onSubmit(formData);
       onOpenChange(false);
     } catch (error) {
-      console.error("Erro ao salvar colaborador:", error);
+      console.error("Error submitting employee:", error);
     } finally {
       setLoading(false);
     }
@@ -77,130 +76,121 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 py-4">
+            {/* Row 1: Basic Info - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Nome completo"
+                  required
+                  disabled={readOnly}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                  required
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Contact & Role - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                  disabled={readOnly}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Cargo *</Label>
+                <Input
+                  id="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  placeholder="Ex: Analista de Marketing"
+                  required
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Team, Status, Start Date - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="team_id">Equipe</Label>
+                <Select value={formData.team_id} onValueChange={(value) => setFormData({ ...formData, team_id: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma equipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value: Employee['status']) => setFormData({ ...formData, status: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Data de Início *</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  required
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            {/* Row 4: Skills - Full width */}
+            <div className="space-y-2">
+              <Label htmlFor="skills">Habilidades</Label>
+              <Textarea
+                id="skills"
+                value={formData.skills}
+                onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
+                placeholder="Ex: React, TypeScript, Marketing Digital..."
+                rows={3}
                 disabled={readOnly}
-                placeholder="Ex: João Silva Santos"
               />
             </div>
-
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                disabled={readOnly}
-                placeholder="joao.silva@empresa.com"
-              />
-            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="team">Squad</Label>
-              <Select 
-                value={formData.team_id} 
-                onValueChange={(value) => setFormData({ ...formData, team_id: value })}
-                disabled={readOnly}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o squad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sem-squad">Sem Squad</SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="role">Cargo</Label>
-              <Input
-                id="role"
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                required
-                disabled={readOnly}
-                placeholder="Ex: Desenvolvedor Frontend"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="start_date">Data de Admissão</Label>
-              <Input
-                id="start_date"
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                required
-                disabled={readOnly}
-              />
-            </div>
-
-            <div>
-              <Label>Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value: Employee['status']) => setFormData({ ...formData, status: value })}
-                disabled={readOnly}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
-                  <SelectItem value="vacation">Férias</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="phone">Telefone</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              disabled={readOnly}
-              placeholder="(11) 99999-9999"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="skills">Habilidades</Label>
-            <Textarea
-              id="skills"
-              value={formData.skills}
-              onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-              disabled={readOnly}
-              placeholder="Liste as principais habilidades do colaborador"
-              rows={3}
-            />
-          </div>
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {readOnly ? "Fechar" : "Cancelar"}

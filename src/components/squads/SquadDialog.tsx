@@ -52,185 +52,180 @@ export function SquadDialog({ open, onOpenChange, onSubmit, squad, title, readOn
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    icon: "Users",
+    color: "bg-blue-100 text-blue-800",
+    icon: "Megaphone",
     icon_color: "text-blue-600",
-    icon_bg: "bg-blue-100",
-    color: "bg-blue-100 text-blue-800"
+    icon_bg: "bg-blue-100"
   });
   const [loading, setLoading] = useState(false);
 
-  // Update form data when squad prop changes
   useEffect(() => {
     if (squad) {
       setFormData({
         name: squad.name || "",
         description: squad.description || "",
-        icon: squad.icon || "Users",
+        color: squad.color || "bg-blue-100 text-blue-800",
+        icon: squad.icon || "Megaphone",
         icon_color: squad.icon_color || "text-blue-600",
-        icon_bg: squad.icon_bg || "bg-blue-100",
-        color: squad.color || "bg-blue-100 text-blue-800"
+        icon_bg: squad.icon_bg || "bg-blue-100"
       });
     } else {
       setFormData({
         name: "",
         description: "",
-        icon: "Users",
+        color: "bg-blue-100 text-blue-800",
+        icon: "Megaphone",
         icon_color: "text-blue-600",
-        icon_bg: "bg-blue-100",
-        color: "bg-blue-100 text-blue-800"
+        icon_bg: "bg-blue-100"
       });
     }
   }, [squad, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    
     try {
+      setLoading(true);
       await onSubmit(formData);
       onOpenChange(false);
     } catch (error) {
-      console.error("Erro ao salvar squad:", error);
+      console.error("Error submitting squad:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleColorChange = (colorValue: string) => {
-    const selectedColor = colorOptions.find(option => option.value === colorValue);
-    if (selectedColor) {
-      setFormData({
-        ...formData,
-        color: colorValue,
-        icon_color: selectedColor.iconColor,
-        icon_bg: selectedColor.iconBg
-      });
-    }
-  };
-
-  const getSelectedIcon = () => {
-    const selectedIcon = iconOptions.find(option => option.value === formData.icon);
-    return selectedIcon ? selectedIcon.icon : Users;
-  };
-
-  const SelectedIconComponent = getSelectedIcon();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Preview da Squad */}
-          <div className="flex items-center justify-center p-4 border rounded-lg bg-gray-50">
-            <div className="flex items-center space-x-4">
-              <div className={`w-12 h-12 ${formData.icon_bg} rounded-full flex items-center justify-center`}>
-                <SelectedIconComponent className={`w-6 h-6 ${formData.icon_color}`} />
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6 py-4">
+            {/* Row 1: Basic Info - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome do Squad *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Marketing Digital"
+                  required
+                  disabled={readOnly}
+                />
               </div>
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900">
-                  {formData.name || "Nome da Squad"}
-                </h4>
-                <p className="text-sm text-gray-500">
-                  {formData.description || "Descrição da squad"}
-                </p>
+              <div className="space-y-2">
+                <Label htmlFor="color">Cor do Squad</Label>
+                <Select
+                  value={formData.color}
+                  onValueChange={(value) => {
+                    const selectedColor = colorOptions.find(c => c.value === value);
+                    if (selectedColor) {
+                      setFormData({
+                        ...formData,
+                        color: value,
+                        icon_color: selectedColor.iconColor,
+                        icon_bg: selectedColor.iconBg
+                      });
+                    }
+                  }}
+                  disabled={readOnly}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma cor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {colorOptions.map((color) => (
+                      <SelectItem key={color.value} value={color.value}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${color.bg} border border-border`} />
+                          {color.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Row 2: Icon - Full width */}
+            <div className="space-y-2">
+              <Label>Ícone do Squad</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {iconOptions.map((option) => {
+                  const IconComponent = option.icon;
+                  const isSelected = formData.icon === option.value;
+                  const selectedColor = colorOptions.find(c => c.value === formData.color);
+                  
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`p-3 rounded-lg border transition-all ${
+                        isSelected 
+                          ? `border-primary bg-primary/10` 
+                          : "border-border hover:border-primary/50"
+                      }`}
+                      onClick={() => setFormData({ ...formData, icon: option.value })}
+                      disabled={readOnly}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={`p-2 rounded-lg ${selectedColor?.iconBg || 'bg-gray-100'}`}>
+                          <IconComponent className={`w-4 h-4 ${selectedColor?.iconColor || 'text-gray-600'}`} />
+                        </div>
+                        <span className="text-xs font-medium">{option.label}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Row 3: Description - Full width */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição *</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Descreva as responsabilidades e objetivos do squad..."
+                rows={3}
+                required
+                disabled={readOnly}
+              />
+            </div>
+
+            {/* Preview */}
+            <div className="space-y-2">
+              <Label>Preview do Squad</Label>
+              <div className="p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${formData.icon_bg}`}>
+                    {(() => {
+                      const IconComponent = iconOptions.find(opt => opt.value === formData.icon)?.icon || iconOptions[0].icon;
+                      return <IconComponent className={`w-5 h-5 ${formData.icon_color}`} />;
+                    })()}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{formData.name || "Nome do Squad"}</h3>
+                    <p className="text-sm text-muted-foreground">{formData.description || "Descrição do squad..."}</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${formData.color}`}>
+                    Squad
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Nome
-            </Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="col-span-3"
-              required
-              disabled={readOnly}
-              placeholder="Ex: Marketing Digital"
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              Descrição
-            </Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="col-span-3"
-              required
-              disabled={readOnly}
-              placeholder="Ex: Responsável por campanhas e conteúdo"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="icon" className="text-right">
-              Ícone
-            </Label>
-            <Select 
-              value={formData.icon} 
-              onValueChange={(value) => setFormData({ ...formData, icon: value })}
-              disabled={readOnly}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Selecione um ícone" />
-              </SelectTrigger>
-              <SelectContent>
-                {iconOptions.map((option) => {
-                  const IconComponent = option.icon;
-                  return (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center space-x-2">
-                        <IconComponent className="w-4 h-4" />
-                        <span>{option.label}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="color" className="text-right">
-              Cor
-            </Label>
-            <Select 
-              value={formData.color} 
-              onValueChange={handleColorChange}
-              disabled={readOnly}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Selecione uma cor" />
-              </SelectTrigger>
-              <SelectContent>
-                {colorOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-4 h-4 ${option.bg} rounded border`}></div>
-                      <span>{option.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>
             {!readOnly && (
               <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : squad ? "Atualizar" : "Criar"}
+                {loading ? "Salvando..." : squad ? "Atualizar" : "Criar Squad"}
               </Button>
             )}
           </DialogFooter>
