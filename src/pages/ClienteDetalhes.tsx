@@ -28,12 +28,28 @@ import {
   Loader2
 } from "lucide-react";
 import { useClientDetails } from "@/hooks/useClientDetails";
+import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
-  const { client, loading, error } = useClientDetails(id || "");
+  const { client, loading, error, refetch } = useClientDetails(id || "");
+  const { syncCampaigns, syncing: syncLoading } = useFacebookCampaignSync();
   const [activeTab, setActiveTab] = useState("campaigns");
+
+  const handleSync = async () => {
+    if (!id) return;
+    
+    try {
+      await syncCampaigns(id);
+      // Aguarda um pouco e recarrega os dados
+      setTimeout(() => {
+        refetch();
+      }, 1000);
+    } catch (error) {
+      console.error('Erro ao sincronizar:', error);
+    }
+  };
   
   
   if (!id) {
@@ -122,13 +138,27 @@ const ClienteDetalhes = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Link to="/clientes">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold">Detalhes do Cliente</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link to="/clientes">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold">Detalhes do Cliente</h1>
+          </div>
+          <Button 
+            onClick={handleSync}
+            disabled={syncLoading}
+            className="flex items-center space-x-2"
+          >
+            {syncLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <TrendingUp className="w-4 h-4" />
+            )}
+            <span>{syncLoading ? 'Sincronizando...' : 'Sincronizar Dados'}</span>
+          </Button>
         </div>
 
         {/* Client Overview Card */}
