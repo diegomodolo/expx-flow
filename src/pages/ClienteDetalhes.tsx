@@ -404,7 +404,7 @@ const ClienteDetalhes = () => {
               <p className="text-sm text-gray-600">Custo por Lead de cada campanha ativa</p>
             </CardHeader>
              <CardContent className="p-4 pb-2">
-               <div className="h-80">
+               <div className="h-96">
                   {cplByCampaignData.length > 0 ? (
                    <ResponsiveContainer width="100%" height="100%">
                      <BarChart
