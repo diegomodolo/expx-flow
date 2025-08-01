@@ -545,6 +545,8 @@ const ClienteDetalhes = () => {
             <div className="border-b border-gray-200">
               <TabsList className="px-6">
                 <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
+                <TabsTrigger value="adsets">Conjunto de Anúncios</TabsTrigger>
+                <TabsTrigger value="creatives">Criativos</TabsTrigger>
                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -675,6 +677,104 @@ const ClienteDetalhes = () => {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="adsets" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold">Conjuntos de Anúncios</h4>
+                <div className="text-sm text-gray-500">
+                  Total de conjuntos de anúncios do cliente
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Nome do Conjunto
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Campanha
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Orçamento
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        CPM
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        CTR
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Conversões
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                        <div>
+                          <p className="mb-2">Nenhum conjunto de anúncios encontrado</p>
+                          <p className="text-sm">Os dados dos conjuntos de anúncios aparecerão aqui após a sincronização com o Facebook</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="creatives" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold">Criativos</h4>
+                <div className="text-sm text-gray-500">
+                  Anúncios e criativos do cliente
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Nome do Criativo
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Conjunto de Anúncios
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Tipo
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        CTR
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        CPC
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Conversões
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                        <div>
+                          <p className="mb-2">Nenhum criativo encontrado</p>
+                          <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
+                        </div>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
