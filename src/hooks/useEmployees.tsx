@@ -124,14 +124,24 @@ export function useEmployees() {
         isNewUser = false;
       }
 
-      // 3. Criar registro de colaborador
+      // 3. Criar registro de colaborador com company_id correto
+      const employeeInsertData = {
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        role: employeeData.role,
+        team_id: employeeData.team_id === "sem-squad" ? null : employeeData.team_id,
+        status: employeeData.status,
+        start_date: employeeData.start_date,
+        skills: employeeData.skills,
+        avatar: employeeData.avatar,
+        user_id: userId,
+        company_id: activeCompany.company_id,
+      };
+
       const { data: employee, error: employeeError } = await supabase
         .from("employees")
-        .insert([{
-          ...employeeData,
-          user_id: userId,
-          company_id: activeCompany.company_id,
-        }])
+        .insert([employeeInsertData])
         .select()
         .single();
 
