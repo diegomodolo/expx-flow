@@ -54,9 +54,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
 
   // Update form data when client prop changes
   useEffect(() => {
-    console.log("ClientDialog useEffect triggered. Client:", client);
     if (client) {
-      console.log("Setting form data with client data:", client);
       setFormData({
         name: client.name || "",
         email: client.email || "",
@@ -75,7 +73,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         notes: client.notes || ""
       });
     } else {
-      console.log("Client is null/undefined, setting empty form data");
       setFormData({
         name: "",
         email: "",

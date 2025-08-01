@@ -51,6 +51,7 @@ const Clientes = () => {
     campaignRange: "all"
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
   const { sectors } = useSectors();
   const { toast } = useToast();
@@ -155,7 +156,11 @@ const Clientes = () => {
               {totalClients} clientes
             </Badge>
           </div>
-          <Button className="flex items-center space-x-2" onClick={() => setCreateDialogOpen(true)}>
+          <Button className="flex items-center space-x-2" onClick={() => {
+            setDialogMode('create');
+            setSelectedClient(null);
+            setCreateDialogOpen(true);
+          }}>
             <Plus className="w-4 h-4" />
             <span>Adicionar Cliente</span>
           </Button>
@@ -395,10 +400,11 @@ const Clientes = () => {
                           size="sm"
                           className="w-8 h-8 p-0"
                           title="Visualizar"
-                          onClick={() => {
-                            setSelectedClient(client);
-                            setViewDialogOpen(true);
-                          }}
+          onClick={() => {
+            setDialogMode('view');
+            setSelectedClient(client);
+            setViewDialogOpen(true);
+          }}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -408,14 +414,13 @@ const Clientes = () => {
                           className="w-8 h-8 p-0"
                           title="Editar"
           onClick={() => {
-            console.log("Edit button clicked. Client data:", client);
+            setDialogMode('edit');
             setSelectedClient(client);
             setEditDialogOpen(true);
-            console.log("Selected client set and dialog opened");
           }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
+        >
+          <Edit className="w-4 h-4" />
+        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -514,11 +519,15 @@ const Clientes = () => {
         </>
         )}
         
-        {/* Dialogs */}
+        {/* Single Client Dialog for all modes */}
         <ClientDialog
           open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
+          onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) setSelectedClient(null);
+          }}
           onSubmit={createClient}
+          client={undefined}
           title="Adicionar Cliente"
         />
         
