@@ -120,24 +120,44 @@ Deno.serve(async (req) => {
       }
 
       // Save ad accounts
-      for (const account of adAccountsData.data) {
-        await supabase
+      const savedAccounts = [];
+      for (const account of adAccountsData.data || []) {
+        console.log('Processing account:', JSON.stringify(account, null, 2));
+        
+        // Skip accounts without required fields
+        if (!account.id) {
+          console.log('Skipping account without ID:', account);
+          continue;
+        }
+
+        const { data: savedAccount, error: accountError } = await supabase
           .from('facebook_ad_accounts')
           .upsert({
             integration_id: integration.id,
             account_id: account.id,
-            account_name: account.name,
-            currency: account.currency,
-            is_active: true,
+            account_name: account.name || account.account_name || `Conta ${account.id}`,
+            currency: account.currency || 'USD',
+            is_active: account.account_status === 'ACTIVE' || true,
           }, {
             onConflict: 'integration_id,account_id'
           })
+          .select()
+          .single();
+
+        if (accountError) {
+          console.error('Error saving account:', accountError, 'Account data:', account);
+        } else {
+          savedAccounts.push(savedAccount);
+          console.log('Successfully saved account:', savedAccount);
+        }
       }
+
+      console.log(`Successfully processed ${savedAccounts.length} ad accounts out of ${adAccountsData.data?.length || 0} total accounts`);
 
       return new Response(
         JSON.stringify({
           success: true,
-          adAccounts: adAccountsData.data,
+          adAccounts: savedAccounts,
           integration: integration
         }),
         {
