@@ -37,7 +37,7 @@ export const useFacebookIntegration = () => {
       return null;
     }
 
-    const facebookAppId = '1442283340343262'; // Your Facebook App ID
+    const facebookAppId = '1077602197697651'; // Your Facebook App ID
     
     // Determine redirect URI based on current domain
     const origin = window.location.origin;
