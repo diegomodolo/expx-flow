@@ -6,13 +6,13 @@ export const useFacebookCampaignSync = () => {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
-  const syncCampaigns = async (clientId: string) => {
+  const syncCampaigns = async (clientId: string, period: string = '30') => {
     if (!clientId) return;
 
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
-        body: { clientId }
+        body: { clientId, period }
       });
 
       if (error) {
@@ -26,9 +26,10 @@ export const useFacebookCampaignSync = () => {
 
       console.log('Sync successful:', data);
       
+      const periodLabel = period === 'lifetime' ? 'máximo' : `${period} dias`;
       toast({
         title: "Campanhas sincronizadas",
-        description: "Dados das campanhas atualizados com sucesso!",
+        description: `Dados das campanhas atualizados com sucesso! (${periodLabel})`,
       });
 
       // Trigger a refresh of clients data
@@ -48,7 +49,7 @@ export const useFacebookCampaignSync = () => {
     }
   };
 
-  const syncAllClients = async () => {
+  const syncAllClients = async (period: string = '30') => {
     setSyncing(true);
     try {
       // Get all clients with ad accounts
@@ -61,13 +62,14 @@ export const useFacebookCampaignSync = () => {
 
       let successCount = 0;
       for (const client of clients || []) {
-        const result = await syncCampaigns(client.id);
+        const result = await syncCampaigns(client.id, period);
         if (result) successCount++;
       }
 
+      const periodLabel = period === 'lifetime' ? 'máximo' : `${period} dias`;
       toast({
         title: "Sincronização concluída",
-        description: `${successCount} de ${clients?.length || 0} clientes sincronizados.`,
+        description: `${successCount} de ${clients?.length || 0} clientes sincronizados (${periodLabel}).`,
       });
 
     } catch (error: any) {

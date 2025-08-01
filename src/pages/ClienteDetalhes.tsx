@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
+import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const ClienteDetalhes = () => {
@@ -40,6 +41,7 @@ const ClienteDetalhes = () => {
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
 
   // Calculate campaign metrics (with safe access)
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -110,17 +112,19 @@ const ClienteDetalhes = () => {
     }
   };
 
-  const handleSync = async () => {
+  const handleSyncConfirm = async (period: string) => {
     if (!id) return;
     
     try {
-      await syncCampaigns(id);
+      await syncCampaigns(id, period);
+      setSyncDialogOpen(false);
       // Aguarda um pouco e recarrega os dados
       setTimeout(() => {
         refetch();
       }, 1000);
     } catch (error) {
       console.error('Erro ao sincronizar:', error);
+      setSyncDialogOpen(false);
     }
   };
   
@@ -223,7 +227,7 @@ const ClienteDetalhes = () => {
             <h1 className="text-2xl font-bold">Detalhes do Cliente</h1>
           </div>
           <Button 
-            onClick={handleSync}
+            onClick={() => setSyncDialogOpen(true)}
             disabled={syncLoading}
             className="flex items-center space-x-2"
           >
@@ -639,6 +643,15 @@ const ClienteDetalhes = () => {
             </TabsContent>
           </Tabs>
         </Card>
+
+        {/* Sync Period Dialog */}
+        <SyncPeriodDialog
+          open={syncDialogOpen}
+          onOpenChange={setSyncDialogOpen}
+          onConfirm={handleSyncConfirm}
+          syncing={syncLoading}
+          title="Sincronizar Campanhas do Cliente"
+        />
       </div>
     </DashboardLayout>
   );

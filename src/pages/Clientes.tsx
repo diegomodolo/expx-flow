@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
+import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,7 @@ const Clientes = () => {
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients } = useClients();
   const { sectors, fetchSectors } = useSectors();
   const { syncCampaigns, syncing } = useFacebookCampaignSync();
@@ -248,14 +250,7 @@ const Clientes = () => {
                 <Button 
                   variant="outline" 
                   className="flex items-center space-x-2" 
-                  onClick={async () => {
-                    // Sync campaigns for all clients with ad accounts
-                    const clientsWithAdAccounts = filteredClients.filter(c => c.ad_account_id);
-                    for (const client of clientsWithAdAccounts) {
-                      await syncCampaigns(client.id);
-                    }
-                    fetchClients(); // Refresh data after sync
-                  }}
+                  onClick={() => setSyncDialogOpen(true)}
                   disabled={syncing}
                 >
                   <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -576,6 +571,23 @@ const Clientes = () => {
           onOpenChange={setDeleteDialogOpen}
           onConfirm={deleteClient}
           client={selectedClient}
+        />
+
+        {/* Sync Period Dialog for all clients */}
+        <SyncPeriodDialog
+          open={syncDialogOpen}
+          onOpenChange={setSyncDialogOpen}
+          onConfirm={async (period: string) => {
+            // Sync campaigns for all clients with ad accounts
+            const clientsWithAdAccounts = filteredClients.filter(c => c.ad_account_id);
+            for (const client of clientsWithAdAccounts) {
+              await syncCampaigns(client.id, period);
+            }
+            setSyncDialogOpen(false);
+            fetchClients(); // Refresh data after sync
+          }}
+          syncing={syncing}
+          title="Sincronizar Todos os Clientes"
         />
       </div>
     </DashboardLayout>

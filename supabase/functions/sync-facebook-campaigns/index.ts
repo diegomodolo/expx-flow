@@ -52,7 +52,7 @@ serve(async (req) => {
       )
     }
 
-    const { clientId } = requestBody
+    const { clientId, period = '30' } = requestBody
 
     if (!clientId) {
       console.error('Client ID missing from request:', requestBody)
@@ -228,9 +228,36 @@ serve(async (req) => {
     const accountId = adAccount.account_id
 
     console.log('Fetching campaigns from Facebook for account:', accountId)
+    console.log('Using period:', period)
+    
+    // Map period to Facebook API parameters
+    let dateParam = '';
+    switch (period) {
+      case '7':
+        dateParam = '.date_preset(last_7d)';
+        break;
+      case '15':
+        // For 15 days, we need to use time_range with specific dates
+        const fifteenDaysAgo = new Date();
+        fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+        const today = new Date();
+        dateParam = `.time_range({"since":"${fifteenDaysAgo.toISOString().split('T')[0]}","until":"${today.toISOString().split('T')[0]}"})`;
+        break;
+      case '30':
+        dateParam = '.date_preset(last_30d)';
+        break;
+      case '90':
+        dateParam = '.date_preset(last_90d)';
+        break;
+      case 'lifetime':
+        dateParam = '.date_preset(lifetime)';
+        break;
+      default:
+        dateParam = '.date_preset(last_30d)'; // Default to 30 days
+    }
 
     // Fetch campaigns from Facebook API
-    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,insights{impressions,clicks,spend,actions}&access_token=${accessToken}`
+    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,insights${dateParam}{impressions,clicks,spend,actions}&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
 
     const campaignsResponse = await fetch(facebookUrl)
