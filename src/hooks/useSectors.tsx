@@ -43,24 +43,17 @@ export const useSectors = () => {
   };
 
   const createSector = async (name: string): Promise<Sector | null> => {
-    console.log("createSector called with name:", name);
-    console.log("Current user:", user);
-    console.log("Active company:", activeCompany);
-    
     if (!user) {
-      console.log("User not authenticated");
       setError("Usuário não autenticado");
       return null;
     }
 
     if (!activeCompany) {
-      console.log("No active company");
       setError("Nenhuma empresa selecionada");
       return null;
     }
 
     try {
-      console.log("About to insert sector into database");
       const { data, error } = await supabase
         .from("sectors")
         .insert([
@@ -73,23 +66,20 @@ export const useSectors = () => {
         .select()
         .single();
 
-      console.log("Database response:", { data, error });
-
-      if (error) {
-        console.log("Database error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data) {
-        console.log("Sector created successfully:", data);
         setSectors((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
         return data;
       }
-      console.log("No data returned from database");
       return null;
-    } catch (err) {
-      console.log("Error in createSector:", err);
-      setError(err instanceof Error ? err.message : "Erro ao criar setor");
+    } catch (err: any) {
+      // Handle specific error cases
+      if (err.code === '23505' && err.message.includes('sectors_name_company_unique')) {
+        setError(`O setor "${name.trim()}" já existe nesta empresa`);
+      } else {
+        setError(err instanceof Error ? err.message : "Erro ao criar setor");
+      }
       return null;
     }
   };
