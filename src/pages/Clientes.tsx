@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useClients, Client } from "@/hooks/useClients";
+import { useSectors } from "@/hooks/useSectors";
 import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
@@ -51,6 +52,7 @@ const Clientes = () => {
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
+  const { sectors } = useSectors();
   const { toast } = useToast();
 
   const filteredClients = clients.filter(client => {
@@ -59,7 +61,7 @@ const Clientes = () => {
                          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.company.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesSector = filters.sector === "all" || client.sector.toLowerCase().includes(filters.sector.toLowerCase());
+    const matchesSector = filters.sector === "all" || client.sector === filters.sector;
     
     const matchesBudget = filters.budgetRange === "all" || (() => {
       const budget = client.monthly_budget || 0;
@@ -246,12 +248,11 @@ const Clientes = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os setores</SelectItem>
-                      <SelectItem value="tecnologia">Tecnologia</SelectItem>
-                      <SelectItem value="educacao">Educação</SelectItem>
-                      <SelectItem value="saude">Saúde</SelectItem>
-                      <SelectItem value="varejo">Varejo</SelectItem>
-                      <SelectItem value="financeiro">Financeiro</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
+                      {sectors.map((sector) => (
+                        <SelectItem key={sector.id} value={sector.name}>
+                          {sector.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

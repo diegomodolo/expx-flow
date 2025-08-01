@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/hooks/useClients";
+import { useSectors } from "@/hooks/useSectors";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Plus } from "lucide-react";
 
 interface ClientDialogProps {
   open: boolean;
@@ -21,6 +23,8 @@ interface ClientDialogProps {
 }
 
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
+  const { sectors, createSector } = useSectors();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: client?.name || "",
     email: client?.email || "",
@@ -40,8 +44,9 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showNewSectorInput, setShowNewSectorInput] = useState(false);
+  const [newSectorName, setNewSectorName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const platforms = ["Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
@@ -87,6 +92,22 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       });
     }
   }, [client]);
+
+  
+  const handleCreateSector = async () => {
+    if (!newSectorName.trim()) return;
+    
+    const newSector = await createSector(newSectorName.trim());
+    if (newSector) {
+      setFormData({ ...formData, sector: newSector.name });
+      setNewSectorName("");
+      setShowNewSectorInput(false);
+      toast({
+        title: "Setor criado",
+        description: `O setor "${newSector.name}" foi criado com sucesso!`,
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,14 +252,80 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               <Label htmlFor="sector" className="text-right">
                 Setor
               </Label>
-              <Input
-                id="sector"
-                value={formData.sector}
-                onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                className="col-span-3"
-                required
-                disabled={readOnly}
-              />
+              <div className="col-span-3 space-y-2">
+                {!showNewSectorInput ? (
+                  <div className="flex gap-2">
+                    <Select 
+                      value={formData.sector} 
+                      onValueChange={(value) => {
+                        if (value === "new") {
+                          setShowNewSectorInput(true);
+                        } else {
+                          setFormData({ ...formData, sector: value });
+                        }
+                      }}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione um setor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sectors.map((sector) => (
+                          <SelectItem key={sector.id} value={sector.name}>
+                            {sector.name}
+                          </SelectItem>
+                        ))}
+                        {!readOnly && (
+                          <SelectItem value="new">
+                            <div className="flex items-center gap-2">
+                              <Plus className="w-4 h-4" />
+                              Criar novo setor
+                            </div>
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nome do novo setor"
+                      value={newSectorName}
+                      onChange={(e) => setNewSectorName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCreateSector();
+                        }
+                        if (e.key === "Escape") {
+                          setShowNewSectorInput(false);
+                          setNewSectorName("");
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      onClick={handleCreateSector}
+                      disabled={!newSectorName.trim()}
+                    >
+                      Criar
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setShowNewSectorInput(false);
+                        setNewSectorName("");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
