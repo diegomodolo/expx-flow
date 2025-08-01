@@ -95,6 +95,8 @@ Deno.serve(async (req) => {
       }
 
       const adAccountsData = await adAccountsResponse.json()
+      console.log('Ad accounts response:', JSON.stringify(adAccountsData, null, 2));
+      console.log('Number of ad accounts found:', adAccountsData.data?.length || 0);
 
       // Save integration to database
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000))
