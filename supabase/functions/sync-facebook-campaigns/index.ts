@@ -23,15 +23,25 @@ serve(async (req) => {
       }
     )
 
-    const { clientId } = await req.json()
+    let requestBody
+    try {
+      requestBody = await req.json()
+    } catch (error) {
+      console.error('Error parsing request body:', error)
+      throw new Error('Invalid request body')
+    }
+
+    const { clientId } = requestBody
 
     if (!clientId) {
+      console.error('Client ID missing from request:', requestBody)
       throw new Error('Client ID is required')
     }
 
     console.log('Syncing campaigns for client:', clientId)
 
     // Get client info
+    console.log('Fetching client data...')
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
@@ -42,6 +52,8 @@ serve(async (req) => {
       console.error('Error fetching client:', clientError)
       throw new Error('Client not found')
     }
+
+    console.log('Client found:', { id: client.id, name: client.name, ad_account_id: client.ad_account_id })
 
     if (!client.ad_account_id) {
       console.log('No ad account linked to this client')
@@ -56,6 +68,7 @@ serve(async (req) => {
     }
 
     // Get ad account info
+    console.log('Fetching ad account data for ID:', client.ad_account_id)
     const { data: adAccount, error: adAccountError } = await supabase
       .from('facebook_ad_accounts')
       .select('*')
@@ -67,7 +80,10 @@ serve(async (req) => {
       throw new Error('Ad account not found')
     }
 
+    console.log('Ad account found:', { id: adAccount.id, account_id: adAccount.account_id, integration_id: adAccount.integration_id })
+
     // Get integration info
+    console.log('Fetching integration data for ID:', adAccount.integration_id)
     const { data: integration, error: integrationError } = await supabase
       .from('facebook_integrations')
       .select('*')
@@ -78,6 +94,8 @@ serve(async (req) => {
       console.error('Error fetching integration:', integrationError)
       throw new Error('Facebook integration not found')
     }
+
+    console.log('Integration found:', { id: integration.id, is_active: integration.is_active })
 
     const accessToken = integration.access_token
     const accountId = adAccount.account_id
