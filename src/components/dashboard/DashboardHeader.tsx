@@ -35,6 +35,7 @@ export function DashboardHeader() {
     // Not within AuthProvider, use fallback values
     toast = () => {}; // No-op function
     signOut = async () => ({ error: null });
+    profile = null;
   }
 
   const handleLogout = async () => {

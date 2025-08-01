@@ -12,7 +12,7 @@ import { User, Mail } from "lucide-react";
 
 export const UserProfileSettings = () => {
   const { user } = useAuth();
-  const { profile, updateProfile } = useUserProfile();
+  const { profile, updateProfile, loading: profileLoading } = useUserProfile();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -64,6 +64,17 @@ export const UserProfileSettings = () => {
     }
   };
 
+  // Show loading state while profile is being fetched
+  if (profileLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <p className="text-muted-foreground">Carregando perfil...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const getInitials = (name: string) => {
     if (!name) return "";
     return name
@@ -92,9 +103,9 @@ export const UserProfileSettings = () => {
             <Label>Foto do Perfil</Label>
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={profile.avatar_url} alt="Foto do perfil" />
+                <AvatarImage src={formData.avatar_url} alt="Foto do perfil" />
                 <AvatarFallback className="text-lg">
-                  {profile.full_name ? getInitials(profile.full_name) : 
+                  {formData.full_name ? getInitials(formData.full_name) : 
                    user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
                 </AvatarFallback>
               </Avatar>
@@ -165,14 +176,12 @@ export const UserProfileSettings = () => {
               type="button"
               variant="outline"
               onClick={() => {
-                if (profile) {
-                  setFormData({
-                    full_name: profile.full_name || "",
-                    company: profile.company || "",
-                    phone: profile.phone || "",
-                    avatar_url: profile.avatar_url || "",
-                  });
-                }
+                setFormData({
+                  full_name: profile?.full_name || "",
+                  company: profile?.company || "",
+                  phone: profile?.phone || "",
+                  avatar_url: profile?.avatar_url || "",
+                });
               }}
             >
               Cancelar
