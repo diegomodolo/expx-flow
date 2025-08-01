@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,47 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
   const platforms = ["Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
   const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
+
+  // Update form data when client prop changes
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        name: client.name || "",
+        email: client.email || "",
+        company: client.company || "",
+        sector: client.sector || "",
+        status: client.status || "green",
+        avatar: client.avatar || "",
+        last_access: client.last_access || new Date().toLocaleDateString('pt-BR'),
+        monthly_budget: client.monthly_budget || 0,
+        target_audience: client.target_audience || "",
+        product_name: client.product_name || "",
+        voice_tone: client.voice_tone || "",
+        objectives: client.objectives || "",
+        preferred_platforms: client.preferred_platforms || [],
+        campaign_type: client.campaign_type || "",
+        notes: client.notes || ""
+      });
+    } else {
+      setFormData({
+        name: "",
+        email: "",
+        company: "",
+        sector: "",
+        status: "green",
+        avatar: "",
+        last_access: new Date().toLocaleDateString('pt-BR'),
+        monthly_budget: 0,
+        target_audience: "",
+        product_name: "",
+        voice_tone: "",
+        objectives: "",
+        preferred_platforms: [],
+        campaign_type: "",
+        notes: ""
+      });
+    }
+  }, [client]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
