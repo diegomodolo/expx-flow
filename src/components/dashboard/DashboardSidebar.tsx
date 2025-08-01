@@ -8,6 +8,7 @@ import {
   BarChart3,
   BookOpen,
   Settings,
+  UserCheck,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
@@ -28,6 +29,7 @@ const items = [
   { title: "Campanhas", url: "/campanhas", icon: Megaphone },
   { title: "Squad", url: "/squad", icon: UsersRound },
   { title: "Tarefas", url: "/tarefas", icon: CheckSquare },
+  { title: "Colaboradores", url: "/colaboradores", icon: UserCheck },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Base de Conhecimento", url: "/conhecimento", icon: BookOpen },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
