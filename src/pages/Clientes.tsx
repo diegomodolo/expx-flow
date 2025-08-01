@@ -43,7 +43,12 @@ const Clientes = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    sector: "",
+    budgetRange: "",
+    campaignRange: ""
+  });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
   const { toast } = useToast();
@@ -53,7 +58,32 @@ const Clientes = () => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.company.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    
+    const matchesSector = !filters.sector || client.sector.toLowerCase().includes(filters.sector.toLowerCase());
+    
+    const matchesBudget = !filters.budgetRange || (() => {
+      const budget = client.monthly_budget || 0;
+      switch (filters.budgetRange) {
+        case "0-1000": return budget >= 0 && budget <= 1000;
+        case "1000-5000": return budget > 1000 && budget <= 5000;
+        case "5000-10000": return budget > 5000 && budget <= 10000;
+        case "10000+": return budget > 10000;
+        default: return true;
+      }
+    })();
+    
+    const matchesCampaigns = !filters.campaignRange || (() => {
+      const campaigns = client.active_campaigns || 0;
+      switch (filters.campaignRange) {
+        case "0": return campaigns === 0;
+        case "1-3": return campaigns >= 1 && campaigns <= 3;
+        case "4-10": return campaigns >= 4 && campaigns <= 10;
+        case "10+": return campaigns > 10;
+        default: return true;
+      }
+    })();
+    
+    return matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns;
   });
 
   const totalClients = filteredClients.length;
@@ -186,7 +216,7 @@ const Clientes = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" className="flex items-center space-x-2" onClick={() => setFiltersDialogOpen(true)}>
+                <Button variant="outline" className="flex items-center space-x-2" onClick={() => setShowFilters(!showFilters)}>
                   <Filter className="w-4 h-4" />
                   <span>Filtros</span>
                 </Button>
@@ -198,6 +228,98 @@ const Clientes = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Advanced Filters Card */}
+        {showFilters && (
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Filtros Avançados</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sector-filter">Setor</Label>
+                  <Select 
+                    value={filters.sector} 
+                    onValueChange={(value) => setFilters({ ...filters, sector: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os setores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos os setores</SelectItem>
+                      <SelectItem value="tecnologia">Tecnologia</SelectItem>
+                      <SelectItem value="educacao">Educação</SelectItem>
+                      <SelectItem value="saude">Saúde</SelectItem>
+                      <SelectItem value="varejo">Varejo</SelectItem>
+                      <SelectItem value="financeiro">Financeiro</SelectItem>
+                      <SelectItem value="marketing">Marketing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="budget-filter">Orçamento Mensal</Label>
+                  <Select 
+                    value={filters.budgetRange} 
+                    onValueChange={(value) => setFilters({ ...filters, budgetRange: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas as faixas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todas as faixas</SelectItem>
+                      <SelectItem value="0-1000">R$ 0 - R$ 1.000</SelectItem>
+                      <SelectItem value="1000-5000">R$ 1.000 - R$ 5.000</SelectItem>
+                      <SelectItem value="5000-10000">R$ 5.000 - R$ 10.000</SelectItem>
+                      <SelectItem value="10000+">R$ 10.000+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="campaigns-filter">Campanhas Ativas</Label>
+                  <Select 
+                    value={filters.campaignRange} 
+                    onValueChange={(value) => setFilters({ ...filters, campaignRange: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Qualquer quantidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Qualquer quantidade</SelectItem>
+                      <SelectItem value="0">0 campanhas</SelectItem>
+                      <SelectItem value="1-3">1-3 campanhas</SelectItem>
+                      <SelectItem value="4-10">4-10 campanhas</SelectItem>
+                      <SelectItem value="10+">10+ campanhas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setFilters({ sector: "", budgetRange: "", campaignRange: "" });
+                    toast({
+                      title: "Filtros limpos",
+                      description: "Todos os filtros foram removidos.",
+                    });
+                  }}
+                >
+                  Limpar Filtros
+                </Button>
+                <Button onClick={() => {
+                  toast({
+                    title: "Filtros aplicados",
+                    description: `${filteredClients.length} clientes encontrados.`,
+                  });
+                }}>
+                  Aplicar ({filteredClients.length})
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Clients Table */}
         <Card>
@@ -426,80 +548,6 @@ const Clientes = () => {
           onConfirm={deleteClient}
           client={selectedClient}
         />
-
-        {/* Filters Dialog */}
-        <Dialog open={filtersDialogOpen} onOpenChange={setFiltersDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Filtros Avançados</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="sector-filter" className="text-right">
-                  Setor
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione um setor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tecnologia">Tecnologia</SelectItem>
-                    <SelectItem value="educacao">Educação</SelectItem>
-                    <SelectItem value="saude">Saúde</SelectItem>
-                    <SelectItem value="varejo">Varejo</SelectItem>
-                    <SelectItem value="financeiro">Financeiro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="budget-filter" className="text-right">
-                  Orçamento
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Faixa de orçamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0-1000">R$ 0 - R$ 1.000</SelectItem>
-                    <SelectItem value="1000-5000">R$ 1.000 - R$ 5.000</SelectItem>
-                    <SelectItem value="5000-10000">R$ 5.000 - R$ 10.000</SelectItem>
-                    <SelectItem value="10000+">R$ 10.000+</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="campaigns-filter" className="text-right">
-                  Campanhas
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Número de campanhas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0 campanhas</SelectItem>
-                    <SelectItem value="1-3">1-3 campanhas</SelectItem>
-                    <SelectItem value="4-10">4-10 campanhas</SelectItem>
-                    <SelectItem value="10+">10+ campanhas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setFiltersDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={() => {
-                toast({
-                  title: "Filtros aplicados",
-                  description: "Filtros avançados foram aplicados com sucesso!",
-                });
-                setFiltersDialogOpen(false);
-              }}>
-                Aplicar Filtros
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </DashboardLayout>
   );
