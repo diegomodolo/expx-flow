@@ -17,9 +17,10 @@ interface ClientDialogProps {
   onSubmit: (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl">) => Promise<any>;
   client?: Client;
   title: string;
+  readOnly?: boolean;
 }
 
-export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: ClientDialogProps) {
+export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const [formData, setFormData] = useState({
     name: client?.name || "",
     email: client?.email || "",
@@ -196,6 +197,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="col-span-3"
                 required
+                disabled={readOnly}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -209,6 +211,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="col-span-3"
                 required
+                disabled={readOnly}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -221,6 +224,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                 className="col-span-3"
                 required
+                disabled={readOnly}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -233,13 +237,14 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
                 className="col-span-3"
                 required
+                disabled={readOnly}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value })}>
+              <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value })} disabled={readOnly}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
@@ -261,15 +266,17 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                       alt="Avatar" 
                       className="w-20 h-20 rounded-full object-cover"
                     />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
-                      onClick={() => setFormData({ ...formData, avatar: "" })}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                        onClick={() => setFormData({ ...formData, avatar: "" })}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
                   </div>
                 )}
                 <div className="flex gap-2">
@@ -277,7 +284,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                     type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    disabled={uploading || readOnly}
                     className="flex items-center gap-2"
                   >
                     <Upload className="w-4 h-4" />
@@ -307,6 +314,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
                 className="col-span-3"
                 placeholder="0.00"
+                disabled={readOnly}
               />
             </div>
 
@@ -321,6 +329,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
                 className="col-span-3"
                 placeholder="Ex: Aplicativo de delivery"
+                disabled={readOnly}
               />
             </div>
 
@@ -336,6 +345,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 className="col-span-3"
                 placeholder="Ex: Mulheres de 25-45 anos, interessadas em tecnologia..."
                 rows={3}
+                disabled={readOnly}
               />
             </div>
 
@@ -344,7 +354,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
               <Label htmlFor="voice_tone" className="text-right">
                 Tom de Voz
               </Label>
-              <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })}>
+              <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o tom de voz" />
                 </SelectTrigger>
@@ -361,7 +371,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
               <Label htmlFor="campaign_type" className="text-right">
                 Tipo de Campanha
               </Label>
-              <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })}>
+              <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })} disabled={readOnly}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o tipo de campanha" />
                 </SelectTrigger>
@@ -385,6 +395,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                       id={platform}
                       checked={formData.preferred_platforms.includes(platform)}
                       onCheckedChange={(checked) => handlePlatformChange(platform, checked as boolean)}
+                      disabled={readOnly}
                     />
                     <Label htmlFor={platform} className="text-sm font-normal">
                       {platform}
@@ -406,6 +417,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 className="col-span-3"
                 placeholder="Ex: Aumentar conversões em 30%, reduzir CAC..."
                 rows={3}
+                disabled={readOnly}
               />
             </div>
 
@@ -421,16 +433,19 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 className="col-span-3"
                 placeholder="Informações adicionais sobre o cliente..."
                 rows={3}
+                disabled={readOnly}
               />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {readOnly ? "Fechar" : "Cancelar"}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : client ? "Atualizar" : "Criar"}
-            </Button>
+            {!readOnly && (
+              <Button type="submit" disabled={loading}>
+                {loading ? "Salvando..." : client ? "Atualizar" : "Criar"}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

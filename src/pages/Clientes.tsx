@@ -39,6 +39,7 @@ const Clientes = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
   const { toast } = useToast();
@@ -234,6 +235,10 @@ const Clientes = () => {
                           size="sm"
                           className="w-8 h-8 p-0"
                           title="Visualizar"
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setViewDialogOpen(true);
+                          }}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -364,6 +369,18 @@ const Clientes = () => {
           onSubmit={(clientData) => selectedClient ? updateClient(selectedClient.id, clientData) : Promise.resolve(null)}
           client={selectedClient || undefined}
           title="Editar Cliente"
+        />
+        
+        <ClientDialog
+          open={viewDialogOpen}
+          onOpenChange={(open) => {
+            setViewDialogOpen(open);
+            if (!open) setSelectedClient(null);
+          }}
+          onSubmit={() => Promise.resolve(null)}
+          client={selectedClient || undefined}
+          title="Visualizar Cliente"
+          readOnly={true}
         />
         
         <DeleteClientDialog
