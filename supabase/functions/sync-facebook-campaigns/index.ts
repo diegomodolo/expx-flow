@@ -331,7 +331,6 @@ serve(async (req) => {
 
       // Save campaign to database
       const campaignData = {
-        id: campaign.id,
         name: campaign.name,
         platforms: 'Facebook Ads',
         status: isActive ? 'active' : 'paused',
