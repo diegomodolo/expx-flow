@@ -46,6 +46,10 @@ const ClienteDetalhes = () => {
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [adSetSortField, setAdSetSortField] = useState<'name' | 'status' | 'budget' | 'cpm' | 'ctr' | 'conversions' | null>(null);
+  const [adSetSortDirection, setAdSetSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [adSortField, setAdSortField] = useState<'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | null>(null);
+  const [adSortDirection, setAdSortDirection] = useState<'asc' | 'desc'>('asc');
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
@@ -151,12 +155,126 @@ const ClienteDetalhes = () => {
     return campaigns;
   }, [client?.campaigns, campaignFilter, sortField, sortDirection]);
 
+  // Filter and sort ad sets
+  const sortedAdSets = useMemo(() => {
+    if (!adSets) return [];
+    
+    let sorted = [...adSets];
+    
+    if (adSetSortField) {
+      sorted = sorted.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (adSetSortField) {
+          case 'name':
+            aValue = a.name.toLowerCase();
+            bValue = b.name.toLowerCase();
+            break;
+          case 'status':
+            aValue = a.status;
+            bValue = b.status;
+            break;
+          case 'budget':
+            aValue = a.daily_budget > 0 ? a.daily_budget : a.lifetime_budget;
+            bValue = b.daily_budget > 0 ? b.daily_budget : b.lifetime_budget;
+            break;
+          case 'cpm':
+            aValue = a.cpm;
+            bValue = b.cpm;
+            break;
+          case 'ctr':
+            aValue = a.ctr;
+            bValue = b.ctr;
+            break;
+          case 'conversions':
+            aValue = a.conversions;
+            bValue = b.conversions;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return adSetSortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return adSetSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return sorted;
+  }, [adSets, adSetSortField, adSetSortDirection]);
+
+  // Filter and sort ads
+  const sortedAds = useMemo(() => {
+    if (!ads) return [];
+    
+    let sorted = [...ads];
+    
+    if (adSortField) {
+      sorted = sorted.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (adSortField) {
+          case 'name':
+            aValue = a.name.toLowerCase();
+            bValue = b.name.toLowerCase();
+            break;
+          case 'type':
+            aValue = a.creative_type || '';
+            bValue = b.creative_type || '';
+            break;
+          case 'status':
+            aValue = a.status;
+            bValue = b.status;
+            break;
+          case 'ctr':
+            aValue = a.ctr;
+            bValue = b.ctr;
+            break;
+          case 'cpc':
+            aValue = a.cpc;
+            bValue = b.cpc;
+            break;
+          case 'conversions':
+            aValue = a.conversions;
+            bValue = b.conversions;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return adSortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return adSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return sorted;
+  }, [ads, adSortField, adSortDirection]);
+
   const handleSort = (field: 'name' | 'cpc' | 'cpa' | 'spend' | 'conversions') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleAdSetSort = (field: 'name' | 'status' | 'budget' | 'cpm' | 'ctr' | 'conversions') => {
+    if (adSetSortField === field) {
+      setAdSetSortDirection(adSetSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setAdSetSortField(field);
+      setAdSetSortDirection('asc');
+    }
+  };
+
+  const handleAdSort = (field: 'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions') => {
+    if (adSortField === field) {
+      setAdSortDirection(adSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setAdSortField(field);
+      setAdSortDirection('asc');
     }
   };
 
@@ -698,31 +816,79 @@ const ClienteDetalhes = () => {
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Nome do Conjunto
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Campanha
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Orçamento
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        CPM
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        CTR
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Conversões
-                      </th>
-                    </tr>
-                  </thead>
+                   <thead className="bg-gray-50">
+                     <tr>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSetSort('name')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Nome do Conjunto</span>
+                           {adSetSortField === 'name' && (
+                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                         Campanha
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSetSort('status')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Status</span>
+                           {adSetSortField === 'status' && (
+                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSetSort('budget')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Orçamento</span>
+                           {adSetSortField === 'budget' && (
+                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSetSort('cpm')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>CPM</span>
+                           {adSetSortField === 'cpm' && (
+                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSetSort('ctr')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>CTR</span>
+                           {adSetSortField === 'ctr' && (
+                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSetSort('conversions')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Conversões</span>
+                           {adSetSortField === 'conversions' && (
+                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                     </tr>
+                   </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adSetsLoading ? (
                        <tr>
@@ -731,8 +897,8 @@ const ClienteDetalhes = () => {
                            <p>Carregando conjuntos de anúncios...</p>
                          </td>
                        </tr>
-                     ) : adSets.length > 0 ? (
-                       adSets.map((adSet) => (
+                     ) : sortedAdSets.length > 0 ? (
+                       sortedAdSets.map((adSet) => (
                          <tr key={adSet.id}>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <div className="text-sm font-medium text-gray-900">{adSet.name}</div>
@@ -793,31 +959,79 @@ const ClienteDetalhes = () => {
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Nome do Criativo
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Conjunto de Anúncios
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Tipo
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        CTR
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        CPC
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Conversões
-                      </th>
-                    </tr>
-                  </thead>
+                   <thead className="bg-gray-50">
+                     <tr>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSort('name')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Nome do Criativo</span>
+                           {adSortField === 'name' && (
+                             <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                         Conjunto de Anúncios
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSort('type')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Tipo</span>
+                           {adSortField === 'type' && (
+                             <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSort('status')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Status</span>
+                           {adSortField === 'status' && (
+                             <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSort('ctr')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>CTR</span>
+                           {adSortField === 'ctr' && (
+                             <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSort('cpc')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>CPC</span>
+                           {adSortField === 'cpc' && (
+                             <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                       <th 
+                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleAdSort('conversions')}
+                       >
+                         <div className="flex items-center space-x-1">
+                           <span>Conversões</span>
+                           {adSortField === 'conversions' && (
+                             <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                           )}
+                         </div>
+                       </th>
+                     </tr>
+                   </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adsLoading ? (
                        <tr>
@@ -826,8 +1040,8 @@ const ClienteDetalhes = () => {
                            <p>Carregando criativos...</p>
                          </td>
                        </tr>
-                     ) : ads.length > 0 ? (
-                       ads.map((ad) => (
+                     ) : sortedAds.length > 0 ? (
+                       sortedAds.map((ad) => (
                          <tr key={ad.id}>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <div className="text-sm font-medium text-gray-900">{ad.name}</div>
