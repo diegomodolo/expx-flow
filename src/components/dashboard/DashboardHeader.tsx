@@ -1,11 +1,13 @@
-import { Search, Bell, Settings, LogOut } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
 import { CompanySelector } from "@/components/company/CompanySelector";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,13 +21,16 @@ export function DashboardHeader() {
   let user = null;
   let signOut = null;
   let toast = null;
+  let profile = null;
   
   try {
     const auth = useAuth();
     const toastHook = useToast();
+    const userProfile = useUserProfile();
     user = auth.user;
     signOut = auth.signOut;
     toast = toastHook.toast;
+    profile = userProfile.profile;
   } catch (error) {
     // Not within AuthProvider, use fallback values
     toast = () => {}; // No-op function
@@ -50,9 +55,17 @@ export function DashboardHeader() {
     }
   };
 
-  const getUserInitials = (email: string) => {
-    return email ? email.substring(0, 2).toUpperCase() : "U";
+  const getUserInitials = (name: string) => {
+    if (!name) return "U";
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
+
+  const displayName = profile?.full_name || user?.email || "Usuário";
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-50">
@@ -89,31 +102,34 @@ export function DashboardHeader() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-3 h-auto p-2">
+               <Button variant="ghost" className="flex items-center space-x-3 h-auto p-2">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
+                  <AvatarImage src={profile?.avatar_url || undefined} alt="User" />
                   <AvatarFallback>
-                    {user?.email ? getUserInitials(user.email) : "U"}
+                    {profile?.full_name ? getUserInitials(profile.full_name) : 
+                     user?.email ? getUserInitials(user.email) : <User className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium text-foreground">
-                  {user?.email || "Usuário"}
+                  {displayName}
                 </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex flex-col space-y-1 p-2">
                 <p className="text-sm font-medium leading-none">
-                  {user?.email || "Usuário"}
+                  {displayName}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Configurações</span>
+              <DropdownMenuItem asChild>
+                <Link to="/configuracoes" className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>

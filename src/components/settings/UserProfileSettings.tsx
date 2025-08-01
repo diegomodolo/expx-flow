@@ -6,52 +6,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { User, Mail } from "lucide-react";
 
 export const UserProfileSettings = () => {
   const { user } = useAuth();
+  const { profile, updateProfile } = useUserProfile();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState({
+  const [formData, setFormData] = useState({
     full_name: "",
     company: "",
     phone: "",
     avatar_url: "",
   });
 
-  // Load user profile
+  // Update form data when profile changes
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
-        if (data) {
-          setProfile({
-            full_name: data.full_name || "",
-            company: data.company || "",
-            phone: data.phone || "",
-            avatar_url: data.avatar_url || "",
-          });
-        }
-      } catch (error) {
-        console.error('Error loading profile:', error);
-      }
-    };
-
-    loadProfile();
-  }, [user?.id]);
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || "",
+        company: profile.company || "",
+        phone: profile.phone || "",
+        avatar_url: profile.avatar_url || "",
+      });
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,20 +41,12 @@ export const UserProfileSettings = () => {
     try {
       setLoading(true);
       
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          full_name: profile.full_name,
-          company: profile.company,
-          phone: profile.phone,
-          avatar_url: profile.avatar_url,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (error) throw error;
+      await updateProfile({
+        full_name: formData.full_name,
+        company: formData.company,
+        phone: formData.phone,
+        avatar_url: formData.avatar_url,
+      });
 
       toast({
         title: "Perfil atualizado!",
@@ -92,6 +65,7 @@ export const UserProfileSettings = () => {
   };
 
   const getInitials = (name: string) => {
+    if (!name) return "";
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -127,9 +101,9 @@ export const UserProfileSettings = () => {
               
               <ImageUploader
                 bucket="avatars"
-                currentImageUrl={profile.avatar_url}
-                onImageUploaded={(url) => setProfile({ ...profile, avatar_url: url })}
-                onImageRemoved={() => setProfile({ ...profile, avatar_url: "" })}
+                currentImageUrl={formData.avatar_url}
+                onImageUploaded={(url) => setFormData({ ...formData, avatar_url: url })}
+                onImageRemoved={() => setFormData({ ...formData, avatar_url: "" })}
                 maxSize={2}
                 className="flex-1"
               />
@@ -142,8 +116,8 @@ export const UserProfileSettings = () => {
               <Label htmlFor="full_name">Nome Completo</Label>
               <Input
                 id="full_name"
-                value={profile.full_name}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="Seu nome completo"
               />
             </div>
@@ -169,8 +143,8 @@ export const UserProfileSettings = () => {
               <Label htmlFor="company">Empresa</Label>
               <Input
                 id="company"
-                value={profile.company}
-                onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                 placeholder="Nome da empresa"
               />
             </div>
@@ -179,8 +153,8 @@ export const UserProfileSettings = () => {
               <Label htmlFor="phone">Telefone</Label>
               <Input
                 id="phone"
-                value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="(11) 99999-9999"
               />
             </div>
@@ -190,12 +164,16 @@ export const UserProfileSettings = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setProfile({
-                full_name: "",
-                company: "",
-                phone: "",
-                avatar_url: "",
-              })}
+              onClick={() => {
+                if (profile) {
+                  setFormData({
+                    full_name: profile.full_name || "",
+                    company: profile.company || "",
+                    phone: profile.phone || "",
+                    avatar_url: profile.avatar_url || "",
+                  });
+                }
+              }}
             >
               Cancelar
             </Button>
