@@ -407,10 +407,12 @@ const Clientes = () => {
                           size="sm"
                           className="w-8 h-8 p-0"
                           title="Editar"
-                          onClick={() => {
-                            setSelectedClient(client);
-                            setEditDialogOpen(true);
-                          }}
+          onClick={() => {
+            console.log("Edit button clicked. Client data:", client);
+            setSelectedClient(client);
+            setEditDialogOpen(true);
+            console.log("Selected client set and dialog opened");
+          }}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
