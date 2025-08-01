@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Mail, Upload } from "lucide-react";
+import { User, Mail } from "lucide-react";
 
 export const UserProfileSettings = () => {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export const UserProfileSettings = () => {
     full_name: "",
     company: "",
     phone: "",
+    avatar_url: "",
   });
 
   // Load user profile
@@ -40,6 +42,7 @@ export const UserProfileSettings = () => {
             full_name: data.full_name || "",
             company: data.company || "",
             phone: data.phone || "",
+            avatar_url: data.avatar_url || "",
           });
         }
       } catch (error) {
@@ -64,6 +67,7 @@ export const UserProfileSettings = () => {
           full_name: profile.full_name,
           company: profile.company,
           phone: profile.phone,
+          avatar_url: profile.avatar_url,
           updated_at: new Date().toISOString(),
         });
 
@@ -112,20 +116,21 @@ export const UserProfileSettings = () => {
             <Label>Foto do Perfil</Label>
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
+                <AvatarImage src={profile.avatar_url} alt="Foto do perfil" />
                 <AvatarFallback className="text-lg">
                   {profile.full_name ? getInitials(profile.full_name) : 
                    user?.email ? getInitials(user.email) : <User className="h-8 w-8" />}
                 </AvatarFallback>
               </Avatar>
-              <div className="space-y-2">
-                <Button type="button" variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Alterar foto
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Recomendado: 400x400px, formato PNG ou JPG
-                </p>
-              </div>
+              
+              <ImageUploader
+                bucket="avatars"
+                currentImageUrl={profile.avatar_url}
+                onImageUploaded={(url) => setProfile({ ...profile, avatar_url: url })}
+                onImageRemoved={() => setProfile({ ...profile, avatar_url: "" })}
+                maxSize={2}
+                className="flex-1"
+              />
             </div>
           </div>
 
@@ -187,6 +192,7 @@ export const UserProfileSettings = () => {
                 full_name: "",
                 company: "",
                 phone: "",
+                avatar_url: "",
               })}
             >
               Cancelar

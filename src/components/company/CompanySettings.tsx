@@ -5,9 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/hooks/use-toast";
-import { Building, Mail, Phone, Upload } from "lucide-react";
+import { Building, Mail, Phone } from "lucide-react";
 
 export const CompanySettings = () => {
   const { activeCompany, updateCompany } = useCompany();
@@ -77,15 +78,16 @@ export const CompanySettings = () => {
                   <Building className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
-              <div className="space-y-2">
-                <Button type="button" variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Alterar logotipo
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Recomendado: 200x200px, formato PNG ou JPG
-                </p>
-              </div>
+              
+              <ImageUploader
+                bucket="company-logos"
+                folder={activeCompany?.company?.id}
+                currentImageUrl={formData.logo}
+                onImageUploaded={(url) => setFormData({ ...formData, logo: url })}
+                onImageRemoved={() => setFormData({ ...formData, logo: "" })}
+                maxSize={5}
+                className="flex-1"
+              />
             </div>
           </div>
 
