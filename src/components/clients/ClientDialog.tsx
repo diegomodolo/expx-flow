@@ -405,12 +405,12 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ad_account_id">Conta de Anúncios</Label>
-                <Select value={formData.ad_account_id} onValueChange={(value) => setFormData({ ...formData, ad_account_id: value })} disabled={readOnly}>
+                <Select value={formData.ad_account_id || "none"} onValueChange={(value) => setFormData({ ...formData, ad_account_id: value === "none" ? "" : value })} disabled={readOnly}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a conta de anúncios" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma conta selecionada</SelectItem>
+                    <SelectItem value="none">Nenhuma conta selecionada</SelectItem>
                     {adAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.account_name} ({account.currency})
