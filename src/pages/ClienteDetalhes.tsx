@@ -403,13 +403,13 @@ const ClienteDetalhes = () => {
               <CardTitle>CPL por Campanha</CardTitle>
               <p className="text-sm text-gray-600">Custo por Lead de cada campanha ativa</p>
             </CardHeader>
-            <CardContent>
-              <div className="h-60">
-                 {cplByCampaignData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={cplByCampaignData}
-                      margin={{ top: 20, right: 30, left: 40, bottom: 0 }}
+             <CardContent className="p-4 pb-2">
+               <div className="h-52">
+                  {cplByCampaignData.length > 0 ? (
+                   <ResponsiveContainer width="100%" height="100%">
+                     <BarChart
+                       data={cplByCampaignData}
+                       margin={{ top: 10, right: 20, left: 30, bottom: -10 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
