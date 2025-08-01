@@ -12,6 +12,7 @@ import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
+import ExclusaoDados from "./pages/ExclusaoDados";
 import NotFound from "./pages/NotFound";
 
 // Protected pages
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-servico" element={<TermosServico />} />
+            <Route path="/exclusao-dados" element={<ExclusaoDados />} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
