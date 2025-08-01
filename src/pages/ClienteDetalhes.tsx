@@ -58,18 +58,27 @@ const ClienteDetalhes = () => {
       return [];
     }
 
-    return client.campaigns
-      .filter(campaign => (campaign.cpa || 0) > 0) // Only show campaigns with CPA > 0
-      .map(campaign => ({
-        name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
-        fullName: campaign.name,
-        cpl: campaign.cpa || 0,
-        spend: campaign.spend || 0,
-        conversions: campaign.conversions || 0,
-        status: campaign.status
-      }))
+    const filteredCampaigns = client.campaigns.filter(campaign => (campaign.cpa || 0) > 0);
+    console.log('🔍 Filtered campaigns with CPA > 0:', filteredCampaigns.length);
+    
+    const mappedData = filteredCampaigns
+      .map(campaign => {
+        const cpl = campaign.cpa || 0;
+        console.log(`📊 Campaign: ${campaign.name} - CPA: ${campaign.cpa} - Mapped CPL: ${cpl}`);
+        return {
+          name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
+          fullName: campaign.name,
+          cpl: cpl,
+          status: campaign.status,
+          conversions: campaign.conversions,
+          spend: campaign.spend || 0
+        };
+      })
       .sort((a, b) => a.cpl - b.cpl) // Sort by CPL ascending (cheapest first)
       .slice(0, 8); // Show top 8 campaigns
+
+    console.log('📈 Final mapped data:', mappedData);
+    return mappedData;
   }, [client?.campaigns]);
 
   // Data for Investment Distribution chart (pie chart)
