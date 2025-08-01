@@ -83,6 +83,7 @@ export type Database = {
       clients: {
         Row: {
           active_campaigns: number
+          ad_account_id: string | null
           avatar: string | null
           avg_cpl: number
           campaign_type: string | null
@@ -107,6 +108,7 @@ export type Database = {
         }
         Insert: {
           active_campaigns?: number
+          ad_account_id?: string | null
           avatar?: string | null
           avg_cpl?: number
           campaign_type?: string | null
@@ -131,6 +133,7 @@ export type Database = {
         }
         Update: {
           active_campaigns?: number
+          ad_account_id?: string | null
           avatar?: string | null
           avg_cpl?: number
           campaign_type?: string | null
@@ -154,6 +157,13 @@ export type Database = {
           voice_tone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_ad_account_id_fkey"
+            columns: ["ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_ad_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_company_id_fkey"
             columns: ["company_id"]
