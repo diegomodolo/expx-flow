@@ -75,46 +75,70 @@ export type Database = {
           active_campaigns: number
           avatar: string | null
           avg_cpl: number
+          campaign_type: string | null
           company: string
           created_at: string
           email: string
           id: string
           last_access: string | null
+          monthly_budget: number | null
           name: string
+          notes: string | null
+          objectives: string | null
+          preferred_platforms: string[] | null
+          product_name: string | null
           sector: string
           status: Database["public"]["Enums"]["client_status"]
+          target_audience: string | null
           updated_at: string
           user_id: string
+          voice_tone: string | null
         }
         Insert: {
           active_campaigns?: number
           avatar?: string | null
           avg_cpl?: number
+          campaign_type?: string | null
           company: string
           created_at?: string
           email: string
           id?: string
           last_access?: string | null
+          monthly_budget?: number | null
           name: string
+          notes?: string | null
+          objectives?: string | null
+          preferred_platforms?: string[] | null
+          product_name?: string | null
           sector: string
           status?: Database["public"]["Enums"]["client_status"]
+          target_audience?: string | null
           updated_at?: string
           user_id: string
+          voice_tone?: string | null
         }
         Update: {
           active_campaigns?: number
           avatar?: string | null
           avg_cpl?: number
+          campaign_type?: string | null
           company?: string
           created_at?: string
           email?: string
           id?: string
           last_access?: string | null
+          monthly_budget?: number | null
           name?: string
+          notes?: string | null
+          objectives?: string | null
+          preferred_platforms?: string[] | null
+          product_name?: string | null
           sector?: string
           status?: Database["public"]["Enums"]["client_status"]
+          target_audience?: string | null
           updated_at?: string
           user_id?: string
+          voice_tone?: string | null
         }
         Relationships: []
       }

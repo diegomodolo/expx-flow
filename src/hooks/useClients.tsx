@@ -13,6 +13,14 @@ export interface Client {
   avg_cpl: number;
   last_access: string;
   avatar: string;
+  monthly_budget?: number;
+  target_audience?: string;
+  product_name?: string;
+  voice_tone?: string;
+  objectives?: string;
+  preferred_platforms?: string[];
+  campaign_type?: string;
+  notes?: string;
 }
 
 export function useClients() {

@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/hooks/useClients";
+import { supabase } from "@/integrations/supabase/client";
+import { Upload, X } from "lucide-react";
 
 interface ClientDialogProps {
   open: boolean;
@@ -23,10 +27,24 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
     sector: client?.sector || "",
     status: client?.status || "green" as const,
     avatar: client?.avatar || "",
-    last_access: client?.last_access || new Date().toLocaleDateString('pt-BR')
+    last_access: client?.last_access || new Date().toLocaleDateString('pt-BR'),
+    monthly_budget: client?.monthly_budget || 0,
+    target_audience: client?.target_audience || "",
+    product_name: client?.product_name || "",
+    voice_tone: client?.voice_tone || "",
+    objectives: client?.objectives || "",
+    preferred_platforms: client?.preferred_platforms || [],
+    campaign_type: client?.campaign_type || "",
+    notes: client?.notes || ""
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const platforms = ["Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
+  const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
+  const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +64,15 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
         sector: "",
         status: "green",
         avatar: "",
-        last_access: new Date().toLocaleDateString('pt-BR')
+        last_access: new Date().toLocaleDateString('pt-BR'),
+        monthly_budget: 0,
+        target_audience: "",
+        product_name: "",
+        voice_tone: "",
+        objectives: "",
+        preferred_platforms: [],
+        campaign_type: "",
+        notes: ""
       });
     } catch (error) {
       toast({
@@ -59,9 +85,58 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('client-avatars')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-avatars')
+        .getPublicUrl(fileName);
+
+      setFormData({ ...formData, avatar: publicUrl });
+      toast({
+        title: "Sucesso",
+        description: "Foto enviada com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar foto. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePlatformChange = (platform: string, checked: boolean) => {
+    if (checked) {
+      setFormData({ 
+        ...formData, 
+        preferred_platforms: [...formData.preferred_platforms, platform] 
+      });
+    } else {
+      setFormData({ 
+        ...formData, 
+        preferred_platforms: formData.preferred_platforms.filter(p => p !== platform) 
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -131,16 +206,177 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title }: Cl
                 </SelectContent>
               </Select>
             </div>
+            {/* Avatar Upload */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="avatar" className="text-right">
-                Avatar URL
+              <Label className="text-right">Foto</Label>
+              <div className="col-span-3 space-y-2">
+                {formData.avatar && (
+                  <div className="relative w-20 h-20">
+                    <img 
+                      src={formData.avatar} 
+                      alt="Avatar" 
+                      className="w-20 h-20 rounded-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                      onClick={() => setFormData({ ...formData, avatar: "" })}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {uploading ? "Enviando..." : "Upload"}
+                  </Button>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Budget */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="monthly_budget" className="text-right">
+                Orçamento Mensal
               </Label>
               <Input
-                id="avatar"
-                value={formData.avatar}
-                onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
+                id="monthly_budget"
+                type="number"
+                step="0.01"
+                value={formData.monthly_budget}
+                onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
                 className="col-span-3"
-                placeholder="https://exemplo.com/avatar.jpg"
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Product Name */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="product_name" className="text-right">
+                Nome do Produto
+              </Label>
+              <Input
+                id="product_name"
+                value={formData.product_name}
+                onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
+                className="col-span-3"
+                placeholder="Ex: Aplicativo de delivery"
+              />
+            </div>
+
+            {/* Target Audience */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="target_audience" className="text-right">
+                Público Alvo
+              </Label>
+              <Textarea
+                id="target_audience"
+                value={formData.target_audience}
+                onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
+                className="col-span-3"
+                placeholder="Ex: Mulheres de 25-45 anos, interessadas em tecnologia..."
+                rows={3}
+              />
+            </div>
+
+            {/* Voice Tone */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="voice_tone" className="text-right">
+                Tom de Voz
+              </Label>
+              <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione o tom de voz" />
+                </SelectTrigger>
+                <SelectContent>
+                  {voiceTones.map((tone) => (
+                    <SelectItem key={tone} value={tone}>{tone}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Campaign Type */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="campaign_type" className="text-right">
+                Tipo de Campanha
+              </Label>
+              <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione o tipo de campanha" />
+                </SelectTrigger>
+                <SelectContent>
+                  {campaignTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Preferred Platforms */}
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right mt-2">
+                Plataformas Preferidas
+              </Label>
+              <div className="col-span-3 space-y-2">
+                {platforms.map((platform) => (
+                  <div key={platform} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={platform}
+                      checked={formData.preferred_platforms.includes(platform)}
+                      onCheckedChange={(checked) => handlePlatformChange(platform, checked as boolean)}
+                    />
+                    <Label htmlFor={platform} className="text-sm font-normal">
+                      {platform}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Objectives */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="objectives" className="text-right">
+                Objetivos
+              </Label>
+              <Textarea
+                id="objectives"
+                value={formData.objectives}
+                onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
+                className="col-span-3"
+                placeholder="Ex: Aumentar conversões em 30%, reduzir CAC..."
+                rows={3}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="notes" className="text-right">
+                Observações
+              </Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="col-span-3"
+                placeholder="Informações adicionais sobre o cliente..."
+                rows={3}
               />
             </div>
           </div>
