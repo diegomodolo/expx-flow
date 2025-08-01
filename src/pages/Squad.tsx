@@ -62,9 +62,12 @@ const Squad = () => {
 
   // Filtros
   const filteredTeams = teams.filter(team => {
+    const matchesStatus = statusFilter === "todos" || team.progress > 0; // Simplificado para agora
+    const matchesType = typeFilter === "todos" || true; // Simplificado para agora  
+    const matchesPerformance = performanceFilter === "todas" || true; // Simplificado para agora
     const matchesSearch = team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          team.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    return matchesStatus && matchesType && matchesPerformance && matchesSearch;
   });
 
   if (error) {
