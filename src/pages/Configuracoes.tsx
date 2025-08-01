@@ -1,13 +1,17 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { CompanySettings } from "@/components/company/CompanySettings";
 
 const Configuracoes = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
-        <div className="bg-card p-8 rounded-xl shadow-sm border border-border">
-          <p className="text-muted-foreground">Página de configurações em desenvolvimento...</p>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
+          <p className="text-muted-foreground">
+            Gerencie as configurações da sua empresa e conta
+          </p>
         </div>
+        <CompanySettings />
       </div>
     </DashboardLayout>
   );

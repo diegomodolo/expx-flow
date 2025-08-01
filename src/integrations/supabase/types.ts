@@ -167,27 +167,33 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          email: string | null
           id: string
           logo: string | null
           name: string
+          phone: string | null
           slug: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by: string
+          email?: string | null
           id?: string
           logo?: string | null
           name: string
+          phone?: string | null
           slug?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string
+          email?: string | null
           id?: string
           logo?: string | null
           name?: string
+          phone?: string | null
           slug?: string | null
           updated_at?: string
         }

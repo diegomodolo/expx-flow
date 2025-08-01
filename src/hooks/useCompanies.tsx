@@ -8,6 +8,8 @@ export interface Company {
   name: string;
   slug?: string;
   logo?: string;
+  email?: string;
+  phone?: string;
   created_by: string;
   created_at: string;
   updated_at: string;

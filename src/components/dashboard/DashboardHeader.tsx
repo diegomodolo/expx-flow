@@ -1,4 +1,4 @@
-import { Search, Bell, Settings, LogOut, Plus } from "lucide-react";
+import { Search, Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -6,8 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { CompanySelector } from "@/components/company/CompanySelector";
-import { CreateCompanyDialog } from "@/components/company/CreateCompanyDialog";
-import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function DashboardHeader() {
-  const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
-  
   // Check if we're within AuthProvider context
   let user = null;
   let signOut = null;
@@ -72,14 +68,6 @@ export function DashboardHeader() {
         
         <div className="flex items-center space-x-4">
           <CompanySelector />
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setCreateCompanyOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Empresa
-          </Button>
           
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -136,11 +124,6 @@ export function DashboardHeader() {
           </DropdownMenu>
         </div>
       </div>
-      
-      <CreateCompanyDialog 
-        open={createCompanyOpen} 
-        onOpenChange={setCreateCompanyOpen} 
-      />
     </header>
   );
 }
