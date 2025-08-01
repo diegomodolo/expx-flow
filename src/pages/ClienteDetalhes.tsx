@@ -415,7 +415,7 @@ const ClienteDetalhes = () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         type="number" 
-                        tickFormatter={(value) => `R$ ${value.toFixed(0)}`}
+                        tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
                       />
                       <YAxis 
                         type="category" 
