@@ -54,9 +54,9 @@ export function DashboardSidebar() {
                       to={item.url} 
                       end 
                       className={({ isActive }) =>
-                        `flex items-center px-4 py-3 rounded-lg transition-colors ${
+                        `flex items-center px-4 py-3 mx-2 rounded-xl transition-colors relative ${
                           isActive
-                            ? "text-primary bg-primary/10 border-l-4 border-primary"
+                            ? "bg-primary/15 text-primary before:content-[''] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-primary before:rounded-r-full"
                             : "text-gray-700 hover:bg-gray-100"
                         }`
                       }
