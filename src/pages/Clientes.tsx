@@ -581,7 +581,7 @@ const Clientes = () => {
             // Sync campaigns for all clients with ad accounts
             const clientsWithAdAccounts = filteredClients.filter(c => c.ad_account_id);
             for (const client of clientsWithAdAccounts) {
-              await syncCampaigns(client.id, period);
+              await syncCampaigns(client.id, period, false); // fullSync = false for bulk sync
             }
             setSyncDialogOpen(false);
             fetchClients(); // Refresh data after sync

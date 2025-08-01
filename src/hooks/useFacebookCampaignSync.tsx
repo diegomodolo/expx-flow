@@ -6,13 +6,13 @@ export const useFacebookCampaignSync = () => {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
 
-  const syncCampaigns = async (clientId: string, period: string = '30') => {
+  const syncCampaigns = async (clientId: string, period: string = '30', fullSync: boolean = false) => {
     if (!clientId) return;
 
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
-        body: { clientId, period }
+        body: { clientId, period, fullSync }
       });
 
       if (error) {
@@ -27,9 +27,10 @@ export const useFacebookCampaignSync = () => {
       console.log('Sync successful:', data);
       
       const periodLabel = period === 'lifetime' ? 'máximo' : `${period} dias`;
+      const syncType = fullSync ? 'campanhas, conjuntos de anúncios e criativos' : 'campanhas';
       toast({
-        title: "Campanhas sincronizadas",
-        description: `Dados das campanhas atualizados com sucesso! (${periodLabel})`,
+        title: "Sincronização concluída",
+        description: `${syncType} atualizados com sucesso! (${periodLabel})`,
       });
 
       // Trigger a refresh of clients data
@@ -62,7 +63,7 @@ export const useFacebookCampaignSync = () => {
 
       let successCount = 0;
       for (const client of clients || []) {
-        const result = await syncCampaigns(client.id, period);
+        const result = await syncCampaigns(client.id, period, false); // Always campaigns only for bulk sync
         if (result) successCount++;
       }
 

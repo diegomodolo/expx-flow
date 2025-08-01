@@ -282,7 +282,7 @@ const ClienteDetalhes = () => {
     if (!id) return;
     
     try {
-      await syncCampaigns(id, period);
+      await syncCampaigns(id, period, true); // fullSync = true for client details page
       setSyncDialogOpen(false);
       // Aguarda um pouco e recarrega os dados
       setTimeout(() => {

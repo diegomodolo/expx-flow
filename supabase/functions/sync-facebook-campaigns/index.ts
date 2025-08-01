@@ -52,7 +52,7 @@ serve(async (req) => {
       )
     }
 
-    const { clientId, period = '30' } = requestBody
+    const { clientId, period = '30', fullSync = false } = requestBody
 
     if (!clientId) {
       console.error('Client ID missing from request:', requestBody)
@@ -68,7 +68,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Processing sync for client ID:', clientId)
+    console.log('Processing sync for client ID:', clientId, 'Full sync:', fullSync)
 
     // Get client info
     console.log('Fetching client data...')
@@ -310,20 +310,29 @@ serve(async (req) => {
       .delete()
       .eq('client_id', clientId)
     
-    const { error: deleteAdSetsError } = await supabase
-      .from('ad_sets')
-      .delete()
-      .eq('client_id', clientId)
-    
-    const { error: deleteAdsError } = await supabase
-      .from('ads')
-      .delete()
-      .eq('client_id', clientId)
-    
-    if (deleteCampaignsError || deleteAdSetsError || deleteAdsError) {
-      console.error('Error deleting existing data:', { deleteCampaignsError, deleteAdSetsError, deleteAdsError })
+    if (deleteCampaignsError) {
+      console.error('Error deleting existing campaigns:', deleteCampaignsError)
     } else {
-      console.log('Cleared existing campaigns, ad sets, and ads for client')
+      console.log('Cleared existing campaigns for client')
+    }
+
+    // Only clear ad sets and ads if doing a full sync
+    if (fullSync) {
+      const { error: deleteAdSetsError } = await supabase
+        .from('ad_sets')
+        .delete()
+        .eq('client_id', clientId)
+      
+      const { error: deleteAdsError } = await supabase
+        .from('ads')
+        .delete()
+        .eq('client_id', clientId)
+      
+      if (deleteAdSetsError || deleteAdsError) {
+        console.error('Error deleting existing ad sets/ads:', { deleteAdSetsError, deleteAdsError })
+      } else {
+        console.log('Cleared existing ad sets and ads for client')
+      }
     }
 
     // Process each campaign
@@ -400,6 +409,12 @@ serve(async (req) => {
         continue
       } else {
         console.log('Campaign saved:', campaign.name)
+      }
+
+      // Only fetch ad sets and ads if doing a full sync
+      if (!fullSync) {
+        console.log('Skipping ad sets and ads sync (campaigns only)')
+        continue
       }
 
       // Fetch ad sets for this campaign
