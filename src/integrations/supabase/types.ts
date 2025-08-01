@@ -14,6 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_sets: {
+        Row: {
+          bid_strategy: string | null
+          campaign_id: string
+          clicks: number | null
+          client_id: string
+          company_id: string | null
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string
+          ctr: number | null
+          daily_budget: number | null
+          facebook_id: string
+          id: string
+          impressions: number | null
+          is_active: boolean
+          lifetime_budget: number | null
+          name: string
+          optimization_goal: string | null
+          spend: number | null
+          status: string
+          targeting: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bid_strategy?: string | null
+          campaign_id: string
+          clicks?: number | null
+          client_id: string
+          company_id?: string | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          daily_budget?: number | null
+          facebook_id: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          lifetime_budget?: number | null
+          name: string
+          optimization_goal?: string | null
+          spend?: number | null
+          status?: string
+          targeting?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bid_strategy?: string | null
+          campaign_id?: string
+          clicks?: number | null
+          client_id?: string
+          company_id?: string | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          ctr?: number | null
+          daily_budget?: number | null
+          facebook_id?: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          lifetime_budget?: number | null
+          name?: string
+          optimization_goal?: string | null
+          spend?: number | null
+          status?: string
+          targeting?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ads: {
+        Row: {
+          ad_set_id: string
+          call_to_action: string | null
+          campaign_id: string
+          clicks: number | null
+          client_id: string
+          company_id: string | null
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string
+          creative_body: string | null
+          creative_description: string | null
+          creative_title: string | null
+          creative_type: string | null
+          ctr: number | null
+          facebook_id: string
+          id: string
+          image_url: string | null
+          impressions: number | null
+          is_active: boolean
+          link_url: string | null
+          name: string
+          spend: number | null
+          status: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ad_set_id: string
+          call_to_action?: string | null
+          campaign_id: string
+          clicks?: number | null
+          client_id: string
+          company_id?: string | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          creative_body?: string | null
+          creative_description?: string | null
+          creative_title?: string | null
+          creative_type?: string | null
+          ctr?: number | null
+          facebook_id: string
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          is_active?: boolean
+          link_url?: string | null
+          name: string
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          ad_set_id?: string
+          call_to_action?: string | null
+          campaign_id?: string
+          clicks?: number | null
+          client_id?: string
+          company_id?: string | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string
+          creative_body?: string | null
+          creative_description?: string | null
+          creative_title?: string | null
+          creative_type?: string | null
+          ctr?: number | null
+          facebook_id?: string
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          is_active?: boolean
+          link_url?: string | null
+          name?: string
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           client_id: string

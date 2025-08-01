@@ -30,6 +30,8 @@ import {
   Users
 } from "lucide-react";
 import { useClientDetails } from "@/hooks/useClientDetails";
+import { useAdSets } from "@/hooks/useAdSets";
+import { useAds } from "@/hooks/useAds";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
@@ -37,6 +39,8 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
   const { client, loading, error, refetch } = useClientDetails(id || "");
+  const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
+  const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
   const { syncCampaigns, syncing: syncLoading } = useFacebookCampaignSync();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -165,6 +169,8 @@ const ClienteDetalhes = () => {
       // Aguarda um pouco e recarrega os dados
       setTimeout(() => {
         refetch();
+        refetchAdSets();
+        refetchAds();
       }, 1000);
     } catch (error) {
       console.error('Erro ao sincronizar:', error);
@@ -717,16 +723,62 @@ const ClienteDetalhes = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                        <div>
-                          <p className="mb-2">Nenhum conjunto de anúncios encontrado</p>
-                          <p className="text-sm">Os dados dos conjuntos de anúncios aparecerão aqui após a sincronização com o Facebook</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
+                   <tbody className="bg-white divide-y divide-gray-200">
+                     {adSetsLoading ? (
+                       <tr>
+                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                           <p>Carregando conjuntos de anúncios...</p>
+                         </td>
+                       </tr>
+                     ) : adSets.length > 0 ? (
+                       adSets.map((adSet) => (
+                         <tr key={adSet.id}>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <div className="text-sm font-medium text-gray-900">{adSet.name}</div>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <div className="text-sm text-gray-500">
+                               {client?.campaigns?.find(c => c.id === adSet.campaign_id)?.name || 'N/A'}
+                             </div>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <Badge className={
+                               adSet.status === 'active' 
+                                 ? 'bg-green-100 text-green-800' 
+                                 : 'bg-yellow-100 text-yellow-800'
+                             }>
+                               {adSet.status === 'active' ? 'Ativo' : 'Pausado'}
+                             </Badge>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                             R$ {adSet.daily_budget > 0 ? adSet.daily_budget.toFixed(2) : adSet.lifetime_budget.toFixed(2)}
+                             <span className="text-xs text-gray-500 ml-1">
+                               /{adSet.daily_budget > 0 ? 'dia' : 'total'}
+                             </span>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-purple-600">
+                             R$ {adSet.cpm.toFixed(2)}
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                             {adSet.ctr.toFixed(2)}%
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                             {adSet.conversions}
+                           </td>
+                         </tr>
+                       ))
+                     ) : (
+                       <tr>
+                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                           <div>
+                             <p className="mb-2">Nenhum conjunto de anúncios encontrado</p>
+                             <p className="text-sm">Os dados dos conjuntos de anúncios aparecerão aqui após a sincronização com o Facebook</p>
+                           </div>
+                         </td>
+                       </tr>
+                     )}
+                   </tbody>
                 </table>
               </div>
             </TabsContent>
@@ -766,16 +818,64 @@ const ClienteDetalhes = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                        <div>
-                          <p className="mb-2">Nenhum criativo encontrado</p>
-                          <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
+                   <tbody className="bg-white divide-y divide-gray-200">
+                     {adsLoading ? (
+                       <tr>
+                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                           <p>Carregando criativos...</p>
+                         </td>
+                       </tr>
+                     ) : ads.length > 0 ? (
+                       ads.map((ad) => (
+                         <tr key={ad.id}>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <div className="text-sm font-medium text-gray-900">{ad.name}</div>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <div className="text-sm text-gray-500">
+                               {adSets.find(adSet => adSet.id === ad.ad_set_id)?.name || 'N/A'}
+                             </div>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <Badge 
+                               variant={ad.creative_type === 'video' ? 'default' : 'secondary'}
+                               className="text-xs"
+                             >
+                               {ad.creative_type || 'N/A'}
+                             </Badge>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap">
+                             <Badge className={
+                               ad.status === 'active' 
+                                 ? 'bg-green-100 text-green-800' 
+                                 : 'bg-yellow-100 text-yellow-800'
+                             }>
+                               {ad.status === 'active' ? 'Ativo' : 'Pausado'}
+                             </Badge>
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                             {ad.ctr.toFixed(2)}%
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                             R$ {ad.cpc.toFixed(2)}
+                           </td>
+                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                             {ad.conversions}
+                           </td>
+                         </tr>
+                       ))
+                     ) : (
+                       <tr>
+                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                           <div>
+                             <p className="mb-2">Nenhum criativo encontrado</p>
+                             <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
+                           </div>
+                         </td>
+                       </tr>
+                     )}
+                   </tbody>
                 </table>
               </div>
             </TabsContent>
