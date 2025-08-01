@@ -6,7 +6,7 @@ import { CompanySettings } from "@/components/company/CompanySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { PlansSettings } from "@/components/settings/PlansSettings";
-import { FacebookIntegrationCard } from "@/components/facebook/FacebookIntegrationCard";
+
 import { FacebookIntegrationSettings } from "@/components/facebook/FacebookIntegrationSettings";
 
 const Configuracoes = () => {
@@ -25,7 +25,6 @@ const Configuracoes = () => {
             <Route index element={
               <div className="space-y-6">
                 <UserProfileSettings />
-                <FacebookIntegrationCard />
               </div>
             } />
             <Route path="empresa" element={<CompanySettings />} />
