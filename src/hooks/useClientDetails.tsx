@@ -15,6 +15,13 @@ export interface ClientCampaign {
   cpa: number; // Custo por Aquisição/Conversão
   conversions: number;
   spend: number; // Custo Total da Campanha
+  impressions?: number;
+  reach?: number;
+  frequency?: number;
+  quality_ranking?: string;
+  engagement_rate_ranking?: string;
+  conversion_rate_ranking?: string;
+  clicks?: number;
   created_at: string;
 }
 
