@@ -76,10 +76,24 @@ serve(async (req) => {
       .from('clients')
       .select('*')
       .eq('id', clientId)
-      .single()
+      .maybeSingle()
 
     if (clientError) {
       console.error('Error fetching client:', clientError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Database error while fetching client' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    if (!client) {
+      console.error('Client not found for ID:', clientId)
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -121,10 +135,24 @@ serve(async (req) => {
       .from('facebook_ad_accounts')
       .select('*')
       .eq('id', client.ad_account_id)
-      .single()
+      .maybeSingle()
 
     if (adAccountError) {
       console.error('Error fetching ad account:', adAccountError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Database error while fetching ad account' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    if (!adAccount) {
+      console.error('Ad account not found for ID:', client.ad_account_id)
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -145,10 +173,24 @@ serve(async (req) => {
       .from('facebook_integrations')
       .select('*')
       .eq('id', adAccount.integration_id)
-      .single()
+      .maybeSingle()
 
     if (integrationError) {
       console.error('Error fetching integration:', integrationError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Database error while fetching integration' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    if (!integration) {
+      console.error('Integration not found for ID:', adAccount.integration_id)
       return new Response(
         JSON.stringify({ 
           success: false, 
