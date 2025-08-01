@@ -10,6 +10,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 // Public pages
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import TermosServico from "./pages/TermosServico";
 import NotFound from "./pages/NotFound";
 
 // Protected pages
@@ -37,6 +39,8 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+            <Route path="/termos-servico" element={<TermosServico />} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
