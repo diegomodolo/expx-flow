@@ -57,11 +57,15 @@ export function useClientDetails(clientId: string) {
 
       if (campaignsError) throw campaignsError;
 
+      console.log('Campaigns fetched for client:', clientId, campaignsData);
+
       // Combine client and campaigns data
       const clientWithCampaigns: ClientDetailsData = {
         ...clientData,
         campaigns: campaignsData || []
       };
+
+      console.log('Client with campaigns:', clientWithCampaigns);
 
       setClient(clientWithCampaigns);
     } catch (err) {

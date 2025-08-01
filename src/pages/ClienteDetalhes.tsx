@@ -128,6 +128,14 @@ const ClienteDetalhes = () => {
   const pausedCampaigns = client.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
   const finishedCampaigns = client.campaigns?.filter(c => c.status === 'finished').length || 0;
 
+  console.log('Campaign metrics calculation:', {
+    totalCampaigns,
+    activeCampaigns,
+    pausedCampaigns,
+    finishedCampaigns,
+    campaigns: client.campaigns
+  });
+
   const statusConfig = {
     green: { label: "Excelente", color: "bg-green-100 text-green-800" },
     yellow: { label: "Atenção", color: "bg-yellow-100 text-yellow-800" },
