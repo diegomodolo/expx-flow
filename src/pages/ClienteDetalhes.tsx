@@ -124,7 +124,7 @@ const ClienteDetalhes = () => {
 
   // Calculate real metrics from campaign data
   const totalCampaigns = client.campaigns?.length || 0;
-  const activeCampaigns = client.campaigns?.filter(c => c.status === 'active' && c.is_active === true).length || 0;
+  const activeCampaigns = client.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
   const pausedCampaigns = client.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
   const finishedCampaigns = client.campaigns?.filter(c => c.status === 'finished').length || 0;
 
