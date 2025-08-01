@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
         const resend = new Resend(resendApiKey);
         
         await resend.emails.send({
-          from: `${companyName} <onboarding@resend.dev>`,
+          from: `${companyName} <noreply@controledetrafego.com.br>`,
           to: [email],
           subject: `Bem-vindo(a) à ${companyName}! 🎉`,
           html: `

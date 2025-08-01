@@ -37,7 +37,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Enviar email com credenciais
     const emailResponse = await resend.emails.send({
-      from: "Sistema <onboarding@resend.dev>",
+      from: `Controle de Tráfego <sistema@controledetrafego.com.br>`,
       to: [email],
       subject: `Bem-vindo(a) à ${companyName}!`,
       html: `
