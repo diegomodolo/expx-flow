@@ -51,7 +51,7 @@ const Clientes = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
-  const { sectors } = useSectors();
+  const { sectors, fetchSectors } = useSectors();
   const { toast } = useToast();
 
   const filteredClients = clients.filter(client => {
@@ -523,7 +523,11 @@ const Clientes = () => {
           open={dialogOpen}
           onOpenChange={(open) => {
             setDialogOpen(open);
-            if (!open) setSelectedClient(null);
+            if (!open) {
+              setSelectedClient(null);
+              // Recarrega setores quando dialog é fechado para sincronizar
+              fetchSectors();
+            }
           }}
           onSubmit={
             dialogMode === 'create' 
