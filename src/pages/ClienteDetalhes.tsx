@@ -1133,9 +1133,9 @@ const ClienteDetalhes = () => {
                              <div className="text-sm font-medium text-gray-900">{ad.name}</div>
                            </td>
                            <td className="px-4 py-4 whitespace-nowrap">
-                             <div className="text-sm text-gray-500">
-                               {adSets.find(adSet => adSet.id === ad.ad_set_id)?.name || 'N/A'}
-                             </div>
+                              <div className="text-sm text-gray-500">
+                                {adSets?.find(adSet => adSet.id === ad.ad_set_id)?.name || 'N/A'}
+                              </div>
                            </td>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <Badge 
