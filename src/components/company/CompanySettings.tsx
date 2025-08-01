@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Building, Mail, Phone } from "lucide-react";
 
 export const CompanySettings = () => {
-  const { activeCompany, updateCompany } = useCompany();
+  const { activeCompany, updateCompany, refreshCompanies } = useCompany();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,6 +20,18 @@ export const CompanySettings = () => {
     phone: activeCompany?.company?.phone || "",
     logo: activeCompany?.company?.logo || "",
   });
+
+  // Update form data when activeCompany changes
+  useEffect(() => {
+    if (activeCompany?.company) {
+      setFormData({
+        name: activeCompany.company.name || "",
+        email: activeCompany.company.email || "",
+        phone: activeCompany.company.phone || "",
+        logo: activeCompany.company.logo || "",
+      });
+    }
+  }, [activeCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +52,9 @@ export const CompanySettings = () => {
         phone: formData.phone,
         logo: formData.logo,
       });
+      
+      // Refresh companies to get updated data
+      await refreshCompanies();
       
       toast({
         title: "Empresa atualizada!",
