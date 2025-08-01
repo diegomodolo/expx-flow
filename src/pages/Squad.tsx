@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,13 +70,16 @@ const Squad = () => {
     return matchesStatus && matchesType && matchesPerformance && matchesSearch;
   });
 
-  if (error) {
-    toast({
-      title: "Erro",
-      description: error,
-      variant: "destructive",
-    });
-  }
+  // Handle error with useEffect to prevent infinite renders
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Erro",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   const getPerformanceStatus = (progress: number) => {
     if (progress >= 90) return "high";
