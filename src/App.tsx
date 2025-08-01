@@ -14,6 +14,7 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosServico from "./pages/TermosServico";
 import ExclusaoDados from "./pages/ExclusaoDados";
 import NotFound from "./pages/NotFound";
+import FacebookCallback from "./pages/FacebookCallback";
 
 // Protected pages
 import DashboardPage from "./pages/DashboardPage";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-servico" element={<TermosServico />} />
             <Route path="/exclusao-dados" element={<ExclusaoDados />} />
+            <Route path="/auth/callback" element={<FacebookCallback />} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
