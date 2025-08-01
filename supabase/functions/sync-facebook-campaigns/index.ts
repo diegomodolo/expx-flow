@@ -256,8 +256,8 @@ serve(async (req) => {
         dateParam = '.date_preset(last_30d)'; // Default to 30 days
     }
 
-    // Fetch campaigns from Facebook API
-    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,insights${dateParam}{impressions,clicks,spend,actions}&access_token=${accessToken}`
+    // Fetch campaigns from Facebook API with enhanced insights
+    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,insights${dateParam}{impressions,clicks,spend,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
 
     const campaignsResponse = await fetch(facebookUrl)
@@ -351,11 +351,21 @@ serve(async (req) => {
       let cpc = 0
       let ctr = 0
       let impressions = 0
+      let reach = 0
+      let frequency = 0
+      let qualityRanking = null
+      let engagementRateRanking = null
+      let conversionRateRanking = null
 
       if (insights) {
         spend = parseFloat(insights.spend || 0)
         clicks = parseInt(insights.clicks || 0)
         impressions = parseInt(insights.impressions || 0)
+        reach = parseInt(insights.reach || 0)
+        frequency = parseFloat(insights.frequency || 0)
+        qualityRanking = insights.quality_ranking || null
+        engagementRateRanking = insights.engagement_rate_ranking || null
+        conversionRateRanking = insights.conversion_rate_ranking || null
         
         totalSpend += spend
         totalClicks += clicks
@@ -363,7 +373,7 @@ serve(async (req) => {
         // Calculate CTR (Click Through Rate)
         ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
         
-        console.log('Campaign insights:', { spend, clicks, impressions, ctr })
+        console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
         
         // Count leads from actions
         if (insights.actions) {
@@ -392,6 +402,12 @@ serve(async (req) => {
         cpa: leads > 0 ? spend / leads : 0,
         conversions: leads,
         spend: spend,
+        impressions: impressions,
+        reach: reach,
+        frequency: frequency,
+        quality_ranking: qualityRanking,
+        engagement_rate_ranking: engagementRateRanking,
+        conversion_rate_ranking: conversionRateRanking,
         client_id: clientId,
         user_id: client.user_id,
         company_id: client.company_id,
@@ -420,7 +436,7 @@ serve(async (req) => {
       // Fetch ad sets for this campaign
       try {
         console.log('Fetching ad sets for campaign:', campaign.id)
-        const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}{impressions,clicks,spend,cpm,actions}&access_token=${accessToken}`
+        const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}{impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
         const adSetsResponse = await fetch(adSetsUrl)
         
         if (adSetsResponse.ok) {
@@ -438,12 +454,22 @@ serve(async (req) => {
             let adSetCtr = 0
             let adSetCpc = 0
             let adSetCpm = 0
+            let adSetReach = 0
+            let adSetFrequency = 0
+            let adSetQualityRanking = null
+            let adSetEngagementRateRanking = null
+            let adSetConversionRateRanking = null
 
             if (adSetInsights) {
               adSetSpend = parseFloat(adSetInsights.spend || 0)
               adSetClicks = parseInt(adSetInsights.clicks || 0)
               adSetImpressions = parseInt(adSetInsights.impressions || 0)
               adSetCpm = parseFloat(adSetInsights.cpm || 0)
+              adSetReach = parseInt(adSetInsights.reach || 0)
+              adSetFrequency = parseFloat(adSetInsights.frequency || 0)
+              adSetQualityRanking = adSetInsights.quality_ranking || null
+              adSetEngagementRateRanking = adSetInsights.engagement_rate_ranking || null
+              adSetConversionRateRanking = adSetInsights.conversion_rate_ranking || null
               
               adSetCtr = adSetImpressions > 0 ? (adSetClicks / adSetImpressions) * 100 : 0
               adSetCpc = adSetClicks > 0 ? adSetSpend / adSetClicks : 0
@@ -479,6 +505,11 @@ serve(async (req) => {
               clicks: adSetClicks,
               conversions: adSetLeads,
               cpa: adSetLeads > 0 ? adSetSpend / adSetLeads : 0,
+              reach: adSetReach,
+              frequency: adSetFrequency,
+              quality_ranking: adSetQualityRanking,
+              engagement_rate_ranking: adSetEngagementRateRanking,
+              conversion_rate_ranking: adSetConversionRateRanking,
               is_active: adSet.status === 'ACTIVE'
             }
 
@@ -498,7 +529,7 @@ serve(async (req) => {
             // Fetch ads for this ad set
             try {
               console.log('Fetching ads for ad set:', adSet.id)
-              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec,call_to_action},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,actions}&access_token=${accessToken}`
+              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec,call_to_action},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
               const adsResponse = await fetch(adsUrl)
               
               if (adsResponse.ok) {
@@ -516,6 +547,11 @@ serve(async (req) => {
                   let adCtr = 0
                   let adCpc = 0
                   let adCpm = 0
+                  let adReach = 0
+                  let adFrequency = 0
+                  let adQualityRanking = null
+                  let adEngagementRateRanking = null
+                  let adConversionRateRanking = null
 
                   if (adInsights) {
                     adSpend = parseFloat(adInsights.spend || 0)
@@ -524,6 +560,11 @@ serve(async (req) => {
                     adCtr = parseFloat(adInsights.ctr || 0)
                     adCpc = parseFloat(adInsights.cpc || 0)
                     adCpm = parseFloat(adInsights.cpm || 0)
+                    adReach = parseInt(adInsights.reach || 0)
+                    adFrequency = parseFloat(adInsights.frequency || 0)
+                    adQualityRanking = adInsights.quality_ranking || null
+                    adEngagementRateRanking = adInsights.engagement_rate_ranking || null
+                    adConversionRateRanking = adInsights.conversion_rate_ranking || null
 
                     if (adInsights.actions) {
                       adInsights.actions.forEach((action: any) => {
@@ -565,6 +606,11 @@ serve(async (req) => {
                     clicks: adClicks,
                     conversions: adLeads,
                     cpa: adLeads > 0 ? adSpend / adLeads : 0,
+                    reach: adReach,
+                    frequency: adFrequency,
+                    quality_ranking: adQualityRanking,
+                    engagement_rate_ranking: adEngagementRateRanking,
+                    conversion_rate_ranking: adConversionRateRanking,
                     is_active: ad.status === 'ACTIVE'
                   }
 

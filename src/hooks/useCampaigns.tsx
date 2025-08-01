@@ -15,6 +15,15 @@ export interface Campaign {
   cpa: number; // Custo por Aquisição/Conversão
   period: string;
   is_active: boolean;
+  impressions?: number;
+  reach?: number;
+  frequency?: number;
+  quality_ranking?: string;
+  engagement_rate_ranking?: string;
+  conversion_rate_ranking?: string;
+  created_at?: string;
+  updated_at?: string;
+  clicks?: number;
   client?: {
     name: string;
     avatar: string;

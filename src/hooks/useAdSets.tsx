@@ -23,6 +23,11 @@ export interface AdSet {
   clicks: number;
   conversions: number;
   cpa: number;
+  reach?: number;
+  frequency?: number;
+  quality_ranking?: string;
+  engagement_rate_ranking?: string;
+  conversion_rate_ranking?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;

@@ -26,6 +26,11 @@ interface Campaign {
   conversions: number;
   impressions?: number;
   clicks?: number;
+  reach?: number;
+  frequency?: number;
+  quality_ranking?: string;
+  engagement_rate_ranking?: string;
+  conversion_rate_ranking?: string;
   created_at: string;
 }
 
@@ -139,7 +144,9 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-gray-400">N/A</p>
+                  <p className="text-2xl font-bold text-indigo-600">
+                    {campaign.reach?.toLocaleString() || 'N/A'}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">Pessoas únicas alcançadas</p>
                 </CardContent>
               </Card>
@@ -188,13 +195,15 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-600">Cliques Estimados</CardTitle>
+                  <CardTitle className="text-sm text-gray-600">Cliques</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">
-                    {clicks.toLocaleString()}
+                  <p className="text-2xl font-bold text-cyan-600">
+                    {campaign.clicks?.toLocaleString() || clicks.toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Baseado no CTR</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {campaign.clicks ? 'Cliques reais' : 'Estimado por CTR'}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -212,9 +221,19 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
                   <CardTitle className="text-sm text-gray-600">Frequência</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-gray-400">N/A</p>
+                  <p className="text-2xl font-bold text-amber-600">
+                    {campaign.frequency ? campaign.frequency.toFixed(2) : 'N/A'}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">Média de exibições por pessoa</p>
-                  <p className="text-xs text-yellow-600 mt-1">💡 Ideal: {'<'} 3 exibições</p>
+                  {campaign.frequency && campaign.frequency > 3 && (
+                    <p className="text-xs text-red-600 mt-1">⚠️ Alta frequência - possível desgaste</p>
+                  )}
+                  {campaign.frequency && campaign.frequency <= 3 && (
+                    <p className="text-xs text-green-600 mt-1">✅ Frequência ideal</p>
+                  )}
+                  {!campaign.frequency && (
+                    <p className="text-xs text-yellow-600 mt-1">💡 Ideal: {'<'} 3 exibições</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -223,8 +242,20 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
                   <CardTitle className="text-sm text-gray-600">Relevância do Anúncio</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-gray-400">N/A</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {campaign.quality_ranking || 'N/A'}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">Quality Ranking do Facebook</p>
+                  {campaign.engagement_rate_ranking && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      📊 Engajamento: {campaign.engagement_rate_ranking}
+                    </p>
+                  )}
+                  {campaign.conversion_rate_ranking && (
+                    <p className="text-xs text-green-600 mt-1">
+                      🎯 Conversão: {campaign.conversion_rate_ranking}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>

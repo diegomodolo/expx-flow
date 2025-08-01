@@ -21,6 +21,7 @@ export type Database = {
           clicks: number | null
           client_id: string
           company_id: string | null
+          conversion_rate_ranking: string | null
           conversions: number | null
           cpa: number | null
           cpc: number | null
@@ -28,13 +29,17 @@ export type Database = {
           created_at: string
           ctr: number | null
           daily_budget: number | null
+          engagement_rate_ranking: string | null
           facebook_id: string
+          frequency: number | null
           id: string
           impressions: number | null
           is_active: boolean
           lifetime_budget: number | null
           name: string
           optimization_goal: string | null
+          quality_ranking: string | null
+          reach: number | null
           spend: number | null
           status: string
           targeting: string | null
@@ -47,6 +52,7 @@ export type Database = {
           clicks?: number | null
           client_id: string
           company_id?: string | null
+          conversion_rate_ranking?: string | null
           conversions?: number | null
           cpa?: number | null
           cpc?: number | null
@@ -54,13 +60,17 @@ export type Database = {
           created_at?: string
           ctr?: number | null
           daily_budget?: number | null
+          engagement_rate_ranking?: string | null
           facebook_id: string
+          frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
           lifetime_budget?: number | null
           name: string
           optimization_goal?: string | null
+          quality_ranking?: string | null
+          reach?: number | null
           spend?: number | null
           status?: string
           targeting?: string | null
@@ -73,6 +83,7 @@ export type Database = {
           clicks?: number | null
           client_id?: string
           company_id?: string | null
+          conversion_rate_ranking?: string | null
           conversions?: number | null
           cpa?: number | null
           cpc?: number | null
@@ -80,13 +91,17 @@ export type Database = {
           created_at?: string
           ctr?: number | null
           daily_budget?: number | null
+          engagement_rate_ranking?: string | null
           facebook_id?: string
+          frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
           lifetime_budget?: number | null
           name?: string
           optimization_goal?: string | null
+          quality_ranking?: string | null
+          reach?: number | null
           spend?: number | null
           status?: string
           targeting?: string | null
@@ -103,6 +118,7 @@ export type Database = {
           clicks: number | null
           client_id: string
           company_id: string | null
+          conversion_rate_ranking: string | null
           conversions: number | null
           cpa: number | null
           cpc: number | null
@@ -113,13 +129,17 @@ export type Database = {
           creative_title: string | null
           creative_type: string | null
           ctr: number | null
+          engagement_rate_ranking: string | null
           facebook_id: string
+          frequency: number | null
           id: string
           image_url: string | null
           impressions: number | null
           is_active: boolean
           link_url: string | null
           name: string
+          quality_ranking: string | null
+          reach: number | null
           spend: number | null
           status: string
           updated_at: string
@@ -133,6 +153,7 @@ export type Database = {
           clicks?: number | null
           client_id: string
           company_id?: string | null
+          conversion_rate_ranking?: string | null
           conversions?: number | null
           cpa?: number | null
           cpc?: number | null
@@ -143,13 +164,17 @@ export type Database = {
           creative_title?: string | null
           creative_type?: string | null
           ctr?: number | null
+          engagement_rate_ranking?: string | null
           facebook_id: string
+          frequency?: number | null
           id?: string
           image_url?: string | null
           impressions?: number | null
           is_active?: boolean
           link_url?: string | null
           name: string
+          quality_ranking?: string | null
+          reach?: number | null
           spend?: number | null
           status?: string
           updated_at?: string
@@ -163,6 +188,7 @@ export type Database = {
           clicks?: number | null
           client_id?: string
           company_id?: string | null
+          conversion_rate_ranking?: string | null
           conversions?: number | null
           cpa?: number | null
           cpc?: number | null
@@ -173,13 +199,17 @@ export type Database = {
           creative_title?: string | null
           creative_type?: string | null
           ctr?: number | null
+          engagement_rate_ranking?: string | null
           facebook_id?: string
+          frequency?: number | null
           id?: string
           image_url?: string | null
           impressions?: number | null
           is_active?: boolean
           link_url?: string | null
           name?: string
+          quality_ranking?: string | null
+          reach?: number | null
           spend?: number | null
           status?: string
           updated_at?: string
@@ -192,16 +222,21 @@ export type Database = {
         Row: {
           client_id: string
           company_id: string | null
+          conversion_rate_ranking: string | null
           conversions: number
           cpa: number | null
           cpc: number
           created_at: string
           ctr: number
+          engagement_rate_ranking: string | null
+          frequency: number | null
           id: string
           is_active: boolean
           name: string
           period: string
           platforms: string
+          quality_ranking: string | null
+          reach: number | null
           spend: number | null
           status: Database["public"]["Enums"]["campaign_status"]
           updated_at: string
@@ -210,16 +245,21 @@ export type Database = {
         Insert: {
           client_id: string
           company_id?: string | null
+          conversion_rate_ranking?: string | null
           conversions?: number
           cpa?: number | null
           cpc?: number
           created_at?: string
           ctr?: number
+          engagement_rate_ranking?: string | null
+          frequency?: number | null
           id?: string
           is_active?: boolean
           name: string
           period: string
           platforms: string
+          quality_ranking?: string | null
+          reach?: number | null
           spend?: number | null
           status?: Database["public"]["Enums"]["campaign_status"]
           updated_at?: string
@@ -228,16 +268,21 @@ export type Database = {
         Update: {
           client_id?: string
           company_id?: string | null
+          conversion_rate_ranking?: string | null
           conversions?: number
           cpa?: number | null
           cpc?: number
           created_at?: string
           ctr?: number
+          engagement_rate_ranking?: string | null
+          frequency?: number | null
           id?: string
           is_active?: boolean
           name?: string
           period?: string
           platforms?: string
+          quality_ranking?: string | null
+          reach?: number | null
           spend?: number | null
           status?: Database["public"]["Enums"]["campaign_status"]
           updated_at?: string
