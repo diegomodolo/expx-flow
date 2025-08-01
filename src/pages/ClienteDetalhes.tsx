@@ -126,23 +126,17 @@ const ClienteDetalhes = () => {
     { date: '30/11', cpl: client.avg_cpl },
   ];
 
-  // Calculate real metrics from campaign data
-  const totalCampaigns = client.campaigns?.length || 0;
-  const activeCampaigns = client.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
-  const pausedCampaigns = client.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
-  const finishedCampaigns = client.campaigns?.filter(c => c.status === 'finished').length || 0;
-
-  console.log('Campaign metrics calculation:', {
-    totalCampaigns,
-    activeCampaigns,
-    pausedCampaigns,
-    finishedCampaigns,
-    campaigns: client.campaigns
-  });
+  // Calculate real metrics from campaign data (only if client exists)
+  const totalCampaigns = client?.campaigns?.length || 0;
+  const activeCampaigns = client?.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
+  const pausedCampaigns = client?.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
+  const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
 
   // Filter and sort campaigns
   const filteredAndSortedCampaigns = useMemo(() => {
-    let campaigns = client?.campaigns || [];
+    if (!client?.campaigns) return [];
+    
+    let campaigns = [...client.campaigns];
     
     // Filter campaigns
     if (campaignFilter === 'active') {
@@ -155,7 +149,7 @@ const ClienteDetalhes = () => {
 
     // Sort campaigns
     if (sortField) {
-      campaigns = [...campaigns].sort((a, b) => {
+      campaigns = campaigns.sort((a, b) => {
         let aValue, bValue;
         
         switch (sortField) {
@@ -192,6 +186,14 @@ const ClienteDetalhes = () => {
       setSortDirection('asc');
     }
   };
+
+  console.log('Campaign metrics calculation:', {
+    totalCampaigns,
+    activeCampaigns,
+    pausedCampaigns,
+    finishedCampaigns,
+    campaigns: client?.campaigns || []
+  });
 
   const statusConfig = {
     green: { label: "Excelente", color: "bg-green-100 text-green-800" },
