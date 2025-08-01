@@ -25,22 +25,43 @@ interface ClientDialogProps {
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const { sectors, createSector } = useSectors();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    company: "",
-    sector: "",
-    status: "green" as "green" | "yellow" | "red",
-    avatar: "",
-    last_access: new Date().toLocaleDateString('pt-BR'),
-    monthly_budget: 0,
-    target_audience: "",
-    product_name: "",
-    voice_tone: "",
-    objectives: "",
-    preferred_platforms: [] as string[],
-    campaign_type: "",
-    notes: ""
+  const [formData, setFormData] = useState(() => {
+    if (client) {
+      return {
+        name: client.name || "",
+        email: client.email || "",
+        company: client.company || "",
+        sector: client.sector || "",
+        status: client.status as "green" | "yellow" | "red" || "green",
+        avatar: client.avatar || "",
+        last_access: client.last_access || new Date().toLocaleDateString('pt-BR'),
+        monthly_budget: client.monthly_budget || 0,
+        target_audience: client.target_audience || "",
+        product_name: client.product_name || "",
+        voice_tone: client.voice_tone || "",
+        objectives: client.objectives || "",
+        preferred_platforms: client.preferred_platforms || [],
+        campaign_type: client.campaign_type || "",
+        notes: client.notes || ""
+      };
+    }
+    return {
+      name: "",
+      email: "",
+      company: "",
+      sector: "",
+      status: "green" as "green" | "yellow" | "red",
+      avatar: "",
+      last_access: new Date().toLocaleDateString('pt-BR'),
+      monthly_budget: 0,
+      target_audience: "",
+      product_name: "",
+      voice_tone: "",
+      objectives: "",
+      preferred_platforms: [] as string[],
+      campaign_type: "",
+      notes: ""
+    };
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -52,10 +73,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
   const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
 
-  // Update form data when client prop changes
+  // Simplificado: apenas sincroniza quando o client muda
   useEffect(() => {
-    if (client) {
-      const newFormData = {
+    if (client && open) {
+      setFormData({
         name: client.name || "",
         email: client.email || "",
         company: client.company || "",
@@ -71,28 +92,9 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         preferred_platforms: client.preferred_platforms || [],
         campaign_type: client.campaign_type || "",
         notes: client.notes || ""
-      };
-      setFormData(newFormData);
-    } else {
-      setFormData({
-        name: "",
-        email: "",
-        company: "",
-        sector: "",
-        status: "green",
-        avatar: "",
-        last_access: new Date().toLocaleDateString('pt-BR'),
-        monthly_budget: 0,
-        target_audience: "",
-        product_name: "",
-        voice_tone: "",
-        objectives: "",
-        preferred_platforms: [],
-        campaign_type: "",
-        notes: ""
       });
     }
-  }, [client, open, title]);
+  }, [client?.id, open]);
 
   
   const handleCreateSector = async () => {

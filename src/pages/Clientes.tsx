@@ -519,6 +519,7 @@ const Clientes = () => {
         
         {/* Single Client Dialog for all modes */}
         <ClientDialog
+          key={`${dialogMode}-${selectedClient?.id || 'new'}`}
           open={dialogOpen}
           onOpenChange={(open) => {
             setDialogOpen(open);
