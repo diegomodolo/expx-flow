@@ -74,58 +74,42 @@ export const useFacebookIntegration = () => {
   const handleCallback = async (code: string, companyId: string) => {
     setLoading(true);
     try {
-      // For now, we'll create a simple integration record using existing tables
-      // This is a temporary solution until the migration is approved
-      const integrationData = {
-        company_id: companyId,
-        user_id: companyId, // Using company_id as user_id for now
-        name: 'Facebook Ads Integration',
-        company: 'Facebook',
-        email: 'facebook@integration.com',
-        sector: 'Tecnologia'
-      };
-
-      const { data: newClient, error: clientError } = await supabase
-        .from('clients')
-        .insert(integrationData)
-        .select()
-        .single();
-
-      if (clientError) throw clientError;
-
-      // Simulate successful integration
-      setIntegration({
-        id: newClient.id,
-        company_id: companyId,
-        access_token: 'temp_token_' + Date.now(),
-        expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      console.log("Handling Facebook callback with code:", code);
+      
+      const { data, error } = await supabase.functions.invoke('facebook-oauth', {
+        body: { 
+          code, 
+          companyId,
+          action: 'exchange' 
+        }
       });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Erro na função de OAuth");
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || "Erro ao processar OAuth");
+      }
+
+      console.log("Facebook OAuth success:", data);
       
-      // Simulate ad accounts
-      const mockAdAccounts = [{
-        id: 'act_123456789',
-        account_name: 'Minha Conta de Anúncios',
-        currency: 'BRL',
-        is_active: true
-      }];
-      
-      setAdAccounts(mockAdAccounts);
-      
+      setIntegration(data.integration);
+      setAdAccounts(data.adAccounts || []);
+
       toast({
-        title: "Sucesso!",
-        description: `Conectado ao Facebook Ads. ${mockAdAccounts.length} conta(s) encontrada(s).`,
+        title: "Facebook conectado com sucesso!",
+        description: `${(data.adAccounts || []).length} conta(s) de anúncios importadas.`,
       });
-      
+
       return true;
     } catch (error: any) {
-      console.error('Facebook integration error:', error);
+      console.error("Error handling Facebook callback:", error);
       toast({
-        title: "Erro na integração",
-        description: error.message || "Falha ao conectar com Facebook Ads",
-        variant: "destructive"
+        title: "Erro ao conectar Facebook",
+        description: error.message || "Ocorreu um erro inesperado",
+        variant: "destructive",
       });
       return false;
     } finally {
@@ -136,46 +120,33 @@ export const useFacebookIntegration = () => {
   const loadIntegration = async (companyId: string) => {
     setLoading(true);
     try {
-      // For now, check if there's a Facebook integration client
-      const { data: clients, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('name', 'Facebook Ads Integration');
+      const { data: integrations, error } = await supabase
+        .from("facebook_integrations")
+        .select(`
+          *,
+          facebook_ad_accounts(*)
+        `)
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      if (clients && clients.length > 0) {
-        const client = clients[0];
-        setIntegration({
-          id: client.id,
-          company_id: companyId,
-          access_token: 'temp_token_' + client.id,
-          expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-          is_active: true,
-          created_at: client.created_at,
-          updated_at: client.updated_at
-        });
-        
-        // Mock ad accounts
-        setAdAccounts([{
-          id: 'act_123456789',
-          account_name: 'Minha Conta de Anúncios',
-          currency: 'BRL',
-          is_active: true
-        }]);
+      if (integrations) {
+        setIntegration(integrations);
+        setAdAccounts(integrations.facebook_ad_accounts || []);
       } else {
         setIntegration(null);
         setAdAccounts([]);
       }
     } catch (error: any) {
-      console.error('Error loading Facebook integration:', error);
+      console.error("Error loading integration:", error);
       toast({
-        title: "Erro",
-        description: "Falha ao carregar integração do Facebook",
-        variant: "destructive"
+        title: "Erro ao carregar integração",
+        description: error.message || "Ocorreu um erro inesperado",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -187,27 +158,26 @@ export const useFacebookIntegration = () => {
 
     setLoading(true);
     try {
-      // Delete the Facebook integration client
       const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', integration.id);
+        .from("facebook_integrations")
+        .update({ is_active: false })
+        .eq("id", integration.id);
 
       if (error) throw error;
 
       setIntegration(null);
       setAdAccounts([]);
-      
+
       toast({
-        title: "Desconectado",
-        description: "Integração com Facebook Ads removida com sucesso",
+        title: "Facebook desconectado",
+        description: "A integração foi removida com sucesso.",
       });
     } catch (error: any) {
-      console.error('Error disconnecting Facebook:', error);
+      console.error("Error disconnecting Facebook:", error);
       toast({
-        title: "Erro",
-        description: "Falha ao desconectar Facebook Ads",
-        variant: "destructive"
+        title: "Erro ao desconectar",
+        description: error.message || "Ocorreu um erro inesperado",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);

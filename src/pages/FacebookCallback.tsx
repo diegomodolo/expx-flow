@@ -1,101 +1,110 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useFacebookIntegration } from '@/hooks/useFacebookIntegration';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, X, Loader2 } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader, CheckCircle, X } from "lucide-react";
+import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { useCompany } from "@/contexts/CompanyContext";
 
-const FacebookCallback = () => {
+export const FacebookCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { activeCompany } = useCompany();
   const { handleCallback } = useFacebookIntegration();
+  
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState('Processando conexão com Facebook...');
 
   useEffect(() => {
     const processCallback = async () => {
       const code = searchParams.get('code');
-      const state = searchParams.get('state'); // company ID
       const error = searchParams.get('error');
+      const state = searchParams.get('state');
 
       if (error) {
         setStatus('error');
-        setMessage('Usuário cancelou a autorização ou ocorreu um erro.');
+        setMessage(`Erro do Facebook: ${error}`);
         return;
       }
 
-      if (!code || !state) {
+      if (!code) {
         setStatus('error');
-        setMessage('Parâmetros inválidos na resposta do Facebook.');
+        setMessage('Código de autorização não recebido');
+        return;
+      }
+
+      if (!activeCompany?.company_id) {
+        setStatus('error');
+        setMessage('Empresa não selecionada');
         return;
       }
 
       try {
-        const success = await handleCallback(code, state);
+        const success = await handleCallback(code, activeCompany.company_id);
+        
         if (success) {
           setStatus('success');
-          setMessage('Integração com Facebook Ads realizada com sucesso!');
+          setMessage('Facebook conectado com sucesso! Redirecionando...');
           
-          // Redirect to dashboard after 2 seconds
+          // Redirect to settings after 2 seconds
           setTimeout(() => {
-            navigate('/dashboard');
+            navigate('/configuracoes');
           }, 2000);
         } else {
           setStatus('error');
-          setMessage('Falha ao processar a autorização do Facebook.');
+          setMessage('Falha ao processar a conexão');
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Callback processing error:', error);
         setStatus('error');
-        setMessage('Erro interno ao processar a integração.');
+        setMessage(error.message || 'Erro inesperado');
       }
     };
 
     processCallback();
-  }, [searchParams, handleCallback, navigate]);
+  }, [searchParams, activeCompany, handleCallback, navigate]);
 
   const getIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />;
+        return <Loader className="h-8 w-8 animate-spin text-primary" />;
       case 'success':
-        return <CheckCircle className="h-12 w-12 text-green-600" />;
+        return <CheckCircle className="h-8 w-8 text-green-600" />;
       case 'error':
-        return <X className="h-12 w-12 text-red-600" />;
+        return <X className="h-8 w-8 text-destructive" />;
     }
   };
 
   const getTitle = () => {
     switch (status) {
       case 'loading':
-        return 'Processando integração...';
+        return 'Conectando ao Facebook...';
       case 'success':
-        return 'Integração realizada!';
+        return 'Conexão realizada!';
       case 'error':
-        return 'Erro na integração';
+        return 'Erro na conexão';
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             {getIcon()}
           </div>
-          <CardTitle className="text-xl">{getTitle()}</CardTitle>
+          <CardTitle>{getTitle()}</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">{message}</p>
           
-          {status === 'success' && (
-            <p className="text-sm text-green-600">
-              Redirecionando para o dashboard...
-            </p>
-          )}
-          
           {status === 'error' && (
-            <Button onClick={() => navigate('/dashboard')} className="w-full">
-              Voltar ao Dashboard
+            <Button
+              onClick={() => navigate('/configuracoes')}
+              variant="outline"
+              className="w-full"
+            >
+              Voltar para Configurações
             </Button>
           )}
         </CardContent>
