@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -226,6 +226,16 @@ export const useFacebookIntegration = () => {
       setLoading(false);
     }
   };
+
+  // Auto-load integration when active company changes
+  useEffect(() => {
+    if (activeCompany?.company_id) {
+      loadIntegration(activeCompany.company_id);
+    } else {
+      setIntegration(null);
+      setAdAccounts([]);
+    }
+  }, [activeCompany?.company_id]);
 
   return {
     loading,
