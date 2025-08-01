@@ -27,6 +27,13 @@ export const CompanySettings = () => {
 
     try {
       setLoading(true);
+      console.log('Updating company with data:', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        logo: formData.logo,
+      });
+      
       await updateCompany(activeCompany.company.id, {
         name: formData.name,
         email: formData.email,
@@ -39,7 +46,12 @@ export const CompanySettings = () => {
         description: "As configurações da empresa foram salvas com sucesso.",
       });
     } catch (error) {
-      // Error handling is done in updateCompany
+      console.error('Error in handleSubmit:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as configurações da empresa.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
