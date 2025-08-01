@@ -7,7 +7,7 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { PlansSettings } from "@/components/settings/PlansSettings";
 import { FacebookIntegrationCard } from "@/components/facebook/FacebookIntegrationCard";
-// import { FacebookIntegrationInfo } from "@/components/facebook/FacebookIntegrationInfo";
+import { FacebookIntegrationSettings } from "@/components/facebook/FacebookIntegrationSettings";
 
 const Configuracoes = () => {
   return (
@@ -32,6 +32,7 @@ const Configuracoes = () => {
             <Route path="notificacoes" element={<NotificationSettings />} />
             <Route path="seguranca" element={<SecuritySettings />} />
             <Route path="planos" element={<PlansSettings />} />
+            <Route path="facebook" element={<FacebookIntegrationSettings />} />
           </Routes>
         </SettingsLayout>
       </div>
