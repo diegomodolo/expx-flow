@@ -63,6 +63,18 @@ export function useEmployees() {
     try {
       setError(null);
       
+      // Verificar se o usuário tem permissões para criar colaboradores
+      const { data: userRole, error: roleError } = await supabase
+        .from('company_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('company_id', activeCompany.company_id)
+        .single();
+
+      if (roleError || !userRole || !['owner', 'admin'].includes(userRole.role)) {
+        throw new Error("Você não tem permissão para criar colaboradores. Apenas owners e admins podem realizar esta ação.");
+      }
+      
       // Gerar senha temporária
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
       
