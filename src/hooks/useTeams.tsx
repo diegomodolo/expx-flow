@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export interface TeamMember {
   id: string;
@@ -26,9 +27,10 @@ export function useTeams() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
 
   const fetchTeams = async () => {
-    if (!user) return;
+    if (!user || !activeCompany) return;
     
     try {
       setLoading(true);
@@ -38,6 +40,7 @@ export function useTeams() {
           *,
           members:team_members(*)
         `)
+        .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -50,14 +53,19 @@ export function useTeams() {
   };
 
   const createTeam = async (teamData: Omit<Team, "id" | "progress" | "active_tasks" | "members">) => {
-    if (!user) return null;
+    if (!user || !activeCompany) {
+      setError("Usuário não autenticado ou empresa não selecionada");
+      return null;
+    }
 
     try {
+      setError(null);
       const { data, error } = await supabase
         .from("teams")
         .insert([{
           ...teamData,
           user_id: user.id,
+          company_id: activeCompany.company_id,
         }])
         .select()
         .single();
@@ -131,7 +139,7 @@ export function useTeams() {
 
   useEffect(() => {
     fetchTeams();
-  }, [user]);
+  }, [user, activeCompany]);
 
   return {
     teams,
