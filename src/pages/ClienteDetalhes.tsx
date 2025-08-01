@@ -191,16 +191,45 @@ const ClienteDetalhes = () => {
     );
   }
 
-  // Chart data for CPL performance
-  const chartData = [
-    { date: '01/11', cpl: 45.20 },
-    { date: '05/11', cpl: 38.90 },
-    { date: '10/11', cpl: 42.10 },
-    { date: '15/11', cpl: 35.50 },
-    { date: '20/11', cpl: 32.80 },
-    { date: '25/11', cpl: 29.40 },
-    { date: '30/11', cpl: client.avg_cpl },
-  ];
+  // Chart data for CPL performance - Generate from real campaign data
+  const chartData = React.useMemo(() => {
+    if (!client?.campaigns || client.campaigns.length === 0) {
+      // Return empty array if no campaigns
+      return [];
+    }
+
+    // Generate last 7 days of data
+    const days = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      // Calculate CPL for campaigns created before or on this date
+      const campaignsUpToDate = client.campaigns.filter(campaign => {
+        const campaignDate = new Date(campaign.created_at);
+        return campaignDate <= date;
+      });
+      
+      let totalSpend = 0;
+      let totalLeads = 0;
+      
+      campaignsUpToDate.forEach(campaign => {
+        totalSpend += campaign.spend || 0;
+        totalLeads += campaign.conversions || 0;
+      });
+      
+      const cpl = totalLeads > 0 ? totalSpend / totalLeads : 0;
+      
+      days.push({
+        date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        cpl: parseFloat(cpl.toFixed(2))
+      });
+    }
+    
+    return days;
+  }, [client?.campaigns]);
 
   console.log('Campaign metrics calculation:', {
     totalCampaigns,
