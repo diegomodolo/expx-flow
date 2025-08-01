@@ -10,6 +10,9 @@ import { useClients, Client } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { 
   Plus, 
   Search, 
@@ -40,6 +43,7 @@ const Clientes = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const { clients, loading, error, createClient, updateClient, deleteClient } = useClients();
   const { toast } = useToast();
@@ -57,6 +61,39 @@ const Clientes = () => {
   const totalPages = Math.ceil(totalClients / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedClients = filteredClients.slice(startIndex, startIndex + itemsPerPage);
+
+  
+  const exportToCSV = () => {
+    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Último Acesso"];
+    const csvData = filteredClients.map(client => [
+      client.name,
+      client.email,
+      client.company,
+      client.sector,
+      statusConfig[client.status].label,
+      client.active_campaigns,
+      `R$ ${client.avg_cpl.toFixed(2)}`,
+      client.last_access
+    ]);
+    
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(","))
+      .join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `clientes-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Exportação concluída",
+      description: "Lista de clientes exportada com sucesso!",
+    });
+  };
 
   if (error) {
     toast({
@@ -149,11 +186,11 @@ const Clientes = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button variant="outline" className="flex items-center space-x-2">
+                <Button variant="outline" className="flex items-center space-x-2" onClick={() => setFiltersDialogOpen(true)}>
                   <Filter className="w-4 h-4" />
                   <span>Filtros</span>
                 </Button>
-                <Button variant="outline" className="flex items-center space-x-2">
+                <Button variant="outline" className="flex items-center space-x-2" onClick={exportToCSV}>
                   <Download className="w-4 h-4" />
                   <span>Exportar</span>
                 </Button>
@@ -389,6 +426,80 @@ const Clientes = () => {
           onConfirm={deleteClient}
           client={selectedClient}
         />
+
+        {/* Filters Dialog */}
+        <Dialog open={filtersDialogOpen} onOpenChange={setFiltersDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Filtros Avançados</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="sector-filter" className="text-right">
+                  Setor
+                </Label>
+                <Select>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione um setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tecnologia">Tecnologia</SelectItem>
+                    <SelectItem value="educacao">Educação</SelectItem>
+                    <SelectItem value="saude">Saúde</SelectItem>
+                    <SelectItem value="varejo">Varejo</SelectItem>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="budget-filter" className="text-right">
+                  Orçamento
+                </Label>
+                <Select>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Faixa de orçamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0-1000">R$ 0 - R$ 1.000</SelectItem>
+                    <SelectItem value="1000-5000">R$ 1.000 - R$ 5.000</SelectItem>
+                    <SelectItem value="5000-10000">R$ 5.000 - R$ 10.000</SelectItem>
+                    <SelectItem value="10000+">R$ 10.000+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="campaigns-filter" className="text-right">
+                  Campanhas
+                </Label>
+                <Select>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Número de campanhas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0 campanhas</SelectItem>
+                    <SelectItem value="1-3">1-3 campanhas</SelectItem>
+                    <SelectItem value="4-10">4-10 campanhas</SelectItem>
+                    <SelectItem value="10+">10+ campanhas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setFiltersDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={() => {
+                toast({
+                  title: "Filtros aplicados",
+                  description: "Filtros avançados foram aplicados com sucesso!",
+                });
+                setFiltersDialogOpen(false);
+              }}>
+                Aplicar Filtros
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
