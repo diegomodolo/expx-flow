@@ -290,7 +290,7 @@ export type Database = {
       employees: {
         Row: {
           avatar: string | null
-          company_id: string | null
+          company_id: string
           created_at: string
           email: string
           id: string
@@ -306,7 +306,7 @@ export type Database = {
         }
         Insert: {
           avatar?: string | null
-          company_id?: string | null
+          company_id: string
           created_at?: string
           email: string
           id?: string
@@ -322,7 +322,7 @@ export type Database = {
         }
         Update: {
           avatar?: string | null
-          company_id?: string | null
+          company_id?: string
           created_at?: string
           email?: string
           id?: string
