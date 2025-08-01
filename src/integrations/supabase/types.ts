@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaigns: {
+        Row: {
+          client_id: string
+          conversions: number
+          cpc: number
+          created_at: string
+          ctr: number
+          id: string
+          is_active: boolean
+          name: string
+          period: string
+          platforms: string
+          status: Database["public"]["Enums"]["campaign_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          conversions?: number
+          cpc?: number
+          created_at?: string
+          ctr?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          period: string
+          platforms: string
+          status?: Database["public"]["Enums"]["campaign_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          conversions?: number
+          cpc?: number
+          created_at?: string
+          ctr?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          period?: string
+          platforms?: string
+          status?: Database["public"]["Enums"]["campaign_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          active_campaigns: number
+          avatar: string | null
+          avg_cpl: number
+          company: string
+          created_at: string
+          email: string
+          id: string
+          last_access: string | null
+          name: string
+          sector: string
+          status: Database["public"]["Enums"]["client_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_campaigns?: number
+          avatar?: string | null
+          avg_cpl?: number
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          last_access?: string | null
+          name: string
+          sector: string
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_campaigns?: number
+          avatar?: string | null
+          avg_cpl?: number
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          last_access?: string | null
+          name?: string
+          sector?: string
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null
@@ -44,6 +148,139 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          created_at: string
+          deadline: string
+          description: string | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          progress: number
+          responsible_avatar: string | null
+          responsible_name: string
+          status: Database["public"]["Enums"]["task_status"]
+          team_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline: string
+          description?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          progress?: number
+          responsible_avatar?: string | null
+          responsible_name: string
+          status?: Database["public"]["Enums"]["task_status"]
+          team_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string
+          description?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          progress?: number
+          responsible_avatar?: string | null
+          responsible_name?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          team_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          id: string
+          name: string
+          team_id: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          team_id: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          active_tasks: number
+          color: string
+          created_at: string
+          description: string
+          icon: string
+          icon_bg: string
+          icon_color: string
+          id: string
+          name: string
+          progress: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_tasks?: number
+          color: string
+          created_at?: string
+          description: string
+          icon: string
+          icon_bg: string
+          icon_color: string
+          id?: string
+          name: string
+          progress?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_tasks?: number
+          color?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          icon_bg?: string
+          icon_color?: string
+          id?: string
+          name?: string
+          progress?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -52,7 +289,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      campaign_status: "active" | "paused" | "finished"
+      client_status: "green" | "yellow" | "red"
+      task_priority: "high" | "medium" | "low"
+      task_status: "todo" | "progress" | "review" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -179,6 +419,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      campaign_status: ["active", "paused", "finished"],
+      client_status: ["green", "yellow", "red"],
+      task_priority: ["high", "medium", "low"],
+      task_status: ["todo", "progress", "review", "done"],
+    },
   },
 } as const
