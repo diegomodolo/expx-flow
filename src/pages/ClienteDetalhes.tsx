@@ -55,11 +55,27 @@ const ClienteDetalhes = () => {
   // Data for CPL by Campaign chart (horizontal bar chart)
   const cplByCampaignData = React.useMemo(() => {
     if (!client?.campaigns || client.campaigns.length === 0) {
+      console.log('❌ CPL Chart: No campaigns available');
       return [];
     }
 
-    return client.campaigns
-      .filter(campaign => (campaign.cpa || 0) > 0) // Only show campaigns with CPA > 0
+    console.log('📊 CPL Chart: Total campaigns:', client.campaigns.length);
+    
+    // Log all campaigns with their CPA values
+    client.campaigns.forEach(campaign => {
+      console.log(`📋 Campaign: ${campaign.name} | CPA: ${campaign.cpa} | Spend: ${campaign.spend} | Conversions: ${campaign.conversions}`);
+    });
+
+    const filteredCampaigns = client.campaigns.filter(campaign => {
+      const cpa = campaign.cpa || 0;
+      const shouldInclude = cpa > 0;
+      console.log(`🔍 Filter ${campaign.name}: CPA=${cpa}, Include=${shouldInclude}`);
+      return shouldInclude;
+    });
+
+    console.log('✅ CPL Chart: Filtered campaigns count:', filteredCampaigns.length);
+
+    const finalData = filteredCampaigns
       .map(campaign => ({
         name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
         fullName: campaign.name,
@@ -70,6 +86,11 @@ const ClienteDetalhes = () => {
       }))
       .sort((a, b) => a.cpl - b.cpl) // Sort by CPL ascending (cheapest first)
       .slice(0, 8); // Show top 8 campaigns
+
+    console.log('📈 CPL Chart: Final data for chart:', finalData);
+    console.log('📈 CPL Chart: CPA values in final data:', finalData.map(d => d.cpl));
+
+    return finalData;
   }, [client?.campaigns]);
 
   // Data for Investment Distribution chart (pie chart)
