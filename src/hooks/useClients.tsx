@@ -21,6 +21,7 @@ export interface Client {
   preferred_platforms?: string[];
   campaign_type?: string;
   notes?: string;
+  ad_account_id?: string;
 }
 
 export function useClients() {

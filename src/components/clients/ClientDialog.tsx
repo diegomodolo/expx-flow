@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
+import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Plus } from "lucide-react";
 
@@ -24,6 +25,7 @@ interface ClientDialogProps {
 
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const { sectors, createSector } = useSectors();
+  const { adAccounts } = useFacebookIntegration();
   const { toast } = useToast();
   const [formData, setFormData] = useState(() => {
     if (client) {
@@ -42,7 +44,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         objectives: client.objectives || "",
         preferred_platforms: client.preferred_platforms || [],
         campaign_type: client.campaign_type || "",
-        notes: client.notes || ""
+        notes: client.notes || "",
+        ad_account_id: client.ad_account_id || ""
       };
     }
     return {
@@ -60,7 +63,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       objectives: "",
       preferred_platforms: [] as string[],
       campaign_type: "",
-      notes: ""
+      notes: "",
+      ad_account_id: ""
     };
   });
   const [loading, setLoading] = useState(false);
@@ -91,7 +95,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         objectives: client.objectives || "",
         preferred_platforms: client.preferred_platforms || [],
         campaign_type: client.campaign_type || "",
-        notes: client.notes || ""
+        notes: client.notes || "",
+        ad_account_id: client.ad_account_id || ""
       });
     }
   }, [client?.id, open]);
@@ -138,7 +143,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         objectives: "",
         preferred_platforms: [],
         campaign_type: "",
-        notes: ""
+        notes: "",
+        ad_account_id: ""
       });
     } catch (error) {
       toast({
@@ -369,8 +375,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 4: Voice Tone, Campaign Type - 2 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Row 4: Voice Tone, Campaign Type, Ad Account - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="voice_tone">Tom de Voz</Label>
                 <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
@@ -393,6 +399,22 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   <SelectContent>
                     {campaignTypes.map((type) => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ad_account_id">Conta de Anúncios</Label>
+                <Select value={formData.ad_account_id} onValueChange={(value) => setFormData({ ...formData, ad_account_id: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta de anúncios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhuma conta selecionada</SelectItem>
+                    {adAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.account_name} ({account.currency})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
