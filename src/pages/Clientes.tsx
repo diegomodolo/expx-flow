@@ -357,7 +357,10 @@ const Clientes = () => {
         
         <ClientDialog
           open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open);
+            if (!open) setSelectedClient(null);
+          }}
           onSubmit={(clientData) => selectedClient ? updateClient(selectedClient.id, clientData) : Promise.resolve(null)}
           client={selectedClient || undefined}
           title="Editar Cliente"
