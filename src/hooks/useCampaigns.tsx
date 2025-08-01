@@ -11,6 +11,8 @@ export interface Campaign {
   ctr: number;
   cpc: number;
   conversions: number;
+  spend: number; // Custo Total da Campanha
+  cpa: number; // Custo por Aquisição/Conversão
   period: string;
   is_active: boolean;
   client?: {
@@ -47,7 +49,7 @@ export function useCampaigns() {
     }
   };
 
-  const createCampaign = async (campaignData: Omit<Campaign, "id" | "client">) => {
+  const createCampaign = async (campaignData: Omit<Campaign, "id" | "client" | "spend" | "cpa">) => {
     if (!user) return null;
 
     try {

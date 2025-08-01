@@ -10,8 +10,11 @@ export interface ClientCampaign {
   platforms: string;
   status: 'active' | 'paused' | 'finished';
   is_active: boolean;
+  ctr: number;
   cpc: number;
+  cpa: number; // Custo por Aquisição/Conversão
   conversions: number;
+  spend: number; // Custo Total da Campanha
   created_at: string;
 }
 

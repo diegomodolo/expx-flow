@@ -335,8 +335,11 @@ serve(async (req) => {
         platforms: 'Facebook Ads',
         status: isActive ? 'active' : 'paused',
         is_active: isActive,
+        ctr: insights?.ctr || 0,
         cpc: cpc,
+        cpa: leads > 0 ? spend / leads : 0, // Calculate CPA (Cost Per Acquisition)
         conversions: leads,
+        spend: spend, // Total campaign spend
         client_id: clientId,
         user_id: client.user_id,
         company_id: client.company_id,

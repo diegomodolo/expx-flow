@@ -19,6 +19,7 @@ export type Database = {
           client_id: string
           company_id: string | null
           conversions: number
+          cpa: number | null
           cpc: number
           created_at: string
           ctr: number
@@ -27,6 +28,7 @@ export type Database = {
           name: string
           period: string
           platforms: string
+          spend: number | null
           status: Database["public"]["Enums"]["campaign_status"]
           updated_at: string
           user_id: string
@@ -35,6 +37,7 @@ export type Database = {
           client_id: string
           company_id?: string | null
           conversions?: number
+          cpa?: number | null
           cpc?: number
           created_at?: string
           ctr?: number
@@ -43,6 +46,7 @@ export type Database = {
           name: string
           period: string
           platforms: string
+          spend?: number | null
           status?: Database["public"]["Enums"]["campaign_status"]
           updated_at?: string
           user_id: string
@@ -51,6 +55,7 @@ export type Database = {
           client_id?: string
           company_id?: string | null
           conversions?: number
+          cpa?: number | null
           cpc?: number
           created_at?: string
           ctr?: number
@@ -59,6 +64,7 @@ export type Database = {
           name?: string
           period?: string
           platforms?: string
+          spend?: number | null
           status?: Database["public"]["Enums"]["campaign_status"]
           updated_at?: string
           user_id?: string

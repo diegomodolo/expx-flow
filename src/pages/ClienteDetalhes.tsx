@@ -38,7 +38,7 @@ const ClienteDetalhes = () => {
   const { syncCampaigns, syncing: syncLoading } = useFacebookCampaignSync();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
-  const [sortField, setSortField] = useState<'name' | 'cpc' | 'conversions' | null>(null);
+  const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Calculate campaign metrics (with safe access)
@@ -76,6 +76,14 @@ const ClienteDetalhes = () => {
             aValue = a.cpc;
             bValue = b.cpc;
             break;
+          case 'cpa':
+            aValue = a.cpa;
+            bValue = b.cpa;
+            break;
+          case 'spend':
+            aValue = a.spend;
+            bValue = b.spend;
+            break;
           case 'conversions':
             aValue = a.conversions;
             bValue = b.conversions;
@@ -93,7 +101,7 @@ const ClienteDetalhes = () => {
     return campaigns;
   }, [client?.campaigns, campaignFilter, sortField, sortDirection]);
 
-  const handleSort = (field: 'name' | 'cpc' | 'conversions') => {
+  const handleSort = (field: 'name' | 'cpc' | 'cpa' | 'spend' | 'conversions') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -448,6 +456,7 @@ const ClienteDetalhes = () => {
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plataformas</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CTR (%)</th>
                         <th 
                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
                           onClick={() => handleSort('cpc')}
@@ -459,6 +468,7 @@ const ClienteDetalhes = () => {
                             )}
                           </div>
                         </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPA</th>
                         <th 
                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
                           onClick={() => handleSort('conversions')}
@@ -466,6 +476,17 @@ const ClienteDetalhes = () => {
                           <div className="flex items-center space-x-1">
                             <span>Conversões</span>
                             {sortField === 'conversions' && (
+                              <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleSort('spend')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Custo Total</span>
+                            {sortField === 'spend' && (
                               <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
                             )}
                           </div>
@@ -490,11 +511,20 @@ const ClienteDetalhes = () => {
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           {campaign.platforms}
                         </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                          {campaign.ctr.toFixed(2)}%
+                        </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                           R$ {campaign.cpc.toFixed(2)}
                         </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-purple-600">
+                          R$ {campaign.cpa.toFixed(2)}
+                        </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                           {campaign.conversions}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-orange-600">
+                          R$ {campaign.spend.toFixed(2)}
                         </td>
                       </tr>
                     ))}
