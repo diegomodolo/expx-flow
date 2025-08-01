@@ -77,7 +77,7 @@ export const ImageUploader = ({
         .from(bucket)
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true // Allow overwriting existing files
         });
 
       if (error) throw error;
@@ -111,20 +111,6 @@ export const ImageUploader = ({
     if (!currentImageUrl) return;
 
     try {
-      // Extract file path from URL
-      const url = new URL(currentImageUrl);
-      const pathSegments = url.pathname.split('/');
-      const filePath = pathSegments.slice(-2).join('/'); // Get last two segments
-
-      // Delete file from storage
-      const { error } = await supabase.storage
-        .from(bucket)
-        .remove([filePath]);
-
-      if (error) {
-        console.warn('Could not delete file from storage:', error);
-      }
-
       setPreview(null);
       onImageRemoved?.();
 
@@ -135,6 +121,11 @@ export const ImageUploader = ({
 
     } catch (error) {
       console.error('Error removing image:', error);
+      toast({
+        title: "Erro ao remover",
+        description: "Não foi possível remover a imagem.",
+        variant: "destructive",
+      });
     }
   };
 

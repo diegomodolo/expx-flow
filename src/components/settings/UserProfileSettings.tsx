@@ -69,6 +69,8 @@ export const UserProfileSettings = () => {
           phone: profile.phone,
           avatar_url: profile.avatar_url,
           updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
