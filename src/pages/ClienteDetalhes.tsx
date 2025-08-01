@@ -59,11 +59,11 @@ const ClienteDetalhes = () => {
     }
 
     return client.campaigns
-      .filter(campaign => (campaign.spend || 0) > 0 && (campaign.conversions || 0) > 0)
+      .filter(campaign => (campaign.cpa || 0) > 0) // Use saved CPA instead of calculating
       .map(campaign => ({
         name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
         fullName: campaign.name,
-        cpl: campaign.conversions > 0 ? (campaign.spend / campaign.conversions) : 0,
+        cpl: campaign.cpa || 0, // Use the CPA value saved during sync
         spend: campaign.spend || 0,
         conversions: campaign.conversions || 0,
         status: campaign.status
