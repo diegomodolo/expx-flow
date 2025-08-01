@@ -100,7 +100,7 @@ export function useClients() {
 
   useEffect(() => {
     fetchClients();
-  }, [user]);
+  }, [user?.id]);
 
   return {
     clients,
