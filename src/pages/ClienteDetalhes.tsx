@@ -405,28 +405,24 @@ const ClienteDetalhes = () => {
             </CardHeader>
             <CardContent>
               <div className="h-80">
-                {cplByCampaignData.length > 0 ? (
+                 {cplByCampaignData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={cplByCampaignData}
-                      layout="horizontal"
-                      margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+                      margin={{ top: 20, right: 30, left: 40, bottom: 120 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
-                       <XAxis 
-                         type="number" 
-                         domain={[0, 'dataMax']}
-                         tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
-                       />
-                      <YAxis 
-                        type="category" 
+                      <XAxis 
                         dataKey="name" 
-                        width={90}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
                         fontSize={11}
                       />
+                      <YAxis 
+                        tickFormatter={(value) => `R$ ${value.toFixed(0)}`}
+                      />
                       <Tooltip 
-                        formatter={(value, name) => [`R$ ${Number(value).toFixed(2)}`, 'CPL']}
-                        labelFormatter={(label) => cplByCampaignData.find(d => d.name === label)?.fullName || label}
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
@@ -446,7 +442,7 @@ const ClienteDetalhes = () => {
                       <Bar 
                         dataKey="cpl" 
                         fill="#3B82F6"
-                        radius={[0, 4, 4, 0]}
+                        radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
                   </ResponsiveContainer>
