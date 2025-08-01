@@ -9,6 +9,7 @@ export interface ClientCampaign {
   name: string;
   platforms: string;
   status: 'active' | 'paused' | 'finished';
+  is_active: boolean;
   cpc: number;
   conversions: number;
   created_at: string;

@@ -106,9 +106,11 @@ const ClienteDetalhes = () => {
     { date: '30/11', cpl: client.avg_cpl },
   ];
 
-  const activeCampaigns = client.campaigns.filter(c => c.status === 'active').length;
-  const pausedCampaigns = client.campaigns.filter(c => c.status === 'paused').length;
-  const totalCampaigns = client.campaigns.length;
+  // Calculate real metrics from campaign data
+  const totalCampaigns = client.campaigns?.length || 0;
+  const activeCampaigns = client.campaigns?.filter(c => c.status === 'active' && c.is_active === true).length || 0;
+  const pausedCampaigns = client.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
+  const finishedCampaigns = client.campaigns?.filter(c => c.status === 'finished').length || 0;
 
   const statusConfig = {
     green: { label: "Excelente", color: "bg-green-100 text-green-800" },
@@ -308,7 +310,7 @@ const ClienteDetalhes = () => {
                     Pausadas ({pausedCampaigns})
                   </Button>
                   <Button variant="outline" size="sm">
-                    Finalizadas (0)
+                    Finalizadas ({finishedCampaigns})
                   </Button>
                 </div>
               </div>
