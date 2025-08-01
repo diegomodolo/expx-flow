@@ -72,13 +72,6 @@ const ClienteDetalhes = () => {
       .slice(0, 8); // Show top 8 campaigns
   }, [client?.campaigns]);
 
-  // Debug log for chart data
-  React.useEffect(() => {
-    if (cplByCampaignData.length > 0) {
-      console.log('🎯 Chart data ready:', JSON.stringify(cplByCampaignData, null, 2));
-    }
-  }, [cplByCampaignData]);
-
   // Data for Investment Distribution chart (pie chart)
   const investmentDistributionData = React.useMemo(() => {
     if (!client?.campaigns || client.campaigns.length === 0) {
@@ -420,10 +413,11 @@ const ClienteDetalhes = () => {
                       margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        type="number" 
-                        tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
-                      />
+                       <XAxis 
+                         type="number" 
+                         domain={[0, 'dataMax']}
+                         tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
+                       />
                       <YAxis 
                         type="category" 
                         dataKey="name" 
