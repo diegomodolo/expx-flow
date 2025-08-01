@@ -35,7 +35,7 @@ type StatusType = "all" | "green" | "yellow" | "red";
 const statusConfig = {
   green: { label: "Excelente", color: "bg-green-100 text-green-800", dotColor: "bg-green-500" },
   yellow: { label: "Atenção", color: "bg-yellow-100 text-yellow-800", dotColor: "bg-yellow-500" },
-  red: { label: "Crítico", color: "bg-red-100 text-red-800", dotColor: "bg-red-500" }
+  red: { label: "Emergencial", color: "bg-red-100 text-red-800", dotColor: "bg-red-500" }
 };
 
 const Clientes = () => {
@@ -202,7 +202,7 @@ const Clientes = () => {
                       className="flex items-center space-x-2"
                     >
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Verde</span>
+                      <span>Excelente</span>
                     </Button>
                     <Button
                       variant={statusFilter === "yellow" ? "default" : "outline"}
@@ -211,7 +211,7 @@ const Clientes = () => {
                       className="flex items-center space-x-2"
                     >
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span>Amarelo</span>
+                      <span>Atenção</span>
                     </Button>
                     <Button
                       variant={statusFilter === "red" ? "default" : "outline"}
@@ -220,7 +220,7 @@ const Clientes = () => {
                       className="flex items-center space-x-2"
                     >
                       <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span>Vermelho</span>
+                      <span>Emergencial</span>
                     </Button>
                   </div>
                 </div>

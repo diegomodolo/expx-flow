@@ -112,7 +112,12 @@ serve(async (req) => {
       console.log('No ad account linked to this client')
       const { error: updateError } = await supabase
         .from('clients')
-        .update({ active_campaigns: 0, avg_cpl: 0, leads_generated: 0 })
+        .update({ 
+          active_campaigns: 0, 
+          avg_cpl: 0, 
+          leads_generated: 0,
+          status: 'red' // Emergencial - sem conta de anúncios
+        })
         .eq('id', clientId)
 
       if (updateError) {
@@ -304,16 +309,25 @@ serve(async (req) => {
 
     const avgCpl = totalLeads > 0 ? totalSpend / totalLeads : 0
 
+    // Determine client status based on active campaigns
+    let clientStatus = 'green' // Excelente
+    if (activeCampaigns === 0) {
+      clientStatus = 'red' // Emergencial
+    } else if (activeCampaigns <= 2) {
+      clientStatus = 'yellow' // Atenção
+    }
+
     const metricsData = {
       active_campaigns: activeCampaigns,
       avg_cpl: avgCpl,
-      leads_generated: totalLeads
+      leads_generated: totalLeads,
+      status: clientStatus
     }
 
-    console.log('Calculated metrics:', metricsData)
+    console.log('Calculated metrics with status:', metricsData)
 
-    // Update client with real data
-    console.log('Updating client with new metrics...')
+    // Update client with real data and status
+    console.log('Updating client with new metrics and status...')
     const { error: updateError } = await supabase
       .from('clients')
       .update(metricsData)
