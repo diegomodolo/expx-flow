@@ -41,9 +41,9 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
 };
 
 const Squad = () => {
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [performanceFilter, setPerformanceFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [typeFilter, setTypeFilter] = useState("todos");
+  const [performanceFilter, setPerformanceFilter] = useState("todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -203,7 +203,7 @@ const Squad = () => {
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="todos">Todos</SelectItem>
                         <SelectItem value="ativo">Ativo</SelectItem>
                         <SelectItem value="inativo">Inativo</SelectItem>
                         <SelectItem value="pausa">Em Pausa</SelectItem>
@@ -218,7 +218,7 @@ const Squad = () => {
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="todos">Todos</SelectItem>
                         <SelectItem value="desenvolvimento">Desenvolvimento</SelectItem>
                         <SelectItem value="design">Design</SelectItem>
                         <SelectItem value="marketing">Marketing</SelectItem>
@@ -235,7 +235,7 @@ const Squad = () => {
                         <SelectValue placeholder="Todas" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
+                        <SelectItem value="todas">Todas</SelectItem>
                         <SelectItem value="alta">Alta (90%+)</SelectItem>
                         <SelectItem value="media">Média (70-89%)</SelectItem>
                         <SelectItem value="baixa">Baixa (&lt;70%)</SelectItem>
