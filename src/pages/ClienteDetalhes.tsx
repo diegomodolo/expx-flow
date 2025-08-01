@@ -41,6 +41,67 @@ const ClienteDetalhes = () => {
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // Calculate campaign metrics (with safe access)
+  const totalCampaigns = client?.campaigns?.length || 0;
+  const activeCampaigns = client?.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
+  const pausedCampaigns = client?.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
+  const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
+
+  // Filter and sort campaigns
+  const filteredAndSortedCampaigns = useMemo(() => {
+    if (!client?.campaigns) return [];
+    
+    let campaigns = [...client.campaigns];
+    
+    // Filter campaigns
+    if (campaignFilter === 'active') {
+      campaigns = campaigns.filter(c => c.status === 'active');
+    } else if (campaignFilter === 'paused') {
+      campaigns = campaigns.filter(c => c.status === 'paused');
+    } else if (campaignFilter === 'finished') {
+      campaigns = campaigns.filter(c => c.status === 'finished');
+    }
+
+    // Sort campaigns
+    if (sortField) {
+      campaigns = campaigns.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortField) {
+          case 'name':
+            aValue = a.name.toLowerCase();
+            bValue = b.name.toLowerCase();
+            break;
+          case 'cpc':
+            aValue = a.cpc;
+            bValue = b.cpc;
+            break;
+          case 'conversions':
+            aValue = a.conversions;
+            bValue = b.conversions;
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return campaigns;
+  }, [client?.campaigns, campaignFilter, sortField, sortDirection]);
+
+  const handleSort = (field: 'name' | 'cpc' | 'conversions') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const handleSync = async () => {
     if (!id) return;
     
@@ -115,7 +176,7 @@ const ClienteDetalhes = () => {
     );
   }
 
-  // Mock data for chart - in real implementation, this would come from API
+  // Chart data for CPL performance
   const chartData = [
     { date: '01/11', cpl: 45.20 },
     { date: '05/11', cpl: 38.90 },
@@ -125,67 +186,6 @@ const ClienteDetalhes = () => {
     { date: '25/11', cpl: 29.40 },
     { date: '30/11', cpl: client.avg_cpl },
   ];
-
-  // Calculate real metrics from campaign data (only if client exists)
-  const totalCampaigns = client?.campaigns?.length || 0;
-  const activeCampaigns = client?.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
-  const pausedCampaigns = client?.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
-  const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
-
-  // Filter and sort campaigns
-  const filteredAndSortedCampaigns = useMemo(() => {
-    if (!client?.campaigns) return [];
-    
-    let campaigns = [...client.campaigns];
-    
-    // Filter campaigns
-    if (campaignFilter === 'active') {
-      campaigns = campaigns.filter(c => c.status === 'active');
-    } else if (campaignFilter === 'paused') {
-      campaigns = campaigns.filter(c => c.status === 'paused');
-    } else if (campaignFilter === 'finished') {
-      campaigns = campaigns.filter(c => c.status === 'finished');
-    }
-
-    // Sort campaigns
-    if (sortField) {
-      campaigns = campaigns.sort((a, b) => {
-        let aValue, bValue;
-        
-        switch (sortField) {
-          case 'name':
-            aValue = a.name.toLowerCase();
-            bValue = b.name.toLowerCase();
-            break;
-          case 'cpc':
-            aValue = a.cpc;
-            bValue = b.cpc;
-            break;
-          case 'conversions':
-            aValue = a.conversions;
-            bValue = b.conversions;
-            break;
-          default:
-            return 0;
-        }
-
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return campaigns;
-  }, [client?.campaigns, campaignFilter, sortField, sortDirection]);
-
-  const handleSort = (field: 'name' | 'cpc' | 'conversions') => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
 
   console.log('Campaign metrics calculation:', {
     totalCampaigns,
@@ -198,7 +198,7 @@ const ClienteDetalhes = () => {
   const statusConfig = {
     green: { label: "Excelente", color: "bg-green-100 text-green-800" },
     yellow: { label: "Atenção", color: "bg-yellow-100 text-yellow-800" },
-    red: { label: "Emergencial", color: "bg-red-100 text-red-800" }
+    red: { label: "Crítico", color: "bg-red-100 text-red-800" },
   };
 
   return (
