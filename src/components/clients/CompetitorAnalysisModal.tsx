@@ -108,7 +108,8 @@ export const CompetitorAnalysisModal = ({
         responsible_avatar: '',
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 dias
         progress: 0,
-        origin: 'automation'
+        origin: 'automation',
+        related_client_id: competitor.client_id
       });
 
       toast.success('Tarefa criada com sucesso!');

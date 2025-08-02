@@ -20,11 +20,15 @@ interface Task {
   due_date?: string;
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard';
+  related_campaign_id?: string;
+  related_client_id?: string;
   team?: { name: string; color: string };
   user_profile?: {
     avatar_url: string | null;
     full_name: string | null;
   } | null;
+  campaign?: any;
+  client?: any;
 }
 
 interface TaskKanbanProps {
@@ -163,6 +167,22 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           <h4 className="font-medium text-gray-900 text-sm leading-tight mb-2 line-clamp-2">
                             {task.title}
                           </h4>
+
+                          {/* Cliente e Campanha */}
+                          {(task.client?.name || task.campaign?.name) && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {task.client?.name && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                  👤 {task.client.name}
+                                </span>
+                              )}
+                              {task.campaign?.name && (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                  📊 {task.campaign.name}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           
                           {/* Descrição simplificada */}
                           {task.description && (

@@ -15,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePlannerSlots } from "@/hooks/usePlannerSlots";
+import { useClients } from "@/hooks/useClients";
+import { useCampaigns } from "@/hooks/useCampaigns";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskDialogProps {
@@ -34,6 +36,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     responsible_name: '',
     responsible_avatar: '',
     responsible_user_id: '',
+    related_client_id: '',
+    related_campaign_id: '',
     start_date: null as Date | null,
     start_time: '',
     due_date: null as Date | null,
@@ -48,6 +52,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
   const { teams } = useTeams();
   const { employees } = useEmployees();
   const { timeSlots } = usePlannerSlots();
+  const { clients } = useClients();
+  const { campaigns } = useCampaigns();
 
   useEffect(() => {
     if (task) {
@@ -64,6 +70,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         responsible_name: task.responsible_name || '',
         responsible_avatar: task.responsible_avatar || '',
         responsible_user_id: task.user_id || '',
+        related_client_id: task.related_client_id || '',
+        related_campaign_id: task.related_campaign_id || '',
         start_date: startDate,
         start_time: startDate ? format(startDate, 'HH:mm') : '',
         due_date: dueDate,
@@ -91,6 +99,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         responsible_name: '',
         responsible_avatar: '',
         responsible_user_id: '',
+        related_client_id: '',
+        related_campaign_id: '',
         start_date: null,
         start_time: '',
         due_date: null,
@@ -147,6 +157,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
       responsible_name: formData.responsible_name,
       responsible_avatar: formData.responsible_avatar,
       user_id: formData.responsible_user_id,
+      related_client_id: formData.related_client_id || null,
+      related_campaign_id: formData.related_campaign_id || null,
       progress: formData.progress,
       checklist: JSON.stringify(formData.checklist),
     };
@@ -381,6 +393,59 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
                   {employees?.map((employee) => (
                     <SelectItem key={employee.id} value={employee.name}>
                       {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Cliente e Campanha (opcionais) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Cliente (opcional)</Label>
+              <Select
+                value={formData.related_client_id}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    related_client_id: value,
+                    // Limpar campanha quando cliente mudar
+                    related_campaign_id: ''
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum cliente</SelectItem>
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Campanha (opcional)</Label>
+              <Select
+                value={formData.related_campaign_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, related_campaign_id: value }))}
+                disabled={!formData.related_client_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.related_client_id ? "Selecione uma campanha" : "Selecione um cliente primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhuma campanha</SelectItem>
+                  {campaigns
+                    ?.filter(campaign => campaign.client_id === formData.related_client_id)
+                    ?.map((campaign) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

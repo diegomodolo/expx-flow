@@ -20,6 +20,8 @@ export interface Task {
   start_date?: string;
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard';
+  related_campaign_id?: string;
+  related_client_id?: string;
   team?: {
     name: string;
     color: string;
@@ -27,6 +29,15 @@ export interface Task {
   user_profile?: {
     avatar_url: string | null;
     full_name: string | null;
+  } | null;
+  campaign?: {
+    name: string;
+    client?: {
+      name: string;
+    };
+  } | null;
+  client?: {
+    name: string;
   } | null;
 }
 
@@ -52,7 +63,12 @@ export function useTasks() {
         .from("tasks")
         .select(`
           *,
-          team:teams(name, color)
+          team:teams(name, color),
+          campaign:campaigns(
+            name,
+            client:clients(name)
+          ),
+          client:clients(name)
         `)
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });

@@ -20,11 +20,15 @@ interface Task {
   due_date?: string;
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard';
+  related_campaign_id?: string;
+  related_client_id?: string;
   team?: { name: string; color: string };
   user_profile?: {
     avatar_url: string | null;
     full_name: string | null;
   } | null;
+  campaign?: any;
+  client?: any;
 }
 
 interface TaskListProps {
@@ -193,6 +197,18 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
                     }}
                   >
                     {task.team.name}
+                  </Badge>
+                )}
+
+                {task.client?.name && (
+                  <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                    👤 {task.client.name}
+                  </Badge>
+                )}
+                
+                {task.campaign?.name && (
+                  <Badge variant="outline" className="text-xs font-medium bg-green-50 text-green-700 border-green-200">
+                    📊 {task.campaign.name}
                   </Badge>
                 )}
               </div>
