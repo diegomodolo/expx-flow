@@ -405,11 +405,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
             <div>
               <Label>Cliente (opcional)</Label>
               <Select
-                value={formData.related_client_id}
+                value={formData.related_client_id || "none"}
                 onValueChange={(value) => {
                   setFormData(prev => ({ 
                     ...prev, 
-                    related_client_id: value,
+                    related_client_id: value === "none" ? '' : value,
                     // Limpar campanha quando cliente mudar
                     related_campaign_id: ''
                   }));
@@ -419,7 +419,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum cliente</SelectItem>
+                  <SelectItem value="none">Nenhum cliente</SelectItem>
                   {clients?.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
@@ -432,15 +432,15 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
             <div>
               <Label>Campanha (opcional)</Label>
               <Select
-                value={formData.related_campaign_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, related_campaign_id: value }))}
+                value={formData.related_campaign_id || "none"}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, related_campaign_id: value === "none" ? '' : value }))}
                 disabled={!formData.related_client_id}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={formData.related_client_id ? "Selecione uma campanha" : "Selecione um cliente primeiro"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma campanha</SelectItem>
+                  <SelectItem value="none">Nenhuma campanha</SelectItem>
                   {campaigns
                     ?.filter(campaign => campaign.client_id === formData.related_client_id)
                     ?.map((campaign) => (
