@@ -83,24 +83,6 @@ export function DashboardHeader() {
         <div className="flex items-center space-x-4">
           <CompanySelector />
           
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              type="text" 
-              placeholder="Buscar campanhas, clientes..." 
-              className="w-80 h-10 pl-10 pr-4 bg-muted border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          
-          <div className="relative">
-            <Button size="icon" variant="ghost" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                3
-              </span>
-            </Button>
-          </div>
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
                <Button variant="ghost" className="flex items-center space-x-3 h-auto p-2">
