@@ -423,7 +423,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
               <Star className="w-5 h-5 text-yellow-600" />
               <span>Indicadores de Qualidade</span>
             </h3>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-3 gap-4 w-full">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600">CPC (Custo por Clique)</CardTitle>
