@@ -120,7 +120,7 @@ const NewDashboard = () => {
             <BarChart3 className="w-5 h-5" />
             Resumo Executivo
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Investimento Total */}
             <Card>
               <CardContent className="p-6">
@@ -212,41 +212,12 @@ const NewDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* ROI Global */}
+            {/* Status das Campanhas */}
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">ROI Global</p>
-                    <p className="text-2xl font-bold text-gray-900">{metrics?.roi.toFixed(1) || 0}%</p>
-                    <div className="flex items-center mt-1">
-                      {metrics && calculateChange(metrics.roi, metrics.previousPeriodROI) >= 0 ? (
-                        <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                      ) : (
-                        <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                      )}
-                      <span className={`text-sm ${
-                        metrics && calculateChange(metrics.roi, metrics.previousPeriodROI) >= 0 
-                          ? 'text-green-500' 
-                          : 'text-red-500'
-                      }`}>
-                        {metrics ? Math.abs(calculateChange(metrics.roi, metrics.previousPeriodROI)).toFixed(1) : 0}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <ArrowUpRight className="w-6 h-6 text-yellow-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Clientes Ativos vs Pausados */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Status dos Clientes</p>
+                    <p className="text-sm font-medium text-gray-600">Status das Campanhas</p>
                     <div className="flex items-center space-x-4 mt-2">
                       <div className="text-center">
                         <p className="text-lg font-bold text-green-600">{metrics?.activeClients || 0}</p>
