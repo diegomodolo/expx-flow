@@ -265,8 +265,11 @@ export const useDashboardData = () => {
   const generateAlerts = (clients: ClientPerformance[], campaigns: CampaignRanking[]): Alert[] => {
     const alerts: Alert[] = [];
 
+    // Filtrar apenas campanhas ativas
+    const activeCampaigns = campaigns.filter(campaign => campaign.status === 'active');
+
     // Alertas de problemas (vermelhos) - Campanhas com problemas
-    campaigns.forEach(campaign => {
+    activeCampaigns.forEach(campaign => {
       if (campaign.cpa > 50) {
         alerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
@@ -294,23 +297,30 @@ export const useDashboardData = () => {
       }
     });
 
-    // Alertas de problemas por cliente (sem campanha específica)
+    // Alertas de problemas por cliente (baseado apenas em campanhas ativas)
     clients.forEach(client => {
-      if (client.averageCPA > 50) {
-        alerts.push({
-          id: `high-cpa-client-${client.id}`,
-          type: 'danger',
-          title: 'CPA Alto - Cliente',
-          description: `Cliente ${client.name} com CPA médio de R$ ${client.averageCPA.toFixed(2)}`,
-          metric: 'CPA',
-          value: `R$ ${client.averageCPA.toFixed(2)}`,
-          client: client.name,
-        });
+      // Calcular CPA médio apenas de campanhas ativas do cliente
+      const clientActiveCampaigns = activeCampaigns.filter(campaign => campaign.client_name === client.name);
+      
+      if (clientActiveCampaigns.length > 0) {
+        const activeCPA = clientActiveCampaigns.reduce((sum, campaign) => sum + campaign.cpa, 0) / clientActiveCampaigns.length;
+        
+        if (activeCPA > 50) {
+          alerts.push({
+            id: `high-cpa-client-${client.id}`,
+            type: 'danger',
+            title: 'CPA Alto - Cliente',
+            description: `Cliente ${client.name} com CPA médio de R$ ${activeCPA.toFixed(2)} em campanhas ativas`,
+            metric: 'CPA',
+            value: `R$ ${activeCPA.toFixed(2)}`,
+            client: client.name,
+          });
+        }
       }
     });
 
-    // Alertas de oportunidades (verdes)
-    campaigns.forEach(campaign => {
+    // Alertas de oportunidades (verdes) - Apenas campanhas ativas
+    activeCampaigns.forEach(campaign => {
       if (campaign.cpa < 20 && campaign.conversions > 5) {
         alerts.push({
           id: `low-cpa-${campaign.id}`,
