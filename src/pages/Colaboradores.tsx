@@ -111,7 +111,7 @@ const Colaboradores = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full space-y-6">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -375,8 +375,8 @@ const Colaboradores = () => {
               </div>
             ) : (
               // List View
-              <Card className="shadow-sm border border-gray-200">
-                <CardContent className="p-6">
+              <Card className="flex-1 flex flex-col shadow-sm border border-gray-200">
+                <CardContent className="flex-1 p-6 overflow-auto">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>

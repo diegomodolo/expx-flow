@@ -72,7 +72,7 @@ const Campanhas = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full space-y-6">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -167,8 +167,8 @@ const Campanhas = () => {
             </Card>
 
             {/* Campaigns Table */}
-            <Card>
-              <div className="overflow-x-auto">
+            <Card className="flex-1 flex flex-col">
+              <div className="flex-1 overflow-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>

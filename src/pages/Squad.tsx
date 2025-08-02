@@ -105,7 +105,7 @@ const Squad = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="flex flex-col h-full space-y-6">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
