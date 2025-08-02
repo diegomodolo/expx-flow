@@ -11,6 +11,10 @@ import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { EditCampaignDialog } from "@/components/campaigns/EditCampaignDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { 
   Plus, 
   Search, 
@@ -41,6 +45,7 @@ const Campanhas = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [openClientFilter, setOpenClientFilter] = useState(false);
   const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
   const { clients } = useClients();
   const { toast } = useToast();
@@ -174,19 +179,65 @@ const Campanhas = () => {
                     
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                      <Select value={clientFilter} onValueChange={setClientFilter}>
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Todos os clientes" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos os clientes</SelectItem>
-                          {clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id}>
-                              {client.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openClientFilter} onOpenChange={setOpenClientFilter}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openClientFilter}
+                            className="w-[200px] justify-between"
+                          >
+                            {clientFilter === "all" 
+                              ? "Todos os clientes"
+                              : clients.find((client) => client.id === clientFilter)?.name || "Cliente não encontrado"
+                            }
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0 bg-white z-50">
+                          <Command>
+                            <CommandInput placeholder="Buscar cliente..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="all"
+                                  onSelect={() => {
+                                    setClientFilter("all");
+                                    setOpenClientFilter(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      clientFilter === "all" ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  Todos os clientes
+                                </CommandItem>
+                                {clients.map((client) => (
+                                  <CommandItem
+                                    key={client.id}
+                                    value={client.name}
+                                    onSelect={() => {
+                                      setClientFilter(client.id);
+                                      setOpenClientFilter(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        clientFilter === client.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {client.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                   
