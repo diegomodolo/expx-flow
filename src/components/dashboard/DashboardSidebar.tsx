@@ -61,13 +61,13 @@ export function DashboardSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
+                     <NavLink 
                       to={item.url} 
                       end 
                       className={({ isActive }) =>
-                        `flex items-center ${isExpanded ? 'gap-3 px-4' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 relative ${
+                        `flex items-center ${isExpanded ? 'gap-3 px-4' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
                           isActive
-                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500"
+                            ? "bg-blue-50 text-blue-600"
                             : "text-gray-700 hover:bg-gray-50"
                         }`
                       }
@@ -76,15 +76,13 @@ export function DashboardSidebar() {
                       <item.icon className={`w-5 h-5 transition-colors duration-200 ${
                         isActive(item.url) ? "text-blue-600" : "text-gray-500"
                       }`} />
-                      <span className={`font-medium transition-all duration-300 ${
-                        isExpanded 
-                          ? 'opacity-100 translate-x-0' 
-                          : 'opacity-0 -translate-x-2 absolute pointer-events-none'
-                      } ${
-                        isActive(item.url) ? "text-blue-600" : "text-gray-700"
-                      }`}>
-                        {item.title}
-                      </span>
+                      {isExpanded && (
+                        <span className={`font-medium transition-all duration-300 ${
+                          isActive(item.url) ? "text-blue-600" : "text-gray-700"
+                        }`}>
+                          {item.title}
+                        </span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

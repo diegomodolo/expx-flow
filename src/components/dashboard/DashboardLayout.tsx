@@ -12,7 +12,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <DashboardSidebar />
-        <div className="flex-1 ml-16"> {/* Sempre deixa espaço fixo para os ícones */}
+        <div className="flex-1 w-full">
           <DashboardHeader />
           <main className="pt-24 p-6">
             {children}
