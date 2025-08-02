@@ -697,18 +697,18 @@ const ClienteDetalhes = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 lg:space-y-6 px-4 sm:px-6 lg:px-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <Link to="/clientes">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">Detalhes do Cliente</h1>
+            <h1 className="text-xl lg:text-2xl font-bold">Detalhes do Cliente</h1>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <SyncStatusIndicator 
               lastSyncAt={client.last_sync_at} 
               lastSyncPeriod={client.last_sync_period}
@@ -716,45 +716,46 @@ const ClienteDetalhes = () => {
             <Button 
               onClick={() => setSyncDialogOpen(true)}
               disabled={syncLoading}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 w-full sm:w-auto"
+              size="sm"
             >
               {syncLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <TrendingUp className="w-4 h-4" />
               )}
-              <span>{syncLoading ? 'Sincronizando...' : 'Sincronizar Dados'}</span>
+              <span className="text-sm">{syncLoading ? 'Sincronizando...' : 'Sincronizar Dados'}</span>
             </Button>
           </div>
         </div>
 
         {/* Client Overview Card */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-6">
-                <Avatar className="w-20 h-20">
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 lg:space-x-6 w-full lg:w-auto">
+                <Avatar className="w-16 h-16 lg:w-20 lg:h-20 mx-auto sm:mx-0">
                   <AvatarImage src={client.avatar} />
                   <AvatarFallback className="text-lg">
                     {client.name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{client.name}</h2>
-                  <p className="text-lg text-gray-600">{client.company}</p>
-                  <div className="flex items-center space-x-4 mt-2">
+                <div className="text-center sm:text-left">
+                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900">{client.name}</h2>
+                  <p className="text-base lg:text-lg text-gray-600">{client.company}</p>
+                  <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-2">
                     <Badge className={statusConfig[client.status]?.color}>
                       {statusConfig[client.status]?.label}
                     </Badge>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Mail className="w-4 h-4" />
-                      <span>{client.email}</span>
+                      <span className="truncate max-w-[200px]">{client.email}</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Button>
+              <div className="flex items-center space-x-2 w-full lg:w-auto">
+                <Button size="sm" className="flex-1 lg:flex-none">
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </Button>
@@ -779,7 +780,7 @@ const ClienteDetalhes = () => {
         )}
 
         {/* Performance Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
           {/* Funnel Completeness Score Card */}
           <Card>
             <CardContent className="p-6">
@@ -929,7 +930,7 @@ const ClienteDetalhes = () => {
         </div>
 
         {/* Performance Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
           {/* CPL by Campaign Chart */}
           <Card>
             <CardHeader>
@@ -1075,8 +1076,8 @@ const ClienteDetalhes = () => {
         {/* Tabs Section */}
         <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="border-b border-gray-200">
-              <TabsList className="px-6">
+            <div className="border-b border-gray-200 overflow-x-auto">
+              <TabsList className="px-4 sm:px-6 min-w-max flex-nowrap">
                 <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
                 <TabsTrigger value="adsets" className="relative">
                   Conjuntos de Anúncios
@@ -1120,7 +1121,7 @@ const ClienteDetalhes = () => {
               </TabsList>
             </div>
 
-            <TabsContent value="campaigns" className="p-6">
+            <TabsContent value="campaigns" className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Campanhas do Cliente</h4>
                 <div className="flex items-center space-x-2">
@@ -1155,8 +1156,8 @@ const ClienteDetalhes = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                  <table className="w-full">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
+                  <table className="w-full min-w-full">
                     <thead className="bg-gray-50">
                       <tr>
                         <th 
@@ -1294,7 +1295,7 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="adsets" className="p-6">
+            <TabsContent value="adsets" className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <h4 className="text-lg font-semibold">Conjuntos de Anúncios</h4>
@@ -1346,8 +1347,8 @@ const ClienteDetalhes = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
+                <table className="w-full min-w-full">
                    <thead className="bg-gray-50">
                      <tr>
                        <th 
@@ -1522,7 +1523,7 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="ads" className="p-6">
+            <TabsContent value="ads" className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <h4 className="text-lg font-semibold">Criativos</h4>
@@ -1574,8 +1575,8 @@ const ClienteDetalhes = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6 lg:mx-0">
+                <table className="w-full min-w-full">
                    <thead className="bg-gray-50">
                      <tr>
                        <th 
@@ -1783,11 +1784,11 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="funnel" className="p-6">
+            <TabsContent value="funnel" className="p-4 sm:p-6">
               <FunnelAnalysis campaigns={client?.campaigns || []} />
             </TabsContent>
 
-            <TabsContent value="alerts" className="p-6">
+            <TabsContent value="alerts" className="p-4 sm:p-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h4 className="text-lg font-semibold">Alertas & Sugestões do Cliente</h4>
@@ -1949,7 +1950,7 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="analysis" className="p-6">
+            <TabsContent value="analysis" className="p-4 sm:p-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h4 className="text-lg font-semibold">Análise Completa das Campanhas</h4>
@@ -1992,7 +1993,7 @@ const ClienteDetalhes = () => {
                       Receba insights estratégicos, identificação de oportunidades e recomendações baseadas nas melhores práticas do mercado.
                     </p>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
                           <BarChart3 className="w-4 h-4 text-blue-600" />
@@ -2023,7 +2024,7 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="competitive" className="p-6">
+            <TabsContent value="competitive" className="p-4 sm:p-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -2175,8 +2176,8 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="contact" className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TabsContent value="contact" className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 <div>
                   <h4 className="text-lg font-semibold mb-4">Informações de Contato</h4>
                   <div className="space-y-4">
@@ -2231,7 +2232,7 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="notes" className="p-6">
+            <TabsContent value="notes" className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Anotações</h4>
                 <Button>
@@ -2258,7 +2259,7 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="history" className="p-6">
+            <TabsContent value="history" className="p-4 sm:p-6">
               <h4 className="text-lg font-semibold mb-4">Histórico de Interações</h4>
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
