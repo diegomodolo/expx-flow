@@ -409,7 +409,9 @@ export default function NewDashboard() {
                             <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
                               R$ {alert.value || '0,00'}
                             </span>
-                            <span className="text-xs text-gray-500">Crítico</span>
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                              {alert.client || 'Cliente não informado'}
+                            </span>
                           </div>
                           <p className="text-sm text-gray-700 mb-2">
                             Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
@@ -457,7 +459,9 @@ export default function NewDashboard() {
                             <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
                               +{alert.value || '0'}%
                             </span>
-                            <span className="text-xs text-gray-500">Oportunidade</span>
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                              {alert.client || 'Cliente não informado'}
+                            </span>
                           </div>
                           <p className="text-sm text-gray-700 mb-2">
                             Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
