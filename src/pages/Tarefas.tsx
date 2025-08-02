@@ -471,23 +471,25 @@ export default function Tarefas() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="text-6xl mb-4">🎯</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Nenhum alerta encontrado
-                    </h3>
-                    <p className="text-gray-500 mb-6">
-                      Clique no botão abaixo para buscar novas sugestões de problemas e oportunidades nas suas campanhas.
-                    </p>
-                    <Button
-                      onClick={handleAnalyzeCampaigns}
-                      className="flex items-center gap-2"
-                      size="lg"
-                      disabled={isAnalyzing}
-                    >
-                      <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                      {isAnalyzing ? 'Analisando...' : 'Buscar Novas Sugestões'}
-                    </Button>
+                  <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center max-w-md mx-auto">
+                      <div className="text-6xl mb-4">🎯</div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Nenhum alerta encontrado
+                      </h3>
+                      <p className="text-gray-500 mb-6">
+                        Clique no botão abaixo para buscar novas sugestões de problemas e oportunidades nas suas campanhas.
+                      </p>
+                      <Button
+                        onClick={handleAnalyzeCampaigns}
+                        className="flex items-center gap-2 mx-auto"
+                        size="lg"
+                        disabled={isAnalyzing}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                        {isAnalyzing ? 'Analisando...' : 'Buscar Novas Sugestões'}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </DialogContent>
