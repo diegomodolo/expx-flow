@@ -62,9 +62,17 @@ export function usePlannerTasks(plannedDate: Date) {
 
   // Função para agrupar tarefas por slot baseado no horário
   const getTasksBySlot = (timeSlot: PlannerTimeSlot) => {
+    const dateStr = plannedDate.toISOString().split('T')[0];
+    
     const filteredTasks = tasks.filter(task => {
       // Se a tarefa tem start_date, usar o horário dela
       if (task.start_date) {
+        // Verificar se é do mesmo dia primeiro
+        const taskDateStr = new Date(task.start_date).toISOString().split('T')[0];
+        if (taskDateStr !== dateStr) {
+          return false;
+        }
+        
         // Converter para horário local e extrair apenas o horário
         const taskDate = new Date(task.start_date);
         const taskTime = `${taskDate.getHours().toString().padStart(2, '0')}:${taskDate.getMinutes().toString().padStart(2, '0')}:${taskDate.getSeconds().toString().padStart(2, '0')}`;
@@ -73,8 +81,12 @@ export function usePlannerTasks(plannedDate: Date) {
         const slotStartTime = timeSlot.start_time.length === 5 ? `${timeSlot.start_time}:00` : timeSlot.start_time;
         const slotEndTime = timeSlot.end_time.length === 5 ? `${timeSlot.end_time}:00` : timeSlot.end_time;
         
+        console.log(`🔍 Checking task "${task.title}" - taskTime: ${taskTime}, slot: ${slotStartTime} to ${slotEndTime}`);
+        
         // Comparar strings de tempo diretamente
         const isInSlot = taskTime >= slotStartTime && taskTime <= slotEndTime;
+        
+        console.log(`📍 Task "${task.title}" ${isInSlot ? 'MATCHES' : 'does not match'} slot "${timeSlot.name}"`);
         
         return isInSlot;
       }

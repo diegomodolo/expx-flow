@@ -483,7 +483,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
             <PlannerTimeSlot
               key={slot.id}
               slot={slot}
-              tasks={getFilteredTasksBySlot(slot)}
+              tasks={getTasksBySlot(slot)}
               onAddTask={() => handleAddTask(slot.id)}
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}
