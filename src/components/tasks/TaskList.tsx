@@ -84,10 +84,10 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
               {/* Header com avatar e título */}
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10 flex-shrink-0">
-                  {task.responsible_name && (task.responsible_avatar || task.user_profile?.avatar_url) && (
+                  {task.responsible_name && task.responsible_avatar && (
                     <AvatarImage 
-                      src={task.responsible_avatar || task.user_profile?.avatar_url || ''} 
-                      alt={task.responsible_name || task.user_profile?.full_name || 'Responsável'}
+                      src={task.responsible_avatar} 
+                      alt={task.responsible_name}
                     />
                   )}
                   <AvatarFallback className="text-sm bg-primary/10 font-medium text-primary">
