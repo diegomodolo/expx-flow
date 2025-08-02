@@ -10,6 +10,7 @@ import { ptBR } from "date-fns/locale";
 
 interface Task {
   id: string;
+  user_id?: string;
   title: string;
   description: string;
   status: 'todo' | 'progress' | 'review' | 'done';

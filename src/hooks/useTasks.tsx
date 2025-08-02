@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface Task {
   id: string;
+  user_id?: string;
   team_id: string;
   title: string;
   description: string;
@@ -84,7 +85,7 @@ export function useTasks() {
 
   // Mutation para criar tarefa
   const createTaskMutation = useMutation({
-    mutationFn: async (taskData: Omit<Task, "id" | "team">) => {
+    mutationFn: async (taskData: Omit<Task, "id" | "team" | "user_profile">) => {
       if (!user || !activeCompany?.company_id) {
         throw new Error('User or company not found');
       }
@@ -93,7 +94,7 @@ export function useTasks() {
         .from("tasks")
         .insert([{
           ...taskData,
-          user_id: user.id,
+          user_id: taskData.user_id || user.id, // Usar o user_id do responsável, ou fallback para o usuário logado
           company_id: activeCompany.company_id,
         }])
         .select()
@@ -179,7 +180,7 @@ export function useTasks() {
   });
 
   // Helper functions
-  const createTask = (taskData: Omit<Task, "id" | "team">) => {
+  const createTask = (taskData: Omit<Task, "id" | "team" | "user_profile">) => {
     return createTaskMutation.mutateAsync(taskData);
   };
 

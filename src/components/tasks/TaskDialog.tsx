@@ -33,6 +33,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     team_id: '',
     responsible_name: '',
     responsible_avatar: '',
+    responsible_user_id: '',
     start_date: null as Date | null,
     start_time: '',
     due_date: null as Date | null,
@@ -62,6 +63,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         team_id: task.team_id || '',
         responsible_name: task.responsible_name || '',
         responsible_avatar: task.responsible_avatar || '',
+        responsible_user_id: task.user_id || '',
         start_date: startDate,
         start_time: startDate ? format(startDate, 'HH:mm') : '',
         due_date: dueDate,
@@ -88,6 +90,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         team_id: '',
         responsible_name: '',
         responsible_avatar: '',
+        responsible_user_id: '',
         start_date: null,
         start_time: '',
         due_date: null,
@@ -143,6 +146,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
       team_id: formData.team_id,
       responsible_name: formData.responsible_name,
       responsible_avatar: formData.responsible_avatar,
+      user_id: formData.responsible_user_id,
       progress: formData.progress,
       checklist: JSON.stringify(formData.checklist),
     };
@@ -365,7 +369,8 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
                   setFormData(prev => ({ 
                     ...prev, 
                     responsible_name: value,
-                    responsible_avatar: employee?.avatar || ''
+                    responsible_avatar: employee?.avatar || employee?.profile_avatar_url || '',
+                    responsible_user_id: employee?.user_id || ''
                   }));
                 }}
               >
