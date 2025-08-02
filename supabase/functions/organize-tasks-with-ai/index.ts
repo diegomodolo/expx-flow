@@ -13,9 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { tasks, timeSlots, startDate, daysToOrganize = 7 } = await req.json();
+    const { tasks, timeSlots, startDate, daysToOrganize = 7, scope, employees = [] } = await req.json();
     
     console.log(`🤖 Organizing ${tasks.length} tasks across ${timeSlots.length} slots for ${daysToOrganize} days`);
+    console.log(`📊 Scope: ${scope?.type || 'all'}, Employees: ${employees.length}, Include unassigned: ${scope?.includeUnassigned}`);
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -26,31 +27,63 @@ serve(async (req) => {
     const context = `
 SISTEMA DE ORGANIZAÇÃO INTELIGENTE DE TAREFAS
 
+CONFIGURAÇÃO DO ESCOPO:
+- Tipo: ${scope?.type === 'specific' ? 'Colaborador específico' : 'Todos os colaboradores'}
+- Período: ${scope?.includePeriod || daysToOrganize} dias
+- Incluir tarefas sem responsável: ${scope?.includeUnassigned ? 'Sim' : 'Não'}
+${scope?.employeeId ? `- Colaborador selecionado: ${employees.find(e => e.user_id === scope.employeeId)?.name || 'Não encontrado'}` : ''}
+
 TAREFAS PENDENTES (${tasks.length}):
 ${tasks.map(task => `
 • ${task.title}
   - Prioridade: ${task.priority}
   - Status: ${task.status}
+  - Responsável: ${task.responsible_name || 'Sem responsável'}
   - Descrição: ${task.description || 'Sem descrição'}
   - Prazo: ${task.deadline || 'Sem prazo'}
   - ID: ${task.id}
+`).join('\n')}
+
+COLABORADORES DISPONÍVEIS (${employees.length}):
+${employees.map(emp => `
+• ${emp.name}
+  - Função: ${emp.role}
+  - Status: ${emp.status}
+  - Skills: ${emp.skills || 'Não especificado'}
+  - ID: ${emp.user_id}
 `).join('\n')}
 
 SLOTS DISPONÍVEIS (${timeSlots.length}):
 ${timeSlots.map(slot => `
 • ${slot.name} (${slot.start_time} - ${slot.end_time})
   - Descrição: ${slot.description || 'Sem descrição'}
+  - Tipo sugerido: ${getSlotType(slot)}
   - ID: ${slot.id}
 `).join('\n')}
 
-INSTRUÇÕES:
-1. Organize as tarefas nos slots mais adequados baseado no tipo/objetivo
-2. Priorize tarefas EMERGENCIAIS e de ALTA prioridade
-3. Estime tempo necessário para cada tarefa (em minutos)
-4. Distribua as tarefas ao longo de ${daysToOrganize} dias úteis a partir de ${startDate}
-5. Não sobrecarregue nenhum slot - calcule a duração do slot e ajuste
-6. Se uma tarefa não se encaixar bem em nenhum slot, use o mais próximo
-7. Considere o tempo total disponível em cada slot
+INSTRUÇÕES INTELIGENTES:
+1. COMPATIBILIDADE SLOT-TAREFA:
+   - Slots de "Reunião" → tarefas de comunicação, alinhamento, brainstorming
+   - Slots de "Foco" → tarefas operacionais, desenvolvimento, análise
+   - Slots de "Revisão" → tarefas de validação, correção, otimização
+   - Slots de "Planejamento" → tarefas estratégicas, organização, preparação
+
+2. DISTRIBUIÇÃO DE COLABORADORES:
+   - Analise carga de trabalho atual de cada colaborador
+   - Redistribua tarefas sem responsável para quem tem menos sobrecarga
+   - Considere skills e adequação do colaborador para a tarefa
+   - Balance equitativamente entre a equipe
+
+3. PRIORIZAÇÃO INTELIGENTE:
+   - EMERGENCIAL: alocação imediata no próximo slot adequado
+   - ALTA: prioridade nos melhores horários disponíveis
+   - MÉDIA/BAIXA: preencher slots remanescentes
+
+4. OTIMIZAÇÕES:
+   - Distribua ao longo de ${scope?.includePeriod || daysToOrganize} dias úteis a partir de ${startDate}
+   - Evite sobrecarga de slots (máximo 80% da duração)
+   - Agrupe tarefas similares no mesmo período quando possível
+   - Deixe buffer entre tarefas complexas
 
 RESPONDA APENAS COM UM JSON VÁLIDO no formato:
 {
@@ -60,7 +93,9 @@ RESPONDA APENAS COM UM JSON VÁLIDO no formato:
       "slotId": "id_do_slot", 
       "date": "YYYY-MM-DD",
       "estimatedMinutes": 30,
-      "reason": "Motivo da alocação"
+      "reason": "Explicação detalhada da decisão de alocação",
+      "assignedTo": "user_id_responsavel",
+      "reassignmentReason": "Motivo da reatribuição (se aplicável)"
     }
   ],
   "statistics": {
@@ -69,8 +104,28 @@ RESPONDA APENAS COM UM JSON VÁLIDO no formato:
     "averageTaskTime": 0,
     "daysUsed": 0
   },
-  "warnings": ["Lista de avisos se houver sobrecarga ou incompatibilidades"]
+  "warnings": ["Lista de avisos se houver sobrecarga ou incompatibilidades"],
+  "reassignments": [
+    {
+      "taskId": "id",
+      "taskTitle": "nome",
+      "fromUser": "nome_anterior",
+      "toUser": "nome_novo", 
+      "reason": "motivo da mudança"
+    }
+  ],
+  "workloadDistribution": [
+    {
+      "employeeName": "nome",
+      "beforeTasks": 0,
+      "afterTasks": 0,
+      "totalMinutes": 0
+    }
+  ]
 }
+
+FUNÇÃO AUXILIAR PARA IDENTIFICAR TIPO DE SLOT:
+${getSlotTypeFunction()}
 `;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -157,3 +212,39 @@ RESPONDA APENAS COM UM JSON VÁLIDO no formato:
     );
   }
 });
+
+// Função auxiliar para identificar tipo de slot baseado no nome e descrição
+function getSlotType(slot: any): string {
+  const name = slot.name?.toLowerCase() || '';
+  const description = slot.description?.toLowerCase() || '';
+  const combined = `${name} ${description}`;
+
+  if (combined.includes('reunião') || combined.includes('meeting') || combined.includes('alinhamento')) {
+    return 'Reunião/Comunicação';
+  }
+  if (combined.includes('foco') || combined.includes('desenvolvimento') || combined.includes('operacional')) {
+    return 'Foco/Operacional';
+  }
+  if (combined.includes('revisão') || combined.includes('validação') || combined.includes('correção')) {
+    return 'Revisão/Controle';
+  }
+  if (combined.includes('planejamento') || combined.includes('estratégico') || combined.includes('organização')) {
+    return 'Planejamento/Estratégia';
+  }
+  return 'Geral';
+}
+
+function getSlotTypeFunction(): string {
+  return `
+function getSlotType(slot) {
+  const name = slot.name?.toLowerCase() || '';
+  const description = slot.description?.toLowerCase() || '';
+  const combined = name + ' ' + description;
+  
+  if (combined.includes('reunião') || combined.includes('meeting')) return 'Reunião';
+  if (combined.includes('foco') || combined.includes('desenvolvimento')) return 'Foco';
+  if (combined.includes('revisão') || combined.includes('validação')) return 'Revisão';
+  if (combined.includes('planejamento') || combined.includes('estratégico')) return 'Planejamento';
+  return 'Geral';
+}`;
+}

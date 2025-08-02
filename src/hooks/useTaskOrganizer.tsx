@@ -31,11 +31,20 @@ interface OrganizeTasksParams {
   timeSlots: any[];
   startDate: string;
   daysToOrganize?: number;
+  scope?: {
+    type: 'all' | 'specific';
+    employeeId?: string;
+    includePeriod: number;
+    includeUnassigned: boolean;
+  };
+  employees?: any[];
 }
 
 export const useTaskOrganizer = () => {
   const [organizationPlan, setOrganizationPlan] = useState<OrganizationPlan | null>(null);
   const [isOrganizing, setIsOrganizing] = useState(false);
+  const [organizingStep, setOrganizingStep] = useState(0);
+  const [organizingMessage, setOrganizingMessage] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { activeCompany } = useCompany();
@@ -45,6 +54,18 @@ export const useTaskOrganizer = () => {
     mutationFn: async (params: OrganizeTasksParams) => {
       console.log('🚀 Starting AI organization with params:', params);
       
+      // Simular progresso das etapas
+      setOrganizingStep(0);
+      setOrganizingMessage("Analisando tarefas e contexto...");
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setOrganizingStep(1);
+      setOrganizingMessage("Avaliando disponibilidade dos colaboradores...");
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setOrganizingStep(2);
+      setOrganizingMessage("Combinando tarefas com slots de tempo...");
+      
       const { data, error } = await supabase.functions.invoke('organize-tasks-with-ai', {
         body: params
       });
@@ -53,6 +74,10 @@ export const useTaskOrganizer = () => {
         console.error('Error calling organize function:', error);
         throw error;
       }
+
+      setOrganizingStep(3);
+      setOrganizingMessage("Otimizando distribuição final...");
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       return data as OrganizationPlan;
     },
@@ -177,6 +202,8 @@ export const useTaskOrganizer = () => {
     organizationPlan,
     isOrganizing: isOrganizing || organizeMutation.isPending,
     isApplying: applyOrganizationMutation.isPending,
+    organizingStep,
+    organizingMessage,
     organizeTasksWithAI,
     applyOrganization,
     cancelOrganization,

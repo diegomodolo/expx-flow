@@ -23,6 +23,9 @@ interface OrganizedTask {
   taskTitle: string;
   slotName: string;
   slotTime: string;
+  assignedTo?: string;
+  previousAssignee?: string;
+  reassignmentReason?: string;
 }
 
 interface OrganizationPlan {
@@ -34,6 +37,19 @@ interface OrganizationPlan {
     daysUsed: number;
   };
   warnings: string[];
+  reassignments?: {
+    taskId: string;
+    taskTitle: string;
+    fromUser: string;
+    toUser: string;
+    reason: string;
+  }[];
+  workloadDistribution?: {
+    employeeName: string;
+    beforeTasks: number;
+    afterTasks: number;
+    totalMinutes: number;
+  }[];
 }
 
 interface TaskOrganizerModalProps {

@@ -1,0 +1,517 @@
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, Plus, FileText, Settings, Zap } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import { usePlannerSlots } from "@/hooks/usePlannerSlots";
+import { usePlannerTasks } from "@/hooks/usePlannerTasks";
+import { PlannerTimeSlot } from "./PlannerTimeSlot";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { PlannerSettingsModal } from "./PlannerSettingsModal";
+import { TaskOrganizerModal } from "./TaskOrganizerModal";
+import { useTaskOrganizer } from "@/hooks/useTaskOrganizer";
+import { useTasks } from "@/hooks/useTasks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface PlannerTimelineProps {
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
+  filteredTasks?: any[]; // Tarefas já filtradas pela página
+}
+
+export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({ 
+  selectedDate, 
+  onDateChange,
+  filteredTasks
+ }) => {
+  const { timeSlots, loading: slotsLoading } = usePlannerSlots();
+  const { tasks: plannerTasks, getTasksBySlot, loading: plannerLoading } = usePlannerTasks(selectedDate);
+  const { createTask, updateTask, deleteTask } = useTasks();
+  
+  // Usar tarefas filtradas se fornecidas, senão usar as do hook
+  const tasks = filteredTasks || plannerTasks;
+
+  const queryClient = useQueryClient();
+  const { activeCompany } = useCompany();
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  const [editingTask, setEditingTask] = useState<any>(null);
+
+  // Hook para organização com IA
+  const {
+    organizationPlan,
+    isOrganizing,
+    isApplying,
+    organizeTasksWithAI,
+    applyOrganization,
+    cancelOrganization,
+  } = useTaskOrganizer();
+
+  // Função personalizada para obter tarefas por slot usando tarefas filtradas
+  const getFilteredTasksBySlot = (timeSlot: any) => {
+    const plannedDateStr = selectedDate.toISOString().split('T')[0];
+    
+    console.log(`🎯 Getting tasks for slot ${timeSlot.name} on date ${plannedDateStr}`);
+    console.log(`📊 Total available tasks:`, tasks.length);
+    
+    const filteredTasks = tasks.filter(task => {
+      console.log(`🔍 Checking task ${task.id}: ${task.title}`);
+      
+      // Verificar se a tarefa tem start_date para este dia
+      if (task.start_date) {
+        const taskDate = new Date(task.start_date);
+        const taskDateStr = taskDate.toISOString().split('T')[0];
+        
+        console.log(`📅 Task date: ${taskDateStr}, Planned date: ${plannedDateStr}`);
+        
+        if (taskDateStr !== plannedDateStr) {
+          console.log(`❌ Task date mismatch for task ${task.id}`);
+          return false;
+        }
+        
+        // Extrair hora da tarefa no fuso horário local
+        const taskTime = `${taskDate.getHours().toString().padStart(2, '0')}:${taskDate.getMinutes().toString().padStart(2, '0')}:${taskDate.getSeconds().toString().padStart(2, '0')}`;
+        
+        // Normalizar para formato HH:MM:SS se necessário
+        const slotStartTime = timeSlot.start_time.length === 5 ? `${timeSlot.start_time}:00` : timeSlot.start_time;
+        const slotEndTime = timeSlot.end_time.length === 5 ? `${timeSlot.end_time}:00` : timeSlot.end_time;
+        
+        // Comparar strings de tempo diretamente
+        const isInSlot = taskTime >= slotStartTime && taskTime <= slotEndTime;
+        console.log(`📍 Task ${task.id} time ${taskTime} ${isInSlot ? 'MATCHES' : 'does not match'} slot range ${slotStartTime} - ${slotEndTime}`);
+        
+        return isInSlot;
+      }
+      
+      console.log(`⚠️ Task ${task.id} has no start_date, skipping slot assignment`);
+      return false;
+    });
+    
+    console.log(`✅ Slot ${timeSlot.name} final tasks:`, filteredTasks.map(t => `${t.id}:${t.title}`));
+    
+    return filteredTasks.sort((a, b) => {
+      if (a.start_date && !b.start_date) return -1;
+      if (!a.start_date && b.start_date) return 1;
+      if (a.start_date && b.start_date) {
+        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      }
+      return 0;
+    });
+  };
+
+  // Função para lidar com o fim do drag and drop
+  const handleDragEnd = async (result: DropResult) => {
+    console.log('🎯 Drag End Result:', result);
+    
+    if (!result.destination) {
+      console.log('❌ No destination, aborting');
+      return;
+    }
+
+    const { source, destination, draggableId } = result;
+    
+    // Extrair o ID real da tarefa removendo o prefixo
+    const taskId = draggableId.replace('planner-task-', '');
+    console.log('📦 Task ID extracted:', taskId);
+    
+    // Se moveu para o mesmo slot, não faz nada
+    if (source.droppableId === destination.droppableId) {
+      console.log('⚠️ Same slot, no change needed');
+      return;
+    }
+
+    console.log('📦 Moving task', taskId, 'from slot', source.droppableId, 'to slot', destination.droppableId);
+    console.log('📊 Before update - Tasks:', tasks.length);
+
+    try {
+      // Encontrar o slot de destino
+      const targetSlot = timeSlots.find(slot => slot.id === destination.droppableId);
+      if (!targetSlot) {
+        console.error('❌ Target slot not found for ID:', destination.droppableId);
+        return;
+      }
+
+      console.log('🎯 Target slot found:', targetSlot.name, targetSlot.start_time, '-', targetSlot.end_time);
+
+      // Criar datas usando horário local do Brasil e converter para UTC
+      const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Criar datas no horário local (UTC-3 para o Brasil)
+      const startDateTime = new Date(`${dateStr}T${targetSlot.start_time}`);
+      const endDateTime = new Date(`${dateStr}T${targetSlot.end_time}`);
+      
+      // Converter para UTC mantendo o horário correto
+      const offsetMinutes = startDateTime.getTimezoneOffset();
+      const newStartDate = new Date(startDateTime.getTime() - (offsetMinutes * 60000));
+      const newDueDate = new Date(endDateTime.getTime() - (offsetMinutes * 60000));
+
+      const updates = { 
+        start_date: newStartDate.toISOString(),
+        due_date: newDueDate.toISOString(),
+        deadline: dateStr
+      };
+
+      console.log('🔄 Updates to apply:', updates);
+
+      // Atualizar a tarefa com os novos horários
+      console.log('📝 Calling updateTask with taskId:', taskId, 'and updates:', updates);
+      
+      try {
+        const result = await updateTask(taskId, updates);
+        console.log('✅ Task updated in database, result:', result);
+      } catch (updateError) {
+        console.error('❌ Error in updateTask:', updateError);
+        console.error('Error details:', {
+          message: updateError.message,
+          stack: updateError.stack,
+          taskId,
+          updates
+        });
+        throw updateError; // Re-throw para ser capturado pelo catch externo
+      }
+      
+      // Aguardar um momento para garantir que a atualização foi processada
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Invalidar cache para forçar re-renderização imediata
+      console.log('🔄 Invalidating queries...');
+      await queryClient.invalidateQueries({ 
+        queryKey: ['planner-tasks', activeCompany?.company_id, selectedDate.toISOString().split('T')[0]] 
+      });
+      await queryClient.invalidateQueries({ queryKey: ['tasks', activeCompany?.company_id] });
+      
+      console.log('✅ Queries invalidated, should re-render now');
+    } catch (error) {
+      console.error('❌ Erro ao mover tarefa:', error);
+    }
+  };
+
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      if (editingTask) {
+        await updateTask(editingTask.id, taskData);
+      } else {
+        // Se tem slot selecionado, configurar horário baseado no slot
+        if (selectedSlotId) {
+          const slot = timeSlots.find(s => s.id === selectedSlotId);
+          if (slot && !taskData.start_date) {
+            const [hours, minutes] = slot.start_time.split(':');
+            const startDate = new Date(selectedDate);
+            startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            taskData.start_date = startDate.toISOString();
+          }
+        }
+        await createTask(taskData);
+      }
+      setTaskDialogOpen(false);
+      setEditingTask(null);
+      setSelectedSlotId("");
+    } catch (error) {
+      console.error("Error saving task:", error);
+    }
+  };
+
+  const handleAddTask = (slotId: string) => {
+    const slot = timeSlots.find(s => s.id === slotId);
+    if (slot) {
+      // Criar tarefa pré-preenchida com dados do slot
+      const [startHours, startMinutes] = slot.start_time.split(':').map(Number);
+      const [endHours, endMinutes] = slot.end_time.split(':').map(Number);
+      
+      // Data de início: data selecionada + hora de início do slot
+      const startDate = new Date(selectedDate);
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      
+      // Prazo: data selecionada + hora final do slot
+      const dueDate = new Date(selectedDate);
+      dueDate.setHours(endHours, endMinutes, 0, 0);
+      
+      // Criar tarefa pré-preenchida
+      const prefilledTask = {
+        title: "",
+        description: "",
+        start_date: startDate.toISOString(),
+        due_date: dueDate.toISOString(),
+        deadline: selectedDate.toISOString().split('T')[0],
+        hasSpecificTime: true,
+        start_time: slot.start_time,
+        priority: 'medium' as const,
+        status: 'todo' as const,
+        progress: 0,
+        origin: 'manual' as const
+      };
+      
+      setEditingTask(prefilledTask);
+    }
+    
+    setSelectedSlotId(slotId);
+    setTaskDialogOpen(true);
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task);
+    setTaskDialogOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
+  };
+
+  const exportDaySummary = () => {
+    try {
+      // Gerar conteúdo do resumo
+      const dateStr = format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      let summary = `RESUMO DO DIA - ${dateStr.toUpperCase()}\n`;
+      summary += `${'='.repeat(50)}\n\n`;
+
+      // Estatísticas gerais
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.status === 'done').length;
+      const highPriorityTasks = tasks.filter(t => t.priority === 'high').length;
+      
+      summary += `ESTATÍSTICAS GERAIS\n`;
+      summary += `${'─'.repeat(20)}\n`;
+      summary += `• Total de tarefas: ${totalTasks}\n`;
+      summary += `• Tarefas concluídas: ${completedTasks}\n`;
+      summary += `• Tarefas de alta prioridade: ${highPriorityTasks}\n`;
+      summary += `• Taxa de conclusão: ${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%\n\n`;
+
+      // Resumo por slot
+      summary += `CRONOGRAMA POR HORÁRIO\n`;
+      summary += `${'─'.repeat(25)}\n`;
+      
+      timeSlots.forEach(slot => {
+        const slotTasks = getTasksBySlot(slot);
+        summary += `\n📅 ${slot.name} (${slot.start_time} - ${slot.end_time})\n`;
+        
+        if (slotTasks.length === 0) {
+          summary += `   Nenhuma tarefa agendada\n`;
+        } else {
+          slotTasks.forEach(task => {
+            const statusIcon = task.status === 'done' ? '✅' : 
+                             task.status === 'progress' ? '🔄' : 
+                             task.status === 'review' ? '👁️' : '⏳';
+            const priorityIcon = task.priority === 'high' ? '🔴' : 
+                               task.priority === 'medium' ? '🟡' : '🟢';
+            
+            summary += `   ${statusIcon} ${priorityIcon} ${task.title}`;
+            if (task.responsible_name) {
+              summary += ` (${task.responsible_name})`;
+            }
+            if (task.start_date) {
+              summary += ` - ${format(new Date(task.start_date), 'HH:mm')}`;
+            }
+            summary += `\n`;
+            
+            if (task.description) {
+              summary += `      📝 ${task.description}\n`;
+            }
+          });
+        }
+      });
+
+      // Tarefas sem horário específico
+      const tasksWithoutTime = tasks.filter(task => 
+        !task.start_date && task.deadline && 
+        new Date(task.deadline).toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0]
+      );
+      
+      if (tasksWithoutTime.length > 0) {
+        summary += `\n📋 TAREFAS SEM HORÁRIO ESPECÍFICO\n`;
+        summary += `${'─'.repeat(35)}\n`;
+        tasksWithoutTime.forEach(task => {
+          const statusIcon = task.status === 'done' ? '✅' : 
+                           task.status === 'progress' ? '🔄' : 
+                           task.status === 'review' ? '👁️' : '⏳';
+          const priorityIcon = task.priority === 'high' ? '🔴' : 
+                             task.priority === 'medium' ? '🟡' : '🟢';
+          
+          summary += `${statusIcon} ${priorityIcon} ${task.title}`;
+          if (task.responsible_name) {
+            summary += ` (${task.responsible_name})`;
+          }
+          summary += `\n`;
+        });
+      }
+
+      summary += `\n${'='.repeat(50)}\n`;
+      summary += `Relatório gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}\n`;
+
+      // Criar e baixar arquivo
+      const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumo-planner-${selectedDate.toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log("Resumo exportado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar resumo:", error);
+    }
+  };
+
+  const handleOrganizeWithAI = async () => {
+    // Buscar todas as tarefas pendentes (não concluídas)
+    const { data: allTasks, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("company_id", activeCompany?.company_id)
+      .neq("status", "done")
+      .is("start_date", null); // Apenas tarefas sem horário definido
+
+    if (error) {
+      console.error("Error fetching tasks for AI organization:", error);
+      return;
+    }
+
+    console.log("🚀 Starting AI organization with", allTasks?.length || 0, "pending tasks");
+
+    await organizeTasksWithAI({
+      tasks: allTasks || [],
+      timeSlots: timeSlots,
+      startDate: selectedDate.toISOString().split('T')[0],
+      daysToOrganize: 7
+    });
+  };
+
+  if (slotsLoading || plannerLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-muted-foreground">Carregando planner...</div>
+      </div>
+    );
+  }
+
+  if (timeSlots.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <Clock className="h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">Nenhum slot configurado</h3>
+          <p className="text-muted-foreground text-center mb-4">
+            Configure slots de tempo para começar a usar o planner.
+          </p>
+          <Button onClick={() => setSettingsModalOpen(true)}>
+            <Settings className="h-4 w-4 mr-2" />
+            Configurar Slots
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">
+              Planner - {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            </h2>
+          </div>
+          
+          <input
+            type="date"
+            value={selectedDate.toISOString().split('T')[0]}
+            onChange={(e) => onDateChange(new Date(e.target.value))}
+            className="px-3 py-1 border rounded-md text-sm"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleOrganizeWithAI} 
+            variant="default"
+            disabled={isOrganizing}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {isOrganizing ? (
+              <>
+                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                Organizando...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Organizar com IA
+              </>
+            )}
+          </Button>
+          
+          <Button onClick={() => setSettingsModalOpen(true)} variant="outline">
+            <Settings className="h-4 w-4 mr-2" />
+            Configurar Slots
+          </Button>
+          
+          <Button onClick={exportDaySummary} variant="outline">
+            <FileText className="h-4 w-4 mr-2" />
+            Exportar Resumo
+          </Button>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="space-y-4">
+          {timeSlots.map((slot) => (
+            <PlannerTimeSlot
+              key={slot.id}
+              slot={slot}
+              tasks={filteredTasks ? getFilteredTasksBySlot(slot) : getTasksBySlot(slot)}
+              onAddTask={() => handleAddTask(slot.id)}
+              onEditTask={handleEditTask}
+              onDeleteTask={handleDeleteTask}
+            />
+          ))}
+        </div>
+      </DragDropContext>
+
+      {/* Task Dialog */}
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={(open) => {
+          setTaskDialogOpen(open);
+          if (!open) {
+            setEditingTask(null);
+            setSelectedSlotId("");
+          }
+        }}
+        task={editingTask}
+        onSave={handleCreateTask}
+      />
+
+      {/* Settings Modal */}
+      <PlannerSettingsModal
+        open={settingsModalOpen}
+        onOpenChange={setSettingsModalOpen}
+      />
+
+      {/* Task Organizer Modal */}
+      {organizationPlan && (
+        <TaskOrganizerModal
+          open={!!organizationPlan}
+          onOpenChange={(open) => !open && cancelOrganization()}
+          organizationPlan={organizationPlan}
+          onApply={applyOrganization}
+          onCancel={cancelOrganization}
+          isApplying={isApplying}
+        />
+      )}
+    </div>
+  );
+};
