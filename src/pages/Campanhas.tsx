@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
+import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { EditCampaignDialog } from "@/components/campaigns/EditCampaignDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Plus, 
   Search, 
@@ -34,11 +36,13 @@ const statusConfig = {
 
 const Campanhas = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
+  const [clientFilter, setClientFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
+  const { clients } = useClients();
   const { toast } = useToast();
   
   // Usar valor fixo maior para aproveitar melhor a tela
@@ -46,10 +50,11 @@ const Campanhas = () => {
   
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
+    const matchesClient = clientFilter === "all" || campaign.client_id === clientFilter;
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.platforms.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesClient && matchesSearch;
   });
 
   const totalCampaigns = filteredCampaigns.length;
@@ -60,7 +65,7 @@ const Campanhas = () => {
   // Reset da página quando os filtros mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, clientFilter]);
 
   const handleToggleCampaign = async (campaignId: string, isActive: boolean) => {
     await toggleCampaign(campaignId, isActive);
@@ -165,6 +170,23 @@ const Campanhas = () => {
                           <span>Finalizadas</span>
                         </Button>
                       </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-700">Cliente:</span>
+                      <Select value={clientFilter} onValueChange={setClientFilter}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Todos os clientes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os clientes</SelectItem>
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   
