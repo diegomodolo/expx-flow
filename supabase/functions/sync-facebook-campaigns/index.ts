@@ -250,7 +250,7 @@ serve(async (req) => {
         dateParam = '.date_preset(last_90d)';
         break;
       case 'lifetime':
-        dateParam = '.date_preset(lifetime)';
+        dateParam = '.date_preset(maximum)'; // Using 'maximum' instead of 'lifetime' as per Facebook API v10.0+
         break;
       default:
         dateParam = '.date_preset(last_30d)'; // Default to 30 days
