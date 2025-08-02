@@ -15,7 +15,7 @@ import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
-import { useDynamicPagination } from "@/hooks/useDynamicPagination";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -63,14 +63,8 @@ const Clientes = () => {
   const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
   const { toast } = useToast();
   
-  // Hook para paginação dinâmica baseada na altura da tela
-  const { itemsPerPage, containerRef } = useDynamicPagination({
-    itemHeight: 65, // Altura real de cada linha da tabela (mais precisa)
-    headerHeight: 60, // Altura apenas do cabeçalho da tabela
-    footerHeight: 60, // Altura da paginação
-    minItemsPerPage: 10, // Aumentar mínimo para aproveitar melhor a tela
-    maxItemsPerPage: 100
-  });
+  // Usar valor fixo maior para aproveitar melhor a tela
+  const itemsPerPage = 15;
 
   // Memoized handlers to prevent re-renders
   const handleAddClient = () => {
@@ -124,10 +118,10 @@ const Clientes = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedClients = filteredClients.slice(startIndex, startIndex + itemsPerPage);
   
-  // Reset da página quando os filtros mudarem ou o número de itens por página mudar
+  // Reset da página quando os filtros mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, filters.sector, filters.budgetRange, filters.campaignRange, itemsPerPage]);
+  }, [searchTerm, statusFilter, filters.sector, filters.budgetRange, filters.campaignRange]);
 
   
   const exportToCSV = () => {
@@ -364,7 +358,7 @@ const Clientes = () => {
         )}
 
         {/* Clients Table */}
-        <Card className="flex-1 flex flex-col" ref={containerRef}>
+        <Card className="flex-1 flex flex-col">
           <div className="flex-1 overflow-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
