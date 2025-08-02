@@ -46,7 +46,8 @@ const evaluateCampaignPerformance = (campaign: Campaign) => {
       level: 'neutral' as const, 
       label: 'Pausada',
       color: 'bg-gray-100 text-gray-800',
-      dotColor: 'bg-gray-500'
+      dotColor: 'bg-gray-500',
+      issues: [] // Adicionar issues array vazio
     };
   }
 
