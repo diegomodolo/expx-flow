@@ -54,16 +54,23 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
 
   // Calcular métricas derivadas
   const conversionRate = adSet.clicks > 0 ? ((adSet.conversions / adSet.clicks) * 100) : 0;
-  const adSetAgeInDays = Math.floor((Date.now() - new Date(adSet.created_at).getTime()) / (1000 * 60 * 60 * 24));
-  const adSetAgeInHours = Math.floor((Date.now() - new Date(adSet.created_at).getTime()) / (1000 * 60 * 60));
   
   const formatAdSetAge = () => {
-    if (adSetAgeInDays > 0) {
-      return `${adSetAgeInDays} dias`;
-    } else if (adSetAgeInHours > 0) {
-      return `${adSetAgeInHours} horas`;
+    const createdDate = new Date(adSet.created_at);
+    const now = new Date();
+    const diffInMs = now.getTime() - createdDate.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays >= 1) {
+      return `${diffInDays} ${diffInDays === 1 ? 'dia' : 'dias'}`;
     } else {
-      return 'Menos de 1 hora';
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      if (diffInHours >= 1) {
+        return `${diffInHours} ${diffInHours === 1 ? 'hora' : 'horas'}`;
+      } else {
+        const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+        return `${Math.max(1, diffInMinutes)} ${diffInMinutes === 1 ? 'minuto' : 'minutos'}`;
+      }
     }
   };
   
