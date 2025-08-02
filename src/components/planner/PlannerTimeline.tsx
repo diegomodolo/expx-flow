@@ -67,26 +67,42 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
       console.log('🎯 Target slot found:', targetSlot.name, targetSlot.start_time, '-', targetSlot.end_time);
 
-      // Criar datas usando formato local para evitar problemas de timezone
+      // Criar datas usando horário local do Brasil e converter para UTC
       const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
       
-      // Calcular novo horário de início baseado no slot (formato local)
-      const newStartDate = `${dateStr}T${targetSlot.start_time}:00`;
+      // Criar datas no horário local (UTC-3 para o Brasil)
+      const startDateTime = new Date(`${dateStr}T${targetSlot.start_time}`);
+      const endDateTime = new Date(`${dateStr}T${targetSlot.end_time}`);
       
-      // Calcular novo horário de prazo baseado no slot (formato local)
-      const newDueDate = `${dateStr}T${targetSlot.end_time}:00`;
+      // Converter para UTC mantendo o horário correto
+      const offsetMinutes = startDateTime.getTimezoneOffset();
+      const newStartDate = new Date(startDateTime.getTime() - (offsetMinutes * 60000));
+      const newDueDate = new Date(endDateTime.getTime() - (offsetMinutes * 60000));
 
       const updates = { 
-        start_date: newStartDate,
-        due_date: newDueDate,
+        start_date: newStartDate.toISOString(),
+        due_date: newDueDate.toISOString(),
         deadline: dateStr
       };
 
       console.log('🔄 Updates to apply:', updates);
 
       // Atualizar a tarefa com os novos horários
-      await updateTask(taskId, updates);
-      console.log('✅ Task updated in database');
+      console.log('📝 Calling updateTask with taskId:', taskId, 'and updates:', updates);
+      
+      try {
+        const result = await updateTask(taskId, updates);
+        console.log('✅ Task updated in database, result:', result);
+      } catch (updateError) {
+        console.error('❌ Error in updateTask:', updateError);
+        console.error('Error details:', {
+          message: updateError.message,
+          stack: updateError.stack,
+          taskId,
+          updates
+        });
+        throw updateError; // Re-throw para ser capturado pelo catch externo
+      }
       
       // Aguardar um momento para garantir que a atualização foi processada
       await new Promise(resolve => setTimeout(resolve, 100));
