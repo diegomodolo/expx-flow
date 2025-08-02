@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Plus, FileText, Settings } from "lucide-react";
+import { Calendar, Clock, Plus, FileText, Settings, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
@@ -10,9 +10,12 @@ import { usePlannerTasks } from "@/hooks/usePlannerTasks";
 import { PlannerTimeSlot } from "./PlannerTimeSlot";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { PlannerSettingsModal } from "./PlannerSettingsModal";
+import { TaskOrganizerModal } from "./TaskOrganizerModal";
+import { useTaskOrganizer } from "@/hooks/useTaskOrganizer";
 import { useTasks } from "@/hooks/useTasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlannerTimelineProps {
   selectedDate: Date;
@@ -38,6 +41,16 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [editingTask, setEditingTask] = useState<any>(null);
+
+  // Hook para organização com IA
+  const {
+    organizationPlan,
+    isOrganizing,
+    isApplying,
+    organizeTasksWithAI,
+    applyOrganization,
+    cancelOrganization,
+  } = useTaskOrganizer();
 
   // Função personalizada para obter tarefas por slot usando tarefas filtradas
   const getFilteredTasksBySlot = (timeSlot: any) => {
@@ -350,6 +363,30 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     }
   };
 
+  const handleOrganizeWithAI = async () => {
+    // Buscar todas as tarefas pendentes (não concluídas)
+    const { data: allTasks, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("company_id", activeCompany?.company_id)
+      .neq("status", "done")
+      .is("start_date", null); // Apenas tarefas sem horário definido
+
+    if (error) {
+      console.error("Error fetching tasks for AI organization:", error);
+      return;
+    }
+
+    console.log("🚀 Starting AI organization with", allTasks?.length || 0, "pending tasks");
+
+    await organizeTasksWithAI({
+      tasks: allTasks || [],
+      timeSlots: timeSlots,
+      startDate: selectedDate.toISOString().split('T')[0],
+      daysToOrganize: 7
+    });
+  };
+
   if (slotsLoading || plannerLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -397,6 +434,25 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleOrganizeWithAI} 
+            variant="default"
+            disabled={isOrganizing}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {isOrganizing ? (
+              <>
+                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                Organizando...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Organizar com IA
+              </>
+            )}
+          </Button>
+          
           <Button onClick={() => setSettingsModalOpen(true)} variant="outline">
             <Settings className="h-4 w-4 mr-2" />
             Configurar Slots
@@ -444,6 +500,18 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         open={settingsModalOpen}
         onOpenChange={setSettingsModalOpen}
       />
+
+      {/* Task Organizer Modal */}
+      {organizationPlan && (
+        <TaskOrganizerModal
+          open={!!organizationPlan}
+          onOpenChange={(open) => !open && cancelOrganization()}
+          organizationPlan={organizationPlan}
+          onApply={applyOrganization}
+          onCancel={cancelOrganization}
+          isApplying={isApplying}
+        />
+      )}
     </div>
   );
 };
