@@ -17,6 +17,7 @@ export interface Employee {
   start_date: string;
   skills?: string;
   avatar?: string;
+  profile_avatar_url?: string;
   created_at: string;
   updated_at: string;
   team?: {
@@ -59,6 +60,7 @@ export const useEmployees = () => {
         .from("employees")
         .select(`
           *,
+          profiles!user_id(avatar_url),
           team:teams (
             id,
             name,
@@ -70,7 +72,13 @@ export const useEmployees = () => {
 
       if (error) throw error;
 
-      setEmployees(data || []);
+      // Mapear os dados para incluir o profile_avatar_url no nível raiz
+      const mappedData = data?.map((employee: any) => ({
+        ...employee,
+        profile_avatar_url: employee.profiles?.avatar_url || null
+      })) || [];
+
+      setEmployees(mappedData);
     } catch (error: any) {
       console.error("Error fetching employees:", error);
       setError(error.message);

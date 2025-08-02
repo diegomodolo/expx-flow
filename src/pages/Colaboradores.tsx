@@ -36,7 +36,7 @@ const Colaboradores = () => {
   const [teamFilter, setTeamFilter] = useState("todos");
   const [roleFilter, setRoleFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -96,6 +96,11 @@ const Colaboradores = () => {
     
     const colorIndex = teams.findIndex(t => t.id === teamId) % colors.length;
     return { name: team.name, className: colors[colorIndex] };
+  };
+
+  // Função para determinar qual avatar usar - prioriza avatar do perfil
+  const getEmployeeAvatar = (employee: Employee) => {
+    return employee.profile_avatar_url || employee.avatar;
   };
 
   // Handle error with useEffect to prevent infinite renders
@@ -302,7 +307,7 @@ const Colaboradores = () => {
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <Avatar className="w-16 h-16">
-                            <AvatarImage src={employee.avatar} alt={employee.name} />
+                            <AvatarImage src={getEmployeeAvatar(employee)} alt={employee.name} />
                             <AvatarFallback>{employee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback>
                           </Avatar>
                           <Badge className={statusConfig.className}>
@@ -400,7 +405,7 @@ const Colaboradores = () => {
                               <TableCell>
                                 <div className="flex items-center space-x-3">
                                   <Avatar className="w-10 h-10">
-                                    <AvatarImage src={employee.avatar} alt={employee.name} />
+                                    <AvatarImage src={getEmployeeAvatar(employee)} alt={employee.name} />
                                     <AvatarFallback>{employee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback>
                                   </Avatar>
                                   <div>
