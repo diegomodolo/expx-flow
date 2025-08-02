@@ -535,7 +535,7 @@ serve(async (req) => {
             // Fetch ads for this ad set
             try {
               console.log('Fetching ads for ad set:', adSet.id)
-              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec,call_to_action},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec,call_to_action},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,actions,video_view_actions,video_p100_watched_actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
               const adsResponse = await fetch(adsUrl)
               
               if (adsResponse.ok) {
@@ -559,6 +559,14 @@ serve(async (req) => {
                   let adEngagementRateRanking = null
                   let adConversionRateRanking = null
 
+                  // Initialize engagement metrics
+                  let adLikes = 0
+                  let adComments = 0
+                  let adShares = 0
+                  let adVideoViews = 0
+                  let adVideoCompletionRate = 0
+                  let adNegativeFeedback = 0
+
                   if (adInsights) {
                     adSpend = parseFloat(adInsights.spend || 0)
                     adClicks = parseInt(adInsights.clicks || 0)
@@ -572,12 +580,44 @@ serve(async (req) => {
                     adEngagementRateRanking = adInsights.engagement_rate_ranking || null
                     adConversionRateRanking = adInsights.conversion_rate_ranking || null
 
+                    // Extract engagement and conversion data from actions
                     if (adInsights.actions) {
                       adInsights.actions.forEach((action: any) => {
-                        if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-                          adLeads += parseInt(action.value || 0)
+                        const value = parseInt(action.value || 0)
+                        switch (action.action_type) {
+                          case 'lead':
+                          case 'complete_registration':
+                            adLeads += value
+                            break
+                          case 'like':
+                          case 'post_reaction':
+                            adLikes += value
+                            break
+                          case 'comment':
+                            adComments += value
+                            break
+                          case 'post':
+                          case 'post_engagement':
+                            adShares += value
+                            break
+                          case 'video_view':
+                            adVideoViews += value
+                            break
+                          case 'hide_clicks':
+                          case 'report_ad':
+                            adNegativeFeedback += value
+                            break
                         }
                       })
+                    }
+
+                    // Calculate video completion rate if video actions are available
+                    if (adInsights.video_p100_watched_actions && adInsights.video_view_actions) {
+                      const completedViews = adInsights.video_p100_watched_actions.reduce((sum: number, action: any) => sum + parseInt(action.value || 0), 0)
+                      const totalViews = adInsights.video_view_actions.reduce((sum: number, action: any) => sum + parseInt(action.value || 0), 0)
+                      if (totalViews > 0) {
+                        adVideoCompletionRate = (completedViews / totalViews) * 100
+                      }
                     }
                   }
 
@@ -617,6 +657,13 @@ serve(async (req) => {
                     quality_ranking: adQualityRanking,
                     engagement_rate_ranking: adEngagementRateRanking,
                     conversion_rate_ranking: adConversionRateRanking,
+                    // Add new engagement metrics
+                    likes: adLikes,
+                    comments: adComments,
+                    shares: adShares,
+                    video_views: adVideoViews,
+                    video_completion_rate: adVideoCompletionRate,
+                    negative_feedback: adNegativeFeedback,
                     is_active: ad.status === 'ACTIVE'
                   }
 

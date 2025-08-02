@@ -47,6 +47,13 @@ interface Ad {
   quality_ranking?: string;
   engagement_rate_ranking?: string;
   conversion_rate_ranking?: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  video_views: number;
+  video_view_percentage: number;
+  negative_feedback: number;
+  video_completion_rate: number;
   created_at: string;
 }
 
@@ -98,10 +105,10 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           {/* Indicadores de Engajamento */}
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
-              <MousePointer className="w-5 h-5 text-purple-600" />
+              <Heart className="w-5 h-5 text-red-600" />
               <span>📊 Indicadores de Engajamento</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
@@ -135,6 +142,41 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                     {ad.clicks.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Interações diretas</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
+                    <Heart className="w-4 h-4" />
+                    <span>Curtidas</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-red-600">
+                    {ad.likes.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Curtidas e reações reais</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
+                    <MessageCircle className="w-4 h-4" />
+                    <Share2 className="w-4 h-4" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-green-600">
+                      {ad.comments} comentários
+                    </p>
+                    <p className="text-sm font-bold text-orange-600">
+                      {ad.shares} compartilhamentos
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Dados reais do Facebook</p>
                 </CardContent>
               </Card>
             </div>
@@ -216,6 +258,30 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                 </CardContent>
               </Card>
 
+              {ad.creative_type === 'video' && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
+                      <Play className="w-4 h-4" />
+                      <span>Dados de Vídeo</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      <p className="text-lg font-bold text-indigo-600">
+                        {ad.video_views.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">Visualizações</p>
+                      {ad.video_completion_rate > 0 && (
+                        <p className="text-xs text-blue-600">
+                          {ad.video_completion_rate.toFixed(1)}% completaram
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
@@ -244,13 +310,25 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-600">CPM (Custo por Mil Impressões)</CardTitle>
+                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Feedback Negativo</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-indigo-600">
-                    R$ {ad.cpm.toFixed(2)}
+                  <p className="text-lg font-bold text-red-600">
+                    {ad.negative_feedback}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Custo por mil impressões</p>
+                  <p className="text-xs text-gray-500 mt-1">Ocultações e denúncias</p>
+                  {ad.negative_feedback < 10 && (
+                    <p className="text-xs text-green-600 mt-1">✅ Baixa rejeição</p>
+                  )}
+                  {ad.negative_feedback >= 10 && ad.negative_feedback < 50 && (
+                    <p className="text-xs text-yellow-600 mt-1">⚠️ Rejeição moderada</p>
+                  )}
+                  {ad.negative_feedback >= 50 && (
+                    <p className="text-xs text-red-600 mt-1">🚨 Alta rejeição</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -334,34 +412,40 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                 <span>📋 Resumo Executivo do Criativo</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="font-medium text-gray-700">Atratividade</p>
-                  <p className="text-blue-600">
-                    CTR: {ad.ctr.toFixed(2)}% | {ad.clicks.toLocaleString()} cliques
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Conversão</p>
-                  <p className="text-green-600">
-                    {ad.conversions} conv. | Taxa: {conversionRate.toFixed(1)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Custos</p>
-                  <p className="text-purple-600">
-                    CPC: R$ {ad.cpc.toFixed(2)} | CPA: R$ {ad.cpa.toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Alcance</p>
-                  <p className="text-indigo-600">
-                    {ad.impressions.toLocaleString()} impressões
-                  </p>
-                </div>
-              </div>
-            </CardContent>
+             <CardContent>
+               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
+                 <div>
+                   <p className="font-medium text-gray-700">Atratividade</p>
+                   <p className="text-blue-600">
+                     CTR: {ad.ctr.toFixed(2)}% | {ad.clicks.toLocaleString()} cliques
+                   </p>
+                 </div>
+                 <div>
+                   <p className="font-medium text-gray-700">Engajamento</p>
+                   <p className="text-red-600">
+                     {ad.likes + ad.comments + ad.shares} interações totais
+                   </p>
+                 </div>
+                 <div>
+                   <p className="font-medium text-gray-700">Conversão</p>
+                   <p className="text-green-600">
+                     {ad.conversions} conv. | Taxa: {conversionRate.toFixed(1)}%
+                   </p>
+                 </div>
+                 <div>
+                   <p className="font-medium text-gray-700">Custos</p>
+                   <p className="text-purple-600">
+                     CPC: R$ {ad.cpc.toFixed(2)} | CPA: R$ {ad.cpa.toFixed(2)}
+                   </p>
+                 </div>
+                 <div>
+                   <p className="font-medium text-gray-700">Qualidade</p>
+                   <p className="text-indigo-600">
+                     {ad.negative_feedback < 10 ? '✅ Baixa rejeição' : ad.negative_feedback < 50 ? '⚠️ Rejeição moderada' : '🚨 Alta rejeição'}
+                   </p>
+                 </div>
+               </div>
+             </CardContent>
           </Card>
         </div>
       </DialogContent>

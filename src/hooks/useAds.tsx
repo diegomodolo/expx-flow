@@ -32,6 +32,13 @@ export interface Ad {
   quality_ranking?: string;
   engagement_rate_ranking?: string;
   conversion_rate_ranking?: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  video_views: number;
+  video_view_percentage: number;
+  negative_feedback: number;
+  video_completion_rate: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;

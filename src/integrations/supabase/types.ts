@@ -117,6 +117,7 @@ export type Database = {
           campaign_id: string
           clicks: number | null
           client_id: string
+          comments: number | null
           company_id: string | null
           conversion_rate_ranking: string | null
           conversions: number | null
@@ -136,15 +137,21 @@ export type Database = {
           image_url: string | null
           impressions: number | null
           is_active: boolean
+          likes: number | null
           link_url: string | null
           name: string
+          negative_feedback: number | null
           quality_ranking: string | null
           reach: number | null
+          shares: number | null
           spend: number | null
           status: string
           updated_at: string
           user_id: string
+          video_completion_rate: number | null
           video_url: string | null
+          video_view_percentage: number | null
+          video_views: number | null
         }
         Insert: {
           ad_set_id: string
@@ -152,6 +159,7 @@ export type Database = {
           campaign_id: string
           clicks?: number | null
           client_id: string
+          comments?: number | null
           company_id?: string | null
           conversion_rate_ranking?: string | null
           conversions?: number | null
@@ -171,15 +179,21 @@ export type Database = {
           image_url?: string | null
           impressions?: number | null
           is_active?: boolean
+          likes?: number | null
           link_url?: string | null
           name: string
+          negative_feedback?: number | null
           quality_ranking?: string | null
           reach?: number | null
+          shares?: number | null
           spend?: number | null
           status?: string
           updated_at?: string
           user_id: string
+          video_completion_rate?: number | null
           video_url?: string | null
+          video_view_percentage?: number | null
+          video_views?: number | null
         }
         Update: {
           ad_set_id?: string
@@ -187,6 +201,7 @@ export type Database = {
           campaign_id?: string
           clicks?: number | null
           client_id?: string
+          comments?: number | null
           company_id?: string | null
           conversion_rate_ranking?: string | null
           conversions?: number | null
@@ -206,15 +221,21 @@ export type Database = {
           image_url?: string | null
           impressions?: number | null
           is_active?: boolean
+          likes?: number | null
           link_url?: string | null
           name?: string
+          negative_feedback?: number | null
           quality_ranking?: string | null
           reach?: number | null
+          shares?: number | null
           spend?: number | null
           status?: string
           updated_at?: string
           user_id?: string
+          video_completion_rate?: number | null
           video_url?: string | null
+          video_view_percentage?: number | null
+          video_views?: number | null
         }
         Relationships: []
       }
