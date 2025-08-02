@@ -227,6 +227,56 @@ serve(async (req) => {
     const accessToken = integration.access_token
     const accountId = adAccount.account_id
 
+    // Check account balance and funding status
+    console.log('Checking account balance for:', accountId)
+    const balanceUrl = `https://graph.facebook.com/v20.0/act_${accountId}?fields=account_status,balance,spend_cap,disable_reason&access_token=${accessToken}`
+    console.log('Balance API URL (without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
+    
+    try {
+      const balanceResponse = await fetch(balanceUrl)
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json()
+        console.log('Balance data received:', balanceData)
+        
+        const balance = parseFloat(balanceData.balance || '0')
+        const accountStatus = parseInt(balanceData.account_status || '1')
+        const spendCap = parseFloat(balanceData.spend_cap || '0')
+        const disableReason = balanceData.disable_reason || null
+        const hasFundingIssues = accountStatus !== 1 || balance <= 0 || (disableReason && disableReason.includes('FUNDING'))
+        
+        console.log('Account financial status:', {
+          balance,
+          accountStatus,
+          spendCap,
+          disableReason,
+          hasFundingIssues
+        })
+        
+        // Update ad account with balance information
+        const { error: balanceUpdateError } = await supabase
+          .from('facebook_ad_accounts')
+          .update({
+            balance: balance,
+            account_status: accountStatus,
+            spend_cap: spendCap,
+            disable_reason: disableReason,
+            has_funding_issues: hasFundingIssues,
+            last_balance_check: new Date().toISOString()
+          })
+          .eq('id', adAccount.id)
+        
+        if (balanceUpdateError) {
+          console.error('Error updating account balance:', balanceUpdateError)
+        } else {
+          console.log('Account balance updated successfully')
+        }
+      } else {
+        console.warn('Failed to fetch account balance, status:', balanceResponse.status)
+      }
+    } catch (balanceError) {
+      console.error('Error checking account balance:', balanceError)
+    }
+
     console.log('Fetching campaigns from Facebook for account:', accountId)
     console.log('Using period:', period)
     

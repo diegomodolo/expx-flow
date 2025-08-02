@@ -628,31 +628,49 @@ export type Database = {
         Row: {
           account_id: string
           account_name: string
+          account_status: number | null
+          balance: number | null
           created_at: string
           currency: string
+          disable_reason: string | null
+          has_funding_issues: boolean | null
           id: string
           integration_id: string
           is_active: boolean
+          last_balance_check: string | null
+          spend_cap: number | null
           updated_at: string
         }
         Insert: {
           account_id: string
           account_name: string
+          account_status?: number | null
+          balance?: number | null
           created_at?: string
           currency: string
+          disable_reason?: string | null
+          has_funding_issues?: boolean | null
           id?: string
           integration_id: string
           is_active?: boolean
+          last_balance_check?: string | null
+          spend_cap?: number | null
           updated_at?: string
         }
         Update: {
           account_id?: string
           account_name?: string
+          account_status?: number | null
+          balance?: number | null
           created_at?: string
           currency?: string
+          disable_reason?: string | null
+          has_funding_issues?: boolean | null
           id?: string
           integration_id?: string
           is_active?: boolean
+          last_balance_check?: string | null
+          spend_cap?: number | null
           updated_at?: string
         }
         Relationships: [

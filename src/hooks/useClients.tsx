@@ -25,6 +25,15 @@ export interface Client {
   leads_generated: number;
   last_sync_at?: string;
   last_sync_period?: string;
+  facebook_ad_accounts?: {
+    id: string;
+    account_name: string;
+    balance: number;
+    account_status: number;
+    disable_reason?: string;
+    has_funding_issues: boolean;
+    last_balance_check?: string;
+  };
 }
 
 export function useClients() {
@@ -41,7 +50,18 @@ export function useClients() {
       setLoading(true);
       const { data, error } = await supabase
         .from("clients")
-        .select("*")
+        .select(`
+          *,
+          facebook_ad_accounts!ad_account_id (
+            id,
+            account_name,
+            balance,
+            account_status,
+            disable_reason,
+            has_funding_issues,
+            last_balance_check
+          )
+        `)
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 

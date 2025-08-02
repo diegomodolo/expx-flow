@@ -41,6 +41,7 @@ import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { FunnelAnalysis } from "@/components/funnel/FunnelAnalysis";
+import { FundingAlert } from "@/components/alerts/FundingAlert";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -660,6 +661,18 @@ const ClienteDetalhes = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Funding Alert */}
+        {client.facebook_ad_accounts && client.facebook_ad_accounts.has_funding_issues && (
+          <FundingAlert
+            accountStatus={client.facebook_ad_accounts.account_status}
+            balance={client.facebook_ad_accounts.balance}
+            disableReason={client.facebook_ad_accounts.disable_reason}
+            hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
+            accountName={client.facebook_ad_accounts.account_name}
+            className="mb-6"
+          />
+        )}
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">

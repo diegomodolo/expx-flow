@@ -28,6 +28,15 @@ export interface ClientCampaign {
 
 export interface ClientDetailsData extends Client {
   campaigns: ClientCampaign[];
+  facebook_ad_accounts?: {
+    id: string;
+    account_name: string;
+    balance: number;
+    account_status: number;
+    disable_reason?: string;
+    has_funding_issues: boolean;
+    last_balance_check?: string;
+  };
 }
 
 export function useClientDetails(clientId: string) {
@@ -44,10 +53,21 @@ export function useClientDetails(clientId: string) {
       setLoading(true);
       setError(null);
 
-      // Fetch client data
+      // Fetch client data with ad account information
       const { data: clientData, error: clientError } = await supabase
         .from("clients")
-        .select("*")
+        .select(`
+          *,
+          facebook_ad_accounts!ad_account_id (
+            id,
+            account_name,
+            balance,
+            account_status,
+            disable_reason,
+            has_funding_issues,
+            last_balance_check
+          )
+        `)
         .eq("id", clientId)
         .eq("company_id", activeCompany.company_id)
         .maybeSingle();

@@ -31,6 +31,7 @@ import {
   Trash2,
   RefreshCw
 } from "lucide-react";
+import { FundingAlert } from "@/components/alerts/FundingAlert";
 
 type StatusType = "all" | "green" | "yellow" | "red";
 
@@ -396,11 +397,23 @@ const Clientes = () => {
                       <div className="text-sm text-gray-900">{client.company}</div>
                       <div className="text-sm text-gray-500">{client.sector}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge className={statusConfig[client.status].color}>
-                        {statusConfig[client.status].label}
-                      </Badge>
-                    </td>
+                     <td className="px-6 py-4 whitespace-nowrap">
+                       <div className="space-y-2">
+                         <Badge className={statusConfig[client.status].color}>
+                           {statusConfig[client.status].label}
+                         </Badge>
+                         {client.facebook_ad_accounts && client.facebook_ad_accounts.has_funding_issues && (
+                           <FundingAlert
+                             accountStatus={client.facebook_ad_accounts.account_status}
+                             balance={client.facebook_ad_accounts.balance}
+                             disableReason={client.facebook_ad_accounts.disable_reason}
+                             hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
+                             accountName={client.facebook_ad_accounts.account_name}
+                             className="text-xs"
+                           />
+                         )}
+                       </div>
+                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {client.active_campaigns}
                     </td>
