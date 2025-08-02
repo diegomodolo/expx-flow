@@ -40,6 +40,7 @@ import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModa
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
+import { FunnelAnalysis } from "@/components/funnel/FunnelAnalysis";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -847,6 +848,7 @@ const ClienteDetalhes = () => {
                     </Badge>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="funnel">Funil de Conversão</TabsTrigger>
                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -1500,6 +1502,10 @@ const ClienteDetalhes = () => {
                    </tbody>
                 </table>
               </div>
+            </TabsContent>
+
+            <TabsContent value="funnel" className="p-6">
+              <FunnelAnalysis campaigns={client?.campaigns || []} />
             </TabsContent>
 
             <TabsContent value="contact" className="p-6">
