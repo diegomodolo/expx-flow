@@ -50,6 +50,7 @@ export default function Tarefas() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
+  const [responsibleFilter, setResponsibleFilter] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -73,9 +74,21 @@ export default function Tarefas() {
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
     const matchesTeam = teamFilter === 'all' || task.team_id === teamFilter;
+    const matchesResponsible = responsibleFilter === 'all' || 
+                              task.responsible_name === responsibleFilter ||
+                              task.user_id === responsibleFilter;
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesTeam;
+    return matchesSearch && matchesStatus && matchesPriority && matchesTeam && matchesResponsible;
   });
+
+  // Extrair responsáveis únicos das tarefas para o filtro
+  const uniqueResponsibles = Array.from(
+    new Set(
+      tasks
+        .filter(task => task.responsible_name && task.responsible_name.trim() !== '')
+        .map(task => task.responsible_name)
+    )
+  ).sort();
 
   const handleCreateTask = async (taskData: any) => {
     await createTask(taskData);
@@ -702,6 +715,20 @@ export default function Tarefas() {
                 <SelectItem value="high">Alta</SelectItem>
                 <SelectItem value="medium">Média</SelectItem>
                 <SelectItem value="low">Baixa</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Responsáveis</SelectItem>
+                {uniqueResponsibles.map((responsible) => (
+                  <SelectItem key={responsible} value={responsible}>
+                    {responsible}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
