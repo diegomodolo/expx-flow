@@ -104,19 +104,19 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
 
     // Combinar data e hora para criar timestamp completo
     if (formData.hasSpecificTime && formData.start_date && formData.start_time) {
-      const [hours, minutes] = formData.start_time.split(':');
-      startDateTime = new Date(formData.start_date);
-      startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // Criar data no formato UTC para evitar problemas de timezone
+      const dateStr = formData.start_date.toISOString().split('T')[0]; // YYYY-MM-DD
+      startDateTime = new Date(`${dateStr}T${formData.start_time}:00.000Z`); // UTC
     }
 
     if (formData.due_date && formData.due_time) {
-      const [hours, minutes] = formData.due_time.split(':');
-      dueDateTime = new Date(formData.due_date);
-      dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // Criar data no formato UTC para evitar problemas de timezone
+      const dateStr = formData.due_date.toISOString().split('T')[0]; // YYYY-MM-DD
+      dueDateTime = new Date(`${dateStr}T${formData.due_time}:00.000Z`); // UTC
     } else if (formData.due_date) {
-      // Se não tem horário específico, usar final do dia
-      dueDateTime = new Date(formData.due_date);
-      dueDateTime.setHours(23, 59, 59, 999);
+      // Se não tem horário específico, usar final do dia em UTC
+      const dateStr = formData.due_date.toISOString().split('T')[0]; // YYYY-MM-DD
+      dueDateTime = new Date(`${dateStr}T23:59:59.999Z`); // UTC
     }
 
     // Validação: data de início deve ser anterior ao prazo
