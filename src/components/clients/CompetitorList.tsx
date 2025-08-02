@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Users, 
   Globe, 
@@ -17,7 +18,9 @@ import {
   Plus,
   Loader2,
   ExternalLink,
-  BarChart3
+  BarChart3,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { AdLibraryScrapeDialog } from './AdLibraryScrapeDialog';
 import { CompetitorAnalysisModal } from './CompetitorAnalysisModal';
@@ -43,6 +46,7 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
   const [analyzingCompetitor, setAnalyzingCompetitor] = useState<Competitor | null>(null);
   const [addingAd, setAddingAd] = useState<string | null>(null);
+  const [expandedAds, setExpandedAds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -90,6 +94,18 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleAdsExpansion = (competitorId: string) => {
+    setExpandedAds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(competitorId)) {
+        newSet.delete(competitorId);
+      } else {
+        newSet.add(competitorId);
+      }
+      return newSet;
+    });
   };
 
   const handleDeleteCompetitor = async (id: string) => {
@@ -257,33 +273,48 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
                   <p className="text-sm text-gray-600 mb-4">{competitor.description}</p>
                 )}
 
-                {/* Anúncios do concorrente */}
+                {/* Anúncios do concorrente - Collapsible */}
                 {ads.length > 0 && (
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3">Anúncios Monitorados ({ads.length})</h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      {ads.map((ad) => (
-                        <div key={ad.id} className="p-3 border rounded-lg">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-medium text-sm">{ad.ad_title || 'Título não informado'}</p>
-                              <p className="text-xs text-gray-500">{ad.platform}</p>
+                    <Collapsible 
+                      open={expandedAds.has(competitor.id)} 
+                      onOpenChange={() => toggleAdsExpansion(competitor.id)}
+                    >
+                      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium hover:text-blue-600 transition-colors mb-3">
+                        {expandedAds.has(competitor.id) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        Anúncios Monitorados ({ads.length})
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                          {ads.map((ad) => (
+                            <div key={ad.id} className="p-3 border rounded-lg">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <p className="font-medium text-sm">{ad.ad_title || 'Título não informado'}</p>
+                                  <p className="text-xs text-gray-500">{ad.platform}</p>
+                                </div>
+                                <Badge variant={getPerformanceBadgeVariant(ad.estimated_performance || 'medium')}>
+                                  {getPerformanceText(ad.estimated_performance || 'medium')}
+                                </Badge>
+                              </div>
+                              {ad.ad_copy && (
+                                <p className="text-xs text-gray-600 mb-2 line-clamp-2">{ad.ad_copy}</p>
+                              )}
+                              {ad.call_to_action && (
+                                <div className="text-xs">
+                                  <span className="font-medium">CTA:</span> {ad.call_to_action}
+                                </div>
+                              )}
                             </div>
-                            <Badge variant={getPerformanceBadgeVariant(ad.estimated_performance || 'medium')}>
-                              {getPerformanceText(ad.estimated_performance || 'medium')}
-                            </Badge>
-                          </div>
-                          {ad.ad_copy && (
-                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">{ad.ad_copy}</p>
-                          )}
-                          {ad.call_to_action && (
-                            <div className="text-xs">
-                              <span className="font-medium">CTA:</span> {ad.call_to_action}
-                            </div>
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 )}
               </CardContent>
