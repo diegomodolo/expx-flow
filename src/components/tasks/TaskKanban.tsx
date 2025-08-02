@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
@@ -165,13 +166,29 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                             </p>
                           )}
                           
-                          {/* Data relativa */}
+                          {/* Data relativa com responsável */}
                           {task.due_date && (
-                            <p className={`text-xs font-medium ${
-                              isOverdue(task.due_date) ? 'text-red-500' : 'text-gray-400'
-                            }`}>
-                              {formatDateRelative(task.due_date)}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              {/* Avatar e nome do responsável */}
+                              <div className="flex items-center gap-1">
+                                <Avatar className="h-4 w-4">
+                                  <AvatarImage src={task.responsible_avatar} alt={task.responsible_name} />
+                                  <AvatarFallback className="text-[8px] bg-muted">
+                                    {task.responsible_name?.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs text-gray-600 font-medium">
+                                  {task.responsible_name}
+                                </span>
+                              </div>
+                              
+                              {/* Data relativa */}
+                              <p className={`text-xs font-medium ${
+                                isOverdue(task.due_date) ? 'text-red-500' : 'text-gray-400'
+                              }`}>
+                                {formatDateRelative(task.due_date)}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </div>
