@@ -63,6 +63,10 @@ const ClienteDetalhes = () => {
   const [adSetMetricsModalOpen, setAdSetMetricsModalOpen] = useState(false);
   const [selectedAd, setSelectedAd] = useState(null);
   const [adCreativeMetricsModalOpen, setAdCreativeMetricsModalOpen] = useState(false);
+  
+  // Estados para filtros de navegação entre abas
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [selectedAdSetId, setSelectedAdSetId] = useState<string | null>(null);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -185,6 +189,11 @@ const ClienteDetalhes = () => {
     
     let filtered = [...adSets];
     
+    // Filtrar por campanha selecionada
+    if (selectedCampaignId) {
+      filtered = filtered.filter(adSet => adSet.campaign_id === selectedCampaignId);
+    }
+    
     // Filter ad sets
     if (adSetFilter === 'active') {
       filtered = filtered.filter(adSet => adSet.status === 'ACTIVE');
@@ -234,13 +243,18 @@ const ClienteDetalhes = () => {
     }
 
     return filtered;
-  }, [adSets, adSetFilter, adSetSortField, adSetSortDirection]);
+  }, [adSets, adSetFilter, adSetSortField, adSetSortDirection, selectedCampaignId]);
 
   // Filter and sort ads
   const filteredAndSortedAds = useMemo(() => {
     if (!ads) return [];
     
     let filtered = [...ads];
+    
+    // Filtrar por conjunto de anúncios selecionado
+    if (selectedAdSetId) {
+      filtered = filtered.filter(ad => ad.ad_set_id === selectedAdSetId);
+    }
     
     // Filter ads
     if (adFilter === 'active') {
@@ -295,7 +309,7 @@ const ClienteDetalhes = () => {
     }
 
     return filtered;
-  }, [ads, adFilter, adSortField, adSortDirection]);
+  }, [ads, adFilter, adSortField, adSortDirection, selectedAdSetId]);
 
   const handleSort = (field: 'name' | 'cpc' | 'cpa' | 'spend' | 'conversions') => {
     if (sortField === field) {
@@ -407,6 +421,38 @@ const ClienteDetalhes = () => {
   const handleViewAdCreativeMetrics = (ad: any) => {
     setSelectedAd(ad);
     setAdCreativeMetricsModalOpen(true);
+  };
+
+  // Funções para navegação entre abas com filtros
+  const handleCampaignClick = (campaign: any) => {
+    setSelectedCampaignId(campaign.id);
+    setSelectedAdSetId(null); // Limpar filtro de ad set
+    setActiveTab("adsets");
+  };
+
+  const handleAdSetClick = (adSet: any) => {
+    setSelectedAdSetId(adSet.id);
+    setActiveTab("ads");
+  };
+
+  // Função para limpar filtros e voltar à visualização geral
+  const clearFilters = () => {
+    setSelectedCampaignId(null);
+    setSelectedAdSetId(null);
+  };
+
+  // Função para obter o nome da campanha selecionada
+  const getSelectedCampaignName = () => {
+    if (!selectedCampaignId || !client?.campaigns) return null;
+    const campaign = client.campaigns.find(c => c.id === selectedCampaignId);
+    return campaign?.name || null;
+  };
+
+  // Função para obter o nome do conjunto de anúncios selecionado
+  const getSelectedAdSetName = () => {
+    if (!selectedAdSetId || !adSets) return null;
+    const adSet = adSets.find(a => a.id === selectedAdSetId);
+    return adSet?.name || null;
   };
   
   
@@ -786,8 +832,22 @@ const ClienteDetalhes = () => {
             <div className="border-b border-gray-200">
               <TabsList className="px-6">
                 <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
-                <TabsTrigger value="adsets">Conjunto de Anúncios</TabsTrigger>
-                <TabsTrigger value="creatives">Criativos</TabsTrigger>
+                <TabsTrigger value="adsets" className="relative">
+                  Conjuntos de Anúncios
+                  {selectedCampaignId && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      Filtrado
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="ads" className="relative">
+                  Criativos
+                  {selectedAdSetId && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      Filtrado
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -924,15 +984,26 @@ const ClienteDetalhes = () => {
                           R$ {campaign.spend.toFixed(2)}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewMetrics(campaign)}
-                            className="flex items-center space-x-1"
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                            <span>Indicadores</span>
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCampaignClick(campaign)}
+                              className="flex items-center space-x-1"
+                            >
+                              <Users className="w-4 h-4" />
+                              <span>Ver Conjuntos</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewMetrics(campaign)}
+                              className="flex items-center space-x-1"
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                              <span>Indicadores</span>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -943,7 +1014,24 @@ const ClienteDetalhes = () => {
 
             <TabsContent value="adsets" className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold">Conjuntos de Anúncios</h4>
+                <div className="flex items-center space-x-3">
+                  <h4 className="text-lg font-semibold">Conjuntos de Anúncios</h4>
+                  {selectedCampaignId && (
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="text-sm">
+                        Campanha: {getSelectedCampaignName()}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="text-xs"
+                      >
+                        Limpar Filtro
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center space-x-2">
                   <Button 
                     variant={adSetFilter === 'all' ? 'default' : 'outline'} 
@@ -1097,17 +1185,28 @@ const ClienteDetalhes = () => {
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                               {adSet.conversions}
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewAdSetMetrics(adSet)}
-                                className="flex items-center space-x-1"
-                              >
-                                <BarChart3 className="w-3 h-3" />
-                                <span>Ver Indicadores</span>
-                              </Button>
-                            </td>
+                             <td className="px-4 py-4 whitespace-nowrap text-sm">
+                               <div className="flex items-center space-x-2">
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() => handleAdSetClick(adSet)}
+                                   className="flex items-center space-x-1"
+                                 >
+                                   <Megaphone className="w-3 h-3" />
+                                   <span>Ver Criativos</span>
+                                 </Button>
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() => handleViewAdSetMetrics(adSet)}
+                                   className="flex items-center space-x-1"
+                                 >
+                                   <BarChart3 className="w-3 h-3" />
+                                   <span>Indicadores</span>
+                                 </Button>
+                               </div>
+                             </td>
                           </tr>
                        ))
                      ) : (
@@ -1125,9 +1224,26 @@ const ClienteDetalhes = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="creatives" className="p-6">
+            <TabsContent value="ads" className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold">Criativos</h4>
+                <div className="flex items-center space-x-3">
+                  <h4 className="text-lg font-semibold">Criativos</h4>
+                  {selectedAdSetId && (
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline" className="text-sm">
+                        Conjunto: {getSelectedAdSetName()}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="text-xs"
+                      >
+                        Limpar Filtro
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center space-x-2">
                   <Button 
                     variant={adFilter === 'all' ? 'default' : 'outline'} 
