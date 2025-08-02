@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Circle, Clock, AlertTriangle, Target, Timer, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Calendar, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Task } from "@/hooks/useTasks";
@@ -24,22 +24,6 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
       case 'medium': return 'default';
       case 'low': return 'outline';
       default: return 'outline';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'done': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'progress': return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'review': return <Target className="h-4 w-4 text-orange-500" />;
-      default: return <Circle className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const getOriginIcon = (origin: string) => {
-    switch (origin) {
-      case 'automation': return <AlertTriangle className="h-3 w-3 text-orange-500" />;
-      default: return null;
     }
   };
 
@@ -66,97 +50,133 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing">
-      <CardContent className="p-3">
-        <div className="flex items-start gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-0 h-auto"
-            onClick={handleStatusToggle}
-          >
-            {getStatusIcon(task.status)}
-          </Button>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm truncate">{task.title}</h4>
-              {task.start_date && (
-                <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded" title="Horário específico">
-                  <Timer className="h-3 w-3" />
-                  {format(new Date(task.start_date), 'HH:mm')}
-                </div>
-              )}
-              {getOriginIcon(task.origin) && (
-                <div title="Tarefa automática">{getOriginIcon(task.origin)}</div>
-              )}
-            </div>
-            
-            {task.description && (
-              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                {task.description}
-              </p>
+    <Card className="hover:shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing border-l-4 border-l-primary/20">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* Header com avatar e título */}
+          <div className="flex items-start gap-3">
+            {task.responsible_avatar ? (
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarImage src={task.responsible_avatar} />
+                <AvatarFallback className="text-xs bg-primary/10">
+                  {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-medium text-primary">
+                  {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
+                </span>
+              </div>
             )}
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge 
-                  variant={getPriorityColor(task.priority)}
-                  className="text-xs"
-                >
-                  {task.priority === 'high' ? 'Alta' : 
-                   task.priority === 'medium' ? 'Média' : 'Baixa'}
-                </Badge>
-                
-                {task.progress > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {task.progress}%
-                  </span>
-                )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="font-semibold text-foreground leading-tight">{task.title}</h4>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleDelete} 
+                      className="cursor-pointer text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               
-              {task.responsible_name && (
-                <div className="flex items-center gap-1">
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={task.responsible_avatar} />
-                    <AvatarFallback className="text-xs">
-                      {task.responsible_name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground truncate max-w-[60px]">
-                    {task.responsible_name.split(' ')[0]}
-                  </span>
-                </div>
+              {task.description && (
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  {task.description}
+                </p>
               )}
             </div>
           </div>
-          
-          {/* Menu de opções */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                onClick={(e) => e.stopPropagation()}
+
+          {/* Tags e status */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge 
+              variant={getPriorityColor(task.priority)}
+              className="text-xs font-medium"
+            >
+              {task.priority === 'high' ? 'Alta Prioridade' : 
+               task.priority === 'medium' ? 'Média Prioridade' : 'Baixa Prioridade'}
+            </Badge>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 h-auto text-xs hover:bg-transparent"
+              onClick={handleStatusToggle}
+            >
+              <Badge 
+                variant={task.status === 'done' ? 'default' : 'secondary'}
+                className={`text-xs font-medium ${
+                  task.status === 'done' ? 'bg-green-100 text-green-700 hover:bg-green-100' :
+                  task.status === 'progress' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' :
+                  task.status === 'review' ? 'bg-orange-100 text-orange-700 hover:bg-orange-100' :
+                  'bg-gray-100 text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleDelete} 
-                className="cursor-pointer text-destructive hover:text-destructive"
+                {task.status === 'done' ? 'Concluído' : 
+                 task.status === 'progress' ? 'Em Andamento' : 
+                 task.status === 'review' ? 'Em Revisão' : 'A Fazer'}
+              </Badge>
+            </Button>
+            
+            {task.progress > 0 && task.status !== 'done' && (
+              <Badge variant="outline" className="text-xs font-medium">
+                {task.progress}% Concluído
+              </Badge>
+            )}
+            
+            {task.team?.name && (
+              <Badge 
+                variant="outline" 
+                className="text-xs font-medium"
+                style={{ 
+                  backgroundColor: `${task.team.color}20`,
+                  borderColor: task.team.color,
+                  color: task.team.color 
+                }}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {task.team.name}
+              </Badge>
+            )}
+          </div>
+
+          {/* Datas */}
+          {(task.start_date || task.due_date) && (
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              {task.start_date && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Início: {format(new Date(task.start_date), 'dd/MM/yyyy')}</span>
+                </div>
+              )}
+              {task.due_date && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Fim: {format(new Date(task.due_date), 'dd/MM/yyyy')}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
