@@ -38,6 +38,95 @@ const statusConfig = {
   finished: { label: "Finalizada", color: "bg-gray-100 text-gray-800", dotColor: "bg-gray-500" }
 };
 
+// Função para avaliar o desempenho da campanha
+const evaluateCampaignPerformance = (campaign: Campaign) => {
+  // Se campanha está inativa, considera como neutro
+  if (campaign.status !== 'active') {
+    return { 
+      level: 'neutral' as const, 
+      label: 'Pausada',
+      color: 'bg-gray-100 text-gray-800',
+      dotColor: 'bg-gray-500'
+    };
+  }
+
+  // Critérios de avaliação baseados em benchmarks
+  const ctrTarget = 1; // 1% mínimo
+  const cpcMax = 5; // R$ 5 máximo por clique
+  const spendWithoutLeads = 150; // R$ 150 sem conversões é crítico
+  
+  let score = 0;
+  let issues = [];
+
+  // Avaliação de CTR (peso 30%)
+  if (campaign.ctr >= ctrTarget * 1.5) score += 30; // Excelente CTR
+  else if (campaign.ctr >= ctrTarget) score += 20; // CTR bom
+  else if (campaign.ctr >= ctrTarget * 0.5) score += 10; // CTR ruim
+  else {
+    score += 0; // CTR muito ruim
+    issues.push('CTR muito baixo');
+  }
+
+  // Avaliação de CPC (peso 25%)
+  if (campaign.cpc <= cpcMax * 0.6) score += 25; // CPC excelente
+  else if (campaign.cpc <= cpcMax) score += 15; // CPC bom
+  else if (campaign.cpc <= cpcMax * 1.5) score += 5; // CPC alto
+  else {
+    score += 0; // CPC muito alto
+    issues.push('CPC muito alto');
+  }
+
+  // Avaliação de conversões vs gasto (peso 45%)
+  const hasConversions = (campaign.conversions || 0) > 0;
+  const spend = campaign.spend || 0;
+  
+  if (hasConversions) {
+    const cpa = spend / campaign.conversions;
+    if (cpa <= 100) score += 45; // CPA excelente
+    else if (cpa <= 200) score += 30; // CPA bom
+    else if (cpa <= 300) score += 15; // CPA alto
+    else {
+      score += 5; // CPA muito alto
+      issues.push('CPA muito alto');
+    }
+  } else {
+    // Sem conversões
+    if (spend <= 50) score += 25; // Pouco gasto ainda
+    else if (spend <= spendWithoutLeads) score += 10; // Gasto moderado
+    else {
+      score += 0; // Muito gasto sem resultado
+      issues.push('Alto gasto sem leads');
+    }
+  }
+
+  // Classificação final
+  if (score >= 80) {
+    return {
+      level: 'excellent' as const,
+      label: 'Excelente',
+      color: 'bg-green-100 text-green-800',
+      dotColor: 'bg-green-500',
+      issues
+    };
+  } else if (score >= 50) {
+    return {
+      level: 'attention' as const,
+      label: 'Atenção',
+      color: 'bg-yellow-100 text-yellow-800',
+      dotColor: 'bg-yellow-500',
+      issues
+    };
+  } else {
+    return {
+      level: 'emergency' as const,
+      label: 'Emergencial',
+      color: 'bg-red-100 text-red-800',
+      dotColor: 'bg-red-500',
+      issues
+    };
+  }
+};
+
 const Campanhas = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -276,67 +365,84 @@ const Campanhas = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Cliente
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        CTR
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        CPC
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Conversões
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Período
-                      </th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ações
-                      </th>
+                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         Status
+                       </th>
+                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         Performance
+                       </th>
+                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         CTR
+                       </th>
+                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         CPC
+                       </th>
+                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         Conversões
+                       </th>
+                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         Período
+                       </th>
+                       <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                         Ações
+                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedCampaigns.map((campaign) => (
-                      <tr key={campaign.id} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-3 h-3 rounded-full ${statusConfig[campaign.status].dotColor}`}></div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
-                              <div className="text-sm text-gray-500">{campaign.platforms}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={campaign.client?.avatar} alt={campaign.client?.name} />
-                              <AvatarFallback>{campaign.client?.name?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="text-sm text-gray-900">{campaign.client?.name}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge className={statusConfig[campaign.status].color}>
-                            {statusConfig[campaign.status].label}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {campaign.ctr}%
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          R$ {campaign.cpc.toFixed(2)}
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                          campaign.status === "active" ? "text-green-600" : 
-                          campaign.status === "paused" ? "text-yellow-600" : "text-gray-600"
-                        }`}>
-                          {campaign.conversions}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {campaign.period}
-                        </td>
+                   <tbody className="bg-white divide-y divide-gray-200">
+                     {paginatedCampaigns.map((campaign) => {
+                       const performance = evaluateCampaignPerformance(campaign);
+                       
+                       return (
+                         <tr key={campaign.id} className="hover:bg-gray-50 cursor-pointer">
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <div className="flex items-center space-x-3">
+                               <div className={`w-3 h-3 rounded-full ${statusConfig[campaign.status].dotColor}`}></div>
+                               <div>
+                                 <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
+                                 <div className="text-sm text-gray-500">{campaign.platforms}</div>
+                               </div>
+                             </div>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <div className="flex items-center space-x-2">
+                               <Avatar className="w-8 h-8">
+                                 <AvatarImage src={campaign.client?.avatar} alt={campaign.client?.name} />
+                                 <AvatarFallback>{campaign.client?.name?.charAt(0)}</AvatarFallback>
+                               </Avatar>
+                               <div className="text-sm text-gray-900">{campaign.client?.name}</div>
+                             </div>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <Badge className={statusConfig[campaign.status].color}>
+                               {statusConfig[campaign.status].label}
+                             </Badge>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <div className="flex items-center space-x-2">
+                               <div className={`w-3 h-3 rounded-full ${performance.dotColor}`}></div>
+                               <Badge 
+                                 className={performance.color}
+                                 title={performance.issues.length > 0 ? `Problemas: ${performance.issues.join(', ')}` : 'Performance dentro do esperado'}
+                               >
+                                 {performance.label}
+                               </Badge>
+                             </div>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                             {campaign.ctr}%
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                             R$ {campaign.cpc.toFixed(2)}
+                           </td>
+                           <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                             campaign.status === "active" ? "text-green-600" : 
+                             campaign.status === "paused" ? "text-yellow-600" : "text-gray-600"
+                           }`}>
+                             {campaign.conversions}
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                             {campaign.period}
+                           </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <Button
@@ -384,11 +490,12 @@ const Campanhas = () => {
                                 </Button>
                               </>
                             )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
+                           </div>
+                         </td>
+                       </tr>
+                       );
+                     })}
+                   </tbody>
                 </table>
               </div>
               
