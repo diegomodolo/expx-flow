@@ -567,13 +567,13 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                         <p className="text-sm">{ad.creative_body.substring(0, 100)}...</p>
                       </div>
                     )}
-                    {ad.call_to_action && (
-                      <div>
-                        <Badge variant="outline" className="text-xs">
-                          📢 {ad.call_to_action}
-                        </Badge>
-                      </div>
-                    )}
+                     {formatCallToAction(ad.call_to_action) && (
+                       <div>
+                         <Badge variant="outline" className="text-xs">
+                           📢 {formatCallToAction(ad.call_to_action)}
+                         </Badge>
+                       </div>
+                     )}
                   </div>
                 </CardContent>
               </Card>
