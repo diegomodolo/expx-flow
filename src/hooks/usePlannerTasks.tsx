@@ -75,19 +75,17 @@ export function usePlannerTasks(plannedDate: Date) {
       if (task.start_date) {
         console.log(`🔍 Checking task ${task.id} with start_date: ${task.start_date}`);
         
-        // Extrair apenas a parte do tempo da data (formato local ou UTC)
-        let taskTime: string;
+        // Converter UTC para horário local
+        const taskDate = new Date(task.start_date);
+        const taskTime = taskDate.toLocaleTimeString('pt-BR', { 
+          timeZone: 'America/Sao_Paulo',
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
         
-        if (task.start_date.includes('T')) {
-          // Formato ISO: extrair tempo da string ISO
-          const timePart = task.start_date.split('T')[1];
-          taskTime = timePart.substring(0, 8); // HH:MM:SS
-          console.log(`⏰ Extracted time from ISO: ${taskTime}`);
-        } else {
-          // Se for outro formato, tentar converter
-          taskTime = new Date(task.start_date).toTimeString().slice(0, 8);
-          console.log(`⏰ Converted to time string: ${taskTime}`);
-        }
+        console.log(`⏰ Task time in local timezone: ${taskTime}`);
         
         console.log(`🔍 Comparing task time ${taskTime} with slot ${timeSlot.name} (${timeSlot.start_time}:00 - ${timeSlot.end_time}:00)`);
         
