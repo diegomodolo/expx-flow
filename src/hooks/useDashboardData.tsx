@@ -107,7 +107,7 @@ export const useDashboardData = () => {
         .from('clients')
         .select(`
           *,
-          campaigns(spend, conversions, cpa)
+          campaigns(spend, conversions, cpa, status)
         `)
         .eq('company_id', activeCompany.company_id);
 
@@ -213,7 +213,7 @@ export const useDashboardData = () => {
         investment: totalInvestment,
         totalLeads,
         leads_generated: totalLeads,
-        active_campaigns: client.campaigns?.length || 0,
+        active_campaigns: client.campaigns?.filter(campaign => campaign.status === 'active').length || 0,
         averageCPA,
         avg_cpl: averageCPA,
         status: client.status,
