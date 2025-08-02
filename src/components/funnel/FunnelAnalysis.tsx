@@ -223,12 +223,21 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
                   <level.icon className={`w-5 h-5 ${level.color}`} />
                   <div>
                     <CardTitle className="text-sm font-bold">{level.name}</CardTitle>
-                    <p className="text-xs text-gray-600">{level.description}</p>
+                     <p className="text-xs text-gray-600">{level.description}</p>
                   </div>
                 </div>
                 <Badge variant="outline" className="text-xs">
                   {level.campaigns.length} campanhas
                 </Badge>
+              </div>
+              {/* Texto explicativo dos tipos de campanha */}
+              <div className="mt-2 px-2 py-1 bg-white/50 rounded-md border">
+                <p className="text-xs text-gray-500">
+                  {level.id === 'topo' && "Reconhecimento de marca • Alcance • Visualizações de vídeo"}
+                  {level.id === 'meio' && "Tráfego • Engajamento • Geração de leads • Mensagens"}
+                  {level.id === 'fundo' && "Conversões • Vendas do catálogo • Tráfego otimizado"}
+                  {level.id === 'retencao' && "Remarketing • Públicos personalizados • Engajamento contínuo"}
+                </p>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
