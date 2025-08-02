@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useFacebookCampaignSync = () => {
   const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0, clientName: '' });
   const { toast } = useToast();
 
   const syncCampaigns = async (clientId: string, period: string = '30', fullSync: boolean = false) => {
@@ -52,6 +53,8 @@ export const useFacebookCampaignSync = () => {
 
   const syncAllClients = async (period: string = '30') => {
     setSyncing(true);
+    setProgress({ current: 0, total: 0, clientName: '' });
+    
     try {
       // Get all clients with ad accounts
       const { data: clients, error } = await supabase
@@ -61,8 +64,14 @@ export const useFacebookCampaignSync = () => {
 
       if (error) throw error;
 
+      const totalClients = clients?.length || 0;
+      setProgress({ current: 0, total: totalClients, clientName: '' });
+
       let successCount = 0;
-      for (const client of clients || []) {
+      for (let i = 0; i < (clients?.length || 0); i++) {
+        const client = clients![i];
+        setProgress({ current: i + 1, total: totalClients, clientName: client.name });
+        
         const result = await syncCampaigns(client.id, period, false); // Always campaigns only for bulk sync
         if (result) successCount++;
       }
@@ -82,11 +91,13 @@ export const useFacebookCampaignSync = () => {
       });
     } finally {
       setSyncing(false);
+      setProgress({ current: 0, total: 0, clientName: '' });
     }
   };
 
   return {
     syncing,
+    progress,
     syncCampaigns,
     syncAllClients,
   };

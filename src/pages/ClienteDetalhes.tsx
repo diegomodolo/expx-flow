@@ -48,7 +48,7 @@ const ClienteDetalhes = () => {
   const { client, loading, error, refetch } = useClientDetails(id || "");
   const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
-  const { syncCampaigns, syncing: syncLoading } = useFacebookCampaignSync();
+  const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [adSetFilter, setAdSetFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');

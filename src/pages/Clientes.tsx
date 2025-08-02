@@ -14,6 +14,7 @@ import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
+import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -58,7 +59,7 @@ const Clientes = () => {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients } = useClients();
   const { sectors, fetchSectors } = useSectors();
-  const { syncCampaigns, syncing } = useFacebookCampaignSync();
+  const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
   const { toast } = useToast();
 
   // Memoized handlers to prevent re-renders
@@ -591,16 +592,17 @@ const Clientes = () => {
           open={syncDialogOpen}
           onOpenChange={setSyncDialogOpen}
           onConfirm={async (period: string) => {
-            // Sync campaigns for all clients with ad accounts
-            const clientsWithAdAccounts = filteredClients.filter(c => c.ad_account_id);
-            for (const client of clientsWithAdAccounts) {
-              await syncCampaigns(client.id, period, false); // fullSync = false for bulk sync
-            }
             setSyncDialogOpen(false);
-            fetchClients(); // Refresh data after sync
+            await syncAllClients(period);
           }}
           syncing={syncing}
           title="Sincronizar Todos os Clientes"
+        />
+
+        {/* Sync Progress Modal */}
+        <SyncProgressModal
+          open={syncing}
+          progress={progress}
         />
       </div>
     </DashboardLayout>
