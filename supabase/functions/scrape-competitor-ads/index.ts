@@ -15,15 +15,26 @@ serve(async (req) => {
   }
 
   try {
-    const { url, competitorId, competitorName } = await req.json();
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    
+    const requestBody = await req.json();
+    console.log('Request body:', requestBody);
+    
+    const { url, competitorId, competitorName } = requestBody;
 
     console.log('Scraping ads from URL:', url);
     console.log('Competitor ID:', competitorId);
+    console.log('Competitor Name:', competitorName);
     console.log('API Key available:', !!firecrawlApiKey);
 
     if (!firecrawlApiKey) {
       console.error('FIRECRAWL_API_KEY not found in environment variables');
       throw new Error('FIRECRAWL_API_KEY não configurada');
+    }
+
+    if (!url) {
+      throw new Error('URL é obrigatória');
     }
 
     // Fazer scraping da URL usando Firecrawl
