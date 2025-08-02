@@ -75,7 +75,7 @@ Retorne uma análise estruturada em formato JSON com os seguintes campos:
       "copy": "Copy do anúncio adaptado para nosso cliente",
       "cta": "Call to action sugerido",
       "rationale": "Explicação de por que esta variação pode funcionar",
-      "campaign_type": "Awareness / Consideration / Conversion / Retargeting",
+      "campaign_type": "Reconhecimento de Marca / Consideração / Conversão / Retargeting",
       "funnel_stage": "Topo / Meio / Fundo do funil"
     }
   ]
@@ -88,11 +88,11 @@ Para a seção "ad_variations", crie 3-5 variações dos melhores anúncios do c
 - As mensagens que diferencia nosso cliente
 
 Para cada variação, defina também:
-- **campaign_type**: Tipo ideal de campanha no Meta Ads (ex: "Traffic", "Conversions", "Lead Generation", "Brand Awareness", "Engagement", "Retargeting")
+- **campaign_type**: Tipo ideal de campanha no Meta Ads (ex: "Tráfego", "Conversões", "Geração de Leads", "Reconhecimento de Marca", "Engajamento", "Retargeting")
 - **funnel_stage**: Em qual etapa do funil o anúncio funciona melhor:
-  - "Topo do Funil (ToFu)" - Awareness, problema/necessidade
-  - "Meio do Funil (MoFu)" - Consideration, avaliação de soluções
-  - "Fundo do Funil (BoFu)" - Decision, conversão/compra
+  - "Topo do Funil (ToFu)" - Reconhecimento, problema/necessidade
+  - "Meio do Funil (MoFu)" - Consideração, avaliação de soluções
+  - "Fundo do Funil (BoFu)" - Decisão, conversão/compra
   - "Pós-compra" - Retenção, upsell, advocacy
 
 Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação não estiver disponível, mencione isso na análise.
