@@ -23,6 +23,10 @@ export interface Task {
     name: string;
     color: string;
   };
+  user_profile?: {
+    avatar_url: string | null;
+    full_name: string | null;
+  } | null;
 }
 
 export function useTasks() {

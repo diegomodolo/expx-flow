@@ -22,7 +22,8 @@ export function usePlannerTasks(plannedDate: Date) {
       
       const dateStr = plannedDate.toISOString().split('T')[0];
       
-      const { data, error } = await supabase
+      // Buscar tarefas
+      const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select(`
           *,
@@ -33,8 +34,28 @@ export function usePlannerTasks(plannedDate: Date) {
         .or(`deadline.eq.${dateStr},start_date.gte.${dateStr}T00:00:00,start_date.lte.${dateStr}T23:59:59`)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
-      return data || [];
+      if (tasksError) throw tasksError;
+      
+      if (!tasksData || tasksData.length === 0) return [];
+
+      // Buscar perfis dos usuários
+      const userIds = [...new Set(tasksData.map(task => task.user_id))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, avatar_url, full_name")
+        .in("user_id", userIds);
+
+      if (profilesError) {
+        console.warn("Erro ao buscar perfis:", profilesError);
+      }
+
+      // Combinar dados
+      const tasksWithProfiles = tasksData.map(task => ({
+        ...task,
+        user_profile: profilesData?.find(profile => profile.user_id === task.user_id) || null
+      }));
+
+      return tasksWithProfiles;
     },
     enabled: !!user && !!activeCompany?.company_id,
   });
