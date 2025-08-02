@@ -104,15 +104,28 @@ export default function RelatorioClientesZonaCritica() {
         issues.push(`Frequência muito alta (${avgFrequency.toFixed(1)} vs ${frequencyMax})`);
       }
 
-      // Identificar campanhas problemáticas
+      // Identificar campanhas problemáticas e com CPA crítico
+      const criticalCPAThreshold = cpaTarget * 2; // CPA crítico: 2x a meta (R$ 300)
+      let hasCriticalCPACampaigns = false;
+      
       clientCampaigns.forEach(campaign => {
         const campaignCPA = campaign.conversions > 0 ? campaign.spend / campaign.conversions : 0;
         const campaignCTR = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+        
+        // Verificar se campanha tem CPA crítico
+        if (campaignCPA > criticalCPAThreshold) {
+          hasCriticalCPACampaigns = true;
+        }
         
         if (campaignCPA > cpaTarget || campaignCTR < ctrTarget) {
           problematicCampaigns.push(campaign.name);
         }
       });
+
+      // Adicionar alerta específico para CPA crítico
+      if (hasCriticalCPACampaigns) {
+        issues.push(`Campanhas com CPA crítico (acima de R$ ${criticalCPAThreshold})`);
+      }
 
       if (issues.length > 0) {
         const status = issues.length >= 3 ? 'critical' : 'warning';
