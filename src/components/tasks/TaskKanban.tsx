@@ -1,10 +1,8 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, User, Edit, CheckCircle, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,20 +37,33 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   ];
 
   const priorityColors = {
-    low: 'bg-green-100 text-green-800',
-    medium: 'bg-yellow-100 text-yellow-800',
-    high: 'bg-red-100 text-red-800',
-  };
-
-  const originIcons = {
-    manual: '👤',
-    automation: '🤖',
-    dashboard: '📊',
+    low: '#10B981', // green
+    medium: '#F59E0B', // yellow/orange
+    high: '#EF4444', // red
   };
 
   const isOverdue = (dueDate: string | undefined) => {
     if (!dueDate) return false;
     return new Date(dueDate) < new Date() && new Date(dueDate).toDateString() !== new Date().toDateString();
+  };
+
+  const formatDateRelative = (dateString: string | undefined) => {
+    if (!dateString) return null;
+    
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Hoje';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Amanhã';
+    } else if (isOverdue(dateString)) {
+      return 'Atrasado';
+    } else {
+      return format(date, "dd/MM", { locale: ptBR });
+    }
   };
 
   return (
@@ -69,43 +80,56 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               </h3>
             </div>
             
-            <div className="flex-1 p-4 space-y-4 bg-gray-50/50 min-h-[500px] rounded-b-lg">
+            <div className="flex-1 p-4 space-y-3 bg-gray-50/50 min-h-[500px] rounded-b-lg">
               {columnTasks.map((task) => (
-                <Card key={task.id} className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                  <CardHeader className="pb-3">
+                <Card key={task.id} className="p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4" 
+                      style={{ borderLeftColor: priorityColors[task.priority] }}>
+                  <CardContent className="p-0">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-sm font-medium line-clamp-2 mb-2">
-                          {task.title}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge 
-                            variant="secondary"
-                            className={priorityColors[task.priority]}
-                          >
-                            {task.priority === 'low' ? 'Baixa' : 
-                             task.priority === 'medium' ? 'Média' : 'Alta'}
-                          </Badge>
-                          <span className="text-lg" title={`Origem: ${task.origin}`}>
-                            {originIcons[task.origin]}
-                          </span>
+                      <div className="flex items-start gap-3 flex-1">
+                        {/* Ponto colorido da prioridade */}
+                        <div 
+                          className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
+                          style={{ backgroundColor: priorityColors[task.priority] }}
+                        />
+                        
+                        <div className="flex-1 min-w-0">
+                          {/* Título */}
+                          <h4 className="font-medium text-gray-900 text-sm leading-tight mb-2 line-clamp-2">
+                            {task.title}
+                          </h4>
+                          
+                          {/* Descrição simplificada */}
+                          {task.description && (
+                            <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                              {task.description}
+                            </p>
+                          )}
+                          
+                          {/* Data relativa */}
+                          {task.due_date && (
+                            <p className={`text-xs font-medium ${
+                              isOverdue(task.due_date) ? 'text-red-500' : 'text-gray-400'
+                            }`}>
+                              {formatDateRelative(task.due_date)}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
+                      {/* Menu de ações */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-gray-100">
+                            <MoreHorizontal className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
+                        <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => onEditTask(task)}>
-                            <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
                           {task.status !== 'done' && (
                             <DropdownMenuItem onClick={() => onUpdateTaskStatus(task.id, 'done')}>
-                              <CheckCircle className="h-4 w-4 mr-2" />
                               Marcar como Concluída
                             </DropdownMenuItem>
                           )}
@@ -118,68 +142,6 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-0">
-                    {task.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {task.description}
-                      </p>
-                    )}
-                    
-                    {/* Progresso */}
-                    {task.progress > 0 && (
-                      <div className="mb-3">
-                        <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>Progresso</span>
-                          <span>{task.progress}%</span>
-                        </div>
-                        <Progress value={task.progress} className="h-2" />
-                      </div>
-                    )}
-                    
-                    {/* Responsável */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={task.responsible_avatar} />
-                        <AvatarFallback className="text-xs">
-                          {task.responsible_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs text-gray-600 truncate">
-                        {task.responsible_name}
-                      </span>
-                    </div>
-                    
-                    {/* Prazo */}
-                    {task.due_date && (
-                      <div className={`flex items-center gap-1 text-xs ${
-                        isOverdue(task.due_date) ? 'text-red-600' : 'text-gray-500'
-                      }`}>
-                        {isOverdue(task.due_date) ? <Clock className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-                        <span>
-                          {format(new Date(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
-                        {isOverdue(task.due_date) && (
-                          <Badge variant="destructive" className="ml-1 text-xs py-0">
-                            Atrasado
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Equipe */}
-                    {task.team && (
-                      <div className="mt-2">
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs"
-                          style={{ borderColor: task.team.color, color: task.team.color }}
-                        >
-                          {task.team.name}
-                        </Badge>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
