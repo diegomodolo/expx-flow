@@ -1136,9 +1136,12 @@ const ClienteDetalhes = () => {
                            )}
                          </div>
                        </th>
-                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                         Conjunto de Anúncios
-                       </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Campanha
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Conjunto de Anúncios
+                        </th>
                        <th 
                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
                          onClick={() => handleAdSort('type')}
@@ -1213,7 +1216,7 @@ const ClienteDetalhes = () => {
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adsLoading ? (
                         <tr>
-                           <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                           <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                            <p>Carregando criativos...</p>
                          </td>
@@ -1224,11 +1227,20 @@ const ClienteDetalhes = () => {
                            <td className="px-4 py-4 whitespace-nowrap">
                              <div className="text-sm font-medium text-gray-900">{ad.name}</div>
                            </td>
-                           <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500">
-                                {adSets?.find(adSet => adSet.id === ad.ad_set_id)?.name || 'N/A'}
-                              </div>
-                           </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                               <div className="text-sm text-gray-500">
+                                 {(() => {
+                                   const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
+                                   const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
+                                   return campaign?.name || 'N/A';
+                                 })()}
+                               </div>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                               <div className="text-sm text-gray-500">
+                                 {adSets?.find(adSet => adSet.id === ad.ad_set_id)?.name || 'N/A'}
+                               </div>
+                            </td>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <Badge 
                                variant={ad.creative_type === 'video' ? 'default' : 'secondary'}
@@ -1283,7 +1295,7 @@ const ClienteDetalhes = () => {
                        ))
                      ) : (
                         <tr>
-                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                            <div>
                              <p className="mb-2">Nenhum criativo encontrado</p>
                              <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
