@@ -673,6 +673,7 @@ export type Database = {
       }
       competitors: {
         Row: {
+          ad_library_url: string | null
           client_id: string
           company_id: string
           company_name: string
@@ -682,12 +683,14 @@ export type Database = {
           id: string
           industry: string | null
           instagram_handle: string | null
+          last_scrape_at: string | null
           name: string
           updated_at: string
           user_id: string
           website_url: string | null
         }
         Insert: {
+          ad_library_url?: string | null
           client_id: string
           company_id: string
           company_name: string
@@ -697,12 +700,14 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_handle?: string | null
+          last_scrape_at?: string | null
           name: string
           updated_at?: string
           user_id: string
           website_url?: string | null
         }
         Update: {
+          ad_library_url?: string | null
           client_id?: string
           company_id?: string
           company_name?: string
@@ -712,6 +717,7 @@ export type Database = {
           id?: string
           industry?: string | null
           instagram_handle?: string | null
+          last_scrape_at?: string | null
           name?: string
           updated_at?: string
           user_id?: string

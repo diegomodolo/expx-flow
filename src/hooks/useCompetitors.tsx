@@ -16,6 +16,8 @@ export interface Competitor {
   website_url?: string;
   industry?: string;
   description?: string;
+  ad_library_url?: string;
+  last_scrape_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -193,6 +195,23 @@ export const useCompetitors = (clientId?: string) => {
     return data;
   };
 
+  const saveAdLibraryUrl = async (competitorId: string, url: string) => {
+    const { data, error } = await supabase
+      .from('competitors')
+      .update({ 
+        ad_library_url: url,
+        last_scrape_at: new Date().toISOString()
+      })
+      .eq('id', competitorId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    setCompetitors(prev => prev.map(comp => comp.id === competitorId ? data : comp));
+    return data;
+  };
+
   const updateCompetitorAd = async (id: string, updates: Partial<CompetitorAd>) => {
     const { data, error } = await supabase
       .from('competitor_ads')
@@ -257,6 +276,7 @@ export const useCompetitors = (clientId?: string) => {
     createCompetitorAd,
     updateCompetitorAd,
     deleteCompetitorAd,
+    saveAdLibraryUrl,
     generateCompetitiveAnalysis,
     refetch: () => {
       fetchCompetitors();

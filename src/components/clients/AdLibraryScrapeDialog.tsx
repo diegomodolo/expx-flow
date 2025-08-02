@@ -28,13 +28,25 @@ interface ScrapedAd {
 }
 
 export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrapeDialogProps) => {
-  const { createCompetitorAd } = useCompetitors(competitor.client_id);
+  const { createCompetitorAd, saveAdLibraryUrl } = useCompetitors(competitor.client_id);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [adLibraryUrl, setAdLibraryUrl] = useState('');
+  const [adLibraryUrl, setAdLibraryUrl] = useState(competitor.ad_library_url || '');
   const [scrapedAds, setScrapedAds] = useState<ScrapedAd[]>([]);
   const [selectedAds, setSelectedAds] = useState<Set<number>>(new Set());
+
+  // Reset state when dialog closes
+  useState(() => {
+    if (!open) {
+      setScrapedAds([]);
+      setSelectedAds(new Set());
+      setProgress(0);
+      if (!competitor.ad_library_url) {
+        setAdLibraryUrl('');
+      }
+    }
+  });
 
   const handleScrape = async () => {
     if (!adLibraryUrl) {
@@ -73,8 +85,13 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
       // Selecionar todos os anúncios por padrão
       setSelectedAds(new Set(data.ads?.map((_: any, index: number) => index) || []));
       
+      // Save the URL automatically after successful scrape
+      if (adLibraryUrl) {
+        await saveAdLibraryUrl(competitor.id, adLibraryUrl);
+      }
+      
       setProgress(100);
-      toast.success(`${data.ads?.length || 0} anúncios extraídos com sucesso!`);
+      toast.success(`${data.ads?.length || 0} anúncios extraídos e URL salva!`);
 
     } catch (error) {
       console.error('Error scraping ads:', error);
@@ -181,30 +198,40 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
           {/* URL Input */}
           <div className="space-y-2">
             <Label htmlFor="library_url">URL da Biblioteca de Anúncios</Label>
-            <div className="flex space-x-2">
-              <Input
-                id="library_url"
-                value={adLibraryUrl}
-                onChange={(e) => setAdLibraryUrl(e.target.value)}
-                placeholder="https://www.facebook.com/ads/library/?..."
-                className="flex-1"
-              />
-              <Button 
-                onClick={handleScrape}
-                disabled={loading || !adLibraryUrl}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Extraindo...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Extrair
-                  </>
-                )}
-              </Button>
+            <div className="space-y-2">
+              <div className="flex space-x-2">
+                <Input
+                  id="library_url"
+                  value={adLibraryUrl}
+                  onChange={(e) => setAdLibraryUrl(e.target.value)}
+                  placeholder="https://www.facebook.com/ads/library/?..."
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleScrape}
+                  disabled={loading || !adLibraryUrl}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Extraindo...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Extrair
+                    </>
+                  )}
+                </Button>
+              </div>
+              {competitor.ad_library_url && (
+                <p className="text-xs text-muted-foreground">
+                  URL salva disponível
+                  {competitor.last_scrape_at && (
+                    <span> • Última extração: {new Date(competitor.last_scrape_at).toLocaleDateString()}</span>
+                  )}
+                </p>
+              )}
             </div>
             {loading && (
               <Progress value={progress} className="w-full mt-2" />
