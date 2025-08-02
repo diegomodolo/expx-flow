@@ -95,7 +95,12 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
       });
 
       const data = await response.json();
-      const analysisText = data.choices[0].message.content;
+      let analysisText = data.choices[0].message.content;
+
+      // Clean markdown formatting if present
+      if (analysisText.includes('```json')) {
+        analysisText = analysisText.replace(/```json/g, '').replace(/```/g, '').trim();
+      }
 
       // Try to parse as JSON
       let analysis;
