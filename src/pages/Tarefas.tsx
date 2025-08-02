@@ -32,10 +32,15 @@ import {
   Target,
   TrendingUp,
   Users,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function Tarefas() {
   const [view, setView] = useState<'list' | 'kanban' | 'calendar'>('kanban');
@@ -50,6 +55,8 @@ export default function Tarefas() {
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [clientComboOpen2, setClientComboOpen2] = useState(false);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -190,20 +197,65 @@ export default function Tarefas() {
                                {dangerAlerts.length} items
                              </span>
                            </div>
-                           <div className="flex items-center gap-3">
-                             <Select value={selectedClientId || 'all'} onValueChange={(value) => setSelectedClientId(value === 'all' ? null : value)}>
-                               <SelectTrigger className="w-48">
-                                 <SelectValue placeholder="Todos os clientes" />
-                               </SelectTrigger>
-                               <SelectContent className="bg-white z-50">
-                                 <SelectItem value="all">Todos os clientes</SelectItem>
-                                 {clients?.map((client) => (
-                                   <SelectItem key={client.id} value={client.id}>
-                                     {client.name}
-                                   </SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
+                            <div className="flex items-center gap-3">
+                              <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={clientComboOpen}
+                                    className="w-48 justify-between"
+                                  >
+                                    {selectedClientId
+                                      ? clients?.find((client) => client.id === selectedClientId)?.name
+                                      : "Todos os clientes"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-0 bg-white" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Buscar cliente..." />
+                                    <CommandList>
+                                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          value="all"
+                                          onSelect={() => {
+                                            setSelectedClientId(null);
+                                            setClientComboOpen(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              selectedClientId === null ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          Todos os clientes
+                                        </CommandItem>
+                                        {clients?.map((client) => (
+                                          <CommandItem
+                                            key={client.id}
+                                            value={client.name}
+                                            onSelect={() => {
+                                              setSelectedClientId(client.id);
+                                              setClientComboOpen(false);
+                                            }}
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {client.name}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                              <Button
                                variant="outline"
                                size="sm"
@@ -290,20 +342,65 @@ export default function Tarefas() {
                                {opportunityAlerts.length} items
                              </span>
                            </div>
-                           <div className="flex items-center gap-3">
-                             <Select value={selectedClientId || 'all'} onValueChange={(value) => setSelectedClientId(value === 'all' ? null : value)}>
-                               <SelectTrigger className="w-48">
-                                 <SelectValue placeholder="Todos os clientes" />
-                               </SelectTrigger>
-                               <SelectContent className="bg-white z-50">
-                                 <SelectItem value="all">Todos os clientes</SelectItem>
-                                 {clients?.map((client) => (
-                                   <SelectItem key={client.id} value={client.id}>
-                                     {client.name}
-                                   </SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
+                            <div className="flex items-center gap-3">
+                              <Popover open={clientComboOpen2} onOpenChange={setClientComboOpen2}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={clientComboOpen2}
+                                    className="w-48 justify-between"
+                                  >
+                                    {selectedClientId
+                                      ? clients?.find((client) => client.id === selectedClientId)?.name
+                                      : "Todos os clientes"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-0 bg-white" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Buscar cliente..." />
+                                    <CommandList>
+                                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          value="all"
+                                          onSelect={() => {
+                                            setSelectedClientId(null);
+                                            setClientComboOpen2(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              selectedClientId === null ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          Todos os clientes
+                                        </CommandItem>
+                                        {clients?.map((client) => (
+                                          <CommandItem
+                                            key={client.id}
+                                            value={client.name}
+                                            onSelect={() => {
+                                              setSelectedClientId(client.id);
+                                              setClientComboOpen2(false);
+                                            }}
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {client.name}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                              <Button
                                variant="outline"
                                size="sm"
