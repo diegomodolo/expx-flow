@@ -7,6 +7,7 @@ interface DashboardMetrics {
   totalInvestment: number;
   totalLeads: number;
   averageCPA: number;
+  averageROI: number;
   roi: number;
   activeClients: number;
   pausedClients: number;
@@ -21,8 +22,12 @@ interface ClientPerformance {
   name: string;
   company: string;
   totalInvestment: number;
+  investment: number;
   totalLeads: number;
+  leads_generated: number;
+  active_campaigns: number;
   averageCPA: number;
+  avg_cpl: number;
   status: string;
 }
 
@@ -192,6 +197,7 @@ export const useDashboardData = () => {
       totalInvestment,
       totalLeads,
       averageCPA,
+      averageROI: roi,
       roi,
       activeClients: clientStatuses.green || 0,
       pausedClients: (clientStatuses.yellow || 0) + (clientStatuses.red || 0),
@@ -210,8 +216,12 @@ export const useDashboardData = () => {
         name: client.name,
         company: client.company,
         totalInvestment,
+        investment: totalInvestment,
         totalLeads,
+        leads_generated: totalLeads,
+        active_campaigns: client.campaigns?.length || 0,
         averageCPA,
+        avg_cpl: averageCPA,
         status: client.status,
       };
     }).sort((a, b) => b.totalInvestment - a.totalInvestment);

@@ -123,7 +123,7 @@ export default function NewDashboard() {
 
   // Sincronizar todos os clientes
   const syncAllClients = async (period: string) => {
-    if (clients.length === 0) {
+    if (!clients || clients.length === 0) {
       console.log('No clients to sync');
       return;
     }
