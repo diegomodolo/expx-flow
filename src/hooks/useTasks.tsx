@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Task {
   id: string;
@@ -23,17 +25,22 @@ export interface Task {
 }
 
 export function useTasks() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchTasks = async () => {
-    if (!user || !activeCompany?.company_id) return;
-    
-    try {
-      setLoading(true);
+  // Query para buscar tarefas
+  const {
+    data: tasks = [],
+    isLoading: loading,
+    error,
+    refetch: fetchTasks,
+  } = useQuery({
+    queryKey: ['tasks', activeCompany?.company_id],
+    queryFn: async () => {
+      if (!user || !activeCompany?.company_id) return [];
+      
       const { data, error } = await supabase
         .from("tasks")
         .select(`
@@ -44,90 +51,133 @@ export function useTasks() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTasks(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao buscar tarefas");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data || [];
+    },
+    enabled: !!user && !!activeCompany?.company_id,
+  });
 
-  const createTask = async (taskData: Omit<Task, "id" | "team">) => {
-    if (!user) return null;
+  // Mutation para criar tarefa
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: Omit<Task, "id" | "team">) => {
+      if (!user || !activeCompany?.company_id) {
+        throw new Error('User or company not found');
+      }
 
-    try {
       const { data, error } = await supabase
         .from("tasks")
         .insert([{
           ...taskData,
           user_id: user.id,
+          company_id: activeCompany.company_id,
         }])
         .select()
         .single();
 
       if (error) throw error;
-      await fetchTasks(); // Refresh the list
       return data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar tarefa");
-      return null;
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
+      toast({
+        title: "Tarefa criada",
+        description: "Tarefa criada com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error creating task:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao criar tarefa.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const updateTask = async (id: string, updates: Partial<Task>) => {
-    try {
+  // Mutation para atualizar tarefa
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Task> }) => {
       const { error } = await supabase
         .from("tasks")
         .update(updates)
         .eq("id", id);
 
       if (error) throw error;
-      await fetchTasks(); // Refresh the list
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar tarefa");
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
+      toast({
+        title: "Tarefa atualizada",
+        description: "Tarefa atualizada com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar tarefa.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const updateTaskStatus = async (id: string, status: Task["status"]) => {
-    try {
-      const progress = status === "done" ? 100 : 
-                      status === "review" ? 90 :
-                      status === "progress" ? 50 : 0;
-
-      const { error } = await supabase
-        .from("tasks")
-        .update({ status, progress })
-        .eq("id", id);
-
-      if (error) throw error;
-      await fetchTasks(); // Refresh the list
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar status da tarefa");
-    }
-  };
-
-  const deleteTask = async (id: string) => {
-    try {
+  // Mutation para deletar tarefa
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("tasks")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
-      await fetchTasks(); // Refresh the list
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao deletar tarefa");
-    }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
+      toast({
+        title: "Tarefa excluída",
+        description: "Tarefa excluída com sucesso.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir tarefa.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Helper functions
+  const createTask = (taskData: Omit<Task, "id" | "team">) => {
+    return createTaskMutation.mutateAsync(taskData);
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, [user, activeCompany?.company_id]);
+  const updateTask = (id: string, updates: Partial<Task>) => {
+    return updateTaskMutation.mutateAsync({ id, updates });
+  };
+
+  const updateTaskStatus = (id: string, status: Task["status"]) => {
+    const progress = status === "done" ? 100 : 
+                    status === "review" ? 90 :
+                    status === "progress" ? 50 : 0;
+    
+    return updateTaskMutation.mutateAsync({ 
+      id, 
+      updates: { status, progress } 
+    });
+  };
+
+  const deleteTask = (id: string) => {
+    return deleteTaskMutation.mutateAsync(id);
+  };
 
   return {
     tasks,
     loading,
-    error,
+    error: error as Error | null,
     fetchTasks,
     createTask,
     updateTask,
