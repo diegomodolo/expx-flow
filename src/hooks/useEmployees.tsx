@@ -76,6 +76,7 @@ export function useEmployees() {
       }
       
       // 1. Verificar se o colaborador já existe na empresa atual
+      console.log("Verificando colaborador existente para email:", employeeData.email);
       const { data: existingEmployee, error: searchError } = await supabase
         .from('employees')
         .select('id, user_id, email')
@@ -84,12 +85,16 @@ export function useEmployees() {
         .maybeSingle();
 
       if (searchError) {
-        console.warn("Aviso ao verificar colaborador existente:", searchError);
+        console.error("Erro ao verificar colaborador existente:", searchError);
+        // Não falhar aqui, apenas avisar
       }
 
       if (existingEmployee) {
+        console.log("Colaborador já existe:", existingEmployee);
         throw new Error("Este email já está cadastrado como colaborador na empresa");
       }
+
+      console.log("Colaborador não existe na empresa, prosseguindo...");
 
       let userId: string;
       let isNewUser = true;
@@ -204,12 +209,17 @@ export function useEmployees() {
           if (employeeError.message?.includes('employees_email_key')) {
             console.log("Email duplicado detectado, tentando atualizar registro existente...");
             
-            const { data: existingByEmail } = await supabase
+            const { data: existingByEmail, error: searchEmailError } = await supabase
               .from('employees')
               .select('id')
               .eq('email', employeeData.email)
               .eq('company_id', activeCompany.company_id)
-              .single();
+              .maybeSingle();
+
+            if (searchEmailError) {
+              console.error("Erro ao buscar por email:", searchEmailError);
+              throw new Error(`Erro ao buscar colaborador existente: ${searchEmailError.message}`);
+            }
 
             if (existingByEmail) {
               const { data: updatedEmployee, error: updateError } = await supabase
@@ -225,7 +235,7 @@ export function useEmployees() {
               
               employee = updatedEmployee;
             } else {
-              throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
+              throw new Error(`Email duplicado detectado mas não foi possível encontrar o registro para atualizar`);
             }
           } else {
             throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
