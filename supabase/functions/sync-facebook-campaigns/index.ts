@@ -536,8 +536,8 @@ serve(async (req) => {
             // Fetch ads for this ad set
             try {
               console.log('Fetching ads for ad set:', adSet.id)
-              // Add creative fields and basic insights
-              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency}&access_token=${accessToken}`
+              // Add actions and quality fields back
+              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
               console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
               const adsResponse = await fetch(adsUrl)
               console.log('Ads API response status:', adsResponse.status)
@@ -567,6 +567,10 @@ serve(async (req) => {
                   let adCpm = 0
                   let adReach = 0
                   let adFrequency = 0
+                  let adLeads = 0
+                  let adQualityRanking = null
+                  let adEngagementRateRanking = null
+                  let adConversionRateRanking = null
                   
                   if (adInsights) {
                     adSpend = parseFloat(adInsights.spend || 0)
@@ -577,9 +581,21 @@ serve(async (req) => {
                     adCpm = parseFloat(adInsights.cpm || 0)
                     adReach = parseInt(adInsights.reach || 0)
                     adFrequency = parseFloat(adInsights.frequency || 0)
+                    adQualityRanking = adInsights.quality_ranking || null
+                    adEngagementRateRanking = adInsights.engagement_rate_ranking || null
+                    adConversionRateRanking = adInsights.conversion_rate_ranking || null
+                    
+                    // Extract conversions from actions
+                    if (adInsights.actions) {
+                      adInsights.actions.forEach((action: any) => {
+                        if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
+                          adLeads += parseInt(action.value || 0)
+                        }
+                      })
+                    }
                   }
                    
-                   // Save ad to database with enhanced data
+                   // Save ad to database with complete data
                    const adData = {
                      facebook_id: ad.id,
                      ad_set_id: savedAdSet.id,
@@ -603,13 +619,13 @@ serve(async (req) => {
                      spend: adSpend,
                      impressions: adImpressions,
                      clicks: adClicks,
-                     conversions: 0, // Will add actions later
-                     cpa: 0,
+                     conversions: adLeads,
+                     cpa: adLeads > 0 ? adSpend / adLeads : 0,
                      reach: adReach,
                      frequency: adFrequency,
-                     quality_ranking: null,
-                     engagement_rate_ranking: null,
-                     conversion_rate_ranking: null,
+                     quality_ranking: adQualityRanking,
+                     engagement_rate_ranking: adEngagementRateRanking,
+                     conversion_rate_ranking: adConversionRateRanking,
                      likes: 0,
                      comments: 0,
                      shares: 0,
