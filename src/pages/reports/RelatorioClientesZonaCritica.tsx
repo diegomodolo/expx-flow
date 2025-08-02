@@ -44,7 +44,30 @@ export default function RelatorioClientesZonaCritica() {
       const issues: string[] = [];
       const problematicCampaigns: string[] = [];
       
-      // Calcular métricas agregadas do cliente
+      // PRIORIDADE MÁXIMA: Clientes sem campanhas ativas
+      if (clientCampaigns.length === 0) {
+        critical.push({
+          id: client.id,
+          name: client.name,
+          status: 'critical',
+          issues: ['Sem campanhas ativas'],
+          cpl_current: 0,
+          cpl_target: 50,
+          cpa_current: 0,
+          cpa_target: 150,
+          ctr: 0,
+          frequency: 0,
+          problematic_campaigns: [],
+          ai_recommendations: [
+            'URGENTE: Ativar campanhas imediatamente',
+            'Revisar estratégia de marketing do cliente',
+            'Agendar reunião para reativação'
+          ]
+        });
+        return; // Pular análise de métricas para clientes sem campanhas
+      }
+      
+      // Calcular métricas agregadas do cliente (apenas para clientes com campanhas ativas)
       const totalSpend = clientCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
       const totalConversions = clientCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
       const totalClicks = clientCampaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
@@ -108,9 +131,20 @@ export default function RelatorioClientesZonaCritica() {
       }
     });
 
+    // Ordenar com clientes sem campanhas no topo
     setCriticalClients(critical.sort((a, b) => {
+      // Prioridade 1: Clientes sem campanhas ativas (issues contém 'Sem campanhas ativas')
+      const aHasNoCampaigns = a.issues.includes('Sem campanhas ativas');
+      const bHasNoCampaigns = b.issues.includes('Sem campanhas ativas');
+      
+      if (aHasNoCampaigns && !bHasNoCampaigns) return -1;
+      if (!aHasNoCampaigns && bHasNoCampaigns) return 1;
+      
+      // Prioridade 2: Status crítico
       if (a.status === 'critical' && b.status !== 'critical') return -1;
       if (b.status === 'critical' && a.status !== 'critical') return 1;
+      
+      // Prioridade 3: Número de problemas
       return b.issues.length - a.issues.length;
     }));
   };
