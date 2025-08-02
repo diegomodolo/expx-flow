@@ -125,8 +125,16 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
       return;
     }
 
+    // Preparar dados da tarefa - removendo campos auxiliares que não existem no banco
     const taskData: any = {
-      ...formData,
+      title: formData.title,
+      description: formData.description,
+      status: formData.status,
+      priority: formData.priority,
+      team_id: formData.team_id,
+      responsible_name: formData.responsible_name,
+      responsible_avatar: formData.responsible_avatar,
+      progress: formData.progress,
       checklist: JSON.stringify(formData.checklist),
     };
 
@@ -136,6 +144,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
 
     if (dueDateTime) {
       taskData.due_date = dueDateTime.toISOString();
+      taskData.deadline = dueDateTime.toISOString().split('T')[0]; // formato YYYY-MM-DD para o campo deadline
     }
 
     onSave(taskData);
