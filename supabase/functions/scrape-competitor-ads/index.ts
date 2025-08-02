@@ -99,7 +99,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -146,7 +146,7 @@ ${rawContent}`
           }
         ],
         temperature: 0.1,
-        max_tokens: 2000
+        max_tokens: 4000
       }),
     });
 
@@ -166,7 +166,27 @@ ${rawContent}`
     // Step 3: Parse ChatGPT response
     let extractedAds = [];
     try {
-      const parsedResponse = JSON.parse(chatGptResponse);
+      // Clean any potential markdown formatting
+      let cleanedResponse = chatGptResponse.trim();
+      if (cleanedResponse.includes('```json')) {
+        cleanedResponse = cleanedResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+      }
+      
+      // If the JSON is truncated (no closing brace), try to fix it
+      if (!cleanedResponse.endsWith('}')) {
+        console.log('JSON appears truncated, attempting to fix...');
+        // Find the last complete ad object
+        const lastCompleteAd = cleanedResponse.lastIndexOf('    }');
+        if (lastCompleteAd > -1) {
+          cleanedResponse = cleanedResponse.substring(0, lastCompleteAd + 5) + '\n  ]\n}';
+        } else {
+          cleanedResponse += '\n  ]\n}';
+        }
+      }
+      
+      console.log('Attempting to parse cleaned response length:', cleanedResponse.length);
+      const parsedResponse = JSON.parse(cleanedResponse);
+      
       if (parsedResponse.ads && Array.isArray(parsedResponse.ads)) {
         extractedAds = parsedResponse.ads.map(ad => ({
           ad_title: ad.ad_title || 'Título não disponível',
@@ -175,13 +195,31 @@ ${rawContent}`
           ad_type: ad.ad_type || 'unknown',
           estimated_performance: 'medium',
           platforms: ad.platforms || 'Facebook',
-          notes: `Library ID: ${ad.library_id || 'N/A'} | Data: ${ad.date_started || 'N/A'}`
+          notes: `Library ID: ${ad.library_id || 'N/A'} | Data: ${ad.date_started || 'N/A'}
+
+Extraído automaticamente de: ${url}`
         }));
       }
     } catch (parseError) {
       console.error('Failed to parse ChatGPT response:', parseError);
       console.error('Raw response:', chatGptResponse);
-      throw new Error('Erro ao processar resposta do ChatGPT');
+      
+      // Try to extract at least partial data using regex as fallback
+      const adMatches = chatGptResponse.match(/"ad_title":\s*"([^"]+)"/g);
+      if (adMatches && adMatches.length > 0) {
+        console.log('Using regex fallback, found', adMatches.length, 'potential ads');
+        extractedAds = [{
+          ad_title: 'Dados parciais extraídos',
+          ad_copy: 'Erro no processamento completo - dados parciais disponíveis',
+          call_to_action: 'Ver mais',
+          ad_type: 'unknown',
+          estimated_performance: 'medium',
+          platforms: 'Facebook',
+          notes: `Erro de parsing - ${adMatches.length} anúncios detectados | Fonte: ${url}`
+        }];
+      } else {
+        throw new Error('Erro ao processar resposta do ChatGPT');
+      }
     }
 
     console.log('=== FINAL RESULT ===');
