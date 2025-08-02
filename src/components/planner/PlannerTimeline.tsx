@@ -100,27 +100,48 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       return;
     }
 
-    const taskId = draggableId;
+    // Extrair o ID da tarefa do draggableId (remover o prefixo "planner-task-")
+    const taskId = draggableId.replace('planner-task-', '');
     const newSlotId = destination.droppableId;
+    
+    console.log('🔄 Dragging task:', taskId, 'to slot:', newSlotId);
     
     // Encontrar o slot de destino
     const targetSlot = timeSlots.find(slot => slot.id === newSlotId);
-    if (!targetSlot) return;
+    if (!targetSlot) {
+      console.error('❌ Target slot not found:', newSlotId);
+      return;
+    }
 
     // Calcular novo horário baseado no slot
     const [hours, minutes] = targetSlot.start_time.split(':');
     const newStartDate = new Date(selectedDate);
     newStartDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // Calcular end_date baseado no horário de fim do slot
+    const [endHours, endMinutes] = targetSlot.end_time.split(':');
+    const newEndDate = new Date(selectedDate);
+    newEndDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+    console.log('📅 New dates:', {
+      start: newStartDate.toISOString(),
+      end: newEndDate.toISOString(),
+      slot: `${targetSlot.start_time} - ${targetSlot.end_time}`
+    });
 
     try {
       await updateTask(taskId, {
         start_date: newStartDate.toISOString(),
+        due_date: newEndDate.toISOString(),
         deadline: format(selectedDate, 'yyyy-MM-dd')
       });
+
+      console.log('✅ Task moved successfully');
 
       // Invalidar queries para atualizar a UI
       queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      fetchPlannerTasks();
 
     } catch (error) {
       console.error("Erro ao mover tarefa:", error);
