@@ -81,7 +81,7 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-2025-04-14',
+          model: 'gpt-4o',
           messages: [
             { 
               role: 'system', 
@@ -256,7 +256,7 @@ Formate em markdown para melhor legibilidade.
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
