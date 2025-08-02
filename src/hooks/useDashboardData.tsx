@@ -291,7 +291,7 @@ export const useDashboardData = () => {
         alerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
           type: 'danger',
-          title: 'CPA Alto - Campanha',
+          title: 'CPA Alto',
           description: `Campanha "${campaign.name}" com CPA de R$ ${campaign.cpa.toFixed(2)}`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
@@ -326,7 +326,7 @@ export const useDashboardData = () => {
           alerts.push({
             id: `high-cpa-client-${client.id}`,
             type: 'danger',
-            title: 'CPA Alto - Cliente',
+            title: 'CPA Alto',
             description: `Cliente ${client.name} com CPA médio de R$ ${availableCPA.toFixed(2)} em campanhas sem tarefas pendentes`,
             metric: 'CPA',
             value: `R$ ${availableCPA.toFixed(2)}`,
