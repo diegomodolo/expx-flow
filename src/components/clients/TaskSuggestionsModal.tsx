@@ -31,20 +31,11 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
   const { createTaskFromAlert, isCreating } = useTaskAutomation();
   const [createdTasks, setCreatedTasks] = useState<Set<string>>(new Set());
 
-  // Debug: Log do cliente recebido
-  console.log('TaskSuggestionsModal - Cliente recebido:', client);
-  console.log('TaskSuggestionsModal - Issues do cliente:', client.issues);
-  console.log('TaskSuggestionsModal - Campanhas problemáticas:', client.problematic_campaigns);
-
   const generateDetailedSuggestions = (): TaskSuggestion[] => {
-    console.log('TaskSuggestionsModal - Gerando sugestões para cliente:', client.name);
-    console.log('TaskSuggestionsModal - Issues disponíveis:', client.issues);
-    
     const suggestions: TaskSuggestion[] = [];
     
     // Se não tem campanhas ativas
     if (client.issues.includes('Sem campanhas ativas')) {
-      console.log('TaskSuggestionsModal - Cliente sem campanhas ativas detectado');
       suggestions.push({
         id: 'activate-campaigns',
         title: 'Ativar Campanhas Urgentemente',
@@ -79,7 +70,6 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
       }
       
       if (issue.includes('CPA acima da meta') || issue.includes('CPA crítico')) {
-        console.log('TaskSuggestionsModal - Detectado problema de CPA:', issue);
         const campaignRef = client.problematic_campaigns[0] || 'campanhas ativas';
         suggestions.push({
           id: `cpa-optimization-${index}`,
@@ -114,6 +104,26 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
           type: 'optimization'
         });
       }
+      
+      if (issue.includes('sem nenhum lead gerado')) {
+        suggestions.push({
+          id: `no-leads-fix-${index}`,
+          title: 'URGENTE: Campanhas Sem Leads',
+          description: `Cliente tem campanhas ativas mas nenhuma está gerando leads. Revisar criativos, audiências e ofertas imediatamente.`,
+          priority: 'high',
+          type: 'optimization'
+        });
+      }
+      
+      if (issue.includes('gastaram') && issue.includes('sem leads')) {
+        suggestions.push({
+          id: `high-spend-no-leads-${index}`,
+          title: 'Pausar Campanhas com Alto Gasto',
+          description: `Pausar ou ajustar campanhas que gastaram mais de R$ 150 sem gerar leads. Analisar targeting e ofertas.`,
+          priority: 'high',
+          type: 'optimization'
+        });
+      }
     });
 
     // Adicionar sugestão de análise geral se há múltiplos problemas
@@ -126,9 +136,6 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
         type: 'review'
       });
     }
-
-    console.log('TaskSuggestionsModal - Sugestões geradas:', suggestions.length);
-    console.log('TaskSuggestionsModal - Lista de sugestões:', suggestions);
 
     return suggestions;
   };

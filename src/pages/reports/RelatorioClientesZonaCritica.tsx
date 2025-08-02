@@ -90,20 +90,41 @@ export default function RelatorioClientesZonaCritica() {
       const cpaTarget = 150; // R$ 150 por conversão (benchmark padrão)
       const ctrTarget = 1; // 1% CTR mínimo (benchmark padrão)
       const frequencyMax = 5; // Frequência máxima 5 (benchmark padrão)
+      const maxSpendWithoutLeads = 150; // R$ 150 máximo sem leads
 
-      // Verificar problemas
-      if (avgCPL > cplTarget) {
+      // ===== VERIFICAÇÕES DE PROBLEMAS =====
+      
+      // 1. Verificar se tem campanhas ativas mas NENHUMA gerou leads
+      const hasActiveCampaignsWithoutLeads = clientCampaigns.length > 0 && totalConversions === 0;
+      if (hasActiveCampaignsWithoutLeads) {
+        issues.push(`Campanhas ativas sem nenhum lead gerado (${clientCampaigns.length} campanhas)`);
+      }
+
+      // 2. Verificar campanhas que gastaram mais de R$ 150 sem leads
+      const campaignsWithHighSpendNoLeads = clientCampaigns.filter(campaign => 
+        campaign.spend > maxSpendWithoutLeads && (campaign.conversions || 0) === 0
+      );
+      if (campaignsWithHighSpendNoLeads.length > 0) {
+        const totalWastedSpend = campaignsWithHighSpendNoLeads.reduce((sum, c) => sum + (c.spend || 0), 0);
+        issues.push(`${campaignsWithHighSpendNoLeads.length} campanha(s) gastaram R$ ${totalWastedSpend.toFixed(0)} sem leads`);
+      }
+
+      // 3. Verificar CPL acima da meta (apenas se houver conversões)
+      if (totalConversions > 0 && avgCPL > cplTarget) {
         issues.push(`CPL acima da meta (R$ ${avgCPL.toFixed(2)} vs R$ ${cplTarget})`);
       }
       
-      if (avgCPA > cpaTarget) {
+      // 4. Verificar CPA acima da meta (apenas se houver conversões)
+      if (totalConversions > 0 && avgCPA > cpaTarget) {
         issues.push(`CPA acima da meta (R$ ${avgCPA.toFixed(2)} vs R$ ${cpaTarget})`);
       }
       
+      // 5. Verificar CTR abaixo do mínimo
       if (avgCTR < ctrTarget) {
         issues.push(`CTR abaixo do mínimo (${avgCTR.toFixed(2)}% vs ${ctrTarget}%)`);
       }
       
+      // 6. Verificar frequência muito alta
       if (avgFrequency > frequencyMax) {
         issues.push(`Frequência muito alta (${avgFrequency.toFixed(1)} vs ${frequencyMax})`);
       }
@@ -197,8 +218,6 @@ export default function RelatorioClientesZonaCritica() {
   };
 
   const handleCreateTask = (client: CriticalClient) => {
-    console.log('RelatorioClientesZonaCritica - Abrindo modal para cliente:', client);
-    console.log('RelatorioClientesZonaCritica - Issues:', client.issues);
     setSelectedClient(client);
     setIsModalOpen(true);
   };
