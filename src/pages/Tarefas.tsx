@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function Tarefas() {
-  const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'planner'>('planner');
+  const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'planner'>('kanban');
   const [plannerDate, setPlannerDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -714,7 +714,6 @@ export default function Tarefas() {
               onClick={() => setView('planner')}
             >
               <CalendarIcon className="w-4 h-4" />
-              Planner
             </Button>
             <Button
               variant={view === 'list' ? 'default' : 'outline'}
