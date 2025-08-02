@@ -106,7 +106,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
               <Heart className="w-5 h-5 text-red-600" />
-              <span>📊 Indicadores de Engajamento</span>
+              <span>Indicadores de Engajamento</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
@@ -186,7 +186,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
               <Target className="w-5 h-5 text-green-600" />
-              <span>🎯 Indicadores de Conversão</span>
+              <span>Indicadores de Conversão</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
@@ -243,7 +243,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
               <Star className="w-5 h-5 text-yellow-600" />
-              <span>⚙️ Indicadores de Qualidade</span>
+              <span>Indicadores de Qualidade</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
@@ -338,7 +338,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
               <Activity className="w-5 h-5 text-indigo-600" />
-              <span>🎨 Detalhes do Criativo</span>
+              <span>Detalhes do Criativo</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
@@ -409,7 +409,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
-                <span>📋 Resumo Executivo do Criativo</span>
+                <span>Resumo Executivo do Criativo</span>
               </CardTitle>
             </CardHeader>
              <CardContent>
