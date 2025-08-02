@@ -98,8 +98,100 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   };
 
   const exportDaySummary = () => {
-    // TODO: Implementar exportação em PDF
-    console.log("Exportar resumo do dia");
+    try {
+      // Gerar conteúdo do resumo
+      const dateStr = format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      let summary = `RESUMO DO DIA - ${dateStr.toUpperCase()}\n`;
+      summary += `${'='.repeat(50)}\n\n`;
+
+      // Estatísticas gerais
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.status === 'done').length;
+      const highPriorityTasks = tasks.filter(t => t.priority === 'high').length;
+      
+      summary += `ESTATÍSTICAS GERAIS\n`;
+      summary += `${'─'.repeat(20)}\n`;
+      summary += `• Total de tarefas: ${totalTasks}\n`;
+      summary += `• Tarefas concluídas: ${completedTasks}\n`;
+      summary += `• Tarefas de alta prioridade: ${highPriorityTasks}\n`;
+      summary += `• Taxa de conclusão: ${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%\n\n`;
+
+      // Resumo por slot
+      summary += `CRONOGRAMA POR HORÁRIO\n`;
+      summary += `${'─'.repeat(25)}\n`;
+      
+      timeSlots.forEach(slot => {
+        const slotTasks = getTasksBySlot(slot);
+        summary += `\n📅 ${slot.name} (${slot.start_time} - ${slot.end_time})\n`;
+        
+        if (slotTasks.length === 0) {
+          summary += `   Nenhuma tarefa agendada\n`;
+        } else {
+          slotTasks.forEach(task => {
+            const statusIcon = task.status === 'done' ? '✅' : 
+                             task.status === 'progress' ? '🔄' : 
+                             task.status === 'review' ? '👁️' : '⏳';
+            const priorityIcon = task.priority === 'high' ? '🔴' : 
+                               task.priority === 'medium' ? '🟡' : '🟢';
+            
+            summary += `   ${statusIcon} ${priorityIcon} ${task.title}`;
+            if (task.responsible_name) {
+              summary += ` (${task.responsible_name})`;
+            }
+            if (task.start_date) {
+              summary += ` - ${format(new Date(task.start_date), 'HH:mm')}`;
+            }
+            summary += `\n`;
+            
+            if (task.description) {
+              summary += `      📝 ${task.description}\n`;
+            }
+          });
+        }
+      });
+
+      // Tarefas sem horário específico
+      const tasksWithoutTime = tasks.filter(task => 
+        !task.start_date && task.deadline && 
+        new Date(task.deadline).toISOString().split('T')[0] === selectedDate.toISOString().split('T')[0]
+      );
+      
+      if (tasksWithoutTime.length > 0) {
+        summary += `\n📋 TAREFAS SEM HORÁRIO ESPECÍFICO\n`;
+        summary += `${'─'.repeat(35)}\n`;
+        tasksWithoutTime.forEach(task => {
+          const statusIcon = task.status === 'done' ? '✅' : 
+                           task.status === 'progress' ? '🔄' : 
+                           task.status === 'review' ? '👁️' : '⏳';
+          const priorityIcon = task.priority === 'high' ? '🔴' : 
+                             task.priority === 'medium' ? '🟡' : '🟢';
+          
+          summary += `${statusIcon} ${priorityIcon} ${task.title}`;
+          if (task.responsible_name) {
+            summary += ` (${task.responsible_name})`;
+          }
+          summary += `\n`;
+        });
+      }
+
+      summary += `\n${'='.repeat(50)}\n`;
+      summary += `Relatório gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}\n`;
+
+      // Criar e baixar arquivo
+      const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumo-planner-${selectedDate.toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log("Resumo exportado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar resumo:", error);
+    }
   };
 
   if (slotsLoading || plannerLoading) {
