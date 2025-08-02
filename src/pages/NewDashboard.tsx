@@ -613,55 +613,86 @@ export default function NewDashboard() {
               <p className="text-sm text-gray-500 mt-1">Próxima verificação em 2 horas</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
+              {/* Oportunidades */}
               {opportunityAlerts
                 .filter(alert => !convertedActions.has(alert.id))
                 .slice(0, 3)
-                .map((alert, index) => (
-                <div key={alert.id} className="flex items-center justify-between p-4 border border-green-200 bg-green-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-sm font-bold text-green-600">
-                      {index + 1}
+                .map((alert) => (
+                <div key={alert.id} className="p-4 bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="w-4 h-4 text-white" />
                     </div>
-                    <div>
-                      <p className="font-medium">Escalar {alert.campaign}</p>
-                      <p className="text-sm text-gray-600">
-                        Cliente: {alert.client} - {alert.recommendation}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                        <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                          +{alert.value || '0'}%
+                        </span>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          {alert.client || 'Cliente não informado'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">
+                        Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
                       </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <p className="text-xs text-gray-600">{alert.recommendation}</p>
+                        </div>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleConvertActionToTask(alert)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Criar Tarefa
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <Button 
-                    size="sm"
-                    onClick={() => handleConvertActionToTask(alert)}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    Criar Tarefa
-                  </Button>
                 </div>
               ))}
               
+              {/* Problemas */}
               {dangerAlerts
                 .filter(alert => !convertedActions.has(alert.id))
                 .slice(0, 2)
-                .map((alert, index) => (
-                <div key={alert.id} className="flex items-center justify-between p-4 border border-red-200 bg-red-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-sm font-bold text-red-600">
-                      {index + opportunityAlerts.filter(a => !convertedActions.has(a.id)).slice(0, 3).length + 1}
+                .map((alert) => (
+                <div key={alert.id} className="p-4 bg-white border-l-4 border-red-500 rounded-lg shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-4 h-4 text-white" />
                     </div>
-                    <div>
-                      <p className="font-medium">Revisar {alert.client}</p>
-                      <p className="text-sm text-gray-600">{alert.recommendation}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                        <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
+                          R$ {alert.value || '0,00'}
+                        </span>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          {alert.client || 'Cliente não informado'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">
+                        Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-3 h-3 text-red-500" />
+                          <p className="text-xs text-gray-600">{alert.recommendation}</p>
+                        </div>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleConvertActionToTask(alert)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Criar Tarefa
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleConvertActionToTask(alert)}
-                    className="border-red-300 text-red-600 hover:bg-red-50"
-                  >
-                    Criar Tarefa
-                  </Button>
                 </div>
               ))}
             </div>
