@@ -46,21 +46,43 @@ serve(async (req) => {
         url: url,
         pageOptions: {
           includeHtml: true,
-          waitFor: 3000
+          waitFor: 5000,
+          screenshot: false
         },
         extractorOptions: {
           mode: 'llm-extraction',
           extractionPrompt: `
-            Extraia todos os anúncios desta página da biblioteca de anúncios do Facebook. Para cada anúncio encontrado, retorne:
-            - ad_title: Título principal do anúncio
-            - ad_copy: Texto/copy principal do anúncio 
-            - call_to_action: Botão de call-to-action (se houver)
-            - ad_type: Tipo do anúncio (image, video, carousel, etc)
-            - date_started: Data de início do anúncio (se disponível)
-            - platforms: Plataformas onde está rodando (Facebook, Instagram, etc)
-            - estimated_performance: Com base nos elementos visuais, estime se parece ser "high", "medium" ou "low" performance
+            Você está analisando uma página da Biblioteca de Anúncios do Facebook. 
+            Extraia TODOS os anúncios visíveis na página e retorne um array JSON com os seguintes campos para cada anúncio:
             
-            Retorne um array JSON com todos os anúncios encontrados.
+            Para cada anúncio encontrado, extraia:
+            - ad_title: O título principal do anúncio (texto em destaque, título da empresa ou produto)
+            - ad_copy: O texto principal/descrição do anúncio (todo o texto do corpo do anúncio)
+            - call_to_action: Texto do botão de ação (ex: "Saiba mais", "Comprar agora", "Inscreva-se")
+            - ad_type: Tipo do anúncio baseado no conteúdo (image, video, carousel, collection)
+            - platforms: Em quais plataformas está rodando (Facebook, Instagram, Messenger, etc)
+            - date_started: Data de início se disponível
+            - estimated_performance: Baseado na presença de elementos visuais, estime "high", "medium" ou "low"
+            
+            IMPORTANTE: 
+            - Analise cuidadosamente todo o HTML da página
+            - Procure por divs que contenham anúncios individuais
+            - Extraia o texto real dos anúncios, não invente conteúdo
+            - Se um anúncio não tiver algum campo, deixe como null
+            - Retorne APENAS o array JSON, sem texto adicional
+            
+            Exemplo de formato esperado:
+            [
+              {
+                "ad_title": "Título real do anúncio",
+                "ad_copy": "Texto completo do anúncio extraído da página",
+                "call_to_action": "Saiba mais",
+                "ad_type": "image",
+                "platforms": "Facebook, Instagram",
+                "date_started": null,
+                "estimated_performance": "medium"
+              }
+            ]
           `
         }
       }),
