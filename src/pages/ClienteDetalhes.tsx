@@ -27,7 +27,10 @@ import {
   Loader2,
   ChevronDown,
   Users,
-  BarChart3
+  BarChart3,
+  AlertTriangle,
+  RefreshCw,
+  CheckCircle
 } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClientDetails } from "@/hooks/useClientDetails";
@@ -43,6 +46,8 @@ import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal"
 import { FunnelAnalysis } from "@/components/funnel/FunnelAnalysis";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +55,8 @@ const ClienteDetalhes = () => {
   const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
   const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
+  const { alerts, refetch: refetchDashboardData } = useDashboardData();
+  const { convertAlertToTask } = useTaskAutomation();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [adSetFilter, setAdSetFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -71,6 +78,10 @@ const ClienteDetalhes = () => {
   // Estados para filtros de navegação entre abas
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedAdSetId, setSelectedAdSetId] = useState<string | null>(null);
+  
+  // Estados para alertas específicos do cliente
+  const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -79,6 +90,36 @@ const ClienteDetalhes = () => {
   const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
   const totalLeadsGenerated = client?.leads_generated || 0;
   const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
+
+  // Filtrar alertas específicos do cliente
+  const clientSpecificAlerts = alerts?.filter(alert => 
+    alert.client === client?.name && !convertedAlerts.has(alert.id)
+  ) || [];
+
+  const dangerAlerts = clientSpecificAlerts.filter(alert => alert.type === 'danger');
+  const opportunityAlerts = clientSpecificAlerts.filter(alert => alert.type === 'opportunity');
+
+  // Funções para manipular alertas
+  const handleAnalyzeCampaigns = async () => {
+    setIsAnalyzing(true);
+    try {
+      setConvertedAlerts(new Set());
+      await refetchDashboardData(client?.id);
+    } catch (error) {
+      console.error('Error analyzing campaigns:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleConvertAlertToTask = (alert: any) => {
+    setConvertedAlerts(prev => new Set([...prev, alert.id]));
+    convertAlertToTask(alert);
+  };
+
+  const handleDiscardAlert = (alert: any) => {
+    setConvertedAlerts(prev => new Set([...prev, alert.id]));
+  };
 
   // Calculate funnel completeness score
   const funnelCompletenessScore = useMemo(() => {
@@ -992,6 +1033,14 @@ const ClienteDetalhes = () => {
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="funnel">Funil de Conversão</TabsTrigger>
+                <TabsTrigger value="alerts" className="relative">
+                  Alertas & Sugestões
+                  {clientSpecificAlerts.length > 0 && (
+                    <Badge variant="destructive" className="ml-2 text-xs">
+                      {clientSpecificAlerts.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -1649,6 +1698,168 @@ const ClienteDetalhes = () => {
 
             <TabsContent value="funnel" className="p-6">
               <FunnelAnalysis campaigns={client?.campaigns || []} />
+            </TabsContent>
+
+            <TabsContent value="alerts" className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold">Alertas & Sugestões do Cliente</h4>
+                  <Button
+                    onClick={handleAnalyzeCampaigns}
+                    className="flex items-center gap-2"
+                    disabled={isAnalyzing}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                    {isAnalyzing ? 'Analisando...' : 'Buscar Sugestões'}
+                  </Button>
+                </div>
+
+                {(dangerAlerts.length > 0 || opportunityAlerts.length > 0) ? (
+                  <div className="space-y-6">
+                    {/* Seção Problemas Detectados */}
+                    {dangerAlerts.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <AlertTriangle className="w-5 h-5 text-red-500" />
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Problemas Detectados
+                          </h3>
+                          <span className="text-sm text-gray-500">
+                            {dangerAlerts.length} items
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {dangerAlerts.map((alert, index) => (
+                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      alert.title.includes('CPA alto') ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {alert.title.includes('CPA alto') ? 'Crítico' : 'Alto'}
+                                    </span>
+                                    <h4 className="font-medium text-gray-900 text-sm">
+                                      {alert.campaign}
+                                    </h4>
+                                  </div>
+                                  <div className="mb-2">
+                                    <p className="font-semibold text-gray-900">
+                                      {alert.title}: {alert.value}
+                                    </p>
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <span>Campanha: {alert.campaign || 'N/A'} • </span>
+                                    <span>Detectado agora</span>
+                                  </div>
+                                  {alert.recommendation && (
+                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                      {alert.recommendation}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDiscardAlert(alert)}
+                                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                  >
+                                    Descartar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleConvertAlertToTask(alert)}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                  >
+                                    Criar Tarefa
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Seção Oportunidades Detectadas */}
+                    {opportunityAlerts.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Oportunidades Detectadas
+                          </h3>
+                          <span className="text-sm text-gray-500">
+                            {opportunityAlerts.length} items
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {opportunityAlerts.map((alert, index) => (
+                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      Excelente
+                                    </span>
+                                    <h4 className="font-medium text-gray-900 text-sm">
+                                      {alert.campaign}
+                                    </h4>
+                                  </div>
+                                  <div className="mb-2">
+                                    <p className="font-semibold text-gray-900">
+                                      {alert.title}: {alert.value}
+                                    </p>
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <span>Campanha: {alert.campaign || 'N/A'} • </span>
+                                    <span>Detectado agora</span>
+                                  </div>
+                                  {alert.recommendation && (
+                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                      {alert.recommendation}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDiscardAlert(alert)}
+                                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                  >
+                                    Descartar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleConvertAlertToTask(alert)}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    Criar Tarefa
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🎯</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Nenhum alerta encontrado
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      Clique no botão "Buscar Sugestões" para analisar as campanhas deste cliente e encontrar oportunidades de otimização.
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="contact" className="p-6">
