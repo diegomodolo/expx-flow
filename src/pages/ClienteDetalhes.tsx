@@ -239,15 +239,15 @@ const ClienteDetalhes = () => {
 
   // Calculate ad set metrics
   const totalAdSets = adSets?.length || 0;
-  const activeAdSets = adSets?.filter(adSet => adSet.status === 'ACTIVE').length || 0;
-  const pausedAdSets = adSets?.filter(adSet => adSet.status === 'PAUSED').length || 0;
-  const finishedAdSets = adSets?.filter(adSet => adSet.status === 'ARCHIVED').length || 0;
+  const activeAdSets = adSets?.filter(adSet => adSet.status === 'active').length || 0;
+  const pausedAdSets = adSets?.filter(adSet => adSet.status === 'paused').length || 0;
+  const finishedAdSets = adSets?.filter(adSet => adSet.status === 'archived').length || 0;
 
   // Calculate ad metrics
   const totalAds = ads?.length || 0;
-  const activeAds = ads?.filter(ad => ad.status === 'ACTIVE').length || 0;
-  const pausedAds = ads?.filter(ad => ad.status === 'PAUSED').length || 0;
-  const finishedAds = ads?.filter(ad => ad.status === 'ARCHIVED').length || 0;
+  const activeAds = ads?.filter(ad => ad.status === 'active').length || 0;
+  const pausedAds = ads?.filter(ad => ad.status === 'paused').length || 0;
+  const finishedAds = ads?.filter(ad => ad.status === 'archived').length || 0;
 
   // Data for CPL by Campaign chart (horizontal bar chart)
   const cplByCampaignData = React.useMemo(() => {
@@ -357,11 +357,11 @@ const ClienteDetalhes = () => {
     
     // Filter ad sets
     if (adSetFilter === 'active') {
-      filtered = filtered.filter(adSet => adSet.status === 'ACTIVE');
+      filtered = filtered.filter(adSet => adSet.status === 'active');
     } else if (adSetFilter === 'paused') {
-      filtered = filtered.filter(adSet => adSet.status === 'PAUSED');
+      filtered = filtered.filter(adSet => adSet.status === 'paused');
     } else if (adSetFilter === 'finished') {
-      filtered = filtered.filter(adSet => adSet.status === 'ARCHIVED');
+      filtered = filtered.filter(adSet => adSet.status === 'archived');
     }
     
     if (adSetSortField) {
@@ -419,11 +419,11 @@ const ClienteDetalhes = () => {
     
     // Filter ads
     if (adFilter === 'active') {
-      filtered = filtered.filter(ad => ad.status === 'ACTIVE');
+      filtered = filtered.filter(ad => ad.status === 'active');
     } else if (adFilter === 'paused') {
-      filtered = filtered.filter(ad => ad.status === 'PAUSED');
+      filtered = filtered.filter(ad => ad.status === 'paused');
     } else if (adFilter === 'finished') {
-      filtered = filtered.filter(ad => ad.status === 'ARCHIVED');
+      filtered = filtered.filter(ad => ad.status === 'archived');
     }
     
     if (adSortField) {
