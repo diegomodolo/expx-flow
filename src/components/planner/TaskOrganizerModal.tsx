@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, Calendar, CheckCircle, AlertTriangle, Zap, User, Timer, TrendingUp, Users } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -234,48 +235,72 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
                         return slotA.localeCompare(slotB);
                       })
                       .map((task, index) => (
-                      <Card key={`${task.taskId}-${index}`} className="p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-start gap-2">
-                              <div className="flex-1">
-                                <h5 className="font-medium text-sm leading-tight">{task.taskTitle}</h5>
-                                <p className="text-xs text-muted-foreground mt-1">{task.reason}</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge className={`text-xs px-2 py-1 border ${getPriorityColor(task.priority || 'medium')}`}>
-                                  {getPriorityEmoji(task.priority || 'medium')} {translatePriority(task.priority || 'medium')}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span className="font-medium">{task.slotTime}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Timer className="h-3 w-3" />
-                                <span>{formatTime(task.estimatedMinutes)}</span>
-                              </div>
-                              {task.assignedToName && (
-                                <div className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  <span>{task.assignedToName}</span>
-                                </div>
-                              )}
-                            </div>
+                      <Card key={`${task.taskId}-${index}`} className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-primary/20">
+                        <div className="flex items-start gap-4">
+                          {/* Avatar do colaborador */}
+                          <div className="flex-shrink-0">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                                {task.assignedToName ? 
+                                  task.assignedToName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 
+                                  '?'
+                                }
+                              </AvatarFallback>
+                            </Avatar>
                           </div>
 
-                          <div className="text-right space-y-1">
-                            <Badge variant="outline" className="text-xs">
-                              {task.slotName}
-                            </Badge>
-                            {task.reassignmentReason && (
-                              <p className="text-xs text-orange-600 max-w-32">
-                                Reatribuído: {task.reassignmentReason}
-                              </p>
-                            )}
+                          {/* Conteúdo principal */}
+                          <div className="flex-1 min-w-0">
+                            {/* Header com título e prioridade */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <h5 className="font-semibold text-base text-foreground leading-tight truncate">
+                                  {task.taskTitle}
+                                </h5>
+                              </div>
+                              <Badge 
+                                variant="outline" 
+                                className={`flex-shrink-0 text-xs px-2 py-1 border ${getPriorityColor(task.priority || 'medium')}`}
+                              >
+                                {getPriorityEmoji(task.priority || 'medium')} {translatePriority(task.priority || 'medium')}
+                              </Badge>
+                            </div>
+
+                            {/* Descrição/Razão */}
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                              {task.reason}
+                            </p>
+
+                            {/* Footer com informações organizadas horizontalmente */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="font-medium">{task.slotTime}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Timer className="h-4 w-4" />
+                                  <span>{formatTime(task.estimatedMinutes)}</span>
+                                </div>
+                                {task.assignedToName && (
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <User className="h-4 w-4" />
+                                    <span className="truncate max-w-24">{task.assignedToName}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {task.slotName}
+                                </Badge>
+                                {task.reassignmentReason && (
+                                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                                    Reatribuído
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </Card>
