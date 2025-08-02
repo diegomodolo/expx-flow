@@ -80,6 +80,8 @@ export const useEmployees = () => {
 
       // Buscar profiles dos user_ids dos employees
       const userIds = employeesData.map(emp => emp.user_id);
+      console.log("Buscando profiles para user_ids:", userIds);
+      
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, avatar_url")
@@ -89,13 +91,46 @@ export const useEmployees = () => {
         console.warn("Error fetching profiles:", profilesError);
       }
 
+      console.log("Profiles encontrados:", profilesData?.length || 0, "de", userIds.length, "esperados");
+      console.log("Profiles data:", profilesData);
+
+      // Verificar se todos os user_ids foram encontrados e fazer fallback se necessário
+      let allProfiles = profilesData || [];
+      const foundUserIds = allProfiles.map(p => p.user_id);
+      const missingUserIds = userIds.filter(id => !foundUserIds.includes(id));
+
+      if (missingUserIds.length > 0) {
+        console.log("User_ids não encontrados no batch, buscando individualmente:", missingUserIds);
+        
+        // Buscar profiles faltantes individualmente
+        const missingProfilesPromises = missingUserIds.map(async (userId) => {
+          const { data } = await supabase
+            .from("profiles")
+            .select("user_id, avatar_url")
+            .eq("user_id", userId)
+            .maybeSingle();
+          return data;
+        });
+
+        const missingProfiles = await Promise.all(missingProfilesPromises);
+        const validMissingProfiles = missingProfiles.filter(Boolean);
+        allProfiles = [...allProfiles, ...validMissingProfiles];
+        console.log("Profiles encontrados após fallback:", allProfiles.length);
+      }
+
       // Mapear os dados combinando employees com profiles
       const mappedData = employeesData.map((employee: any) => {
-        const profile = profilesData?.find(p => p.user_id === employee.user_id);
-        return {
+        const profile = allProfiles.find(p => p.user_id === employee.user_id);
+        const result = {
           ...employee,
           profile_avatar_url: profile?.avatar_url || null
         };
+        
+        if (employee.name === "Jaysson") {
+          console.log("Debug Jaysson - user_id:", employee.user_id, "profile encontrado:", !!profile, "avatar_url:", profile?.avatar_url);
+        }
+        
+        return result;
       });
 
       setEmployees(mappedData);
