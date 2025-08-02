@@ -682,7 +682,8 @@ serve(async (req) => {
                   }
                 }
               } else {
-                console.error('Failed to fetch ads for ad set:', adSet.id)
+                const errorResponse = await adsResponse.text()
+                console.error('Failed to fetch ads for ad set:', adSet.id, 'Status:', adsResponse.status, 'Response:', errorResponse)
               }
             } catch (adsError) {
               console.error('Error fetching ads for ad set:', adSet.id, adsError)
