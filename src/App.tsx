@@ -102,11 +102,11 @@ const App = () => {
                      <RelatorioFunil />
                    </ProtectedRoute>
                  } />
-                 <Route path="/relatorios/competitiva" element={
-                   <ProtectedRoute>
-                     <RelatorioAnaliseCompetitiva />
-                   </ProtectedRoute>
-                 } />
+                  <Route path="/relatorios/concorrencia" element={
+                    <ProtectedRoute>
+                      <RelatorioAnaliseCompetitiva />
+                    </ProtectedRoute>
+                  } />
                  <Route path="/relatorios/oportunidades" element={
                    <ProtectedRoute>
                      <RelatorioOportunidades />
