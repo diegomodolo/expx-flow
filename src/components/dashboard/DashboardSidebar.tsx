@@ -42,14 +42,14 @@ export function DashboardSidebar() {
 
   const isActive = (path: string) => currentPath === path;
 
-  // Sidebar fica retraído por padrão, expande no hover
+  // Sidebar fica retraído por padrão, expande no hover como overlay
   const isExpanded = isHovered;
 
   return (
     <Sidebar
-      className={`${
-        isExpanded ? "w-64" : "w-16"
-      } bg-white border-r border-gray-200 transition-all duration-300 ease-in-out`}
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 ${
+        isExpanded ? "w-64 shadow-lg" : "w-16"
+      }`}
       collapsible="icon"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
