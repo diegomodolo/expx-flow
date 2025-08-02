@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, Calendar, CheckCircle, AlertTriangle, Zap, User, Timer, TrendingUp, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -90,6 +91,16 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
     return `${mins}min`;
   };
 
+  // Função para traduzir prioridade para português
+  const translatePriority = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return 'Alta';
+      case 'medium': return 'Média';
+      case 'low': return 'Baixa';
+      default: return 'Média';
+    }
+  };
+
   // Função para obter cor da prioridade
   const getPriorityColor = (priority: string) => {
     switch (priority?.toLowerCase()) {
@@ -119,8 +130,8 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-blue-500" />
             Organização Inteligente de Tarefas
@@ -130,7 +141,8 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+        <ScrollArea className="flex-1 pr-4">
+          <div className="space-y-6">
           {/* Estatísticas */}
           <div className="grid grid-cols-4 gap-4">
             <Card className="p-4">
@@ -232,7 +244,7 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
                               </div>
                               <div className="flex items-center gap-2">
                                 <Badge className={`text-xs px-2 py-1 border ${getPriorityColor(task.priority || 'medium')}`}>
-                                  {getPriorityEmoji(task.priority || 'medium')} {(task.priority || 'medium').toUpperCase()}
+                                  {getPriorityEmoji(task.priority || 'medium')} {translatePriority(task.priority || 'medium')}
                                 </Badge>
                               </div>
                             </div>
@@ -297,10 +309,11 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
                 ))}
               </div>
             </div>
-          )}
-        </div>
+           )}
+          </div>
+        </ScrollArea>
 
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="border-t pt-4 flex-shrink-0">
           <div className="flex justify-between items-center w-full">
             <div className="text-sm text-muted-foreground">
               {organizationPlan.organizedTasks.length} tarefas organizadas em {Object.keys(tasksByDate).length} dias

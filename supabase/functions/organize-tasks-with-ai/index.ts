@@ -131,16 +131,45 @@ Distribua as tarefas equilibradamente nos slots considerando prioridade. APENAS 
       organizedTasks: organizationPlan.organizedTasks.map(item => {
         const task = tasks.find(t => t.id === item.taskId);
         const slot = timeSlots.find(s => s.id === item.slotId);
-        const assignedEmployee = employees.find(e => e.user_id === item.assignedTo);
         
-        return {
+        console.log(`🔍 Processing task ${item.taskId}, assignedTo: "${item.assignedTo}"`);
+        
+        // Busca melhorada do colaborador
+        let assignedEmployee = null;
+        if (item.assignedTo) {
+          // Primeiro, tenta buscar por user_id
+          assignedEmployee = employees.find(e => e.user_id === item.assignedTo);
+          
+          // Se não encontrar, tenta buscar por nome
+          if (!assignedEmployee) {
+            assignedEmployee = employees.find(e => 
+              e.name && (
+                e.name.toLowerCase().includes(item.assignedTo.toLowerCase()) ||
+                item.assignedTo.toLowerCase().includes(e.name.toLowerCase()) ||
+                e.name.toLowerCase() === item.assignedTo.toLowerCase()
+              )
+            );
+          }
+        }
+        
+        // Se ainda não encontrou e há colaboradores disponíveis, usa o primeiro
+        if (!assignedEmployee && employees.length > 0) {
+          assignedEmployee = employees[0];
+          console.log(`🔄 Using fallback employee: ${assignedEmployee.name} for task ${item.taskId}`);
+        }
+        
+        const result = {
           ...item,
           taskTitle: task?.title || 'Tarefa não encontrada',
           slotName: slot?.name || 'Slot não encontrado',
           slotTime: slot ? `${slot.start_time} - ${slot.end_time}` : 'Horário não definido',
           priority: task?.priority || 'medium',
-          assignedToName: assignedEmployee?.name || task?.responsible_name || 'Não atribuído'
+          assignedToName: assignedEmployee?.name || task?.responsible_name || 'Não atribuído',
+          assignedTo: assignedEmployee?.user_id || item.assignedTo || null
         };
+        
+        console.log(`✅ Final assignment for task ${item.taskId}: ${result.assignedToName}`);
+        return result;
       })
     };
 
