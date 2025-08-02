@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Home,
   LayoutDashboard,
@@ -20,7 +21,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 
 const items = [
@@ -36,19 +36,25 @@ const items = [
 ];
 
 export function DashboardSidebar() {
-  const { state } = useSidebar();
+  const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
   const currentPath = location.pathname;
-  const isCollapsed = state === "collapsed";
 
   const isActive = (path: string) => currentPath === path;
 
+  // Sidebar fica retraído por padrão, expande no hover
+  const isExpanded = isHovered;
+
   return (
     <Sidebar
-      className={`${isCollapsed ? "w-16" : "w-64"} bg-white border-r border-gray-200`}
+      className={`${
+        isExpanded ? "w-64" : "w-16"
+      } bg-white border-r border-gray-200 transition-all duration-300 ease-in-out`}
       collapsible="icon"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <SidebarContent className="pt-24 px-4">
+      <SidebarContent className="pt-24 px-2">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
@@ -59,23 +65,26 @@ export function DashboardSidebar() {
                       to={item.url} 
                       end 
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative ${
+                        `flex items-center ${isExpanded ? 'gap-3 px-4' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 relative ${
                           isActive
                             ? "bg-blue-50 text-blue-600 border-l-4 border-blue-500"
                             : "text-gray-700 hover:bg-gray-50"
                         }`
                       }
+                      title={!isExpanded ? item.title : ''}
                     >
-                      <item.icon className={`w-5 h-5 ${
+                      <item.icon className={`w-5 h-5 transition-colors duration-200 ${
                         isActive(item.url) ? "text-blue-600" : "text-gray-500"
                       }`} />
-                      {!isCollapsed && (
-                        <span className={`font-medium ${
-                          isActive(item.url) ? "text-blue-600" : "text-gray-700"
-                        }`}>
-                          {item.title}
-                        </span>
-                      )}
+                      <span className={`font-medium transition-all duration-300 ${
+                        isExpanded 
+                          ? 'opacity-100 translate-x-0' 
+                          : 'opacity-0 -translate-x-2 absolute pointer-events-none'
+                      } ${
+                        isActive(item.url) ? "text-blue-600" : "text-gray-700"
+                      }`}>
+                        {item.title}
+                      </span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
