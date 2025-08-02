@@ -17,7 +17,6 @@ interface CampaignData {
   spend: number;
   impressions: number;
   clicks: number;
-  issue_type: 'high_cpa' | 'low_ctr' | 'scale_opportunity';
 }
 
 serve(async (req) => {
@@ -31,71 +30,71 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { campaignData }: { campaignData: CampaignData } = await req.json();
+    const { campaign, issue_type }: { campaign: CampaignData, issue_type: string } = await req.json();
 
-    console.log('Generating recommendation for campaign:', campaignData.name);
+    console.log('Generating recommendation for campaign:', campaign.name);
 
     // Prepare context-specific prompt based on issue type
     let systemPrompt = '';
     let userPrompt = '';
 
-    if (campaignData.issue_type === 'high_cpa') {
+    if (issue_type === 'high_cpa') {
       systemPrompt = `Você é um especialista em marketing digital especializado em otimização de campanhas de Facebook/Meta Ads. 
       Sua tarefa é analisar dados de campanha e fornecer recomendações específicas e acionáveis para reduzir o CPA.`;
       
       userPrompt = `
 Analise esta campanha com CPA alto:
 
-🏢 Cliente: ${campaignData.client_name}
-📋 Campanha: ${campaignData.name}
-💰 CPA Atual: R$ ${campaignData.cpa.toFixed(2)}
-📊 CTR: ${campaignData.ctr.toFixed(2)}%
-🎯 Conversões: ${campaignData.conversions}
-💸 Gasto: R$ ${campaignData.spend.toFixed(2)}
-👁️ Impressões: ${campaignData.impressions.toLocaleString()}
-🖱️ Cliques: ${campaignData.clicks}
+🏢 Cliente: ${campaign.client_name}
+📋 Campanha: ${campaign.name}
+💰 CPA Atual: R$ ${campaign.cpa.toFixed(2)}
+📊 CTR: ${campaign.ctr.toFixed(2)}%
+🎯 Conversões: ${campaign.conversions}
+💸 Gasto: R$ ${campaign.spend.toFixed(2)}
+👁️ Impressões: ${campaign.impressions.toLocaleString()}
+🖱️ Cliques: ${campaign.clicks}
 
 Forneça UMA recomendação específica e acionável em no máximo 6 palavras para reduzir o CPA. 
 Seja direto e prático. Exemplos: "Revisar audiência e testar novos criativos", "Pausar públicos com baixa performance", "Otimizar copy e call-to-action".
 
 Responda APENAS com a recomendação, sem explicações adicionais.`;
 
-    } else if (campaignData.issue_type === 'low_ctr') {
+    } else if (issue_type === 'low_ctr') {
       systemPrompt = `Você é um especialista em marketing digital especializado em otimização de campanhas de Facebook/Meta Ads. 
       Sua tarefa é analisar dados de campanha e fornecer recomendações específicas e acionáveis para aumentar o CTR.`;
       
       userPrompt = `
 Analise esta campanha com CTR baixo:
 
-🏢 Cliente: ${campaignData.client_name}
-📋 Campanha: ${campaignData.name}
-📊 CTR Atual: ${campaignData.ctr.toFixed(2)}%
-💰 CPA: R$ ${campaignData.cpa.toFixed(2)}
-🎯 Conversões: ${campaignData.conversions}
-💸 Gasto: R$ ${campaignData.spend.toFixed(2)}
-👁️ Impressões: ${campaignData.impressions.toLocaleString()}
-🖱️ Cliques: ${campaignData.clicks}
+🏢 Cliente: ${campaign.client_name}
+📋 Campanha: ${campaign.name}
+📊 CTR Atual: ${campaign.ctr.toFixed(2)}%
+💰 CPA: R$ ${campaign.cpa.toFixed(2)}
+🎯 Conversões: ${campaign.conversions}
+💸 Gasto: R$ ${campaign.spend.toFixed(2)}
+👁️ Impressões: ${campaign.impressions.toLocaleString()}
+🖱️ Cliques: ${campaign.clicks}
 
 Forneça UMA recomendação específica e acionável em no máximo 6 palavras para aumentar o CTR. 
 Seja direto e prático. Exemplos: "Criar criativos mais impactantes e urgentes", "Testar headlines com maior apelo", "Renovar imagens e vídeos dos anúncios".
 
 Responda APENAS com a recomendação, sem explicações adicionais.`;
 
-    } else if (campaignData.issue_type === 'scale_opportunity') {
+    } else if (issue_type === 'scale_opportunity') {
       systemPrompt = `Você é um especialista em marketing digital especializado em escalonamento de campanhas de Facebook/Meta Ads. 
       Sua tarefa é analisar dados de campanha e fornecer recomendações específicas para escalar com segurança.`;
       
       userPrompt = `
 Analise esta oportunidade de escalonamento:
 
-🏢 Cliente: ${campaignData.client_name}
-📋 Campanha: ${campaignData.name}
-💰 CPA Baixo: R$ ${campaignData.cpa.toFixed(2)}
-📊 CTR: ${campaignData.ctr.toFixed(2)}%
-🎯 Conversões: ${campaignData.conversions}
-💸 Gasto: R$ ${campaignData.spend.toFixed(2)}
-👁️ Impressões: ${campaignData.impressions.toLocaleString()}
-🖱️ Cliques: ${campaignData.clicks}
+🏢 Cliente: ${campaign.client_name}
+📋 Campanha: ${campaign.name}
+💰 CPA Baixo: R$ ${campaign.cpa.toFixed(2)}
+📊 CTR: ${campaign.ctr.toFixed(2)}%
+🎯 Conversões: ${campaign.conversions}
+💸 Gasto: R$ ${campaign.spend.toFixed(2)}
+👁️ Impressões: ${campaign.impressions.toLocaleString()}
+🖱️ Cliques: ${campaign.clicks}
 
 Forneça UMA recomendação específica e acionável em no máximo 6 palavras para escalar esta campanha. 
 Seja direto e prático. Exemplos: "Aumentar budget 20% por 3 dias", "Duplicar campanha com audiências similares", "Expandir para públicos lookalike 1-2%".
@@ -110,7 +109,7 @@ Responda APENAS com a recomendação, sem explicações adicionais.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
