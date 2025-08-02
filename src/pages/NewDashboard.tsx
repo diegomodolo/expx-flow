@@ -639,13 +639,9 @@ export default function NewDashboard() {
                             {campaign.client_name}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700 mb-2">
-                          Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}%
+                        <p className="text-sm text-gray-700">
+                          Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}% • CPA: {formatCurrency(campaign.cpa)} • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-3 h-3 text-gray-500" />
-                          <p className="text-xs text-gray-600">CPA: {formatCurrency(campaign.cpa)} • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'}</p>
-                        </div>
                       </div>
                     </div>
                   </div>
