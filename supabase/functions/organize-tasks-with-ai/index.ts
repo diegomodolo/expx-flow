@@ -48,8 +48,10 @@ serve(async (req) => {
       "taskId": "uuid-da-tarefa",
       "slotId": "uuid-do-slot",
       "date": "2025-08-02",
-      "estimatedMinutes": 60,
-      "reason": "Razão da alocação",
+      "estimatedMinutes": 30,
+      "startOffsetMinutes": 0,
+      "endOffsetMinutes": 30,
+      "reason": "Razão da alocação com tempo estimado",
       "assignedTo": "user_id ou nome do colaborador",
       "reassignmentReason": "N/A ou razão da reassignação"
     }
@@ -66,21 +68,58 @@ serve(async (req) => {
 }
 
 REGRAS OBRIGATÓRIAS:
-1. COMPATIBILIDADE DE SLOTS - Cada slot tem objetivo específico:
+
+1. ESTIMATIVA INTELIGENTE DE TEMPO - Analise título e descrição para determinar tempo REALISTA:
+   BANCO DE CONHECIMENTO DE TEMPOS MÉDIOS:
+   • ANÁLISE/OTIMIZAÇÃO: 15-40 min
+     - "otimizar CPA", "verificar métricas", "analisar performance" → 20-30 min
+     - "revisar dados", "conferir resultados" → 15-25 min
+   • CRIAÇÃO DE CONTEÚDO: 30-60 min  
+     - "criar copy", "desenvolver anúncio", "produzir criativo" → 40-50 min
+     - "escrever texto", "fazer variação" → 30-40 min
+   • IMPLEMENTAÇÃO: 20-45 min
+     - "ajustar segmentação", "aplicar mudanças", "configurar" → 20-35 min
+     - "implementar alterações", "executar ajustes" → 25-40 min
+   • REVISÃO: 15-30 min
+     - "revisar", "validar", "aprovar", "conferir" → 15-25 min
+   • REUNIÕES: 30-60 min
+     - "reunião de pauta", "alinhamento", "apresentação" → 45-60 min
+     - "call", "meeting", "discussão" → 30-45 min
+   • ESCALABILIDADE: 25-40 min
+     - "escalar campanha", "expandir budget", "ampliar" → 25-35 min
+
+2. MÚLTIPLAS TAREFAS POR SLOT - Um slot pode conter VÁRIAS tarefas sequenciais:
+   - Use startOffsetMinutes e endOffsetMinutes para posicionar cada tarefa dentro do slot
+   - Primeira tarefa: startOffset=0, endOffset=estimatedMinutes
+   - Segunda tarefa: startOffset=endOffset da anterior, endOffset=startOffset+estimatedMinutes
+   - Continue até ocupar ~90% da capacidade do slot (deixe 10-15min de margem)
+   - NUNCA sobreponha horários - tarefas devem ser SEQUENCIAIS
+
+3. COMPATIBILIDADE DE SLOTS - Cada slot tem objetivo específico:
    - "Check": Apenas análise, verificação, otimização de métricas
-   - "Reuniao de Pauta": Apenas reuniões, planejamento, definição de pauta
-   - "Produção Clientes Críticos": Apenas execução prática (criar anúncios, ajustar campanhas)
-   - "Atualização": Apenas registros, documentação, relatórios
-   - "Retomada": Atividades de desenvolvimento e implementação
-   - "Monitoramento Final": Apenas conferência, verificação de KPIs
-   - "Fechamento": Apenas registro de resultados e aprendizados
+   - "Reuniao de Pauta": Apenas reuniões, planejamento, definição de pauta  
+   - "Produção": Criação de conteúdo, anúncios, copy, criativos
+   - "Atualização": Implementação de mudanças, ajustes, aplicação
+   - "Retomada": Continuação de trabalhos, revisão, finalização, escalabilidade
+   - "Monitoramento": Acompanhamento, verificação de resultados
+   - "Fechamento": Conclusão, relatórios, encerramento
 
-2. UMA TAREFA POR VEZ: Cada pessoa só pode executar 1 tarefa por slot
-3. RESPEITAR TEMPO: Se tarefa não cabe no slot, NÃO force
-4. SLOTS VAZIOS OK: Se não há tarefa compatível, deixe slot vazio
-5. PRIORIDADE: deadline urgente > prioridade alta > prioridade média
+4. PREENCHIMENTO INTELIGENTE:
+   - Priorize por deadline urgente > prioridade alta > prioridade média
+   - Dentro de cada slot, organize tarefas por ordem de prioridade
+   - Se sobrar espaço no slot, adicione mais tarefas compatíveis
+   - Se não houver tarefas compatíveis, deixe slot vazio
 
-IMPORTANTE: Retorne APENAS o JSON válido, sem texto adicional ou marcações markdown.`
+5. REMANEJAMENTO: Se todas as tarefas não couberem nos slots do dia:
+   - Realoque automaticamente para próximo dia no slot correspondente
+   - Mantenha compatibilidade de tipo de slot
+   - Distribua carga equilibradamente
+
+IMPORTANTE: 
+- Retorne APENAS o JSON válido, sem texto adicional ou marcações markdown
+- startOffsetMinutes e endOffsetMinutes são OBRIGATÓRIOS para cada tarefa
+- Calcule offsets considerando a duração real estimada de cada tarefa
+- Deixe margem de segurança nos slots longos`
           },
           {
             role: 'user',
@@ -121,10 +160,12 @@ ${timeSlots.map(slot => {
 
 IMPORTANTE: 
 - Só aloque tarefas compatíveis com o objetivo do slot
-- Máximo 1 tarefa por pessoa por slot
+- MÚLTIPLAS tarefas sequenciais por pessoa por slot são permitidas
+- Use banco de conhecimento para estimar tempo realista de cada tarefa
+- Calcule startOffsetMinutes e endOffsetMinutes para cada tarefa
 - Se não há tarefa compatível, deixe slot vazio
-- Tempo estimado não pode exceder duração do slot
 - Priorize tarefas por deadline e prioridade
+- Distribua tarefas até ocupar ~90% da capacidade do slot
 
 RETORNE APENAS JSON:`
           }
@@ -194,6 +235,17 @@ RETORNE APENAS JSON:`
       if (!task.taskId || !task.slotId || !task.date) {
         console.error(`❌ Invalid task at index ${index}:`, task);
         throw new Error(`Task at index ${index} is missing required fields (taskId, slotId, date)`);
+      }
+      
+      // Validar novos campos obrigatórios
+      if (typeof task.startOffsetMinutes !== 'number' || typeof task.endOffsetMinutes !== 'number') {
+        console.error(`❌ Task at index ${index} missing time offsets:`, task);
+        throw new Error(`Task at index ${index} must have startOffsetMinutes and endOffsetMinutes as numbers`);
+      }
+      
+      if (task.startOffsetMinutes < 0 || task.endOffsetMinutes <= task.startOffsetMinutes) {
+        console.error(`❌ Task at index ${index} has invalid time offsets:`, task);
+        throw new Error(`Task at index ${index} has invalid time offsets (start: ${task.startOffsetMinutes}, end: ${task.endOffsetMinutes})`);
       }
     }
     

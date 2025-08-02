@@ -9,6 +9,8 @@ interface OrganizedTask {
   slotId: string;
   date: string;
   estimatedMinutes: number;
+  startOffsetMinutes: number;
+  endOffsetMinutes: number;
   reason: string;
   taskTitle: string;
   slotName: string;
@@ -107,7 +109,14 @@ export const useTaskOrganizer = () => {
       // Aplicar cada tarefa organizada
       const updates = await Promise.all(
         plan.organizedTasks.map(async (organizedTask) => {
-          const { taskId, slotId, date, estimatedMinutes } = organizedTask;
+          const { 
+            taskId, 
+            slotId, 
+            date, 
+            estimatedMinutes, 
+            startOffsetMinutes, 
+            endOffsetMinutes 
+          } = organizedTask;
           
           // Buscar dados do slot para calcular horários
           const { data: slotData, error: slotError } = await supabase
@@ -121,23 +130,39 @@ export const useTaskOrganizer = () => {
             throw slotError;
           }
 
-          // Calcular start_date e due_date baseado no slot
-          const startDateTime = new Date(`${date}T${slotData.start_time}`);
-          const endDateTime = new Date(startDateTime.getTime() + (estimatedMinutes * 60000)); // Adicionar tempo estimado
+          // Calcular start_date e due_date baseado no offset dentro do slot
+          const [slotStartHour, slotStartMin] = slotData.start_time.split(':').map(Number);
+          const slotStartInMinutes = slotStartHour * 60 + slotStartMin;
           
-          // Garantir que não ultrapasse o fim do slot
-          const slotEndTime = new Date(`${date}T${slotData.end_time}`);
-          const finalEndTime = endDateTime > slotEndTime ? slotEndTime : endDateTime;
+          // Calcular horário específico baseado no offset
+          const taskStartInMinutes = slotStartInMinutes + startOffsetMinutes;
+          const taskEndInMinutes = slotStartInMinutes + endOffsetMinutes;
+          
+          const taskStartHour = Math.floor(taskStartInMinutes / 60);
+          const taskStartMin = taskStartInMinutes % 60;
+          const taskEndHour = Math.floor(taskEndInMinutes / 60);
+          const taskEndMin = taskEndInMinutes % 60;
+          
+          // Criar objetos Date com horários específicos
+          const startDateTime = new Date(`${date}T${String(taskStartHour).padStart(2, '0')}:${String(taskStartMin).padStart(2, '0')}:00`);
+          const endDateTime = new Date(`${date}T${String(taskEndHour).padStart(2, '0')}:${String(taskEndMin).padStart(2, '0')}:00`);
 
           const updates = {
             start_date: startDateTime.toISOString(),
-            due_date: finalEndTime.toISOString(),
+            due_date: endDateTime.toISOString(),
             deadline: date,
             organized_by_ai: true, // Marcar que foi organizada pela IA
-            ai_estimated_minutes: estimatedMinutes
+            ai_estimated_minutes: estimatedMinutes,
+            ai_organization_date: new Date().toISOString() // Registrar quando foi organizada
           };
 
-          console.log(`📅 Updating task ${taskId} with:`, updates);
+          console.log(`📅 Updating task ${taskId} with specific timing:`, {
+            title: organizedTask.taskTitle || 'Título não encontrado',
+            slot: organizedTask.slotName || 'Slot não encontrado',
+            taskTime: `${String(taskStartHour).padStart(2, '0')}:${String(taskStartMin).padStart(2, '0')} - ${String(taskEndHour).padStart(2, '0')}:${String(taskEndMin).padStart(2, '0')}`,
+            estimatedMinutes,
+            updates
+          });
 
           const { error: updateError } = await supabase
             .from('tasks')

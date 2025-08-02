@@ -21,6 +21,8 @@ interface OrganizedTask {
   slotId: string;
   date: string;
   estimatedMinutes: number;
+  startOffsetMinutes: number;
+  endOffsetMinutes: number;
   reason: string;
   taskTitle: string;
   slotName: string;
@@ -73,7 +75,7 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
   onCancel,
   isApplying,
 }) => {
-  // Agrupar tarefas por data
+  // Agrupar tarefas por data e slot
   const tasksByDate = organizationPlan.organizedTasks.reduce((acc, task) => {
     if (!acc[task.date]) {
       acc[task.date] = [];
@@ -81,6 +83,28 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
     acc[task.date].push(task);
     return acc;
   }, {} as Record<string, OrganizedTask[]>);
+
+  // Função para calcular horário específico da tarefa dentro do slot
+  const getTaskSpecificTime = (task: OrganizedTask) => {
+    if (task.startOffsetMinutes !== undefined && task.endOffsetMinutes !== undefined) {
+      const slotStartTime = task.slotTime?.split(' - ')[0];
+      if (slotStartTime) {
+        const [startHour, startMin] = slotStartTime.split(':').map(Number);
+        const slotStartInMinutes = startHour * 60 + startMin;
+        
+        const taskStartInMinutes = slotStartInMinutes + task.startOffsetMinutes;
+        const taskEndInMinutes = slotStartInMinutes + task.endOffsetMinutes;
+        
+        const taskStartHour = Math.floor(taskStartInMinutes / 60);
+        const taskStartMin = taskStartInMinutes % 60;
+        const taskEndHour = Math.floor(taskEndInMinutes / 60);
+        const taskEndMin = taskEndInMinutes % 60;
+        
+        return `${String(taskStartHour).padStart(2, '0')}:${String(taskStartMin).padStart(2, '0')} - ${String(taskEndHour).padStart(2, '0')}:${String(taskEndMin).padStart(2, '0')}`;
+      }
+    }
+    return task.slotTime;
+  };
 
   const formatTime = (minutes: number) => {
     if (!minutes || isNaN(minutes)) return '0min';
@@ -229,10 +253,15 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
                   <div className="grid gap-3">
                     {tasks
                       .sort((a, b) => {
-                        // Ordenar por horário do slot
+                        // Ordenar primeiro por slot, depois por offset dentro do slot
                         const slotA = a.slotTime?.split(' - ')[0] || '00:00';
                         const slotB = b.slotTime?.split(' - ')[0] || '00:00';
-                        return slotA.localeCompare(slotB);
+                        const slotComparison = slotA.localeCompare(slotB);
+                        
+                        if (slotComparison !== 0) return slotComparison;
+                        
+                        // Se estão no mesmo slot, ordenar por offset
+                        return (a.startOffsetMinutes || 0) - (b.startOffsetMinutes || 0);
                       })
                       .map((task, index) => (
                       <Card key={`${task.taskId}-${index}`} className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-primary/20">
@@ -276,7 +305,7 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
                               <div className="flex items-center gap-4 text-sm">
                                 <div className="flex items-center gap-1 text-muted-foreground">
                                   <Clock className="h-4 w-4" />
-                                  <span className="font-medium">{task.slotTime}</span>
+                                  <span className="font-medium">{getTaskSpecificTime(task)}</span>
                                 </div>
                                 <div className="flex items-center gap-1 text-muted-foreground">
                                   <Timer className="h-4 w-4" />
