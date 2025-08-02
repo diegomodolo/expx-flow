@@ -15,9 +15,114 @@ serve(async (req) => {
   }
 
   try {
-    const { clientData, clientAds, competitorData, competitorAds } = await req.json();
+    const { clientData, clientAds, competitorData, competitorAds, analysisType } = await req.json();
 
-    console.log('Generating competitive analysis for client:', clientData.name);
+    console.log('Analysis type:', analysisType);
+    console.log('Generating competitive analysis...');
+
+    if (analysisType === 'single_competitor') {
+      // Análise focada em um único concorrente
+      const competitor = competitorData[0];
+      const ads = competitorAds;
+
+      console.log('Single competitor analysis for:', competitor.name);
+      console.log('Competitor ads:', ads.length);
+
+      const adsSummary = ads.map((ad: any) => ({
+        platform: ad.platform,
+        type: ad.ad_type,
+        title: ad.ad_title,
+        copy: ad.ad_copy,
+        cta: ad.call_to_action,
+        estimated_performance: ad.estimated_performance,
+        notes: ad.notes
+      }));
+
+      const singleCompetitorPrompt = `
+Você é um especialista em análise competitiva digital. Analise profundamente este concorrente específico:
+
+**CONCORRENTE ANALISADO:**
+- Nome: ${competitor.name}
+- Empresa: ${competitor.company_name}
+- Setor: ${competitor.industry || 'Não especificado'}
+- Website: ${competitor.website_url || 'Não informado'}
+- Descrição: ${competitor.description || 'Não informada'}
+
+**ANÚNCIOS MONITORADOS (${ads.length} anúncios):**
+${adsSummary.map((ad, index) => `
+${index + 1}. Plataforma: ${ad.platform}
+   - Tipo: ${ad.type}
+   - Título: ${ad.title || 'Não informado'}
+   - Copy: ${ad.copy?.substring(0, 200) || 'Não informado'}...
+   - CTA: ${ad.cta || 'Não informado'}
+   - Performance Estimada: ${ad.estimated_performance}
+   ${ad.notes ? `- Notas: ${ad.notes}` : ''}
+`).join('\n')}
+
+Retorne uma análise estruturada em formato JSON com os seguintes campos:
+
+{
+  "competitor_overview": "Análise geral do concorrente, posicionamento e estratégia observada",
+  "messaging_strategy": "Análise das mensagens principais, tom de voz e abordagem de comunicação",
+  "creative_patterns": "Padrões identificados nos criativos, tipos de anúncio preferidos e elementos visuais",
+  "performance_indicators": "Análise dos indicadores de performance baseados nos anúncios observados",
+  "strategic_opportunities": "Oportunidades estratégicas identificadas e gaps que podem ser explorados",
+  "key_insights": ["insight1", "insight2", "insight3"],
+  "recommendations": ["recomendação1", "recomendação2", "recomendação3"]
+}
+
+Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação não estiver disponível, mencione isso na análise.
+`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-2025-04-14',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'Você é um especialista em análise competitiva. Retorne sempre um JSON válido com a estrutura solicitada.' 
+            },
+            { role: 'user', content: singleCompetitorPrompt }
+          ],
+          max_tokens: 3000,
+          temperature: 0.3,
+        }),
+      });
+
+      const data = await response.json();
+      const analysisText = data.choices[0].message.content;
+
+      // Try to parse as JSON
+      let analysis;
+      try {
+        analysis = JSON.parse(analysisText);
+      } catch {
+        // Fallback if not valid JSON
+        analysis = {
+          competitor_overview: analysisText,
+          messaging_strategy: "Análise detalhada disponível na visão geral",
+          creative_patterns: "Padrões identificados na análise principal",
+          performance_indicators: "Métricas baseadas nos anúncios observados",
+          strategic_opportunities: "Oportunidades detalhadas na análise principal",
+          key_insights: ["Análise baseada em dados limitados"],
+          recommendations: ["Consultar análise detalhada"]
+        };
+      }
+
+      console.log('Generated single competitor analysis successfully');
+
+      return new Response(JSON.stringify({ analysis }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Análise comparativa múltipla (código original)
+    console.log('Multiple competitors analysis');
     console.log('Client ads:', clientAds?.length || 0, 'ads');
     console.log('Competitors:', competitorData?.length || 0, 'competitors');
     console.log('Competitor ads:', competitorAds?.length || 0, 'ads');

@@ -16,9 +16,11 @@ import {
   Trash2, 
   Plus,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  BarChart3
 } from 'lucide-react';
 import { AdLibraryScrapeDialog } from './AdLibraryScrapeDialog';
+import { CompetitorAnalysisModal } from './CompetitorAnalysisModal';
 import { useCompetitors, Competitor, CompetitorAd } from '@/hooks/useCompetitors';
 import { toast } from 'sonner';
 
@@ -39,6 +41,7 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
   } = useCompetitors(clientId);
 
   const [editingCompetitor, setEditingCompetitor] = useState<Competitor | null>(null);
+  const [analyzingCompetitor, setAnalyzingCompetitor] = useState<Competitor | null>(null);
   const [addingAd, setAddingAd] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -174,6 +177,15 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAnalyzingCompetitor(competitor)}
+                      className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-1" />
+                      Análise
+                    </Button>
                     <AdLibraryScrapeDialog 
                       competitor={competitor} 
                       onAdsAdded={onRefetch}
@@ -505,6 +517,16 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Análise Competitiva */}
+      {analyzingCompetitor && (
+        <CompetitorAnalysisModal
+          competitor={analyzingCompetitor}
+          competitorAds={getCompetitorAds(analyzingCompetitor.id)}
+          open={!!analyzingCompetitor}
+          onOpenChange={(open) => !open && setAnalyzingCompetitor(null)}
+        />
+      )}
     </>
   );
 };
