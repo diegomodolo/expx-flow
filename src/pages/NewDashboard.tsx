@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { useClients } from "@/hooks/useClients";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +48,14 @@ const NewDashboard = () => {
   const { syncAllClients, syncing, progress } = useFacebookCampaignSync();
   const [rankingTab, setRankingTab] = useState('cpa');
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+
+  // Hook para alertas automáticos
+  const { alerts, loading: alertsLoading, generateAlerts } = useDashboardAlerts();
+
+  // Buscar alertas automaticamente quando o dashboard carrega
+  useEffect(() => {
+    generateAlerts();
+  }, [generateAlerts]);
 
   // Calcular informações da última sincronização
   const getLastSyncInfo = () => {
@@ -126,9 +135,9 @@ const NewDashboard = () => {
     { name: 'Recompras', value: funnelMetrics.recompras, color: '#FF8042' },
   ] : [];
 
-  // Alertas removidos - agora são gerados apenas na página de tarefas quando solicitado
-  const dangerAlerts: any[] = [];
-  const opportunityAlerts: any[] = [];
+  // Separar alertas por tipo e limitar a 5 de cada
+  const dangerAlerts = alerts.filter(alert => alert.type === 'danger').slice(0, 5);
+  const opportunityAlerts = alerts.filter(alert => alert.type === 'opportunity').slice(0, 5);
 
   // Ordenar campanhas para ranking
   const topCampaignsByCPA = [...campaignRankings]
@@ -407,17 +416,23 @@ const NewDashboard = () => {
                 <CardTitle className="flex items-center gap-2 text-red-600">
                   <AlertTriangle className="w-5 h-5" />
                   Problemas ({dangerAlerts.length})
+                  {alertsLoading && <RefreshCw className="w-4 h-4 animate-spin ml-2" />}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {dangerAlerts.length === 0 ? (
+                  {alertsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+                      <span>Analisando campanhas...</span>
+                    </div>
+                  ) : dangerAlerts.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">Nenhum problema detectado! 🎉</p>
                   ) : (
                     dangerAlerts.map((alert) => (
                       <div key={alert.id} className="flex items-start space-x-3 p-3 bg-red-50 border-l-4 border-red-400 rounded">
                         <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-medium text-red-800">{alert.title}</h4>
                           <p className="text-sm text-red-600">{alert.description}</p>
                           <div className="flex items-center gap-2 mt-1">
@@ -426,6 +441,11 @@ const NewDashboard = () => {
                               <Badge variant="outline" className="text-xs">{alert.client}</Badge>
                             )}
                           </div>
+                          {alert.recommendation && (
+                            <p className="text-xs text-gray-600 mt-2 bg-gray-100 p-2 rounded">
+                              💡 {alert.recommendation}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))
@@ -440,17 +460,23 @@ const NewDashboard = () => {
                 <CardTitle className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="w-5 h-5" />
                   Oportunidades ({opportunityAlerts.length})
+                  {alertsLoading && <RefreshCw className="w-4 h-4 animate-spin ml-2" />}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {opportunityAlerts.length === 0 ? (
+                  {alertsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+                      <span>Buscando oportunidades...</span>
+                    </div>
+                  ) : opportunityAlerts.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">Nenhuma oportunidade detectada no momento.</p>
                   ) : (
                     opportunityAlerts.map((alert) => (
                       <div key={alert.id} className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded">
                         <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-medium text-green-800">{alert.title}</h4>
                           <p className="text-sm text-green-600">{alert.description}</p>
                           <div className="flex items-center gap-2 mt-1">
@@ -459,6 +485,11 @@ const NewDashboard = () => {
                               <Badge variant="outline" className="text-xs">{alert.client}</Badge>
                             )}
                           </div>
+                          {alert.recommendation && (
+                            <p className="text-xs text-gray-600 mt-2 bg-gray-100 p-2 rounded">
+                              🚀 {alert.recommendation}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))
