@@ -627,46 +627,47 @@ serve(async (req) => {
                   const objectStory = creative.object_story_spec || {}
                   const linkData = objectStory.link_data || {}
                   
-                  // Save ad to database
-                  const adData = {
-                    facebook_id: ad.id,
-                    ad_set_id: savedAdSet.id,
-                    campaign_id: savedCampaign.id,
-                    client_id: clientId,
-                    user_id: client.user_id,
-                    company_id: client.company_id,
-                    name: ad.name,
-                    status: ad.status?.toLowerCase() || 'unknown',
-                    creative_type: creative.video_id ? 'video' : (creative.image_url ? 'image' : 'text'),
-                    creative_body: linkData.message || creative.body || '',
-                    creative_title: linkData.name || creative.title || '',
-                    creative_description: linkData.description || '',
-                    image_url: creative.image_url || '',
-                    video_url: creative.video_id ? `https://www.facebook.com/${creative.video_id}` : '',
-                    link_url: linkData.link || '',
-                    call_to_action: JSON.stringify(linkData.call_to_action || creative.call_to_action || {}),
-                    ctr: adCtr,
-                    cpc: adCpc,
-                    cpm: adCpm,
-                    spend: adSpend,
-                    impressions: adImpressions,
-                    clicks: adClicks,
-                    conversions: adLeads,
-                    cpa: adLeads > 0 ? adSpend / adLeads : 0,
-                    reach: adReach,
-                    frequency: adFrequency,
-                    quality_ranking: adQualityRanking,
-                    engagement_rate_ranking: adEngagementRateRanking,
-                    conversion_rate_ranking: adConversionRateRanking,
-                    // Add new engagement metrics
-                    likes: adLikes,
-                    comments: adComments,
-                    shares: adShares,
-                    video_views: adVideoViews,
-                    video_completion_rate: adVideoCompletionRate,
-                    negative_feedback: adNegativeFeedback,
-                    is_active: ad.status === 'ACTIVE'
-                  }
+                   // Save ad to database
+                   const adData = {
+                     facebook_id: ad.id,
+                     ad_set_id: savedAdSet.id,
+                     campaign_id: savedCampaign.id,
+                     client_id: clientId,
+                     user_id: client.user_id,
+                     company_id: client.company_id,
+                     name: ad.name,
+                     status: ad.status?.toLowerCase() || 'unknown',
+                     creative_type: creative.video_id ? 'video' : (creative.image_url ? 'image' : 'text'),
+                     creative_body: linkData.message || creative.body || '',
+                     creative_title: linkData.name || creative.title || '',
+                     creative_description: linkData.description || '',
+                     image_url: creative.image_url || '',
+                     video_url: creative.video_id ? `https://www.facebook.com/${creative.video_id}` : '',
+                     link_url: linkData.link || '',
+                     call_to_action: JSON.stringify(linkData.call_to_action || creative.call_to_action || {}),
+                     ctr: adCtr,
+                     cpc: adCpc,
+                     cpm: adCpm,
+                     spend: adSpend,
+                     impressions: adImpressions,
+                     clicks: adClicks,
+                     conversions: adLeads,
+                     cpa: adLeads > 0 ? adSpend / adLeads : 0,
+                     reach: adReach,
+                     frequency: adFrequency,
+                     quality_ranking: adQualityRanking,
+                     engagement_rate_ranking: adEngagementRateRanking,
+                     conversion_rate_ranking: adConversionRateRanking,
+                     // Add new engagement metrics
+                     likes: adLikes,
+                     comments: adComments,
+                     shares: adShares,
+                     video_views: adVideoViews,
+                     video_view_percentage: adVideoCompletionRate, // Changed from video_completion_rate
+                     video_completion_rate: adVideoCompletionRate,
+                     negative_feedback: adNegativeFeedback,
+                     is_active: ad.status === 'ACTIVE'
+                   }
 
                   const { error: adError } = await supabase
                     .from('ads')
