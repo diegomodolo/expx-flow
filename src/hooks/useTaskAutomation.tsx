@@ -57,7 +57,18 @@ export const useTaskAutomation = () => {
   });
 
   const convertAlertToTask = (alert: any) => {
-    const alertType = alert.type === 'danger' ? 'high_cpa' : 'scale_opportunity';
+    let alertType: string;
+    
+    // Mapear corretamente os tipos de alerta
+    if (alert.type === 'danger' || alert.type === 'critical') {
+      alertType = 'high_cpa';
+    } else if (alert.type === 'warning') {
+      alertType = 'performance_issue';
+    } else if (alert.type === 'opportunity') {
+      alertType = 'scale_opportunity';
+    } else {
+      alertType = 'general_issue';
+    }
     
     createTaskFromAlert.mutate({
       alertType,
