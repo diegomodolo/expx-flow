@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Plus, FileText } from "lucide-react";
+import { Calendar, Clock, Plus, FileText, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
@@ -9,6 +9,7 @@ import { usePlannerSlots } from "@/hooks/usePlannerSlots";
 import { usePlannerTasks } from "@/hooks/usePlannerTasks";
 import { PlannerTimeSlot } from "./PlannerTimeSlot";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { PlannerSettingsModal } from "./PlannerSettingsModal";
 import { useTasks } from "@/hooks/useTasks";
 
 interface PlannerTimelineProps {
@@ -24,6 +25,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const { tasks, getTasksBySlot, loading: plannerLoading } = usePlannerTasks(selectedDate);
   const { createTask, updateTask, deleteTask } = useTasks();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [editingTask, setEditingTask] = useState<any>(null);
 
@@ -263,9 +265,10 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
           <Clock className="h-16 w-16 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">Nenhum slot configurado</h3>
           <p className="text-muted-foreground text-center mb-4">
-            Configure slots de tempo nas configurações para começar a usar o planner.
+            Configure slots de tempo para começar a usar o planner.
           </p>
-          <Button onClick={() => window.location.href = '/configuracoes/planner'}>
+          <Button onClick={() => setSettingsModalOpen(true)}>
+            <Settings className="h-4 w-4 mr-2" />
             Configurar Slots
           </Button>
         </CardContent>
@@ -293,10 +296,17 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
           />
         </div>
         
-        <Button onClick={exportDaySummary} variant="outline">
-          <FileText className="h-4 w-4 mr-2" />
-          Exportar Resumo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setSettingsModalOpen(true)} variant="outline">
+            <Settings className="h-4 w-4 mr-2" />
+            Configurar Slots
+          </Button>
+          
+          <Button onClick={exportDaySummary} variant="outline">
+            <FileText className="h-4 w-4 mr-2" />
+            Exportar Resumo
+          </Button>
+        </div>
       </div>
 
       {/* Timeline */}
@@ -327,6 +337,12 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         }}
         task={editingTask}
         onSave={handleCreateTask}
+      />
+
+      {/* Settings Modal */}
+      <PlannerSettingsModal
+        open={settingsModalOpen}
+        onOpenChange={setSettingsModalOpen}
       />
     </div>
   );
