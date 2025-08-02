@@ -55,8 +55,18 @@ export const CompanySelector = () => {
         >
           {activeCompany ? (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded flex items-center justify-center overflow-hidden">
+                {activeCompany.company?.logo ? (
+                  <img 
+                    src={activeCompany.company.logo} 
+                    alt={`${activeCompany.company.name} logo`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-white" />
+                  </div>
+                )}
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-1">
