@@ -93,30 +93,52 @@ serve(async (req) => {
                   properties: {
                     ad_title: {
                       type: "string",
-                      description: "Título principal ou nome da empresa/produto no anúncio"
+                      description: "Nome da empresa/página que publicou o anúncio (ex: 'Pen - Marketing para SaaS B2B')"
                     },
                     ad_copy: {
                       type: "string", 
-                      description: "Todo o texto do anúncio (descrição, copy principal)"
+                      description: "Texto principal do anúncio que aparece na descrição (ex: 'Gere leads qualificados para escalar seu SaaS', 'Conheça a metodologia criada no Vale do Silício')"
                     },
                     call_to_action: {
                       type: "string",
-                      description: "Texto do botão (ex: 'Saiba mais', 'Comprar', 'Inscreva-se')"
+                      description: "Texto do botão de ação que aparece no anúncio (ex: 'Learn More', 'Saiba mais')"
                     },
                     ad_type: {
                       type: "string",
-                      description: "Tipo baseado no conteúdo (image, video, carousel)"
+                      description: "Tipo do anúncio baseado no conteúdo visual - 'video' se tem ícone de play, 'image' se é imagem estática"
                     },
                     platforms: {
                       type: "string",
-                      description: "Onde está rodando (Facebook, Instagram, etc)"
+                      description: "Plataformas onde o anúncio está rodando (geralmente Facebook e Instagram baseado nos ícones)"
+                    },
+                    ad_id: {
+                      type: "string",
+                      description: "ID da biblioteca de anúncios se visível"
+                    },
+                    date_started: {
+                      type: "string",
+                      description: "Data de início da veiculação se visível (ex: '25 jul de 2025')"
                     }
                   }
                 }
               }
             }
           },
-          extractionPrompt: "Analise esta página da Biblioteca de Anúncios do Facebook e extraia TODOS os anúncios individuais que encontrar. Para cada anúncio, identifique o título, texto do anúncio, call-to-action, tipo e plataformas onde está rodando."
+          extractionPrompt: `
+            Analise esta página da Biblioteca de Anúncios do Facebook e extraia TODOS os anúncios visíveis.
+            
+            Cada anúncio na biblioteca tem:
+            - Nome da empresa/página no topo
+            - Texto do anúncio (copy principal)
+            - Um botão de call-to-action
+            - Tipo de mídia (vídeo com ícone de play ou imagem)
+            - Plataformas (ícones do Facebook e Instagram)
+            - Data de veiculação
+            
+            Procure por cada container/card de anúncio individual e extraia os dados reais de cada um.
+            
+            IMPORTANTE: Extraia o texto EXATO que aparece em cada anúncio, não invente conteúdo.
+          `
         }
       }),
     });
