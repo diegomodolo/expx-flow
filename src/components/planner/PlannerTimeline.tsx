@@ -35,7 +35,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   filteredTasks
  }) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
-  const { tasks: plannerTasks, getTasksBySlot, getTasksWithoutTime, loading: plannerLoading } = usePlannerTasks(selectedDate);
+  const { tasks: plannerTasks, getTasksBySlot, getTasksWithoutTime, loading: plannerLoading, fetchPlannerTasks } = usePlannerTasks(selectedDate);
   const { unscheduledTasks, loading: unscheduledLoading } = useUnscheduledTasks();
   const { createTask, updateTask, deleteTask } = useTasks();
   const { employees } = useEmployees();
@@ -176,11 +176,15 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       endDate.setHours(endHours, endMinutes, 0, 0);
 
       // Atualizar a tarefa existente com os novos horários
+      console.log('🔄 Updating task:', taskId, 'with start_date:', startDate.toISOString());
+      
       await updateTask(taskId, {
         start_date: startDate.toISOString(),
         due_date: endDate.toISOString(),
         deadline: format(selectedDate, 'yyyy-MM-dd'),
       });
+
+      console.log('✅ Task updated successfully');
 
       toast({
         title: "Tarefa adicionada ao slot",
@@ -191,6 +195,8 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      fetchPlannerTasks();
+      
       
     } catch (error) {
       console.error("Error adding task to slot:", error);
@@ -237,6 +243,8 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      fetchPlannerTasks();
+      
       
     } catch (error) {
       console.error("Error creating task in slot:", error);
