@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, BarChart3, TrendingUp, Target, Lightbulb, Plus } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, BarChart3, TrendingUp, Target, Lightbulb, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Competitor, CompetitorAd } from '@/hooks/useCompetitors';
 import { useTasks } from '@/hooks/useTasks';
@@ -45,6 +46,7 @@ export const CompetitorAnalysisModal = ({
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [creatingTask, setCreatingTask] = useState<number | null>(null);
   const [createdTasks, setCreatedTasks] = useState<Set<number>>(new Set());
+  const [adsExpanded, setAdsExpanded] = useState(false);
   
   const { createTask } = useTasks();
   const { teams } = useTeams();
@@ -152,6 +154,48 @@ export const CompetitorAnalysisModal = ({
                 <p className="text-sm">{competitor.description}</p>
               </CardContent>
             )}
+            
+            {/* Anúncios Monitorados - Collapsible */}
+            <CardContent>
+              <Collapsible open={adsExpanded} onOpenChange={setAdsExpanded}>
+                <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium hover:text-blue-600 transition-colors">
+                  {adsExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  Ver Anúncios Monitorados ({competitorAds.length})
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-4">
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {competitorAds.slice(0, 5).map((ad, index) => (
+                      <div key={index} className="border rounded-lg p-3 text-xs">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="font-medium text-blue-600">{ad.platform}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {ad.ad_type}
+                          </Badge>
+                        </div>
+                        <h4 className="font-medium mb-1">{ad.ad_title}</h4>
+                        <p className="text-gray-600 mb-2 line-clamp-2">
+                          {ad.ad_copy?.substring(0, 120)}...
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>CTA: {ad.call_to_action}</span>
+                          <span>{new Date(ad.date_spotted).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {competitorAds.length > 5 && (
+                      <p className="text-xs text-gray-500 text-center py-2">
+                        + {competitorAds.length - 5} anúncios adicionais
+                      </p>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
           </Card>
 
           {/* Botão para gerar análise */}
