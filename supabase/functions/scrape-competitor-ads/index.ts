@@ -36,39 +36,23 @@ serve(async (req) => {
       throw new Error('URL é obrigatória');
     }
 
-    // Check if Firecrawl API key exists
+    // Check required API keys
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
-    console.log('API Key available:', !!firecrawlApiKey);
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    console.log('Firecrawl API Key available:', !!firecrawlApiKey);
+    console.log('OpenAI API Key available:', !!openaiApiKey);
 
     if (!firecrawlApiKey) {
-      console.error('FIRECRAWL_API_KEY not found');
-      // Return mock data when API key is missing
-      const mockAds = [
-        {
-          ad_title: `Mock Ad 1 - ${competitorName}`,
-          ad_copy: 'Este é um anúncio de teste (chave API não configurada)',
-          call_to_action: 'Saiba Mais',
-          ad_type: 'image',
-          estimated_performance: 'medium',
-          platforms: 'Facebook',
-          notes: 'Dados de teste - configure a chave FIRECRAWL_API_KEY'
-        }
-      ];
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        ads: mockAds,
-        originalUrl: url,
-        competitorId: competitorId,
-        message: 'Retornando dados de teste - configure FIRECRAWL_API_KEY'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      throw new Error('FIRECRAWL_API_KEY não configurada');
     }
 
-    // Try to call Firecrawl API
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY não configurada');
+    }
+
+    // Step 1: Get raw content from Firecrawl
     console.log('Making request to Firecrawl API...');
-    const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
+    const firecrawlResponse = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${firecrawlApiKey}`,
@@ -77,196 +61,127 @@ serve(async (req) => {
       body: JSON.stringify({
         url: url,
         pageOptions: {
-          includeHtml: true,
+          includeHtml: false,
           onlyMainContent: true,
-          waitFor: 5000
-        },
-        extractorOptions: {
-          mode: 'llm-extraction',
-          extractionSchema: {
-            type: "object",
-            properties: {
-              ads: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    company_name: {
-                      type: "string",
-                      description: "Nome da empresa/página que aparece no cabeçalho do anúncio (ex: 'Pen - Marketing para SaaS B2B')"
-                    },
-                    ad_copy: {
-                      type: "string", 
-                      description: "Texto principal do anúncio que aparece como descrição/copy (ex: 'Gere leads qualificados para escalar seu SaaS', 'Conheça a metodologia criada no Vale do Silício')"
-                    },
-                    call_to_action: {
-                      type: "string",
-                      description: "Texto do botão de ação (ex: 'Learn More', 'Saiba mais')"
-                    },
-                    ad_format: {
-                      type: "string",
-                      description: "Formato do anúncio - 'video' se tem ícone de play, 'image' se é imagem"
-                    },
-                    platforms: {
-                      type: "string",
-                      description: "Plataformas onde roda (Facebook, Instagram baseado nos ícones)"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          extractionPrompt: `
-            Extraia APENAS os anúncios reais da biblioteca de anúncios do Facebook. 
-            
-            IGNORE completamente:
-            - Links de navegação como "Meta Ad Library", "Ad Library Report"
-            - Elementos de interface da página
-            - Menus e barras de navegação
-            - URLs ou links internos da biblioteca
-            
-            PROCURE APENAS por:
-            - Cards/containers de anúncios individuais
-            - Cada anúncio tem: nome da empresa, texto do anúncio, botão de ação
-            - Anúncios que mostram conteúdo promocional real
-            - Texto como "Gere leads qualificados", "Conheça a metodologia"
-            
-            Se não encontrar anúncios reais, retorne array vazio.
-          `
+          waitFor: 3000
         }
       }),
     });
 
-    console.log('Firecrawl response status:', response.status);
-    console.log('Firecrawl response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Firecrawl response status:', firecrawlResponse.status);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('=== FIRECRAWL API ERROR ===');
-      console.error('Status:', response.status);
-      console.error('Status Text:', response.statusText);
-      console.error('Error Response:', errorText);
-      console.error('URL that failed:', url);
-      
-      // Try to parse error as JSON for more details
-      let errorDetails = errorText;
-      try {
-        const errorJson = JSON.parse(errorText);
-        console.error('Parsed error:', errorJson);
-        errorDetails = errorJson.error || errorJson.message || errorText;
-      } catch {
-        console.error('Error response is not JSON');
-      }
-      
-      // Return mock data instead of throwing error
-      const mockAds = [
-        {
-          ad_title: `${competitorName} - Erro API`,
-          ad_copy: `Não foi possível extrair anúncios: ${errorDetails}`,
-          call_to_action: 'Tentar novamente',
-          ad_type: 'error',
-          estimated_performance: 'low',
-          platforms: 'Facebook',
-          notes: `Erro ${response.status}: ${errorDetails}`
-        }
-      ];
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        ads: mockAds,
-        originalUrl: url,
-        competitorId: competitorId,
-        message: `Erro na API (${response.status}): ${errorDetails}`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!firecrawlResponse.ok) {
+      const errorText = await firecrawlResponse.text();
+      console.error('Firecrawl error:', errorText);
+      throw new Error(`Firecrawl API error: ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('Firecrawl response data received');
-    console.log('Success:', data.success);
-
-    if (!data.success) {
-      console.error('Firecrawl returned success=false:', data.error);
-      throw new Error(data.error || 'Erro no Firecrawl');
+    const firecrawlData = await firecrawlResponse.json();
+    
+    if (!firecrawlData.success) {
+      console.error('Firecrawl returned success=false:', firecrawlData.error);
+      throw new Error(firecrawlData.error || 'Erro no Firecrawl');
     }
 
-    // Process extracted data
+    const rawContent = firecrawlData.data?.content || '';
+    console.log('Raw content length:', rawContent.length);
+
+    if (rawContent.length < 100) {
+      throw new Error('Conteúdo muito pequeno extraído da página');
+    }
+
+    // Step 2: Send raw content to ChatGPT for processing
+    console.log('Sending content to ChatGPT for processing...');
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-2025-04-14',
+        messages: [
+          {
+            role: 'system',
+            content: `Você é um especialista em análise de dados da Biblioteca de Anúncios do Facebook. 
+
+Sua tarefa é extrair APENAS os anúncios reais de uma página e retornar um JSON estruturado.
+
+IGNORE completamente:
+- Links de navegação como "Meta Ad Library", "Ad Library Report", "Ad Library API"
+- Elementos de interface como "Brazil", "All ads", "Search by keyword"
+- Menus e barras de navegação
+- URLs ou links internos da biblioteca
+- Rodapés e elementos de sistema
+
+PROCURE APENAS por anúncios reais que contenham:
+- Nome da empresa/página (ex: "Pen - Marketing para SaaS B2B")
+- Texto promocional real (ex: "Gere leads qualificados para escalar seu SaaS")
+- Call-to-action (ex: "Learn More", "Saiba mais")
+- Library ID se disponível
+- Data de início se disponível
+
+Retorne um JSON no formato:
+{
+  "ads": [
+    {
+      "ad_title": "Nome da empresa",
+      "ad_copy": "Texto principal do anúncio",
+      "call_to_action": "Texto do botão",
+      "ad_type": "video ou image",
+      "platforms": "Facebook, Instagram",
+      "library_id": "ID se disponível",
+      "date_started": "Data se disponível"
+    }
+  ]
+}
+
+Se não encontrar anúncios reais, retorne {"ads": []}`
+          },
+          {
+            role: 'user',
+            content: `Extraia os anúncios reais desta página da biblioteca de anúncios do Facebook:
+
+${rawContent}`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 2000
+      }),
+    });
+
+    console.log('OpenAI response status:', openaiResponse.status);
+
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('OpenAI error:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    const chatGptResponse = openaiData.choices[0].message.content;
+    
+    console.log('ChatGPT response:', chatGptResponse);
+
+    // Step 3: Parse ChatGPT response
     let extractedAds = [];
-    
-    // Try to parse the LLM extraction first
-    if (data.data?.extract) {
-      console.log('Raw extract data:', data.data.extract);
-      
-      try {
-        const parsedExtract = typeof data.data.extract === 'string' 
-          ? JSON.parse(data.data.extract) 
-          : data.data.extract;
-        
-        // Check if the extracted data has the expected structure with 'ads' array
-        if (parsedExtract && parsedExtract.ads && Array.isArray(parsedExtract.ads)) {
-          // Map the extracted data to our expected format
-          extractedAds = parsedExtract.ads.map(ad => ({
-            ad_title: ad.company_name || ad.ad_title || 'Anúncio sem título',
-            ad_copy: ad.ad_copy || 'Texto não disponível',
-            call_to_action: ad.call_to_action || 'Ver mais',
-            ad_type: ad.ad_format || ad.ad_type || 'unknown',
-            estimated_performance: 'medium',
-            platforms: ad.platforms || 'Facebook',
-            notes: 'Extraído via Firecrawl com AI'
-          }));
-          console.log('Successfully parsed', extractedAds.length, 'ads from schema structure');
-        } else if (Array.isArray(parsedExtract)) {
-          extractedAds = parsedExtract;
-          console.log('Successfully parsed', extractedAds.length, 'ads from array structure');
-        } else if (parsedExtract && typeof parsedExtract === 'object') {
-          extractedAds = [parsedExtract];
-          console.log('Found single ad object from LLM extraction');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse LLM extraction:', parseError);
-      }
-    }
-
-    // Fallback: extract from content if no ads found
-    if (extractedAds.length === 0) {
-      console.log('No ads from LLM extraction, trying content parsing');
-      const content = data.data?.content || '';
-      console.log('Content length:', content.length);
-
-      if (content.length > 100) {
-        // Split content into potential ad sections
-        const sections = content.split(/\n\s*\n/).filter(section => 
-          section.trim().length > 50 && 
-          section.trim().length < 1500
-        );
-        
-        console.log('Found', sections.length, 'content sections');
-        
-        // Extract more ads without artificial limit
-        extractedAds = sections.slice(0, 15).map((section, index) => ({
-          ad_title: `${competitorName} - Anúncio ${index + 1}`,
-          ad_copy: section.trim().substring(0, 500) + (section.length > 500 ? '...' : ''),
-          call_to_action: 'Ver mais',
-          ad_type: 'text',
+    try {
+      const parsedResponse = JSON.parse(chatGptResponse);
+      if (parsedResponse.ads && Array.isArray(parsedResponse.ads)) {
+        extractedAds = parsedResponse.ads.map(ad => ({
+          ad_title: ad.ad_title || 'Título não disponível',
+          ad_copy: ad.ad_copy || 'Texto não disponível',
+          call_to_action: ad.call_to_action || 'Ver mais',
+          ad_type: ad.ad_type || 'unknown',
           estimated_performance: 'medium',
-          platforms: 'Facebook',
-          notes: 'Extraído do conteúdo da página'
+          platforms: ad.platforms || 'Facebook',
+          notes: `Library ID: ${ad.library_id || 'N/A'} | Data: ${ad.date_started || 'N/A'}`
         }));
       }
-    }
-
-    // Ensure we have at least one ad
-    if (extractedAds.length === 0) {
-      extractedAds = [{
-        ad_title: `${competitorName} - Conteúdo extraído`,
-        ad_copy: data.data?.content?.substring(0, 200) || 'Conteúdo não disponível',
-        call_to_action: 'Ver anúncio',
-        ad_type: 'unknown',
-        estimated_performance: 'medium',
-        platforms: 'Facebook',
-        notes: 'Fallback - conteúdo básico extraído'
-      }];
+    } catch (parseError) {
+      console.error('Failed to parse ChatGPT response:', parseError);
+      console.error('Raw response:', chatGptResponse);
+      throw new Error('Erro ao processar resposta do ChatGPT');
     }
 
     console.log('=== FINAL RESULT ===');
@@ -277,7 +192,8 @@ serve(async (req) => {
       success: true, 
       ads: extractedAds,
       originalUrl: url,
-      competitorId: competitorId
+      competitorId: competitorId,
+      message: `${extractedAds.length} anúncios extraídos com sucesso`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
