@@ -77,15 +77,11 @@ export function usePlannerTasks(plannedDate: Date) {
         
         // Converter UTC para horário local
         const taskDate = new Date(task.start_date);
-        const taskTime = taskDate.toLocaleTimeString('pt-BR', { 
-          timeZone: 'America/Sao_Paulo',
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
         
-        console.log(`⏰ Task time in local timezone: ${taskTime}`);
+        // Usar o horário UTC diretamente, pois já está sendo salvo no horário correto
+        const taskTime = taskDate.toISOString().split('T')[1].substring(0, 8); // HH:MM:SS em UTC
+        
+        console.log(`⏰ Task time in UTC (should match slot time): ${taskTime}`);
         
         console.log(`🔍 Comparing task time ${taskTime} with slot ${timeSlot.name} (${timeSlot.start_time}:00 - ${timeSlot.end_time}:00)`);
         
