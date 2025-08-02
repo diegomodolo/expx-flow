@@ -283,53 +283,111 @@ export default function NewDashboard() {
           </div>
         </div>
 
-        {/* Top 10 Clientes por Investimento */}
+        {/* Top 5 Clientes por Investimento e Leads */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Users className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-gray-900">Top 10 Clientes por Investimento</h2>
-          </div>
-
-          <div className="space-y-3">
-            {topClientsByROI.slice(0, 5).map((client, index) => (
-              <div key={client.id} className={`p-4 bg-white rounded-lg shadow-sm ${
-                index === 0 ? 'border-l-4 border-green-500' :
-                index === 1 ? 'border-l-4 border-blue-500' :
-                index === 2 ? 'border-l-4 border-purple-500' :
-                index === 3 ? 'border-l-4 border-orange-500' :
-                'border-l-4 border-yellow-500'
-              }`}>
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    index === 0 ? 'bg-green-500' :
-                    index === 1 ? 'bg-blue-500' :
-                    index === 2 ? 'bg-purple-500' :
-                    index === 3 ? 'bg-orange-500' :
-                    'bg-yellow-500'
-                  }`}>
-                    <span className="text-sm font-bold text-white">{index + 1}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-semibold text-gray-900">{client.name}</h4>
-                      <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
-                        {formatCurrency(client.investment)}
-                      </span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                        {client.company}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">
-                      Campanhas: {client.active_campaigns} • Leads: {client.leads_generated}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Target className="w-3 h-3 text-gray-500" />
-                      <p className="text-xs text-gray-600">CPA: {formatCurrency(client.avg_cpl)} • {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}% do total</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 gap-8">
+            {/* Top 5 Clientes por Investimento */}
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Users className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold text-gray-900">Top 5 Clientes por Investimento</h2>
               </div>
-            ))}
+
+              <div className="space-y-3">
+                {topClientsByROI.slice(0, 5).map((client, index) => (
+                  <div key={client.id} className={`p-4 bg-white rounded-lg shadow-sm ${
+                    index === 0 ? 'border-l-4 border-green-500' :
+                    index === 1 ? 'border-l-4 border-blue-500' :
+                    index === 2 ? 'border-l-4 border-purple-500' :
+                    index === 3 ? 'border-l-4 border-orange-500' :
+                    'border-l-4 border-yellow-500'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        index === 0 ? 'bg-green-500' :
+                        index === 1 ? 'bg-blue-500' :
+                        index === 2 ? 'bg-purple-500' :
+                        index === 3 ? 'bg-orange-500' :
+                        'bg-yellow-500'
+                      }`}>
+                        <span className="text-sm font-bold text-white">{index + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-semibold text-gray-900">{client.name}</h4>
+                          <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                            {formatCurrency(client.investment)}
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                            {client.company}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">
+                          Campanhas: {client.active_campaigns} • Leads: {client.leads_generated}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Target className="w-3 h-3 text-gray-500" />
+                          <p className="text-xs text-gray-600">CPA: {formatCurrency(client.avg_cpl)} • {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}% do total</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top 5 Clientes por Resultado de Leads */}
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Target className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold text-gray-900">Top 5 Clientes por Resultado de Leads</h2>
+              </div>
+
+              <div className="space-y-3">
+                {[...topClientsByROI]
+                  .sort((a, b) => b.leads_generated - a.leads_generated)
+                  .slice(0, 5)
+                  .map((client, index) => (
+                  <div key={`leads-${client.id}`} className={`p-4 bg-white rounded-lg shadow-sm ${
+                    index === 0 ? 'border-l-4 border-green-500' :
+                    index === 1 ? 'border-l-4 border-blue-500' :
+                    index === 2 ? 'border-l-4 border-purple-500' :
+                    index === 3 ? 'border-l-4 border-orange-500' :
+                    'border-l-4 border-yellow-500'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        index === 0 ? 'bg-green-500' :
+                        index === 1 ? 'bg-blue-500' :
+                        index === 2 ? 'bg-purple-500' :
+                        index === 3 ? 'bg-orange-500' :
+                        'bg-yellow-500'
+                      }`}>
+                        <span className="text-sm font-bold text-white">{index + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-semibold text-gray-900">{client.name}</h4>
+                          <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
+                            {client.leads_generated} leads
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                            {client.company}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">
+                          Campanhas: {client.active_campaigns} • Investimento: {formatCurrency(client.investment)}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-3 h-3 text-gray-500" />
+                          <p className="text-xs text-gray-600">CPA: {formatCurrency(client.avg_cpl)} • {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}% dos leads</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
