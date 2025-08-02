@@ -7,7 +7,21 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { TrendingUp, Target, DollarSign } from "lucide-react";
 
 const RelatorioExecutivo = () => {
-  const { metrics, clientsPerformance, campaignRankings, trends } = useDashboardData();
+  const { metrics, clientsPerformance, campaignRankings, trends, loading } = useDashboardData();
+
+  // Show loading state while data is being fetched
+  if (loading || !metrics) {
+    return (
+      <ReportLayout
+        title="Relatório Executivo"
+        description="Visão geral para gestores e proprietários"
+      >
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </ReportLayout>
+    );
+  }
 
   const chartConfig = {
     investment: { label: "Investimento", color: "hsl(var(--primary))" },
@@ -15,10 +29,10 @@ const RelatorioExecutivo = () => {
     cpa: { label: "CPA", color: "hsl(var(--accent))" }
   };
 
-  const roi = metrics.totalInvestment > 0 ? 
-    ((metrics.totalLeads * 150 - metrics.totalInvestment) / metrics.totalInvestment * 100).toFixed(1) : 0;
+  const roi = (metrics?.totalInvestment || 0) > 0 ? 
+    (((metrics?.totalLeads || 0) * 150 - (metrics?.totalInvestment || 0)) / (metrics?.totalInvestment || 1) * 100).toFixed(1) : 0;
 
-  const topCampaigns = campaignRankings
+  const topCampaigns = (campaignRankings || [])
     .sort((a, b) => b.conversions - a.conversions)
     .slice(0, 3);
 
@@ -35,21 +49,21 @@ const RelatorioExecutivo = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Investimento Total"
-          value={`R$ ${metrics.totalInvestment.toLocaleString()}`}
+          value={`R$ ${(metrics?.totalInvestment || 0).toLocaleString()}`}
           change={15}
           changeLabel="mês anterior"
           trend="up"
         />
         <MetricCard
           title="Leads Gerados"
-          value={metrics.totalLeads.toLocaleString()}
+          value={(metrics?.totalLeads || 0).toLocaleString()}
           change={22}
           changeLabel="mês anterior"
           trend="up"
         />
         <MetricCard
           title="CPL Médio"
-          value={`R$ ${(metrics.totalInvestment / metrics.totalLeads || 0).toFixed(2)}`}
+          value={`R$ ${((metrics?.totalInvestment || 0) / (metrics?.totalLeads || 1)).toFixed(2)}`}
           change={-8}
           changeLabel="mês anterior"
           trend="up"
@@ -72,7 +86,7 @@ const RelatorioExecutivo = () => {
           <CardContent>
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trends}>
+                <LineChart data={trends || []}>
                   <XAxis dataKey="date" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
@@ -104,7 +118,7 @@ const RelatorioExecutivo = () => {
           <CardContent>
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={clientsPerformance.slice(0, 5)}>
+                <BarChart data={(clientsPerformance || []).slice(0, 5)}>
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
@@ -164,7 +178,7 @@ const RelatorioExecutivo = () => {
                 <div>
                   <h4 className="font-medium">Otimização de CPA</h4>
                   <p className="text-sm text-muted-foreground">
-                    Identificamos {clientsPerformance.filter(c => c.investment > 10000).length} clientes 
+                    Identificamos {(clientsPerformance || []).filter(c => c.investment > 10000).length} clientes 
                     com CPA acima da média que podem ser otimizados
                   </p>
                 </div>
