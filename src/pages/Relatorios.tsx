@@ -14,7 +14,10 @@ import {
   UserCheck, 
   AlertTriangle,
   Lightbulb,
-  Search
+  Search,
+  TrendingDown,
+  DollarSign,
+  Image
 } from "lucide-react";
 
 const Relatorios = () => {
@@ -116,6 +119,46 @@ const Relatorios = () => {
       href: "/relatorios/alertas-criticos",
       iconColor: "#FFFFFF",
       iconBg: "hsl(0, 84%, 60%)"
+    },
+    {
+      title: "Clientes em Zona Crítica",
+      description: "Identificação de clientes com campanhas problemáticas",
+      icon: AlertTriangle,
+      category: "alertas",
+      isAiPowered: true,
+      href: "/relatorios/clientes-zona-critica",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(0, 72%, 51%)"
+    },
+    {
+      title: "Criativos de Baixo Desempenho",
+      description: "Anúncios que estão queimando verba sem retorno",
+      icon: Image,
+      category: "performance",
+      isAiPowered: true,
+      href: "/relatorios/criativos-baixo-desempenho",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(25, 95%, 53%)"
+    },
+    {
+      title: "Campanhas Ineficientes",
+      description: "Campanhas com baixo ROI e desperdício de orçamento",
+      icon: TrendingDown,
+      category: "performance",
+      isAiPowered: true,
+      href: "/relatorios/campanhas-ineficientes",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(348, 83%, 47%)"
+    },
+    {
+      title: "Orçamento Mal Distribuído",
+      description: "Análise de distribuição de verba no funil de vendas",
+      icon: DollarSign,
+      category: "orcamento",
+      isAiPowered: true,
+      href: "/relatorios/orcamento-mal-distribuido",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(262, 83%, 58%)"
     }
   ];
 
