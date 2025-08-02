@@ -46,7 +46,8 @@ export function useTasks() {
     queryFn: async () => {
       if (!user || !activeCompany?.company_id) return [];
       
-      const { data, error } = await supabase
+      // Buscar tarefas
+      const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select(`
           *,
@@ -55,8 +56,28 @@ export function useTasks() {
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+      if (tasksError) throw tasksError;
+      
+      if (!tasksData || tasksData.length === 0) return [];
+
+      // Buscar perfis dos usuários
+      const userIds = [...new Set(tasksData.map(task => task.user_id))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, avatar_url, full_name")
+        .in("user_id", userIds);
+
+      if (profilesError) {
+        console.warn("Erro ao buscar perfis:", profilesError);
+      }
+
+      // Combinar dados
+      const tasksWithProfiles = tasksData.map(task => ({
+        ...task,
+        user_profile: profilesData?.find(profile => profile.user_id === task.user_id) || null
+      }));
+
+      return tasksWithProfiles;
     },
     enabled: !!user && !!activeCompany?.company_id,
   });

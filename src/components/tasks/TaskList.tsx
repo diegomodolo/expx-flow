@@ -21,6 +21,10 @@ interface Task {
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard';
   team?: { name: string; color: string };
+  user_profile?: {
+    avatar_url: string | null;
+    full_name: string | null;
+  } | null;
 }
 
 interface TaskListProps {
@@ -81,11 +85,11 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage 
-                    src={task.responsible_avatar || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face`} 
-                    alt={task.responsible_name || 'Responsável'}
+                    src={task.user_profile?.avatar_url || task.responsible_avatar || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face`} 
+                    alt={task.user_profile?.full_name || task.responsible_name || 'Responsável'}
                   />
                   <AvatarFallback className="text-sm bg-primary/10 font-medium text-primary">
-                    {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
+                    {(task.user_profile?.full_name || task.responsible_name)?.split(' ').map(n => n[0]).join('') || 'T'}
                   </AvatarFallback>
                 </Avatar>
                 
