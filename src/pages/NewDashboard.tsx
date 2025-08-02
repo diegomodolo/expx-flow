@@ -321,13 +321,9 @@ export default function NewDashboard() {
                             {client.company}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700 mb-2">
-                          Campanhas: {client.active_campaigns} • Leads: {client.leads_generated}
+                        <p className="text-sm text-gray-700">
+                          Campanhas: {client.active_campaigns} • Leads: {client.leads_generated} • CPA: {formatCurrency(client.avg_cpl)} • {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}% do total
                         </p>
-                        <div className="flex items-center gap-2">
-                          <Target className="w-3 h-3 text-gray-500" />
-                          <p className="text-xs text-gray-600">CPA: {formatCurrency(client.avg_cpl)} • {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}% do total</p>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -374,13 +370,9 @@ export default function NewDashboard() {
                             {client.company}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700 mb-2">
-                          Campanhas: {client.active_campaigns} • Investimento: {formatCurrency(client.investment)}
+                        <p className="text-sm text-gray-700">
+                          Campanhas: {client.active_campaigns} • Investimento: {formatCurrency(client.investment)} • CPA: {formatCurrency(client.avg_cpl)} • {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}% dos leads
                         </p>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-3 h-3 text-gray-500" />
-                          <p className="text-xs text-gray-600">CPA: {formatCurrency(client.avg_cpl)} • {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}% dos leads</p>
-                        </div>
                       </div>
                     </div>
                   </div>
