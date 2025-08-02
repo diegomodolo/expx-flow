@@ -97,7 +97,7 @@ export default function RelatorioClientesZonaCritica() {
       // 1. Verificar se tem campanhas ativas mas NENHUMA gerou leads
       const hasActiveCampaignsWithoutLeads = clientCampaigns.length > 0 && totalConversions === 0;
       if (hasActiveCampaignsWithoutLeads) {
-        issues.push(`Campanhas ativas sem nenhum lead gerado (${clientCampaigns.length} campanhas)`);
+        issues.push(`Campanhas ativas sem nenhum lead gerado (${clientCampaigns.length} campanhas) - Gasto total: R$ ${totalSpend.toFixed(0)}`);
       }
 
       // 2. Verificar campanhas que gastaram mais de R$ 150 sem leads
