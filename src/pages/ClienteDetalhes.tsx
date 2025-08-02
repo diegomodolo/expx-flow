@@ -60,7 +60,7 @@ const ClienteDetalhes = () => {
   const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
   const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
-  const { alerts, refetch: refetchDashboardData } = useDashboardData();
+  const { refetch: refetchDashboardData } = useDashboardData();
   const { competitors, competitorAds, generateCompetitiveAnalysis, refetch: refetchCompetitors } = useCompetitors(id);
   const { convertAlertToTask } = useTaskAutomation();
   const [activeTab, setActiveTab] = useState("campaigns");
@@ -105,13 +105,9 @@ const ClienteDetalhes = () => {
   const totalLeadsGenerated = client?.leads_generated || 0;
   const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
 
-  // Filtrar alertas específicos do cliente
-  const clientSpecificAlerts = alerts?.filter(alert => 
-    alert.client === client?.name && !convertedAlerts.has(alert.id)
-  ) || [];
-
-  const dangerAlerts = clientSpecificAlerts.filter(alert => alert.type === 'danger');
-  const opportunityAlerts = clientSpecificAlerts.filter(alert => alert.type === 'opportunity');
+  // Alertas removidos - agora são gerados apenas na página de tarefas quando solicitado
+  const dangerAlerts: any[] = [];
+  const opportunityAlerts: any[] = [];
 
   // Funções para manipular alertas
   const handleAnalyzeCampaigns = async () => {
@@ -1097,9 +1093,9 @@ const ClienteDetalhes = () => {
                 <TabsTrigger value="funnel">Funil de Conversão</TabsTrigger>
                 <TabsTrigger value="alerts" className="relative">
                   Alertas & Sugestões
-                  {clientSpecificAlerts.length > 0 && (
+                  {(dangerAlerts.length + opportunityAlerts.length) > 0 && (
                     <Badge variant="destructive" className="ml-2 text-xs">
-                      {clientSpecificAlerts.length}
+                      {dangerAlerts.length + opportunityAlerts.length}
                     </Badge>
                   )}
                 </TabsTrigger>

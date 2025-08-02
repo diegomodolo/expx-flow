@@ -38,7 +38,6 @@ const NewDashboard = () => {
     clientsPerformance, 
     campaignRankings, 
     funnelMetrics, 
-    alerts, 
     trends, 
     loading, 
     error 
@@ -127,9 +126,9 @@ const NewDashboard = () => {
     { name: 'Recompras', value: funnelMetrics.recompras, color: '#FF8042' },
   ] : [];
 
-  // Filtrar alertas por tipo
-  const dangerAlerts = alerts.filter(a => a.type === 'danger');
-  const opportunityAlerts = alerts.filter(a => a.type === 'opportunity');
+  // Alertas removidos - agora são gerados apenas na página de tarefas quando solicitado
+  const dangerAlerts: any[] = [];
+  const opportunityAlerts: any[] = [];
 
   // Ordenar campanhas para ranking
   const topCampaignsByCPA = [...campaignRankings]

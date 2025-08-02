@@ -17,7 +17,7 @@ import { PlannerTimeline } from "@/components/planner/PlannerTimeline";
 import { useTasks } from "@/hooks/useTasks";
 import { useTaskStats } from "@/hooks/useTaskStats";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useClients } from "@/hooks/useClients";
 import { 
   Plus, 
@@ -64,7 +64,7 @@ export default function Tarefas() {
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
   const { convertAlertToTask } = useTaskAutomation();
-  const { alerts, refetch: refetchDashboardData } = useDashboardData();
+  const { alerts, generateAlerts, loading: alertsLoading } = useDashboardAlerts();
   const { clients } = useClients();
 
   // Filtrar tarefas
@@ -124,8 +124,8 @@ export default function Tarefas() {
       // Limpar alertas convertidos ao buscar novos
       setConvertedAlerts(new Set());
       
-      await refetchDashboardData(selectedClientId);
-      console.log('Dashboard data refetched, total alerts:', alerts?.length || 0);
+      await generateAlerts(selectedClientId);
+      console.log('Alerts generated, total alerts:', alerts?.length || 0);
       console.log('Danger alerts:', alerts?.filter(a => a.type === 'danger').length || 0);
       console.log('Opportunity alerts:', alerts?.filter(a => a.type === 'opportunity').length || 0);
       console.log('Selected client filter:', selectedClientId);
