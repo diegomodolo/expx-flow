@@ -62,26 +62,12 @@ export function usePlannerTasks(plannedDate: Date) {
 
   // Função para agrupar tarefas por slot baseado no horário
   const getTasksBySlot = (timeSlot: PlannerTimeSlot) => {
-    console.log(`🔍 Getting tasks for slot: ${timeSlot.name} (${timeSlot.start_time} - ${timeSlot.end_time})`);
-    console.log('📋 All available tasks:', tasks.map(t => ({
-      id: t.id,
-      title: t.title,
-      start_date: t.start_date,
-      deadline: t.deadline
-    })));
-    
     const filteredTasks = tasks.filter(task => {
       // Se a tarefa tem start_date, usar o horário dela
       if (task.start_date) {
-        console.log(`🔍 Checking task ${task.id} with start_date: ${task.start_date}`);
-        
         // Converter para horário local e extrair apenas o horário
         const taskDate = new Date(task.start_date);
         const taskTime = `${taskDate.getHours().toString().padStart(2, '0')}:${taskDate.getMinutes().toString().padStart(2, '0')}:${taskDate.getSeconds().toString().padStart(2, '0')}`;
-        
-        console.log(`⏰ Task time in local timezone: ${taskTime}`);
-        
-        console.log(`🔍 Comparing task time ${taskTime} with slot ${timeSlot.name} (${timeSlot.start_time}:00 - ${timeSlot.end_time}:00)`);
         
         // Normalizar para formato HH:MM:SS se necessário
         const slotStartTime = timeSlot.start_time.length === 5 ? `${timeSlot.start_time}:00` : timeSlot.start_time;
@@ -89,18 +75,14 @@ export function usePlannerTasks(plannedDate: Date) {
         
         // Comparar strings de tempo diretamente
         const isInSlot = taskTime >= slotStartTime && taskTime <= slotEndTime;
-        console.log(`📍 Task ${task.id} time ${taskTime} ${isInSlot ? 'MATCHES' : 'does not match'} slot range ${slotStartTime} - ${slotEndTime}`);
         
         return isInSlot;
       }
       
       // Se não tem start_date mas tem deadline no dia, não atribuir automaticamente a um slot
       // Deixar isso para tarefas sem horário específico
-      console.log(`⚠️ Task ${task.id} has no start_date, skipping slot assignment`);
       return false;
     });
-    
-    console.log(`✅ Slot ${timeSlot.name} final tasks:`, filteredTasks.map(t => `${t.id}:${t.title}`));
     
     return filteredTasks.sort((a, b) => {
       // Priorizar tarefas com start_date definido
@@ -115,22 +97,12 @@ export function usePlannerTasks(plannedDate: Date) {
 
   // Função para obter tarefas sem horário específico (apenas deadline)
   const getTasksWithoutTime = () => {
-    console.log('🔍 Getting tasks without time...');
-    console.log('📋 All tasks:', tasks.map(t => ({
-      id: t.id,
-      title: t.title,
-      start_date: t.start_date,
-      deadline: t.deadline
-    })));
-    
     const tasksWithoutTime = tasks.filter(task => {
       // Tarefas que não têm start_date (independente do deadline)
       const hasNoStartDate = !task.start_date;
-      console.log(`📝 Task ${task.id} (${task.title}): start_date=${task.start_date}, deadline=${task.deadline}, hasNoStartDate=${hasNoStartDate}`);
       return hasNoStartDate;
     });
     
-    console.log('✅ Tasks without time:', tasksWithoutTime.map(t => `${t.id}:${t.title}`));
     return tasksWithoutTime;
   };
 

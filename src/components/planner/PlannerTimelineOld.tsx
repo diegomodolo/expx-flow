@@ -56,21 +56,13 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const getFilteredTasksBySlot = (timeSlot: any) => {
     const plannedDateStr = selectedDate.toISOString().split('T')[0];
     
-    console.log(`🎯 Getting tasks for slot ${timeSlot.name} on date ${plannedDateStr}`);
-    console.log(`📊 Total available tasks:`, tasks.length);
-    
     const filteredTasks = tasks.filter(task => {
-      console.log(`🔍 Checking task ${task.id}: ${task.title}`);
-      
       // Verificar se a tarefa tem start_date para este dia
       if (task.start_date) {
         const taskDate = new Date(task.start_date);
         const taskDateStr = taskDate.toISOString().split('T')[0];
         
-        console.log(`📅 Task date: ${taskDateStr}, Planned date: ${plannedDateStr}`);
-        
         if (taskDateStr !== plannedDateStr) {
-          console.log(`❌ Task date mismatch for task ${task.id}`);
           return false;
         }
         
@@ -83,16 +75,12 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         
         // Comparar strings de tempo diretamente
         const isInSlot = taskTime >= slotStartTime && taskTime <= slotEndTime;
-        console.log(`📍 Task ${task.id} time ${taskTime} ${isInSlot ? 'MATCHES' : 'does not match'} slot range ${slotStartTime} - ${slotEndTime}`);
         
         return isInSlot;
       }
       
-      console.log(`⚠️ Task ${task.id} has no start_date, skipping slot assignment`);
       return false;
     });
-    
-    console.log(`✅ Slot ${timeSlot.name} final tasks:`, filteredTasks.map(t => `${t.id}:${t.title}`));
     
     return filteredTasks.sort((a, b) => {
       if (a.start_date && !b.start_date) return -1;
@@ -106,10 +94,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   // Função para lidar com o fim do drag and drop
   const handleDragEnd = async (result: DropResult) => {
-    console.log('🎯 Drag End Result:', result);
-    
     if (!result.destination) {
-      console.log('❌ No destination, aborting');
       return;
     }
 
@@ -117,16 +102,11 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     
     // Extrair o ID real da tarefa removendo o prefixo
     const taskId = draggableId.replace('planner-task-', '');
-    console.log('📦 Task ID extracted:', taskId);
     
     // Se moveu para o mesmo slot, não faz nada
     if (source.droppableId === destination.droppableId) {
-      console.log('⚠️ Same slot, no change needed');
       return;
     }
-
-    console.log('📦 Moving task', taskId, 'from slot', source.droppableId, 'to slot', destination.droppableId);
-    console.log('📊 Before update - Tasks:', tasks.length);
 
     try {
       // Encontrar o slot de destino
@@ -135,8 +115,6 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         console.error('❌ Target slot not found for ID:', destination.droppableId);
         return;
       }
-
-      console.log('🎯 Target slot found:', targetSlot.name, targetSlot.start_time, '-', targetSlot.end_time);
 
       // Criar datas usando horário local do Brasil e converter para UTC
       const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -156,22 +134,11 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         deadline: dateStr
       };
 
-      console.log('🔄 Updates to apply:', updates);
-
       // Atualizar a tarefa com os novos horários
-      console.log('📝 Calling updateTask with taskId:', taskId, 'and updates:', updates);
-      
       try {
         const result = await updateTask(taskId, updates);
-        console.log('✅ Task updated in database, result:', result);
       } catch (updateError) {
-        console.error('❌ Error in updateTask:', updateError);
-        console.error('Error details:', {
-          message: updateError.message,
-          stack: updateError.stack,
-          taskId,
-          updates
-        });
+        console.error('❌ Error updating task:', updateError);
         throw updateError; // Re-throw para ser capturado pelo catch externo
       }
       
@@ -179,13 +146,11 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Invalidar cache para forçar re-renderização imediata
-      console.log('🔄 Invalidating queries...');
       await queryClient.invalidateQueries({ 
         queryKey: ['planner-tasks', activeCompany?.company_id, selectedDate.toISOString().split('T')[0]] 
       });
       await queryClient.invalidateQueries({ queryKey: ['tasks', activeCompany?.company_id] });
       
-      console.log('✅ Queries invalidated, should re-render now');
     } catch (error) {
       console.error('❌ Erro ao mover tarefa:', error);
     }

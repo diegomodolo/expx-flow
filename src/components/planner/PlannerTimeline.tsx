@@ -302,14 +302,6 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       tasksToOrganize = [...tasksToOrganize, ...unassignedNotInList];
     }
 
-    console.log('📝 Tasks to organize:', tasksToOrganize.length);
-    console.log('📋 Tasks details:', tasksToOrganize.map(t => ({
-      id: t.id,
-      title: t.title,
-      user_id: t.user_id,
-      deadline: t.deadline
-    })));
-
     await organizeTasksWithAI({
       tasks: tasksToOrganize,
       timeSlots,

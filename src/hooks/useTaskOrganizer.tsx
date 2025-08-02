@@ -102,7 +102,7 @@ export const useTaskOrganizer = () => {
   // Mutation para aplicar o plano de organização
   const applyOrganizationMutation = useMutation({
     mutationFn: async (plan: OrganizationPlan) => {
-      console.log('📝 Applying organization plan for', plan.organizedTasks.length, 'tasks');
+      // Aplicar cada tarefa organizada
       
       // Aplicar cada tarefa organizada
       const updates = await Promise.all(
