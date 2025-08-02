@@ -52,7 +52,16 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         responsible_avatar: task.responsible_avatar || '',
         due_date: task.due_date ? new Date(task.due_date) : null,
         progress: task.progress || 0,
-        checklist: task.checklist ? JSON.parse(task.checklist) : [],
+        checklist: (() => {
+          try {
+            return task.checklist && typeof task.checklist === 'string' && task.checklist.trim() !== '' 
+              ? JSON.parse(task.checklist) 
+              : [];
+          } catch (error) {
+            console.warn('Failed to parse checklist JSON:', error);
+            return [];
+          }
+        })(),
       });
     } else {
       setFormData({
