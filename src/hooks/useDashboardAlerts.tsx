@@ -106,8 +106,13 @@ export const useDashboardAlerts = () => {
       }
     }
 
-    // Processar alertas de problemas com recomendações do ChatGPT
+    // Processar alertas de problemas em lotes para evitar muitas chamadas simultâneas
+    let alertsCount = 0;
+    const maxAlerts = 10; // Limitar total de alertas para não sobrecarregar
+
     for (const campaign of availableCampaigns) {
+      if (alertsCount >= maxAlerts) break;
+
       if (campaign.cpa > 50) {
         const recommendation = await generateRecommendation(campaign, 'high_cpa');
         alertsArray.push({
@@ -123,9 +128,10 @@ export const useDashboardAlerts = () => {
           campaign_id: campaign.id,
           client_id: campaign.client_id,
         });
+        alertsCount++;
       }
       
-      if (campaign.ctr < 1.0) {
+      if (campaign.ctr < 1.0 && alertsCount < maxAlerts) {
         const recommendation = await generateRecommendation(campaign, 'low_ctr');
         alertsArray.push({
           id: `low-ctr-campaign-${campaign.id}`,
@@ -140,15 +146,18 @@ export const useDashboardAlerts = () => {
           campaign_id: campaign.id,
           client_id: campaign.client_id,
         });
+        alertsCount++;
       }
     }
 
-    // Processar alertas de oportunidades de escala (para campanhas com bom desempenho)
+    // Processar alertas de oportunidades de escala (limitado)
     const scalableOpportunities = availableCampaigns.filter(campaign => 
       campaign.cpa <= 30 && campaign.ctr >= 2.0 && campaign.spend < 500
-    );
+    ).slice(0, Math.max(0, maxAlerts - alertsCount)); // Limitar baseado no que já foi processado
 
     for (const campaign of scalableOpportunities) {
+      if (alertsCount >= maxAlerts) break;
+      
       const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
       alertsArray.push({
         id: `scale-opportunity-${campaign.id}`,
@@ -163,14 +172,15 @@ export const useDashboardAlerts = () => {
         campaign_id: campaign.id,
         client_id: campaign.client_id,
       });
+      alertsCount++;
     }
 
     return alertsArray;
   };
 
   const fetchAlerts = async (filterClientId?: string | null) => {
-    if (!activeCompany?.company_id || !user?.id) {
-      setError('Empresa ou usuário não encontrado');
+    if (!activeCompany?.company_id || !user?.id || loading) {
+      console.log('Skipping alerts fetch: missing company, user or already loading');
       return;
     }
 

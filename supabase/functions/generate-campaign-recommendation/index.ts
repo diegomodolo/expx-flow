@@ -136,11 +136,22 @@ Responda APENAS com a recomendação, sem explicações adicionais.`;
 
   } catch (error) {
     console.error('Error in generate-campaign-recommendation function:', error);
+    
+    // Retorna sempre 200 com recomendação de fallback para evitar quebrar a UI
+    const fallbackRecommendations = {
+      'high_cpa': 'Revisar segmentação e otimizar palavras-chave',
+      'low_ctr': 'Testar novos criativos e headlines',
+      'scale_opportunity': 'Aumentar budget gradualmente e monitorar',
+      'default': 'Analisar métricas e otimizar campanha'
+    };
+
+    const fallbackRecommendation = fallbackRecommendations[issue_type] || fallbackRecommendations['default'];
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
-      recommendation: 'Analisar métricas e otimizar campanha' // Fallback
+      recommendation: fallbackRecommendation,
+      isFlallback: true
     }), {
-      status: 500,
+      status: 200, // Sempre retorna 200 para não quebrar a UI
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

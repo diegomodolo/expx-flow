@@ -52,10 +52,25 @@ const NewDashboard = () => {
   // Hook para alertas automáticos
   const { alerts, loading: alertsLoading, generateAlerts } = useDashboardAlerts();
 
-  // Buscar alertas automaticamente quando o dashboard carrega
+  // Buscar alertas automaticamente quando o dashboard carrega (apenas uma vez)
   useEffect(() => {
-    generateAlerts();
-  }, [generateAlerts]);
+    let isMounted = true;
+    
+    const fetchAlertsWithDelay = async () => {
+      // Aguardar um delay para garantir que outros dados carregaram
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (isMounted) {
+        generateAlerts();
+      }
+    };
+
+    fetchAlertsWithDelay();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Array vazio para executar apenas uma vez
 
   // Calcular informações da última sincronização
   const getLastSyncInfo = () => {
