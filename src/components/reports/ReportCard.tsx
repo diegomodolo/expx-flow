@@ -50,11 +50,6 @@ export function ReportCard({
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
-        <Button variant="outline" className="w-full">
-          Gerar Relatório
-        </Button>
-      </CardContent>
     </Card>
   );
 }
