@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,9 @@ interface TaskKanbanProps {
 }
 
 export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }: TaskKanbanProps) {
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
   const columns = [
     { id: 'todo', title: 'Pendente', color: 'bg-gray-50' },
     { id: 'progress', title: 'Em Andamento', color: 'bg-blue-50' },
@@ -66,10 +69,50 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     }
   };
 
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', '');
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnter = (columnId: string) => {
+    setDragOverColumn(columnId);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear dragOverColumn if leaving the column container, not child elements
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault();
+    
+    if (draggedTask && draggedTask.status !== targetStatus) {
+      onUpdateTaskStatus(draggedTask.id, targetStatus);
+    }
+    
+    setDraggedTask(null);
+    setDragOverColumn(null);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
       {columns.map((column) => {
         const columnTasks = tasks.filter(task => task.status === column.id);
+        const isDropTarget = dragOverColumn === column.id;
+        const canDrop = draggedTask && draggedTask.status !== column.id;
         
         return (
           <div key={column.id} className="flex flex-col">
@@ -80,10 +123,26 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               </h3>
             </div>
             
-            <div className="flex-1 p-4 space-y-3 bg-gray-50/50 min-h-[500px] rounded-b-lg">
+            <div 
+              className={`flex-1 p-4 space-y-3 bg-gray-50/50 min-h-[500px] rounded-b-lg transition-colors ${
+                isDropTarget && canDrop ? 'bg-blue-100/50 border-2 border-blue-300 border-dashed' : ''
+              }`}
+              onDragOver={handleDragOver}
+              onDragEnter={() => handleDragEnter(column.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, column.id)}
+            >
               {columnTasks.map((task) => (
-                <Card key={task.id} className="p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4" 
-                      style={{ borderLeftColor: priorityColors[task.priority] }}>
+                <Card 
+                  key={task.id} 
+                  className={`p-4 shadow-sm hover:shadow-md transition-all cursor-move border-l-4 ${
+                    draggedTask?.id === task.id ? 'opacity-50 rotate-3 scale-105' : ''
+                  }`}
+                  style={{ borderLeftColor: priorityColors[task.priority] }}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, task)}
+                  onDragEnd={handleDragEnd}
+                >
                   <CardContent className="p-0">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
@@ -120,7 +179,12 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                       {/* Menu de ações */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-gray-100">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0 hover:bg-gray-100"
+                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking menu
+                          >
                             <MoreHorizontal className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -146,10 +210,29 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                 </Card>
               ))}
               
+              {/* Drop zone indicator when column is empty */}
               {columnTasks.length === 0 && (
-                <div className="text-center text-gray-400 py-8">
-                  <div className="text-4xl mb-2">📝</div>
-                  <p className="text-sm">Nenhuma tarefa</p>
+                <div className={`text-center text-gray-400 py-8 rounded-lg border-2 border-dashed transition-colors ${
+                  isDropTarget && canDrop ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200'
+                }`}>
+                  {isDropTarget && canDrop ? (
+                    <>
+                      <div className="text-4xl mb-2">📥</div>
+                      <p className="text-sm font-medium">Solte aqui para mover</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-4xl mb-2">📝</div>
+                      <p className="text-sm">Nenhuma tarefa</p>
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {/* Drop zone indicator when dragging over non-empty column */}
+              {columnTasks.length > 0 && isDropTarget && canDrop && (
+                <div className="border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-blue-600">Solte aqui para mover</p>
                 </div>
               )}
             </div>
