@@ -19,12 +19,15 @@ serve(async (req) => {
 
     console.log('Scraping ads from URL:', url);
     console.log('Competitor ID:', competitorId);
+    console.log('API Key available:', !!firecrawlApiKey);
 
     if (!firecrawlApiKey) {
+      console.error('FIRECRAWL_API_KEY not found in environment variables');
       throw new Error('FIRECRAWL_API_KEY não configurada');
     }
 
     // Fazer scraping da URL usando Firecrawl
+    console.log('Making request to Firecrawl API...');
     const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
       method: 'POST',
       headers: {
@@ -55,9 +58,19 @@ serve(async (req) => {
       }),
     });
 
+    console.log('Firecrawl API response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Firecrawl API error response:', errorText);
+      throw new Error(`Firecrawl API error (${response.status}): ${errorText}`);
+    }
+
     const data = await response.json();
+    console.log('Firecrawl API response data:', data);
     
     if (!data.success) {
+      console.error('Firecrawl API returned success=false:', data);
       throw new Error(data.error || 'Erro ao fazer scraping da página');
     }
 
