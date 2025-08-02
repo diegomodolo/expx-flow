@@ -10,6 +10,7 @@ import { usePlannerTasks } from "@/hooks/usePlannerTasks";
 import { useUnscheduledTasks } from "@/hooks/useUnscheduledTasks";
 import { PlannerTimeSlot } from "./PlannerTimeSlot";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { AddTaskToSlotModal } from "./AddTaskToSlotModal";
 import { PlannerSettingsModal } from "./PlannerSettingsModal";
 import { TaskOrganizerModal } from "./TaskOrganizerModal";
 import { OrganizationScopeModal } from "./OrganizationScopeModal";
@@ -50,6 +51,8 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<any>(null);
 
   // Hook para organização com IA
   const {
@@ -151,16 +154,98 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   const handleAddTask = (slotId: string) => {
     const slot = timeSlots.find(s => s.id === slotId);
-    setSelectedSlotId(slotId);
-    setEditingTask({
-      team_id: "",
-      title: "",
-      description: slot?.description ? `Relacionado ao período: ${slot.name}` : "",
-      priority: "medium",
-      status: "todo",
-      deadline: format(selectedDate, 'yyyy-MM-dd'),
-    });
-    setTaskDialogOpen(true);
+    if (slot) {
+      setSelectedSlot(slot);
+      setSelectedSlotId(slotId);
+      setAddTaskModalOpen(true);
+    }
+  };
+
+  const handleTaskSelected = async (taskId: string) => {
+    try {
+      if (!selectedSlot || !selectedSlotId) return;
+
+      // Calcular start_date e due_date baseado no slot e data selecionada
+      const [startHours, startMinutes] = selectedSlot.start_time.split(':').map(Number);
+      const [endHours, endMinutes] = selectedSlot.end_time.split(':').map(Number);
+      
+      const startDate = new Date(selectedDate);
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      
+      const endDate = new Date(selectedDate);
+      endDate.setHours(endHours, endMinutes, 0, 0);
+
+      // Atualizar a tarefa existente com os novos horários
+      await updateTask(taskId, {
+        start_date: startDate.toISOString(),
+        due_date: endDate.toISOString(),
+        deadline: format(selectedDate, 'yyyy-MM-dd'),
+      });
+
+      toast({
+        title: "Tarefa adicionada ao slot",
+        description: "A tarefa foi agendada com sucesso!",
+      });
+      
+      // Invalidar queries para atualizar a UI
+      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      
+    } catch (error) {
+      console.error("Error adding task to slot:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar a tarefa ao slot.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNewTaskCreated = async (taskData: any) => {
+    try {
+      if (!selectedSlot || !selectedSlotId) return;
+
+      // Calcular start_date e due_date baseado no slot e data selecionada
+      const [startHours, startMinutes] = selectedSlot.start_time.split(':').map(Number);
+      const [endHours, endMinutes] = selectedSlot.end_time.split(':').map(Number);
+      
+      const startDate = new Date(selectedDate);
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      
+      const endDate = new Date(selectedDate);
+      endDate.setHours(endHours, endMinutes, 0, 0);
+
+      // Criar nova tarefa com dados do slot
+      const completeTaskData = {
+        ...taskData,
+        start_date: startDate.toISOString(),
+        due_date: endDate.toISOString(),
+        deadline: format(selectedDate, 'yyyy-MM-dd'),
+        company_id: activeCompany?.company_id,
+        origin: 'manual',
+      };
+
+      await createTask(completeTaskData);
+
+      toast({
+        title: "Nova tarefa criada",
+        description: "A tarefa foi criada e agendada no slot!",
+      });
+      
+      // Invalidar queries para atualizar a UI
+      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['unscheduled-tasks'] });
+      
+    } catch (error) {
+      console.error("Error creating task in slot:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar a tarefa.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditTask = (task: any) => {
@@ -447,6 +532,16 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         }}
         task={editingTask}
         onSave={handleCreateTask}
+      />
+
+      {/* Add Task to Slot Modal */}
+      <AddTaskToSlotModal
+        open={addTaskModalOpen}
+        onOpenChange={setAddTaskModalOpen}
+        slot={selectedSlot}
+        selectedDate={selectedDate}
+        onTaskSelected={handleTaskSelected}
+        onNewTaskCreated={handleNewTaskCreated}
       />
 
       <PlannerSettingsModal
