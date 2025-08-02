@@ -40,8 +40,32 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Você é um organizador de tarefas inteligente para agência de marketing. REGRAS OBRIGATÓRIAS:
+            content: `Você é um organizador de tarefas inteligente para agência de marketing. RESPONDA APENAS JSON VÁLIDO NO FORMATO EXATO ABAIXO:
 
+{
+  "organizedTasks": [
+    {
+      "taskId": "uuid-da-tarefa",
+      "slotId": "uuid-do-slot",
+      "date": "2025-08-02",
+      "estimatedMinutes": 60,
+      "reason": "Razão da alocação",
+      "assignedTo": "user_id ou nome do colaborador",
+      "reassignmentReason": "N/A ou razão da reassignação"
+    }
+  ],
+  "statistics": {
+    "totalTasks": 20,
+    "totalTimeMinutes": 1200,
+    "tasksPerDay": {
+      "2025-08-02": 15
+    },
+    "reassignments": 0
+  },
+  "warnings": []
+}
+
+REGRAS OBRIGATÓRIAS:
 1. COMPATIBILIDADE DE SLOTS - Cada slot tem objetivo específico:
    - "Check": Apenas análise, verificação, otimização de métricas
    - "Reuniao de Pauta": Apenas reuniões, planejamento, definição de pauta
@@ -56,7 +80,7 @@ serve(async (req) => {
 4. SLOTS VAZIOS OK: Se não há tarefa compatível, deixe slot vazio
 5. PRIORIDADE: deadline urgente > prioridade alta > prioridade média
 
-Responda APENAS JSON válido:`
+IMPORTANTE: Retorne APENAS o JSON válido, sem texto adicional ou marcações markdown.`
           },
           {
             role: 'user',
@@ -146,10 +170,34 @@ RETORNE APENAS JSON:`
       throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
     }
 
-    // Validar e processar o plano
-    if (!organizationPlan.organizedTasks || !Array.isArray(organizationPlan.organizedTasks)) {
-      throw new Error('Invalid organization plan format');
+    // Validar estrutura do plano de organização
+    console.log('🔍 Validating organization plan structure...');
+    console.log('📊 Plan keys:', Object.keys(organizationPlan));
+    
+    if (!organizationPlan || typeof organizationPlan !== 'object') {
+      console.error('❌ Organization plan is not an object:', organizationPlan);
+      throw new Error('Organization plan must be an object');
     }
+    
+    if (!organizationPlan.organizedTasks) {
+      console.error('❌ Missing organizedTasks property:', organizationPlan);
+      throw new Error('Organization plan must have organizedTasks property');
+    }
+    
+    if (!Array.isArray(organizationPlan.organizedTasks)) {
+      console.error('❌ organizedTasks is not an array:', typeof organizationPlan.organizedTasks);
+      throw new Error('organizedTasks must be an array');
+    }
+    
+    // Validar estrutura de cada tarefa organizada
+    for (const [index, task] of organizationPlan.organizedTasks.entries()) {
+      if (!task.taskId || !task.slotId || !task.date) {
+        console.error(`❌ Invalid task at index ${index}:`, task);
+        throw new Error(`Task at index ${index} is missing required fields (taskId, slotId, date)`);
+      }
+    }
+    
+    console.log('✅ Organization plan structure validated successfully');
 
     // Adicionar informações adicionais para cada tarefa organizada
     const enrichedPlan = {
