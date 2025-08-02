@@ -118,6 +118,17 @@ export default function Tarefas() {
     convertAlertToTask(alert);
   };
 
+  const handleDiscardAlert = (alert: any) => {
+    // Adicionar alerta à lista de convertidos para remover da UI
+    setConvertedAlerts(prev => new Set([...prev, alert.id]));
+    
+    // Fechar modal se não houver mais alertas
+    const remainingAlerts = alerts?.filter(a => !convertedAlerts.has(a.id) && a.id !== alert.id) || [];
+    if (remainingAlerts.length === 0) {
+      setAlertsModalOpen(false);
+    }
+  };
+
   // Filtrar alertas que não foram convertidos
   const dangerAlerts = alerts?.filter(alert => 
     alert.type === 'danger' && !convertedAlerts.has(alert.id)
@@ -215,19 +226,29 @@ export default function Tarefas() {
                                       {alert.recommendation}
                                     </div>
                                   )}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    handleConvertAlertToTask(alert);
-                                    if (dangerAlerts.length + opportunityAlerts.length <= 1) {
-                                      setAlertsModalOpen(false);
-                                    }
-                                  }}
-                                  className="bg-red-600 hover:bg-red-700 text-white"
-                                >
-                                  Criar Tarefa
-                                </Button>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => handleDiscardAlert(alert)}
+                                     className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                   >
+                                     Descartar
+                                   </Button>
+                                   <Button
+                                     size="sm"
+                                     onClick={() => {
+                                       handleConvertAlertToTask(alert);
+                                       if (dangerAlerts.length + opportunityAlerts.length <= 1) {
+                                         setAlertsModalOpen(false);
+                                       }
+                                     }}
+                                     className="bg-red-600 hover:bg-red-700 text-white"
+                                   >
+                                     Criar Tarefa
+                                   </Button>
+                                 </div>
                               </div>
                             </div>
                           ))}
@@ -288,19 +309,29 @@ export default function Tarefas() {
                                       {alert.recommendation}
                                     </div>
                                   )}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    handleConvertAlertToTask(alert);
-                                    if (dangerAlerts.length + opportunityAlerts.length <= 1) {
-                                      setAlertsModalOpen(false);
-                                    }
-                                  }}
-                                  className="bg-green-600 hover:bg-green-700 text-white"
-                                >
-                                  Criar Tarefa
-                                </Button>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => handleDiscardAlert(alert)}
+                                     className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                   >
+                                     Descartar
+                                   </Button>
+                                   <Button
+                                     size="sm"
+                                     onClick={() => {
+                                       handleConvertAlertToTask(alert);
+                                       if (dangerAlerts.length + opportunityAlerts.length <= 1) {
+                                         setAlertsModalOpen(false);
+                                       }
+                                     }}
+                                     className="bg-green-600 hover:bg-green-700 text-white"
+                                   >
+                                     Criar Tarefa
+                                   </Button>
+                                 </div>
                               </div>
                             </div>
                           ))}
