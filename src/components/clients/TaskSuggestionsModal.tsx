@@ -78,7 +78,8 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
         });
       }
       
-      if (issue.includes('CPA acima da meta')) {
+      if (issue.includes('CPA acima da meta') || issue.includes('CPA crítico')) {
+        console.log('TaskSuggestionsModal - Detectado problema de CPA:', issue);
         const campaignRef = client.problematic_campaigns[0] || 'campanhas ativas';
         suggestions.push({
           id: `cpa-optimization-${index}`,
