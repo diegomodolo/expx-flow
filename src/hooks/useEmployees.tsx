@@ -160,24 +160,28 @@ export function useEmployees() {
       const employeeInsertData = {
         name: employeeData.name,
         email: employeeData.email,
-        phone: employeeData.phone,
+        phone: employeeData.phone || null,
         role: employeeData.role,
-        team_id: employeeData.team_id === "sem-squad" ? null : employeeData.team_id,
+        team_id: employeeData.team_id === "sem-squad" || !employeeData.team_id ? null : employeeData.team_id,
         status: employeeData.status,
         start_date: employeeData.start_date,
-        skills: employeeData.skills,
-        avatar: employeeData.avatar,
+        skills: employeeData.skills || null,
+        avatar: employeeData.avatar || null,
         user_id: userId,
         company_id: activeCompany.company_id,
       };
 
+      console.log("Dados para inserção do colaborador:", employeeInsertData);
+
       // Primeiro, tentar verificar se o registro já existe por user_id
-      const { data: existingByUserId } = await supabase
+      const { data: existingByUserId, error: userIdSearchError } = await supabase
         .from('employees')
         .select('id, email')
         .eq('user_id', userId)
         .eq('company_id', activeCompany.company_id)
         .maybeSingle();
+
+      console.log("Busca por user_id:", { existingByUserId, userIdSearchError });
 
       let employee;
       
@@ -198,11 +202,14 @@ export function useEmployees() {
         console.log("Colaborador atualizado:", employee);
       } else {
         // Tentar inserir novo registro
+        console.log("Tentando inserir novo colaborador...");
         const { data: newEmployee, error: employeeError } = await supabase
           .from("employees")
           .insert([employeeInsertData])
           .select()
           .single();
+
+        console.log("Resultado da inserção:", { newEmployee, employeeError });
 
         if (employeeError) {
           // Se erro for de email duplicado, tentar buscar e atualizar
