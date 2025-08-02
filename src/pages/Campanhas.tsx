@@ -13,7 +13,7 @@ import { EditCampaignDialog } from "@/components/campaigns/EditCampaignDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   Plus, 
@@ -136,6 +136,11 @@ const Campanhas = () => {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [openClientFilter, setOpenClientFilter] = useState(false);
+  
+  // Estados para ordenação
+  const [sortColumn, setSortColumn] = useState<'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | null>('performance');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc'); // asc = pior performance primeiro
+  
   const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
   const { clients } = useClients();
   const { toast } = useToast();
@@ -143,7 +148,34 @@ const Campanhas = () => {
   // Usar valor fixo maior para aproveitar melhor a tela
   const itemsPerPage = 12;
   
-  // Filtrar campanhas e ordenar por melhor conversão
+  
+  // Função para lidar com clique nos cabeçalhos
+  const handleSort = (column: 'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client') => {
+    if (sortColumn === column) {
+      // Se já está ordenando por essa coluna, inverte a direção
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Nova coluna, sempre começa com ascendente (pior primeiro para performance)
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Função para obter score numérico de performance
+  const getPerformanceScore = (campaign: Campaign) => {
+    const performance = evaluateCampaignPerformance(campaign);
+    
+    // Converter level para score numérico (menor score = pior performance)
+    switch (performance.level) {
+      case 'emergency': return 1;
+      case 'attention': return 2;
+      case 'excellent': return 3;
+      case 'neutral': return 0; // Campanhas pausadas ficam por último
+      default: return 0;
+    }
+  };
+
+  // Filtrar e ordenar campanhas
   const filteredCampaigns = campaigns
     .filter(campaign => {
       const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
@@ -154,30 +186,46 @@ const Campanhas = () => {
       return matchesStatus && matchesClient && matchesSearch;
     })
     .sort((a, b) => {
-      // Primeiro critério: ordenar por número de conversões (maior para menor)
-      const conversionsA = a.conversions || 0;
-      const conversionsB = b.conversions || 0;
+      let result = 0;
       
-      if (conversionsA !== conversionsB) {
-        return conversionsB - conversionsA; // Maior número de conversões primeiro
+      switch (sortColumn) {
+        case 'performance':
+          const scoreA = getPerformanceScore(a);
+          const scoreB = getPerformanceScore(b);
+          result = scoreA - scoreB; // Menor score primeiro (pior performance primeiro quando asc)
+          break;
+          
+        case 'name':
+          result = a.name.localeCompare(b.name);
+          break;
+          
+        case 'client':
+          const clientA = a.client?.name || '';
+          const clientB = b.client?.name || '';
+          result = clientA.localeCompare(clientB);
+          break;
+          
+        case 'ctr':
+          result = (a.ctr || 0) - (b.ctr || 0);
+          break;
+          
+        case 'cpc':
+          result = (a.cpc || 0) - (b.cpc || 0);
+          break;
+          
+        case 'conversions':
+          result = (a.conversions || 0) - (b.conversions || 0);
+          break;
+          
+        default:
+          // Fallback para ordenação por performance (pior primeiro)
+          const fallbackScoreA = getPerformanceScore(a);
+          const fallbackScoreB = getPerformanceScore(b);
+          result = fallbackScoreA - fallbackScoreB;
       }
       
-      // Segundo critério: se tiverem o mesmo número de conversões, ordenar por CPA (menor é melhor)
-      if (conversionsA > 0 && conversionsB > 0) {
-        const cpaA = (a.spend || 0) / conversionsA;
-        const cpaB = (b.spend || 0) / conversionsB;
-        return cpaA - cpaB; // Menor CPA primeiro
-      }
-      
-      // Terceiro critério: se ambas não tiverem conversões, ordenar por menor gasto
-      if (conversionsA === 0 && conversionsB === 0) {
-        const spendA = a.spend || 0;
-        const spendB = b.spend || 0;
-        return spendA - spendB; // Menor gasto primeiro (campanhas que gastaram menos sem resultado)
-      }
-      
-      // Quarto critério: ordenar por CTR (maior é melhor)
-      return (b.ctr || 0) - (a.ctr || 0);
+      // Aplicar direção da ordenação
+      return sortDirection === 'desc' ? -result : result;
     });
 
   const totalCampaigns = filteredCampaigns.length;
@@ -188,7 +236,18 @@ const Campanhas = () => {
   // Reset da página quando os filtros mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, clientFilter]);
+  }, [searchTerm, statusFilter, clientFilter, sortColumn, sortDirection]);
+
+  // Função para renderizar ícone de ordenação
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 text-gray-400" />;
+    }
+    
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-4 h-4 ml-1 text-primary" />
+      : <ArrowDown className="w-4 h-4 ml-1 text-primary" />;
+  };
 
   const handleToggleCampaign = async (campaignId: string, isActive: boolean) => {
     await toggleCampaign(campaignId, isActive);
@@ -388,26 +447,62 @@ const Campanhas = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Campanha
+                      <th 
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('name')}
+                      >
+                        <div className="flex items-center">
+                          Campanha
+                          {getSortIcon('name')}
+                        </div>
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Cliente
+                      <th 
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort('client')}
+                      >
+                        <div className="flex items-center">
+                          Cliente
+                          {getSortIcon('client')}
+                        </div>
                       </th>
                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                          Status
                        </th>
-                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         Performance
+                       <th 
+                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleSort('performance')}
+                       >
+                         <div className="flex items-center">
+                           Performance
+                           {getSortIcon('performance')}
+                         </div>
                        </th>
-                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         CTR
+                       <th 
+                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleSort('ctr')}
+                       >
+                         <div className="flex items-center">
+                           CTR
+                           {getSortIcon('ctr')}
+                         </div>
                        </th>
-                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         CPC
+                       <th 
+                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleSort('cpc')}
+                       >
+                         <div className="flex items-center">
+                           CPC
+                           {getSortIcon('cpc')}
+                         </div>
                        </th>
-                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         Conversões
+                       <th 
+                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                         onClick={() => handleSort('conversions')}
+                       >
+                         <div className="flex items-center">
+                           Conversões
+                           {getSortIcon('conversions')}
+                         </div>
                        </th>
                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                          Período
@@ -415,7 +510,7 @@ const Campanhas = () => {
                        <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                          Ações
                        </th>
-                    </tr>
+                     </tr>
                   </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
                      {paginatedCampaigns.map((campaign) => {
