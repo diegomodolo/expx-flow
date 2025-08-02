@@ -23,6 +23,12 @@ interface AnalysisResult {
   strategic_opportunities: string;
   key_insights: string[];
   recommendations: string[];
+  ad_variations: {
+    title: string;
+    copy: string;
+    cta: string;
+    rationale: string;
+  }[];
 }
 
 export const CompetitorAnalysisModal = ({ 
@@ -60,7 +66,7 @@ export const CompetitorAnalysisModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
@@ -211,6 +217,44 @@ export const CompetitorAnalysisModal = ({
                         </li>
                       ))}
                     </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Ad Variations */}
+              {analysis.ad_variations && analysis.ad_variations.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="w-5 h-5" />
+                      Sugestões de Anúncios Adaptados
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {analysis.ad_variations.map((variation, index) => (
+                        <div key={index} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <h4 className="font-medium text-sm">Variação {index + 1}</h4>
+                            <Badge variant="outline" className="text-xs">Adaptado</Badge>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <span className="font-medium">Título:</span> {variation.title}
+                            </div>
+                            <div>
+                              <span className="font-medium">Copy:</span> {variation.copy}
+                            </div>
+                            <div>
+                              <span className="font-medium">CTA:</span> {variation.cta}
+                            </div>
+                            <div className="text-xs text-gray-600 border-t pt-2">
+                              <span className="font-medium">Justificativa:</span> {variation.rationale}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               )}

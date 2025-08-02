@@ -68,8 +68,22 @@ Retorne uma análise estruturada em formato JSON com os seguintes campos:
   "performance_indicators": "Análise dos indicadores de performance baseados nos anúncios observados",
   "strategic_opportunities": "Oportunidades estratégicas identificadas e gaps que podem ser explorados",
   "key_insights": ["insight1", "insight2", "insight3"],
-  "recommendations": ["recomendação1", "recomendação2", "recomendação3"]
+  "recommendations": ["recomendação1", "recomendação2", "recomendação3"],
+  "ad_variations": [
+    {
+      "title": "Título do anúncio adaptado",
+      "copy": "Copy do anúncio adaptado para nosso cliente",
+      "cta": "Call to action sugerido",
+      "rationale": "Explicação de por que esta variação pode funcionar"
+    }
+  ]
 }
+
+Para a seção "ad_variations", crie 3-5 variações dos melhores anúncios do concorrente adaptados especificamente para nosso cliente. Base-se nos padrões de sucesso identificados, mas personalize:
+- O tom de voz para o nosso negócio
+- As ofertas e propostas de valor
+- Os CTAs mais adequados ao nosso público
+- As mensagens que diferencia nosso cliente
 
 Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação não estiver disponível, mencione isso na análise.
 `;
@@ -115,7 +129,8 @@ Seja específico e baseie-se apenas nos dados fornecidos. Se alguma informação
           performance_indicators: "Métricas baseadas nos anúncios observados",
           strategic_opportunities: "Oportunidades detalhadas na análise principal",
           key_insights: ["Análise baseada em dados limitados"],
-          recommendations: ["Consultar análise detalhada"]
+          recommendations: ["Consultar análise detalhada"],
+          ad_variations: []
         };
       }
 
