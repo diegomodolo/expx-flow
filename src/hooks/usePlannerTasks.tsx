@@ -31,7 +31,7 @@ export function usePlannerTasks(plannedDate: Date) {
         `)
         .eq("company_id", activeCompany.company_id)
         .neq("status", "done")
-        .or(`deadline.eq.${dateStr},start_date.gte.${dateStr}T00:00:00,start_date.lte.${dateStr}T23:59:59`)
+        .or(`deadline.gte.${dateStr},start_date.gte.${dateStr}T00:00:00,start_date.lte.${dateStr}T23:59:59`)
         .order("created_at", { ascending: true });
 
       if (tasksError) throw tasksError;
@@ -115,16 +115,23 @@ export function usePlannerTasks(plannedDate: Date) {
 
   // Função para obter tarefas sem horário específico (apenas deadline)
   const getTasksWithoutTime = () => {
-    const plannedDateStr = plannedDate.toISOString().split('T')[0];
+    console.log('🔍 Getting tasks without time...');
+    console.log('📋 All tasks:', tasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      start_date: t.start_date,
+      deadline: t.deadline
+    })));
     
-    return tasks.filter(task => {
-      // Tarefas que têm deadline no dia mas não têm start_date
-      if (task.deadline && !task.start_date) {
-        const deadlineDate = new Date(task.deadline).toISOString().split('T')[0];
-        return deadlineDate === plannedDateStr;
-      }
-      return false;
+    const tasksWithoutTime = tasks.filter(task => {
+      // Tarefas que não têm start_date (independente do deadline)
+      const hasNoStartDate = !task.start_date;
+      console.log(`📝 Task ${task.id} (${task.title}): start_date=${task.start_date}, deadline=${task.deadline}, hasNoStartDate=${hasNoStartDate}`);
+      return hasNoStartDate;
     });
+    
+    console.log('✅ Tasks without time:', tasksWithoutTime.map(t => `${t.id}:${t.title}`));
+    return tasksWithoutTime;
   };
 
   return {

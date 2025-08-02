@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { usePlannerSlots } from "@/hooks/usePlannerSlots";
 import { usePlannerTasks } from "@/hooks/usePlannerTasks";
+import { useUnscheduledTasks } from "@/hooks/useUnscheduledTasks";
 import { PlannerTimeSlot } from "./PlannerTimeSlot";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { PlannerSettingsModal } from "./PlannerSettingsModal";
@@ -34,6 +35,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
  }) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
   const { tasks: plannerTasks, getTasksBySlot, getTasksWithoutTime, loading: plannerLoading } = usePlannerTasks(selectedDate);
+  const { unscheduledTasks, loading: unscheduledLoading } = useUnscheduledTasks();
   const { createTask, updateTask, deleteTask } = useTasks();
   const { employees } = useEmployees();
   const { toast } = useToast();
@@ -249,9 +251,11 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   // Organizar com IA - Abrir modal de escopo
   const handleOrganizeWithAI = () => {
-    const tasksWithoutTime = getTasksWithoutTime();
+    console.log('🚀 Starting AI organization...');
+    console.log('📋 Unscheduled tasks:', unscheduledTasks.length);
+    console.log('⏰ Available time slots:', timeSlots.length);
     
-    if (tasksWithoutTime.length === 0) {
+    if (unscheduledTasks.length === 0) {
       toast({
         title: "Nenhuma tarefa para organizar",
         description: "Todas as tarefas já possuem horários definidos.",
@@ -276,22 +280,35 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     let tasksToOrganize = [];
 
     if (scope.type === 'specific' && scope.employeeId) {
-      // Filtrar tarefas do colaborador específico
-      tasksToOrganize = tasks.filter((task: any) => 
-        task.user_id === scope.employeeId && !task.start_date
+      // Filtrar tarefas do colaborador específico das tarefas não agendadas
+      tasksToOrganize = unscheduledTasks.filter((task: any) => 
+        task.user_id === scope.employeeId
       );
     } else {
       // Todas as tarefas sem horário definido
-      tasksToOrganize = getTasksWithoutTime();
+      tasksToOrganize = [...unscheduledTasks];
     }
 
-    // Incluir tarefas sem responsável se solicitado
+    // Se incluir tarefas sem responsável, elas já estão em unscheduledTasks
+    // Apenas garantir que não há duplicatas
     if (scope.includeUnassigned) {
-      const unassignedTasks = tasks.filter((task: any) => 
-        !task.responsible_name && !task.start_date
+      const unassignedTasks = unscheduledTasks.filter((task: any) => 
+        !task.user_id
       );
-      tasksToOrganize = [...tasksToOrganize, ...unassignedTasks];
+      // Evitar duplicatas
+      const unassignedNotInList = unassignedTasks.filter(unassigned =>
+        !tasksToOrganize.some(task => task.id === unassigned.id)
+      );
+      tasksToOrganize = [...tasksToOrganize, ...unassignedNotInList];
     }
+
+    console.log('📝 Tasks to organize:', tasksToOrganize.length);
+    console.log('📋 Tasks details:', tasksToOrganize.map(t => ({
+      id: t.id,
+      title: t.title,
+      user_id: t.user_id,
+      deadline: t.deadline
+    })));
 
     await organizeTasksWithAI({
       tasks: tasksToOrganize,
@@ -303,7 +320,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     });
   };
 
-  if (slotsLoading || plannerLoading) {
+  if (slotsLoading || plannerLoading || unscheduledLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-muted-foreground">Carregando planner...</div>

@@ -17,6 +17,8 @@ serve(async (req) => {
     
     console.log(`🤖 Organizing ${tasks.length} tasks across ${timeSlots.length} slots for ${daysToOrganize} days`);
     console.log(`📊 Scope: ${scope?.type || 'all'}, Employees: ${employees.length}, Include unassigned: ${scope?.includeUnassigned}`);
+    console.log('📝 Tasks details:', tasks.map(t => ({ id: t.id, title: t.title, user_id: t.user_id, deadline: t.deadline })));
+    console.log('⏰ Time slots:', timeSlots.map(s => ({ id: s.id, name: s.name, start_time: s.start_time, end_time: s.end_time })));
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
