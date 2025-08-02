@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
+import { useTaskAutomation } from '@/hooks/useTaskAutomation';
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { useClients } from "@/hooks/useClients";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,10 @@ const NewDashboard = () => {
 
   // Hook para alertas automáticos
   const { alerts, loading: alertsLoading, generateAlerts } = useDashboardAlerts();
+  const { convertAlertToTask } = useTaskAutomation();
+  
+  // Estado para controlar ações convertidas em tarefas
+  const [convertedActions, setConvertedActions] = useState<Set<string>>(new Set());
 
   // Buscar alertas automaticamente quando o dashboard carrega (apenas uma vez)
   useEffect(() => {
@@ -97,6 +102,15 @@ const NewDashboard = () => {
   const handleSyncConfirm = async (period: string) => {
     setSyncDialogOpen(false);
     await syncAllClients(period);
+  };
+
+  // Função para converter ação em tarefa
+  const handleConvertActionToTask = (alert: any) => {
+    // Adicionar ação à lista de convertidas imediatamente para remover da UI
+    setConvertedActions(prev => new Set([...prev, alert.id]));
+    
+    // Converter ação em tarefa
+    convertAlertToTask(alert);
   };
 
   if (loading) {
@@ -588,7 +602,10 @@ const NewDashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="space-y-4">
-                {opportunityAlerts.slice(0, 3).map((alert, index) => (
+                {opportunityAlerts
+                  .filter(alert => !convertedActions.has(alert.id))
+                  .slice(0, 3)
+                  .map((alert, index) => (
                   <div key={alert.id} className="flex items-center justify-between p-4 border border-green-200 bg-green-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-sm font-bold text-green-600">
@@ -597,33 +614,50 @@ const NewDashboard = () => {
                       <div>
                         <p className="font-medium">Escalar {alert.campaign}</p>
                         <p className="text-sm text-gray-600">
-                          Cliente: {alert.client} - Aumentar orçamento em 15% - CPA abaixo da meta
+                          Cliente: {alert.client} - {alert.recommendation}
                         </p>
                       </div>
                     </div>
-                    <Button size="sm">Executar</Button>
+                    <Button 
+                      size="sm"
+                      onClick={() => handleConvertActionToTask(alert)}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Criar Tarefa
+                    </Button>
                   </div>
                 ))}
                 
-                {dangerAlerts.slice(0, 2).map((alert, index) => (
+                {dangerAlerts
+                  .filter(alert => !convertedActions.has(alert.id))
+                  .slice(0, 2)
+                  .map((alert, index) => (
                   <div key={alert.id} className="flex items-center justify-between p-4 border border-red-200 bg-red-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-sm font-bold text-red-600">
-                        {index + opportunityAlerts.slice(0, 3).length + 1}
+                        {index + opportunityAlerts.filter(a => !convertedActions.has(a.id)).slice(0, 3).length + 1}
                       </div>
                       <div>
                         <p className="font-medium">Revisar {alert.client}</p>
-                        <p className="text-sm text-gray-600">CPA acima da meta - necessário otimização</p>
+                        <p className="text-sm text-gray-600">{alert.recommendation}</p>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">Analisar</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleConvertActionToTask(alert)}
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      Criar Tarefa
+                    </Button>
                   </div>
                 ))}
 
-                {(opportunityAlerts.length === 0 && dangerAlerts.length === 0) && (
+                {(opportunityAlerts.filter(a => !convertedActions.has(a.id)).length === 0 && 
+                  dangerAlerts.filter(a => !convertedActions.has(a.id)).length === 0) && (
                   <div className="text-center py-8">
                     <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                    <p className="text-gray-600">Todas as contas estão performando bem! 🎯</p>
+                    <p className="text-gray-600">Todas as ações foram executadas! 🎯</p>
                   </div>
                 )}
               </div>
