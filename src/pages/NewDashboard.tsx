@@ -488,16 +488,16 @@ export default function NewDashboard() {
           </div>
 
           <div className="space-y-3">
-            {topCampaignsByCPA.map((campaign, index) => (
-              <div key={campaign.id} className={`flex items-center justify-between p-4 rounded-lg border ${
-                index === 0 ? 'bg-gradient-to-r from-green-50 to-transparent border-green-200' :
-                index === 1 ? 'bg-gradient-to-r from-blue-50 to-transparent border-blue-200' :
-                index === 2 ? 'bg-gradient-to-r from-purple-50 to-transparent border-purple-200' :
-                index === 3 ? 'bg-gradient-to-r from-orange-50 to-transparent border-orange-200' :
-                'bg-gradient-to-r from-yellow-50 to-transparent border-yellow-200'
+            {topCampaignsByCPA.slice(0, 5).map((campaign, index) => (
+              <div key={campaign.id} className={`p-4 bg-white rounded-lg shadow-sm ${
+                index === 0 ? 'border-l-4 border-green-500' :
+                index === 1 ? 'border-l-4 border-blue-500' :
+                index === 2 ? 'border-l-4 border-purple-500' :
+                index === 3 ? 'border-l-4 border-orange-500' :
+                'border-l-4 border-yellow-500'
               }`}>
-                <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                     index === 0 ? 'bg-green-500' :
                     index === 1 ? 'bg-blue-500' :
                     index === 2 ? 'bg-purple-500' :
@@ -506,17 +506,24 @@ export default function NewDashboard() {
                   }`}>
                     <span className="text-sm font-bold text-white">{index + 1}</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{campaign.name}</p>
-                    <p className="text-xs text-gray-500">
-                      Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'} • 
-                      CTR: {campaign.ctr.toFixed(1)}%
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="text-sm font-semibold text-gray-900 truncate">{campaign.name}</h4>
+                      <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                        {formatCurrency(campaign.spend)}
+                      </span>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                        {campaign.client_name}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-2">
+                      Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'} • CTR: {campaign.ctr.toFixed(1)}%
                     </p>
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-3 h-3 text-gray-500" />
+                      <p className="text-xs text-gray-600">CPA: {formatCurrency(campaign.cpa)} • ROI: {((campaign.conversions * 100 - campaign.spend) / campaign.spend * 100).toFixed(1)}%</p>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-green-600">{formatCurrency(campaign.spend)}</p>
-                  <p className="text-xs text-gray-500">CPA: {formatCurrency(campaign.cpa)}</p>
                 </div>
               </div>
             ))}
