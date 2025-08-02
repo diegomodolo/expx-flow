@@ -323,6 +323,8 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          last_sync_at: string | null
+          last_sync_period: string | null
           leads_generated: number | null
           monthly_budget: number | null
           name: string
@@ -348,6 +350,8 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          last_sync_at?: string | null
+          last_sync_period?: string | null
           leads_generated?: number | null
           monthly_budget?: number | null
           name: string
@@ -373,6 +377,8 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          last_sync_at?: string | null
+          last_sync_period?: string | null
           leads_generated?: number | null
           monthly_budget?: number | null
           name?: string

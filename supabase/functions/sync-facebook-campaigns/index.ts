@@ -659,7 +659,9 @@ serve(async (req) => {
       active_campaigns: activeCampaigns,
       avg_cpl: avgCpl,
       leads_generated: totalLeads,
-      status: clientStatus
+      status: clientStatus,
+      last_sync_at: new Date().toISOString(),
+      last_sync_period: period
     }
 
     console.log('Calculated metrics with status:', metricsData)

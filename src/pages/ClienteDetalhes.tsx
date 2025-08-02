@@ -37,6 +37,7 @@ import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
+import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -460,6 +461,12 @@ const ClienteDetalhes = () => {
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Mail className="w-4 h-4" />
                       <span>{client.email}</span>
+                    </div>
+                    <div className="mt-2">
+                      <SyncStatusIndicator 
+                        lastSyncAt={client.last_sync_at} 
+                        lastSyncPeriod={client.last_sync_period}
+                      />
                     </div>
                   </div>
                 </div>

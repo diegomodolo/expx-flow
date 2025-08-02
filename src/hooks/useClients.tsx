@@ -23,6 +23,8 @@ export interface Client {
   notes?: string;
   ad_account_id?: string;
   leads_generated: number;
+  last_sync_at?: string;
+  last_sync_period?: string;
 }
 
 export function useClients() {
