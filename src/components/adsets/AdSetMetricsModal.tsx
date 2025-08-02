@@ -54,7 +54,18 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
 
   // Calcular métricas derivadas
   const conversionRate = adSet.clicks > 0 ? ((adSet.conversions / adSet.clicks) * 100) : 0;
-  const adSetAge = Math.floor((Date.now() - new Date(adSet.created_at).getTime()) / (1000 * 60 * 60 * 24));
+  const adSetAgeInDays = Math.floor((Date.now() - new Date(adSet.created_at).getTime()) / (1000 * 60 * 60 * 24));
+  const adSetAgeInHours = Math.floor((Date.now() - new Date(adSet.created_at).getTime()) / (1000 * 60 * 60));
+  
+  const formatAdSetAge = () => {
+    if (adSetAgeInDays > 0) {
+      return `${adSetAgeInDays} dias`;
+    } else if (adSetAgeInHours > 0) {
+      return `${adSetAgeInHours} horas`;
+    } else {
+      return 'Menos de 1 hora';
+    }
+  };
   
   // Função para formatar rankings
   const formatRanking = (ranking?: string) => {
@@ -379,7 +390,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-lg font-bold">{adSetAge} dias</p>
+                  <p className="text-lg font-bold">{formatAdSetAge()}</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Conjunto ativo desde a criação
                   </p>
