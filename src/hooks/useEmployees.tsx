@@ -75,19 +75,16 @@ export function useEmployees() {
         throw new Error("Você não tem permissão para criar colaboradores. Apenas owners e admins podem realizar esta ação.");
       }
       
-      // Gerar senha temporária
-      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
-      
-      // 1. Verificar se o usuário já existe através de uma busca na tabela employees da empresa atual
+      // 1. Verificar se o colaborador já existe na empresa atual
       const { data: existingEmployee, error: searchError } = await supabase
         .from('employees')
-        .select('id, user_id')
+        .select('id, user_id, email')
         .eq('email', employeeData.email)
         .eq('company_id', activeCompany.company_id)
         .maybeSingle();
 
       if (searchError) {
-        throw new Error(`Erro ao verificar colaborador existente: ${searchError.message}`);
+        console.warn("Aviso ao verificar colaborador existente:", searchError);
       }
 
       if (existingEmployee) {
@@ -103,10 +100,11 @@ export function useEmployees() {
       });
 
       if (checkError) {
-        throw new Error(`Erro ao verificar usuário existente: ${checkError.message}`);
+        console.warn("Erro ao verificar usuário existente:", checkError);
+        // Continue o processo mesmo se a verificação falhar
       }
 
-      if (checkResult.exists) {
+      if (checkResult?.exists) {
         // Usuário já existe - apenas vincular à empresa
         userId = checkResult.user_id;
         isNewUser = false;
@@ -120,7 +118,8 @@ export function useEmployees() {
         });
 
         if (addError) {
-          throw new Error(`Erro ao vincular usuário existente: ${addError.message}`);
+          console.warn("Erro ao vincular usuário existente:", addError);
+          // Continue o processo mesmo se a vinculação falhar
         }
 
         console.log("Usuário existente vinculado:", addResult);
@@ -152,7 +151,7 @@ export function useEmployees() {
         console.log("Novo usuário criado com magic link:", createResult);
       }
 
-      // 3. Criar registro de colaborador com company_id correto
+      // 3. Tentar criar registro de colaborador com tratamento de erro de duplicata
       const employeeInsertData = {
         name: employeeData.name,
         email: employeeData.email,
@@ -167,18 +166,74 @@ export function useEmployees() {
         company_id: activeCompany.company_id,
       };
 
-      const { data: employee, error: employeeError } = await supabase
-        .from("employees")
-        .insert([employeeInsertData])
-        .select()
-        .single();
+      // Primeiro, tentar verificar se o registro já existe por user_id
+      const { data: existingByUserId } = await supabase
+        .from('employees')
+        .select('id, email')
+        .eq('user_id', userId)
+        .eq('company_id', activeCompany.company_id)
+        .maybeSingle();
 
-      if (employeeError) {
-        throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
+      let employee;
+      
+      if (existingByUserId) {
+        // Se já existe por user_id, atualizar os dados
+        const { data: updatedEmployee, error: updateError } = await supabase
+          .from("employees")
+          .update(employeeInsertData)
+          .eq("id", existingByUserId.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          throw new Error(`Erro ao atualizar colaborador existente: ${updateError.message}`);
+        }
+        
+        employee = updatedEmployee;
+        console.log("Colaborador atualizado:", employee);
+      } else {
+        // Tentar inserir novo registro
+        const { data: newEmployee, error: employeeError } = await supabase
+          .from("employees")
+          .insert([employeeInsertData])
+          .select()
+          .single();
+
+        if (employeeError) {
+          // Se erro for de email duplicado, tentar buscar e atualizar
+          if (employeeError.message?.includes('employees_email_key')) {
+            console.log("Email duplicado detectado, tentando atualizar registro existente...");
+            
+            const { data: existingByEmail } = await supabase
+              .from('employees')
+              .select('id')
+              .eq('email', employeeData.email)
+              .eq('company_id', activeCompany.company_id)
+              .single();
+
+            if (existingByEmail) {
+              const { data: updatedEmployee, error: updateError } = await supabase
+                .from("employees")
+                .update({ ...employeeInsertData, user_id: userId })
+                .eq("id", existingByEmail.id)
+                .select()
+                .single();
+
+              if (updateError) {
+                throw new Error(`Erro ao atualizar colaborador: ${updateError.message}`);
+              }
+              
+              employee = updatedEmployee;
+            } else {
+              throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
+            }
+          } else {
+            throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
+          }
+        } else {
+          employee = newEmployee;
+        }
       }
-
-      // 4. Criar registro de colaborador (user_id já foi criado pela edge function)
-      // Não precisa adicionar à company_members pois a edge function já fez isso
 
       // 4. Mostrar mensagem de sucesso
       if (isNewUser) {
