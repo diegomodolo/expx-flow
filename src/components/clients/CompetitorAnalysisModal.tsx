@@ -3,9 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, BarChart3, TrendingUp, Target, Lightbulb } from 'lucide-react';
+import { Loader2, BarChart3, TrendingUp, Target, Lightbulb, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Competitor, CompetitorAd } from '@/hooks/useCompetitors';
+import { useTasks } from '@/hooks/useTasks';
+import { useTeams } from '@/hooks/useTeams';
 import { toast } from 'sonner';
 
 interface CompetitorAnalysisModalProps {
@@ -39,6 +41,10 @@ export const CompetitorAnalysisModal = ({
 }: CompetitorAnalysisModalProps) => {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [creatingTask, setCreatingTask] = useState<number | null>(null);
+  
+  const { createTask } = useTasks();
+  const { teams } = useTeams();
 
   const generateAnalysis = async () => {
     setLoading(true);
@@ -61,6 +67,51 @@ export const CompetitorAnalysisModal = ({
       toast.error('Erro ao gerar análise do concorrente');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createTaskFromVariation = async (variation: AnalysisResult['ad_variations'][0], index: number) => {
+    setCreatingTask(index);
+    
+    try {
+      const firstTeam = teams?.[0];
+      if (!firstTeam) {
+        toast.error('Nenhuma equipe encontrada. Crie uma equipe primeiro.');
+        return;
+      }
+
+      const taskTitle = `Criar anúncio: ${variation.title}`;
+      const taskDescription = `**Anúncio baseado em análise competitiva**
+
+**Título:** ${variation.title}
+
+**Copy:** ${variation.copy}
+
+**CTA:** ${variation.cta}
+
+**Justificativa:** ${variation.rationale}
+
+**Concorrente analisado:** ${competitor.name} (${competitor.company_name})`;
+
+      await createTask({
+        title: taskTitle,
+        description: taskDescription,
+        status: 'todo',
+        priority: 'medium',
+        team_id: firstTeam.id,
+        responsible_name: 'Equipe de Marketing',
+        responsible_avatar: '',
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 dias
+        progress: 0,
+        origin: 'automation'
+      });
+
+      toast.success('Tarefa criada com sucesso!');
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Erro ao criar tarefa');
+    } finally {
+      setCreatingTask(null);
     }
   };
 
@@ -232,27 +283,45 @@ export const CompetitorAnalysisModal = ({
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {analysis.ad_variations.map((variation, index) => (
-                        <div key={index} className="border rounded-lg p-4 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <h4 className="font-medium text-sm">Variação {index + 1}</h4>
-                            <Badge variant="outline" className="text-xs">Adaptado</Badge>
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <div>
-                              <span className="font-medium">Título:</span> {variation.title}
-                            </div>
-                            <div>
-                              <span className="font-medium">Copy:</span> {variation.copy}
-                            </div>
-                            <div>
-                              <span className="font-medium">CTA:</span> {variation.cta}
-                            </div>
-                            <div className="text-xs text-gray-600 border-t pt-2">
-                              <span className="font-medium">Justificativa:</span> {variation.rationale}
-                            </div>
-                          </div>
-                        </div>
+                       {analysis.ad_variations.map((variation, index) => (
+                         <div key={index} className="border rounded-lg p-4 space-y-2">
+                           <div className="flex items-start justify-between">
+                             <h4 className="font-medium text-sm">Variação {index + 1}</h4>
+                             <div className="flex items-center gap-2">
+                               <Badge variant="outline" className="text-xs">Adaptado</Badge>
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => createTaskFromVariation(variation, index)}
+                                 disabled={creatingTask === index}
+                                 className="h-7 px-2 text-xs"
+                               >
+                                 {creatingTask === index ? (
+                                   <Loader2 className="w-3 h-3 animate-spin" />
+                                 ) : (
+                                   <>
+                                     <Plus className="w-3 h-3 mr-1" />
+                                     Criar Tarefa
+                                   </>
+                                 )}
+                               </Button>
+                             </div>
+                           </div>
+                           <div className="space-y-2 text-sm">
+                             <div>
+                               <span className="font-medium">Título:</span> {variation.title}
+                             </div>
+                             <div>
+                               <span className="font-medium">Copy:</span> {variation.copy}
+                             </div>
+                             <div>
+                               <span className="font-medium">CTA:</span> {variation.cta}
+                             </div>
+                             <div className="text-xs text-gray-600 border-t pt-2">
+                               <span className="font-medium">Justificativa:</span> {variation.rationale}
+                             </div>
+                           </div>
+                         </div>
                       ))}
                     </div>
                   </CardContent>
