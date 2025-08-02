@@ -15,6 +15,7 @@ export interface Campaign {
   cpa: number; // Custo por Aquisição/Conversão
   period: string;
   is_active: boolean;
+  average_ticket?: number; // Ticket médio do produto para cálculo de ROI
   impressions?: number;
   reach?: number;
   frequency?: number;

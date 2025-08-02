@@ -241,6 +241,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          average_ticket: number | null
           clicks: number | null
           client_id: string
           company_id: string | null
@@ -267,6 +268,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          average_ticket?: number | null
           clicks?: number | null
           client_id: string
           company_id?: string | null
@@ -293,6 +295,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          average_ticket?: number | null
           clicks?: number | null
           client_id?: string
           company_id?: string | null

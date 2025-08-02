@@ -181,7 +181,14 @@ export const useDashboardData = () => {
     const totalInvestment = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
     const totalLeads = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
-    const roi = totalInvestment > 0 ? ((totalLeads * 100) - totalInvestment) / totalInvestment * 100 : 0; // Assumindo valor médio de lead de R$ 100
+    
+    // Calcular ROI usando ticket médio quando disponível, caso contrário usar valor padrão
+    const totalRevenue = campaigns.reduce((sum, c) => {
+      const averageTicket = c.average_ticket || 100; // Valor padrão de R$ 100 se não informado
+      return sum + ((c.conversions || 0) * averageTicket);
+    }, 0);
+    
+    const roi = totalInvestment > 0 ? ((totalRevenue - totalInvestment) / totalInvestment * 100) : 0;
     
     // Contar clientes ativos vs pausados
     const clientStatuses = campaigns.reduce((acc, c) => {

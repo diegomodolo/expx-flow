@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { useCampaigns } from "@/hooks/useCampaigns";
+import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useToast } from "@/hooks/use-toast";
+import { EditCampaignDialog } from "@/components/campaigns/EditCampaignDialog";
 import { 
   Plus, 
   Search, 
@@ -35,7 +36,9 @@ const Campanhas = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const { campaigns, loading, error, toggleCampaign } = useCampaigns();
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
   const { toast } = useToast();
   
   // Usar valor fixo maior para aproveitar melhor a tela
@@ -68,6 +71,20 @@ const Campanhas = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditCampaign = (campaign: Campaign) => {
+    setEditingCampaign(campaign);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveCampaign = async (id: string, updates: Partial<Campaign>) => {
+    await updateCampaign(id, updates);
+  };
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setEditingCampaign(null);
   };
 
   if (error) {
@@ -264,6 +281,7 @@ const Campanhas = () => {
                                   size="sm"
                                   className="w-8 h-8 p-0"
                                   title="Editar"
+                                  onClick={() => handleEditCampaign(campaign)}
                                 >
                                   <Edit className="w-4 h-4" />
                                 </Button>
@@ -353,6 +371,13 @@ const Campanhas = () => {
           </>
         )}
       </div>
+
+      <EditCampaignDialog
+        campaign={editingCampaign}
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseEditDialog}
+        onSave={handleSaveCampaign}
+      />
     </DashboardLayout>
   );
 };
