@@ -71,7 +71,7 @@ const ClienteDetalhes = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [adSetSortField, setAdSetSortField] = useState<'name' | 'status' | 'budget' | 'cpm' | 'ctr' | 'conversions' | null>(null);
   const [adSetSortDirection, setAdSetSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [adSortField, setAdSortField] = useState<'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | 'quality_ranking' | null>(null);
+  const [adSortField, setAdSortField] = useState<'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | 'frequency' | 'quality_ranking' | null>(null);
   const [adSortDirection, setAdSortDirection] = useState<'asc' | 'desc'>('asc');
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -455,6 +455,10 @@ const ClienteDetalhes = () => {
             aValue = a.conversions;
             bValue = b.conversions;
             break;
+          case 'frequency':
+            aValue = a.frequency;
+            bValue = b.frequency;
+            break;
           case 'quality_ranking':
             aValue = a.quality_ranking || 'UNKNOWN';
             bValue = b.quality_ranking || 'UNKNOWN';
@@ -490,7 +494,7 @@ const ClienteDetalhes = () => {
     }
   };
 
-  const handleAdSort = (field: 'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | 'quality_ranking') => {
+  const handleAdSort = (field: 'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | 'frequency' | 'quality_ranking') => {
     if (adSortField === field) {
       setAdSortDirection(adSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -1645,17 +1649,28 @@ const ClienteDetalhes = () => {
                              <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
                            )}
                          </div>
-                         </th>
-                         <th 
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                          onClick={() => handleAdSort('quality_ranking')}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Qualidade</span>
-                            {adSortField === 'quality_ranking' && (
-                              <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
-                            )}
-                          </div>
+                          </th>
+                          <th 
+                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                           onClick={() => handleAdSort('frequency')}
+                         >
+                           <div className="flex items-center space-x-1">
+                             <span>Frequência</span>
+                             {adSortField === 'frequency' && (
+                               <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                             )}
+                           </div>
+                          </th>
+                          <th 
+                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                           onClick={() => handleAdSort('quality_ranking')}
+                         >
+                           <div className="flex items-center space-x-1">
+                             <span>Qualidade</span>
+                             {adSortField === 'quality_ranking' && (
+                               <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                             )}
+                           </div>
                          </th>
                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                            Ações
@@ -1665,7 +1680,7 @@ const ClienteDetalhes = () => {
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adsLoading ? (
                         <tr>
-                           <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
+                            <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                            <p>Carregando criativos...</p>
                          </td>
@@ -1713,10 +1728,13 @@ const ClienteDetalhes = () => {
                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                              R$ {ad.cpc.toFixed(2)}
                            </td>
-                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                               {ad.conversions}
-                             </td>
-                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ad.conversions}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {ad.frequency ? ad.frequency.toFixed(2) : 'N/A'}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                <Badge 
                                  variant="outline"
                                  className={`text-xs ${
@@ -1752,7 +1770,7 @@ const ClienteDetalhes = () => {
                        ))
                      ) : (
                         <tr>
-                          <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                            <div>
                              <p className="mb-2">Nenhum criativo encontrado</p>
                              <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
