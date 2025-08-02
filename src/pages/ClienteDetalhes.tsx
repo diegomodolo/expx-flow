@@ -37,6 +37,7 @@ import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
+import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +58,8 @@ const ClienteDetalhes = () => {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
+  const [selectedAdSet, setSelectedAdSet] = useState(null);
+  const [adSetMetricsModalOpen, setAdSetMetricsModalOpen] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -335,6 +338,11 @@ const ClienteDetalhes = () => {
   const handleViewMetrics = (campaign: any) => {
     setSelectedCampaign(campaign);
     setMetricsModalOpen(true);
+  };
+
+  const handleViewAdSetMetrics = (adSet: any) => {
+    setSelectedAdSet(adSet);
+    setAdSetMetricsModalOpen(true);
   };
   
   
@@ -960,23 +968,26 @@ const ClienteDetalhes = () => {
                            )}
                          </div>
                        </th>
-                       <th 
-                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                         onClick={() => handleAdSetSort('conversions')}
-                       >
-                         <div className="flex items-center space-x-1">
-                           <span>Conversões</span>
-                           {adSetSortField === 'conversions' && (
-                             <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
-                           )}
-                         </div>
-                       </th>
+                        <th 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleAdSetSort('conversions')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Conversões</span>
+                            {adSetSortField === 'conversions' && (
+                              <ChevronDown className={`w-3 h-3 ${adSetSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Ações
+                        </th>
                      </tr>
                    </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adSetsLoading ? (
                        <tr>
-                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                            <p>Carregando conjuntos de anúncios...</p>
                          </td>
@@ -1013,14 +1024,25 @@ const ClienteDetalhes = () => {
                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                              {adSet.ctr.toFixed(2)}%
                            </td>
-                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                             {adSet.conversions}
-                           </td>
-                         </tr>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {adSet.conversions}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewAdSetMetrics(adSet)}
+                                className="flex items-center space-x-1"
+                              >
+                                <BarChart3 className="w-3 h-3" />
+                                <span>Ver Indicadores</span>
+                              </Button>
+                            </td>
+                          </tr>
                        ))
                      ) : (
                        <tr>
-                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                            <div>
                              <p className="mb-2">Nenhum conjunto de anúncios encontrado</p>
                              <p className="text-sm">Os dados dos conjuntos de anúncios aparecerão aqui após a sincronização com o Facebook</p>
@@ -1326,6 +1348,13 @@ const ClienteDetalhes = () => {
           campaign={selectedCampaign}
           isOpen={metricsModalOpen}
           onClose={() => setMetricsModalOpen(false)}
+        />
+
+        {/* Ad Set Metrics Modal */}
+        <AdSetMetricsModal
+          adSet={selectedAdSet}
+          isOpen={adSetMetricsModalOpen}
+          onClose={() => setAdSetMetricsModalOpen(false)}
         />
       </div>
     </DashboardLayout>
