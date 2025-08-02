@@ -12,6 +12,11 @@ const RelatorioOportunidades = () => {
   const getOpportunities = () => {
     const opportunities = [];
 
+    // Verificar se os dados existem antes de processar
+    if (!metrics || !clientsPerformance || !campaignRankings || !funnelMetrics) {
+      return opportunities;
+    }
+
     // Oportunidades baseadas em investimento alto
     clientsPerformance.forEach(client => {
       if (client.investment > 15000) {
@@ -42,8 +47,8 @@ const RelatorioOportunidades = () => {
       }
     });
 
-    // Oportunidades de budget
-    if (funnelMetrics.cpl > 80) {
+    // Oportunidades de budget - verificar se funnelMetrics e metrics existem
+    if (funnelMetrics.cpl && funnelMetrics.cpl > 80 && metrics.totalInvestment) {
       opportunities.push({
         type: 'budget',
         priority: 'high',
@@ -60,6 +65,20 @@ const RelatorioOportunidades = () => {
 
   const opportunities = getOpportunities();
   const totalPotentialSaving = opportunities.reduce((acc, opp) => acc + (opp.estimatedSaving || 0), 0);
+
+  // Loading state
+  if (!metrics || !clientsPerformance || !campaignRankings || !funnelMetrics) {
+    return (
+      <ReportLayout
+        title="Relatório de Oportunidades"
+        description="Identificação de melhorias e otimizações com IA"
+      >
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </ReportLayout>
+    );
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
