@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar, Clock, Plus, FileText, Settings, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -460,9 +462,26 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Calendar className="h-5 w-5 text-primary" />
-              <CardTitle>
-                {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-              </CardTitle>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-auto p-0 font-semibold text-xl hover:bg-transparent hover:text-primary"
+                  >
+                    {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    <Calendar className="h-4 w-4 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && onDateChange(date)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex items-center gap-2">
               <Button
