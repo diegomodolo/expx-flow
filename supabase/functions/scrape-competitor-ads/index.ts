@@ -83,24 +83,40 @@ serve(async (req) => {
         },
         extractorOptions: {
           mode: 'llm-extraction',
-          extractionPrompt: `
-            Analise esta página da Biblioteca de Anúncios do Facebook e extraia TODOS os anúncios individuais.
-            
-            Para cada anúncio encontrado, extraia:
-            - ad_title: Título principal ou nome da empresa/produto no anúncio
-            - ad_copy: Todo o texto do anúncio (descrição, copy principal)
-            - call_to_action: Texto do botão (ex: "Saiba mais", "Comprar", "Inscreva-se")
-            - ad_type: Tipo baseado no conteúdo (image, video, carousel)
-            - platforms: Onde está rodando (Facebook, Instagram, etc)
-            
-            IMPORTANTE: 
-            - Procure por múltiplos anúncios na página
-            - Cada anúncio geralmente tem sua própria seção/container
-            - Extraia o texto real, não invente
-            - Retorne um array JSON válido
-            
-            Formato: [{"ad_title": "...", "ad_copy": "...", "call_to_action": "...", "ad_type": "...", "platforms": "..."}]
-          `
+          extractionSchema: {
+            type: "object",
+            properties: {
+              ads: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    ad_title: {
+                      type: "string",
+                      description: "Título principal ou nome da empresa/produto no anúncio"
+                    },
+                    ad_copy: {
+                      type: "string", 
+                      description: "Todo o texto do anúncio (descrição, copy principal)"
+                    },
+                    call_to_action: {
+                      type: "string",
+                      description: "Texto do botão (ex: 'Saiba mais', 'Comprar', 'Inscreva-se')"
+                    },
+                    ad_type: {
+                      type: "string",
+                      description: "Tipo baseado no conteúdo (image, video, carousel)"
+                    },
+                    platforms: {
+                      type: "string",
+                      description: "Onde está rodando (Facebook, Instagram, etc)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          extractionPrompt: "Analise esta página da Biblioteca de Anúncios do Facebook e extraia TODOS os anúncios individuais que encontrar. Para cada anúncio, identifique o título, texto do anúncio, call-to-action, tipo e plataformas onde está rodando."
         }
       }),
     });
@@ -171,9 +187,13 @@ serve(async (req) => {
           ? JSON.parse(data.data.extract) 
           : data.data.extract;
         
-        if (Array.isArray(parsedExtract)) {
+        // Check if the extracted data has the expected structure with 'ads' array
+        if (parsedExtract && parsedExtract.ads && Array.isArray(parsedExtract.ads)) {
+          extractedAds = parsedExtract.ads;
+          console.log('Successfully parsed', extractedAds.length, 'ads from schema structure');
+        } else if (Array.isArray(parsedExtract)) {
           extractedAds = parsedExtract;
-          console.log('Successfully parsed', extractedAds.length, 'ads from LLM extraction');
+          console.log('Successfully parsed', extractedAds.length, 'ads from array structure');
         } else if (parsedExtract && typeof parsedExtract === 'object') {
           extractedAds = [parsedExtract];
           console.log('Found single ad object from LLM extraction');
