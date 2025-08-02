@@ -172,9 +172,15 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                               {/* Avatar e nome do responsável */}
                               <div className="flex items-center gap-1">
                                 <Avatar className="h-4 w-4">
-                                  <AvatarImage src={task.responsible_avatar} alt={task.responsible_name} />
+                                  {task.responsible_avatar && (
+                                    <AvatarImage 
+                                      src={task.responsible_avatar} 
+                                      alt={task.responsible_name}
+                                      className="object-cover"
+                                    />
+                                  )}
                                   <AvatarFallback className="text-[8px] bg-muted">
-                                    {task.responsible_name?.charAt(0)}
+                                    {task.responsible_name?.charAt(0)?.toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                                 <span className="text-xs text-gray-600 font-medium">
