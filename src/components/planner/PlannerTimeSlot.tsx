@@ -23,6 +23,7 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
   onEditTask,
   onDeleteTask,
 }) => {
+  console.log(`🎪 Rendering slot ${slot.name} with ${tasks.length} tasks:`, tasks.map(t => `${t.id}:${t.title}`));
   const getSlotDuration = () => {
     const start = new Date(`2000-01-01T${slot.start_time}`);
     const end = new Date(`2000-01-01T${slot.end_time}`);

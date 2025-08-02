@@ -35,28 +35,37 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   // Função para lidar com o fim do drag and drop
   const handleDragEnd = async (result: DropResult) => {
-    console.log('🎯 Drag End:', result);
-    if (!result.destination) return;
+    console.log('🎯 Drag End Result:', result);
+    
+    if (!result.destination) {
+      console.log('❌ No destination, aborting');
+      return;
+    }
 
     const { source, destination, draggableId } = result;
     
     // Extrair o ID real da tarefa removendo o prefixo
     const taskId = draggableId.replace('planner-task-', '');
+    console.log('📦 Task ID extracted:', taskId);
     
     // Se moveu para o mesmo slot, não faz nada
-    if (source.droppableId === destination.droppableId) return;
+    if (source.droppableId === destination.droppableId) {
+      console.log('⚠️ Same slot, no change needed');
+      return;
+    }
 
     console.log('📦 Moving task', taskId, 'from slot', source.droppableId, 'to slot', destination.droppableId);
+    console.log('📊 Before update - Tasks:', tasks.length);
 
     try {
       // Encontrar o slot de destino
       const targetSlot = timeSlots.find(slot => slot.id === destination.droppableId);
       if (!targetSlot) {
-        console.error('❌ Target slot not found');
+        console.error('❌ Target slot not found for ID:', destination.droppableId);
         return;
       }
 
-      console.log('🎯 Target slot:', targetSlot);
+      console.log('🎯 Target slot found:', targetSlot.name, targetSlot.start_time, '-', targetSlot.end_time);
 
       // Calcular novo horário de início baseado no slot
       const [startHours, startMinutes] = targetSlot.start_time.split(':');
@@ -74,18 +83,23 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
         deadline: selectedDate.toISOString().split('T')[0]
       };
 
-      console.log('🔄 Updating task with:', updates);
+      console.log('🔄 Updates to apply:', updates);
 
       // Atualizar a tarefa com os novos horários
       await updateTask(taskId, updates);
+      console.log('✅ Task updated in database');
+      
+      // Aguardar um momento para garantir que a atualização foi processada
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Invalidar cache para forçar re-renderização imediata
-      queryClient.invalidateQueries({ 
+      console.log('🔄 Invalidating queries...');
+      await queryClient.invalidateQueries({ 
         queryKey: ['planner-tasks', activeCompany?.company_id, selectedDate.toISOString().split('T')[0]] 
       });
-      queryClient.invalidateQueries({ queryKey: ['tasks', activeCompany?.company_id] });
+      await queryClient.invalidateQueries({ queryKey: ['tasks', activeCompany?.company_id] });
       
-      console.log('✅ Task updated successfully');
+      console.log('✅ Queries invalidated, should re-render now');
     } catch (error) {
       console.error('❌ Erro ao mover tarefa:', error);
     }
