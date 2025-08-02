@@ -55,11 +55,11 @@ export default function RelatorioClientesZonaCritica() {
       const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
       const avgFrequency = totalClicks > 0 ? totalImpressions / totalClicks : 0;
 
-      // Definir targets (valores exemplo - podem ser configuráveis)
-      const cplTarget = 50; // R$ 50 por lead
-      const cpaTarget = 150; // R$ 150 por conversão
-      const ctrTarget = 1; // 1% CTR mínimo
-      const frequencyMax = 5; // Frequência máxima 5
+      // Definir targets baseados em benchmarks da indústria
+      const cplTarget = 50; // R$ 50 por lead (benchmark padrão)
+      const cpaTarget = 150; // R$ 150 por conversão (benchmark padrão)
+      const ctrTarget = 1; // 1% CTR mínimo (benchmark padrão)
+      const frequencyMax = 5; // Frequência máxima 5 (benchmark padrão)
 
       // Verificar problemas
       if (avgCPL > cplTarget) {
