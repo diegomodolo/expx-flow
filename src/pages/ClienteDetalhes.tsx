@@ -49,6 +49,7 @@ import { FundingAlert } from "@/components/alerts/FundingAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { useCompetitors } from "@/hooks/useCompetitors";
 import { supabase } from "@/integrations/supabase/client";
 
 const ClienteDetalhes = () => {
@@ -58,6 +59,7 @@ const ClienteDetalhes = () => {
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
   const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
   const { alerts, refetch: refetchDashboardData } = useDashboardData();
+  const { competitors, competitorAds, generateCompetitiveAnalysis } = useCompetitors(id);
   const { convertAlertToTask } = useTaskAutomation();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -88,6 +90,10 @@ const ClienteDetalhes = () => {
   // Estados para análise completa
   const [campaignAnalysis, setCampaignAnalysis] = useState<string | null>(null);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  
+  // Estados para análise competitiva
+  const [competitiveAnalysis, setCompetitiveAnalysis] = useState<string | null>(null);
+  const [isGeneratingCompetitiveAnalysis, setIsGeneratingCompetitiveAnalysis] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -157,6 +163,21 @@ const ClienteDetalhes = () => {
       console.error('Error generating analysis:', error);
     } finally {
       setIsGeneratingAnalysis(false);
+    }
+  };
+
+  // Função para gerar análise competitiva
+  const handleGenerateCompetitiveAnalysis = async () => {
+    if (!client || !ads) return;
+    
+    setIsGeneratingCompetitiveAnalysis(true);
+    try {
+      const analysis = await generateCompetitiveAnalysis(client, ads);
+      setCompetitiveAnalysis(analysis);
+    } catch (error) {
+      console.error('Error generating competitive analysis:', error);
+    } finally {
+      setIsGeneratingCompetitiveAnalysis(false);
     }
   };
 
@@ -1080,9 +1101,17 @@ const ClienteDetalhes = () => {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="analysis">
-                  Análise Completa
-                </TabsTrigger>
+                 <TabsTrigger value="analysis">
+                   Análise Completa
+                 </TabsTrigger>
+                 <TabsTrigger value="competitive" className="relative">
+                   Análise Competitiva
+                   {competitors.length > 0 && (
+                     <Badge variant="secondary" className="ml-2 text-xs">
+                       {competitors.length}
+                     </Badge>
+                   )}
+                 </TabsTrigger>
                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -1974,6 +2003,139 @@ const ClienteDetalhes = () => {
                       </div>
                     </div>
                   </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="competitive" className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="text-lg font-semibold">Análise Competitiva</h4>
+                    <p className="text-sm text-gray-600">Compare seus anúncios com os dos concorrentes e obtenha insights estratégicos</p>
+                  </div>
+                  <Button 
+                    onClick={handleGenerateCompetitiveAnalysis}
+                    disabled={isGeneratingCompetitiveAnalysis || competitors.length === 0}
+                    className="min-w-[180px]"
+                  >
+                    {isGeneratingCompetitiveAnalysis ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analisando...
+                      </>
+                    ) : (
+                      <>
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Gerar Análise
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Resumo dos concorrentes */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Users className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold">{competitors.length}</p>
+                          <p className="text-sm text-gray-600">Concorrentes</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Megaphone className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold">{competitorAds.length}</p>
+                          <p className="text-sm text-gray-600">Anúncios Monitorados</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <BarChart3 className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold">
+                            {competitorAds.filter(ad => ad.estimated_performance === 'high').length}
+                          </p>
+                          <p className="text-sm text-gray-600">Alto Desempenho</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Análise gerada */}
+                {competitiveAnalysis ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <BarChart3 className="w-5 h-5" />
+                        <span>Análise Competitiva Completa</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="prose prose-sm max-w-none">
+                      <div 
+                        className="whitespace-pre-wrap text-sm leading-relaxed"
+                        dangerouslySetInnerHTML={{ 
+                          __html: competitiveAnalysis.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                        }} 
+                      />
+                    </CardContent>
+                  </Card>
+                ) : competitors.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Users className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Nenhum concorrente cadastrado</h3>
+                      <p className="text-gray-600 mb-4">
+                        Adicione concorrentes para gerar uma análise competitiva estratégica
+                      </p>
+                      <Button variant="outline">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Concorrente
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <BarChart3 className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Análise Competitiva</h3>
+                      <p className="text-gray-600 mb-4">
+                        Clique em "Gerar Análise" para obter insights estratégicos baseados nos concorrentes cadastrados
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 mt-6">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-blue-600">{competitors.length}</p>
+                          <p className="text-sm text-gray-600">Concorrentes</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-green-600">{competitorAds.length}</p>
+                          <p className="text-sm text-gray-600">Anúncios</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </TabsContent>

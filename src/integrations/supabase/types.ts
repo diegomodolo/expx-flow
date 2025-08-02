@@ -561,6 +561,123 @@ export type Database = {
           },
         ]
       }
+      competitor_ads: {
+        Row: {
+          ad_copy: string | null
+          ad_description: string | null
+          ad_title: string | null
+          ad_type: string | null
+          call_to_action: string | null
+          client_id: string
+          company_id: string
+          competitor_id: string
+          created_at: string
+          date_spotted: string
+          estimated_performance: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          landing_page_url: string | null
+          notes: string | null
+          platform: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ad_copy?: string | null
+          ad_description?: string | null
+          ad_title?: string | null
+          ad_type?: string | null
+          call_to_action?: string | null
+          client_id: string
+          company_id: string
+          competitor_id: string
+          created_at?: string
+          date_spotted?: string
+          estimated_performance?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          landing_page_url?: string | null
+          notes?: string | null
+          platform?: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          ad_copy?: string | null
+          ad_description?: string | null
+          ad_title?: string | null
+          ad_type?: string | null
+          call_to_action?: string | null
+          client_id?: string
+          company_id?: string
+          competitor_id?: string
+          created_at?: string
+          date_spotted?: string
+          estimated_performance?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          landing_page_url?: string | null
+          notes?: string | null
+          platform?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      competitors: {
+        Row: {
+          client_id: string
+          company_id: string
+          company_name: string
+          created_at: string
+          description: string | null
+          facebook_page_name: string | null
+          id: string
+          industry: string | null
+          instagram_handle: string | null
+          name: string
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          company_name: string
+          created_at?: string
+          description?: string | null
+          facebook_page_name?: string | null
+          id?: string
+          industry?: string | null
+          instagram_handle?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          company_name?: string
+          created_at?: string
+          description?: string | null
+          facebook_page_name?: string | null
+          id?: string
+          industry?: string | null
+          instagram_handle?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           avatar: string | null
