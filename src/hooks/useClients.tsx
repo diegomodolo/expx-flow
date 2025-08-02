@@ -33,6 +33,8 @@ export interface Client {
     disable_reason?: string;
     has_funding_issues: boolean;
     last_balance_check?: string;
+    is_prepaid: boolean;
+    funding_source_details?: any;
   };
 }
 
@@ -59,7 +61,9 @@ export function useClients() {
             account_status,
             disable_reason,
             has_funding_issues,
-            last_balance_check
+            last_balance_check,
+            is_prepaid,
+            funding_source_details
           )
         `)
         .eq("company_id", activeCompany.company_id)

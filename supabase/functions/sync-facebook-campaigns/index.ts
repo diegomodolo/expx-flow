@@ -229,7 +229,7 @@ serve(async (req) => {
 
     // Check account balance and funding status
     console.log('Checking account balance for:', accountId)
-    const balanceUrl = `https://graph.facebook.com/v20.0/act_${accountId}?fields=account_status,balance,spend_cap,disable_reason&access_token=${accessToken}`
+    const balanceUrl = `https://graph.facebook.com/v20.0/act_${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details&access_token=${accessToken}`
     console.log('Balance API URL (without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
     
     try {
@@ -242,6 +242,12 @@ serve(async (req) => {
         const accountStatus = parseInt(balanceData.account_status || '1')
         const spendCap = parseFloat(balanceData.spend_cap || '0')
         const disableReason = balanceData.disable_reason || null
+        const fundingSourceDetails = balanceData.funding_source_details || {}
+        
+        // Determine if account is prepaid based on funding source details
+        // Prepaid accounts typically have balance > 0 and no automatic payment methods
+        const isPrepaid = balance > 0 && (!fundingSourceDetails.coupon && !fundingSourceDetails.direct_debit && !fundingSourceDetails.credit_card)
+        
         const hasFundingIssues = accountStatus !== 1 || balance <= 0 || (disableReason && disableReason.includes('FUNDING'))
         
         console.log('Account financial status:', {
@@ -249,24 +255,29 @@ serve(async (req) => {
           accountStatus,
           spendCap,
           disableReason,
+          fundingSourceDetails,
+          isPrepaid,
           hasFundingIssues
         })
         
-        // Update ad account with balance information
-        const { error: balanceUpdateError } = await supabase
+        
+        // Update ad account with financial status
+        const { error: adAccountUpdateError } = await supabase
           .from('facebook_ad_accounts')
           .update({
-            balance: balance,
+            balance,
             account_status: accountStatus,
             spend_cap: spendCap,
             disable_reason: disableReason,
+            funding_source_details: fundingSourceDetails,
+            is_prepaid: isPrepaid,
             has_funding_issues: hasFundingIssues,
             last_balance_check: new Date().toISOString()
           })
           .eq('id', adAccount.id)
         
-        if (balanceUpdateError) {
-          console.error('Error updating account balance:', balanceUpdateError)
+        if (adAccountUpdateError) {
+          console.error('Error updating account balance:', adAccountUpdateError)
         } else {
           console.log('Account balance updated successfully')
         }

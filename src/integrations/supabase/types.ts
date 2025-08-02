@@ -633,10 +633,12 @@ export type Database = {
           created_at: string
           currency: string
           disable_reason: string | null
+          funding_source_details: Json | null
           has_funding_issues: boolean | null
           id: string
           integration_id: string
           is_active: boolean
+          is_prepaid: boolean | null
           last_balance_check: string | null
           spend_cap: number | null
           updated_at: string
@@ -649,10 +651,12 @@ export type Database = {
           created_at?: string
           currency: string
           disable_reason?: string | null
+          funding_source_details?: Json | null
           has_funding_issues?: boolean | null
           id?: string
           integration_id: string
           is_active?: boolean
+          is_prepaid?: boolean | null
           last_balance_check?: string | null
           spend_cap?: number | null
           updated_at?: string
@@ -665,10 +669,12 @@ export type Database = {
           created_at?: string
           currency?: string
           disable_reason?: string | null
+          funding_source_details?: Json | null
           has_funding_issues?: boolean | null
           id?: string
           integration_id?: string
           is_active?: boolean
+          is_prepaid?: boolean | null
           last_balance_check?: string | null
           spend_cap?: number | null
           updated_at?: string

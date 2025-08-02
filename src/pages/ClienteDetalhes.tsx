@@ -811,8 +811,10 @@ const ClienteDetalhes = () => {
                     <p className="text-sm font-medium text-gray-600">Saldo da Conta</p>
                     <p className="text-2xl font-bold text-gray-400">--</p>
                     <div className="flex items-center space-x-1 mt-1">
-                      <span className="text-xs text-gray-400">Conta não vinculada</span>
-                    </div>
+                    <span className="text-xs text-gray-400">
+                      {!client.facebook_ad_accounts ? 'Conta não vinculada' : 'Conta pós-paga'}
+                    </span>
+                  </div>
                   </div>
                   <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
                     <DollarSign className="w-6 h-6 text-gray-400" />

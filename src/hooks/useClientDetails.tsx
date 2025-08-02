@@ -36,6 +36,8 @@ export interface ClientDetailsData extends Client {
     disable_reason?: string;
     has_funding_issues: boolean;
     last_balance_check?: string;
+    is_prepaid: boolean;
+    funding_source_details?: any;
   };
 }
 
@@ -65,7 +67,9 @@ export function useClientDetails(clientId: string) {
             account_status,
             disable_reason,
             has_funding_issues,
-            last_balance_check
+            last_balance_check,
+            is_prepaid,
+            funding_source_details
           )
         `)
         .eq("id", clientId)
