@@ -793,7 +793,7 @@ const ClienteDetalhes = () => {
           </Card>
 
           {/* Account Balance Card */}
-          {client.facebook_ad_accounts && (
+          {client.facebook_ad_accounts ? (
             <AccountBalanceCard
               balance={client.facebook_ad_accounts.balance}
               currency="BRL"
@@ -803,6 +803,23 @@ const ClienteDetalhes = () => {
               accountName={client.facebook_ad_accounts.account_name}
               lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
             />
+          ) : (
+            <Card className="bg-gray-50 border-dashed">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Saldo da Conta</p>
+                    <p className="text-2xl font-bold text-gray-400">--</p>
+                    <div className="flex items-center space-x-1 mt-1">
+                      <span className="text-xs text-gray-400">Conta não vinculada</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-gray-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
