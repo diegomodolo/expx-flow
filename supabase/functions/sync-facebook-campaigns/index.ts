@@ -536,8 +536,8 @@ serve(async (req) => {
             // Fetch ads for this ad set
             try {
               console.log('Fetching ads for ad set:', adSet.id)
-              // Simplify the API call first - test with basic fields
-              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status&access_token=${accessToken}`
+              // Add creative fields and basic insights
+              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency}&access_token=${accessToken}`
               console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
               const adsResponse = await fetch(adsUrl)
               console.log('Ads API response status:', adsResponse.status)
@@ -548,11 +548,38 @@ serve(async (req) => {
                 const ads = adsData.data || []
                 console.log('Found', ads.length, 'ads for ad set:', adSet.name)
                 
-                // Process each ad with simplified data first
+                // Process each ad
                 for (const ad of ads) {
                   console.log('Processing ad:', ad.id, ad.name)
+                  
+                  // Extract creative information
+                  const creative = ad.creative || {}
+                  const objectStory = creative.object_story_spec || {}
+                  const linkData = objectStory.link_data || {}
+                  
+                  // Extract insights data
+                  const adInsights = ad.insights?.data?.[0]
+                  let adSpend = 0
+                  let adClicks = 0
+                  let adImpressions = 0
+                  let adCtr = 0
+                  let adCpc = 0
+                  let adCpm = 0
+                  let adReach = 0
+                  let adFrequency = 0
+                  
+                  if (adInsights) {
+                    adSpend = parseFloat(adInsights.spend || 0)
+                    adClicks = parseInt(adInsights.clicks || 0)
+                    adImpressions = parseInt(adInsights.impressions || 0)
+                    adCtr = parseFloat(adInsights.ctr || 0)
+                    adCpc = parseFloat(adInsights.cpc || 0)
+                    adCpm = parseFloat(adInsights.cpm || 0)
+                    adReach = parseInt(adInsights.reach || 0)
+                    adFrequency = parseFloat(adInsights.frequency || 0)
+                  }
                    
-                   // Save ad to database with basic data first
+                   // Save ad to database with enhanced data
                    const adData = {
                      facebook_id: ad.id,
                      ad_set_id: savedAdSet.id,
@@ -562,24 +589,24 @@ serve(async (req) => {
                      company_id: client.company_id,
                      name: ad.name,
                      status: ad.status?.toLowerCase() || 'unknown',
-                     creative_type: 'text', // Simplified for now
-                     creative_body: '',
-                     creative_title: '',
-                     creative_description: '',
-                     image_url: '',
-                     video_url: '',
-                     link_url: '',
-                     call_to_action: '{}',
-                     ctr: 0,
-                     cpc: 0,
-                     cpm: 0,
-                     spend: 0,
-                     impressions: 0,
-                     clicks: 0,
-                     conversions: 0,
+                     creative_type: creative.video_id ? 'video' : (creative.image_url ? 'image' : 'text'),
+                     creative_body: linkData.message || creative.body || '',
+                     creative_title: linkData.name || creative.title || '',
+                     creative_description: linkData.description || '',
+                     image_url: creative.image_url || '',
+                     video_url: creative.video_id ? `https://www.facebook.com/${creative.video_id}` : '',
+                     link_url: linkData.link || '',
+                     call_to_action: JSON.stringify(linkData.call_to_action || {}),
+                     ctr: adCtr,
+                     cpc: adCpc,
+                     cpm: adCpm,
+                     spend: adSpend,
+                     impressions: adImpressions,
+                     clicks: adClicks,
+                     conversions: 0, // Will add actions later
                      cpa: 0,
-                     reach: 0,
-                     frequency: 0,
+                     reach: adReach,
+                     frequency: adFrequency,
                      quality_ranking: null,
                      engagement_rate_ranking: null,
                      conversion_rate_ranking: null,
