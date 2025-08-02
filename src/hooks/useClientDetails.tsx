@@ -63,6 +63,7 @@ export function useClientDetails(clientId: string) {
         .from("campaigns")
         .select("*")
         .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
       if (campaignsError) throw campaignsError;
