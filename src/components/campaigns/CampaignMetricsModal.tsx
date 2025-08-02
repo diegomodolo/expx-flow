@@ -46,6 +46,12 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
   // Calcular métricas derivadas
   const clicks = campaign.clicks || Math.round((campaign.impressions || 0) * (campaign.ctr / 100));
   const conversionRate = clicks > 0 ? ((campaign.conversions / clicks) * 100) : 0;
+  
+  // Função para formatar rankings
+  const formatRanking = (ranking?: string) => {
+    if (!ranking || ranking === 'UNKNOWN') return 'Dados insuficientes';
+    return ranking;
+  };
   const campaignAge = Math.floor((Date.now() - new Date(campaign.created_at).getTime()) / (1000 * 60 * 60 * 24));
 
   return (
@@ -199,11 +205,14 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-cyan-600">
-                    {campaign.clicks?.toLocaleString() || clicks.toLocaleString()}
+                    {(campaign.clicks || 0).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {campaign.clicks ? 'Cliques reais' : 'Estimado por CTR'}
+                    {campaign.clicks && campaign.clicks > 0 ? 'Cliques diretos' : 'Aguardando dados'}
                   </p>
+                  {campaign.clicks === 0 && (
+                    <p className="text-xs text-yellow-600 mt-1">💡 Sincronize para obter dados atualizados</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -243,18 +252,21 @@ export const CampaignMetricsModal = ({ campaign, isOpen, onClose }: CampaignMetr
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-purple-600">
-                    {campaign.quality_ranking || 'N/A'}
+                    {formatRanking(campaign.quality_ranking)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Quality Ranking do Facebook</p>
-                  {campaign.engagement_rate_ranking && (
+                  {campaign.engagement_rate_ranking && campaign.engagement_rate_ranking !== 'UNKNOWN' && (
                     <p className="text-xs text-blue-600 mt-1">
-                      📊 Engajamento: {campaign.engagement_rate_ranking}
+                      📊 Engajamento: {formatRanking(campaign.engagement_rate_ranking)}
                     </p>
                   )}
-                  {campaign.conversion_rate_ranking && (
+                  {campaign.conversion_rate_ranking && campaign.conversion_rate_ranking !== 'UNKNOWN' && (
                     <p className="text-xs text-green-600 mt-1">
-                      🎯 Conversão: {campaign.conversion_rate_ranking}
+                      🎯 Conversão: {formatRanking(campaign.conversion_rate_ranking)}
                     </p>
+                  )}
+                  {(!campaign.quality_ranking || campaign.quality_ranking === 'UNKNOWN') && (
+                    <p className="text-xs text-yellow-600 mt-1">💡 Facebook ainda está coletando dados de qualidade</p>
                   )}
                 </CardContent>
               </Card>
