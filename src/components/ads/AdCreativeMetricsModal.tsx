@@ -130,123 +130,147 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                 <Eye className="w-5 h-5 text-blue-600" />
                 <span>Prévia do Criativo</span>
               </h3>
-              <Card className="p-4">
-                {/* Preview Visual */}
-                <div className="mb-6">
+              <Card className="p-0 max-w-md mx-auto bg-white border border-gray-200 rounded-lg overflow-hidden">
+                {/* Header do Instagram */}
+                <div className="flex items-center p-3 border-b border-gray-100">
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full p-0.5">
+                    <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
+                      <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p className="font-semibold text-sm text-gray-900">Cliente</p>
+                    <p className="text-xs text-gray-500">Patrocinado</p>
+                  </div>
+                  <button className="p-1">
+                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Conteúdo Visual */}
+                <div className="relative bg-black aspect-square">
                   {ad.creative_type === 'video' && ad.video_url ? (
-                    <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-video">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <Play className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Vídeo Criativo</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {ad.video_views.toLocaleString()} visualizações
-                          </p>
-                          {ad.video_url && (
-                            <a 
-                              href={ad.video_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-block mt-2 text-blue-600 text-xs hover:underline"
-                            >
-                              Ver no Facebook
-                            </a>
-                          )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Play className="w-6 h-6 text-gray-800 ml-1" />
                         </div>
+                        <p className="text-white text-sm">Vídeo</p>
+                        <p className="text-white text-xs opacity-75">
+                          {ad.video_views.toLocaleString()} visualizações
+                        </p>
                       </div>
                     </div>
                   ) : ad.creative_type === 'image' && ad.image_url ? (
-                    <div className="relative rounded-lg overflow-hidden bg-gray-100">
-                      <img 
-                        src={ad.image_url} 
-                        alt={ad.creative_title || ad.name}
-                        className="w-full h-auto object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent) {
-                            parent.innerHTML = `
-                              <div class="flex items-center justify-center h-48 bg-gray-100">
-                                <div class="text-center">
-                                  <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                  </svg>
-                                  <p class="text-sm text-gray-600">Imagem não disponível</p>
-                                </div>
-                              </div>
-                            `;
-                          }
-                        }}
-                      />
-                    </div>
+                    <img 
+                      src={ad.image_url} 
+                      alt={ad.creative_title || ad.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=400&fit=crop';
+                      }}
+                    />
                   ) : (
-                    <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
-                      <div className="text-center">
-                        <Activity className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">Criativo de Texto</p>
-                        <p className="text-xs text-gray-500">Apenas texto, sem mídia visual</p>
+                    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-100 to-gray-200">
+                      <div className="text-center p-8">
+                        <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 font-medium">Anúncio de Texto</p>
+                        <p className="text-xs text-gray-500">Conteúdo textual</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Conteúdo do Anúncio */}
-                <div className="space-y-4">
-                  {ad.creative_title && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Título</p>
-                      <p className="text-lg font-semibold text-gray-900">{ad.creative_title}</p>
+                {/* Ações do Instagram */}
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-4">
+                      <button className="flex items-center space-x-1">
+                        <Heart className="w-6 h-6 text-gray-700" />
+                      </button>
+                      <button className="flex items-center space-x-1">
+                        <MessageCircle className="w-6 h-6 text-gray-700" />
+                      </button>
+                      <button className="flex items-center space-x-1">
+                        <Share2 className="w-6 h-6 text-gray-700" />
+                      </button>
                     </div>
-                  )}
-                  
-                  {ad.creative_body && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Texto Principal</p>
-                      <p className="text-sm text-gray-700 leading-relaxed">{ad.creative_body}</p>
-                    </div>
-                  )}
-                  
-                  {ad.creative_description && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Descrição</p>
-                      <p className="text-sm text-gray-600">{ad.creative_description}</p>
-                    </div>
-                  )}
+                    <button>
+                      <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                    </button>
+                  </div>
 
+                  {/* Estatísticas */}
+                  <div className="mb-2">
+                    <p className="font-semibold text-sm text-gray-900">
+                      {ad.likes.toLocaleString()} curtidas
+                    </p>
+                  </div>
+
+                  {/* Conteúdo do Post */}
+                  <div className="space-y-1">
+                    {ad.creative_title && (
+                      <p className="text-sm text-gray-900">
+                        <span className="font-semibold">Cliente</span> {ad.creative_title}
+                      </p>
+                    )}
+                    
+                    {ad.creative_body && (
+                      <p className="text-sm text-gray-900 leading-relaxed">
+                        {ad.creative_body}
+                      </p>
+                    )}
+                    
+                    {ad.creative_description && (
+                      <p className="text-sm text-gray-600">
+                        {ad.creative_description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Call to Action */}
                   {ad.call_to_action && ad.call_to_action !== '{}' && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Chamada para Ação</p>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <div className="mt-3">
+                      <button className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors">
                         {ad.call_to_action}
-                      </Badge>
+                      </button>
                     </div>
                   )}
 
+                  {/* Link */}
                   {ad.link_url && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Link de Destino</p>
+                    <div className="mt-2 p-2 bg-gray-50 rounded border">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Link</p>
                       <a 
                         href={ad.link_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline break-all"
                       >
-                        {ad.link_url}
+                        {ad.link_url.length > 40 ? ad.link_url.substring(0, 40) + '...' : ad.link_url}
                       </a>
                     </div>
                   )}
 
-                  <div className="pt-3 border-t border-gray-200">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {ad.creative_type === 'video' ? '🎥 Vídeo' : 
-                         ad.creative_type === 'image' ? '🖼️ Imagem' : '📝 Texto'}
-                      </Badge>
-                      <Badge variant={ad.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                        {ad.status === 'active' ? '✅ Ativo' : '⏸️ Pausado'}
-                      </Badge>
+                  {/* Comentários simulados */}
+                  {ad.comments > 0 && (
+                    <div className="mt-3 pt-2 border-t border-gray-100">
+                      <p className="text-sm text-gray-500">
+                        Ver todos os {ad.comments.toLocaleString()} comentários
+                      </p>
                     </div>
+                  )}
+
+                  {/* Timestamp */}
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-400 uppercase">
+                      {new Date(ad.created_at).toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
                 </div>
               </Card>
