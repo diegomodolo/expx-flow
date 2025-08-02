@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -48,22 +48,32 @@ export const CompanySelector = () => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className="w-[280px] justify-between"
+          className="flex items-center gap-2 h-auto p-2 hover:bg-muted/50"
         >
           {activeCompany ? (
-            <div className="flex items-center gap-2">
-              <span className="truncate">{activeCompany.company?.name}</span>
-              <Badge variant={getRoleBadgeVariant(activeCompany.role)} className="text-xs">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium text-foreground">
+                  {activeCompany.company?.name}
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground">
                 {getRoleLabel(activeCompany.role)}
-              </Badge>
+              </span>
             </div>
           ) : (
-            "Selecionar empresa..."
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-medium text-foreground">Selecionar empresa</span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground">Nenhuma selecionada</span>
+            </div>
           )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0">

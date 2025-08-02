@@ -1,4 +1,4 @@
-import { Search, Bell, Settings, LogOut, User } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -85,7 +85,15 @@ export function DashboardHeader() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-               <Button variant="ghost" className="flex items-center space-x-3 h-auto p-2">
+              <Button variant="ghost" className="flex items-center gap-2 h-auto p-2 hover:bg-muted/50">
+                <div className="flex flex-col items-start">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-foreground">
+                      {displayName}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={profile?.avatar_url || undefined} alt="User" />
                   <AvatarFallback>
@@ -93,9 +101,6 @@ export function DashboardHeader() {
                      user?.email ? getUserInitials(user.email) : <User className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-foreground">
-                  {displayName}
-                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
