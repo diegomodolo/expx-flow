@@ -123,6 +123,136 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
+          {/* Prévia do Criativo */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
+              <Eye className="w-5 h-5 text-blue-600" />
+              <span>Prévia do Criativo</span>
+            </h3>
+            <Card className="p-4">
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Preview Visual */}
+                <div className="lg:w-1/2">
+                  {ad.creative_type === 'video' && ad.video_url ? (
+                    <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-video">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <Play className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">Vídeo Criativo</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {ad.video_views.toLocaleString()} visualizações
+                          </p>
+                          {ad.video_url && (
+                            <a 
+                              href={ad.video_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-block mt-2 text-blue-600 text-xs hover:underline"
+                            >
+                              Ver no Facebook
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : ad.creative_type === 'image' && ad.image_url ? (
+                    <div className="relative rounded-lg overflow-hidden bg-gray-100">
+                      <img 
+                        src={ad.image_url} 
+                        alt={ad.creative_title || ad.name}
+                        className="w-full h-auto object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = `
+                              <div class="flex items-center justify-center h-48 bg-gray-100">
+                                <div class="text-center">
+                                  <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                  </svg>
+                                  <p class="text-sm text-gray-600">Imagem não disponível</p>
+                                </div>
+                              </div>
+                            `;
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
+                      <div className="text-center">
+                        <Activity className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">Criativo de Texto</p>
+                        <p className="text-xs text-gray-500">Apenas texto, sem mídia visual</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Conteúdo do Anúncio */}
+                <div className="lg:w-1/2 space-y-4">
+                  {ad.creative_title && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Título</p>
+                      <p className="text-lg font-semibold text-gray-900">{ad.creative_title}</p>
+                    </div>
+                  )}
+                  
+                  {ad.creative_body && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Texto Principal</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{ad.creative_body}</p>
+                    </div>
+                  )}
+                  
+                  {ad.creative_description && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Descrição</p>
+                      <p className="text-sm text-gray-600">{ad.creative_description}</p>
+                    </div>
+                  )}
+
+                  {ad.call_to_action && ad.call_to_action !== '{}' && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Chamada para Ação</p>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        {ad.call_to_action}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {ad.link_url && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Link de Destino</p>
+                      <a 
+                        href={ad.link_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
+                        {ad.link_url}
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-gray-200">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {ad.creative_type === 'video' ? '🎥 Vídeo' : 
+                         ad.creative_type === 'image' ? '🖼️ Imagem' : '📝 Texto'}
+                      </Badge>
+                      <Badge variant={ad.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                        {ad.status === 'active' ? '✅ Ativo' : '⏸️ Pausado'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
           {/* Indicadores de Engajamento */}
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
