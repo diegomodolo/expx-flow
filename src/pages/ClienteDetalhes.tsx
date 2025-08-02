@@ -42,6 +42,7 @@ import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { FunnelAnalysis } from "@/components/funnel/FunnelAnalysis";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
+import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -790,6 +791,19 @@ const ClienteDetalhes = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Account Balance Card */}
+          {client.facebook_ad_accounts && (
+            <AccountBalanceCard
+              balance={client.facebook_ad_accounts.balance}
+              currency="BRL"
+              accountStatus={client.facebook_ad_accounts.account_status}
+              disableReason={client.facebook_ad_accounts.disable_reason}
+              hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
+              accountName={client.facebook_ad_accounts.account_name}
+              lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
+            />
+          )}
         </div>
 
         {/* Performance Charts */}
