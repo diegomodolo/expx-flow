@@ -62,126 +62,143 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
     return new Date(dueDate) < new Date() && new Date(dueDate).toDateString() !== new Date().toDateString();
   };
 
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'destructive';
+      case 'medium': return 'default';
+      case 'low': return 'outline';
+      default: return 'outline';
+    }
+  };
+
   return (
     <div className="space-y-4">
       {tasks.map((task) => (
-        <Card key={task.id} className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-semibold text-lg text-gray-900">
-                    {task.title}
-                  </h3>
-                  <span className="text-lg" title={`Origem: ${task.origin}`}>
-                    {originIcons[task.origin]}
-                  </span>
-                </div>
-                
-                {task.description && (
-                  <p className="text-gray-600 mb-3">
-                    {task.description}
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-2 mb-3">
-                  <Badge className={statusColors[task.status]}>
-                    {statusLabels[task.status]}
-                  </Badge>
-                  <Badge className={priorityColors[task.priority]}>
-                    {task.priority === 'low' ? 'Baixa' : 
-                     task.priority === 'medium' ? 'Média' : 'Alta'}
-                  </Badge>
-                  {task.team && (
-                    <Badge 
-                      variant="outline"
-                      style={{ borderColor: task.team.color, color: task.team.color }}
-                    >
-                      {task.team.name}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => onEditTask(task)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
-                  {task.status !== 'done' && (
-                    <DropdownMenuItem onClick={() => onUpdateTaskStatus(task.id, 'done')}>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Marcar como Concluída
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem 
-                    onClick={() => onDeleteTask(task.id)}
-                    className="text-red-600"
-                  >
-                    Excluir
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Responsável */}
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={task.responsible_avatar} />
-                  <AvatarFallback className="text-sm">
-                    {task.responsible_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+        <Card key={task.id} className="hover:shadow-sm transition-all duration-200 border-l-4 border-l-primary/20">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {/* Header com avatar e título */}
+              <div className="flex items-start gap-3">
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage 
+                    src={task.responsible_avatar || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face`} 
+                    alt={task.responsible_name || 'Responsável'}
+                  />
+                  <AvatarFallback className="text-sm bg-primary/10 font-medium text-primary">
+                    {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {task.responsible_name}
-                  </p>
-                  <p className="text-xs text-gray-500">Responsável</p>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-semibold text-foreground leading-tight">{task.title}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-lg" title={`Origem: ${task.origin}`}>
+                          {originIcons[task.origin]}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {task.responsible_name}
+                        </span>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => onEditTask(task)} className="cursor-pointer">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        {task.status !== 'done' && (
+                          <DropdownMenuItem onClick={() => onUpdateTaskStatus(task.id, 'done')} className="cursor-pointer">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Marcar como Concluída
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          onClick={() => onDeleteTask(task.id)}
+                          className="cursor-pointer text-destructive hover:text-destructive"
+                        >
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  {task.description && (
+                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                      {task.description}
+                    </p>
+                  )}
                 </div>
               </div>
-              
-              {/* Prazo */}
-              <div className="flex items-center gap-2">
-                {task.due_date ? (
-                  <>
-                    {isOverdue(task.due_date) ? 
-                      <Clock className="h-4 w-4 text-red-500" /> : 
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                    }
-                    <div>
-                      <p className={`text-sm font-medium ${
-                        isOverdue(task.due_date) ? 'text-red-600' : 'text-gray-900'
-                      }`}>
-                        {format(new Date(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {isOverdue(task.due_date) ? 'Atrasado' : 'Prazo'}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <p className="text-sm text-gray-400">Sem prazo</p>
-                    <p className="text-xs text-gray-500">Prazo</p>
-                  </div>
+
+              {/* Tags e status */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge 
+                  variant={getPriorityColor(task.priority)}
+                  className="text-xs font-medium"
+                >
+                  {task.priority === 'high' ? 'Alta Prioridade' : 
+                   task.priority === 'medium' ? 'Média Prioridade' : 'Baixa Prioridade'}
+                </Badge>
+                
+                <Badge 
+                  variant={task.status === 'done' ? 'default' : 'secondary'}
+                  className={`text-xs font-medium ${
+                    task.status === 'done' ? 'bg-green-100 text-green-700' :
+                    task.status === 'progress' ? 'bg-blue-100 text-blue-700' :
+                    task.status === 'review' ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {statusLabels[task.status]}
+                </Badge>
+                
+                {task.progress > 0 && task.status !== 'done' && (
+                  <Badge variant="outline" className="text-xs font-medium">
+                    {task.progress}% Concluído
+                  </Badge>
+                )}
+                
+                {task.team?.name && (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs font-medium"
+                    style={{ 
+                      backgroundColor: `${task.team.color}20`,
+                      borderColor: task.team.color,
+                      color: task.team.color 
+                    }}
+                  >
+                    {task.team.name}
+                  </Badge>
                 )}
               </div>
-              
-              {/* Progresso */}
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-700">Progresso</span>
-                  <span className="font-medium">{task.progress}%</span>
+
+              {/* Datas */}
+              {task.due_date && (
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    {isOverdue(task.due_date) ? 
+                      <Clock className="h-3 w-3 text-red-500" /> : 
+                      <Calendar className="h-3 w-3" />
+                    }
+                    <span className={isOverdue(task.due_date) ? 'text-red-600 font-medium' : ''}>
+                      Prazo: {format(new Date(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {isOverdue(task.due_date) && ' (Atrasado)'}
+                    </span>
+                  </div>
                 </div>
-                <Progress value={task.progress} className="h-2" />
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
