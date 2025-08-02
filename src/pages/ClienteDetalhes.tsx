@@ -792,8 +792,8 @@ const ClienteDetalhes = () => {
             </CardContent>
           </Card>
 
-          {/* Account Balance Card */}
-          {client.facebook_ad_accounts ? (
+          {/* Account Balance Card - Only show for prepaid accounts */}
+          {client.facebook_ad_accounts && client.facebook_ad_accounts.is_prepaid ? (
             <AccountBalanceCard
               balance={client.facebook_ad_accounts.balance}
               currency="BRL"
