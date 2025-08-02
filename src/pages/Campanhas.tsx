@@ -129,7 +129,7 @@ const evaluateCampaignPerformance = (campaign: Campaign) => {
 };
 
 const Campanhas = () => {
-  const [statusFilter, setStatusFilter] = useState<StatusType>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusType>("active"); // Padrão: apenas campanhas ativas
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -143,14 +143,42 @@ const Campanhas = () => {
   // Usar valor fixo maior para aproveitar melhor a tela
   const itemsPerPage = 12;
   
-  const filteredCampaigns = campaigns.filter(campaign => {
-    const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
-    const matchesClient = clientFilter === "all" || campaign.client_id === clientFilter;
-    const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.platforms.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesClient && matchesSearch;
-  });
+  // Filtrar campanhas e ordenar por melhor conversão
+  const filteredCampaigns = campaigns
+    .filter(campaign => {
+      const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
+      const matchesClient = clientFilter === "all" || campaign.client_id === clientFilter;
+      const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           campaign.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           campaign.platforms.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesClient && matchesSearch;
+    })
+    .sort((a, b) => {
+      // Primeiro critério: ordenar por número de conversões (maior para menor)
+      const conversionsA = a.conversions || 0;
+      const conversionsB = b.conversions || 0;
+      
+      if (conversionsA !== conversionsB) {
+        return conversionsB - conversionsA; // Maior número de conversões primeiro
+      }
+      
+      // Segundo critério: se tiverem o mesmo número de conversões, ordenar por CPA (menor é melhor)
+      if (conversionsA > 0 && conversionsB > 0) {
+        const cpaA = (a.spend || 0) / conversionsA;
+        const cpaB = (b.spend || 0) / conversionsB;
+        return cpaA - cpaB; // Menor CPA primeiro
+      }
+      
+      // Terceiro critério: se ambas não tiverem conversões, ordenar por menor gasto
+      if (conversionsA === 0 && conversionsB === 0) {
+        const spendA = a.spend || 0;
+        const spendB = b.spend || 0;
+        return spendA - spendB; // Menor gasto primeiro (campanhas que gastaram menos sem resultado)
+      }
+      
+      // Quarto critério: ordenar por CTR (maior é melhor)
+      return (b.ctr || 0) - (a.ctr || 0);
+    });
 
   const totalCampaigns = filteredCampaigns.length;
   const totalPages = Math.ceil(totalCampaigns / itemsPerPage);
