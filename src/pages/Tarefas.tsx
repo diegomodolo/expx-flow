@@ -17,6 +17,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { useTaskStats } from "@/hooks/useTaskStats";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useClients } from "@/hooks/useClients";
 import { 
   Plus, 
   Search, 
@@ -48,11 +49,13 @@ export default function Tarefas() {
   const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
   const { convertAlertToTask } = useTaskAutomation();
   const { alerts, refetch: refetchDashboardData } = useDashboardData();
+  const { clients } = useClients();
 
   // Filtrar tarefas
   const filteredTasks = tasks.filter(task => {
@@ -99,10 +102,11 @@ export default function Tarefas() {
       // Limpar alertas convertidos ao buscar novos
       setConvertedAlerts(new Set());
       
-      await refetchDashboardData();
+      await refetchDashboardData(selectedClientId);
       console.log('Dashboard data refetched, total alerts:', alerts?.length || 0);
       console.log('Danger alerts:', alerts?.filter(a => a.type === 'danger').length || 0);
       console.log('Opportunity alerts:', alerts?.filter(a => a.type === 'opportunity').length || 0);
+      console.log('Selected client filter:', selectedClientId);
     } catch (error) {
       console.error('Error analyzing campaigns:', error);
     } finally {
@@ -176,27 +180,42 @@ export default function Tarefas() {
                     {/* Seção Problemas Detectados */}
                     {dangerAlerts.length > 0 && (
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-5 h-5 text-red-500" />
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Problemas Detectados
-                            </h3>
-                            <span className="text-sm text-gray-500">
-                              {dangerAlerts.length} items
-                            </span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAnalyzeCampaigns}
-                            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            disabled={isAnalyzing}
-                          >
-                            <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                            {isAnalyzing ? 'Buscando...' : 'Buscar Sugestões'}
-                          </Button>
-                        </div>
+                         <div className="flex items-center justify-between mb-4">
+                           <div className="flex items-center gap-2">
+                             <AlertTriangle className="w-5 h-5 text-red-500" />
+                             <h3 className="text-lg font-semibold text-gray-900">
+                               Problemas Detectados
+                             </h3>
+                             <span className="text-sm text-gray-500">
+                               {dangerAlerts.length} items
+                             </span>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             <Select value={selectedClientId || 'all'} onValueChange={(value) => setSelectedClientId(value === 'all' ? null : value)}>
+                               <SelectTrigger className="w-48">
+                                 <SelectValue placeholder="Todos os clientes" />
+                               </SelectTrigger>
+                               <SelectContent className="bg-white z-50">
+                                 <SelectItem value="all">Todos os clientes</SelectItem>
+                                 {clients?.map((client) => (
+                                   <SelectItem key={client.id} value={client.id}>
+                                     {client.name}
+                                   </SelectItem>
+                                 ))}
+                               </SelectContent>
+                             </Select>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={handleAnalyzeCampaigns}
+                               className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                               disabled={isAnalyzing}
+                             >
+                               <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                               {isAnalyzing ? 'Buscando...' : 'Buscar Sugestões'}
+                             </Button>
+                           </div>
+                         </div>
                         <div className="space-y-3">
                           {dangerAlerts.map((alert, index) => (
                             <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -256,32 +275,47 @@ export default function Tarefas() {
                       </div>
                     )}
 
-                    {/* Seção Oportunidades Detectadas */}
-                    {opportunityAlerts.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Oportunidades Detectadas
-                            </h3>
-                            <span className="text-sm text-gray-500">
-                              {opportunityAlerts.length} items
-                            </span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAnalyzeCampaigns}
-                            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            disabled={isAnalyzing}
-                          >
-                            <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                            {isAnalyzing ? 'Buscando...' : 'Buscar Sugestões'}
-                          </Button>
-                        </div>
+                     {/* Seção Oportunidades Detectadas */}
+                     {opportunityAlerts.length > 0 && (
+                       <div>
+                         <div className="flex items-center justify-between mb-4">
+                           <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                             </div>
+                             <h3 className="text-lg font-semibold text-gray-900">
+                               Oportunidades Detectadas
+                             </h3>
+                             <span className="text-sm text-gray-500">
+                               {opportunityAlerts.length} items
+                             </span>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             <Select value={selectedClientId || 'all'} onValueChange={(value) => setSelectedClientId(value === 'all' ? null : value)}>
+                               <SelectTrigger className="w-48">
+                                 <SelectValue placeholder="Todos os clientes" />
+                               </SelectTrigger>
+                               <SelectContent className="bg-white z-50">
+                                 <SelectItem value="all">Todos os clientes</SelectItem>
+                                 {clients?.map((client) => (
+                                   <SelectItem key={client.id} value={client.id}>
+                                     {client.name}
+                                   </SelectItem>
+                                 ))}
+                               </SelectContent>
+                             </Select>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={handleAnalyzeCampaigns}
+                               className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                               disabled={isAnalyzing}
+                             >
+                               <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                               {isAnalyzing ? 'Buscando...' : 'Buscar Sugestões'}
+                             </Button>
+                           </div>
+                         </div>
                         <div className="space-y-3">
                           {opportunityAlerts.map((alert, index) => (
                             <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">

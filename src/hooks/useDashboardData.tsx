@@ -74,11 +74,12 @@ export const useDashboardData = () => {
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clientFilter, setClientFilter] = useState<string | null>(null);
   
   const { user } = useAuth();
   const { activeCompany } = useCompany();
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (filterClientId?: string | null) => {
     if (!user || !activeCompany) return;
 
     try {
@@ -165,7 +166,7 @@ export const useDashboardData = () => {
         .not('related_campaign_id', 'is', null);
 
       // Gerar alertas (excluindo campanhas com tarefas ativas)
-      const generatedAlerts = await generateAlerts(processedClients, processedCampaigns, activeTasks || []);
+      const generatedAlerts = await generateAlerts(processedClients, processedCampaigns, activeTasks || [], filterClientId);
 
       // Processar tendências
       const processedTrends = processTrendsData(trendsData || []);
@@ -313,7 +314,7 @@ export const useDashboardData = () => {
   };
 
   // Função para gerar alertas
-  const generateAlerts = async (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = []): Promise<Alert[]> => {
+  const generateAlerts = async (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = [], filterClientId?: string | null): Promise<Alert[]> => {
     const alerts: Alert[] = [];
 
     // Extrair IDs de campanhas que já possuem tarefas ativas
@@ -324,9 +325,19 @@ export const useDashboardData = () => {
     );
 
     // Filtrar apenas campanhas ativas E que não tenham tarefas ativas
-    const availableCampaigns = campaigns.filter(campaign => 
+    let availableCampaigns = campaigns.filter(campaign => 
       campaign.status === 'active' && !campaignsWithActiveTasks.has(campaign.id)
     );
+
+    // Aplicar filtro de cliente se especificado
+    if (filterClientId) {
+      const selectedClient = clients.find(client => client.id === filterClientId);
+      if (selectedClient) {
+        availableCampaigns = availableCampaigns.filter(campaign => 
+          campaign.client_name === selectedClient.name
+        );
+      }
+    }
 
     // Processar alertas de problemas com recomendações do ChatGPT
     for (const campaign of availableCampaigns) {
@@ -439,6 +450,6 @@ export const useDashboardData = () => {
     trends,
     loading,
     error,
-    refetch: fetchDashboardData,
+    refetch: (filterClientId?: string | null) => fetchDashboardData(filterClientId),
   };
 };
