@@ -65,7 +65,7 @@ export default function Tarefas() {
   const [clientComboOpen2, setClientComboOpen2] = useState(false);
   // Estados para ordenação
   const [sortField, setSortField] = useState<string>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
