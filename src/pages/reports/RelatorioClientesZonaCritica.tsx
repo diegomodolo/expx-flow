@@ -105,7 +105,7 @@ export default function RelatorioClientesZonaCritica() {
       }
 
       // Identificar campanhas problemáticas e com CPA crítico
-      const criticalCPAThreshold = cpaTarget * 2; // CPA crítico: 2x a meta (R$ 300)
+      const criticalCPAThreshold = cpaTarget; // CPA crítico: acima da meta (R$ 150)
       let hasCriticalCPACampaigns = false;
       
       clientCampaigns.forEach(campaign => {
