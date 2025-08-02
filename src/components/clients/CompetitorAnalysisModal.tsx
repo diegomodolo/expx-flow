@@ -30,6 +30,8 @@ interface AnalysisResult {
     copy: string;
     cta: string;
     rationale: string;
+    campaign_type: string;
+    funnel_stage: string;
   }[];
 }
 
@@ -320,6 +322,16 @@ export const CompetitorAnalysisModal = ({
                              </div>
                              <div>
                                <span className="font-medium">CTA:</span> {variation.cta}
+                             </div>
+                             <div className="grid grid-cols-2 gap-4 pt-2">
+                               <div>
+                                 <span className="font-medium text-xs text-blue-600">Tipo de Campanha:</span>
+                                 <p className="text-xs">{variation.campaign_type}</p>
+                               </div>
+                               <div>
+                                 <span className="font-medium text-xs text-green-600">Etapa do Funil:</span>
+                                 <p className="text-xs">{variation.funnel_stage}</p>
+                               </div>
                              </div>
                              <div className="text-xs text-gray-600 border-t pt-2">
                                <span className="font-medium">Justificativa:</span> {variation.rationale}
