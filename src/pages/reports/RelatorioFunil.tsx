@@ -10,18 +10,32 @@ import { Users, MousePointer, Target, Repeat } from "lucide-react";
 const RelatorioFunil = () => {
   const { funnelMetrics, campaignRankings } = useDashboardData();
 
+  // Loading state
+  if (!funnelMetrics || !campaignRankings) {
+    return (
+      <ReportLayout
+        title="Relatório de Funil Completo"
+        description="Análise detalhada do funil de conversão"
+      >
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </ReportLayout>
+    );
+  }
+
   const chartConfig = {
     reach: { label: "Alcance", color: "hsl(var(--primary))" },
     clicks: { label: "Cliques", color: "hsl(var(--secondary))" },
     leads: { label: "Leads", color: "hsl(var(--accent))" }
   };
 
-  // Simulação de dados do funil por etapa
+  // Simulação de dados do funil por etapa - com valores padrão
   const funnelStages = [
     {
       stage: "Topo (Awareness)",
-      reach: funnelMetrics.reach,
-      cost: funnelMetrics.reach * 0.01, // R$ 0,01 por impressão
+      reach: funnelMetrics?.reach || 0,
+      cost: (funnelMetrics?.reach || 0) * 0.01, // R$ 0,01 por impressão
       cpl: 0,
       percentage: 100,
       icon: Users,
@@ -29,26 +43,26 @@ const RelatorioFunil = () => {
     },
     {
       stage: "Meio (Consideration)", 
-      reach: funnelMetrics.clicks,
-      cost: funnelMetrics.clicks * 0.5, // R$ 0,50 por clique
-      cpl: funnelMetrics.clicks > 0 ? (funnelMetrics.clicks * 0.5) / (funnelMetrics.clicks * 0.3) : 0,
-      percentage: funnelMetrics.reach > 0 ? (funnelMetrics.clicks / funnelMetrics.reach * 100).toFixed(1) : 0,
+      reach: funnelMetrics?.clicks || 0,
+      cost: (funnelMetrics?.clicks || 0) * 0.5, // R$ 0,50 por clique
+      cpl: (funnelMetrics?.clicks || 0) > 0 ? ((funnelMetrics?.clicks || 0) * 0.5) / ((funnelMetrics?.clicks || 0) * 0.3) : 0,
+      percentage: (funnelMetrics?.reach || 0) > 0 ? ((funnelMetrics?.clicks || 0) / (funnelMetrics?.reach || 1) * 100).toFixed(1) : 0,
       icon: MousePointer,
       color: "hsl(var(--secondary))"
     },
     {
       stage: "Fundo (Conversion)",
-      reach: funnelMetrics.leads,
-      cost: funnelMetrics.leads * funnelMetrics.cpl,
-      cpl: funnelMetrics.cpl,
-      percentage: funnelMetrics.clicks > 0 ? (funnelMetrics.leads / funnelMetrics.clicks * 100).toFixed(1) : 0,
+      reach: funnelMetrics?.leads || 0,
+      cost: (funnelMetrics?.leads || 0) * (funnelMetrics?.cpl || 0),
+      cpl: funnelMetrics?.cpl || 0,
+      percentage: (funnelMetrics?.clicks || 0) > 0 ? ((funnelMetrics?.leads || 0) / (funnelMetrics?.clicks || 1) * 100).toFixed(1) : 0,
       icon: Target,
       color: "hsl(var(--accent))"
     },
     {
       stage: "Retenção",
-      reach: Math.floor(funnelMetrics.leads * 0.7), // 70% retention estimate
-      cost: Math.floor(funnelMetrics.leads * 0.7) * 50, // R$ 50 custo de retenção
+      reach: Math.floor((funnelMetrics?.leads || 0) * 0.7), // 70% retention estimate
+      cost: Math.floor((funnelMetrics?.leads || 0) * 0.7) * 50, // R$ 50 custo de retenção
       cpl: 50,
       percentage: "70",
       icon: Repeat,
@@ -78,25 +92,25 @@ const RelatorioFunil = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Alcance Total"
-          value={funnelMetrics.reach.toLocaleString()}
+          value={(funnelMetrics?.reach || 0).toLocaleString()}
           subtitle="Impressões"
           trend="up"
         />
         <MetricCard
           title="Taxa de Cliques"
-          value={`${funnelMetrics.reach > 0 ? (funnelMetrics.clicks / funnelMetrics.reach * 100).toFixed(2) : 0}%`}
+          value={`${(funnelMetrics?.reach || 0) > 0 ? ((funnelMetrics?.clicks || 0) / (funnelMetrics?.reach || 1) * 100).toFixed(2) : 0}%`}
           subtitle="CTR médio"
           trend="up"
         />
         <MetricCard
           title="Taxa de Conversão"
-          value={`${funnelMetrics.clicks > 0 ? (funnelMetrics.leads / funnelMetrics.clicks * 100).toFixed(2) : 0}%`}
+          value={`${(funnelMetrics?.clicks || 0) > 0 ? ((funnelMetrics?.leads || 0) / (funnelMetrics?.clicks || 1) * 100).toFixed(2) : 0}%`}
           subtitle="Cliques para leads"
           trend="neutral"
         />
         <MetricCard
           title="CPL Médio Funil"
-          value={`R$ ${funnelMetrics.cpl.toFixed(2)}`}
+          value={`R$ ${(funnelMetrics?.cpl || 0).toFixed(2)}`}
           subtitle="Custo por lead"
           trend="down"
         />
@@ -243,7 +257,7 @@ const RelatorioFunil = () => {
               <div>
                 <h4 className="font-medium">Melhorar Taxa de Cliques</h4>
                 <p className="text-sm text-muted-foreground">
-                  CTR atual de {funnelMetrics.reach > 0 ? (funnelMetrics.clicks / funnelMetrics.reach * 100).toFixed(2) : 0}% 
+                  CTR atual de {(funnelMetrics?.reach || 0) > 0 ? ((funnelMetrics?.clicks || 0) / (funnelMetrics?.reach || 1) * 100).toFixed(2) : 0}% 
                   pode ser otimizado para 3-4% com criativos mais atrativos
                 </p>
               </div>
