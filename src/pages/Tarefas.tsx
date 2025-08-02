@@ -264,7 +264,7 @@ export default function Tarefas() {
                               {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
                             </p>
                             <p className="text-sm text-red-600 mt-1">
-                              {alert.title}: {alert.value}
+                              {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
                             </p>
                           </div>
                           <Button
@@ -294,7 +294,7 @@ export default function Tarefas() {
                               {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
                             </p>
                             <p className="text-sm text-green-600 mt-1">
-                              {alert.title}: {alert.value}
+                              {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
                             </p>
                           </div>
                           <Button

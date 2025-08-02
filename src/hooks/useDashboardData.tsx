@@ -53,6 +53,7 @@ interface Alert {
   description: string;
   metric: string;
   value: string;
+  recommendation?: string;
   client?: string;
   campaign?: string;
 }
@@ -295,6 +296,7 @@ export const useDashboardData = () => {
           description: `Campanha "${campaign.name}" com CPA de R$ ${campaign.cpa.toFixed(2)}`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
+          recommendation: 'Revisar segmentação e otimizar criativos',
           client: campaign.client_name,
           campaign: campaign.name,
         });
@@ -308,6 +310,7 @@ export const useDashboardData = () => {
           description: `Campanha "${campaign.name}" com CTR de ${campaign.ctr.toFixed(2)}%`,
           metric: 'CTR',
           value: `${campaign.ctr.toFixed(2)}%`,
+          recommendation: 'Atualizar criativos e copy dos anúncios',
           client: campaign.client_name,
           campaign: campaign.name,
         });
@@ -330,6 +333,7 @@ export const useDashboardData = () => {
             description: `Cliente ${client.name} com CPA médio de R$ ${availableCPA.toFixed(2)} em campanhas sem tarefas pendentes`,
             metric: 'CPA',
             value: `R$ ${availableCPA.toFixed(2)}`,
+            recommendation: 'Analisar todas as campanhas do cliente',
             client: client.name,
           });
         }
@@ -346,6 +350,7 @@ export const useDashboardData = () => {
           description: `Campanha "${campaign.name}" do cliente ${campaign.client_name} com CPA baixo e bom volume`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
+          recommendation: 'Aumentar orçamento diário gradualmente',
           client: campaign.client_name,
           campaign: campaign.name,
         });
