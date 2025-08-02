@@ -20,6 +20,10 @@ interface Task {
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard';
   team?: { name: string; color: string };
+  user_profile?: {
+    avatar_url: string | null;
+    full_name: string | null;
+  } | null;
 }
 
 interface TaskKanbanProps {
@@ -172,9 +176,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                               {/* Avatar e nome do responsável */}
                               <div className="flex items-center gap-1">
                                 <Avatar className="h-4 w-4">
-                                  {task.responsible_avatar && (
+                                  {(task.responsible_avatar || task.user_profile?.avatar_url) && (
                                     <AvatarImage 
-                                      src={task.responsible_avatar} 
+                                      src={task.responsible_avatar || task.user_profile?.avatar_url || ''} 
                                       alt={task.responsible_name}
                                       className="object-cover"
                                     />
