@@ -250,61 +250,70 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
-                {/* Porcentagem do orçamento */}
-                <div className="text-center bg-white/70 rounded-lg py-2 px-3 border">
-                  <p className="text-lg font-bold text-gray-900">
-                    {level.budgetPercentage.toFixed(1)}%
-                  </p>
-                  <p className="text-xs text-gray-600">do orçamento total</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    R$ {level.campaigns.reduce((sum, c) => sum + (c.spend || 0), 0).toFixed(0)}
-                  </p>
-                </div>
+                {/* Principais métricas em linha */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Porcentagem do orçamento */}
+                  <div className="text-center bg-white/70 rounded-lg py-2 px-2 border">
+                    <p className="text-lg font-bold text-gray-900">
+                      {level.budgetPercentage.toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-gray-600">do orçamento</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      R$ {level.campaigns.reduce((sum, c) => sum + (c.spend || 0), 0).toFixed(0)}
+                    </p>
+                  </div>
 
-                {/* Métricas principais */}
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="text-center">
+                  {/* Métrica principal da etapa */}
+                  <div className="text-center bg-white/70 rounded-lg py-2 px-2 border">
                     <p className="text-lg font-bold text-gray-900">
                       {level.id === 'meio' && level.metrics.tertiary 
                         ? `R$ ${level.metrics.tertiary.toFixed(2)}`
                         : level.id === 'fundo' && level.metrics.tertiary
                         ? `${level.metrics.tertiary.toFixed(1)}%`
+                        : level.id === 'retencao'
+                        ? level.metrics.primary.toLocaleString()
                         : level.metrics.primary.toLocaleString()}
                     </p>
                     <p className="text-xs text-gray-600">
                       {level.id === 'meio' ? level.metrics.tertiaryLabel 
                        : level.id === 'fundo' ? level.metrics.tertiaryLabel
+                       : level.id === 'retencao' ? level.metrics.primaryLabel
                        : level.metrics.primaryLabel}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">
-                        {level.id === 'meio' ? level.metrics.secondary.toLocaleString()
-                         : level.id === 'fundo' ? `R$ ${level.metrics.secondary.toFixed(2)}`
-                         : level.metrics.secondary.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {level.id === 'meio' ? level.metrics.secondaryLabel
-                         : level.id === 'fundo' ? level.metrics.secondaryLabel  
-                         : level.metrics.secondaryLabel}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">
-                        {level.id === 'retencao' ? level.metrics.tertiary.toFixed(1)
-                         : level.id === 'meio' ? level.metrics.primary.toLocaleString()
-                         : level.id === 'fundo' ? level.metrics.primary.toLocaleString()
-                         : `${level.metrics.tertiary.toFixed(1)}%`}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {level.id === 'retencao' ? level.metrics.tertiaryLabel
-                         : level.id === 'meio' ? level.metrics.primaryLabel
-                         : level.id === 'fundo' ? level.metrics.primaryLabel
-                         : level.metrics.tertiaryLabel}
-                      </p>
-                    </div>
+                </div>
+
+                {/* Métricas secundárias */}
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  <div className="bg-white/50 rounded-md py-1 px-2">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {level.id === 'meio' ? level.metrics.secondary.toLocaleString()
+                       : level.id === 'fundo' ? `R$ ${level.metrics.secondary.toFixed(2)}`
+                       : level.id === 'retencao' ? level.metrics.secondary.toLocaleString()
+                       : level.metrics.secondary.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {level.id === 'meio' ? level.metrics.secondaryLabel
+                       : level.id === 'fundo' ? level.metrics.secondaryLabel  
+                       : level.id === 'retencao' ? level.metrics.secondaryLabel
+                       : level.metrics.secondaryLabel}
+                    </p>
                   </div>
+                  <div className="bg-white/50 rounded-md py-1 px-2">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {level.id === 'retencao' ? level.metrics.tertiary.toFixed(1)
+                       : level.id === 'meio' ? level.metrics.primary.toLocaleString()
+                       : level.id === 'fundo' ? level.metrics.primary.toLocaleString()
+                       : `${level.metrics.tertiary.toFixed(1)}%`}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {level.id === 'retencao' ? level.metrics.tertiaryLabel
+                       : level.id === 'meio' ? level.metrics.primaryLabel
+                       : level.id === 'fundo' ? level.metrics.primaryLabel
+                       : level.metrics.tertiaryLabel}
+                    </p>
+                  </div>
+                </div>
                 </div>
 
                 {/* Botão para expandir campanhas */}
@@ -312,7 +321,7 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
                   variant="outline"
                   size="sm"
                   onClick={() => toggleLevel(level.id)}
-                  className="w-full"
+                  className="w-full mt-3"
                 >
                   {expandedLevel === level.id ? (
                     <>Ver menos <ChevronUp className="w-3 h-3 ml-1" /></>
@@ -351,9 +360,8 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
                     )}
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         ))}
       </div>
 
