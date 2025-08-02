@@ -36,7 +36,10 @@ import {
   RefreshCw,
   ChevronDown,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -60,6 +63,9 @@ export default function Tarefas() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [clientComboOpen2, setClientComboOpen2] = useState(false);
+  // Estados para ordenação
+  const [sortField, setSortField] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -67,19 +73,60 @@ export default function Tarefas() {
   const { alerts, generateAlerts, loading: alertsLoading } = useDashboardAlerts();
   const { clients } = useClients();
 
-  // Filtrar tarefas
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-    const matchesTeam = teamFilter === 'all' || task.team_id === teamFilter;
-    const matchesResponsible = responsibleFilter === 'all' || 
-                              task.responsible_name === responsibleFilter ||
-                              task.user_id === responsibleFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesTeam && matchesResponsible;
-  });
+  // Filtrar e ordenar tarefas
+  const filteredAndSortedTasks = tasks
+    .filter(task => {
+      const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+      const matchesTeam = teamFilter === 'all' || task.team_id === teamFilter;
+      const matchesResponsible = responsibleFilter === 'all' || 
+                                task.responsible_name === responsibleFilter ||
+                                task.user_id === responsibleFilter;
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesTeam && matchesResponsible;
+    })
+    .sort((a, b) => {
+      let valueA, valueB;
+      
+      switch (sortField) {
+        case 'title':
+          valueA = a.title.toLowerCase();
+          valueB = b.title.toLowerCase();
+          break;
+        case 'priority':
+          const priorityOrder = { high: 3, medium: 2, low: 1 };
+          valueA = priorityOrder[a.priority as keyof typeof priorityOrder];
+          valueB = priorityOrder[b.priority as keyof typeof priorityOrder];
+          break;
+        case 'status':
+          const statusOrder = { todo: 1, progress: 2, review: 3, done: 4 };
+          valueA = statusOrder[a.status as keyof typeof statusOrder];
+          valueB = statusOrder[b.status as keyof typeof statusOrder];
+          break;
+        case 'responsible_name':
+          valueA = (a.responsible_name || '').toLowerCase();
+          valueB = (b.responsible_name || '').toLowerCase();
+          break;
+        case 'due_date':
+          valueA = a.due_date ? new Date(a.due_date).getTime() : 0;
+          valueB = b.due_date ? new Date(b.due_date).getTime() : 0;
+          break;
+        case 'created_at':
+        default:
+          valueA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          valueB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          break;
+      }
+      
+      if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
+      if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  // Manter referência para compatibilidade
+  const filteredTasks = filteredAndSortedTasks;
 
   // Extrair responsáveis únicos das tarefas para o filtro
   const uniqueResponsibles = Array.from(
@@ -89,6 +136,16 @@ export default function Tarefas() {
         .map(task => task.responsible_name)
     )
   ).sort();
+
+  // Opções de campos para ordenação
+  const sortFieldOptions = [
+    { value: 'created_at', label: 'Data de Criação' },
+    { value: 'title', label: 'Título' },
+    { value: 'priority', label: 'Prioridade' },
+    { value: 'status', label: 'Status' },
+    { value: 'responsible_name', label: 'Responsável' },
+    { value: 'due_date', label: 'Prazo' },
+  ];
 
   const handleCreateTask = async (taskData: any) => {
     await createTask(taskData);
@@ -731,6 +788,39 @@ export default function Tarefas() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Controles de Ordenação - Visíveis apenas para lista e kanban */}
+            {(view === 'list' || view === 'kanban') && (
+              <>
+                <Select value={sortField} onValueChange={setSortField}>
+                  <SelectTrigger className="w-48">
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortFieldOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="flex items-center gap-2"
+                >
+                  {sortOrder === 'asc' ? (
+                    <ArrowUp className="w-4 h-4" />
+                  ) : (
+                    <ArrowDown className="w-4 h-4" />
+                  )}
+                  {sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Controles de Visualização */}
