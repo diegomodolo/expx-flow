@@ -22,9 +22,10 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 }) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
   const { plannerTasks, moveTask, getTasksBySlot } = usePlannerTasks(selectedDate);
-  const { createTask } = useTasks();
+  const { createTask, updateTask, deleteTask } = useTasks();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  const [editingTask, setEditingTask] = useState<any>(null);
 
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
@@ -39,16 +40,35 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   const handleCreateTask = async (taskData: any) => {
     try {
-      await createTask(taskData);
+      if (editingTask) {
+        await updateTask(editingTask.id, taskData);
+      } else {
+        await createTask(taskData);
+      }
       setTaskDialogOpen(false);
+      setEditingTask(null);
     } catch (error) {
-      console.error("Error creating task:", error);
+      console.error("Error saving task:", error);
     }
   };
 
   const handleAddTask = (slotId: string) => {
     setSelectedSlotId(slotId);
+    setEditingTask(null);
     setTaskDialogOpen(true);
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task);
+    setTaskDialogOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
   };
 
   const exportDaySummary = () => {
@@ -116,6 +136,8 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
               slot={slot}
               tasks={getTasksBySlot(slot.id)}
               onAddTask={() => handleAddTask(slot.id)}
+              onEditTask={handleEditTask}
+              onDeleteTask={handleDeleteTask}
             />
           ))}
         </div>
@@ -124,7 +146,13 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       {/* Task Dialog */}
       <TaskDialog
         open={taskDialogOpen}
-        onOpenChange={setTaskDialogOpen}
+        onOpenChange={(open) => {
+          setTaskDialogOpen(open);
+          if (!open) {
+            setEditingTask(null);
+          }
+        }}
+        task={editingTask}
         onSave={handleCreateTask}
       />
     </div>

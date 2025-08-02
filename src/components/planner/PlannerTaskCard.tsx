@@ -3,17 +3,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Circle, Clock, AlertTriangle, Target, Timer } from "lucide-react";
+import { CheckCircle, Circle, Clock, AlertTriangle, Target, Timer, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PlannerDailyTask } from "@/hooks/usePlannerTasks";
 import { useTasks } from "@/hooks/useTasks";
+import { usePlannerTasks } from "@/hooks/usePlannerTasks";
 
 interface PlannerTaskCardProps {
   task: PlannerDailyTask;
+  onEdit?: (task: any) => void;
+  onDelete?: (taskId: string) => void;
 }
 
-export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
+export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, onDelete }) => {
   const { updateTaskStatus } = useTasks();
+  const { removeTaskFromPlanner } = usePlannerTasks(new Date(task.planned_date));
   
   if (!task.tasks) return null;
 
@@ -45,6 +50,22 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
   const handleStatusToggle = async () => {
     const nextStatus = task.tasks.status === 'done' ? 'todo' : 'done';
     await updateTaskStatus(task.tasks.id, nextStatus);
+  };
+
+  const handleEdit = () => {
+    if (onEdit && task.tasks) {
+      onEdit(task.tasks);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+      if (onDelete && task.tasks) {
+        await onDelete(task.tasks.id);
+        // Também remove do planner
+        await removeTaskFromPlanner(task.id);
+      }
+    }
   };
 
   return (
@@ -112,6 +133,33 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
               )}
             </div>
           </div>
+          
+          {/* Menu de opções */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleDelete} 
+                className="cursor-pointer text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>

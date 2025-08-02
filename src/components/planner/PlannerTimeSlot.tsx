@@ -12,12 +12,16 @@ interface PlannerTimeSlotProps {
   slot: TimeSlot;
   tasks: PlannerDailyTask[];
   onAddTask: () => void;
+  onEditTask?: (task: any) => void;
+  onDeleteTask?: (taskId: string) => void;
 }
 
 export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
   slot,
   tasks,
   onAddTask,
+  onEditTask,
+  onDeleteTask,
 }) => {
   const getSlotDuration = () => {
     const start = new Date(`2000-01-01T${slot.start_time}`);
@@ -112,7 +116,11 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
                         {...provided.dragHandleProps}
                         className={snapshot.isDragging ? 'opacity-50' : ''}
                       >
-                        <PlannerTaskCard task={plannerTask} />
+                        <PlannerTaskCard 
+                          task={plannerTask} 
+                          onEdit={onEditTask}
+                          onDelete={onDeleteTask}
+                        />
                       </div>
                     )}
                   </Draggable>
