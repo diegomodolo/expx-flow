@@ -137,94 +137,153 @@ export default function Tarefas() {
                   Alertas ({dangerAlerts.length + opportunityAlerts.length})
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
-                  <div className="flex items-center justify-between">
-                    <DialogTitle className="flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5" />
-                      Converter Alertas em Tarefas
-                    </DialogTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAnalyzeCampaigns}
-                      className="flex items-center gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Analisar Campanhas
-                    </Button>
-                  </div>
+                  <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+                    <AlertTriangle className="w-5 h-5" />
+                    Alertas de Campanhas
+                  </DialogTitle>
                 </DialogHeader>
                 
                 {/* Conteúdo dos Alertas */}
                 {(dangerAlerts.length > 0 || opportunityAlerts.length > 0) ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                    {/* Alertas de Problemas */}
+                  <div className="space-y-6 mt-6">
+                    {/* Seção Problemas Detectados */}
                     {dangerAlerts.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-red-800 mb-3">
-                          Problemas Detectados ({dangerAlerts.length})
-                        </h4>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-500" />
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              Problemas Detectados
+                            </h3>
+                            <span className="text-sm text-gray-500">
+                              {dangerAlerts.length} items
+                            </span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAnalyzeCampaigns}
+                            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                          >
+                            Analisar Completo
+                          </Button>
+                        </div>
+                        <div className="space-y-3">
                           {dangerAlerts.map((alert, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded">
-                              <div className="flex-1">
-                                <p className="font-medium text-red-800">
-                                  {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
-                                </p>
-                                <p className="text-sm text-red-600 mt-1">
-                                  {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
-                                </p>
+                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      alert.title.includes('CPA alto') ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {alert.title.includes('CPA alto') ? 'Crítico' : 'Alto'}
+                                    </span>
+                                    <h4 className="font-medium text-gray-900 text-sm">
+                                      {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
+                                    </h4>
+                                  </div>
+                                  <div className="mb-2">
+                                    <p className="font-semibold text-gray-900">
+                                      {alert.title}: {alert.value}
+                                    </p>
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <span>Campanha: {alert.campaign || 'N/A'} • </span>
+                                    <span>Criado há 2 horas</span>
+                                  </div>
+                                  {alert.recommendation && (
+                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                      {alert.recommendation}
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    handleConvertAlertToTask(alert);
+                                    if (dangerAlerts.length + opportunityAlerts.length <= 1) {
+                                      setAlertsModalOpen(false);
+                                    }
+                                  }}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  Criar Tarefa
+                                </Button>
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  handleConvertAlertToTask(alert);
-                                  // Fechar modal após converter se não houver mais alertas
-                                  if (dangerAlerts.length + opportunityAlerts.length <= 1) {
-                                    setAlertsModalOpen(false);
-                                  }
-                                }}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Criar Tarefa
-                              </Button>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Alertas de Oportunidades */}
+                    {/* Seção Oportunidades Detectadas */}
                     {opportunityAlerts.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-green-800 mb-3">
-                          Oportunidades Detectadas ({opportunityAlerts.length})
-                        </h4>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              Oportunidades Detectadas
+                            </h3>
+                            <span className="text-sm text-gray-500">
+                              {opportunityAlerts.length} items
+                            </span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAnalyzeCampaigns}
+                            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                          >
+                            Analisar Completo
+                          </Button>
+                        </div>
+                        <div className="space-y-3">
                           {opportunityAlerts.map((alert, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
-                              <div className="flex-1">
-                                <p className="font-medium text-green-800">
-                                  {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
-                                </p>
-                                <p className="text-sm text-green-600 mt-1">
-                                  {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
-                                </p>
+                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      Excelente
+                                    </span>
+                                    <h4 className="font-medium text-gray-900 text-sm">
+                                      {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
+                                    </h4>
+                                  </div>
+                                  <div className="mb-2">
+                                    <p className="font-semibold text-gray-900">
+                                      {alert.title}: {alert.value}
+                                    </p>
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <span>ROI: 340% • CTR: 2.8% • </span>
+                                    <span>Criado há 1 hora</span>
+                                  </div>
+                                  {alert.recommendation && (
+                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                      {alert.recommendation}
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    handleConvertAlertToTask(alert);
+                                    if (dangerAlerts.length + opportunityAlerts.length <= 1) {
+                                      setAlertsModalOpen(false);
+                                    }
+                                  }}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  Criar Tarefa
+                                </Button>
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  handleConvertAlertToTask(alert);
-                                  // Fechar modal após converter se não houver mais alertas
-                                  if (dangerAlerts.length + opportunityAlerts.length <= 1) {
-                                    setAlertsModalOpen(false);
-                                  }
-                                }}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                Criar Tarefa
-                              </Button>
                             </div>
                           ))}
                         </div>
