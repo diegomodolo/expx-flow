@@ -44,6 +44,7 @@ interface FunnelLevel {
   color: string;
   bgColor: string;
   campaigns: Campaign[];
+  budgetPercentage: number;
   metrics: {
     primary: number;
     primaryLabel: string;
@@ -103,6 +104,9 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
   // Calcular métricas para cada nível
   const funnelLevels: FunnelLevel[] = useMemo(() => {
     const { topo, meio, fundo, retencao } = classifyCampaignsByFunnel;
+    
+    // Calculate total spend across all campaigns for percentage calculation
+    const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
 
     return [
       {
@@ -113,6 +117,7 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
         color: 'text-blue-600',
         bgColor: 'bg-blue-50 border-blue-200',
         campaigns: topo,
+        budgetPercentage: totalSpend > 0 ? (topo.reduce((sum, c) => sum + (c.spend || 0), 0) / totalSpend) * 100 : 0,
         metrics: {
           primary: topo.reduce((sum, c) => sum + (c.reach || 0), 0),
           primaryLabel: 'Alcance Único',
@@ -130,6 +135,7 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50 border-yellow-200',
         campaigns: meio,
+        budgetPercentage: totalSpend > 0 ? (meio.reduce((sum, c) => sum + (c.spend || 0), 0) / totalSpend) * 100 : 0,
         metrics: {
           primary: meio.reduce((sum, c) => sum + (c.clicks || 0), 0),
           primaryLabel: 'Cliques',
@@ -147,6 +153,7 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
         color: 'text-green-600',
         bgColor: 'bg-green-50 border-green-200',
         campaigns: fundo,
+        budgetPercentage: totalSpend > 0 ? (fundo.reduce((sum, c) => sum + (c.spend || 0), 0) / totalSpend) * 100 : 0,
         metrics: {
           primary: fundo.reduce((sum, c) => sum + c.conversions, 0),
           primaryLabel: 'Conversões',
@@ -166,6 +173,7 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
         color: 'text-purple-600', 
         bgColor: 'bg-purple-50 border-purple-200',
         campaigns: retencao,
+        budgetPercentage: totalSpend > 0 ? (retencao.reduce((sum, c) => sum + (c.spend || 0), 0) / totalSpend) * 100 : 0,
         metrics: {
           primary: retencao.reduce((sum, c) => sum + (c.reach || 0), 0),
           primaryLabel: 'Clientes Impactados',
@@ -176,7 +184,7 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
         }
       }
     ];
-  }, [classifyCampaignsByFunnel]);
+  }, [classifyCampaignsByFunnel, campaigns]);
 
   // Dados para gráfico de distribuição de investimento
   const investmentData = useMemo(() => {
@@ -242,6 +250,17 @@ export const FunnelAnalysis = ({ campaigns }: FunnelAnalysisProps) => {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
+                {/* Porcentagem do orçamento */}
+                <div className="text-center bg-white/70 rounded-lg py-2 px-3 border">
+                  <p className="text-lg font-bold text-gray-900">
+                    {level.budgetPercentage.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-600">do orçamento total</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    R$ {level.campaigns.reduce((sum, c) => sum + (c.spend || 0), 0).toFixed(0)}
+                  </p>
+                </div>
+
                 {/* Métricas principais */}
                 <div className="grid grid-cols-1 gap-2">
                   <div className="text-center">
