@@ -213,14 +213,15 @@ serve(async (req) => {
         // Split content into potential ad sections
         const sections = content.split(/\n\s*\n/).filter(section => 
           section.trim().length > 50 && 
-          section.trim().length < 1000
+          section.trim().length < 1500
         );
         
         console.log('Found', sections.length, 'content sections');
         
-        extractedAds = sections.slice(0, 5).map((section, index) => ({
+        // Extract more ads without artificial limit
+        extractedAds = sections.slice(0, 15).map((section, index) => ({
           ad_title: `${competitorName} - Anúncio ${index + 1}`,
-          ad_copy: section.trim().substring(0, 300) + (section.length > 300 ? '...' : ''),
+          ad_copy: section.trim().substring(0, 500) + (section.length > 500 ? '...' : ''),
           call_to_action: 'Ver mais',
           ad_type: 'text',
           estimated_performance: 'medium',

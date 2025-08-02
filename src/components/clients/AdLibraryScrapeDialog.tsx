@@ -245,7 +245,7 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
                 {scrapedAds.map((ad, index) => (
                   <Card 
                     key={index} 
@@ -255,12 +255,12 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
                     onClick={() => toggleAdSelection(index)}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <p className="font-medium text-sm">
+                          <p className="font-medium text-base mb-1">
                             {ad.ad_title || `Anúncio ${index + 1}`}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 mb-2">
                             {ad.platforms || 'Facebook Ads'} • {ad.ad_type || 'Tipo não identificado'}
                           </p>
                         </div>
@@ -275,15 +275,30 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
                         </div>
                       </div>
                       
+                      {/* Mostrar o texto completo do anúncio */}
                       {ad.ad_copy && (
-                        <p className="text-xs text-gray-600 mb-2 line-clamp-3">
-                          {ad.ad_copy}
-                        </p>
+                        <div className="mb-3">
+                          <p className="text-xs font-medium text-gray-700 mb-1">Texto do Anúncio:</p>
+                          <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded border-l-2 border-blue-200">
+                            {ad.ad_copy}
+                          </p>
+                        </div>
                       )}
                       
+                      {/* Mostrar call to action */}
                       {ad.call_to_action && (
-                        <div className="text-xs">
-                          <span className="font-medium">CTA:</span> {ad.call_to_action}
+                        <div className="mb-2">
+                          <span className="text-xs font-medium text-gray-700">CTA:</span>
+                          <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {ad.call_to_action}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Mostrar notas se houver */}
+                      {ad.notes && (
+                        <div className="text-xs text-gray-500 italic">
+                          {ad.notes}
                         </div>
                       )}
                     </CardContent>
