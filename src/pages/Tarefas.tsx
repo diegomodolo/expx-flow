@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { TaskList } from "@/components/tasks/TaskList";
@@ -45,6 +46,7 @@ export default function Tarefas() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
+  const [alertsModalOpen, setAlertsModalOpen] = useState(false);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -124,6 +126,126 @@ export default function Tarefas() {
           </div>
           
           <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            {/* Botão de Alertas */}
+            <Dialog open={alertsModalOpen} onOpenChange={setAlertsModalOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Alertas ({dangerAlerts.length + opportunityAlerts.length})
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      Converter Alertas em Tarefas
+                    </DialogTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAnalyzeCampaigns}
+                      className="flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Analisar Campanhas
+                    </Button>
+                  </div>
+                </DialogHeader>
+                
+                {/* Conteúdo dos Alertas */}
+                {(dangerAlerts.length > 0 || opportunityAlerts.length > 0) ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                    {/* Alertas de Problemas */}
+                    {dangerAlerts.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-red-800 mb-3">
+                          Problemas Detectados ({dangerAlerts.length})
+                        </h4>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          {dangerAlerts.map((alert, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded">
+                              <div className="flex-1">
+                                <p className="font-medium text-red-800">
+                                  {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
+                                </p>
+                                <p className="text-sm text-red-600 mt-1">
+                                  {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  handleConvertAlertToTask(alert);
+                                  // Fechar modal após converter se não houver mais alertas
+                                  if (dangerAlerts.length + opportunityAlerts.length <= 1) {
+                                    setAlertsModalOpen(false);
+                                  }
+                                }}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Criar Tarefa
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Alertas de Oportunidades */}
+                    {opportunityAlerts.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-green-800 mb-3">
+                          Oportunidades Detectadas ({opportunityAlerts.length})
+                        </h4>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          {opportunityAlerts.map((alert, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
+                              <div className="flex-1">
+                                <p className="font-medium text-green-800">
+                                  {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
+                                </p>
+                                <p className="text-sm text-green-600 mt-1">
+                                  {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  handleConvertAlertToTask(alert);
+                                  // Fechar modal após converter se não houver mais alertas
+                                  if (dangerAlerts.length + opportunityAlerts.length <= 1) {
+                                    setAlertsModalOpen(false);
+                                  }
+                                }}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Criar Tarefa
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🎯</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Nenhum alerta encontrado
+                    </h3>
+                    <p className="text-gray-500">
+                      Clique em "Analisar Campanhas" para verificar se há novos alertas.
+                    </p>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Botão Nova Tarefa */}
             <Button 
               onClick={() => {
                 setSelectedTask(null);
@@ -228,91 +350,6 @@ export default function Tarefas() {
           </div>
         )}
 
-        {/* Alertas para Conversão */}
-        {(dangerAlerts.length > 0 || opportunityAlerts.length > 0) && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Converter Alertas em Tarefas
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAnalyzeCampaigns}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Analisar Campanhas
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Alertas de Problemas */}
-                {dangerAlerts.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-red-800 mb-3">
-                      Problemas Detectados ({dangerAlerts.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {dangerAlerts.slice(0, 3).map((alert, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded">
-                          <div className="flex-1">
-                            <p className="font-medium text-red-800">
-                              {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
-                            </p>
-                            <p className="text-sm text-red-600 mt-1">
-                              {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleConvertAlertToTask(alert)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Criar Tarefa
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Alertas de Oportunidades */}
-                {opportunityAlerts.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-green-800 mb-3">
-                      Oportunidades Detectadas ({opportunityAlerts.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {opportunityAlerts.slice(0, 3).map((alert, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
-                          <div className="flex-1">
-                            <p className="font-medium text-green-800">
-                              {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
-                            </p>
-                            <p className="text-sm text-green-600 mt-1">
-                              {alert.title}: {alert.value}{alert.recommendation ? ` - ${alert.recommendation}` : ''}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleConvertAlertToTask(alert)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            Criar Tarefa
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Filtros e Visualizações */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
