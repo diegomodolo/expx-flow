@@ -166,10 +166,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in scrape-competitor-ads function:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
-      stack: error.stack
+      errorType: error.name,
+      errorStack: error.stack
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
