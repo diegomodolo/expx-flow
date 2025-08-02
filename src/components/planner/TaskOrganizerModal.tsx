@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Calendar, CheckCircle, AlertTriangle, Zap } from "lucide-react";
+import { Clock, Calendar, CheckCircle, AlertTriangle, Zap, User, Timer, TrendingUp, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -24,8 +24,10 @@ interface OrganizedTask {
   slotName: string;
   slotTime: string;
   assignedTo?: string;
+  assignedToName?: string;
   previousAssignee?: string;
   reassignmentReason?: string;
+  priority?: string;
 }
 
 interface OrganizationPlan {
@@ -79,20 +81,48 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
   }, {} as Record<string, OrganizedTask[]>);
 
   const formatTime = (minutes: number) => {
+    if (!minutes || isNaN(minutes)) return '0min';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours > 0) {
-      return `${hours}h${mins > 0 ? ` ${mins}min` : ''}`;
+      return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
     }
     return `${mins}min`;
   };
 
+  // Função para obter cor da prioridade
+  const getPriorityColor = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return 'text-red-600 bg-red-50 border-red-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'low': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  // Função para obter emoji da prioridade
+  const getPriorityEmoji = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case 'high': return '🔴';
+      case 'medium': return '🟡';
+      case 'low': return '🟢';
+      default: return '⚪';
+    }
+  };
+
+  // Calcular estatísticas se não fornecidas
+  const totalTasks = organizationPlan.statistics?.totalTasks || organizationPlan.organizedTasks.length;
+  const totalTimeMinutes = organizationPlan.statistics?.totalEstimatedTime || 
+    organizationPlan.organizedTasks.reduce((acc, task) => acc + (task.estimatedMinutes || 0), 0);
+  const daysUsed = organizationPlan.statistics?.daysUsed || Object.keys(tasksByDate).length;
+  const averageTime = organizationPlan.statistics?.averageTaskTime || Math.round(totalTimeMinutes / totalTasks);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
+            <Zap className="h-5 w-5 text-blue-500" />
             Organização Inteligente de Tarefas
           </DialogTitle>
           <DialogDescription>
@@ -100,153 +130,200 @@ export const TaskOrganizerModal: React.FC<TaskOrganizerModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Estatísticas */}
           <div className="grid grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <div>
-                    <p className="text-sm font-medium">Tarefas</p>
-                    <p className="text-2xl font-bold">{organizationPlan.statistics.totalTasks}</p>
-                  </div>
+            <Card className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Tarefas</p>
+                  <p className="text-2xl font-bold">{totalTasks}</p>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-500" />
-                  <div>
-                    <p className="text-sm font-medium">Tempo Total</p>
-                    <p className="text-2xl font-bold">{formatTime(organizationPlan.statistics.totalEstimatedTime)}</p>
-                  </div>
+            <Card className="p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Tempo Total</p>
+                  <p className="text-2xl font-bold">{formatTime(totalTimeMinutes)}</p>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-purple-500" />
-                  <div>
-                    <p className="text-sm font-medium">Dias Utilizados</p>
-                    <p className="text-2xl font-bold">{organizationPlan.statistics.daysUsed}</p>
-                  </div>
+            <Card className="p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-purple-500" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Dias Utilizados</p>
+                  <p className="text-2xl font-bold">{daysUsed}</p>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-orange-500" />
-                  <div>
-                    <p className="text-sm font-medium">Média por Tarefa</p>
-                    <p className="text-2xl font-bold">{formatTime(organizationPlan.statistics.averageTaskTime)}</p>
-                  </div>
+            <Card className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-orange-500" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Média por Tarefa</p>
+                  <p className="text-2xl font-bold">{formatTime(averageTime)}</p>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           </div>
 
           {/* Avisos */}
-          {organizationPlan.warnings.length > 0 && (
-            <Card className="border-yellow-200 bg-yellow-50">
-              <CardContent className="pt-4">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-yellow-800">Atenção</h4>
-                    <ul className="mt-2 space-y-1">
-                      {organizationPlan.warnings.map((warning, index) => (
-                        <li key={index} className="text-sm text-yellow-700">
-                          • {warning}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+          {organizationPlan.warnings && organizationPlan.warnings.length > 0 && (
+            <Card className="p-4 border-yellow-200 bg-yellow-50">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-yellow-800">Avisos da Organização</h3>
+                  <ul className="mt-1 text-sm text-yellow-700 space-y-1">
+                    {organizationPlan.warnings.map((warning, index) => (
+                      <li key={index}>• {warning}</li>
+                    ))}
+                  </ul>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           )}
 
-          {/* Cronograma por Data */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Cronograma Organizado</h3>
+          {/* Cronograma Organizado */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Cronograma Organizado
+            </h3>
             
-            {Object.entries(tasksByDate)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([date, tasks]) => (
-                <Card key={date}>
-                  <CardContent className="pt-4">
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {format(new Date(date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+            <div className="space-y-6">
+              {Object.entries(tasksByDate)
+                .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                .map(([date, tasks]) => (
+                <div key={date} className="space-y-3">
+                  <div className="flex items-center gap-2 border-b pb-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <h4 className="font-medium">
+                      {format(new Date(date + 'T00:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                     </h4>
-                    
-                    <div className="space-y-2">
-                      {tasks
-                        .sort((a, b) => a.slotTime.localeCompare(b.slotTime))
-                        .map((task, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-background rounded-lg border"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium">{task.taskTitle}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {task.slotName}
+                    <Badge variant="secondary" className="ml-auto">
+                      {tasks.length} tarefas
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {tasks
+                      .sort((a, b) => {
+                        // Ordenar por horário do slot
+                        const slotA = a.slotTime?.split(' - ')[0] || '00:00';
+                        const slotB = b.slotTime?.split(' - ')[0] || '00:00';
+                        return slotA.localeCompare(slotB);
+                      })
+                      .map((task, index) => (
+                      <Card key={`${task.taskId}-${index}`} className="p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1">
+                                <h5 className="font-medium text-sm leading-tight">{task.taskTitle}</h5>
+                                <p className="text-xs text-muted-foreground mt-1">{task.reason}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge className={`text-xs px-2 py-1 border ${getPriorityColor(task.priority || 'medium')}`}>
+                                  {getPriorityEmoji(task.priority || 'medium')} {(task.priority || 'medium').toUpperCase()}
                                 </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {task.reason}
-                              </p>
                             </div>
-                            
-                            <div className="text-right text-sm">
-                              <div className="font-medium">{task.slotTime}</div>
-                              <div className="text-muted-foreground">
-                                {formatTime(task.estimatedMinutes)}
+
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span className="font-medium">{task.slotTime}</span>
                               </div>
+                              <div className="flex items-center gap-1">
+                                <Timer className="h-3 w-3" />
+                                <span>{formatTime(task.estimatedMinutes)}</span>
+                              </div>
+                              {task.assignedToName && (
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  <span>{task.assignedToName}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
+
+                          <div className="text-right space-y-1">
+                            <Badge variant="outline" className="text-xs">
+                              {task.slotName}
+                            </Badge>
+                            {task.reassignmentReason && (
+                              <p className="text-xs text-orange-600 max-w-32">
+                                Reatribuído: {task.reassignmentReason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               ))}
+            </div>
           </div>
+
+          {/* Reatribuições */}
+          {organizationPlan.reassignments && organizationPlan.reassignments.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Reatribuições Realizadas
+              </h3>
+              <div className="space-y-2">
+                {organizationPlan.reassignments.map((reassignment, index) => (
+                  <Card key={index} className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{reassignment.taskTitle}</p>
+                        <p className="text-xs text-muted-foreground">{reassignment.reason}</p>
+                      </div>
+                      <div className="text-right text-xs">
+                        <p><span className="text-red-600">{reassignment.fromUser}</span> → <span className="text-green-600">{reassignment.toUser}</span></p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            disabled={isApplying}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={onApply}
-            disabled={isApplying}
-            className="min-w-[120px]"
-          >
-            {isApplying ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Aplicando...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Aplicar Organização
-              </>
-            )}
-          </Button>
+        <DialogFooter className="border-t pt-4">
+          <div className="flex justify-between items-center w-full">
+            <div className="text-sm text-muted-foreground">
+              {organizationPlan.organizedTasks.length} tarefas organizadas em {Object.keys(tasksByDate).length} dias
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onCancel} disabled={isApplying}>
+                Cancelar
+              </Button>
+              <Button onClick={onApply} disabled={isApplying} className="min-w-32">
+                {isApplying ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Aplicando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Aplicar Organização
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

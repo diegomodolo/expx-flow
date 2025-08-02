@@ -131,12 +131,15 @@ Distribua as tarefas equilibradamente nos slots considerando prioridade. APENAS 
       organizedTasks: organizationPlan.organizedTasks.map(item => {
         const task = tasks.find(t => t.id === item.taskId);
         const slot = timeSlots.find(s => s.id === item.slotId);
+        const assignedEmployee = employees.find(e => e.user_id === item.assignedTo);
         
         return {
           ...item,
           taskTitle: task?.title || 'Tarefa não encontrada',
           slotName: slot?.name || 'Slot não encontrado',
-          slotTime: slot ? `${slot.start_time} - ${slot.end_time}` : 'Horário não definido'
+          slotTime: slot ? `${slot.start_time} - ${slot.end_time}` : 'Horário não definido',
+          priority: task?.priority || 'medium',
+          assignedToName: assignedEmployee?.name || task?.responsible_name || 'Não atribuído'
         };
       })
     };
