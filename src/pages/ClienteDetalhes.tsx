@@ -29,6 +29,7 @@ import {
   Users,
   BarChart3
 } from "lucide-react";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
@@ -985,24 +986,40 @@ const ClienteDetalhes = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCampaignClick(campaign)}
-                              className="flex items-center space-x-1"
-                            >
-                              <Users className="w-4 h-4" />
-                              <span>Ver Conjuntos</span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewMetrics(campaign)}
-                              className="flex items-center space-x-1"
-                            >
-                              <BarChart3 className="w-4 h-4" />
-                              <span>Indicadores</span>
-                            </Button>
+                            <TooltipProvider>
+                              <UITooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleCampaignClick(campaign)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Users className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ver Conjuntos de Anúncios</p>
+                                </TooltipContent>
+                              </UITooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <UITooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewMetrics(campaign)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <BarChart3 className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ver Indicadores</p>
+                                </TooltipContent>
+                              </UITooltip>
+                            </TooltipProvider>
                           </div>
                         </td>
                       </tr>
@@ -1187,24 +1204,40 @@ const ClienteDetalhes = () => {
                             </td>
                              <td className="px-4 py-4 whitespace-nowrap text-sm">
                                <div className="flex items-center space-x-2">
-                                 <Button
-                                   variant="outline"
-                                   size="sm"
-                                   onClick={() => handleAdSetClick(adSet)}
-                                   className="flex items-center space-x-1"
-                                 >
-                                   <Megaphone className="w-3 h-3" />
-                                   <span>Ver Criativos</span>
-                                 </Button>
-                                 <Button
-                                   variant="outline"
-                                   size="sm"
-                                   onClick={() => handleViewAdSetMetrics(adSet)}
-                                   className="flex items-center space-x-1"
-                                 >
-                                   <BarChart3 className="w-3 h-3" />
-                                   <span>Indicadores</span>
-                                 </Button>
+                                 <TooltipProvider>
+                                   <UITooltip>
+                                     <TooltipTrigger asChild>
+                                       <Button
+                                         variant="outline"
+                                         size="sm"
+                                         onClick={() => handleAdSetClick(adSet)}
+                                         className="h-8 w-8 p-0"
+                                       >
+                                         <Megaphone className="w-3 h-3" />
+                                       </Button>
+                                     </TooltipTrigger>
+                                     <TooltipContent>
+                                       <p>Ver Criativos</p>
+                                     </TooltipContent>
+                                   </UITooltip>
+                                 </TooltipProvider>
+                                 <TooltipProvider>
+                                   <UITooltip>
+                                     <TooltipTrigger asChild>
+                                       <Button
+                                         variant="outline"
+                                         size="sm"
+                                         onClick={() => handleViewAdSetMetrics(adSet)}
+                                         className="h-8 w-8 p-0"
+                                       >
+                                         <BarChart3 className="w-3 h-3" />
+                                       </Button>
+                                     </TooltipTrigger>
+                                     <TooltipContent>
+                                       <p>Ver Indicadores</p>
+                                     </TooltipContent>
+                                   </UITooltip>
+                                 </TooltipProvider>
                                </div>
                              </td>
                           </tr>
@@ -1435,17 +1468,25 @@ const ClienteDetalhes = () => {
                                  {formatRanking(ad.quality_ranking)}
                                </Badge>
                              </td>
-                             <td className="px-4 py-4 whitespace-nowrap text-sm">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewAdCreativeMetrics(ad)}
-                                className="flex items-center space-x-1"
-                              >
-                                <BarChart3 className="w-3 h-3" />
-                                <span>Ver Indicadores</span>
-                              </Button>
-                            </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                <TooltipProvider>
+                                  <UITooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleViewAdCreativeMetrics(ad)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <BarChart3 className="w-3 h-3" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ver Indicadores</p>
+                                    </TooltipContent>
+                                  </UITooltip>
+                                </TooltipProvider>
+                              </td>
                           </tr>
                        ))
                      ) : (
