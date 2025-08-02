@@ -98,7 +98,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[80vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[70vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5" />
@@ -423,7 +423,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
               <Star className="w-5 h-5 text-yellow-600" />
               <span>Indicadores de Qualidade</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600">CPC (Custo por Clique)</CardTitle>
