@@ -12,7 +12,9 @@ export interface Task {
   status: "todo" | "progress" | "review" | "done";
   priority: "high" | "medium" | "low";
   deadline: string;
+  due_date?: string;
   progress: number;
+  origin: 'manual' | 'automation' | 'dashboard';
   team?: {
     name: string;
     color: string;

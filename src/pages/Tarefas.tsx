@@ -78,7 +78,7 @@ export default function Tarefas() {
     setTaskDialogOpen(true);
   };
 
-  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
+  const handleUpdateTaskStatus = async (taskId: string, status: "todo" | "progress" | "review" | "done") => {
     await updateTask(taskId, { status });
   };
 
