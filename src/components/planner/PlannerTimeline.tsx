@@ -11,6 +11,8 @@ import { PlannerTimeSlot } from "./PlannerTimeSlot";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { PlannerSettingsModal } from "./PlannerSettingsModal";
 import { useTasks } from "@/hooks/useTasks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface PlannerTimelineProps {
   selectedDate: Date;
@@ -20,10 +22,12 @@ interface PlannerTimelineProps {
 export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({ 
   selectedDate, 
   onDateChange 
-}) => {
+ }) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
   const { tasks, getTasksBySlot, loading: plannerLoading } = usePlannerTasks(selectedDate);
   const { createTask, updateTask, deleteTask } = useTasks();
+  const queryClient = useQueryClient();
+  const { activeCompany } = useCompany();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
@@ -74,6 +78,12 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
       // Atualizar a tarefa com os novos horários
       await updateTask(taskId, updates);
+      
+      // Invalidar cache para forçar re-renderização imediata
+      queryClient.invalidateQueries({ 
+        queryKey: ['planner-tasks', activeCompany?.company_id, selectedDate.toISOString().split('T')[0]] 
+      });
+      queryClient.invalidateQueries({ queryKey: ['tasks', activeCompany?.company_id] });
       
       console.log('✅ Task updated successfully');
     } catch (error) {
