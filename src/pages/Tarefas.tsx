@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { TaskList } from "@/components/tasks/TaskList";
+import { PlannerTimeline } from "@/components/planner/PlannerTimeline";
 import { useTasks } from "@/hooks/useTasks";
 import { useTaskStats } from "@/hooks/useTaskStats";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
@@ -43,7 +44,8 @@ import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function Tarefas() {
-  const [view, setView] = useState<'list' | 'kanban' | 'calendar'>('kanban');
+  const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'planner'>('planner');
+  const [plannerDate, setPlannerDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -707,6 +709,14 @@ export default function Tarefas() {
           {/* Controles de Visualização */}
           <div className="flex items-center gap-2">
             <Button
+              variant={view === 'planner' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setView('planner')}
+            >
+              <CalendarIcon className="w-4 h-4" />
+              Planner
+            </Button>
+            <Button
               variant={view === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setView('list')}
@@ -737,6 +747,13 @@ export default function Tarefas() {
           </div>
         ) : (
           <div>
+            {view === 'planner' && (
+              <PlannerTimeline 
+                selectedDate={plannerDate}
+                onDateChange={setPlannerDate}
+              />
+            )}
+            
             {view === 'list' && (
               <TaskList
                 tasks={filteredTasks}

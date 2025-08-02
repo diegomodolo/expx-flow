@@ -14,7 +14,7 @@ interface PlannerTaskCardProps {
 export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
   const { updateTaskStatus } = useTasks();
   
-  if (!task.task) return null;
+  if (!task.tasks) return null;
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -42,8 +42,8 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
   };
 
   const handleStatusToggle = async () => {
-    const nextStatus = task.task.status === 'done' ? 'todo' : 'done';
-    await updateTaskStatus(task.task.id, nextStatus);
+    const nextStatus = task.tasks.status === 'done' ? 'todo' : 'done';
+    await updateTaskStatus(task.tasks.id, nextStatus);
   };
 
   return (
@@ -56,50 +56,50 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
             className="p-0 h-auto"
             onClick={handleStatusToggle}
           >
-            {getStatusIcon(task.task.status)}
+            {getStatusIcon(task.tasks.status)}
           </Button>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm truncate">{task.task.title}</h4>
-              {getOriginIcon(task.task.origin) && (
-                <div title="Tarefa automática">{getOriginIcon(task.task.origin)}</div>
+              <h4 className="font-medium text-sm truncate">{task.tasks.title}</h4>
+              {getOriginIcon(task.tasks.origin) && (
+                <div title="Tarefa automática">{getOriginIcon(task.tasks.origin)}</div>
               )}
             </div>
             
-            {task.task.description && (
+            {task.tasks.description && (
               <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                {task.task.description}
+                {task.tasks.description}
               </p>
             )}
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Badge 
-                  variant={getPriorityColor(task.task.priority)}
+                  variant={getPriorityColor(task.tasks.priority)}
                   className="text-xs"
                 >
-                  {task.task.priority === 'high' ? 'Alta' : 
-                   task.task.priority === 'medium' ? 'Média' : 'Baixa'}
+                  {task.tasks.priority === 'high' ? 'Alta' : 
+                   task.tasks.priority === 'medium' ? 'Média' : 'Baixa'}
                 </Badge>
                 
-                {task.task.progress > 0 && (
+                {task.tasks.progress > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    {task.task.progress}%
+                    {task.tasks.progress}%
                   </span>
                 )}
               </div>
               
-              {task.task.responsible_name && (
+              {task.tasks.responsible_name && (
                 <div className="flex items-center gap-1">
                   <Avatar className="h-5 w-5">
-                    <AvatarImage src={task.task.responsible_avatar} />
+                    <AvatarImage src={task.tasks.responsible_avatar} />
                     <AvatarFallback className="text-xs">
-                      {task.task.responsible_name.split(' ').map(n => n[0]).join('')}
+                      {task.tasks.responsible_name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-xs text-muted-foreground truncate max-w-[60px]">
-                    {task.task.responsible_name.split(' ')[0]}
+                    {task.tasks.responsible_name.split(' ')[0]}
                   </span>
                 </div>
               )}

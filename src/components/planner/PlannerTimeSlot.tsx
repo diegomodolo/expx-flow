@@ -34,7 +34,7 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
   };
 
   const getPriorityCount = (priority: string) => {
-    return tasks.filter(task => task.task?.priority === priority).length;
+    return tasks.filter(task => task.tasks?.priority === priority).length;
   };
 
   return (

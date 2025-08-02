@@ -14,7 +14,7 @@ export interface PlannerDailyTask {
   planned_date: string;
   created_at: string;
   updated_at: string;
-  task?: Task;
+  tasks?: Task;
 }
 
 export function usePlannerTasks(plannedDate: Date) {
@@ -40,7 +40,7 @@ export function usePlannerTasks(plannedDate: Date) {
         .from("planner_daily_tasks")
         .select(`
           *,
-          task:tasks(*)
+          tasks(*)
         `)
         .eq("company_id", activeCompany.company_id)
         .eq("planned_date", dateString);
