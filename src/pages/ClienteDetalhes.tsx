@@ -50,6 +50,8 @@ import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 import { useCompetitors } from "@/hooks/useCompetitors";
+import { CompetitorDialog } from "@/components/clients/CompetitorDialog";
+import { CompetitorList } from "@/components/clients/CompetitorList";
 import { supabase } from "@/integrations/supabase/client";
 
 const ClienteDetalhes = () => {
@@ -59,7 +61,7 @@ const ClienteDetalhes = () => {
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
   const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
   const { alerts, refetch: refetchDashboardData } = useDashboardData();
-  const { competitors, competitorAds, generateCompetitiveAnalysis } = useCompetitors(id);
+  const { competitors, competitorAds, generateCompetitiveAnalysis, refetch: refetchCompetitors } = useCompetitors(id);
   const { convertAlertToTask } = useTaskAutomation();
   const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -2080,6 +2082,25 @@ const ClienteDetalhes = () => {
                   </Card>
                 </div>
 
+                {/* Lista de concorrentes */}
+                {competitors.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold">Concorrentes Cadastrados</h4>
+                      <CompetitorDialog 
+                        clientId={id || ""} 
+                        onCompetitorAdded={refetchCompetitors}
+                      />
+                    </div>
+                    <CompetitorList
+                      clientId={id || ""}
+                      competitors={competitors}
+                      competitorAds={competitorAds}
+                      onRefetch={refetchCompetitors}
+                    />
+                  </div>
+                )}
+
                 {/* Análise gerada */}
                 {competitiveAnalysis ? (
                   <Card>
@@ -2108,10 +2129,10 @@ const ClienteDetalhes = () => {
                       <p className="text-gray-600 mb-4">
                         Adicione concorrentes para gerar uma análise competitiva estratégica
                       </p>
-                      <Button variant="outline">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Concorrente
-                      </Button>
+                      <CompetitorDialog 
+                        clientId={id || ""} 
+                        onCompetitorAdded={refetchCompetitors}
+                      />
                     </CardContent>
                   </Card>
                 ) : (
