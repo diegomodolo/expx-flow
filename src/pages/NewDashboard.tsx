@@ -553,46 +553,109 @@ export default function NewDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Ranking de Campanhas</h2>
           </div>
 
-          <div className="space-y-3">
-            {topCampaignsByCPA.slice(0, 5).map((campaign, index) => (
-              <div key={campaign.id} className={`p-4 bg-white rounded-lg shadow-sm ${
-                index === 0 ? 'border-l-4 border-green-500' :
-                index === 1 ? 'border-l-4 border-blue-500' :
-                index === 2 ? 'border-l-4 border-purple-500' :
-                index === 3 ? 'border-l-4 border-orange-500' :
-                'border-l-4 border-yellow-500'
-              }`}>
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    index === 0 ? 'bg-green-500' :
-                    index === 1 ? 'bg-blue-500' :
-                    index === 2 ? 'bg-purple-500' :
-                    index === 3 ? 'bg-orange-500' :
-                    'bg-yellow-500'
-                  }`}>
-                    <span className="text-sm font-bold text-white">{index + 1}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-semibold text-gray-900 truncate">{campaign.name}</h4>
-                      <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
-                        {formatCurrency(campaign.spend)}
-                      </span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-                        {campaign.client_name}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">
-                      Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'} • CTR: {campaign.ctr.toFixed(1)}%
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-3 h-3 text-gray-500" />
-                      <p className="text-xs text-gray-600">CPA: {formatCurrency(campaign.cpa)} • Leads: {campaign.conversions}</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 gap-8">
+            {/* Top 5 Campanhas por CPA */}
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Target className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold text-gray-900">Top 5 Campanhas por CPA</h2>
               </div>
-            ))}
+
+              <div className="space-y-3">
+                {topCampaignsByCPA.slice(0, 5).map((campaign, index) => (
+                  <div key={campaign.id} className={`p-4 bg-white rounded-lg shadow-sm ${
+                    index === 0 ? 'border-l-4 border-green-500' :
+                    index === 1 ? 'border-l-4 border-blue-500' :
+                    index === 2 ? 'border-l-4 border-purple-500' :
+                    index === 3 ? 'border-l-4 border-orange-500' :
+                    'border-l-4 border-yellow-500'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        index === 0 ? 'bg-green-500' :
+                        index === 1 ? 'bg-blue-500' :
+                        index === 2 ? 'bg-purple-500' :
+                        index === 3 ? 'bg-orange-500' :
+                        'bg-yellow-500'
+                      }`}>
+                        <span className="text-sm font-bold text-white">{index + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">{campaign.name}</h4>
+                          <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                            {formatCurrency(campaign.cpa)}
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                            {campaign.client_name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">
+                          Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}%
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Target className="w-3 h-3 text-gray-500" />
+                          <p className="text-xs text-gray-600">Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'} • Leads: {campaign.conversions}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top 5 Campanhas por Leads */}
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <Users className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold text-gray-900">Top 5 Campanhas por Leads</h2>
+              </div>
+
+              <div className="space-y-3">
+                {[...topCampaignsByCPA]
+                  .sort((a, b) => b.conversions - a.conversions)
+                  .slice(0, 5)
+                  .map((campaign, index) => (
+                  <div key={`leads-${campaign.id}`} className={`p-4 bg-white rounded-lg shadow-sm ${
+                    index === 0 ? 'border-l-4 border-green-500' :
+                    index === 1 ? 'border-l-4 border-blue-500' :
+                    index === 2 ? 'border-l-4 border-purple-500' :
+                    index === 3 ? 'border-l-4 border-orange-500' :
+                    'border-l-4 border-yellow-500'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        index === 0 ? 'bg-green-500' :
+                        index === 1 ? 'bg-blue-500' :
+                        index === 2 ? 'bg-purple-500' :
+                        index === 3 ? 'bg-orange-500' :
+                        'bg-yellow-500'
+                      }`}>
+                        <span className="text-sm font-bold text-white">{index + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">{campaign.name}</h4>
+                          <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
+                            {campaign.conversions} leads
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                            {campaign.client_name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">
+                          Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}%
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-3 h-3 text-gray-500" />
+                          <p className="text-xs text-gray-600">CPA: {formatCurrency(campaign.cpa)} • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
