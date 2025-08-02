@@ -182,15 +182,65 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                 {/* Conteúdo Visual */}
                 <div className="relative bg-black aspect-square">
                   {ad.creative_type === 'video' && ad.video_url ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <Play className="w-6 h-6 text-gray-800 ml-1" />
+                    <div className="relative h-full">
+                      {ad.image_url ? (
+                        // Se tiver thumbnail, exibe ela
+                        <img 
+                          src={ad.image_url} 
+                          alt="Thumbnail do vídeo"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Se a thumbnail falhar, mostra o placeholder
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div class="absolute inset-0 flex items-center justify-center bg-gray-900">
+                                  <div class="text-center">
+                                    <div class="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center mx-auto mb-2">
+                                      <svg class="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                                      </svg>
+                                    </div>
+                                    <p class="text-white text-sm font-medium">Vídeo</p>
+                                    <p class="text-white text-xs opacity-75">${ad.video_views.toLocaleString()} visualizações</p>
+                                  </div>
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                      ) : (
+                        // Se não tiver thumbnail, mostra placeholder
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                          <div className="text-center">
+                            <div className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <Play className="w-6 h-6 text-gray-800 ml-1" />
+                            </div>
+                            <p className="text-white text-sm font-medium">Vídeo</p>
+                            <p className="text-white text-xs opacity-75">
+                              {ad.video_views.toLocaleString()} visualizações
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-white text-sm">Vídeo</p>
-                        <p className="text-white text-xs opacity-75">
-                          {ad.video_views.toLocaleString()} visualizações
-                        </p>
+                      )}
+                      
+                      {/* Overlay com ícone de play e link */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Play className="w-8 h-8 text-gray-800 ml-1" />
+                          </div>
+                          <a 
+                            href={ad.video_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            Assistir no Facebook
+                          </a>
+                        </div>
                       </div>
                     </div>
                   ) : ad.creative_type === 'image' && ad.image_url ? (
