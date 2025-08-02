@@ -280,9 +280,10 @@ export const useDashboardData = () => {
           id: `low-cpa-${campaign.id}`,
           type: 'opportunity',
           title: 'Oportunidade de Escalar',
-          description: `Campanha "${campaign.name}" com CPA baixo e bom volume`,
+          description: `Campanha "${campaign.name}" do cliente ${campaign.client_name} com CPA baixo e bom volume`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
+          client: campaign.client_name,
           campaign: campaign.name,
         });
       }

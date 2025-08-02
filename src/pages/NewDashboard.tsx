@@ -396,7 +396,12 @@ const NewDashboard = () => {
                         <div>
                           <h4 className="font-medium text-red-800">{alert.title}</h4>
                           <p className="text-sm text-red-600">{alert.description}</p>
-                          <Badge variant="destructive" className="mt-1">{alert.value}</Badge>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="destructive">{alert.value}</Badge>
+                            {alert.client && (
+                              <Badge variant="outline" className="text-xs">{alert.client}</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
@@ -424,7 +429,12 @@ const NewDashboard = () => {
                         <div>
                           <h4 className="font-medium text-green-800">{alert.title}</h4>
                           <p className="text-sm text-green-600">{alert.description}</p>
-                          <Badge variant="secondary" className="mt-1">{alert.value}</Badge>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary">{alert.value}</Badge>
+                            {alert.client && (
+                              <Badge variant="outline" className="text-xs">{alert.client}</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
