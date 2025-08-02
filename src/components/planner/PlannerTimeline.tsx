@@ -41,13 +41,22 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       const targetSlot = timeSlots.find(slot => slot.id === destination.droppableId);
       if (!targetSlot) return;
 
-      // Calcular novo horário baseado no slot
-      const [hours, minutes] = targetSlot.start_time.split(':');
+      // Calcular novo horário de início baseado no slot
+      const [startHours, startMinutes] = targetSlot.start_time.split(':');
       const newStartDate = new Date(selectedDate);
-      newStartDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      newStartDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
 
-      // Atualizar a tarefa com o novo horário
-      await updateTask(draggableId, { start_date: newStartDate.toISOString() });
+      // Calcular novo horário de prazo baseado no slot
+      const [endHours, endMinutes] = targetSlot.end_time.split(':');
+      const newDueDate = new Date(selectedDate);
+      newDueDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+      // Atualizar a tarefa com os novos horários
+      await updateTask(draggableId, { 
+        start_date: newStartDate.toISOString(),
+        due_date: newDueDate.toISOString(),
+        deadline: selectedDate.toISOString().split('T')[0]
+      });
     } catch (error) {
       console.error('Erro ao mover tarefa:', error);
     }
