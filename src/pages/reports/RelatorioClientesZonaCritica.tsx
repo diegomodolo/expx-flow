@@ -192,6 +192,8 @@ export default function RelatorioClientesZonaCritica() {
   };
 
   const handleCreateTask = (client: CriticalClient) => {
+    console.log('RelatorioClientesZonaCritica - Abrindo modal para cliente:', client);
+    console.log('RelatorioClientesZonaCritica - Issues:', client.issues);
     setSelectedClient(client);
     setIsModalOpen(true);
   };

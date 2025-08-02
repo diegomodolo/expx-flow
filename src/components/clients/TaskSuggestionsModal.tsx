@@ -31,11 +31,20 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
   const { createTaskFromAlert, isCreating } = useTaskAutomation();
   const [createdTasks, setCreatedTasks] = useState<Set<string>>(new Set());
 
+  // Debug: Log do cliente recebido
+  console.log('TaskSuggestionsModal - Cliente recebido:', client);
+  console.log('TaskSuggestionsModal - Issues do cliente:', client.issues);
+  console.log('TaskSuggestionsModal - Campanhas problemáticas:', client.problematic_campaigns);
+
   const generateDetailedSuggestions = (): TaskSuggestion[] => {
+    console.log('TaskSuggestionsModal - Gerando sugestões para cliente:', client.name);
+    console.log('TaskSuggestionsModal - Issues disponíveis:', client.issues);
+    
     const suggestions: TaskSuggestion[] = [];
     
     // Se não tem campanhas ativas
     if (client.issues.includes('Sem campanhas ativas')) {
+      console.log('TaskSuggestionsModal - Cliente sem campanhas ativas detectado');
       suggestions.push({
         id: 'activate-campaigns',
         title: 'Ativar Campanhas Urgentemente',
@@ -116,6 +125,9 @@ export function TaskSuggestionsModal({ isOpen, onClose, client }: TaskSuggestion
         type: 'review'
       });
     }
+
+    console.log('TaskSuggestionsModal - Sugestões geradas:', suggestions.length);
+    console.log('TaskSuggestionsModal - Lista de sugestões:', suggestions);
 
     return suggestions;
   };
