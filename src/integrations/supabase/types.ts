@@ -220,6 +220,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          clicks: number | null
           client_id: string
           company_id: string | null
           conversion_rate_ranking: string | null
@@ -231,6 +232,7 @@ export type Database = {
           engagement_rate_ranking: string | null
           frequency: number | null
           id: string
+          impressions: number | null
           is_active: boolean
           name: string
           period: string
@@ -243,6 +245,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          clicks?: number | null
           client_id: string
           company_id?: string | null
           conversion_rate_ranking?: string | null
@@ -254,6 +257,7 @@ export type Database = {
           engagement_rate_ranking?: string | null
           frequency?: number | null
           id?: string
+          impressions?: number | null
           is_active?: boolean
           name: string
           period: string
@@ -266,6 +270,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          clicks?: number | null
           client_id?: string
           company_id?: string | null
           conversion_rate_ranking?: string | null
@@ -277,6 +282,7 @@ export type Database = {
           engagement_rate_ranking?: string | null
           frequency?: number | null
           id?: string
+          impressions?: number | null
           is_active?: boolean
           name?: string
           period?: string
