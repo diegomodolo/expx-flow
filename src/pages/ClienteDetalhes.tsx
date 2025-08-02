@@ -54,7 +54,7 @@ const ClienteDetalhes = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [adSetSortField, setAdSetSortField] = useState<'name' | 'status' | 'budget' | 'cpm' | 'ctr' | 'conversions' | null>(null);
   const [adSetSortDirection, setAdSetSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [adSortField, setAdSortField] = useState<'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | null>(null);
+  const [adSortField, setAdSortField] = useState<'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | 'quality_ranking' | null>(null);
   const [adSortDirection, setAdSortDirection] = useState<'asc' | 'desc'>('asc');
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -280,6 +280,10 @@ const ClienteDetalhes = () => {
             aValue = a.conversions;
             bValue = b.conversions;
             break;
+          case 'quality_ranking':
+            aValue = a.quality_ranking || 'UNKNOWN';
+            bValue = b.quality_ranking || 'UNKNOWN';
+            break;
           default:
             return 0;
         }
@@ -311,13 +315,32 @@ const ClienteDetalhes = () => {
     }
   };
 
-  const handleAdSort = (field: 'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions') => {
+  const handleAdSort = (field: 'name' | 'type' | 'status' | 'ctr' | 'cpc' | 'conversions' | 'quality_ranking') => {
     if (adSortField === field) {
       setAdSortDirection(adSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setAdSortField(field);
       setAdSortDirection('asc');
     }
+  };
+
+  // Função para formatar rankings
+  const formatRanking = (ranking?: string) => {
+    if (!ranking || ranking === 'UNKNOWN') return 'N/A';
+    
+    const translations: { [key: string]: string } = {
+      'ABOVE_AVERAGE': 'Acima da Média',
+      'AVERAGE': 'Média',
+      'BELOW_AVERAGE': 'Abaixo da Média',
+      'BELOW_AVERAGE_35': 'Bem Abaixo da Média',
+      'BELOW_AVERAGE_20': 'Muito Abaixo da Média',
+      'BELOW_AVERAGE_10': 'Extremamente Baixo',
+      'HIGH': 'Alto',
+      'MEDIUM': 'Médio',
+      'LOW': 'Baixo'
+    };
+    
+    return translations[ranking] || ranking;
   };
 
   const handleSyncConfirm = async (period: string) => {
@@ -1170,16 +1193,27 @@ const ClienteDetalhes = () => {
                              <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
                            )}
                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Ações
-                        </th>
+                         </th>
+                         <th 
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleAdSort('quality_ranking')}
+                        >
+                          <div className="flex items-center space-x-1">
+                            <span>Qualidade</span>
+                            {adSortField === 'quality_ranking' && (
+                              <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                            )}
+                          </div>
+                         </th>
+                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                           Ações
+                         </th>
                      </tr>
                    </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adsLoading ? (
-                       <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                        <tr>
+                           <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                            <p>Carregando criativos...</p>
                          </td>
@@ -1218,10 +1252,23 @@ const ClienteDetalhes = () => {
                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                              R$ {ad.cpc.toFixed(2)}
                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {ad.conversions}
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                               {ad.conversions}
+                             </td>
+                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                               <Badge 
+                                 variant="outline"
+                                 className={`text-xs ${
+                                   ad.quality_ranking === 'ABOVE_AVERAGE' ? 'border-green-500 text-green-700' :
+                                   ad.quality_ranking === 'AVERAGE' ? 'border-blue-500 text-blue-700' :
+                                   ad.quality_ranking === 'BELOW_AVERAGE' || ad.quality_ranking?.includes('BELOW_AVERAGE') ? 'border-red-500 text-red-700' :
+                                   'border-gray-300 text-gray-600'
+                                 }`}
+                               >
+                                 {formatRanking(ad.quality_ranking)}
+                               </Badge>
+                             </td>
+                             <td className="px-4 py-4 whitespace-nowrap text-sm">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1235,8 +1282,8 @@ const ClienteDetalhes = () => {
                           </tr>
                        ))
                      ) : (
-                       <tr>
-                         <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                        <tr>
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                            <div>
                              <p className="mb-2">Nenhum criativo encontrado</p>
                              <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
