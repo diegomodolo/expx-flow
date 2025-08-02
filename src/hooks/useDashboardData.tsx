@@ -165,7 +165,7 @@ export const useDashboardData = () => {
         .not('related_campaign_id', 'is', null);
 
       // Gerar alertas (excluindo campanhas com tarefas ativas)
-      const generatedAlerts = generateAlerts(processedClients, processedCampaigns, activeTasks || []);
+      const generatedAlerts = await generateAlerts(processedClients, processedCampaigns, activeTasks || []);
 
       // Processar tendências
       const processedTrends = processTrendsData(trendsData || []);
@@ -270,8 +270,50 @@ export const useDashboardData = () => {
     };
   };
 
+  // Função para gerar recomendação com ChatGPT
+  const generateRecommendation = async (campaignData: any, issueType: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-campaign-recommendation', {
+        body: {
+          campaignData: {
+            name: campaignData.name,
+            client_name: campaignData.client_name,
+            cpa: campaignData.cpa,
+            ctr: campaignData.ctr,
+            conversions: campaignData.conversions,
+            spend: campaignData.spend || 0,
+            impressions: campaignData.impressions || 0,
+            clicks: campaignData.clicks || 0,
+            issue_type: issueType,
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error generating recommendation:', error);
+        return getDefaultRecommendation(issueType);
+      }
+
+      return data.recommendation || getDefaultRecommendation(issueType);
+    } catch (error) {
+      console.error('Error calling recommendation function:', error);
+      return getDefaultRecommendation(issueType);
+    }
+  };
+
+  // Função para recomendações padrão (fallback)
+  const getDefaultRecommendation = (issueType: string) => {
+    const defaultRecommendations = {
+      'high_cpa': 'Revisar segmentação e otimizar criativos',
+      'low_ctr': 'Atualizar criativos e copy dos anúncios',
+      'scale_opportunity': 'Aumentar orçamento diário gradualmente',
+      'client_analysis': 'Analisar todas as campanhas do cliente'
+    };
+    return defaultRecommendations[issueType] || 'Analisar métricas e otimizar';
+  };
+
   // Função para gerar alertas
-  const generateAlerts = (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = []): Alert[] => {
+  const generateAlerts = async (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = []): Promise<Alert[]> => {
     const alerts: Alert[] = [];
 
     // Extrair IDs de campanhas que já possuem tarefas ativas
@@ -286,9 +328,10 @@ export const useDashboardData = () => {
       campaign.status === 'active' && !campaignsWithActiveTasks.has(campaign.id)
     );
 
-    // Alertas de problemas (vermelhos) - Campanhas com problemas
-    availableCampaigns.forEach(campaign => {
+    // Processar alertas de problemas com recomendações do ChatGPT
+    for (const campaign of availableCampaigns) {
       if (campaign.cpa > 50) {
+        const recommendation = await generateRecommendation(campaign, 'high_cpa');
         alerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
           type: 'danger',
@@ -296,13 +339,14 @@ export const useDashboardData = () => {
           description: `Campanha "${campaign.name}" com CPA de R$ ${campaign.cpa.toFixed(2)}`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
-          recommendation: 'Revisar segmentação e otimizar criativos',
+          recommendation,
           client: campaign.client_name,
           campaign: campaign.name,
         });
       }
       
       if (campaign.ctr < 1.0) {
+        const recommendation = await generateRecommendation(campaign, 'low_ctr');
         alerts.push({
           id: `low-ctr-campaign-${campaign.id}`,
           type: 'danger',
@@ -310,15 +354,15 @@ export const useDashboardData = () => {
           description: `Campanha "${campaign.name}" com CTR de ${campaign.ctr.toFixed(2)}%`,
           metric: 'CTR',
           value: `${campaign.ctr.toFixed(2)}%`,
-          recommendation: 'Atualizar criativos e copy dos anúncios',
+          recommendation,
           client: campaign.client_name,
           campaign: campaign.name,
         });
       }
-    });
+    }
 
     // Alertas de problemas por cliente (baseado apenas em campanhas disponíveis)
-    clients.forEach(client => {
+    for (const client of clients) {
       // Calcular CPA médio apenas de campanhas disponíveis do cliente
       const clientAvailableCampaigns = availableCampaigns.filter(campaign => campaign.client_name === client.name);
       
@@ -333,16 +377,17 @@ export const useDashboardData = () => {
             description: `Cliente ${client.name} com CPA médio de R$ ${availableCPA.toFixed(2)} em campanhas sem tarefas pendentes`,
             metric: 'CPA',
             value: `R$ ${availableCPA.toFixed(2)}`,
-            recommendation: 'Analisar todas as campanhas do cliente',
+            recommendation: getDefaultRecommendation('client_analysis'),
             client: client.name,
           });
         }
       }
-    });
+    }
 
-    // Alertas de oportunidades (verdes) - Apenas campanhas disponíveis
-    availableCampaigns.forEach(campaign => {
+    // Processar alertas de oportunidades com recomendações do ChatGPT
+    for (const campaign of availableCampaigns) {
       if (campaign.cpa < 20 && campaign.conversions > 5) {
+        const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
         alerts.push({
           id: `low-cpa-${campaign.id}`,
           type: 'opportunity',
@@ -350,12 +395,12 @@ export const useDashboardData = () => {
           description: `Campanha "${campaign.name}" do cliente ${campaign.client_name} com CPA baixo e bom volume`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
-          recommendation: 'Aumentar orçamento diário gradualmente',
+          recommendation,
           client: campaign.client_name,
           campaign: campaign.name,
         });
       }
-    });
+    }
 
     return alerts;
   };
