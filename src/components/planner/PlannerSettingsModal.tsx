@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,19 @@ const SlotDialog: React.FC<SlotDialogProps> = ({ open, onOpenChange, slot, onSav
     display_order: slot?.display_order || 0,
     company_id: slot?.company_id || "",
   });
+
+  // Atualizar formData quando o slot prop mudar
+  useEffect(() => {
+    setFormData({
+      name: slot?.name || "",
+      description: slot?.description || "",
+      start_time: slot?.start_time || "",
+      end_time: slot?.end_time || "",
+      is_active: slot?.is_active ?? true,
+      display_order: slot?.display_order || 0,
+      company_id: slot?.company_id || "",
+    });
+  }, [slot]);
 
   const handleSave = () => {
     if (!formData.name || !formData.start_time || !formData.end_time) {
