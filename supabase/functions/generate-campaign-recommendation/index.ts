@@ -51,8 +51,8 @@ Analise esta campanha com CPA alto:
 📊 CTR: ${campaign.ctr.toFixed(2)}%
 🎯 Conversões: ${campaign.conversions}
 💸 Gasto: R$ ${campaign.spend.toFixed(2)}
-👁️ Impressões: ${campaign.impressions.toLocaleString()}
-🖱️ Cliques: ${campaign.clicks}
+👁️ Impressões: ${(campaign.impressions || 0).toLocaleString()}
+🖱️ Cliques: ${campaign.clicks || 0}
 
 Forneça UMA recomendação específica e acionável em no máximo 6 palavras para reduzir o CPA. 
 Seja direto e prático. Exemplos: "Revisar audiência e testar novos criativos", "Pausar públicos com baixa performance", "Otimizar copy e call-to-action".
@@ -72,8 +72,8 @@ Analise esta campanha com CTR baixo:
 💰 CPA: R$ ${campaign.cpa.toFixed(2)}
 🎯 Conversões: ${campaign.conversions}
 💸 Gasto: R$ ${campaign.spend.toFixed(2)}
-👁️ Impressões: ${campaign.impressions.toLocaleString()}
-🖱️ Cliques: ${campaign.clicks}
+👁️ Impressões: ${(campaign.impressions || 0).toLocaleString()}
+🖱️ Cliques: ${campaign.clicks || 0}
 
 Forneça UMA recomendação específica e acionável em no máximo 6 palavras para aumentar o CTR. 
 Seja direto e prático. Exemplos: "Criar criativos mais impactantes e urgentes", "Testar headlines com maior apelo", "Renovar imagens e vídeos dos anúncios".
@@ -93,8 +93,8 @@ Analise esta oportunidade de escalonamento:
 📊 CTR: ${campaign.ctr.toFixed(2)}%
 🎯 Conversões: ${campaign.conversions}
 💸 Gasto: R$ ${campaign.spend.toFixed(2)}
-👁️ Impressões: ${campaign.impressions.toLocaleString()}
-🖱️ Cliques: ${campaign.clicks}
+👁️ Impressões: ${(campaign.impressions || 0).toLocaleString()}
+🖱️ Cliques: ${campaign.clicks || 0}
 
 Forneça UMA recomendação específica e acionável em no máximo 6 palavras para escalar esta campanha. 
 Seja direto e prático. Exemplos: "Aumentar budget 20% por 3 dias", "Duplicar campanha com audiências similares", "Expandir para públicos lookalike 1-2%".

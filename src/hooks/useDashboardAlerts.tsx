@@ -225,7 +225,9 @@ export const useDashboardAlerts = () => {
         spend: campaign.spend || 0,
         conversions: campaign.conversions || 0,
         status: campaign.status,
-        ctr: campaign.ctr || 0
+        ctr: campaign.ctr || 0,
+        impressions: campaign.impressions || 0,
+        clicks: campaign.clicks || 0
       })) || [];
 
       // Gerar alertas
