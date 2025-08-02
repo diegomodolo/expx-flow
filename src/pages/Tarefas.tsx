@@ -478,8 +478,71 @@ export default function Tarefas() {
                         Nenhum alerta encontrado
                       </h3>
                       <p className="text-gray-500 mb-6">
-                        Clique no botão abaixo para buscar novas sugestões de problemas e oportunidades nas suas campanhas.
+                        Selecione um cliente específico ou clique no botão abaixo para buscar novas sugestões de problemas e oportunidades nas suas campanhas.
                       </p>
+                      
+                      {/* Combo de seleção de cliente */}
+                      <div className="mb-6">
+                        <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={clientComboOpen}
+                              className="w-64 justify-between mx-auto"
+                            >
+                              {selectedClientId
+                                ? clients?.find((client) => client.id === selectedClientId)?.name
+                                : "Todos os clientes"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-0 bg-white" align="center">
+                            <Command>
+                              <CommandInput placeholder="Buscar cliente..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                <CommandGroup>
+                                  <CommandItem
+                                    value="all"
+                                    onSelect={() => {
+                                      setSelectedClientId(null);
+                                      setClientComboOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedClientId === null ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    Todos os clientes
+                                  </CommandItem>
+                                  {clients?.map((client) => (
+                                    <CommandItem
+                                      key={client.id}
+                                      value={client.name}
+                                      onSelect={() => {
+                                        setSelectedClientId(client.id);
+                                        setClientComboOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                       />
+                                       {client.name}
+                                     </CommandItem>
+                                   ))}
+                                 </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
                       <Button
                         onClick={handleAnalyzeCampaigns}
                         className="flex items-center gap-2 mx-auto"
