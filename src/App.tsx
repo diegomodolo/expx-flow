@@ -19,6 +19,10 @@ import Relatorios from "./pages/Relatorios";
 import RelatorioExecutivo from "./pages/reports/RelatorioExecutivo";
 import RelatorioFunil from "./pages/reports/RelatorioFunil";
 import RelatorioAnaliseCompetitiva from "./pages/reports/RelatorioAnaliseCompetitiva";
+import RelatorioClientesZonaCritica from "./pages/reports/RelatorioClientesZonaCritica";
+import RelatorioCriativosBaixoDesempenho from "./pages/reports/RelatorioCriativosBaixoDesempenho";
+import RelatorioCampanhasIneficientes from "./pages/reports/RelatorioCampanhasIneficientes";
+import RelatorioOrcamentoMalDistribuido from "./pages/reports/RelatorioOrcamentoMalDistribuido";
 import RelatorioOportunidades from "./pages/reports/RelatorioOportunidades";
 import RelatorioPerformanceCliente from "./pages/reports/RelatorioPerformanceCliente";
 import RelatorioCampanhas from "./pages/reports/RelatorioCampanhas";
@@ -107,6 +111,26 @@ const App = () => {
                       <RelatorioAnaliseCompetitiva />
                     </ProtectedRoute>
                   } />
+                 <Route path="/relatorios/clientes-zona-critica" element={
+                   <ProtectedRoute>
+                     <RelatorioClientesZonaCritica />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/criativos-baixo-desempenho" element={
+                   <ProtectedRoute>
+                     <RelatorioCriativosBaixoDesempenho />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/campanhas-ineficientes" element={
+                   <ProtectedRoute>
+                     <RelatorioCampanhasIneficientes />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/orcamento-mal-distribuido" element={
+                   <ProtectedRoute>
+                     <RelatorioOrcamentoMalDistribuido />
+                   </ProtectedRoute>
+                 } />
                  <Route path="/relatorios/oportunidades" element={
                    <ProtectedRoute>
                      <RelatorioOportunidades />
