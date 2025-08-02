@@ -25,29 +25,40 @@ export const useDynamicPagination = ({
     const availableHeight = containerHeight - headerHeight - footerHeight;
     const calculatedItems = Math.floor(availableHeight / itemHeight);
     
+    console.log('Calculando itens por página:', {
+      containerHeight,
+      availableHeight,
+      itemHeight,
+      calculatedItems,
+      finalItems: Math.max(minItemsPerPage, Math.min(maxItemsPerPage, calculatedItems))
+    });
+    
     // Garantir que está dentro dos limites
     return Math.max(minItemsPerPage, Math.min(maxItemsPerPage, calculatedItems));
   };
 
   useEffect(() => {
     const updateItemsPerPage = () => {
-      const newItemsPerPage = calculateItemsPerPage();
-      setItemsPerPage(newItemsPerPage);
+      // Aguardar um frame para garantir que o DOM foi renderizado
+      requestAnimationFrame(() => {
+        const newItemsPerPage = calculateItemsPerPage();
+        setItemsPerPage(newItemsPerPage);
+      });
     };
 
-    // Calcular inicialmente
-    updateItemsPerPage();
+    // Aguardar um pouco antes de calcular inicialmente
+    const timer = setTimeout(updateItemsPerPage, 100);
 
     // Recalcular quando a janela for redimensionada
     const handleResize = () => {
-      updateItemsPerPage();
+      setTimeout(updateItemsPerPage, 100);
     };
 
     window.addEventListener('resize', handleResize);
 
-    // Observer para mudanças na altura do container
+    // Observer para mudanças na altura do container com debounce
     const resizeObserver = new ResizeObserver(() => {
-      updateItemsPerPage();
+      setTimeout(updateItemsPerPage, 50);
     });
 
     if (containerRef.current) {
@@ -55,6 +66,7 @@ export const useDynamicPagination = ({
     }
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
     };

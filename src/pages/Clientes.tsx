@@ -65,11 +65,11 @@ const Clientes = () => {
   
   // Hook para paginação dinâmica baseada na altura da tela
   const { itemsPerPage, containerRef } = useDynamicPagination({
-    itemHeight: 72, // Altura estimada de cada linha da tabela
-    headerHeight: 100, // Altura do cabeçalho da tabela + filtros
-    footerHeight: 80, // Altura da paginação
-    minItemsPerPage: 5,
-    maxItemsPerPage: 50
+    itemHeight: 65, // Altura real de cada linha da tabela (mais precisa)
+    headerHeight: 60, // Altura apenas do cabeçalho da tabela
+    footerHeight: 60, // Altura da paginação
+    minItemsPerPage: 10, // Aumentar mínimo para aproveitar melhor a tela
+    maxItemsPerPage: 100
   });
 
   // Memoized handlers to prevent re-renders
