@@ -191,16 +191,38 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     const [hours, minutes] = time.split(':').map(Number);
     const timeOnly = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
     
-    return timeSlots.find(slot => 
+    // Buscar slot exato primeiro
+    const exactSlot = timeSlots.find(slot => 
       timeOnly >= slot.start_time && timeOnly <= slot.end_time
     );
+    
+    if (exactSlot) return { slot: exactSlot, isExact: true };
+    
+    // Se não encontrou exato, buscar o próximo
+    const nextSlot = timeSlots
+      .filter(slot => slot.start_time > timeOnly)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
+    
+    if (nextSlot) return { slot: nextSlot, isExact: false };
+    
+    // Se não tem próximo, pegar o último do dia
+    const lastSlot = timeSlots
+      .sort((a, b) => b.end_time.localeCompare(a.end_time))[0];
+    
+    return lastSlot ? { slot: lastSlot, isExact: false } : null;
   };
 
   // Atualizar preview do slot quando data/hora mudam
   useEffect(() => {
     if (formData.hasSpecificTime && formData.start_date && formData.start_time) {
-      const slot = findSlotForDateTime(formData.start_date, formData.start_time);
-      setPreviewSlot(slot?.name || 'Nenhum slot encontrado');
+      const result = findSlotForDateTime(formData.start_date, formData.start_time);
+      if (result) {
+        const prefix = result.isExact ? '' : '📍 ';
+        const suffix = result.isExact ? '' : ' (próximo disponível)';
+        setPreviewSlot(`${prefix}${result.slot.name}${suffix}`);
+      } else {
+        setPreviewSlot('Nenhum slot encontrado');
+      }
     } else {
       setPreviewSlot('');
     }
