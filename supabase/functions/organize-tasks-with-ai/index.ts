@@ -103,6 +103,7 @@ IMPORTANTE:
 - Priorize tarefas por deadline e prioridade
 
 RETORNE APENAS JSON:`
+          }
         ],
         temperature: 0.2,
         max_tokens: 4000,
