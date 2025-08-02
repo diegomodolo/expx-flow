@@ -47,6 +47,7 @@ export default function Tarefas() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -93,7 +94,15 @@ export default function Tarefas() {
   };
 
   const handleAnalyzeCampaigns = async () => {
-    await refetchDashboardData();
+    setIsAnalyzing(true);
+    try {
+      await refetchDashboardData();
+      console.log('Dashboard data refetched, new alerts:', alerts);
+    } catch (error) {
+      console.error('Error analyzing campaigns:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleConvertAlertToTask = (alert: any) => {
@@ -303,9 +312,10 @@ export default function Tarefas() {
                       onClick={handleAnalyzeCampaigns}
                       className="flex items-center gap-2"
                       size="lg"
+                      disabled={isAnalyzing}
                     >
-                      <RefreshCw className="w-4 h-4" />
-                      Buscar Novas Sugestões
+                      <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                      {isAnalyzing ? 'Analisando...' : 'Buscar Novas Sugestões'}
                     </Button>
                   </div>
                 )}
