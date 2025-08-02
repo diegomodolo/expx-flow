@@ -85,11 +85,13 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10 flex-shrink-0">
                   <AvatarImage 
-                    src={task.user_profile?.avatar_url || task.responsible_avatar || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face`} 
-                    alt={task.user_profile?.full_name || task.responsible_name || 'Responsável'}
+                    src={task.responsible_avatar || task.user_profile?.avatar_url || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face`} 
+                    alt={task.responsible_name || task.user_profile?.full_name || 'Responsável'}
                   />
                   <AvatarFallback className="text-sm bg-primary/10 font-medium text-primary">
-                    {(task.user_profile?.full_name || task.responsible_name)?.split(' ').map(n => n[0]).join('') || 'T'}
+                    {task.responsible_name 
+                      ? task.responsible_name.split(' ').map(n => n[0]).join('') 
+                      : task.title.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 
