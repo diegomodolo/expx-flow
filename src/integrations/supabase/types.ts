@@ -1064,6 +1064,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          ai_estimated_minutes: number | null
+          ai_organization_date: string | null
           alert_id: string | null
           checklist: Json | null
           company_id: string | null
@@ -1073,6 +1075,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          organized_by_ai: boolean | null
           origin: Database["public"]["Enums"]["task_origin"] | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
@@ -1088,6 +1091,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_estimated_minutes?: number | null
+          ai_organization_date?: string | null
           alert_id?: string | null
           checklist?: Json | null
           company_id?: string | null
@@ -1097,6 +1102,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
@@ -1112,6 +1118,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_estimated_minutes?: number | null
+          ai_organization_date?: string | null
           alert_id?: string | null
           checklist?: Json | null
           company_id?: string | null
@@ -1121,6 +1129,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          organized_by_ai?: boolean | null
           origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
