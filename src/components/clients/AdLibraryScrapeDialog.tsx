@@ -78,7 +78,13 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
 
     } catch (error) {
       console.error('Error scraping ads:', error);
-      toast.error('Erro ao extrair anúncios da biblioteca');
+      
+      // Check if it's a detailed Firecrawl error
+      if (error.message && error.message.includes('Firecrawl API Error')) {
+        toast.error(`Erro da API Firecrawl. Verifique a URL ou tente novamente.`);
+      } else {
+        toast.error('Erro ao extrair anúncios da biblioteca');
+      }
     } finally {
       setLoading(false);
     }

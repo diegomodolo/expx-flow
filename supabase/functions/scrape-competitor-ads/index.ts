@@ -106,31 +106,36 @@ serve(async (req) => {
     });
 
     console.log('Firecrawl response status:', response.status);
+    console.log('Firecrawl response headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Firecrawl error:', errorText);
+      console.error('=== FIRECRAWL API ERROR ===');
+      console.error('Status:', response.status);
+      console.error('Status Text:', response.statusText);
+      console.error('Error Response:', errorText);
+      console.error('URL that failed:', url);
       
-      // Return mock data on API error
-      const mockAds = [
-        {
-          ad_title: `Anúncio de ${competitorName}`,
-          ad_copy: 'Erro na API Firecrawl - dados de teste',
-          call_to_action: 'Ver Mais',
-          ad_type: 'unknown',
-          estimated_performance: 'medium',
-          platforms: 'Facebook',
-          notes: `Erro da API: ${errorText}`
-        }
-      ];
-
+      // Try to parse error as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('Parsed error:', errorJson);
+      } catch {
+        console.error('Error response is not JSON');
+      }
+      
+      // Return detailed error info instead of mock data
       return new Response(JSON.stringify({ 
-        success: true, 
-        ads: mockAds,
-        originalUrl: url,
-        competitorId: competitorId,
-        message: 'Retornando dados de teste devido a erro na API'
+        success: false,
+        error: `Firecrawl API Error (${response.status}): ${errorText}`,
+        details: {
+          status: response.status,
+          statusText: response.statusText,
+          url: url,
+          errorResponse: errorText
+        }
       }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
