@@ -363,7 +363,14 @@ const ClienteDetalhes = () => {
       'EVENT_RESPONSES': 'Respostas do Evento',
       'STORE_VISITS': 'Visitas à Loja',
       'CATALOG_SALES': 'Vendas do Catálogo',
-      'OFFSITE_CONVERSIONS': 'Conversões Fora do Site'
+      'OFFSITE_CONVERSIONS': 'Conversões Fora do Site',
+      // Novos objetivos do Facebook API v20+
+      'OUTCOME_LEADS': 'Geração de Leads',
+      'OUTCOME_TRAFFIC': 'Tráfego',
+      'OUTCOME_AWARENESS': 'Reconhecimento de Marca',
+      'OUTCOME_SALES': 'Vendas',
+      'OUTCOME_ENGAGEMENT': 'Engajamento',
+      'OUTCOME_APP_PROMOTION': 'Promoção de App'
     };
     
     return translations[objective] || objective;
