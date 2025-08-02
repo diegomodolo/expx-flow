@@ -256,6 +256,7 @@ export type Database = {
           impressions: number | null
           is_active: boolean
           name: string
+          objective: string | null
           period: string
           platforms: string
           quality_ranking: string | null
@@ -281,6 +282,7 @@ export type Database = {
           impressions?: number | null
           is_active?: boolean
           name: string
+          objective?: string | null
           period: string
           platforms: string
           quality_ranking?: string | null
@@ -306,6 +308,7 @@ export type Database = {
           impressions?: number | null
           is_active?: boolean
           name?: string
+          objective?: string | null
           period?: string
           platforms?: string
           quality_ranking?: string | null

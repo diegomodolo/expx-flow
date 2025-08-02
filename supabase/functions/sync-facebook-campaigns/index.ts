@@ -257,7 +257,7 @@ serve(async (req) => {
     }
 
     // Fetch campaigns from Facebook API with enhanced insights
-    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,insights${dateParam}{impressions,clicks,spend,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}{impressions,clicks,spend,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
 
     const campaignsResponse = await fetch(facebookUrl)
@@ -411,6 +411,7 @@ serve(async (req) => {
         clicks: clicks,
         reach: reach,
         frequency: frequency,
+        objective: campaign.objective || null,
         quality_ranking: qualityRanking,
         engagement_rate_ranking: engagementRateRanking,
         conversion_rate_ranking: conversionRateRanking,

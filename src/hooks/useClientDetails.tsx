@@ -22,6 +22,7 @@ export interface ClientCampaign {
   engagement_rate_ranking?: string;
   conversion_rate_ranking?: string;
   clicks?: number;
+  objective?: string; // Objetivo da campanha (LEAD_GENERATION, REACH, etc.)
   created_at: string;
 }
 

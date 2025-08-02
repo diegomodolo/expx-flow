@@ -343,6 +343,32 @@ const ClienteDetalhes = () => {
     return translations[ranking] || ranking;
   };
 
+  // Função para traduzir objetivos de campanha
+  const formatCampaignObjective = (objective?: string) => {
+    if (!objective) return 'N/A';
+    
+    const translations: { [key: string]: string } = {
+      'REACH': 'Alcance',
+      'BRAND_AWARENESS': 'Reconhecimento de Marca',
+      'VIDEO_VIEWS': 'Visualizações de Vídeo',
+      'LEAD_GENERATION': 'Geração de Leads',
+      'CONVERSIONS': 'Conversões',
+      'LINK_CLICKS': 'Cliques no Link',
+      'TRAFFIC': 'Tráfego',
+      'ENGAGEMENT': 'Engajamento',
+      'APP_INSTALLS': 'Instalações do App',
+      'MESSAGES': 'Mensagens',
+      'POST_ENGAGEMENT': 'Engajamento da Publicação',
+      'PAGE_LIKES': 'Curtidas da Página',
+      'EVENT_RESPONSES': 'Respostas do Evento',
+      'STORE_VISITS': 'Visitas à Loja',
+      'CATALOG_SALES': 'Vendas do Catálogo',
+      'OFFSITE_CONVERSIONS': 'Conversões Fora do Site'
+    };
+    
+    return translations[objective] || objective;
+  };
+
   const handleSyncConfirm = async (period: string) => {
     if (!id) return;
     
@@ -811,8 +837,9 @@ const ClienteDetalhes = () => {
                             )}
                           </div>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plataformas</th>
+                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plataformas</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CTR (%)</th>
                         <th 
                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
@@ -865,10 +892,15 @@ const ClienteDetalhes = () => {
                           }>
                             {campaign.status === 'active' ? 'Ativa' : 'Pausada'}
                           </Badge>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {campaign.platforms}
-                        </td>
+                         </td>
+                         <td className="px-4 py-4 whitespace-nowrap">
+                           <Badge variant="outline" className="text-xs">
+                             {formatCampaignObjective(campaign.objective)}
+                           </Badge>
+                         </td>
+                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                           {campaign.platforms}
+                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                           {campaign.ctr.toFixed(2)}%
                         </td>
