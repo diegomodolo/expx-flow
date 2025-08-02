@@ -44,6 +44,7 @@ export default function Tarefas() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -93,8 +94,22 @@ export default function Tarefas() {
     await refetchDashboardData();
   };
 
-  const dangerAlerts = alerts?.filter(alert => alert.type === 'danger') || [];
-  const opportunityAlerts = alerts?.filter(alert => alert.type === 'opportunity') || [];
+  const handleConvertAlertToTask = (alert: any) => {
+    // Adicionar alerta à lista de convertidos imediatamente para remover da UI
+    setConvertedAlerts(prev => new Set([...prev, alert.id]));
+    
+    // Converter alerta em tarefa
+    convertAlertToTask(alert);
+  };
+
+  // Filtrar alertas que não foram convertidos
+  const dangerAlerts = alerts?.filter(alert => 
+    alert.type === 'danger' && !convertedAlerts.has(alert.id)
+  ) || [];
+  
+  const opportunityAlerts = alerts?.filter(alert => 
+    alert.type === 'opportunity' && !convertedAlerts.has(alert.id)
+  ) || [];
 
   return (
     <DashboardLayout>
@@ -253,7 +268,7 @@ export default function Tarefas() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => convertAlertToTask(alert)}
+                            onClick={() => handleConvertAlertToTask(alert)}
                             className="bg-red-600 hover:bg-red-700"
                           >
                             Criar Tarefa
@@ -282,7 +297,7 @@ export default function Tarefas() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => convertAlertToTask(alert)}
+                            onClick={() => handleConvertAlertToTask(alert)}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             Criar Tarefa
