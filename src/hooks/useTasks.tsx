@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export interface Task {
   id: string;
@@ -26,9 +27,10 @@ export function useTasks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
 
   const fetchTasks = async () => {
-    if (!user) return;
+    if (!user || !activeCompany?.company_id) return;
     
     try {
       setLoading(true);
@@ -38,6 +40,7 @@ export function useTasks() {
           *,
           team:teams(name, color)
         `)
+        .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -119,7 +122,7 @@ export function useTasks() {
 
   useEffect(() => {
     fetchTasks();
-  }, [user]);
+  }, [user, activeCompany?.company_id]);
 
   return {
     tasks,
