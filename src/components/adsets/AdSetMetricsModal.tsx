@@ -77,7 +77,28 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
   // Função para formatar rankings
   const formatRanking = (ranking?: string) => {
     if (!ranking || ranking === 'UNKNOWN') return 'Dados insuficientes';
-    return ranking;
+    
+    const translations: { [key: string]: string } = {
+      'ABOVE_AVERAGE': 'Acima da Média',
+      'AVERAGE': 'Média',
+      'BELOW_AVERAGE': 'Abaixo da Média',
+      'BELOW_AVERAGE_35': 'Bem Abaixo da Média (35%)',
+      'BELOW_AVERAGE_20': 'Muito Abaixo da Média (20%)',
+      'BELOW_AVERAGE_10': 'Extremamente Baixo (10%)',
+      'HIGH': 'Alto',
+      'MEDIUM': 'Médio',
+      'LOW': 'Baixo',
+      'ACTIVE': 'Ativo',
+      'PAUSED': 'Pausado',
+      'PENDING_REVIEW': 'Aguardando Revisão',
+      'DISAPPROVED': 'Reprovado',
+      'PREAPPROVED': 'Pré-aprovado',
+      'PENDING_BILLING_INFO': 'Aguardando Info de Pagamento',
+      'CAMPAIGN_PAUSED': 'Campanha Pausada',
+      'ARCHIVED': 'Arquivado'
+    };
+    
+    return translations[ranking] || ranking;
   };
 
   // Função para formatar targeting
@@ -93,7 +114,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5" />
