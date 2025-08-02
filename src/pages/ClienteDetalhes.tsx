@@ -78,6 +78,64 @@ const ClienteDetalhes = () => {
   const totalLeadsGenerated = client?.leads_generated || 0;
   const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
 
+  // Calculate funnel completeness score
+  const funnelCompletenessScore = useMemo(() => {
+    if (!client?.campaigns || client.campaigns.length === 0) return 0;
+
+    const activeCampaigns = client.campaigns.filter(c => c.status === 'active' || c.is_active === true);
+    if (activeCampaigns.length === 0) return 0;
+
+    // Classify campaigns by funnel stage
+    const funnelStages = {
+      topo: activeCampaigns.filter(c => {
+        const objective = c.objective?.toUpperCase() || '';
+        return objective.includes('AWARENESS') || objective.includes('REACH') || 
+               objective.includes('BRAND') || objective.includes('VIDEO_VIEWS');
+      }),
+      meio: activeCampaigns.filter(c => {
+        const objective = c.objective?.toUpperCase() || '';
+        return objective.includes('TRAFFIC') || objective.includes('ENGAGEMENT') || 
+               objective.includes('LEADS') || objective.includes('OUTCOME_LEADS') ||
+               objective.includes('MESSAGES') || objective.includes('POST_ENGAGEMENT');
+      }),
+      fundo: activeCampaigns.filter(c => {
+        const objective = c.objective?.toUpperCase() || '';
+        return objective.includes('CONVERSIONS') || objective.includes('OFFSITE_CONVERSIONS') ||
+               objective.includes('CATALOG_SALES') || objective.includes('OUTCOME_SALES') ||
+               objective.includes('APP_INSTALLS');
+      }),
+      retencao: activeCampaigns.filter(c => {
+        const objective = c.objective?.toUpperCase() || '';
+        return !objective.includes('AWARENESS') && !objective.includes('REACH') && 
+               !objective.includes('BRAND') && !objective.includes('VIDEO_VIEWS') &&
+               !objective.includes('TRAFFIC') && !objective.includes('ENGAGEMENT') && 
+               !objective.includes('LEADS') && !objective.includes('OUTCOME_LEADS') &&
+               !objective.includes('MESSAGES') && !objective.includes('POST_ENGAGEMENT') &&
+               !objective.includes('CONVERSIONS') && !objective.includes('OFFSITE_CONVERSIONS') &&
+               !objective.includes('CATALOG_SALES') && !objective.includes('OUTCOME_SALES') &&
+               !objective.includes('APP_INSTALLS');
+      })
+    };
+
+    let score = 0;
+    const maxScorePerStage = 25; // 25 points per stage (100/4)
+
+    // Calculate score for each stage
+    Object.values(funnelStages).forEach(stageCampaigns => {
+      if (stageCampaigns.length > 0) {
+        // Check if campaigns have conversions/results
+        const hasResults = stageCampaigns.some(c => (c.conversions || 0) > 0);
+        if (hasResults) {
+          score += maxScorePerStage; // Full points if has active campaigns with results
+        } else {
+          score += maxScorePerStage * 0.5; // Half points if has active campaigns but no results
+        }
+      }
+    });
+
+    return Math.round(score);
+  }, [client?.campaigns]);
+
   // Calculate ad set metrics
   const totalAdSets = adSets?.length || 0;
   const activeAdSets = adSets?.filter(adSet => adSet.status === 'ACTIVE').length || 0;
@@ -604,7 +662,46 @@ const ClienteDetalhes = () => {
         </Card>
 
         {/* Performance Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {/* Funnel Completeness Score Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Completude do Funil</p>
+                  <p className="text-2xl font-bold text-gray-900">{funnelCompletenessScore}%</p>
+                  <div className="flex items-center space-x-1 mt-1">
+                    {funnelCompletenessScore >= 80 ? (
+                      <>
+                        <TrendingUp className="w-3 h-3 text-green-500" />
+                        <span className="text-xs text-green-500">excelente</span>
+                      </>
+                    ) : funnelCompletenessScore >= 50 ? (
+                      <>
+                        <BarChart3 className="w-3 h-3 text-yellow-500" />
+                        <span className="text-xs text-yellow-500">boa</span>
+                      </>
+                    ) : (
+                      <>
+                        <TrendingDown className="w-3 h-3 text-red-500" />
+                        <span className="text-xs text-red-500">precisa melhorar</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  funnelCompletenessScore >= 80 ? 'bg-green-100' :
+                  funnelCompletenessScore >= 50 ? 'bg-yellow-100' : 'bg-red-100'
+                }`}>
+                  <BarChart3 className={`w-6 h-6 ${
+                    funnelCompletenessScore >= 80 ? 'text-green-600' :
+                    funnelCompletenessScore >= 50 ? 'text-yellow-600' : 'text-red-600'
+                  }`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
