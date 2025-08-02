@@ -536,9 +536,11 @@ serve(async (req) => {
             // Fetch ads for this ad set
             try {
               console.log('Fetching ads for ad set:', adSet.id)
-              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec,call_to_action},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,actions,video_view_actions,video_p100_watched_actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+              // Simplify the API call first - test with basic fields
+              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status&access_token=${accessToken}`
               console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
               const adsResponse = await fetch(adsUrl)
+              console.log('Ads API response status:', adsResponse.status)
               
               if (adsResponse.ok) {
                 const adsData = await adsResponse.json()
@@ -546,90 +548,11 @@ serve(async (req) => {
                 const ads = adsData.data || []
                 console.log('Found', ads.length, 'ads for ad set:', adSet.name)
                 
-                // Process each ad
+                // Process each ad with simplified data first
                 for (const ad of ads) {
-                  const adInsights = ad.insights?.data?.[0]
-                  let adSpend = 0
-                  let adClicks = 0
-                  let adImpressions = 0
-                  let adLeads = 0
-                  let adCtr = 0
-                  let adCpc = 0
-                  let adCpm = 0
-                  let adReach = 0
-                  let adFrequency = 0
-                  let adQualityRanking = null
-                  let adEngagementRateRanking = null
-                  let adConversionRateRanking = null
-
-                  // Initialize engagement metrics
-                  let adLikes = 0
-                  let adComments = 0
-                  let adShares = 0
-                  let adVideoViews = 0
-                  let adVideoCompletionRate = 0
-                  let adNegativeFeedback = 0
-
-                  if (adInsights) {
-                    adSpend = parseFloat(adInsights.spend || 0)
-                    adClicks = parseInt(adInsights.clicks || 0)
-                    adImpressions = parseInt(adInsights.impressions || 0)
-                    adCtr = parseFloat(adInsights.ctr || 0)
-                    adCpc = parseFloat(adInsights.cpc || 0)
-                    adCpm = parseFloat(adInsights.cpm || 0)
-                    adReach = parseInt(adInsights.reach || 0)
-                    adFrequency = parseFloat(adInsights.frequency || 0)
-                    adQualityRanking = adInsights.quality_ranking || null
-                    adEngagementRateRanking = adInsights.engagement_rate_ranking || null
-                    adConversionRateRanking = adInsights.conversion_rate_ranking || null
-
-                    // Extract engagement and conversion data from actions
-                    if (adInsights.actions) {
-                      adInsights.actions.forEach((action: any) => {
-                        const value = parseInt(action.value || 0)
-                        switch (action.action_type) {
-                          case 'lead':
-                          case 'complete_registration':
-                            adLeads += value
-                            break
-                          case 'like':
-                          case 'post_reaction':
-                            adLikes += value
-                            break
-                          case 'comment':
-                            adComments += value
-                            break
-                          case 'post':
-                          case 'post_engagement':
-                            adShares += value
-                            break
-                          case 'video_view':
-                            adVideoViews += value
-                            break
-                          case 'hide_clicks':
-                          case 'report_ad':
-                            adNegativeFeedback += value
-                            break
-                        }
-                      })
-                    }
-
-                    // Calculate video completion rate if video actions are available
-                    if (adInsights.video_p100_watched_actions && adInsights.video_view_actions) {
-                      const completedViews = adInsights.video_p100_watched_actions.reduce((sum: number, action: any) => sum + parseInt(action.value || 0), 0)
-                      const totalViews = adInsights.video_view_actions.reduce((sum: number, action: any) => sum + parseInt(action.value || 0), 0)
-                      if (totalViews > 0) {
-                        adVideoCompletionRate = (completedViews / totalViews) * 100
-                      }
-                    }
-                  }
-
-                  // Extract creative information
-                  const creative = ad.creative || {}
-                  const objectStory = creative.object_story_spec || {}
-                  const linkData = objectStory.link_data || {}
-                  
-                   // Save ad to database
+                  console.log('Processing ad:', ad.id, ad.name)
+                   
+                   // Save ad to database with basic data first
                    const adData = {
                      facebook_id: ad.id,
                      ad_set_id: savedAdSet.id,
@@ -639,35 +562,34 @@ serve(async (req) => {
                      company_id: client.company_id,
                      name: ad.name,
                      status: ad.status?.toLowerCase() || 'unknown',
-                     creative_type: creative.video_id ? 'video' : (creative.image_url ? 'image' : 'text'),
-                     creative_body: linkData.message || creative.body || '',
-                     creative_title: linkData.name || creative.title || '',
-                     creative_description: linkData.description || '',
-                     image_url: creative.image_url || '',
-                     video_url: creative.video_id ? `https://www.facebook.com/${creative.video_id}` : '',
-                     link_url: linkData.link || '',
-                     call_to_action: JSON.stringify(linkData.call_to_action || creative.call_to_action || {}),
-                     ctr: adCtr,
-                     cpc: adCpc,
-                     cpm: adCpm,
-                     spend: adSpend,
-                     impressions: adImpressions,
-                     clicks: adClicks,
-                     conversions: adLeads,
-                     cpa: adLeads > 0 ? adSpend / adLeads : 0,
-                     reach: adReach,
-                     frequency: adFrequency,
-                     quality_ranking: adQualityRanking,
-                     engagement_rate_ranking: adEngagementRateRanking,
-                     conversion_rate_ranking: adConversionRateRanking,
-                     // Add new engagement metrics
-                     likes: adLikes,
-                     comments: adComments,
-                     shares: adShares,
-                     video_views: adVideoViews,
-                     video_view_percentage: adVideoCompletionRate, // Changed from video_completion_rate
-                     video_completion_rate: adVideoCompletionRate,
-                     negative_feedback: adNegativeFeedback,
+                     creative_type: 'text', // Simplified for now
+                     creative_body: '',
+                     creative_title: '',
+                     creative_description: '',
+                     image_url: '',
+                     video_url: '',
+                     link_url: '',
+                     call_to_action: '{}',
+                     ctr: 0,
+                     cpc: 0,
+                     cpm: 0,
+                     spend: 0,
+                     impressions: 0,
+                     clicks: 0,
+                     conversions: 0,
+                     cpa: 0,
+                     reach: 0,
+                     frequency: 0,
+                     quality_ranking: null,
+                     engagement_rate_ranking: null,
+                     conversion_rate_ranking: null,
+                     likes: 0,
+                     comments: 0,
+                     shares: 0,
+                     video_views: 0,
+                     video_view_percentage: 0,
+                     video_completion_rate: 0,
+                     negative_feedback: 0,
                      is_active: ad.status === 'ACTIVE'
                    }
 
