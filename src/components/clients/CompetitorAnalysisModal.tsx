@@ -42,6 +42,7 @@ export const CompetitorAnalysisModal = ({
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [creatingTask, setCreatingTask] = useState<number | null>(null);
+  const [createdTasks, setCreatedTasks] = useState<Set<number>>(new Set());
   
   const { createTask } = useTasks();
   const { teams } = useTeams();
@@ -107,6 +108,7 @@ export const CompetitorAnalysisModal = ({
       });
 
       toast.success('Tarefa criada com sucesso!');
+      setCreatedTasks(prev => new Set([...prev, index]));
     } catch (error) {
       console.error('Error creating task:', error);
       toast.error('Erro ao criar tarefa');
@@ -291,13 +293,15 @@ export const CompetitorAnalysisModal = ({
                                <Badge variant="outline" className="text-xs">Adaptado</Badge>
                                <Button
                                  size="sm"
-                                 variant="outline"
+                                 variant={createdTasks.has(index) ? "secondary" : "outline"}
                                  onClick={() => createTaskFromVariation(variation, index)}
-                                 disabled={creatingTask === index}
+                                 disabled={creatingTask === index || createdTasks.has(index)}
                                  className="h-7 px-2 text-xs"
                                >
                                  {creatingTask === index ? (
                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                 ) : createdTasks.has(index) ? (
+                                   'Tarefa Criada'
                                  ) : (
                                    <>
                                      <Plus className="w-3 h-3 mr-1" />
