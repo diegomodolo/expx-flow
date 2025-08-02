@@ -56,15 +56,18 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
           {/* Header com avatar e título */}
           <div className="flex items-start gap-3">
             {task.responsible_avatar ? (
-              <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarImage src={task.responsible_avatar} />
-                <AvatarFallback className="text-xs bg-primary/10">
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <AvatarImage 
+                  src={task.responsible_avatar} 
+                  alt={task.responsible_name || 'Responsável'}
+                />
+                <AvatarFallback className="text-sm bg-primary/10 font-medium">
                   {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
                 </AvatarFallback>
               </Avatar>
             ) : (
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-medium text-primary">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-medium text-primary">
                   {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
                 </span>
               </div>
