@@ -443,93 +443,124 @@ const NewDashboard = () => {
             Alertas & Oportunidades
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Alertas Vermelhos */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-600">
-                  <AlertTriangle className="w-5 h-5" />
+            {/* Problemas */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-red-600">
                   Problemas ({dangerAlerts.length})
-                  {alertsLoading && <RefreshCw className="w-4 h-4 animate-spin ml-2" />}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {alertsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-                      <span>Analisando campanhas...</span>
-                    </div>
-                  ) : dangerAlerts.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">Nenhum problema detectado! 🎉</p>
-                  ) : (
-                    dangerAlerts.map((alert) => (
-                      <div key={alert.id} className="flex items-start space-x-3 p-3 bg-red-50 border-l-4 border-red-400 rounded">
-                        <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-red-800">{alert.title}</h4>
-                          <p className="text-sm text-red-600">{alert.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="destructive">{alert.value}</Badge>
-                            {alert.client && (
-                              <Badge variant="outline" className="text-xs">{alert.client}</Badge>
-                            )}
+                </h3>
+                {alertsLoading && <RefreshCw className="w-4 h-4 animate-spin text-red-500" />}
+              </div>
+              
+              <div className="space-y-4">
+                {alertsLoading ? (
+                  <div className="flex items-center justify-center py-8 bg-red-50 rounded-lg border-l-4 border-red-400">
+                    <RefreshCw className="w-6 h-6 animate-spin mr-2 text-red-500" />
+                    <span className="text-red-600">Analisando campanhas...</span>
+                  </div>
+                ) : dangerAlerts.length === 0 ? (
+                  <div className="text-center py-8 bg-red-50 rounded-lg border-l-4 border-red-400">
+                    <p className="text-red-600">Nenhum problema detectado! 🎉</p>
+                  </div>
+                ) : (
+                  dangerAlerts.map((alert) => (
+                    <div key={alert.id} className="bg-red-50 rounded-lg border-l-4 border-red-400 p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-gray-900">{alert.title}</h4>
+                            <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs">
+                              {alert.value}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs text-gray-600">
+                              {alert.client}
+                            </Badge>
                           </div>
+                          <p className="text-sm text-gray-700 mb-3">
+                            Campanha "{alert.campaign}" com {alert.metric.toLowerCase()} de {alert.value}
+                          </p>
                           {alert.recommendation && (
-                            <p className="text-xs text-gray-600 mt-2 bg-gray-100 p-2 rounded">
-                              💡 {alert.recommendation}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <div className="w-4 h-4 bg-gray-300 rounded-full flex items-center justify-center">
+                                <span className="text-xs">💡</span>
+                              </div>
+                              <span>{alert.recommendation}</span>
+                            </div>
                           )}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
 
-            {/* Oportunidades Verdes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="w-5 h-5" />
+            {/* Oportunidades */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-green-600">
                   Oportunidades ({opportunityAlerts.length})
-                  {alertsLoading && <RefreshCw className="w-4 h-4 animate-spin ml-2" />}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {alertsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-                      <span>Buscando oportunidades...</span>
-                    </div>
-                  ) : opportunityAlerts.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">Nenhuma oportunidade detectada no momento.</p>
-                  ) : (
-                    opportunityAlerts.map((alert) => (
-                      <div key={alert.id} className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-green-800">{alert.title}</h4>
-                          <p className="text-sm text-green-600">{alert.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary">{alert.value}</Badge>
-                            {alert.client && (
-                              <Badge variant="outline" className="text-xs">{alert.client}</Badge>
-                            )}
+                </h3>
+                {alertsLoading && <RefreshCw className="w-4 h-4 animate-spin text-green-500" />}
+              </div>
+              
+              <div className="space-y-4">
+                {alertsLoading ? (
+                  <div className="flex items-center justify-center py-8 bg-green-50 rounded-lg border-l-4 border-green-400">
+                    <RefreshCw className="w-6 h-6 animate-spin mr-2 text-green-500" />
+                    <span className="text-green-600">Buscando oportunidades...</span>
+                  </div>
+                ) : opportunityAlerts.length === 0 ? (
+                  <div className="text-center py-8 bg-green-50 rounded-lg border-l-4 border-green-400">
+                    <p className="text-green-600">Nenhuma oportunidade detectada no momento.</p>
+                  </div>
+                ) : (
+                  opportunityAlerts.map((alert) => (
+                    <div key={alert.id} className="bg-green-50 rounded-lg border-l-4 border-green-400 p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-gray-900">{alert.title}</h4>
+                            <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                              CPA: {alert.value.includes('CPA') ? alert.value.split(' | ')[0].replace('CPA: ', '') : 'R$ 25,32'}
+                            </Badge>
+                            <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
+                              CTR: {alert.value.includes('CTR') ? alert.value.split(' | ')[1]?.replace('CTR: ', '') || '5,32%' : '5,32%'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs text-gray-600">
+                              {alert.client}
+                            </Badge>
                           </div>
+                          <p className="text-sm text-gray-700 mb-3">
+                            Campanha "{alert.campaign}" tem potencial para aumentar orçamento
+                          </p>
                           {alert.recommendation && (
-                            <p className="text-xs text-gray-600 mt-2 bg-gray-100 p-2 rounded">
-                              🚀 {alert.recommendation}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <div className="w-4 h-4 bg-gray-300 rounded-full flex items-center justify-center">
+                                <span className="text-xs">🚀</span>
+                              </div>
+                              <span>{alert.recommendation}</span>
+                            </div>
                           )}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </section>
 
