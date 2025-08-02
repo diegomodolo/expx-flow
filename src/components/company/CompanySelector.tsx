@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, ChevronDown } from "lucide-react";
+import { Check, ChevronsUpDown, ChevronDown, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -54,24 +54,34 @@ export const CompanySelector = () => {
           className="flex items-center gap-2 h-auto p-2 hover:bg-muted/50"
         >
           {activeCompany ? (
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium text-foreground">
-                  {activeCompany.company?.name}
-                </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xs text-muted-foreground">
-                {getRoleLabel(activeCompany.role)}
-              </span>
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {activeCompany.company?.name}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {getRoleLabel(activeCompany.role)}
+                </span>
+              </div>
             </div>
           ) : (
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium text-foreground">Selecionar empresa</span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-gray-500" />
               </div>
-              <span className="text-xs text-muted-foreground">Nenhuma selecionada</span>
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium text-foreground">Selecionar empresa</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-xs text-muted-foreground">Nenhuma selecionada</span>
+              </div>
             </div>
           )}
         </Button>
