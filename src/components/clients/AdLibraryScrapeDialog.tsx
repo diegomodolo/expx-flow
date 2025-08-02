@@ -205,23 +205,6 @@ export const AdLibraryScrapeDialog = ({ competitor, onAdsAdded }: AdLibraryScrap
             )}
           </div>
 
-          {/* Dica de uso */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-2">
-                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Como usar:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Acesse a <a href="https://www.facebook.com/ads/library/" target="_blank" rel="noopener noreferrer" className="underline">Biblioteca de Anúncios do Facebook</a></li>
-                    <li>Pesquise pelo nome da empresa concorrente</li>
-                    <li>Copie a URL da página de resultados</li>
-                    <li>Cole aqui e clique em "Extrair"</li>
-                  </ol>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Anúncios extraídos */}
           {scrapedAds.length > 0 && (
