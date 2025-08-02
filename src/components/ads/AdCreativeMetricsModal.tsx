@@ -72,7 +72,28 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
   // Função para formatar rankings
   const formatRanking = (ranking?: string) => {
     if (!ranking || ranking === 'UNKNOWN') return 'Dados insuficientes';
-    return ranking;
+    
+    const translations: { [key: string]: string } = {
+      'ABOVE_AVERAGE': 'Acima da Média',
+      'AVERAGE': 'Média',
+      'BELOW_AVERAGE': 'Abaixo da Média',
+      'BELOW_AVERAGE_35': 'Bem Abaixo da Média (35%)',
+      'BELOW_AVERAGE_20': 'Muito Abaixo da Média (20%)',
+      'BELOW_AVERAGE_10': 'Extremamente Baixo (10%)',
+      'HIGH': 'Alto',
+      'MEDIUM': 'Médio',
+      'LOW': 'Baixo',
+      'ACTIVE': 'Ativo',
+      'PAUSED': 'Pausado',
+      'PENDING_REVIEW': 'Aguardando Revisão',
+      'DISAPPROVED': 'Reprovado',
+      'PREAPPROVED': 'Pré-aprovado',
+      'PENDING_BILLING_INFO': 'Aguardando Info de Pagamento',
+      'CAMPAIGN_PAUSED': 'Campanha Pausada',
+      'ARCHIVED': 'Arquivado'
+    };
+    
+    return translations[ranking] || ranking;
   };
 
   return (
