@@ -75,26 +75,29 @@ export function useEmployees() {
         throw new Error("Você não tem permissão para criar colaboradores. Apenas owners e admins podem realizar esta ação.");
       }
       
-      // 1. Verificar se o colaborador já existe na empresa atual
-      console.log("Verificando colaborador existente para email:", employeeData.email);
-      const { data: existingEmployee, error: searchError } = await supabase
+      // 1. Verificar se o colaborador já existe GLOBALMENTE (email é único em toda a plataforma)
+      console.log("Verificando se email já existe globalmente:", employeeData.email);
+      const { data: existingEmployeeGlobal, error: globalSearchError } = await supabase
         .from('employees')
-        .select('id, user_id, email')
+        .select('id, user_id, email, company_id')
         .eq('email', employeeData.email)
-        .eq('company_id', activeCompany.company_id)
         .maybeSingle();
 
-      if (searchError) {
-        console.error("Erro ao verificar colaborador existente:", searchError);
+      if (globalSearchError) {
+        console.error("Erro ao verificar colaborador globalmente:", globalSearchError);
         // Não falhar aqui, apenas avisar
       }
 
-      if (existingEmployee) {
-        console.log("Colaborador já existe:", existingEmployee);
-        throw new Error("Este email já está cadastrado como colaborador na empresa");
+      if (existingEmployeeGlobal) {
+        console.log("Email já existe globalmente:", existingEmployeeGlobal);
+        if (existingEmployeeGlobal.company_id === activeCompany.company_id) {
+          throw new Error("Este email já está cadastrado como colaborador na empresa");
+        } else {
+          throw new Error("Este email já está cadastrado como colaborador em outra empresa. Cada email pode ser usado apenas uma vez na plataforma.");
+        }
       }
 
-      console.log("Colaborador não existe na empresa, prosseguindo...");
+      console.log("Email disponível, prosseguindo...");
 
       let userId: string;
       let isNewUser = true;
