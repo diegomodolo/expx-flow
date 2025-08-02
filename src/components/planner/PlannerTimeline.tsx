@@ -359,6 +359,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
                 <FileText className="h-4 w-4 mr-2" />
                 Exportar
               </Button>
+              {/* Botão temporariamente oculto - funcionalidade mantida para futura implementação
               <Button
                 variant="outline"
                 size="sm"
@@ -368,6 +369,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
                 <Zap className="h-4 w-4 mr-2" />
                 Organizar com IA
               </Button>
+              */}
               <Button
                 variant="outline"
                 size="sm"
