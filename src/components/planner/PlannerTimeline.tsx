@@ -29,6 +29,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
   // Função para lidar com o fim do drag and drop
   const handleDragEnd = async (result: DropResult) => {
+    console.log('🎯 Drag End:', result);
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -36,10 +37,17 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     // Se moveu para o mesmo slot, não faz nada
     if (source.droppableId === destination.droppableId) return;
 
+    console.log('📦 Moving task from slot', source.droppableId, 'to slot', destination.droppableId);
+
     try {
       // Encontrar o slot de destino
       const targetSlot = timeSlots.find(slot => slot.id === destination.droppableId);
-      if (!targetSlot) return;
+      if (!targetSlot) {
+        console.error('❌ Target slot not found');
+        return;
+      }
+
+      console.log('🎯 Target slot:', targetSlot);
 
       // Calcular novo horário de início baseado no slot
       const [startHours, startMinutes] = targetSlot.start_time.split(':');
@@ -51,14 +59,20 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       const newDueDate = new Date(selectedDate);
       newDueDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
 
-      // Atualizar a tarefa com os novos horários
-      await updateTask(draggableId, { 
+      const updates = { 
         start_date: newStartDate.toISOString(),
         due_date: newDueDate.toISOString(),
         deadline: selectedDate.toISOString().split('T')[0]
-      });
+      };
+
+      console.log('🔄 Updating task with:', updates);
+
+      // Atualizar a tarefa com os novos horários
+      await updateTask(draggableId, updates);
+      
+      console.log('✅ Task updated successfully');
     } catch (error) {
-      console.error('Erro ao mover tarefa:', error);
+      console.error('❌ Erro ao mover tarefa:', error);
     }
   };
 

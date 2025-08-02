@@ -117,3 +117,19 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Estilos específicos para o drag and drop */
+.react-beautiful-dnd-dragging * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.react-beautiful-dnd-drag-handle {
+  touch-action: none;
+  user-select: none;
+}
+
+/* Remove transições durante o drag para melhor performance */
+[data-rbd-dragging-state="dragging"] * {
+  transition: none !important;
+}

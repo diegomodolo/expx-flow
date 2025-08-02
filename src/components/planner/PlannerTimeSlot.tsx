@@ -114,7 +114,11 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
-                        className={snapshot.isDragging ? 'opacity-50' : ''}
+                        className={`${snapshot.isDragging ? 'opacity-75 rotate-2 scale-105 shadow-lg z-50' : ''}`}
+                        style={{
+                          ...provided.draggableProps.style,
+                          transition: snapshot.isDragging ? 'none' : 'all 0.2s ease'
+                        }}
                       >
                         <PlannerTaskCard 
                           task={task} 

@@ -106,7 +106,9 @@ export function useTasks() {
       if (error) throw error;
     },
     onSuccess: () => {
+      console.log('🔄 Invalidating queries after task update');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-stats'] });
       toast({
         title: "Tarefa atualizada",
