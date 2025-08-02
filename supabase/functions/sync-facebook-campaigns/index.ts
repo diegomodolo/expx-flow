@@ -537,10 +537,12 @@ serve(async (req) => {
             try {
               console.log('Fetching ads for ad set:', adSet.id)
               const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec,call_to_action},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,actions,video_view_actions,video_p100_watched_actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+              console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
               const adsResponse = await fetch(adsUrl)
               
               if (adsResponse.ok) {
                 const adsData = await adsResponse.json()
+                console.log('Ads API response:', JSON.stringify(adsData))
                 const ads = adsData.data || []
                 console.log('Found', ads.length, 'ads for ad set:', adSet.name)
                 
