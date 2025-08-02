@@ -586,68 +586,6 @@ const NewDashboard = () => {
           </Card>
         </section>
 
-        {/* Seção 7 - Tendências */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Tendências (Últimos 30 dias)
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* CPL Médio */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Evolução do CPL Médio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Line type="monotone" dataKey="cpl" stroke="#8884d8" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Volume de Leads */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Volume de Leads</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="leads" stroke="#00C49F" fill="#00C49F" fillOpacity={0.6} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Investimento Total */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Investimento Total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Bar dataKey="investment" fill="#FFBB28" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
       </div>
 
       {/* Sync Dialog */}
