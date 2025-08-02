@@ -101,9 +101,10 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
               ) : (
                 tasks.map((task, index) => (
                   <Draggable
-                    key={task.id}
-                    draggableId={task.id}
+                    key={`planner-task-${task.id}`}
+                    draggableId={`planner-task-${task.id}`}
                     index={index}
+                    isDragDisabled={!task.id}
                   >
                     {(provided, snapshot) => (
                       <div

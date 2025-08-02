@@ -36,10 +36,13 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
     const { source, destination, draggableId } = result;
     
+    // Extrair o ID real da tarefa removendo o prefixo
+    const taskId = draggableId.replace('planner-task-', '');
+    
     // Se moveu para o mesmo slot, não faz nada
     if (source.droppableId === destination.droppableId) return;
 
-    console.log('📦 Moving task from slot', source.droppableId, 'to slot', destination.droppableId);
+    console.log('📦 Moving task', taskId, 'from slot', source.droppableId, 'to slot', destination.droppableId);
 
     try {
       // Encontrar o slot de destino
@@ -70,7 +73,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       console.log('🔄 Updating task with:', updates);
 
       // Atualizar a tarefa com os novos horários
-      await updateTask(draggableId, updates);
+      await updateTask(taskId, updates);
       
       console.log('✅ Task updated successfully');
     } catch (error) {
