@@ -411,7 +411,7 @@ const NewDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
+                <div className="space-y-3 max-h-80 overflow-y-auto">
                   {dangerAlerts.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">Nenhum problema detectado! 🎉</p>
                   ) : (
@@ -444,7 +444,7 @@ const NewDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
+                <div className="space-y-3 max-h-80 overflow-y-auto">
                   {opportunityAlerts.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">Nenhuma oportunidade detectada no momento.</p>
                   ) : (
