@@ -9,7 +9,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   ArrowLeft, 
   Edit, 
-  MessageSquare, 
   MoreHorizontal,
   Phone,
   Mail,
@@ -462,27 +461,25 @@ const ClienteDetalhes = () => {
                       <Mail className="w-4 h-4" />
                       <span>{client.email}</span>
                     </div>
-                    <div className="mt-2">
-                      <SyncStatusIndicator 
-                        lastSyncAt={client.last_sync_at} 
-                        lastSyncPeriod={client.last_sync_period}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Button>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-                <Button variant="outline">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Mensagem
-                </Button>
-                <Button variant="outline" size="icon">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
+              <div className="flex flex-col items-end space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Button>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex justify-end">
+                  <SyncStatusIndicator 
+                    lastSyncAt={client.last_sync_at} 
+                    lastSyncPeriod={client.last_sync_period}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
