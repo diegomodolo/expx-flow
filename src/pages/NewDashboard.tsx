@@ -398,38 +398,42 @@ const NewDashboard = () => {
             <Target className="w-5 h-5" />
             Performance por Etapas do Funil
           </h2>
-          <Card>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {funnelData.map((stage, index) => (
-                  <div key={stage.name} className="text-center">
-                    <div className="relative">
-                      <div 
-                        className="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-white font-bold text-lg"
-                        style={{ backgroundColor: stage.color }}
-                      >
-                        {stage.name === 'Alcance' && <Eye className="w-8 h-8" />}
-                        {stage.name === 'Leads' && <MousePointer className="w-8 h-8" />}
-                        {stage.name === 'Conversões' && <ShoppingCart className="w-8 h-8" />}
-                        {stage.name === 'Recompras' && <Repeat className="w-8 h-8" />}
-                      </div>
-                      {index < funnelData.length - 1 && (
-                        <ArrowDownRight className="absolute top-1/2 -right-8 w-6 h-6 text-gray-400 hidden md:block" />
-                      )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {funnelData.map((stage, index) => (
+              <Card key={stage.name} className="shadow-lg border-0 bg-white">
+                <CardContent className="p-8 text-center">
+                  {/* Ícone circular com fundo colorido */}
+                  <div 
+                    className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6"
+                    style={{ backgroundColor: `${stage.color}20` }}
+                  >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: stage.color }}>
+                      {stage.name === 'Alcance' && <Eye className="w-6 h-6 text-white" />}
+                      {stage.name === 'Leads' && <MousePointer className="w-6 h-6 text-white" />}
+                      {stage.name === 'Conversões' && <ShoppingCart className="w-6 h-6 text-white" />}
+                      {stage.name === 'Recompras' && <Repeat className="w-6 h-6 text-white" />}
                     </div>
-                    <h3 className="font-semibold mt-4">{stage.name}</h3>
-                    <p className="text-2xl font-bold text-gray-900">{stage.value.toLocaleString()}</p>
-                    {stage.name === 'Leads' && funnelMetrics && (
-                      <p className="text-sm text-gray-600">CPL: {formatCurrency(funnelMetrics.cpl)}</p>
-                    )}
-                    {stage.name === 'Conversões' && funnelMetrics && (
-                      <p className="text-sm text-gray-600">CPA: {formatCurrency(funnelMetrics.cpa)}</p>
-                    )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  
+                  {/* Título */}
+                  <h3 className="text-lg font-medium text-gray-600 mb-3">{stage.name}</h3>
+                  
+                  {/* Valor principal */}
+                  <p className="text-4xl font-bold text-gray-900 mb-2">
+                    {stage.value.toLocaleString()}
+                  </p>
+                  
+                  {/* Métricas adicionais */}
+                  {stage.name === 'Leads' && funnelMetrics && (
+                    <p className="text-sm text-gray-500">CPL: {formatCurrency(funnelMetrics.cpl)}</p>
+                  )}
+                  {stage.name === 'Conversões' && funnelMetrics && (
+                    <p className="text-sm text-gray-500">CPA: {formatCurrency(funnelMetrics.cpa)}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </section>
 
         {/* Seção 4 - Alertas & Oportunidades */}
