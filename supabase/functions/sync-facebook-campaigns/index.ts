@@ -374,6 +374,7 @@ serve(async (req) => {
         ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
         
         console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
+        console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
         
         // Count leads from actions
         if (insights.actions) {
