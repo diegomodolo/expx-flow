@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, TrendingDown, Target, Users } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useCampaigns } from "@/hooks/useCampaigns";
-import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { TaskSuggestionsModal } from "@/components/clients/TaskSuggestionsModal";
 
 interface CriticalClient {
   id: string;
@@ -27,8 +27,9 @@ interface CriticalClient {
 export default function RelatorioClientesZonaCritica() {
   const { clients, loading: clientsLoading } = useClients();
   const { campaigns, loading: campaignsLoading } = useCampaigns();
-  const { convertAlertToTask } = useTaskAutomation();
   const [criticalClients, setCriticalClients] = useState<CriticalClient[]>([]);
+  const [selectedClient, setSelectedClient] = useState<CriticalClient | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!clientsLoading && !campaignsLoading && clients && campaigns) {
@@ -176,14 +177,8 @@ export default function RelatorioClientesZonaCritica() {
   };
 
   const handleCreateTask = (client: CriticalClient) => {
-    const alertData = {
-      type: client.status === 'critical' ? 'danger' : 'warning',
-      description: `Cliente em zona ${client.status}: ${client.issues.join(', ')}`,
-      client_id: client.id,
-      id: `critical_client_${client.id}`
-    };
-
-    convertAlertToTask(alertData);
+    setSelectedClient(client);
+    setIsModalOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -374,6 +369,18 @@ export default function RelatorioClientesZonaCritica() {
           )}
         </div>
       </div>
+
+      {/* Modal de Sugestões */}
+      {selectedClient && (
+        <TaskSuggestionsModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedClient(null);
+          }}
+          client={selectedClient}
+        />
+      )}
     </ReportLayout>
   );
 }
