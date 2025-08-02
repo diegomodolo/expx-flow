@@ -6,21 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, Circle, Clock, AlertTriangle, Target, Timer, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlannerDailyTask } from "@/hooks/usePlannerTasks";
+import { Task } from "@/hooks/useTasks";
 import { useTasks } from "@/hooks/useTasks";
-import { usePlannerTasks } from "@/hooks/usePlannerTasks";
 
 interface PlannerTaskCardProps {
-  task: PlannerDailyTask;
+  task: Task;
   onEdit?: (task: any) => void;
   onDelete?: (taskId: string) => void;
 }
 
 export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, onDelete }) => {
-  const { updateTaskStatus } = useTasks();
-  const { removeTaskFromPlanner } = usePlannerTasks(new Date(task.planned_date));
-  
-  if (!task.tasks) return null;
+  const { updateTaskStatus, deleteTask } = useTasks();
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -48,22 +44,23 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
   };
 
   const handleStatusToggle = async () => {
-    const nextStatus = task.tasks.status === 'done' ? 'todo' : 'done';
-    await updateTaskStatus(task.tasks.id, nextStatus);
+    const nextStatus = task.status === 'done' ? 'todo' : 'done';
+    await updateTaskStatus(task.id, nextStatus);
   };
 
   const handleEdit = () => {
-    if (onEdit && task.tasks) {
-      onEdit(task.tasks);
+    if (onEdit) {
+      onEdit(task);
     }
   };
 
   const handleDelete = async () => {
-    if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
-      if (onDelete && task.tasks) {
-        await onDelete(task.tasks.id);
-        // Também remove do planner
-        await removeTaskFromPlanner(task.id);
+    if (window.confirm('Tem certeza que deseja excluir esta tarefa?')) {
+      try {
+        await deleteTask(task.id);
+        onDelete?.(task.id);
+      } catch (error) {
+        console.error('Erro ao excluir tarefa:', error);
       }
     }
   };
@@ -78,56 +75,56 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
             className="p-0 h-auto"
             onClick={handleStatusToggle}
           >
-            {getStatusIcon(task.tasks.status)}
+            {getStatusIcon(task.status)}
           </Button>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm truncate">{task.tasks.title}</h4>
-              {task.tasks.start_date && (
+              <h4 className="font-medium text-sm truncate">{task.title}</h4>
+              {task.start_date && (
                 <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded" title="Horário específico">
                   <Timer className="h-3 w-3" />
-                  {format(new Date(task.tasks.start_date), 'HH:mm')}
+                  {format(new Date(task.start_date), 'HH:mm')}
                 </div>
               )}
-              {getOriginIcon(task.tasks.origin) && (
-                <div title="Tarefa automática">{getOriginIcon(task.tasks.origin)}</div>
+              {getOriginIcon(task.origin) && (
+                <div title="Tarefa automática">{getOriginIcon(task.origin)}</div>
               )}
             </div>
             
-            {task.tasks.description && (
+            {task.description && (
               <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                {task.tasks.description}
+                {task.description}
               </p>
             )}
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Badge 
-                  variant={getPriorityColor(task.tasks.priority)}
+                  variant={getPriorityColor(task.priority)}
                   className="text-xs"
                 >
-                  {task.tasks.priority === 'high' ? 'Alta' : 
-                   task.tasks.priority === 'medium' ? 'Média' : 'Baixa'}
+                  {task.priority === 'high' ? 'Alta' : 
+                   task.priority === 'medium' ? 'Média' : 'Baixa'}
                 </Badge>
                 
-                {task.tasks.progress > 0 && (
+                {task.progress > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    {task.tasks.progress}%
+                    {task.progress}%
                   </span>
                 )}
               </div>
               
-              {task.tasks.responsible_name && (
+              {task.responsible_name && (
                 <div className="flex items-center gap-1">
                   <Avatar className="h-5 w-5">
-                    <AvatarImage src={task.tasks.responsible_avatar} />
+                    <AvatarImage src={task.responsible_avatar} />
                     <AvatarFallback className="text-xs">
-                      {task.tasks.responsible_name.split(' ').map(n => n[0]).join('')}
+                      {task.responsible_name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-xs text-muted-foreground truncate max-w-[60px]">
-                    {task.tasks.responsible_name.split(' ')[0]}
+                    {task.responsible_name.split(' ')[0]}
                   </span>
                 </div>
               )}

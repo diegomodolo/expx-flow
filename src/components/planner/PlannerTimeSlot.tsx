@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Plus, Settings } from "lucide-react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { PlannerTimeSlot as TimeSlot } from "@/hooks/usePlannerSlots";
-import { PlannerDailyTask } from "@/hooks/usePlannerTasks";
+import { Task } from "@/hooks/useTasks";
 import { PlannerTaskCard } from "./PlannerTaskCard";
 
 interface PlannerTimeSlotProps {
   slot: TimeSlot;
-  tasks: PlannerDailyTask[];
+  tasks: Task[];
   onAddTask: () => void;
   onEditTask?: (task: any) => void;
   onDeleteTask?: (taskId: string) => void;
@@ -38,7 +38,7 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
   };
 
   const getPriorityCount = (priority: string) => {
-    return tasks.filter(task => task.tasks?.priority === priority).length;
+    return tasks.filter(task => task.priority === priority).length;
   };
 
   return (
@@ -103,10 +103,10 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
                   <p className="text-sm">Nenhuma tarefa neste período</p>
                 </div>
               ) : (
-                tasks.map((plannerTask, index) => (
+                tasks.map((task, index) => (
                   <Draggable
-                    key={plannerTask.task_id}
-                    draggableId={plannerTask.task_id}
+                    key={task.id}
+                    draggableId={task.id}
                     index={index}
                   >
                     {(provided, snapshot) => (
@@ -117,7 +117,7 @@ export const PlannerTimeSlot: React.FC<PlannerTimeSlotProps> = ({
                         className={snapshot.isDragging ? 'opacity-50' : ''}
                       >
                         <PlannerTaskCard 
-                          task={plannerTask} 
+                          task={task} 
                           onEdit={onEditTask}
                           onDelete={onDeleteTask}
                         />

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Plus, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { usePlannerSlots } from "@/hooks/usePlannerSlots";
 import { usePlannerTasks } from "@/hooks/usePlannerTasks";
 import { PlannerTimeSlot } from "./PlannerTimeSlot";
@@ -21,20 +21,35 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   onDateChange 
 }) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
-  const { plannerTasks, moveTask, getTasksBySlot } = usePlannerTasks(selectedDate);
+  const { tasks, getTasksBySlot, loading: plannerLoading } = usePlannerTasks(selectedDate);
   const { createTask, updateTask, deleteTask } = useTasks();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [editingTask, setEditingTask] = useState<any>(null);
 
-  const handleDragEnd = (result: any) => {
+  // Função para lidar com o fim do drag and drop
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
-    const { draggableId, destination } = result;
-    const plannerTask = plannerTasks.find(pt => pt.task_id === draggableId);
+    const { source, destination, draggableId } = result;
     
-    if (plannerTask && destination.droppableId !== plannerTask.time_slot_id) {
-      moveTask(plannerTask.id, destination.droppableId);
+    // Se moveu para o mesmo slot, não faz nada
+    if (source.droppableId === destination.droppableId) return;
+
+    try {
+      // Encontrar o slot de destino
+      const targetSlot = timeSlots.find(slot => slot.id === destination.droppableId);
+      if (!targetSlot) return;
+
+      // Calcular novo horário baseado no slot
+      const [hours, minutes] = targetSlot.start_time.split(':');
+      const newStartDate = new Date(selectedDate);
+      newStartDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      // Atualizar a tarefa com o novo horário
+      await updateTask(draggableId, { start_date: newStartDate.toISOString() });
+    } catch (error) {
+      console.error('Erro ao mover tarefa:', error);
     }
   };
 
@@ -43,10 +58,21 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
       if (editingTask) {
         await updateTask(editingTask.id, taskData);
       } else {
+        // Se tem slot selecionado, configurar horário baseado no slot
+        if (selectedSlotId) {
+          const slot = timeSlots.find(s => s.id === selectedSlotId);
+          if (slot && !taskData.start_date) {
+            const [hours, minutes] = slot.start_time.split(':');
+            const startDate = new Date(selectedDate);
+            startDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            taskData.start_date = startDate.toISOString();
+          }
+        }
         await createTask(taskData);
       }
       setTaskDialogOpen(false);
       setEditingTask(null);
+      setSelectedSlotId("");
     } catch (error) {
       console.error("Error saving task:", error);
     }
@@ -76,7 +102,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
     console.log("Exportar resumo do dia");
   };
 
-  if (slotsLoading) {
+  if (slotsLoading || plannerLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-muted-foreground">Carregando planner...</div>
@@ -134,7 +160,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
             <PlannerTimeSlot
               key={slot.id}
               slot={slot}
-              tasks={getTasksBySlot(slot.id)}
+              tasks={getTasksBySlot(slot)}
               onAddTask={() => handleAddTask(slot.id)}
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}
@@ -150,6 +176,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
           setTaskDialogOpen(open);
           if (!open) {
             setEditingTask(null);
+            setSelectedSlotId("");
           }
         }}
         task={editingTask}

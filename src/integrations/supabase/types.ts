@@ -947,58 +947,6 @@ export type Database = {
           },
         ]
       }
-      planner_daily_tasks: {
-        Row: {
-          company_id: string
-          created_at: string
-          id: string
-          planned_date: string
-          task_id: string
-          time_slot_id: string
-          updated_at: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          id?: string
-          planned_date: string
-          task_id: string
-          time_slot_id: string
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          id?: string
-          planned_date?: string
-          task_id?: string
-          time_slot_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_planner_daily_tasks_company_id"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_planner_daily_tasks_task_id"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_planner_daily_tasks_time_slot_id"
-            columns: ["time_slot_id"]
-            isOneToOne: false
-            referencedRelation: "planner_time_slots"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       planner_time_slots: {
         Row: {
           company_id: string
@@ -1326,10 +1274,6 @@ export type Database = {
           _related_client_id?: string
           _alert_id?: string
         }
-        Returns: string
-      }
-      find_time_slot_for_start_date: {
-        Args: { _company_id: string; _start_date: string }
         Returns: string
       }
       get_user_company_ids: {
