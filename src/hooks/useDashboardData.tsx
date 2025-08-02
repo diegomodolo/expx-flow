@@ -155,8 +155,16 @@ export const useDashboardData = () => {
       // Calcular métricas do funil
       const processedFunnel = calculateFunnelMetrics(currentPeriodCampaigns || []);
 
-      // Gerar alertas
-      const generatedAlerts = generateAlerts(processedClients, processedCampaigns);
+      // Buscar tarefas não concluídas relacionadas a campanhas
+      const { data: activeTasks } = await supabase
+        .from('tasks')
+        .select('related_campaign_id')
+        .eq('company_id', activeCompany.company_id)
+        .neq('status', 'done')
+        .not('related_campaign_id', 'is', null);
+
+      // Gerar alertas (excluindo campanhas com tarefas ativas)
+      const generatedAlerts = generateAlerts(processedClients, processedCampaigns, activeTasks || []);
 
       // Processar tendências
       const processedTrends = processTrendsData(trendsData || []);
@@ -262,14 +270,23 @@ export const useDashboardData = () => {
   };
 
   // Função para gerar alertas
-  const generateAlerts = (clients: ClientPerformance[], campaigns: CampaignRanking[]): Alert[] => {
+  const generateAlerts = (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = []): Alert[] => {
     const alerts: Alert[] = [];
 
-    // Filtrar apenas campanhas ativas
-    const activeCampaigns = campaigns.filter(campaign => campaign.status === 'active');
+    // Extrair IDs de campanhas que já possuem tarefas ativas
+    const campaignsWithActiveTasks = new Set(
+      activeTasks
+        .filter(task => task.related_campaign_id)
+        .map(task => task.related_campaign_id)
+    );
+
+    // Filtrar apenas campanhas ativas E que não tenham tarefas ativas
+    const availableCampaigns = campaigns.filter(campaign => 
+      campaign.status === 'active' && !campaignsWithActiveTasks.has(campaign.id)
+    );
 
     // Alertas de problemas (vermelhos) - Campanhas com problemas
-    activeCampaigns.forEach(campaign => {
+    availableCampaigns.forEach(campaign => {
       if (campaign.cpa > 50) {
         alerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
@@ -297,30 +314,30 @@ export const useDashboardData = () => {
       }
     });
 
-    // Alertas de problemas por cliente (baseado apenas em campanhas ativas)
+    // Alertas de problemas por cliente (baseado apenas em campanhas disponíveis)
     clients.forEach(client => {
-      // Calcular CPA médio apenas de campanhas ativas do cliente
-      const clientActiveCampaigns = activeCampaigns.filter(campaign => campaign.client_name === client.name);
+      // Calcular CPA médio apenas de campanhas disponíveis do cliente
+      const clientAvailableCampaigns = availableCampaigns.filter(campaign => campaign.client_name === client.name);
       
-      if (clientActiveCampaigns.length > 0) {
-        const activeCPA = clientActiveCampaigns.reduce((sum, campaign) => sum + campaign.cpa, 0) / clientActiveCampaigns.length;
+      if (clientAvailableCampaigns.length > 0) {
+        const availableCPA = clientAvailableCampaigns.reduce((sum, campaign) => sum + campaign.cpa, 0) / clientAvailableCampaigns.length;
         
-        if (activeCPA > 50) {
+        if (availableCPA > 50) {
           alerts.push({
             id: `high-cpa-client-${client.id}`,
             type: 'danger',
             title: 'CPA Alto - Cliente',
-            description: `Cliente ${client.name} com CPA médio de R$ ${activeCPA.toFixed(2)} em campanhas ativas`,
+            description: `Cliente ${client.name} com CPA médio de R$ ${availableCPA.toFixed(2)} em campanhas sem tarefas pendentes`,
             metric: 'CPA',
-            value: `R$ ${activeCPA.toFixed(2)}`,
+            value: `R$ ${availableCPA.toFixed(2)}`,
             client: client.name,
           });
         }
       }
     });
 
-    // Alertas de oportunidades (verdes) - Apenas campanhas ativas
-    activeCampaigns.forEach(campaign => {
+    // Alertas de oportunidades (verdes) - Apenas campanhas disponíveis
+    availableCampaigns.forEach(campaign => {
       if (campaign.cpa < 20 && campaign.conversions > 5) {
         alerts.push({
           id: `low-cpa-${campaign.id}`,
