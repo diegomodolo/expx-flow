@@ -61,3 +61,6 @@ verify_jwt = true
 
 [functions.add-existing-user]
 verify_jwt = true
+
+[functions.generate-campaign-analysis]
+verify_jwt = true
