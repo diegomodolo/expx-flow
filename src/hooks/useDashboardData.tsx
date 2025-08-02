@@ -55,6 +55,7 @@ interface TrendData {
 }
 
 export const useDashboardData = () => {
+  console.log('useDashboardData hook called');
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [clientsPerformance, setClientsPerformance] = useState<ClientPerformance[]>([]);
   const [campaignRankings, setCampaignRankings] = useState<CampaignRanking[]>([]);
