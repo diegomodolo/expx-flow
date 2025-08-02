@@ -84,9 +84,9 @@ export function TaskList({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }
               {/* Header com avatar e título */}
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10 flex-shrink-0">
-                  {task.responsible_name && task.responsible_avatar && (
+                  {task.responsible_name && (task.responsible_avatar || task.user_profile?.avatar_url) && (
                     <AvatarImage 
-                      src={task.responsible_avatar} 
+                      src={task.responsible_avatar || task.user_profile?.avatar_url || ''} 
                       alt={task.responsible_name}
                     />
                   )}
