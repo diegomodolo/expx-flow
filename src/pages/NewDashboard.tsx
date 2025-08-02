@@ -689,14 +689,10 @@ export default function NewDashboard() {
                           {alert.client || 'Cliente não informado'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">
-                        Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
-                      </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <p className="text-xs text-gray-600">{alert.recommendation}</p>
-                        </div>
+                        <p className="text-sm text-gray-700">
+                          Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}% • {alert.recommendation}
+                        </p>
                         <Button 
                           size="sm"
                           onClick={() => handleConvertActionToTask(alert)}
@@ -730,14 +726,10 @@ export default function NewDashboard() {
                           {alert.client || 'Cliente não informado'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">
-                        Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
-                      </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-3 h-3 text-red-500" />
-                          <p className="text-xs text-gray-600">{alert.recommendation}</p>
-                        </div>
+                        <p className="text-sm text-gray-700">
+                          Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'} • {alert.recommendation}
+                        </p>
                         <Button 
                           size="sm"
                           onClick={() => handleConvertActionToTask(alert)}
