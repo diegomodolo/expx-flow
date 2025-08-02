@@ -56,11 +56,11 @@ export const useEmployees = () => {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
+      // Buscar employees primeiro
+      const { data: employeesData, error: employeesError } = await supabase
         .from("employees")
         .select(`
           *,
-          profiles!user_id(avatar_url),
           team:teams (
             id,
             name,
@@ -70,13 +70,33 @@ export const useEmployees = () => {
         .eq("company_id", activeCompany.company_id)
         .order("name");
 
-      if (error) throw error;
+      if (employeesError) throw employeesError;
 
-      // Mapear os dados para incluir o profile_avatar_url no nível raiz
-      const mappedData = data?.map((employee: any) => ({
-        ...employee,
-        profile_avatar_url: employee.profiles?.avatar_url || null
-      })) || [];
+      // Se não há employees, retornar array vazio
+      if (!employeesData || employeesData.length === 0) {
+        setEmployees([]);
+        return;
+      }
+
+      // Buscar profiles dos user_ids dos employees
+      const userIds = employeesData.map(emp => emp.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, avatar_url")
+        .in("user_id", userIds);
+
+      if (profilesError) {
+        console.warn("Error fetching profiles:", profilesError);
+      }
+
+      // Mapear os dados combinando employees com profiles
+      const mappedData = employeesData.map((employee: any) => {
+        const profile = profilesData?.find(p => p.user_id === employee.user_id);
+        return {
+          ...employee,
+          profile_avatar_url: profile?.avatar_url || null
+        };
+      });
 
       setEmployees(mappedData);
     } catch (error: any) {
