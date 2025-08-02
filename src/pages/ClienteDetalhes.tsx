@@ -38,6 +38,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
+import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,6 +61,8 @@ const ClienteDetalhes = () => {
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
   const [selectedAdSet, setSelectedAdSet] = useState(null);
   const [adSetMetricsModalOpen, setAdSetMetricsModalOpen] = useState(false);
+  const [selectedAd, setSelectedAd] = useState(null);
+  const [adCreativeMetricsModalOpen, setAdCreativeMetricsModalOpen] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -343,6 +346,11 @@ const ClienteDetalhes = () => {
   const handleViewAdSetMetrics = (adSet: any) => {
     setSelectedAdSet(adSet);
     setAdSetMetricsModalOpen(true);
+  };
+
+  const handleViewAdCreativeMetrics = (ad: any) => {
+    setSelectedAd(ad);
+    setAdCreativeMetricsModalOpen(true);
   };
   
   
@@ -1162,13 +1170,16 @@ const ClienteDetalhes = () => {
                              <ChevronDown className={`w-3 h-3 ${adSortDirection === 'desc' ? 'rotate-180' : ''}`} />
                            )}
                          </div>
-                       </th>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Ações
+                        </th>
                      </tr>
                    </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
                      {adsLoading ? (
                        <tr>
-                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                            <p>Carregando criativos...</p>
                          </td>
@@ -1207,14 +1218,25 @@ const ClienteDetalhes = () => {
                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                              R$ {ad.cpc.toFixed(2)}
                            </td>
-                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                             {ad.conversions}
-                           </td>
-                         </tr>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {ad.conversions}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewAdCreativeMetrics(ad)}
+                                className="flex items-center space-x-1"
+                              >
+                                <BarChart3 className="w-3 h-3" />
+                                <span>Ver Indicadores</span>
+                              </Button>
+                            </td>
+                          </tr>
                        ))
                      ) : (
                        <tr>
-                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                         <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                            <div>
                              <p className="mb-2">Nenhum criativo encontrado</p>
                              <p className="text-sm">Os dados dos criativos aparecerão aqui após a sincronização com o Facebook</p>
@@ -1355,6 +1377,13 @@ const ClienteDetalhes = () => {
           adSet={selectedAdSet}
           isOpen={adSetMetricsModalOpen}
           onClose={() => setAdSetMetricsModalOpen(false)}
+        />
+
+        {/* Ad Creative Metrics Modal */}
+        <AdCreativeMetricsModal
+          ad={selectedAd}
+          isOpen={adCreativeMetricsModalOpen}
+          onClose={() => setAdCreativeMetricsModalOpen(false)}
         />
       </div>
     </DashboardLayout>
