@@ -266,10 +266,14 @@ serve(async (req) => {
     if (!campaignsResponse.ok) {
       const errorText = await campaignsResponse.text()
       console.error('Facebook API error response:', errorText)
+      console.error('Facebook API status:', campaignsResponse.status)
+      console.error('Facebook API statusText:', campaignsResponse.statusText)
+      console.error('Period used:', period)
+      console.error('Date param used:', dateParam)
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Failed to fetch campaigns from Facebook' 
+          error: `Failed to fetch campaigns from Facebook. Status: ${campaignsResponse.status}. Error: ${errorText}` 
         }),
         { 
           status: 400, 
