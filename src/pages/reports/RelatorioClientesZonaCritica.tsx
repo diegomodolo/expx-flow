@@ -279,11 +279,11 @@ export default function RelatorioClientesZonaCritica() {
               const StatusIcon = getStatusIcon(client.status);
               
               return (
-                <Card key={client.id} className="border-l-4 border-l-destructive">
+                <Card key={client.id} className={`border-l-4 ${client.status === 'critical' ? 'border-l-destructive' : 'border-l-warning'}`}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <StatusIcon className="w-5 h-5 text-destructive" />
+                        <StatusIcon className={`w-5 h-5 ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`} />
                         <div>
                           <CardTitle className="text-lg">{client.name}</CardTitle>
                           <Badge className={getStatusColor(client.status)}>
@@ -302,81 +302,81 @@ export default function RelatorioClientesZonaCritica() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Problemas Identificados */}
-                    <div>
-                      <h4 className="font-semibold mb-2 text-destructive">Problemas Identificados:</h4>
-                      <ul className="space-y-1">
-                        {client.issues.map((issue, index) => (
-                          <li key={index} className="flex items-center gap-2 text-sm">
-                            <AlertTriangle className="w-4 h-4 text-destructive" />
-                            {issue}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                     {/* Problemas Identificados */}
+                     <div>
+                       <h4 className={`font-semibold mb-2 ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>Problemas Identificados:</h4>
+                       <ul className="space-y-1">
+                         {client.issues.map((issue, index) => (
+                           <li key={index} className="flex items-center gap-2 text-sm">
+                             <AlertTriangle className={`w-4 h-4 ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`} />
+                             {issue}
+                           </li>
+                         ))}
+                       </ul>
+                     </div>
 
-                    {/* Campanhas Problemáticas */}
-                    {client.problematic_campaigns.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-2">Campanhas Responsáveis:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {client.problematic_campaigns.map((campaign, index) => (
-                            <Badge key={index} variant="secondary">
-                              {campaign}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                     {/* Campanhas Problemáticas */}
+                     {client.problematic_campaigns.length > 0 && (
+                       <div>
+                         <h4 className="font-semibold mb-2">Campanhas Responsáveis:</h4>
+                         <div className="flex flex-wrap gap-2">
+                           {client.problematic_campaigns.map((campaign, index) => (
+                             <Badge key={index} variant="secondary">
+                               {campaign}
+                             </Badge>
+                           ))}
+                         </div>
+                       </div>
+                     )}
 
-                    {/* Recomendações da IA */}
-                    <div>
-                      <h4 className="font-semibold mb-2 text-primary">Recomendações da IA:</h4>
-                      <ul className="space-y-1">
-                        {client.ai_recommendations.map((recommendation, index) => (
-                          <li key={index} className="flex items-start gap-2 text-sm">
-                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                            {recommendation}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                     {/* Recomendações da IA */}
+                     <div>
+                       <h4 className="font-semibold mb-2 text-primary">Recomendações da IA:</h4>
+                       <ul className="space-y-1">
+                         {client.ai_recommendations.map((recommendation, index) => (
+                           <li key={index} className="flex items-start gap-2 text-sm">
+                             <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                             {recommendation}
+                           </li>
+                         ))}
+                       </ul>
+                     </div>
 
-                    {/* Métricas Detalhadas */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
-                          R$ {client.cpl_current.toFixed(0)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          CPL (Meta: R$ {client.cpl_target})
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
-                          {client.ctr.toFixed(2)}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          CTR (Min: 1%)
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
-                          {client.frequency.toFixed(1)}x
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Frequência (Max: 5x)
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
-                          {((client.cpa_current > 0 ? client.cpa_current : client.cpl_current * 3) / client.cpl_current * 100).toFixed(1)}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Taxa Conversão
-                        </div>
-                      </div>
-                    </div>
+                     {/* Métricas Detalhadas */}
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                       <div className="text-center">
+                         <div className={`text-2xl font-bold ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>
+                           R$ {client.cpl_current.toFixed(0)}
+                         </div>
+                         <div className="text-xs text-muted-foreground">
+                           CPL (Meta: R$ {client.cpl_target})
+                         </div>
+                       </div>
+                       <div className="text-center">
+                         <div className={`text-2xl font-bold ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>
+                           {client.ctr.toFixed(2)}%
+                         </div>
+                         <div className="text-xs text-muted-foreground">
+                           CTR (Min: 1%)
+                         </div>
+                       </div>
+                       <div className="text-center">
+                         <div className={`text-2xl font-bold ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>
+                           {client.frequency.toFixed(1)}x
+                         </div>
+                         <div className="text-xs text-muted-foreground">
+                           Frequência (Max: 5x)
+                         </div>
+                       </div>
+                       <div className="text-center">
+                         <div className={`text-2xl font-bold ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>
+                           {((client.cpa_current > 0 ? client.cpa_current : client.cpl_current * 3) / client.cpl_current * 100).toFixed(1)}%
+                         </div>
+                         <div className="text-xs text-muted-foreground">
+                           Taxa Conversão
+                         </div>
+                       </div>
+                     </div>
                   </CardContent>
                 </Card>
               );
