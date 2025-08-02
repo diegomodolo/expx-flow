@@ -697,7 +697,7 @@ const ClienteDetalhes = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 lg:space-y-6 px-4 sm:px-6 lg:px-0">
+      <div className="space-y-4 lg:space-y-6 px-2 sm:px-4 lg:px-0 max-w-full overflow-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
@@ -780,7 +780,7 @@ const ClienteDetalhes = () => {
         )}
 
         {/* Performance Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 sm:gap-4">
           {/* Funnel Completeness Score Card */}
           <Card>
             <CardContent className="p-6">
