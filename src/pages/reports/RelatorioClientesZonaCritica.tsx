@@ -42,6 +42,7 @@ export default function RelatorioClientesZonaCritica() {
     const critical: CriticalClient[] = [];
 
     clients?.forEach(client => {
+      // IMPORTANTE: Filtrar apenas campanhas ATIVAS para cálculo das métricas
       const clientCampaigns = campaigns?.filter(c => c.client_id === client.id && c.status === 'active') || [];
       const issues: string[] = [];
       const problematicCampaigns: string[] = [];
@@ -70,20 +71,19 @@ export default function RelatorioClientesZonaCritica() {
         return; // Pular análise de métricas para clientes sem campanhas
       }
       
-      // Calcular métricas agregadas do cliente (apenas para clientes com campanhas ativas)
+      // ===== CÁLCULO DAS MÉTRICAS APENAS COM CAMPANHAS ATIVAS =====
       const totalSpend = clientCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
       const totalConversions = clientCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
       const totalClicks = clientCampaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
       const totalImpressions = clientCampaigns.reduce((sum, c) => sum + (c.impressions || 0), 0);
       const totalReach = clientCampaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
       
+      // Calcular métricas agregadas do cliente (APENAS campanhas ativas)
       const avgCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
-      const avgCPL = totalClicks > 0 ? totalSpend / totalClicks : 0;
-      const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-      // Corrigir cálculo de frequência: impressions / reach (não clicks)
-      const avgFrequency = totalReach > 0 ? totalImpressions / totalReach : 0;
-      // Calcular CPC médio: gasto total / cliques totais
-      const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
+      const avgCPL = totalClicks > 0 ? totalSpend / totalClicks : 0; // CPL = Custo por Lead/Click
+      const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0; // CTR em %
+      const avgFrequency = totalReach > 0 ? totalImpressions / totalReach : 0; // Frequência = Impressões / Alcance
+      const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0; // CPC = Custo por Clique (mesmo que CPL)
 
       // Definir targets baseados em benchmarks da indústria
       const cplTarget = 50; // R$ 50 por lead (benchmark padrão)
