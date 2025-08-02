@@ -55,23 +55,22 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
         <div className="space-y-3">
           {/* Header com avatar e título */}
           <div className="flex items-start gap-3">
-            {task.responsible_avatar ? (
-              <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarImage 
-                  src={task.responsible_avatar} 
-                  alt={task.responsible_name || 'Responsável'}
-                />
-                <AvatarFallback className="text-sm bg-primary/10 font-medium">
-                  {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-medium text-primary">
-                  {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
-                </span>
-              </div>
-            )}
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarImage 
+                src={task.responsible_avatar || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face`} 
+                alt={task.responsible_name || 'Responsável'}
+                onError={(e) => {
+                  console.log('🖼️ Erro ao carregar avatar:', task.responsible_avatar);
+                  console.log('📝 Task responsável:', task.responsible_name);
+                }}
+                onLoad={() => {
+                  console.log('✅ Avatar carregado com sucesso:', task.responsible_avatar);
+                }}
+              />
+              <AvatarFallback className="text-sm bg-primary/10 font-medium text-primary">
+                {task.responsible_name?.split(' ').map(n => n[0]).join('') || 'T'}
+              </AvatarFallback>
+            </Avatar>
             
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
