@@ -1,6 +1,8 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ReportCard } from "@/components/reports/ReportCard";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { 
   TrendingUp, 
   Target, 
@@ -11,13 +13,15 @@ import {
   Trophy, 
   UserCheck, 
   AlertTriangle,
-  Lightbulb
+  Lightbulb,
+  Search
 } from "lucide-react";
 
 const Relatorios = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const strategicReports = [
+  const allReports = [
     {
       title: "Relatório Executivo",
       description: "Investimento vs Leads, CPL médio, ROI e principais oportunidades",
@@ -57,10 +61,7 @@ const Relatorios = () => {
       href: "/relatorios/oportunidades",
       iconColor: "#FFFFFF",
       iconBg: "hsl(45, 93%, 47%)"
-    }
-  ];
-
-  const operationalReports = [
+    },
     {
       title: "Performance por Cliente",
       description: "KPIs, comparativos mensais e histórico de otimizações",
@@ -87,10 +88,7 @@ const Relatorios = () => {
       href: "/relatorios/tarefas-planner",
       iconColor: "#FFFFFF",
       iconBg: "hsl(142, 76%, 36%)"
-    }
-  ];
-
-  const teamReports = [
+    },
     {
       title: "Produtividade de Squads",
       description: "Volume de tarefas, eficiência e carga de trabalho distribuída",
@@ -108,10 +106,7 @@ const Relatorios = () => {
       href: "/relatorios/rh-colaboradores",
       iconColor: "#FFFFFF",
       iconBg: "hsl(204, 94%, 44%)"
-    }
-  ];
-
-  const alertReports = [
+    },
     {
       title: "Alertas Críticos",
       description: "Clientes em alerta, motivos e ações recomendadas pela IA",
@@ -124,6 +119,11 @@ const Relatorios = () => {
     }
   ];
 
+  const filteredReports = allReports.filter(report =>
+    report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    report.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-8">
@@ -135,61 +135,35 @@ const Relatorios = () => {
           </p>
         </div>
 
-        {/* Strategic Reports */}
-        <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">📊 Relatórios Estratégicos</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {strategicReports.map((report) => (
-              <ReportCard
-                key={report.href}
-                {...report}
-                onClick={() => navigate(report.href)}
-              />
-            ))}
-          </div>
-        </section>
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Pesquisar relatórios..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
 
-        {/* Operational Reports */}
-        <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">📈 Relatórios Operacionais</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {operationalReports.map((report) => (
-              <ReportCard
-                key={report.href}
-                {...report}
-                onClick={() => navigate(report.href)}
-              />
-            ))}
-          </div>
-        </section>
+        {/* Reports Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredReports.map((report) => (
+            <ReportCard
+              key={report.href}
+              {...report}
+              onClick={() => navigate(report.href)}
+            />
+          ))}
+        </div>
 
-        {/* Team Reports */}
-        <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">👥 Relatórios de Equipe e Squads</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {teamReports.map((report) => (
-              <ReportCard
-                key={report.href}
-                {...report}
-                onClick={() => navigate(report.href)}
-              />
-            ))}
+        {filteredReports.length === 0 && searchTerm && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              Nenhum relatório encontrado para "{searchTerm}"
+            </p>
           </div>
-        </section>
-
-        {/* Alert Reports */}
-        <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">🚨 Relatórios de Alertas e Insights</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {alertReports.map((report) => (
-              <ReportCard
-                key={report.href}
-                {...report}
-                onClick={() => navigate(report.href)}
-              />
-            ))}
-          </div>
-        </section>
+        )}
       </div>
     </DashboardLayout>
   );
