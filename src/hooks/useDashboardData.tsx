@@ -265,14 +265,43 @@ export const useDashboardData = () => {
   const generateAlerts = (clients: ClientPerformance[], campaigns: CampaignRanking[]): Alert[] => {
     const alerts: Alert[] = [];
 
-    // Alertas de problemas (vermelhos)
+    // Alertas de problemas (vermelhos) - Campanhas com problemas
+    campaigns.forEach(campaign => {
+      if (campaign.cpa > 50) {
+        alerts.push({
+          id: `high-cpa-campaign-${campaign.id}`,
+          type: 'danger',
+          title: 'CPA Alto - Campanha',
+          description: `Campanha "${campaign.name}" com CPA de R$ ${campaign.cpa.toFixed(2)}`,
+          metric: 'CPA',
+          value: `R$ ${campaign.cpa.toFixed(2)}`,
+          client: campaign.client_name,
+          campaign: campaign.name,
+        });
+      }
+      
+      if (campaign.ctr < 1.0) {
+        alerts.push({
+          id: `low-ctr-campaign-${campaign.id}`,
+          type: 'danger',
+          title: 'CTR Baixo',
+          description: `Campanha "${campaign.name}" com CTR de ${campaign.ctr.toFixed(2)}%`,
+          metric: 'CTR',
+          value: `${campaign.ctr.toFixed(2)}%`,
+          client: campaign.client_name,
+          campaign: campaign.name,
+        });
+      }
+    });
+
+    // Alertas de problemas por cliente (sem campanha específica)
     clients.forEach(client => {
       if (client.averageCPA > 50) {
         alerts.push({
-          id: `high-cpa-${client.id}`,
+          id: `high-cpa-client-${client.id}`,
           type: 'danger',
-          title: 'CPA Alto',
-          description: `Cliente ${client.name} com CPA de R$ ${client.averageCPA.toFixed(2)}`,
+          title: 'CPA Alto - Cliente',
+          description: `Cliente ${client.name} com CPA médio de R$ ${client.averageCPA.toFixed(2)}`,
           metric: 'CPA',
           value: `R$ ${client.averageCPA.toFixed(2)}`,
           client: client.name,

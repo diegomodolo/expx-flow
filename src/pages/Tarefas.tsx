@@ -228,9 +228,12 @@ export default function Tarefas() {
                     <div className="space-y-2">
                       {dangerAlerts.slice(0, 3).map((alert, index) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded">
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium text-red-800">{alert.title}</p>
                             <p className="text-sm text-red-600">{alert.client}</p>
+                            {alert.campaign && (
+                              <p className="text-xs text-red-500 mt-1">Campanha: {alert.campaign}</p>
+                            )}
                           </div>
                           <Button
                             size="sm"
@@ -254,9 +257,12 @@ export default function Tarefas() {
                     <div className="space-y-2">
                       {opportunityAlerts.slice(0, 3).map((alert, index) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium text-green-800">{alert.title}</p>
                             <p className="text-sm text-green-600">{alert.client}</p>
+                            {alert.campaign && (
+                              <p className="text-xs text-green-500 mt-1">Campanha: {alert.campaign}</p>
+                            )}
                           </div>
                           <Button
                             size="sm"
