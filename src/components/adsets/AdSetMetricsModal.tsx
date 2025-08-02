@@ -391,21 +391,6 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>Data de Criação</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-lg font-bold">{formatAdSetAge()}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Tempo desde a criação
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600">Cliques Totais</CardTitle>
                 </CardHeader>
                 <CardContent>
