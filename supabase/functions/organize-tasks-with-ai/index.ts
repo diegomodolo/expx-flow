@@ -25,110 +25,9 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Preparar contexto para a IA
-    const context = `
-SISTEMA DE ORGANIZAÇÃO INTELIGENTE DE TAREFAS
-
-CONFIGURAÇÃO DO ESCOPO:
-- Tipo: ${scope?.type === 'specific' ? 'Colaborador específico' : 'Todos os colaboradores'}
-- Período: ${scope?.includePeriod || daysToOrganize} dias
-- Incluir tarefas sem responsável: ${scope?.includeUnassigned ? 'Sim' : 'Não'}
-${scope?.employeeId ? `- Colaborador selecionado: ${employees.find(e => e.user_id === scope.employeeId)?.name || 'Não encontrado'}` : ''}
-
-TAREFAS PENDENTES (${tasks.length}):
-${tasks.map(task => `
-• ${task.title}
-  - Prioridade: ${task.priority}
-  - Status: ${task.status}
-  - Responsável: ${task.responsible_name || 'Sem responsável'}
-  - Descrição: ${task.description || 'Sem descrição'}
-  - Prazo: ${task.deadline || 'Sem prazo'}
-  - ID: ${task.id}
-`).join('\n')}
-
-COLABORADORES DISPONÍVEIS (${employees.length}):
-${employees.map(emp => `
-• ${emp.name}
-  - Função: ${emp.role}
-  - Status: ${emp.status}
-  - Skills: ${emp.skills || 'Não especificado'}
-  - ID: ${emp.user_id}
-`).join('\n')}
-
-SLOTS DISPONÍVEIS (${timeSlots.length}):
-${timeSlots.map(slot => `
-• ${slot.name} (${slot.start_time} - ${slot.end_time})
-  - Descrição: ${slot.description || 'Sem descrição'}
-  - Tipo sugerido: ${getSlotType(slot)}
-  - ID: ${slot.id}
-`).join('\n')}
-
-INSTRUÇÕES INTELIGENTES:
-1. COMPATIBILIDADE SLOT-TAREFA:
-   - Slots de "Reunião" → tarefas de comunicação, alinhamento, brainstorming
-   - Slots de "Foco" → tarefas operacionais, desenvolvimento, análise
-   - Slots de "Revisão" → tarefas de validação, correção, otimização
-   - Slots de "Planejamento" → tarefas estratégicas, organização, preparação
-
-2. DISTRIBUIÇÃO DE COLABORADORES:
-   - Analise carga de trabalho atual de cada colaborador
-   - Redistribua tarefas sem responsável para quem tem menos sobrecarga
-   - Considere skills e adequação do colaborador para a tarefa
-   - Balance equitativamente entre a equipe
-
-3. PRIORIZAÇÃO INTELIGENTE:
-   - EMERGENCIAL: alocação imediata no próximo slot adequado
-   - ALTA: prioridade nos melhores horários disponíveis
-   - MÉDIA/BAIXA: preencher slots remanescentes
-
-4. OTIMIZAÇÕES:
-   - Distribua ao longo de ${scope?.includePeriod || daysToOrganize} dias úteis a partir de ${startDate}
-   - Evite sobrecarga de slots (máximo 80% da duração)
-   - Agrupe tarefas similares no mesmo período quando possível
-   - Deixe buffer entre tarefas complexas
-
-RESPONDA APENAS COM UM JSON VÁLIDO no formato:
-{
-  "organizedTasks": [
-    {
-      "taskId": "id_da_tarefa",
-      "slotId": "id_do_slot", 
-      "date": "YYYY-MM-DD",
-      "estimatedMinutes": 30,
-      "reason": "Explicação detalhada da decisão de alocação",
-      "assignedTo": "user_id_responsavel",
-      "reassignmentReason": "Motivo da reatribuição (se aplicável)"
-    }
-  ],
-  "statistics": {
-    "totalTasks": 0,
-    "totalEstimatedTime": 0,
-    "averageTaskTime": 0,
-    "daysUsed": 0
-  },
-  "warnings": ["Lista de avisos se houver sobrecarga ou incompatibilidades"],
-  "reassignments": [
-    {
-      "taskId": "id",
-      "taskTitle": "nome",
-      "fromUser": "nome_anterior",
-      "toUser": "nome_novo", 
-      "reason": "motivo da mudança"
-    }
-  ],
-  "workloadDistribution": [
-    {
-      "employeeName": "nome",
-      "beforeTasks": 0,
-      "afterTasks": 0,
-      "totalMinutes": 0
-    }
-  ]
-}
-
-FUNÇÃO AUXILIAR PARA IDENTIFICAR TIPO DE SLOT:
-${getSlotTypeFunction()}
-`;
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (daysToOrganize - 1));
+    const endDateStr = endDate.toISOString().split('T')[0];
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -141,15 +40,47 @@ ${getSlotTypeFunction()}
         messages: [
           {
             role: 'system',
-            content: 'Você é um assistente especializado em organização de tarefas e produtividade. Analise as tarefas e slots fornecidos e crie uma organização otimizada. Retorne apenas JSON válido.'
+            content: `Organize tarefas nos slots disponíveis. Considere prioridade e deadlines. Responda APENAS com JSON válido:
+{
+  "organizedTasks": [
+    {
+      "taskId": "string",
+      "slotId": "string",
+      "date": "YYYY-MM-DD",
+      "estimatedMinutes": number,
+      "reason": "string",
+      "assignedTo": "string",
+      "reassignmentReason": "string"
+    }
+  ],
+  "statistics": {
+    "totalTasks": number,
+    "totalTimeMinutes": number,
+    "tasksPerDay": {},
+    "reassignments": number
+  },
+  "warnings": []
+}`
           },
           {
             role: 'user',
-            content: context
+            content: `TAREFAS (${tasks.length}):
+${tasks.map(task => `${task.id}: ${task.title} (${task.priority || 'medium'}, deadline: ${task.deadline || 'none'})`).join('\n')}
+
+COLABORADORES:
+${employees.map(emp => `${emp.user_id}: ${emp.name}`).join('\n')}
+
+SLOTS:
+${timeSlots.map(slot => `${slot.id}: ${slot.name} (${slot.start_time}-${slot.end_time})`).join('\n')}
+
+PERÍODO: ${startDate} a ${endDateStr}
+ESCOPO: ${scope?.type || 'all'}
+
+Distribua as tarefas equilibradamente nos slots considerando prioridade. APENAS JSON:`
           }
         ],
-        temperature: 0.3,
-        max_tokens: 2000,
+        temperature: 0.2,
+        max_tokens: 4000,
       }),
     });
 
@@ -162,15 +93,31 @@ ${getSlotTypeFunction()}
     
     console.log('🤖 AI Response:', aiResponse);
 
-    // Tentar parsear a resposta JSON
+    // Tentar parsear a resposta JSON com validação robusta
     let organizationPlan;
     try {
-      // Remover possíveis marcadores de código markdown
-      const cleanResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
+      // Remover possíveis marcadores de código markdown e limpar a resposta
+      let cleanResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
+      
+      // Verificar se a resposta parece estar truncada
+      if (!cleanResponse.endsWith('}') && !cleanResponse.endsWith(']')) {
+        console.warn('⚠️ Response appears to be truncated:', cleanResponse.slice(-100));
+        throw new Error('AI response appears to be truncated');
+      }
+      
+      // Tentar encontrar JSON válido dentro da resposta
+      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanResponse = jsonMatch[0];
+      }
+      
+      console.log('🧹 Cleaned response length:', cleanResponse.length);
       organizationPlan = JSON.parse(cleanResponse);
+      
     } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
-      throw new Error('Failed to parse AI response as JSON');
+      console.error('❌ Error parsing AI response:', parseError);
+      console.error('📝 Raw response:', aiResponse.slice(0, 500) + '...');
+      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
     }
 
     // Validar e processar o plano
