@@ -544,9 +544,13 @@ serve(async (req) => {
               
               if (adsResponse.ok) {
                 const adsData = await adsResponse.json()
-                console.log('Ads API response:', JSON.stringify(adsData))
+                console.log('Ads API response for ad set:', adSet.id, 'found', adsData.data?.length || 0, 'ads')
                 const ads = adsData.data || []
-                console.log('Found', ads.length, 'ads for ad set:', adSet.name)
+                
+                // Log first ad response for debugging
+                if (ads.length > 0) {
+                  console.log('Sample ad data:', JSON.stringify(ads[0]))
+                }
                 
                 // Process each ad
                 for (const ad of ads) {
@@ -585,14 +589,22 @@ serve(async (req) => {
                     adEngagementRateRanking = adInsights.engagement_rate_ranking || null
                     adConversionRateRanking = adInsights.conversion_rate_ranking || null
                     
-                    // Extract conversions from actions
-                    if (adInsights.actions) {
-                      adInsights.actions.forEach((action: any) => {
-                        if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-                          adLeads += parseInt(action.value || 0)
-                        }
-                      })
-                    }
+                     // Extract conversions from actions
+                     if (adInsights.actions) {
+                       console.log('Ad actions found:', JSON.stringify(adInsights.actions))
+                       adInsights.actions.forEach((action: any) => {
+                         console.log('Processing action:', action.action_type, 'value:', action.value)
+                         if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
+                           const actionValue = parseInt(action.value || 0)
+                           adLeads += actionValue
+                           console.log('Added', actionValue, 'leads for ad:', ad.name)
+                         }
+                       })
+                     } else {
+                       console.log('No actions found for ad:', ad.name)
+                     }
+                     
+                     console.log('Final ad conversions for', ad.name, ':', adLeads)
                   }
                    
                    // Save ad to database with complete data
