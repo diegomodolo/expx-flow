@@ -338,6 +338,39 @@ export type Database = {
           },
         ]
       }
+      client_rotations: {
+        Row: {
+          company_id: string
+          created_at: string
+          day_sequence: number
+          end_client_position: number
+          id: string
+          is_active: boolean
+          start_client_position: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          day_sequence: number
+          end_client_position: number
+          id?: string
+          is_active?: boolean
+          start_client_position: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          day_sequence?: number
+          end_client_position?: number
+          id?: string
+          is_active?: boolean
+          start_client_position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           active_campaigns: number
@@ -835,6 +868,114 @@ export type Database = {
           expires_at?: string
           id?: string
           is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      optimization_history: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          optimization_type: string
+          performed_at: string
+          performed_by: string
+          results: string | null
+          task_id: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          description: string
+          id?: string
+          optimization_type: string
+          performed_at?: string
+          performed_by: string
+          results?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          optimization_type?: string
+          performed_at?: string
+          performed_by?: string
+          results?: string | null
+          task_id?: string | null
+        }
+        Relationships: []
+      }
+      planner_daily_tasks: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          planned_date: string
+          task_id: string
+          time_slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          planned_date: string
+          task_id: string
+          time_slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          planned_date?: string
+          task_id?: string
+          time_slot_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      planner_time_slots: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          end_time: string
+          id: string
+          is_active: boolean
+          name: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          name: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          start_time?: string
           updated_at?: string
         }
         Relationships: []
