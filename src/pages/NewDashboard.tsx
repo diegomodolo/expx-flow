@@ -398,12 +398,26 @@ export default function NewDashboard() {
                   </div>
                 ) : (
                   dangerAlerts.filter(alert => !convertedActions.has(alert.id)).slice(0, 3).map((alert) => (
-                    <div key={alert.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div key={alert.id} className="p-4 bg-white border-l-4 border-red-500 rounded-lg shadow-sm">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-red-800">{alert.title}</p>
-                          <p className="text-xs text-red-600 mt-1">{alert.description}</p>
+                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                            <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
+                              R$ {alert.value || '0,00'}
+                            </span>
+                            <span className="text-xs text-gray-500">Crítico</span>
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-3 h-3 text-red-500" />
+                            <p className="text-xs text-gray-600">{alert.recommendation}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -432,12 +446,26 @@ export default function NewDashboard() {
                   </div>
                 ) : (
                   opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).slice(0, 3).map((alert) => (
-                    <div key={alert.id} className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div key={alert.id} className="p-4 bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-green-800">{alert.title}</p>
-                          <p className="text-xs text-green-600 mt-1">{alert.description}</p>
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <TrendingUp className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                            <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
+                              +{alert.value || '0'}%
+                            </span>
+                            <span className="text-xs text-gray-500">Oportunidade</span>
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3 h-3 text-green-500" />
+                            <p className="text-xs text-gray-600">{alert.recommendation}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
