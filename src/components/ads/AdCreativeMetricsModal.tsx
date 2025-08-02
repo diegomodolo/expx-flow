@@ -68,12 +68,6 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
     return ranking;
   };
 
-  // Função para simular engajamentos (baseado no CTR e impressões)
-  const estimatedEngagements = Math.floor(ad.impressions * (ad.ctr / 100) * 1.2);
-  const estimatedLikes = Math.floor(estimatedEngagements * 0.6);
-  const estimatedComments = Math.floor(estimatedEngagements * 0.2);
-  const estimatedShares = Math.floor(estimatedEngagements * 0.2);
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -104,10 +98,10 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           {/* Indicadores de Engajamento */}
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
-              <Heart className="w-5 h-5 text-red-600" />
+              <MousePointer className="w-5 h-5 text-purple-600" />
               <span>📊 Indicadores de Engajamento</span>
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
@@ -141,41 +135,6 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                     {ad.clicks.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Interações diretas</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
-                    <Heart className="w-4 h-4" />
-                    <span>Curtidas</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-red-600">
-                    {estimatedLikes.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">Estimativa baseada no CTR</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
-                    <MessageCircle className="w-4 h-4" />
-                    <Share2 className="w-4 h-4" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-green-600">
-                      {estimatedComments} comentários
-                    </p>
-                    <p className="text-sm font-bold text-orange-600">
-                      {estimatedShares} compartilhamentos
-                    </p>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Estimativas de engajamento</p>
                 </CardContent>
               </Card>
             </div>
@@ -257,24 +216,6 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                 </CardContent>
               </Card>
 
-              {ad.creative_type === 'video' && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
-                      <Play className="w-4 h-4" />
-                      <span>Visualização de Vídeo</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-lg font-bold text-indigo-600">
-                      {(ad.ctr * 0.8).toFixed(1)}%
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">Taxa de conclusão estimada</p>
-                    <p className="text-xs text-blue-600 mt-1">📹 Conteúdo em vídeo</p>
-                  </CardContent>
-                </Card>
-              )}
-
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
@@ -303,19 +244,13 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-600 flex items-center space-x-1">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Feedback Negativo</span>
-                  </CardTitle>
+                  <CardTitle className="text-sm text-gray-600">CPM (Custo por Mil Impressões)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-lg font-bold text-red-600">
-                    {Math.floor(ad.impressions * 0.001)}
+                  <p className="text-2xl font-bold text-indigo-600">
+                    R$ {ad.cpm.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Ocultações estimadas</p>
-                  {ad.impressions * 0.001 < ad.impressions * 0.005 && (
-                    <p className="text-xs text-green-600 mt-1">✅ Baixa rejeição</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Custo por mil impressões</p>
                 </CardContent>
               </Card>
             </div>
