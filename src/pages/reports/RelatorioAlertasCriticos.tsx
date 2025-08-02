@@ -13,9 +13,9 @@ const RelatorioAlertasCriticos = () => {
   const { clients } = useClients();
   const { campaigns } = useCampaigns();
 
-  const criticalAlerts = alerts.filter(alert => alert.severity === 'critical');
-  const warningAlerts = alerts.filter(alert => alert.severity === 'warning');
-  const infoAlerts = alerts.filter(alert => alert.severity === 'info');
+  const criticalAlerts = alerts.filter(alert => alert.type === 'danger');
+  const warningAlerts = alerts.filter(alert => alert.type === 'opportunity');
+  const infoAlerts = alerts.filter(alert => alert.type === 'opportunity');
 
   const getCriticalClients = () => {
     return clients.filter(client => {
@@ -44,22 +44,20 @@ const RelatorioAlertasCriticos = () => {
   const highSpendLowConversion = getHighSpendLowConversion();
   const stagnantCampaigns = getStagnantCampaigns();
 
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'critical': return <AlertTriangle className="w-4 h-4 text-red-600" />;
-      case 'warning': return <Clock className="w-4 h-4 text-yellow-600" />;
-      case 'info': return <Target className="w-4 h-4 text-blue-600" />;
+  const getSeverityIcon = (type: string) => {
+    switch (type) {
+      case 'danger': return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case 'opportunity': return <Clock className="w-4 h-4 text-yellow-600" />;
       default: return <AlertTriangle className="w-4 h-4 text-gray-600" />;
     }
   };
 
-  const getSeverityBadge = (severity: string) => {
+  const getSeverityBadge = (type: string) => {
     const variants = {
-      critical: 'bg-red-100 text-red-800 border-red-200',
-      warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      info: 'bg-blue-100 text-blue-800 border-blue-200'
+      danger: 'bg-red-100 text-red-800 border-red-200',
+      opportunity: 'bg-yellow-100 text-yellow-800 border-yellow-200'
     };
-    return variants[severity as keyof typeof variants] || variants.info;
+    return variants[type as keyof typeof variants] || variants.danger;
   };
 
   const getRecommendedAction = (alertType: string) => {
@@ -273,18 +271,18 @@ const RelatorioAlertasCriticos = () => {
             {alerts.map((alert, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
-                  {getSeverityIcon(alert.severity)}
+                  {getSeverityIcon(alert.type)}
                   <div>
                     <h4 className="font-medium">{alert.title}</h4>
                     <p className="text-sm text-muted-foreground">{alert.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className={getSeverityBadge(alert.severity)}>
-                    {alert.severity}
+                  <Badge className={getSeverityBadge(alert.type)}>
+                    {alert.type}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(alert.created_at).toLocaleDateString()}
+                    {new Date().toLocaleDateString()}
                   </span>
                 </div>
               </div>

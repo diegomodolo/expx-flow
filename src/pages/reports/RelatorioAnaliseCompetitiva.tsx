@@ -7,7 +7,6 @@ import { useCompanies } from "@/hooks/useCompanies";
 
 const RelatorioAnaliseCompetitiva = () => {
   const { user } = useAuth();
-  const { activeCompany } = useCompanies();
   const { competitors, competitorAds } = useCompetitors("all");
 
   return (

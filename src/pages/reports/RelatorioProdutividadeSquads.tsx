@@ -19,8 +19,8 @@ const RelatorioProdutividadeSquads = () => {
   const getTeamMetrics = () => {
     return teams.map(team => {
       const teamTasks = tasks.filter(task => task.team_id === team.id);
-      const completedTasks = teamTasks.filter(task => task.status === 'completed');
-      const inProgressTasks = teamTasks.filter(task => task.status === 'in_progress');
+      const completedTasks = teamTasks.filter(task => task.status === 'done');
+      const inProgressTasks = teamTasks.filter(task => task.status === 'progress');
       const avgProgress = teamTasks.length > 0 
         ? teamTasks.reduce((acc, task) => acc + task.progress, 0) / teamTasks.length 
         : 0;
@@ -42,10 +42,10 @@ const RelatorioProdutividadeSquads = () => {
 
   const teamMetrics = getTeamMetrics();
   const totalTeams = teams.length;
-  const totalActiveTasks = tasks.filter(task => task.status !== 'completed').length;
+  const totalActiveTasks = tasks.filter(task => task.status !== 'done').length;
   const avgProductivity = teamMetrics.length > 0 
     ? (teamMetrics.reduce((acc, team) => acc + parseFloat(team.productivity), 0) / teamMetrics.length).toFixed(1)
-    : 0;
+    : '0';
 
   const topPerformers = teamMetrics
     .sort((a, b) => parseFloat(b.productivity) - parseFloat(a.productivity))
@@ -64,7 +64,7 @@ const RelatorioProdutividadeSquads = () => {
         <MetricCard
           title="Produtividade Média"
           value={`${avgProductivity}%`}
-          trend={parseFloat(avgProductivity) > 75 ? "up" : "down"}
+          trend={parseFloat(avgProductivity.toString()) > 75 ? "up" : "down"}
         />
         <MetricCard
           title="Tarefas Ativas"

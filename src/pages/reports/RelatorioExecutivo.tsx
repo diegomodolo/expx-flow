@@ -7,7 +7,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { TrendingUp, Target, DollarSign } from "lucide-react";
 
 const RelatorioExecutivo = () => {
-  const { metrics, clientsPerformance, campaignRankings, trendsData } = useDashboardData();
+  const { metrics, clientsPerformance, campaignRankings, trends } = useDashboardData();
 
   const chartConfig = {
     investment: { label: "Investimento", color: "hsl(var(--primary))" },
@@ -23,7 +23,7 @@ const RelatorioExecutivo = () => {
     .slice(0, 3);
 
   const getROITrend = () => {
-    const currentROI = parseFloat(roi);
+    const currentROI = parseFloat(roi.toString());
     return currentROI > 200 ? "up" : currentROI > 100 ? "neutral" : "down";
   };
 
@@ -49,7 +49,7 @@ const RelatorioExecutivo = () => {
         />
         <MetricCard
           title="CPL Médio"
-          value={`R$ ${metrics.avgCPL.toFixed(2)}`}
+          value={`R$ ${(metrics.totalInvestment / metrics.totalLeads || 0).toFixed(2)}`}
           change={-8}
           changeLabel="mês anterior"
           trend="up"
@@ -72,7 +72,7 @@ const RelatorioExecutivo = () => {
           <CardContent>
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trendsData}>
+                <LineChart data={trends}>
                   <XAxis dataKey="date" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
@@ -108,7 +108,7 @@ const RelatorioExecutivo = () => {
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="leads" fill="var(--color-leads)" />
+                  <Bar dataKey="investment" fill="var(--color-leads)" />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -164,7 +164,7 @@ const RelatorioExecutivo = () => {
                 <div>
                   <h4 className="font-medium">Otimização de CPA</h4>
                   <p className="text-sm text-muted-foreground">
-                    Identificamos {clientsPerformance.filter(c => c.cpa > 100).length} clientes 
+                    Identificamos {clientsPerformance.filter(c => c.investment > 10000).length} clientes 
                     com CPA acima da média que podem ser otimizados
                   </p>
                 </div>

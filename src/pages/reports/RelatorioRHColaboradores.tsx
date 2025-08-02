@@ -20,8 +20,8 @@ const RelatorioRHColaboradores = () => {
   const getEmployeeMetrics = () => {
     return employees.map(employee => {
       const employeeTasks = tasks.filter(task => task.responsible_name === employee.name);
-      const completedTasks = employeeTasks.filter(task => task.status === 'completed');
-      const inProgressTasks = employeeTasks.filter(task => task.status === 'in_progress');
+      const completedTasks = employeeTasks.filter(task => task.status === 'done');
+      const inProgressTasks = employeeTasks.filter(task => task.status === 'progress');
       
       const productivity = employeeTasks.length > 0 
         ? (completedTasks.length / employeeTasks.length * 100)
@@ -46,7 +46,7 @@ const RelatorioRHColaboradores = () => {
   const activeEmployees = employees.filter(emp => emp.status === 'active').length;
   const avgProductivity = employeeMetrics.length > 0 
     ? (employeeMetrics.reduce((acc, emp) => acc + parseFloat(emp.productivity), 0) / employeeMetrics.length).toFixed(1)
-    : 0;
+    : '0';
 
   const roleDistribution = employees.reduce((acc, emp) => {
     acc[emp.role] = (acc[emp.role] || 0) + 1;
@@ -93,7 +93,7 @@ const RelatorioRHColaboradores = () => {
         <MetricCard
           title="Produtividade Média"
           value={`${avgProductivity}%`}
-          trend={parseFloat(avgProductivity) > 75 ? "up" : "down"}
+          trend={parseFloat(avgProductivity.toString()) > 75 ? "up" : "down"}
         />
         <MetricCard
           title="Total de Funções"

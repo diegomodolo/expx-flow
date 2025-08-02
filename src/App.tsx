@@ -97,11 +97,51 @@ const App = () => {
                     <RelatorioExecutivo />
                   </ProtectedRoute>
                 } />
-                <Route path="/relatorios/funil" element={
-                  <ProtectedRoute>
-                    <RelatorioFunil />
-                  </ProtectedRoute>
-                } />
+                 <Route path="/relatorios/funil" element={
+                   <ProtectedRoute>
+                     <RelatorioFunil />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/competitiva" element={
+                   <ProtectedRoute>
+                     <RelatorioAnaliseCompetitiva />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/oportunidades" element={
+                   <ProtectedRoute>
+                     <RelatorioOportunidades />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/performance-cliente" element={
+                   <ProtectedRoute>
+                     <RelatorioPerformanceCliente />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/campanhas" element={
+                   <ProtectedRoute>
+                     <RelatorioCampanhas />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/tarefas-planner" element={
+                   <ProtectedRoute>
+                     <RelatorioTarefasPlanner />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/produtividade-squads" element={
+                   <ProtectedRoute>
+                     <RelatorioProdutividadeSquads />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/rh-colaboradores" element={
+                   <ProtectedRoute>
+                     <RelatorioRHColaboradores />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/alertas-criticos" element={
+                   <ProtectedRoute>
+                     <RelatorioAlertasCriticos />
+                   </ProtectedRoute>
+                 } />
                <Route path="/conhecimento" element={
                  <ProtectedRoute>
                    <Conhecimento />

@@ -20,13 +20,14 @@ const RelatorioCampanhas = () => {
 
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const pausedCampaigns = campaigns.filter(c => c.status === 'paused').length;
+  const finishedCampaigns = campaigns.filter(c => c.status === 'finished').length;
   const totalSpend = campaigns.reduce((acc, c) => acc + c.spend, 0);
   const totalConversions = campaigns.reduce((acc, c) => acc + c.conversions, 0);
 
   const statusData = [
     { name: 'Ativas', value: activeCampaigns, color: 'hsl(var(--primary))' },
     { name: 'Pausadas', value: pausedCampaigns, color: 'hsl(var(--muted))' },
-    { name: 'Rascunho', value: campaigns.filter(c => c.status === 'draft').length, color: 'hsl(var(--secondary))' }
+    { name: 'Finalizadas', value: finishedCampaigns, color: 'hsl(var(--secondary))' }
   ];
 
   const getStatusIcon = (status: string) => {
@@ -41,9 +42,9 @@ const RelatorioCampanhas = () => {
     const variants = {
       active: 'bg-green-100 text-green-800 border-green-200',
       paused: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      draft: 'bg-gray-100 text-gray-800 border-gray-200'
+      finished: 'bg-gray-100 text-gray-800 border-gray-200'
     };
-    return variants[status as keyof typeof variants] || variants.draft;
+    return variants[status as keyof typeof variants] || variants.finished;
   };
 
   const getPerformanceLevel = (ctr: number, cpa: number) => {

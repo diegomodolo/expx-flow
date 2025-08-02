@@ -108,7 +108,7 @@ const RelatorioFunil = () => {
           <CardDescription>Visualização da jornada do cliente</CardDescription>
         </CardHeader>
         <CardContent>
-          <FunnelAnalysis />
+          <FunnelAnalysis campaigns={campaignRankings} />
         </CardContent>
       </Card>
 

@@ -10,7 +10,7 @@ import { CheckCircle, Clock, AlertTriangle, Calendar } from "lucide-react";
 
 const RelatorioTarefasPlanner = () => {
   const { tasks } = useTasks();
-  const { stats } = useTaskStats();
+  const taskStats = useTaskStats();
 
   const chartConfig = {
     completed: { label: "Concluídas", color: "hsl(var(--primary))" },
@@ -19,10 +19,10 @@ const RelatorioTarefasPlanner = () => {
   };
 
   const statusData = [
-    { name: 'Concluídas', value: Number(stats?.completed_tasks || 0), color: 'hsl(var(--primary))' },
-    { name: 'Em Progresso', value: Number(stats?.in_progress_tasks || 0), color: 'hsl(var(--secondary))' },
-    { name: 'Pendentes', value: Number(stats?.pending_tasks || 0), color: 'hsl(var(--accent))' },
-    { name: 'Em Revisão', value: Number(stats?.review_tasks || 0), color: 'hsl(var(--muted))' }
+    { name: 'Concluídas', value: Number(taskStats.data?.completed_tasks || 0), color: 'hsl(var(--primary))' },
+    { name: 'Em Progresso', value: Number(taskStats.data?.in_progress_tasks || 0), color: 'hsl(var(--secondary))' },
+    { name: 'Pendentes', value: Number(taskStats.data?.pending_tasks || 0), color: 'hsl(var(--accent))' },
+    { name: 'Em Revisão', value: Number(taskStats.data?.review_tasks || 0), color: 'hsl(var(--muted))' }
   ];
 
   const priorityData = tasks.reduce((acc, task) => {
@@ -60,13 +60,13 @@ const RelatorioTarefasPlanner = () => {
   const getOverdueTasks = () => {
     const today = new Date();
     return tasks.filter(task => 
-      task.deadline && new Date(task.deadline) < today && task.status !== 'completed'
+      task.deadline && new Date(task.deadline) < today && task.status !== 'done'
     );
   };
 
   const overdueTasks = getOverdueTasks();
-  const completionRate = stats?.total_tasks ? 
-    ((Number(stats.completed_tasks) / Number(stats.total_tasks)) * 100).toFixed(1) : 0;
+  const completionRate = taskStats.data?.total_tasks ? 
+    ((Number(taskStats.data.completed_tasks) / Number(taskStats.data.total_tasks)) * 100).toFixed(1) : '0';
 
   return (
     <ReportLayout
@@ -76,11 +76,11 @@ const RelatorioTarefasPlanner = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Tarefas Totais"
-          value={Number(stats?.total_tasks || 0)}
+          value={Number(taskStats.data?.total_tasks || 0)}
         />
         <MetricCard
           title="Taxa de Conclusão"
-          value={`${completionRate}%`}
+          value={`${completionRate.toString()}%`}
           trend={parseFloat(completionRate) > 80 ? "up" : "down"}
         />
         <MetricCard
@@ -90,7 +90,7 @@ const RelatorioTarefasPlanner = () => {
         />
         <MetricCard
           title="Tempo Médio"
-          value={`${Number(stats?.avg_completion_days || 0).toFixed(1)} dias`}
+          value={`${Number(taskStats.data?.avg_completion_days || 0).toFixed(1)} dias`}
           subtitle="Para conclusão"
         />
       </div>
@@ -271,7 +271,7 @@ const RelatorioTarefasPlanner = () => {
                     acc[task.responsible_name] = { completed: 0, total: 0 };
                   }
                   acc[task.responsible_name].total++;
-                  if (task.status === 'completed') {
+                  if (task.status === 'done') {
                     acc[task.responsible_name].completed++;
                   }
                   return acc;

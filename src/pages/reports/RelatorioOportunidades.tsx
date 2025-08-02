@@ -12,17 +12,17 @@ const RelatorioOportunidades = () => {
   const getOpportunities = () => {
     const opportunities = [];
 
-    // Oportunidades baseadas em CPA alto
+    // Oportunidades baseadas em investimento alto
     clientsPerformance.forEach(client => {
-      if (client.cpa > 100) {
+      if (client.investment > 15000) {
         opportunities.push({
           type: 'optimization',
           priority: 'high',
-          title: `Otimizar CPA do cliente ${client.name}`,
-          description: `CPA atual: R$ ${client.cpa.toFixed(2)} - acima da média do mercado`,
+          title: `Otimizar ROI do cliente ${client.name}`,
+          description: `Investimento alto: R$ ${client.investment.toFixed(2)} - revisar estratégia`,
           impact: 'Alto',
           effort: 'Médio',
-          estimatedSaving: (client.cpa - 50) * client.leads
+          estimatedSaving: client.investment * 0.15
         });
       }
     });
