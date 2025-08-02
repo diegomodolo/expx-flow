@@ -78,8 +78,8 @@ serve(async (req) => {
         url: url,
         pageOptions: {
           includeHtml: true,
-          onlyMainContent: false,
-          waitFor: 3000
+          onlyMainContent: true,
+          waitFor: 5000
         },
         extractorOptions: {
           mode: 'llm-extraction',
@@ -91,33 +91,25 @@ serve(async (req) => {
                 items: {
                   type: "object",
                   properties: {
-                    ad_title: {
+                    company_name: {
                       type: "string",
-                      description: "Nome da empresa/página que publicou o anúncio (ex: 'Pen - Marketing para SaaS B2B')"
+                      description: "Nome da empresa/página que aparece no cabeçalho do anúncio (ex: 'Pen - Marketing para SaaS B2B')"
                     },
                     ad_copy: {
                       type: "string", 
-                      description: "Texto principal do anúncio que aparece na descrição (ex: 'Gere leads qualificados para escalar seu SaaS', 'Conheça a metodologia criada no Vale do Silício')"
+                      description: "Texto principal do anúncio que aparece como descrição/copy (ex: 'Gere leads qualificados para escalar seu SaaS', 'Conheça a metodologia criada no Vale do Silício')"
                     },
                     call_to_action: {
                       type: "string",
-                      description: "Texto do botão de ação que aparece no anúncio (ex: 'Learn More', 'Saiba mais')"
+                      description: "Texto do botão de ação (ex: 'Learn More', 'Saiba mais')"
                     },
-                    ad_type: {
+                    ad_format: {
                       type: "string",
-                      description: "Tipo do anúncio baseado no conteúdo visual - 'video' se tem ícone de play, 'image' se é imagem estática"
+                      description: "Formato do anúncio - 'video' se tem ícone de play, 'image' se é imagem"
                     },
                     platforms: {
                       type: "string",
-                      description: "Plataformas onde o anúncio está rodando (geralmente Facebook e Instagram baseado nos ícones)"
-                    },
-                    ad_id: {
-                      type: "string",
-                      description: "ID da biblioteca de anúncios se visível"
-                    },
-                    date_started: {
-                      type: "string",
-                      description: "Data de início da veiculação se visível (ex: '25 jul de 2025')"
+                      description: "Plataformas onde roda (Facebook, Instagram baseado nos ícones)"
                     }
                   }
                 }
@@ -125,19 +117,21 @@ serve(async (req) => {
             }
           },
           extractionPrompt: `
-            Analise esta página da Biblioteca de Anúncios do Facebook e extraia TODOS os anúncios visíveis.
+            Extraia APENAS os anúncios reais da biblioteca de anúncios do Facebook. 
             
-            Cada anúncio na biblioteca tem:
-            - Nome da empresa/página no topo
-            - Texto do anúncio (copy principal)
-            - Um botão de call-to-action
-            - Tipo de mídia (vídeo com ícone de play ou imagem)
-            - Plataformas (ícones do Facebook e Instagram)
-            - Data de veiculação
+            IGNORE completamente:
+            - Links de navegação como "Meta Ad Library", "Ad Library Report"
+            - Elementos de interface da página
+            - Menus e barras de navegação
+            - URLs ou links internos da biblioteca
             
-            Procure por cada container/card de anúncio individual e extraia os dados reais de cada um.
+            PROCURE APENAS por:
+            - Cards/containers de anúncios individuais
+            - Cada anúncio tem: nome da empresa, texto do anúncio, botão de ação
+            - Anúncios que mostram conteúdo promocional real
+            - Texto como "Gere leads qualificados", "Conheça a metodologia"
             
-            IMPORTANTE: Extraia o texto EXATO que aparece em cada anúncio, não invente conteúdo.
+            Se não encontrar anúncios reais, retorne array vazio.
           `
         }
       }),
@@ -211,7 +205,16 @@ serve(async (req) => {
         
         // Check if the extracted data has the expected structure with 'ads' array
         if (parsedExtract && parsedExtract.ads && Array.isArray(parsedExtract.ads)) {
-          extractedAds = parsedExtract.ads;
+          // Map the extracted data to our expected format
+          extractedAds = parsedExtract.ads.map(ad => ({
+            ad_title: ad.company_name || ad.ad_title || 'Anúncio sem título',
+            ad_copy: ad.ad_copy || 'Texto não disponível',
+            call_to_action: ad.call_to_action || 'Ver mais',
+            ad_type: ad.ad_format || ad.ad_type || 'unknown',
+            estimated_performance: 'medium',
+            platforms: ad.platforms || 'Facebook',
+            notes: 'Extraído via Firecrawl com AI'
+          }));
           console.log('Successfully parsed', extractedAds.length, 'ads from schema structure');
         } else if (Array.isArray(parsedExtract)) {
           extractedAds = parsedExtract;
