@@ -58,17 +58,12 @@ export function useTasks() {
     queryFn: async () => {
       if (!user || !activeCompany?.company_id) return [];
       
-      // Buscar tarefas
+      // Buscar tarefas básicas
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select(`
           *,
-          team:teams(name, color),
-          campaign:campaigns(
-            name,
-            client:clients(name)
-          ),
-          client:clients(name)
+          team:teams(name, color)
         `)
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
@@ -88,13 +83,49 @@ export function useTasks() {
         console.warn("Erro ao buscar perfis:", profilesError);
       }
 
-      // Combinar dados
-      const tasksWithProfiles = tasksData.map(task => ({
+      // Buscar campanhas relacionadas se existirem
+      const campaignIds = [...new Set(tasksData.map(task => task.related_campaign_id).filter(Boolean))];
+      let campaignsData: any[] = [];
+      if (campaignIds.length > 0) {
+        const { data, error } = await supabase
+          .from("campaigns")
+          .select(`
+            id,
+            name,
+            client:clients(name)
+          `)
+          .in("id", campaignIds);
+        
+        if (!error) {
+          campaignsData = data || [];
+        }
+      }
+
+      // Buscar clientes relacionados se existirem
+      const clientIds = [...new Set(tasksData.map(task => task.related_client_id).filter(Boolean))];
+      let clientsData: any[] = [];
+      if (clientIds.length > 0) {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, name")
+          .in("id", clientIds);
+        
+        if (!error) {
+          clientsData = data || [];
+        }
+      }
+
+      // Combinar todos os dados
+      const tasksWithAllData = tasksData.map(task => ({
         ...task,
-        user_profile: profilesData?.find(profile => profile.user_id === task.user_id) || null
+        user_profile: profilesData?.find(profile => profile.user_id === task.user_id) || null,
+        campaign: task.related_campaign_id ? 
+          campaignsData.find(campaign => campaign.id === task.related_campaign_id) || null : null,
+        client: task.related_client_id ? 
+          clientsData.find(client => client.id === task.related_client_id) || null : null
       }));
 
-      return tasksWithProfiles;
+      return tasksWithAllData;
     },
     enabled: !!user && !!activeCompany?.company_id,
   });
