@@ -50,6 +50,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
 
   useEffect(() => {
     if (task) {
+      // Converter datas do UTC para horário local para exibição
       const startDate = task.start_date ? new Date(task.start_date) : null;
       const dueDate = task.due_date ? new Date(task.due_date) : null;
       
@@ -102,21 +103,29 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     let startDateTime: Date | null = null;
     let dueDateTime: Date | null = null;
 
-    // Combinar data e hora para criar timestamp completo
+    // Combinar data e hora para criar timestamp completo em horário local
     if (formData.hasSpecificTime && formData.start_date && formData.start_time) {
-      // Criar data no formato UTC para evitar problemas de timezone
-      const dateStr = formData.start_date.toISOString().split('T')[0]; // YYYY-MM-DD
-      startDateTime = new Date(`${dateStr}T${formData.start_time}:00.000Z`); // UTC
+      // Criar data no horário local (não UTC)
+      const year = formData.start_date.getFullYear();
+      const month = formData.start_date.getMonth();
+      const day = formData.start_date.getDate();
+      const [hours, minutes] = formData.start_time.split(':').map(Number);
+      startDateTime = new Date(year, month, day, hours, minutes);
     }
 
     if (formData.due_date && formData.due_time) {
-      // Criar data no formato UTC para evitar problemas de timezone
-      const dateStr = formData.due_date.toISOString().split('T')[0]; // YYYY-MM-DD
-      dueDateTime = new Date(`${dateStr}T${formData.due_time}:00.000Z`); // UTC
+      // Criar data no horário local (não UTC)
+      const year = formData.due_date.getFullYear();
+      const month = formData.due_date.getMonth();
+      const day = formData.due_date.getDate();
+      const [hours, minutes] = formData.due_time.split(':').map(Number);
+      dueDateTime = new Date(year, month, day, hours, minutes);
     } else if (formData.due_date) {
-      // Se não tem horário específico, usar final do dia em UTC
-      const dateStr = formData.due_date.toISOString().split('T')[0]; // YYYY-MM-DD
-      dueDateTime = new Date(`${dateStr}T23:59:59.999Z`); // UTC
+      // Se não tem horário específico, usar final do dia em horário local
+      const year = formData.due_date.getFullYear();
+      const month = formData.due_date.getMonth();
+      const day = formData.due_date.getDate();
+      dueDateTime = new Date(year, month, day, 23, 59, 59);
     }
 
     // Validação: data de início deve ser anterior ao prazo
