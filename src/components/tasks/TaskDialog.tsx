@@ -405,7 +405,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
             <div>
               <Label>Cliente (opcional)</Label>
               <Select
-                value={formData.related_client_id || "none"}
+                value={formData.related_client_id === '' ? "none" : formData.related_client_id || "none"}
                 onValueChange={(value) => {
                   setFormData(prev => ({ 
                     ...prev, 
@@ -432,7 +432,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
             <div>
               <Label>Campanha (opcional)</Label>
               <Select
-                value={formData.related_campaign_id || "none"}
+                value={formData.related_campaign_id === '' ? "none" : formData.related_campaign_id || "none"}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, related_campaign_id: value === "none" ? '' : value }))}
                 disabled={!formData.related_client_id}
               >
