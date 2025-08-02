@@ -26,6 +26,7 @@ import {
   DollarSign,
   Loader2,
   ChevronDown,
+  Target,
   Users,
   BarChart3,
   AlertTriangle,
@@ -48,6 +49,7 @@ import { FundingAlert } from "@/components/alerts/FundingAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -82,6 +84,10 @@ const ClienteDetalhes = () => {
   // Estados para alertas específicos do cliente
   const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Estados para análise completa
+  const [campaignAnalysis, setCampaignAnalysis] = useState<string | null>(null);
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
 
   // Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
@@ -119,6 +125,39 @@ const ClienteDetalhes = () => {
 
   const handleDiscardAlert = (alert: any) => {
     setConvertedAlerts(prev => new Set([...prev, alert.id]));
+  };
+
+  // Função para gerar análise completa
+  const handleGenerateAnalysis = async () => {
+    if (!client || !client.campaigns) return;
+    
+    setIsGeneratingAnalysis(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-campaign-analysis', {
+        body: {
+          clientData: {
+            name: client.name,
+            sector: client.sector,
+            product_name: client.product_name,
+            monthly_budget: client.monthly_budget,
+            leads_generated: client.leads_generated,
+            status: client.status,
+          },
+          campaigns: client.campaigns,
+        },
+      });
+
+      if (error) {
+        console.error('Error generating analysis:', error);
+        return;
+      }
+
+      setCampaignAnalysis(data.analysis);
+    } catch (error) {
+      console.error('Error generating analysis:', error);
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
   };
 
   // Calculate funnel completeness score
@@ -1041,6 +1080,9 @@ const ClienteDetalhes = () => {
                     </Badge>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="analysis">
+                  Análise Completa
+                </TabsTrigger>
                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -1857,6 +1899,80 @@ const ClienteDetalhes = () => {
                     <p className="text-gray-500 mb-6">
                       Clique no botão "Buscar Sugestões" para analisar as campanhas deste cliente e encontrar oportunidades de otimização.
                     </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analysis" className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold">Análise Completa das Campanhas</h4>
+                  <Button
+                    onClick={handleGenerateAnalysis}
+                    className="flex items-center gap-2"
+                    disabled={isGeneratingAnalysis}
+                  >
+                    <BarChart3 className={`w-4 h-4 ${isGeneratingAnalysis ? 'animate-pulse' : ''}`} />
+                    {isGeneratingAnalysis ? 'Gerando Análise...' : 'Gerar Análise com IA'}
+                  </Button>
+                </div>
+
+                {campaignAnalysis ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="prose prose-gray max-w-none">
+                      <div 
+                        className="markdown-content"
+                        dangerouslySetInnerHTML={{ 
+                          __html: campaignAnalysis.replace(/\n/g, '<br/>').replace(/##\s+(.+)/g, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/- (.+)/g, '<li class="ml-4">• $1</li>') 
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Análise gerada por IA especializada em tráfego pago</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🧠</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Análise Estratégica com IA
+                    </h3>
+                    <p className="text-gray-500 mb-6 max-w-2xl mx-auto">
+                      Obtenha uma análise detalhada das campanhas deste cliente feita por nossa IA especializada em tráfego pago. 
+                      Receba insights estratégicos, identificação de oportunidades e recomendações baseadas nas melhores práticas do mercado.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <BarChart3 className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <p className="text-sm font-medium text-blue-900">Diagnóstico Geral</p>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <TrendingUp className="w-4 h-4 text-green-600" />
+                        </div>
+                        <p className="text-sm font-medium text-green-900">Estratégias de Escala</p>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Target className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <p className="text-sm font-medium text-purple-900">Ações Prioritárias</p>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <Users className="w-4 h-4 text-orange-600" />
+                        </div>
+                        <p className="text-sm font-medium text-orange-900">Projeções e Metas</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
