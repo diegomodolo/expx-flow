@@ -551,7 +551,9 @@ const NewDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium">Escalar {alert.campaign}</p>
-                        <p className="text-sm text-gray-600">Aumentar orçamento em 15% - CPA abaixo da meta</p>
+                        <p className="text-sm text-gray-600">
+                          Cliente: {alert.client} - Aumentar orçamento em 15% - CPA abaixo da meta
+                        </p>
                       </div>
                     </div>
                     <Button size="sm">Executar</Button>
