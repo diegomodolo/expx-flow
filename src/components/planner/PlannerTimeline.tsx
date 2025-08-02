@@ -79,8 +79,39 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
   };
 
   const handleAddTask = (slotId: string) => {
+    const slot = timeSlots.find(s => s.id === slotId);
+    if (slot) {
+      // Criar tarefa pré-preenchida com dados do slot
+      const [startHours, startMinutes] = slot.start_time.split(':').map(Number);
+      const [endHours, endMinutes] = slot.end_time.split(':').map(Number);
+      
+      // Data de início: data selecionada + hora de início do slot
+      const startDate = new Date(selectedDate);
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      
+      // Prazo: data selecionada + hora final do slot
+      const dueDate = new Date(selectedDate);
+      dueDate.setHours(endHours, endMinutes, 0, 0);
+      
+      // Criar tarefa pré-preenchida
+      const prefilledTask = {
+        title: "",
+        description: "",
+        start_date: startDate.toISOString(),
+        due_date: dueDate.toISOString(),
+        deadline: selectedDate.toISOString().split('T')[0],
+        hasSpecificTime: true,
+        start_time: slot.start_time,
+        priority: 'medium' as const,
+        status: 'todo' as const,
+        progress: 0,
+        origin: 'manual' as const
+      };
+      
+      setEditingTask(prefilledTask);
+    }
+    
     setSelectedSlotId(slotId);
-    setEditingTask(null);
     setTaskDialogOpen(true);
   };
 
