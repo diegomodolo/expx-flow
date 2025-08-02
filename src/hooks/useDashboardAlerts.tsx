@@ -179,8 +179,13 @@ export const useDashboardAlerts = () => {
   };
 
   const fetchAlerts = async (filterClientId?: string | null) => {
-    if (!activeCompany?.company_id || !user?.id || loading) {
-      console.log('Skipping alerts fetch: missing company, user or already loading');
+    if (!activeCompany?.company_id || !user?.id) {
+      console.log('Skipping alerts fetch: missing company or user');
+      return;
+    }
+
+    if (loading) {
+      console.log('Already loading alerts, skipping...');
       return;
     }
 
