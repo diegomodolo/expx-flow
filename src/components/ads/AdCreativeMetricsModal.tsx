@@ -69,6 +69,36 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
   // Calcular métricas derivadas
   const conversionRate = ad.clicks > 0 ? ((ad.conversions / ad.clicks) * 100) : 0;
   
+  // Função para formatar call to action
+  const formatCallToAction = (cta?: string) => {
+    if (!cta || cta === '{}') return null;
+    
+    try {
+      const parsed = JSON.parse(cta);
+      const ctaMap: { [key: string]: string } = {
+        'SIGN_UP': 'Inscrever-se',
+        'LEARN_MORE': 'Saiba Mais',
+        'SHOP_NOW': 'Comprar Agora',
+        'CONTACT_US': 'Entre em Contato',
+        'DOWNLOAD': 'Baixar',
+        'BOOK_TRAVEL': 'Reservar Viagem',
+        'APPLY_NOW': 'Candidatar-se',
+        'GET_QUOTE': 'Solicitar Orçamento',
+        'SUBSCRIBE': 'Assinar',
+        'REGISTER': 'Registrar-se'
+      };
+      
+      if (parsed.type) {
+        return ctaMap[parsed.type] || parsed.type;
+      }
+      
+      return parsed;
+    } catch {
+      // Se não for JSON, retorna o valor original
+      return cta;
+    }
+  };
+  
   // Função para formatar rankings
   const formatRanking = (ranking?: string) => {
     if (!ranking || ranking === 'UNKNOWN') return 'Dados insuficientes';
@@ -234,10 +264,10 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
                   </div>
 
                   {/* Call to Action */}
-                  {ad.call_to_action && ad.call_to_action !== '{}' && (
+                  {formatCallToAction(ad.call_to_action) && (
                     <div className="mt-3">
                       <button className="w-full bg-blue-500 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors">
-                        {ad.call_to_action}
+                        {formatCallToAction(ad.call_to_action)}
                       </button>
                     </div>
                   )}
