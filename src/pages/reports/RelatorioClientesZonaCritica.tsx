@@ -73,11 +73,13 @@ export default function RelatorioClientesZonaCritica() {
       const totalConversions = clientCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
       const totalClicks = clientCampaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
       const totalImpressions = clientCampaigns.reduce((sum, c) => sum + (c.impressions || 0), 0);
+      const totalReach = clientCampaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
       
       const avgCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
       const avgCPL = totalClicks > 0 ? totalSpend / totalClicks : 0;
       const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-      const avgFrequency = totalClicks > 0 ? totalImpressions / totalClicks : 0;
+      // Corrigir cálculo de frequência: impressions / reach (não clicks)
+      const avgFrequency = totalReach > 0 ? totalImpressions / totalReach : 0;
 
       // Definir targets baseados em benchmarks da indústria
       const cplTarget = 50; // R$ 50 por lead (benchmark padrão)
