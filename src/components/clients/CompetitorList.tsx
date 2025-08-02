@@ -18,6 +18,7 @@ import {
   Loader2,
   ExternalLink
 } from 'lucide-react';
+import { AdLibraryScrapeDialog } from './AdLibraryScrapeDialog';
 import { useCompetitors, Competitor, CompetitorAd } from '@/hooks/useCompetitors';
 import { toast } from 'sonner';
 
@@ -173,6 +174,10 @@ export const CompetitorList = ({ clientId, competitors, competitorAds, onRefetch
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <AdLibraryScrapeDialog 
+                      competitor={competitor} 
+                      onAdsAdded={onRefetch}
+                    />
                     <Button
                       variant="outline"
                       size="sm"
