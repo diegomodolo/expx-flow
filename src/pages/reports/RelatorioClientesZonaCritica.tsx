@@ -346,14 +346,6 @@ export default function RelatorioClientesZonaCritica() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-destructive">
-                          R$ {client.cpa_current.toFixed(0)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          CPA (Meta: R$ {client.cpa_target})
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
                           R$ {client.cpl_current.toFixed(0)}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -374,6 +366,14 @@ export default function RelatorioClientesZonaCritica() {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Frequência (Max: 5x)
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-destructive">
+                          {((client.cpa_current > 0 ? client.cpa_current : client.cpl_current * 3) / client.cpl_current * 100).toFixed(1)}%
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Taxa Conversão
                         </div>
                       </div>
                     </div>
