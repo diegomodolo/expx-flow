@@ -180,8 +180,10 @@ export default function Tarefas() {
                             size="sm"
                             onClick={handleAnalyzeCampaigns}
                             className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            disabled={isAnalyzing}
                           >
-                            Analisar Completo
+                            <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                            {isAnalyzing ? 'Buscando...' : 'Buscar Sugestões'}
                           </Button>
                         </div>
                         <div className="space-y-3">
@@ -253,8 +255,10 @@ export default function Tarefas() {
                             size="sm"
                             onClick={handleAnalyzeCampaigns}
                             className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            disabled={isAnalyzing}
                           >
-                            Analisar Completo
+                            <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                            {isAnalyzing ? 'Buscando...' : 'Buscar Sugestões'}
                           </Button>
                         </div>
                         <div className="space-y-3">
