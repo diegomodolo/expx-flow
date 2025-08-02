@@ -1132,6 +1132,7 @@ export type Database = {
           related_client_id: string | null
           responsible_avatar: string | null
           responsible_name: string
+          start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           team_id: string
           title: string
@@ -1155,6 +1156,7 @@ export type Database = {
           related_client_id?: string | null
           responsible_avatar?: string | null
           responsible_name: string
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           team_id: string
           title: string
@@ -1178,6 +1180,7 @@ export type Database = {
           related_client_id?: string | null
           responsible_avatar?: string | null
           responsible_name?: string
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           team_id?: string
           title?: string
@@ -1323,6 +1326,10 @@ export type Database = {
           _related_client_id?: string
           _alert_id?: string
         }
+        Returns: string
+      }
+      find_time_slot_for_start_date: {
+        Args: { _company_id: string; _start_date: string }
         Returns: string
       }
       get_user_company_ids: {

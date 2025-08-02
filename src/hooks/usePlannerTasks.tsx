@@ -14,7 +14,12 @@ export interface PlannerDailyTask {
   planned_date: string;
   created_at: string;
   updated_at: string;
-  tasks?: Task;
+  tasks?: Task & {
+    team?: {
+      name: string;
+      color: string;
+    };
+  };
 }
 
 export function usePlannerTasks(plannedDate: Date) {
@@ -40,7 +45,7 @@ export function usePlannerTasks(plannedDate: Date) {
         .from("planner_daily_tasks")
         .select(`
           *,
-          tasks(*)
+          tasks(*,team:teams(name,color))
         `)
         .eq("company_id", activeCompany.company_id)
         .eq("planned_date", dateString);
@@ -158,7 +163,19 @@ export function usePlannerTasks(plannedDate: Date) {
 
   // Função para organizar tarefas por slot
   const getTasksBySlot = (timeSlotId: string) => {
-    return plannerTasks.filter(pt => pt.time_slot_id === timeSlotId);
+    return plannerTasks
+      .filter(pt => pt.time_slot_id === timeSlotId)
+      .sort((a, b) => {
+        // Ordena por horário de início se ambos tiverem start_date
+        if (a.tasks?.start_date && b.tasks?.start_date) {
+          return new Date(a.tasks.start_date).getTime() - new Date(b.tasks.start_date).getTime();
+        }
+        // Tarefas com horário específico aparecem primeiro
+        if (a.tasks?.start_date && !b.tasks?.start_date) return -1;
+        if (!a.tasks?.start_date && b.tasks?.start_date) return 1;
+        // Se nenhuma tem horário, manter ordem original
+        return 0;
+      });
   };
 
   return {

@@ -16,6 +16,7 @@ export interface Task {
   priority: "high" | "medium" | "low";
   deadline: string;
   due_date?: string;
+  start_date?: string;
   progress: number;
   origin: 'manual' | 'automation' | 'dashboard';
   team?: {

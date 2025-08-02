@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Circle, Clock, AlertTriangle, Target } from "lucide-react";
+import { CheckCircle, Circle, Clock, AlertTriangle, Target, Timer } from "lucide-react";
+import { format } from "date-fns";
 import { PlannerDailyTask } from "@/hooks/usePlannerTasks";
 import { useTasks } from "@/hooks/useTasks";
 
@@ -62,6 +63,12 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h4 className="font-medium text-sm truncate">{task.tasks.title}</h4>
+              {task.tasks.start_date && (
+                <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded" title="Horário específico">
+                  <Timer className="h-3 w-3" />
+                  {format(new Date(task.tasks.start_date), 'HH:mm')}
+                </div>
+              )}
               {getOriginIcon(task.tasks.origin) && (
                 <div title="Tarefa automática">{getOriginIcon(task.tasks.origin)}</div>
               )}

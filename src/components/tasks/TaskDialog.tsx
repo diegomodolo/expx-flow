@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTeams } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
+import { usePlannerSlots } from "@/hooks/usePlannerSlots";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskDialogProps {
   open: boolean;
@@ -31,17 +33,26 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     team_id: '',
     responsible_name: '',
     responsible_avatar: '',
+    start_date: null as Date | null,
+    start_time: '',
     due_date: null as Date | null,
+    due_time: '',
+    hasSpecificTime: false,
     progress: 0,
     checklist: [] as { id: string; text: string; completed: boolean }[],
   });
 
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [previewSlot, setPreviewSlot] = useState<string>('');
   const { teams } = useTeams();
   const { employees } = useEmployees();
+  const { timeSlots } = usePlannerSlots();
 
   useEffect(() => {
     if (task) {
+      const startDate = task.start_date ? new Date(task.start_date) : null;
+      const dueDate = task.due_date ? new Date(task.due_date) : null;
+      
       setFormData({
         title: task.title || '',
         description: task.description || '',
@@ -50,7 +61,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         team_id: task.team_id || '',
         responsible_name: task.responsible_name || '',
         responsible_avatar: task.responsible_avatar || '',
-        due_date: task.due_date ? new Date(task.due_date) : null,
+        start_date: startDate,
+        start_time: startDate ? format(startDate, 'HH:mm') : '',
+        due_date: dueDate,
+        due_time: dueDate ? format(dueDate, 'HH:mm') : '',
+        hasSpecificTime: !!task.start_date,
         progress: task.progress || 0,
         checklist: (() => {
           try {
@@ -72,7 +87,11 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         team_id: '',
         responsible_name: '',
         responsible_avatar: '',
+        start_date: null,
+        start_time: '',
         due_date: null,
+        due_time: '',
+        hasSpecificTime: false,
         progress: 0,
         checklist: [],
       });
@@ -80,10 +99,46 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
   }, [task]);
 
   const handleSave = () => {
-    onSave({
+    let startDateTime: Date | null = null;
+    let dueDateTime: Date | null = null;
+
+    // Combinar data e hora para criar timestamp completo
+    if (formData.hasSpecificTime && formData.start_date && formData.start_time) {
+      const [hours, minutes] = formData.start_time.split(':');
+      startDateTime = new Date(formData.start_date);
+      startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    }
+
+    if (formData.due_date && formData.due_time) {
+      const [hours, minutes] = formData.due_time.split(':');
+      dueDateTime = new Date(formData.due_date);
+      dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    } else if (formData.due_date) {
+      // Se não tem horário específico, usar final do dia
+      dueDateTime = new Date(formData.due_date);
+      dueDateTime.setHours(23, 59, 59, 999);
+    }
+
+    // Validação: data de início deve ser anterior ao prazo
+    if (startDateTime && dueDateTime && startDateTime >= dueDateTime) {
+      alert('A data/hora de início deve ser anterior à data/hora do prazo.');
+      return;
+    }
+
+    const taskData: any = {
       ...formData,
       checklist: JSON.stringify(formData.checklist),
-    });
+    };
+
+    if (startDateTime) {
+      taskData.start_date = startDateTime.toISOString();
+    }
+
+    if (dueDateTime) {
+      taskData.due_date = dueDateTime.toISOString();
+    }
+
+    onSave(taskData);
     onOpenChange(false);
   };
 
@@ -119,6 +174,28 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
       )
     }));
   };
+
+  // Função para encontrar o slot baseado na data/hora de início
+  const findSlotForDateTime = (date: Date | null, time: string) => {
+    if (!date || !time || !timeSlots) return null;
+    
+    const [hours, minutes] = time.split(':').map(Number);
+    const timeOnly = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+    
+    return timeSlots.find(slot => 
+      timeOnly >= slot.start_time && timeOnly <= slot.end_time
+    );
+  };
+
+  // Atualizar preview do slot quando data/hora mudam
+  useEffect(() => {
+    if (formData.hasSpecificTime && formData.start_date && formData.start_time) {
+      const slot = findSlotForDateTime(formData.start_date, formData.start_time);
+      setPreviewSlot(slot?.name || 'Nenhum slot encontrado');
+    } else {
+      setPreviewSlot('');
+    }
+  }, [formData.start_date, formData.start_time, formData.hasSpecificTime, timeSlots]);
 
   const priorityColors = {
     low: 'bg-green-100 text-green-800',
@@ -266,10 +343,60 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
             </div>
           </div>
 
-          {/* Prazo e Progresso */}
+          {/* Opção de horário específico */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="hasSpecificTime"
+              checked={formData.hasSpecificTime}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSpecificTime: !!checked }))}
+            />
+            <Label htmlFor="hasSpecificTime">Esta tarefa tem horário específico</Label>
+          </div>
+
+          {/* Data/Hora de Início */}
+          {formData.hasSpecificTime && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Data de Início</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.start_date ? format(formData.start_date, "PPP", { locale: ptBR }) : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.start_date}
+                      onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label>Hora de Início</Label>
+                <Input
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                />
+                {previewSlot && (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Será adicionada ao slot: <strong>{previewSlot}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Prazo */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Prazo</Label>
+              <Label>Data do Prazo</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left">
@@ -283,23 +410,34 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
                     selected={formData.due_date}
                     onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date }))}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
             <div>
-              <Label>Progresso (%)</Label>
-              <div className="space-y-2">
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.progress}
-                  onChange={(e) => setFormData(prev => ({ ...prev, progress: parseInt(e.target.value) || 0 }))}
-                />
-                <Progress value={formData.progress} />
-              </div>
+              <Label>Hora do Prazo {!formData.hasSpecificTime && "(opcional)"}</Label>
+              <Input
+                type="time"
+                value={formData.due_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, due_time: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Progresso */}
+          <div>
+            <Label>Progresso (%)</Label>
+            <div className="space-y-2">
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.progress}
+                onChange={(e) => setFormData(prev => ({ ...prev, progress: parseInt(e.target.value) || 0 }))}
+              />
+              <Progress value={formData.progress} />
             </div>
           </div>
 
