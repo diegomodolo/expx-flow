@@ -122,9 +122,9 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+        <div className="flex gap-6 mt-4">
           {/* Coluna Esquerda - Prévia do Criativo */}
-          <div className="space-y-6">
+          <div className="flex-shrink-0 space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
                 <Eye className="w-5 h-5 text-blue-600" />
@@ -278,7 +278,7 @@ export const AdCreativeMetricsModal = ({ ad, isOpen, onClose }: AdCreativeMetric
           </div>
 
           {/* Coluna Direita - Indicadores */}
-          <div className="space-y-6">
+          <div className="flex-1 space-y-6">
 
           {/* Indicadores de Engajamento */}
           <div>
