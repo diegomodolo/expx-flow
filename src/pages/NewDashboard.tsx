@@ -521,7 +521,7 @@ export default function NewDashboard() {
                     </p>
                     <div className="flex items-center gap-2">
                       <BarChart3 className="w-3 h-3 text-gray-500" />
-                      <p className="text-xs text-gray-600">CPA: {formatCurrency(campaign.cpa)} • ROI: {((campaign.conversions * 100 - campaign.spend) / campaign.spend * 100).toFixed(1)}%</p>
+                      <p className="text-xs text-gray-600">CPA: {formatCurrency(campaign.cpa)} • Leads: {campaign.conversions}</p>
                     </div>
                   </div>
                 </div>
