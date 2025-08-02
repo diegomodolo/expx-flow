@@ -67,20 +67,19 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
 
       console.log('🎯 Target slot found:', targetSlot.name, targetSlot.start_time, '-', targetSlot.end_time);
 
-      // Calcular novo horário de início baseado no slot
-      const [startHours, startMinutes] = targetSlot.start_time.split(':');
-      const newStartDate = new Date(selectedDate);
-      newStartDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
-
-      // Calcular novo horário de prazo baseado no slot
-      const [endHours, endMinutes] = targetSlot.end_time.split(':');
-      const newDueDate = new Date(selectedDate);
-      newDueDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+      // Criar datas usando formato local para evitar problemas de timezone
+      const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Calcular novo horário de início baseado no slot (formato local)
+      const newStartDate = `${dateStr}T${targetSlot.start_time}:00`;
+      
+      // Calcular novo horário de prazo baseado no slot (formato local)
+      const newDueDate = `${dateStr}T${targetSlot.end_time}:00`;
 
       const updates = { 
-        start_date: newStartDate.toISOString(),
-        due_date: newDueDate.toISOString(),
-        deadline: selectedDate.toISOString().split('T')[0]
+        start_date: newStartDate,
+        due_date: newDueDate,
+        deadline: dateStr
       };
 
       console.log('🔄 Updates to apply:', updates);

@@ -65,8 +65,24 @@ export function usePlannerTasks(plannedDate: Date) {
     return tasks.filter(task => {
       // Se a tarefa tem start_date, usar o horário dela
       if (task.start_date) {
-        const taskTime = new Date(task.start_date).toTimeString().slice(0, 8);
-        return taskTime >= timeSlot.start_time && taskTime <= timeSlot.end_time;
+        // Extrair apenas a parte do tempo da data (formato local ou UTC)
+        let taskTime: string;
+        
+        if (task.start_date.includes('T')) {
+          // Formato ISO: extrair tempo da string ISO
+          taskTime = task.start_date.split('T')[1].substring(0, 8); // HH:MM:SS
+        } else {
+          // Se for outro formato, tentar converter
+          taskTime = new Date(task.start_date).toTimeString().slice(0, 8);
+        }
+        
+        console.log(`🔍 Comparing task ${task.id} time ${taskTime} with slot ${timeSlot.name} (${timeSlot.start_time} - ${timeSlot.end_time})`);
+        
+        // Comparar strings de tempo diretamente
+        const isInSlot = taskTime >= timeSlot.start_time && taskTime <= timeSlot.end_time;
+        console.log(`📍 Task ${task.id} ${isInSlot ? 'MATCHES' : 'does not match'} slot ${timeSlot.name}`);
+        
+        return isInSlot;
       }
       
       // Se não tem start_date mas tem deadline no dia, vai para o primeiro slot
