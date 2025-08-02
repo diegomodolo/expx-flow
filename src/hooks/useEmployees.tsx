@@ -1,66 +1,92 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
-import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useTeams } from "@/hooks/useTeams";
 
 export interface Employee {
   id: string;
+  user_id: string;
+  company_id: string;
   name: string;
   email: string;
   phone?: string;
   role: string;
+  status: string;
   team_id?: string;
-  status: 'active' | 'inactive' | 'vacation';
   start_date: string;
   skills?: string;
   avatar?: string;
   created_at: string;
   updated_at: string;
-  // Relacionamento com team
   team?: {
     id: string;
     name: string;
+    color: string;
   };
 }
 
-export function useEmployees() {
+export interface CreateEmployeeData {
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  status: string;
+  team_id?: string;
+  start_date: string;
+  skills?: string;
+  avatar?: string;
+}
+
+export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
 
   const fetchEmployees = async () => {
-    if (!user || !activeCompany) return;
-    
+    if (!user || !activeCompany) {
+      setEmployees([]);
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
+
       const { data, error } = await supabase
         .from("employees")
         .select(`
           *,
-          team:teams(id, name)
+          team:teams (
+            id,
+            name,
+            color
+          )
         `)
         .eq("company_id", activeCompany.company_id)
-        .order("created_at", { ascending: false });
+        .order("name");
 
       if (error) throw error;
-      setEmployees((data || []) as Employee[]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao buscar colaboradores");
+
+      setEmployees(data || []);
+    } catch (error: any) {
+      console.error("Error fetching employees:", error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const createEmployee = async (employeeData: Omit<Employee, "id" | "created_at" | "updated_at" | "team">) => {
+  const createEmployee = async (employeeData: CreateEmployeeData) => {
     if (!user || !activeCompany) {
       setError("Usuário não autenticado ou empresa não selecionada");
       return null;
     }
 
     try {
+      setLoading(true);
       setError(null);
       
       // Verificar se o usuário tem permissões para criar colaboradores
@@ -86,7 +112,7 @@ export function useEmployees() {
 
       if (companySearchError) {
         console.error("Erro ao verificar colaborador na empresa:", companySearchError);
-        // Não falhar aqui, apenas avisar
+        throw new Error(`Erro ao verificar colaborador: ${companySearchError.message}`);
       }
 
       if (existingEmployeeInCompany) {
@@ -98,6 +124,7 @@ export function useEmployees() {
 
       let userId: string;
       let isNewUser = true;
+      let shouldSendWelcome = false;
 
       // 2. Verificar se usuário já existe na plataforma (qualquer empresa)
       const { data: checkResult, error: checkError } = await supabase.functions.invoke('check-user', {
@@ -106,31 +133,60 @@ export function useEmployees() {
 
       if (checkError) {
         console.warn("Erro ao verificar usuário existente:", checkError);
-        // Continue o processo mesmo se a verificação falhar
+        // Se falhar verificação, assume que é novo usuário
+        isNewUser = true;
       }
 
-      if (checkResult?.exists) {
-        // Usuário já existe - apenas vincular à empresa
+      if (checkResult?.exists && !checkError) {
+        // CASO B: Usuário já existe - apenas vincular à empresa
         userId = checkResult.user_id;
         isNewUser = false;
+        shouldSendWelcome = false;
 
-        // Adicionar usuário existente à empresa atual
-        const { data: addResult, error: addError } = await supabase.functions.invoke('add-existing-user', {
-          body: { 
-            userId: userId, 
-            companyId: activeCompany.company_id 
+        console.log("Usuário já existe na plataforma, vinculando à empresa:", userId);
+
+        // Verificar se já é membro da empresa
+        const { data: existingMember } = await supabase
+          .from('company_members')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('company_id', activeCompany.company_id)
+          .maybeSingle();
+
+        if (!existingMember) {
+          // Adicionar como membro da empresa
+          const { error: memberError } = await supabase
+            .from('company_members')
+            .insert([{
+              user_id: userId,
+              company_id: activeCompany.company_id,
+              role: 'member',
+              joined_at: new Date().toISOString()
+            }]);
+
+          if (memberError) {
+            console.warn("Erro ao adicionar como membro da empresa:", memberError);
           }
-        });
-
-        if (addError) {
-          console.warn("Erro ao vincular usuário existente:", addError);
-          // Continue o processo mesmo se a vinculação falhar
         }
 
-        console.log("Usuário existente vinculado:", addResult);
+        // Enviar notificação de nova empresa (não bloquear o processo se falhar)
+        try {
+          await supabase.functions.invoke('notify-user-new-company', {
+            body: {
+              email: employeeData.email,
+              userName: employeeData.name,
+              companyName: activeCompany.company?.name || 'Nova Empresa'
+            }
+          });
+          console.log("Notificação de nova empresa enviada");
+        } catch (notifyError) {
+          console.warn("Erro ao enviar notificação de nova empresa:", notifyError);
+        }
 
       } else {
-        // Usuário não existe - criar novo com magic link
+        // CASO A: Usuário não existe - criar novo com magic link
+        console.log("Usuário não existe, criando novo com magic link");
+        
         const { data: createResult, error: createError } = await supabase.functions.invoke('invite-with-magic-link', {
           body: {
             email: employeeData.email,
@@ -152,11 +208,12 @@ export function useEmployees() {
 
         userId = createResult.user_id;
         isNewUser = true;
+        shouldSendWelcome = true;
 
         console.log("Novo usuário criado com magic link:", createResult);
       }
 
-      // 3. Tentar criar registro de colaborador com tratamento de erro de duplicata
+      // 3. Criar registro de colaborador na empresa
       const employeeInsertData = {
         name: employeeData.name,
         email: employeeData.email,
@@ -171,145 +228,142 @@ export function useEmployees() {
         company_id: activeCompany.company_id,
       };
 
-      console.log("Dados para inserção do colaborador:", employeeInsertData);
+      console.log("Criando registro de colaborador:", employeeInsertData);
 
-      // Primeiro, tentar verificar se o registro já existe por user_id
-      const { data: existingByUserId, error: userIdSearchError } = await supabase
-        .from('employees')
-        .select('id, email')
-        .eq('user_id', userId)
-        .eq('company_id', activeCompany.company_id)
-        .maybeSingle();
+      const { data: newEmployee, error: employeeError } = await supabase
+        .from("employees")
+        .insert([employeeInsertData])
+        .select(`
+          *,
+          team:teams (
+            id,
+            name,
+            color
+          )
+        `)
+        .single();
 
-      console.log("Busca por user_id:", { existingByUserId, userIdSearchError });
-
-      let employee;
-      
-      if (existingByUserId) {
-        // Se já existe por user_id, atualizar os dados
-        const { data: updatedEmployee, error: updateError } = await supabase
-          .from("employees")
-          .update(employeeInsertData)
-          .eq("id", existingByUserId.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          throw new Error(`Erro ao atualizar colaborador existente: ${updateError.message}`);
-        }
-        
-        employee = updatedEmployee;
-        console.log("Colaborador atualizado:", employee);
-      } else {
-        // Tentar inserir novo registro
-        console.log("Tentando inserir novo colaborador...");
-        const { data: newEmployee, error: employeeError } = await supabase
-          .from("employees")
-          .insert([employeeInsertData])
-          .select()
-          .single();
-
-        console.log("Resultado da inserção:", { newEmployee, employeeError });
-
-        if (employeeError) {
-          // Se erro for de email duplicado, tentar buscar e atualizar
-          if (employeeError.message?.includes('employees_email_key')) {
-            console.log("Email duplicado detectado, tentando atualizar registro existente...");
-            
-            const { data: existingByEmail, error: searchEmailError } = await supabase
-              .from('employees')
-              .select('id')
-              .eq('email', employeeData.email)
-              .eq('company_id', activeCompany.company_id)
-              .maybeSingle();
-
-            if (searchEmailError) {
-              console.error("Erro ao buscar por email:", searchEmailError);
-              throw new Error(`Erro ao buscar colaborador existente: ${searchEmailError.message}`);
-            }
-
-            if (existingByEmail) {
-              const { data: updatedEmployee, error: updateError } = await supabase
-                .from("employees")
-                .update({ ...employeeInsertData, user_id: userId })
-                .eq("id", existingByEmail.id)
-                .select()
-                .single();
-
-              if (updateError) {
-                throw new Error(`Erro ao atualizar colaborador: ${updateError.message}`);
-              }
-              
-              employee = updatedEmployee;
-            } else {
-              throw new Error(`Email duplicado detectado mas não foi possível encontrar o registro para atualizar`);
-            }
-          } else {
-            throw new Error(`Erro ao criar colaborador: ${employeeError.message}`);
-          }
-        } else {
-          employee = newEmployee;
-        }
+      if (employeeError) {
+        throw new Error(`Erro ao criar registro de colaborador: ${employeeError.message}`);
       }
 
-      // 4. Mostrar mensagem de sucesso
-      if (isNewUser) {
-        toast({
-          title: "✨ Novo colaborador criado!",
-          description: `${employeeData.name} recebeu um email com magic link para acessar a plataforma. Ele será automaticamente vinculado à sua empresa.`,
-        });
-      } else {
-        toast({
-          title: "👥 Colaborador vinculado!",
-          description: `${employeeData.name} já tinha conta na plataforma e agora também tem acesso à sua empresa.`,
-        });
-      }
+      console.log("Colaborador criado com sucesso:", newEmployee);
 
+      // Atualizar lista de colaboradores
       await fetchEmployees();
-      return employee;
 
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao criar colaborador";
-      setError(errorMessage);
-      toast({
-        title: "Erro",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return null;
+      return newEmployee;
+
+    } catch (error: any) {
+      console.error("Error creating employee:", error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateEmployee = async (id: string, updates: Partial<Employee>) => {
+    if (!user || !activeCompany) {
+      setError("Usuário não autenticado ou empresa não selecionada");
+      return null;
+    }
+
     try {
-      const { error } = await supabase
+      setLoading(true);
+      setError(null);
+
+      // Verificar se o usuário tem permissões para atualizar colaboradores
+      const { data: userRole, error: roleError } = await supabase
+        .from('company_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('company_id', activeCompany.company_id)
+        .single();
+
+      if (roleError || !userRole || !['owner', 'admin'].includes(userRole.role)) {
+        throw new Error("Você não tem permissão para atualizar colaboradores. Apenas owners e admins podem realizar esta ação.");
+      }
+
+      const { data, error } = await supabase
         .from("employees")
-        .update(updates)
-        .eq("id", id);
+        .update({
+          ...updates,
+          team_id: updates.team_id === "sem-squad" ? null : updates.team_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .eq("company_id", activeCompany.company_id) // Garantir que só atualize na empresa atual
+        .select(`
+          *,
+          team:teams (
+            id,
+            name,
+            color
+          )
+        `)
+        .single();
 
       if (error) throw error;
-      await fetchEmployees(); // Refresh the list
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar colaborador");
+
+      // Atualizar lista de colaboradores
+      await fetchEmployees();
+
+      return data;
+    } catch (error: any) {
+      console.error("Error updating employee:", error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteEmployee = async (id: string) => {
+    if (!user || !activeCompany) {
+      setError("Usuário não autenticado ou empresa não selecionada");
+      return;
+    }
+
     try {
+      setLoading(true);
+      setError(null);
+
+      // Verificar se o usuário tem permissões para deletar colaboradores
+      const { data: userRole, error: roleError } = await supabase
+        .from('company_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('company_id', activeCompany.company_id)
+        .single();
+
+      if (roleError || !userRole || !['owner', 'admin'].includes(userRole.role)) {
+        throw new Error("Você não tem permissão para excluir colaboradores. Apenas owners e admins podem realizar esta ação.");
+      }
+
       const { error } = await supabase
         .from("employees")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("company_id", activeCompany.company_id); // Garantir que só delete na empresa atual
 
       if (error) throw error;
-      await fetchEmployees(); // Refresh the list
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao deletar colaborador");
+
+      // Atualizar lista de colaboradores
+      await fetchEmployees();
+    } catch (error: any) {
+      console.error("Error deleting employee:", error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
+    if (user && activeCompany) {
+      fetchEmployees();
+    }
   }, [user, activeCompany]);
 
   return {
@@ -321,4 +375,4 @@ export function useEmployees() {
     updateEmployee,
     deleteEmployee,
   };
-}
+};

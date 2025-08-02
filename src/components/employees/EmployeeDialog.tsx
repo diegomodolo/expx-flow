@@ -5,13 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Employee } from "@/hooks/useEmployees";
+import { Employee, CreateEmployeeData } from "@/hooks/useEmployees";
 import { useTeams } from "@/hooks/useTeams";
 
 interface EmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (employeeData: Omit<Employee, "id" | "created_at" | "updated_at" | "team">) => Promise<any>;
+  onSubmit: (employeeData: CreateEmployeeData) => Promise<any>;
   employee?: Employee;
   title: string;
   readOnly?: boolean;
