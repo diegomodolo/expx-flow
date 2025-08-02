@@ -40,7 +40,7 @@ export default function RelatorioClientesZonaCritica() {
     const critical: CriticalClient[] = [];
 
     clients?.forEach(client => {
-      const clientCampaigns = campaigns?.filter(c => c.client_id === client.id) || [];
+      const clientCampaigns = campaigns?.filter(c => c.client_id === client.id && c.status === 'active') || [];
       const issues: string[] = [];
       const problematicCampaigns: string[] = [];
       
