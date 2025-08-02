@@ -174,20 +174,18 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           {/* Data relativa com responsável */}
                           {task.due_date && (
                             <div className="flex items-center gap-2">
-                              {/* Avatar e nome do responsável */}
-                              <div className="flex items-center gap-1">
-                                <Avatar className="h-4 w-4">
-                                  {(task.responsible_avatar || task.user_profile?.avatar_url) && (
-                                    <AvatarImage 
-                                      src={task.responsible_avatar || task.user_profile?.avatar_url || ''} 
-                                      alt={task.responsible_name}
-                                      className="object-cover"
-                                    />
-                                  )}
-                                  <AvatarFallback className="text-[8px] bg-muted">
-                                    {task.responsible_name?.charAt(0)?.toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
+                               {/* Avatar e nome do responsável */}
+                               <div className="flex items-center gap-1">
+                                 <Avatar className="h-4 w-4">
+                                   <AvatarImage 
+                                     src={task.responsible_avatar || task.user_profile?.avatar_url || ''} 
+                                     alt={task.responsible_name || 'Responsável'}
+                                     className="object-cover"
+                                   />
+                                   <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">
+                                     {(task.responsible_name || 'U')?.charAt(0)?.toUpperCase()}
+                                   </AvatarFallback>
+                                 </Avatar>
                                 <span className="text-xs text-gray-600 font-medium">
                                   {task.responsible_name}
                                 </span>
