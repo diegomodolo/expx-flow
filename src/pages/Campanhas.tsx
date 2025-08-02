@@ -289,12 +289,6 @@ const Campanhas = () => {
                         Conversões
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ticket Médio
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ROI
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Período
                       </th>
                       <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -303,67 +297,46 @@ const Campanhas = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedCampaigns.map((campaign) => {
-                      // Calcular ROI baseado no ticket médio e conversões
-                      const ticketMedio = campaign.average_ticket || 0;
-                      const receita = campaign.conversions * ticketMedio;
-                      const investimento = campaign.spend || 0;
-                      const roi = investimento > 0 ? ((receita - investimento) / investimento * 100) : 0;
-                      
-                      return (
-                        <tr key={campaign.id} className="hover:bg-gray-50 cursor-pointer">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-3 h-3 rounded-full ${statusConfig[campaign.status].dotColor}`}></div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
-                                <div className="text-sm text-gray-500">{campaign.platforms}</div>
-                              </div>
+                    {paginatedCampaigns.map((campaign) => (
+                      <tr key={campaign.id} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-3 h-3 rounded-full ${statusConfig[campaign.status].dotColor}`}></div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
+                              <div className="text-sm text-gray-500">{campaign.platforms}</div>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={campaign.client?.avatar} alt={campaign.client?.name} />
-                                <AvatarFallback>{campaign.client?.name?.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <div className="text-sm text-gray-900">{campaign.client?.name}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge className={statusConfig[campaign.status].color}>
-                              {statusConfig[campaign.status].label}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {campaign.ctr}%
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            R$ {campaign.cpc.toFixed(2)}
-                          </td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                            campaign.status === "active" ? "text-green-600" : 
-                            campaign.status === "paused" ? "text-yellow-600" : "text-gray-600"
-                          }`}>
-                            {campaign.conversions}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {ticketMedio > 0 ? `R$ ${ticketMedio.toFixed(2)}` : (
-                              <span className="text-gray-400 italic">Não configurado</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {ticketMedio > 0 && investimento > 0 ? (
-                              <span className={roi >= 0 ? "text-green-600" : "text-red-600"}>
-                                {roi.toFixed(1)}%
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 italic">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {campaign.period}
-                          </td>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={campaign.client?.avatar} alt={campaign.client?.name} />
+                              <AvatarFallback>{campaign.client?.name?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="text-sm text-gray-900">{campaign.client?.name}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge className={statusConfig[campaign.status].color}>
+                            {statusConfig[campaign.status].label}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {campaign.ctr}%
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          R$ {campaign.cpc.toFixed(2)}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          campaign.status === "active" ? "text-green-600" : 
+                          campaign.status === "paused" ? "text-yellow-600" : "text-gray-600"
+                        }`}>
+                          {campaign.conversions}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {campaign.period}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <Button
@@ -414,8 +387,7 @@ const Campanhas = () => {
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                      ))}
                   </tbody>
                 </table>
               </div>
