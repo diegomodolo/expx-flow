@@ -48,12 +48,11 @@ export default function NewDashboard() {
   const { clients } = useClients();
   const { syncCampaigns, syncing, progress } = useFacebookCampaignSync();
 
-  // Criar dados do funil baseados nas métricas
+  // Dados do funil com informações reais
   const funnelData = [
-    { name: 'Alcance', value: metrics?.totalInvestment || 0, color: '#8b5cf6' },
-    { name: 'Leads', value: metrics?.totalLeads || 0, color: '#10b981' },
-    { name: 'Conversões', value: metrics?.totalLeads ? Math.floor(metrics.totalLeads * 0.15) : 0, color: '#f59e0b' },
-    { name: 'Recompras', value: metrics?.totalLeads ? Math.floor(metrics.totalLeads * 0.05) : 0, color: '#f97316' }
+    { name: 'Alcance', value: funnelMetrics?.reach || 0, color: '#8b5cf6' },
+    { name: 'Clicks', value: funnelMetrics?.clicks || 0, color: '#6366f1' },
+    { name: 'Leads', value: funnelMetrics?.leads || 0, color: '#10b981' }
   ];
 
   // Usar dados existentes
@@ -258,26 +257,26 @@ export default function NewDashboard() {
               </div>
             </div>
 
-            {/* ROI Médio */}
+            {/* CTR Médio */}
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 border border-orange-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="text-white w-5 h-5" />
+                  <Target className="text-white w-5 h-5" />
                 </div>
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  metrics && calculateChange(metrics.averageROI, metrics.previousPeriodROI) >= 0 
+                  metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 
                     ? 'text-green-600 bg-green-100' 
                     : 'text-red-600 bg-red-100'
                 }`}>
-                  {metrics && calculateChange(metrics.averageROI, metrics.previousPeriodROI) >= 0 ? '+' : ''}
-                  {metrics ? calculateChange(metrics.averageROI, metrics.previousPeriodROI).toFixed(1) : 0}%
+                  {metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 ? '+' : ''}
+                  {metrics ? calculateChange(metrics.averageCTR, metrics.previousPeriodCTR).toFixed(1) : 0}%
                 </span>
               </div>
               <div className="space-y-1">
                 <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.averageROI ? (metrics.averageROI * 100).toFixed(1) + '%' : '0%'}
+                  {metrics?.averageCTR ? `${metrics.averageCTR.toFixed(2)}%` : '0%'}
                 </p>
-                <p className="text-sm text-gray-600">Itens das Campanhas</p>
+                <p className="text-sm text-gray-600">Taxa de cliques</p>
               </div>
             </div>
           </div>
@@ -398,39 +397,42 @@ export default function NewDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Performance por Etapas do Funil</h2>
           </div>
 
-          <div className="grid grid-cols-4 gap-6">
-            {funnelData.map((stage, index) => (
-              <div key={stage.name} className={`text-center p-6 rounded-lg border ${
-                stage.name === 'Alcance' ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200' :
-                stage.name === 'Leads' ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' :
-                stage.name === 'Conversões' ? 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200' :
-                'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200'
-              }`}>
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                  stage.name === 'Alcance' ? 'bg-purple-500' :
-                  stage.name === 'Leads' ? 'bg-green-500' :
-                  stage.name === 'Conversões' ? 'bg-yellow-500' :
-                  'bg-orange-500'
-                }`}>
-                  {stage.name === 'Alcance' && <Eye className="text-white w-8 h-8" />}
-                  {stage.name === 'Leads' && <Users className="text-white w-8 h-8" />}
-                  {stage.name === 'Conversões' && <ShoppingCart className="text-white w-8 h-8" />}
-                  {stage.name === 'Recompras' && <Repeat className="text-white w-8 h-8" />}
+          <div className="grid grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-sm font-medium">Alcance</CardTitle>
+                <div className="text-2xl font-bold text-blue-600">
+                  {funnelMetrics?.reach?.toLocaleString() || '0'}
                 </div>
-                <p className="text-2xl font-bold text-gray-900 mb-1">
-                  {stage.value.toLocaleString()}
+                <p className="text-xs text-muted-foreground">
+                  Pessoas alcançadas
                 </p>
-                <p className="text-sm text-gray-600 mb-2">{stage.name}</p>
-                <p className={`text-xs font-medium ${
-                  stage.name === 'Alcance' ? 'text-purple-600' :
-                  stage.name === 'Leads' ? 'text-green-600' :
-                  stage.name === 'Conversões' ? 'text-yellow-600' :
-                  'text-orange-600'
-                }`}>
-                  +15.2% vs mês anterior
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-sm font-medium">Clicks</CardTitle>
+                <div className="text-2xl font-bold text-purple-600">
+                  {funnelMetrics?.clicks?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Cliques nos anúncios
                 </p>
-              </div>
-            ))}
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-sm font-medium">Leads</CardTitle>
+                <div className="text-2xl font-bold text-green-600">
+                  {funnelMetrics?.leads?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  CPL: {formatCurrency(funnelMetrics?.cpl || 0)}
+                </p>
+              </CardHeader>
+            </Card>
           </div>
         </div>
 

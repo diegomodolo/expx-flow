@@ -7,14 +7,13 @@ interface DashboardMetrics {
   totalInvestment: number;
   totalLeads: number;
   averageCPA: number;
-  averageROI: number;
-  roi: number;
+  averageCTR: number;
   activeClients: number;
   pausedClients: number;
   previousPeriodInvestment: number;
   previousPeriodLeads: number;
   previousPeriodCPA: number;
-  previousPeriodROI: number;
+  previousPeriodCTR: number;
 }
 
 interface ClientPerformance {
@@ -45,8 +44,7 @@ interface CampaignRanking {
 interface FunnelMetrics {
   reach: number;
   leads: number;
-  conversions: number;
-  recompras: number; // Assumindo que conversões são recompras
+  clicks: number;
   cpl: number;
   cpa: number;
 }
@@ -140,7 +138,7 @@ export const useDashboardData = () => {
         previousPeriodInvestment: previousMetrics.totalInvestment,
         previousPeriodLeads: previousMetrics.totalLeads,
         previousPeriodCPA: previousMetrics.averageCPA,
-        previousPeriodROI: previousMetrics.roi,
+        previousPeriodCTR: previousMetrics.averageCTR,
       };
 
       // Processar performance por cliente
@@ -177,13 +175,10 @@ export const useDashboardData = () => {
     const totalLeads = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
     
-    // Calcular ROI usando ticket médio quando disponível, caso contrário usar valor padrão
-    const totalRevenue = campaigns.reduce((sum, c) => {
-      const averageTicket = c.average_ticket || 100; // Valor padrão de R$ 100 se não informado
-      return sum + ((c.conversions || 0) * averageTicket);
-    }, 0);
-    
-    const roi = totalInvestment > 0 ? ((totalRevenue - totalInvestment) / totalInvestment * 100) : 0;
+    // Calcular CTR usando dados reais
+    const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
+    const totalImpressions = campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0);
+    const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     
     // Contar clientes ativos vs pausados
     const clientStatuses = campaigns.reduce((acc, c) => {
@@ -197,8 +192,7 @@ export const useDashboardData = () => {
       totalInvestment,
       totalLeads,
       averageCPA,
-      averageROI: roi,
-      roi,
+      averageCTR,
       activeClients: clientStatuses.green || 0,
       pausedClients: (clientStatuses.yellow || 0) + (clientStatuses.red || 0),
     };
@@ -247,17 +241,15 @@ export const useDashboardData = () => {
   const calculateFunnelMetrics = (campaigns: any[]): FunnelMetrics => {
     const totalReach = campaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
     const totalLeads = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
-    const totalConversions = totalLeads; // Assumindo que conversões são o mesmo que leads
-    const totalRecompras = Math.floor(totalConversions * 0.3); // Assumindo 30% de recompra
+    const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
     
     return {
       reach: totalReach,
       leads: totalLeads,
-      conversions: totalConversions,
-      recompras: totalRecompras,
+      clicks: totalClicks,
       cpl: totalLeads > 0 ? totalSpend / totalLeads : 0,
-      cpa: totalConversions > 0 ? totalSpend / totalConversions : 0,
+      cpa: totalLeads > 0 ? totalSpend / totalLeads : 0, // CPA igual ao CPL neste contexto
     };
   };
 
