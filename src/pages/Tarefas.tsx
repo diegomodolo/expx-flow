@@ -96,8 +96,13 @@ export default function Tarefas() {
   const handleAnalyzeCampaigns = async () => {
     setIsAnalyzing(true);
     try {
+      // Limpar alertas convertidos ao buscar novos
+      setConvertedAlerts(new Set());
+      
       await refetchDashboardData();
-      console.log('Dashboard data refetched, new alerts:', alerts);
+      console.log('Dashboard data refetched, total alerts:', alerts?.length || 0);
+      console.log('Danger alerts:', alerts?.filter(a => a.type === 'danger').length || 0);
+      console.log('Opportunity alerts:', alerts?.filter(a => a.type === 'opportunity').length || 0);
     } catch (error) {
       console.error('Error analyzing campaigns:', error);
     } finally {
