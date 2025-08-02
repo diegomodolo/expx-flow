@@ -17,21 +17,79 @@ import { useCompany } from "@/contexts/CompanyContext";
 interface PlannerTimelineProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
+  filteredTasks?: any[]; // Tarefas já filtradas pela página
 }
 
 export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({ 
   selectedDate, 
-  onDateChange 
+  onDateChange,
+  filteredTasks
  }) => {
   const { timeSlots, loading: slotsLoading } = usePlannerSlots();
-  const { tasks, getTasksBySlot, loading: plannerLoading } = usePlannerTasks(selectedDate);
+  const { tasks: plannerTasks, getTasksBySlot, loading: plannerLoading } = usePlannerTasks(selectedDate);
   const { createTask, updateTask, deleteTask } = useTasks();
+  
+  // Usar tarefas filtradas se fornecidas, senão usar as do hook
+  const tasks = filteredTasks || plannerTasks;
+
   const queryClient = useQueryClient();
   const { activeCompany } = useCompany();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [editingTask, setEditingTask] = useState<any>(null);
+
+  // Função personalizada para obter tarefas por slot usando tarefas filtradas
+  const getFilteredTasksBySlot = (timeSlot: any) => {
+    const plannedDateStr = selectedDate.toISOString().split('T')[0];
+    
+    console.log(`🎯 Getting tasks for slot ${timeSlot.name} on date ${plannedDateStr}`);
+    console.log(`📊 Total available tasks:`, tasks.length);
+    
+    const filteredTasks = tasks.filter(task => {
+      console.log(`🔍 Checking task ${task.id}: ${task.title}`);
+      
+      // Verificar se a tarefa tem start_date para este dia
+      if (task.start_date) {
+        const taskDate = new Date(task.start_date);
+        const taskDateStr = taskDate.toISOString().split('T')[0];
+        
+        console.log(`📅 Task date: ${taskDateStr}, Planned date: ${plannedDateStr}`);
+        
+        if (taskDateStr !== plannedDateStr) {
+          console.log(`❌ Task date mismatch for task ${task.id}`);
+          return false;
+        }
+        
+        // Extrair hora da tarefa no fuso horário local
+        const taskTime = `${taskDate.getHours().toString().padStart(2, '0')}:${taskDate.getMinutes().toString().padStart(2, '0')}:${taskDate.getSeconds().toString().padStart(2, '0')}`;
+        
+        // Normalizar para formato HH:MM:SS se necessário
+        const slotStartTime = timeSlot.start_time.length === 5 ? `${timeSlot.start_time}:00` : timeSlot.start_time;
+        const slotEndTime = timeSlot.end_time.length === 5 ? `${timeSlot.end_time}:00` : timeSlot.end_time;
+        
+        // Comparar strings de tempo diretamente
+        const isInSlot = taskTime >= slotStartTime && taskTime <= slotEndTime;
+        console.log(`📍 Task ${task.id} time ${taskTime} ${isInSlot ? 'MATCHES' : 'does not match'} slot range ${slotStartTime} - ${slotEndTime}`);
+        
+        return isInSlot;
+      }
+      
+      console.log(`⚠️ Task ${task.id} has no start_date, skipping slot assignment`);
+      return false;
+    });
+    
+    console.log(`✅ Slot ${timeSlot.name} final tasks:`, filteredTasks.map(t => `${t.id}:${t.title}`));
+    
+    return filteredTasks.sort((a, b) => {
+      if (a.start_date && !b.start_date) return -1;
+      if (!a.start_date && b.start_date) return 1;
+      if (a.start_date && b.start_date) {
+        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      }
+      return 0;
+    });
+  };
 
   // Função para lidar com o fim do drag and drop
   const handleDragEnd = async (result: DropResult) => {
@@ -358,7 +416,7 @@ export const PlannerTimeline: React.FC<PlannerTimelineProps> = ({
             <PlannerTimeSlot
               key={slot.id}
               slot={slot}
-              tasks={getTasksBySlot(slot)}
+              tasks={filteredTasks ? getFilteredTasksBySlot(slot) : getTasksBySlot(slot)}
               onAddTask={() => handleAddTask(slot.id)}
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}

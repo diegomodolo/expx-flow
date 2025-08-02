@@ -777,6 +777,7 @@ export default function Tarefas() {
               <PlannerTimeline 
                 selectedDate={plannerDate}
                 onDateChange={setPlannerDate}
+                filteredTasks={filteredTasks}
               />
             )}
             
