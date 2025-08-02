@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
+import { useClients } from "@/hooks/useClients";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
+import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
+import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,7 +27,8 @@ import {
   ShoppingCart,
   Repeat,
   Calendar,
-  Activity
+  Activity,
+  RefreshCw
 } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -38,7 +44,37 @@ const NewDashboard = () => {
     error 
   } = useDashboardData();
 
+  const { clients } = useClients();
+  const { syncAllClients, syncing, progress } = useFacebookCampaignSync();
   const [rankingTab, setRankingTab] = useState('cpa');
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+
+  // Calcular informações da última sincronização
+  const getLastSyncInfo = () => {
+    if (!clients || clients.length === 0) return null;
+    
+    const clientsWithSync = clients.filter(c => c.last_sync_at);
+    if (clientsWithSync.length === 0) return null;
+    
+    // Pegar a sincronização mais recente
+    const mostRecentSync = clientsWithSync.reduce((latest, current) => {
+      const currentDate = new Date(current.last_sync_at!);
+      const latestDate = new Date(latest.last_sync_at!);
+      return currentDate > latestDate ? current : latest;
+    });
+    
+    return {
+      lastSyncAt: mostRecentSync.last_sync_at,
+      lastSyncPeriod: mostRecentSync.last_sync_period
+    };
+  };
+
+  const lastSyncInfo = getLastSyncInfo();
+
+  const handleSyncConfirm = async (period: string) => {
+    setSyncDialogOpen(false);
+    await syncAllClients(period);
+  };
 
   if (loading) {
     return (
@@ -109,9 +145,27 @@ const NewDashboard = () => {
     <DashboardLayout>
       <div className="space-y-8 p-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard - Controle de Tráfego</h1>
-          <p className="text-gray-600 mt-2">Visão consolidada de performance dos últimos 30 dias</p>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard - Controle de Tráfego</h1>
+            <p className="text-gray-600 mt-2">Visão consolidada de performance dos últimos 30 dias</p>
+          </div>
+          
+          <div className="flex items-center space-x-4 mt-4 lg:mt-0">
+            <SyncStatusIndicator 
+              lastSyncAt={lastSyncInfo?.lastSyncAt} 
+              lastSyncPeriod={lastSyncInfo?.lastSyncPeriod}
+            />
+            <Button 
+              variant="outline" 
+              className="flex items-center space-x-2" 
+              onClick={() => setSyncDialogOpen(true)}
+              disabled={syncing}
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              <span>{syncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+            </Button>
+          </div>
         </div>
 
         {/* Seção 1 - Resumo Executivo */}
@@ -593,6 +647,21 @@ const NewDashboard = () => {
           </div>
         </section>
       </div>
+
+      {/* Sync Dialog */}
+      <SyncPeriodDialog
+        open={syncDialogOpen}
+        onOpenChange={setSyncDialogOpen}
+        onConfirm={handleSyncConfirm}
+        syncing={syncing}
+        title="Sincronizar Todos os Clientes"
+      />
+
+      {/* Sync Progress Modal */}
+      <SyncProgressModal
+        open={syncing}
+        progress={progress}
+      />
     </DashboardLayout>
   );
 };
