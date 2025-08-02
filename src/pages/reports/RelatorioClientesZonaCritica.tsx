@@ -20,6 +20,7 @@ interface CriticalClient {
   cpa_target: number;
   ctr: number;
   frequency: number;
+  cpc_current: number;
   problematic_campaigns: string[];
   ai_recommendations: string[];
 }
@@ -58,6 +59,7 @@ export default function RelatorioClientesZonaCritica() {
           cpa_target: 150,
           ctr: 0,
           frequency: 0,
+          cpc_current: 0,
           problematic_campaigns: [],
           ai_recommendations: [
             'URGENTE: Ativar campanhas imediatamente',
@@ -80,6 +82,8 @@ export default function RelatorioClientesZonaCritica() {
       const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
       // Corrigir cálculo de frequência: impressions / reach (não clicks)
       const avgFrequency = totalReach > 0 ? totalImpressions / totalReach : 0;
+      // Calcular CPC médio: gasto total / cliques totais
+      const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
 
       // Definir targets baseados em benchmarks da indústria
       const cplTarget = 50; // R$ 50 por lead (benchmark padrão)
@@ -141,6 +145,7 @@ export default function RelatorioClientesZonaCritica() {
           cpa_target: cpaTarget,
           ctr: avgCTR,
           frequency: avgFrequency,
+          cpc_current: avgCPC,
           problematic_campaigns: problematicCampaigns,
           ai_recommendations: generateRecommendations(issues, avgCPA, avgCTR, avgFrequency)
         });
@@ -370,14 +375,14 @@ export default function RelatorioClientesZonaCritica() {
                            Frequência (Max: 5x)
                          </div>
                        </div>
-                       <div className="text-center">
-                         <div className={`text-2xl font-bold ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>
-                           {((client.cpa_current > 0 ? client.cpa_current : client.cpl_current * 3) / client.cpl_current * 100).toFixed(1)}%
-                         </div>
-                         <div className="text-xs text-muted-foreground">
-                           Taxa Conversão
-                         </div>
-                       </div>
+                        <div className="text-center">
+                          <div className={`text-2xl font-bold ${client.status === 'critical' ? 'text-destructive' : 'text-warning'}`}>
+                            R$ {client.cpc_current.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            CPC Médio
+                          </div>
+                        </div>
                      </div>
                   </CardContent>
                 </Card>
