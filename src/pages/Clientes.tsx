@@ -15,6 +15,7 @@ import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
+import { useDynamicPagination } from "@/hooks/useDynamicPagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,15 @@ const Clientes = () => {
   const { sectors, fetchSectors } = useSectors();
   const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
   const { toast } = useToast();
+  
+  // Hook para paginação dinâmica baseada na altura da tela
+  const { itemsPerPage, containerRef } = useDynamicPagination({
+    itemHeight: 72, // Altura estimada de cada linha da tabela
+    headerHeight: 100, // Altura do cabeçalho da tabela + filtros
+    footerHeight: 80, // Altura da paginação
+    minItemsPerPage: 5,
+    maxItemsPerPage: 50
+  });
 
   // Memoized handlers to prevent re-renders
   const handleAddClient = () => {
@@ -110,10 +120,14 @@ const Clientes = () => {
   });
 
   const totalClients = filteredClients.length;
-  const itemsPerPage = 8;
   const totalPages = Math.ceil(totalClients / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedClients = filteredClients.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Reset da página quando os filtros mudarem ou o número de itens por página mudar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, filters.sector, filters.budgetRange, filters.campaignRange, itemsPerPage]);
 
   
   const exportToCSV = () => {
@@ -350,7 +364,7 @@ const Clientes = () => {
         )}
 
         {/* Clients Table */}
-        <Card className="flex-1 flex flex-col">
+        <Card className="flex-1 flex flex-col" ref={containerRef}>
           <div className="flex-1 overflow-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">

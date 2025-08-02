@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Loader2
 } from "lucide-react";
+import { useDynamicPagination } from "@/hooks/useDynamicPagination";
 
 type StatusType = "all" | "active" | "paused" | "finished";
 
@@ -37,6 +38,15 @@ const Campanhas = () => {
   const { campaigns, loading, error, toggleCampaign } = useCampaigns();
   const { toast } = useToast();
   
+  // Hook para paginação dinâmica baseada na altura da tela
+  const { itemsPerPage, containerRef } = useDynamicPagination({
+    itemHeight: 88, // Altura estimada de cada linha da tabela de campanhas
+    headerHeight: 120,
+    footerHeight: 80,
+    minItemsPerPage: 5,
+    maxItemsPerPage: 50
+  });
+  
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -46,10 +56,14 @@ const Campanhas = () => {
   });
 
   const totalCampaigns = filteredCampaigns.length;
-  const itemsPerPage = 8;
   const totalPages = Math.ceil(totalCampaigns / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedCampaigns = filteredCampaigns.slice(startIndex, startIndex + itemsPerPage);
+  
+  // Reset da página quando os filtros mudarem ou o número de itens por página mudar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, itemsPerPage]);
 
   const handleToggleCampaign = async (campaignId: string, isActive: boolean) => {
     await toggleCampaign(campaignId, isActive);
@@ -167,7 +181,7 @@ const Campanhas = () => {
             </Card>
 
             {/* Campaigns Table */}
-            <Card className="flex-1 flex flex-col">
+            <Card className="flex-1 flex flex-col" ref={containerRef}>
               <div className="flex-1 overflow-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
