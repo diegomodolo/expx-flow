@@ -169,6 +169,11 @@ export function AddTaskToSlotModal({
     }
   }, [open]);
 
+  // Return early if slot is null to prevent errors
+  if (!slot) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
