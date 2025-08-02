@@ -77,10 +77,30 @@ serve(async (req) => {
       body: JSON.stringify({
         url: url,
         pageOptions: {
-          includeHtml: false,
-          includeRawHtml: false,
-          onlyMainContent: true,
-          waitFor: 2000
+          includeHtml: true,
+          onlyMainContent: false,
+          waitFor: 3000
+        },
+        extractorOptions: {
+          mode: 'llm-extraction',
+          extractionPrompt: `
+            Analise esta página da Biblioteca de Anúncios do Facebook e extraia TODOS os anúncios individuais.
+            
+            Para cada anúncio encontrado, extraia:
+            - ad_title: Título principal ou nome da empresa/produto no anúncio
+            - ad_copy: Todo o texto do anúncio (descrição, copy principal)
+            - call_to_action: Texto do botão (ex: "Saiba mais", "Comprar", "Inscreva-se")
+            - ad_type: Tipo baseado no conteúdo (image, video, carousel)
+            - platforms: Onde está rodando (Facebook, Instagram, etc)
+            
+            IMPORTANTE: 
+            - Procure por múltiplos anúncios na página
+            - Cada anúncio geralmente tem sua própria seção/container
+            - Extraia o texto real, não invente
+            - Retorne um array JSON válido
+            
+            Formato: [{"ad_title": "...", "ad_copy": "...", "call_to_action": "...", "ad_type": "...", "platforms": "..."}]
+          `
         }
       }),
     });
@@ -117,24 +137,81 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log('Firecrawl response data received');
+    console.log('Success:', data.success);
 
-    // Simple processing - create ads from content
-    const content = data.data?.content || '';
-    console.log('Content length:', content.length);
+    if (!data.success) {
+      console.error('Firecrawl returned success=false:', data.error);
+      throw new Error(data.error || 'Erro no Firecrawl');
+    }
 
-    const extractedAds = [
-      {
-        ad_title: `Anúncio extraído - ${competitorName}`,
-        ad_copy: content.substring(0, 200) + '...',
-        call_to_action: 'Ver Anúncio',
-        ad_type: 'text',
+    // Process extracted data
+    let extractedAds = [];
+    
+    // Try to parse the LLM extraction first
+    if (data.data?.extract) {
+      console.log('Raw extract data:', data.data.extract);
+      
+      try {
+        const parsedExtract = typeof data.data.extract === 'string' 
+          ? JSON.parse(data.data.extract) 
+          : data.data.extract;
+        
+        if (Array.isArray(parsedExtract)) {
+          extractedAds = parsedExtract;
+          console.log('Successfully parsed', extractedAds.length, 'ads from LLM extraction');
+        } else if (parsedExtract && typeof parsedExtract === 'object') {
+          extractedAds = [parsedExtract];
+          console.log('Found single ad object from LLM extraction');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse LLM extraction:', parseError);
+      }
+    }
+
+    // Fallback: extract from content if no ads found
+    if (extractedAds.length === 0) {
+      console.log('No ads from LLM extraction, trying content parsing');
+      const content = data.data?.content || '';
+      console.log('Content length:', content.length);
+
+      if (content.length > 100) {
+        // Split content into potential ad sections
+        const sections = content.split(/\n\s*\n/).filter(section => 
+          section.trim().length > 50 && 
+          section.trim().length < 1000
+        );
+        
+        console.log('Found', sections.length, 'content sections');
+        
+        extractedAds = sections.slice(0, 5).map((section, index) => ({
+          ad_title: `${competitorName} - Anúncio ${index + 1}`,
+          ad_copy: section.trim().substring(0, 300) + (section.length > 300 ? '...' : ''),
+          call_to_action: 'Ver mais',
+          ad_type: 'text',
+          estimated_performance: 'medium',
+          platforms: 'Facebook',
+          notes: 'Extraído do conteúdo da página'
+        }));
+      }
+    }
+
+    // Ensure we have at least one ad
+    if (extractedAds.length === 0) {
+      extractedAds = [{
+        ad_title: `${competitorName} - Conteúdo extraído`,
+        ad_copy: data.data?.content?.substring(0, 200) || 'Conteúdo não disponível',
+        call_to_action: 'Ver anúncio',
+        ad_type: 'unknown',
         estimated_performance: 'medium',
         platforms: 'Facebook',
-        notes: 'Extraído via Firecrawl'
-      }
-    ];
+        notes: 'Fallback - conteúdo básico extraído'
+      }];
+    }
 
-    console.log('=== RETURNING SUCCESS ===');
+    console.log('=== FINAL RESULT ===');
+    console.log('Total ads extracted:', extractedAds.length);
+    console.log('Ads:', extractedAds);
+
     return new Response(JSON.stringify({ 
       success: true, 
       ads: extractedAds,
