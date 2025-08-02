@@ -16,6 +16,8 @@ import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
 import Tarefas from "./pages/Tarefas";
 import Relatorios from "./pages/Relatorios";
+import RelatorioExecutivo from "./pages/reports/RelatorioExecutivo";
+import RelatorioFunil from "./pages/reports/RelatorioFunil";
 import Conhecimento from "./pages/Conhecimento";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
@@ -77,11 +79,21 @@ const App = () => {
                    <Tarefas />
                  </ProtectedRoute>
                } />
-               <Route path="/relatorios" element={
-                 <ProtectedRoute>
-                   <Relatorios />
-                 </ProtectedRoute>
-               } />
+                <Route path="/relatorios" element={
+                  <ProtectedRoute>
+                    <Relatorios />
+                  </ProtectedRoute>
+                } />
+                <Route path="/relatorios/executivo" element={
+                  <ProtectedRoute>
+                    <RelatorioExecutivo />
+                  </ProtectedRoute>
+                } />
+                <Route path="/relatorios/funil" element={
+                  <ProtectedRoute>
+                    <RelatorioFunil />
+                  </ProtectedRoute>
+                } />
                <Route path="/conhecimento" element={
                  <ProtectedRoute>
                    <Conhecimento />
