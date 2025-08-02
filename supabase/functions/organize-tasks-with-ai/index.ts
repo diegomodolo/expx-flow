@@ -40,44 +40,69 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Organize tarefas nos slots disponíveis. Considere prioridade e deadlines. Responda APENAS com JSON válido:
-{
-  "organizedTasks": [
-    {
-      "taskId": "string",
-      "slotId": "string",
-      "date": "YYYY-MM-DD",
-      "estimatedMinutes": number,
-      "reason": "string",
-      "assignedTo": "string",
-      "reassignmentReason": "string"
-    }
-  ],
-  "statistics": {
-    "totalTasks": number,
-    "totalTimeMinutes": number,
-    "tasksPerDay": {},
-    "reassignments": number
-  },
-  "warnings": []
-}`
+            content: `Você é um organizador de tarefas inteligente para agência de marketing. REGRAS OBRIGATÓRIAS:
+
+1. COMPATIBILIDADE DE SLOTS - Cada slot tem objetivo específico:
+   - "Check": Apenas análise, verificação, otimização de métricas
+   - "Reuniao de Pauta": Apenas reuniões, planejamento, definição de pauta
+   - "Produção Clientes Críticos": Apenas execução prática (criar anúncios, ajustar campanhas)
+   - "Atualização": Apenas registros, documentação, relatórios
+   - "Retomada": Atividades de desenvolvimento e implementação
+   - "Monitoramento Final": Apenas conferência, verificação de KPIs
+   - "Fechamento": Apenas registro de resultados e aprendizados
+
+2. UMA TAREFA POR VEZ: Cada pessoa só pode executar 1 tarefa por slot
+3. RESPEITAR TEMPO: Se tarefa não cabe no slot, NÃO force
+4. SLOTS VAZIOS OK: Se não há tarefa compatível, deixe slot vazio
+5. PRIORIDADE: deadline urgente > prioridade alta > prioridade média
+
+Responda APENAS JSON válido:`
           },
           {
             role: 'user',
-            content: `TAREFAS (${tasks.length}):
-${tasks.map(task => `${task.id}: ${task.title} (${task.priority || 'medium'}, deadline: ${task.deadline || 'none'})`).join('\n')}
+            content: `TAREFAS PARA ${startDate}:
+${tasks.map(task => {
+  const taskTypes = [];
+  const title = task.title.toLowerCase();
+  if (title.includes('otimizar') || title.includes('cpa') || title.includes('verificar')) taskTypes.push('análise');
+  if (title.includes('criar') || title.includes('anúncio') || title.includes('produção')) taskTypes.push('produção');
+  if (title.includes('reunião') || title.includes('pauta') || title.includes('meeting')) taskTypes.push('reunião');
+  if (title.includes('monitorar') || title.includes('conferir')) taskTypes.push('monitoramento');
+  if (title.includes('registrar') || title.includes('documentar')) taskTypes.push('atualização');
+  if (title.includes('escalar') || title.includes('implementar')) taskTypes.push('implementação');
+  
+  const compatibleSlots = [];
+  if (taskTypes.includes('análise')) compatibleSlots.push('Check', 'Monitoramento Final');
+  if (taskTypes.includes('produção')) compatibleSlots.push('Produção Clientes Críticos', 'Retomada');
+  if (taskTypes.includes('reunião')) compatibleSlots.push('Reuniao de Pauta');
+  if (taskTypes.includes('monitoramento')) compatibleSlots.push('Monitoramento Final', 'Check');
+  if (taskTypes.includes('atualização')) compatibleSlots.push('Atualização', 'Fechamento');
+  if (taskTypes.includes('implementação')) compatibleSlots.push('Retomada', 'Produção Clientes Críticos');
+  
+  return `${task.id}: "${task.title}" (${task.priority || 'medium'}, deadline: ${task.deadline || 'sem deadline'}) [Compatível com: ${compatibleSlots.join(', ') || 'Retomada'}]`;
+}).join('\n')}
 
 COLABORADORES:
 ${employees.map(emp => `${emp.user_id}: ${emp.name}`).join('\n')}
 
-SLOTS:
-${timeSlots.map(slot => `${slot.id}: ${slot.name} (${slot.start_time}-${slot.end_time})`).join('\n')}
+SLOTS DISPONÍVEIS ${startDate}:
+${timeSlots.map(slot => {
+  const duration = (() => {
+    const [startH, startM] = slot.start_time.split(':').map(Number);
+    const [endH, endM] = slot.end_time.split(':').map(Number);
+    return (endH * 60 + endM) - (startH * 60 + startM);
+  })();
+  return `${slot.id}: "${slot.name}" (${slot.start_time}-${slot.end_time}, ${duration}min máx)`;
+}).join('\n')}
 
-PERÍODO: ${startDate} a ${endDateStr}
-ESCOPO: ${scope?.type || 'all'}
+IMPORTANTE: 
+- Só aloque tarefas compatíveis com o objetivo do slot
+- Máximo 1 tarefa por pessoa por slot
+- Se não há tarefa compatível, deixe slot vazio
+- Tempo estimado não pode exceder duração do slot
+- Priorize tarefas por deadline e prioridade
 
-Distribua as tarefas equilibradamente nos slots considerando prioridade. APENAS JSON:`
-          }
+RETORNE APENAS JSON:`
         ],
         temperature: 0.2,
         max_tokens: 4000,
