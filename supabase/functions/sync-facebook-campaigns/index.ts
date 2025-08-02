@@ -403,6 +403,7 @@ serve(async (req) => {
         conversions: leads,
         spend: spend,
         impressions: impressions,
+        clicks: clicks,
         reach: reach,
         frequency: frequency,
         quality_ranking: qualityRanking,
