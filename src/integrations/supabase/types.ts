@@ -792,13 +792,20 @@ export type Database = {
       }
       tasks: {
         Row: {
+          alert_id: string | null
+          checklist: Json | null
           company_id: string | null
+          completed_at: string | null
           created_at: string
           deadline: string
           description: string | null
+          due_date: string | null
           id: string
+          origin: Database["public"]["Enums"]["task_origin"] | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
+          related_campaign_id: string | null
+          related_client_id: string | null
           responsible_avatar: string | null
           responsible_name: string
           status: Database["public"]["Enums"]["task_status"]
@@ -808,13 +815,20 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          alert_id?: string | null
+          checklist?: Json | null
           company_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deadline: string
           description?: string | null
+          due_date?: string | null
           id?: string
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
+          related_campaign_id?: string | null
+          related_client_id?: string | null
           responsible_avatar?: string | null
           responsible_name: string
           status?: Database["public"]["Enums"]["task_status"]
@@ -824,13 +838,20 @@ export type Database = {
           user_id: string
         }
         Update: {
+          alert_id?: string | null
+          checklist?: Json | null
           company_id?: string | null
+          completed_at?: string | null
           created_at?: string
           deadline?: string
           description?: string | null
+          due_date?: string | null
           id?: string
+          origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
+          related_campaign_id?: string | null
+          related_client_id?: string | null
           responsible_avatar?: string | null
           responsible_name?: string
           status?: Database["public"]["Enums"]["task_status"]
@@ -946,9 +967,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      task_stats: {
+        Row: {
+          avg_completion_days: number | null
+          company_id: string | null
+          completed_tasks: number | null
+          in_progress_tasks: number | null
+          overdue_tasks: number | null
+          pending_tasks: number | null
+          review_tasks: number | null
+          total_tasks: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      create_task_from_alert: {
+        Args: {
+          _company_id: string
+          _alert_type: string
+          _alert_description: string
+          _related_campaign_id?: string
+          _related_client_id?: string
+          _alert_id?: string
+        }
+        Returns: string
+      }
       get_user_company_ids: {
         Args: { _user_id: string }
         Returns: {
@@ -963,6 +1015,7 @@ export type Database = {
     Enums: {
       campaign_status: "active" | "paused" | "finished"
       client_status: "green" | "yellow" | "red"
+      task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
     }
@@ -1094,6 +1147,7 @@ export const Constants = {
     Enums: {
       campaign_status: ["active", "paused", "finished"],
       client_status: ["green", "yellow", "red"],
+      task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
       task_status: ["todo", "progress", "review", "done"],
     },
