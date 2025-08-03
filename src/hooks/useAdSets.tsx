@@ -76,6 +76,19 @@ export const useAdSets = (clientId?: string) => {
     fetchAdSets();
   }, [user?.id, activeCompany?.company_id, clientId]);
 
+  // Listen for updates when campaigns are synced
+  useEffect(() => {
+    const handleClientsUpdated = () => {
+      fetchAdSets();
+    };
+
+    window.addEventListener('clientsUpdated', handleClientsUpdated);
+    
+    return () => {
+      window.removeEventListener('clientsUpdated', handleClientsUpdated);
+    };
+  }, []);
+
   return {
     adSets,
     loading,
