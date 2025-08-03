@@ -324,10 +324,14 @@ const Campanhas = () => {
                   {totalCampaigns} campanhas
                 </Badge>
               </div>
-              <Button className="flex items-center space-x-2">
-                <Plus className="w-4 h-4" />
-                <span>Nova Campanha</span>
-              </Button>
+              <div className="text-right">
+                <div className="text-sm text-gray-600">
+                  Última sincronização: {new Date().toLocaleDateString("pt-BR")} às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Período: Últimos 30 dias
+                </div>
+              </div>
             </div>
 
             {/* Filters and Search */}
@@ -562,12 +566,9 @@ const Campanhas = () => {
                              {getSortIcon('objective')}
                            </div>
                          </th>
-                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                           Período
-                        </th>
-                        <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ações
-                        </th>
+                         <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                           Ações
+                         </th>
                      </tr>
                   </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
@@ -631,12 +632,11 @@ const Campanhas = () => {
                                 : "R$ 0,00"
                               }
                              </td>
-                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                               {campaign.objective || 'Não definido'}
-                             </td>
-                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                               {campaign.period}
-                             </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  {campaign.objective || "Não definido"}
+                                </Badge>
+                              </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <Button
