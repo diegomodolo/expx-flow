@@ -88,27 +88,47 @@ serve(async (req) => {
         }
       `;
     } else if (step === 'campaign_configuration') {
-      prompt = `
-        Como especialista em Facebook Ads, crie uma configuração otimizada de campanha.
+        prompt = `
+        Como especialista em Facebook Ads, analise CUIDADOSAMENTE o briefing do cliente e crie uma configuração otimizada de campanha que reflita exatamente o público-alvo correto.
 
         **CLIENTE:**
         - Nome: ${client.name}
         - Setor: ${client.sector}
         - Orçamento Mensal: R$ ${client.monthly_budget || 5000}
-        - Público-Alvo: ${client.target_audience || 'Não informado'}
+        - Público-Alvo Básico: ${client.target_audience || 'Não informado'}
         - Objetivos: ${client.objectives || 'Não informado'}
 
         ${client.ai_briefing ? `
         **BRIEFING DETALHADO DO CLIENTE:**
         ${client.ai_briefing}
 
-        **INSTRUÇÕES CRÍTICAS PARA SEGMENTAÇÃO:**
-        1. Analise o briefing detalhadamente para identificar o público REAL (não genérico)
-        2. Se o briefing menciona B2B, foque em segmentação empresarial/profissional específica
-        3. Use interesses, comportamentos e demografia específicos mencionados no briefing
-        4. Evite segmentações genéricas baseadas apenas no setor
-        5. Priorize informações do briefing sobre dados básicos do cliente
-        6. Se o público são empresários/gestores, use interesses profissionais, não de consumo
+        **INSTRUÇÕES OBRIGATÓRIAS - ANÁLISE DO BRIEFING:**
+        
+        ETAPA 1 - IDENTIFICAÇÃO DO NEGÓCIO:
+        - Leia o briefing e identifique: É B2B (empresa vende para empresas) ou B2C (empresa vende para consumidores)?
+        - Quem é o VERDADEIRO tomador de decisão de compra mencionado no briefing?
+        - Qual é o produto/serviço específico descrito no briefing?
+
+        ETAPA 2 - IDENTIFICAÇÃO DO PÚBLICO CORRETO:
+        - Se for B2B: O público são empresários, gestores, donos de negócio, profissionais de uma área específica
+        - Se for B2C: O público são consumidores finais que usarão o produto/serviço
+        
+        ETAPA 3 - SEGMENTAÇÃO ESPECÍFICA BASEADA NO BRIEFING:
+        Para B2B (empresas que vendem software, serviços, consultoria, etc.):
+        - Demografia: Idade dos tomadores de decisão (geralmente 28-55), cargos específicos
+        - Interesses: Ferramentas de negócio, softwares empresariais, gestão, empreendedorismo
+        - Comportamentos: Administradores de empresas, tomadores de decisão de negócios
+        - Exemplo: "Donos de restaurantes", "Gestores de TI", "Empreendedores do varejo"
+
+        Para B2C (produtos para consumo pessoal):
+        - Demografia: Idade dos usuários finais, localização específica
+        - Interesses: Relacionados ao uso pessoal do produto
+        - Comportamentos: Padrões de consumo pessoal
+        
+        **VALIDAÇÃO OBRIGATÓRIA:**
+        - Se detectar produto B2B, JAMAIS usar segmentação de consumidor
+        - Se detectar público empresarial, usar apenas interesses profissionais/empresariais
+        - Rejeitar automaticamente segmentação genérica que não condiz com o briefing
         ` : ''}
 
         **HISTÓRICO DE PERFORMANCE:**
@@ -120,9 +140,14 @@ serve(async (req) => {
         - Etapa do Funil: ${funnelStage}
         - Tipo de Campanha: ${campaignType}
 
+        **RESPOSTA OBRIGATÓRIA:**
+        1. PRIMEIRO: Analise o briefing e identifique se é B2B ou B2C
+        2. SEGUNDO: Extraia do briefing quem é exatamente o público-alvo
+        3. TERCEIRO: Crie segmentação específica baseada no público real do briefing
+        
         CRÍTICO: Retorne APENAS um JSON válido, sem markdown ou explicações.
         
-        Baseado no briefing detalhado e histórico de performance, crie uma configuração com SEGMENTAÇÃO ALTAMENTE ESPECÍFICA:
+        Baseado na análise obrigatória do briefing, crie uma configuração com SEGMENTAÇÃO REAL DO PÚBLICO:
 
         1. **Orçamento**: Baseado no orçamento mensal de R$ ${client.monthly_budget || 5000}
         2. **Segmentação**: ESPECÍFICA baseada no briefing (não genérica do setor)
