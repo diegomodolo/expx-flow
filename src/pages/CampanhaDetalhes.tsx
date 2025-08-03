@@ -4,7 +4,6 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus, Download } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
@@ -713,28 +712,66 @@ export default function CampanhaDetalhes() {
         </Card>
       </div>
 
-      {/* Progresso da Campanha */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="w-5 h-5" />
-            <span>Progresso da Campanha</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span>Data de Início: {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString('pt-BR') : 'N/A'}</span>
-              <span>Status: {campaign.status}</span>
+      {/* Indicadores Principais */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Eye className="w-4 h-4 text-blue-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Alcance</p>
+                <p className="text-lg font-semibold">
+                  {campaign.reach?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
             </div>
-            <Progress value={75} className="w-full" />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>75% concluída</span>
-              <span>Estimativa de conclusão: 30 dias</span>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Target className="w-4 h-4 text-green-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Impressões</p>
+                <p className="text-lg font-semibold">
+                  {campaign.impressions?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="w-4 h-4 text-purple-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Cliques</p>
+                <p className="text-lg font-semibold">
+                  {campaign.clicks?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4 text-orange-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
+                <p className="text-lg font-semibold">
+                  {campaign.conversions && campaign.clicks 
+                    ? ((campaign.conversions / campaign.clicks) * 100).toFixed(2) + '%'
+                    : '0,00%'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tabs para seções adicionais */}
       <Tabs defaultValue="insights" className="space-y-6">
