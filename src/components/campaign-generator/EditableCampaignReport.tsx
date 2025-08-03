@@ -379,6 +379,75 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
                   )}
                 </div>
               )}
+
+              {/* Conjuntos de Anúncios Específicos */}
+              {configuration.adSets && configuration.adSets.length > 0 && (
+                <div>
+                  <Label className="text-base font-semibold">Segmentações por Conjunto</Label>
+                  <div className="space-y-4 mt-3">
+                    {configuration.adSets.map((adSet: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4 bg-background">
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Nome do Conjunto {index + 1}</Label>
+                            {isEditing ? (
+                              <Input
+                                value={adSet.name || ''}
+                                onChange={(e) => {
+                                  const updatedAdSets = [...configuration.adSets];
+                                  updatedAdSets[index] = { ...adSet, name: e.target.value };
+                                  updateConfiguration('adSets', updatedAdSets);
+                                }}
+                              />
+                            ) : (
+                              <div className="text-sm font-medium text-primary">{adSet.name}</div>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label>Orçamento Diário (R$)</Label>
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  value={adSet.budget || 0}
+                                  onChange={(e) => {
+                                    const updatedAdSets = [...configuration.adSets];
+                                    updatedAdSets[index] = { ...adSet, budget: Number(e.target.value) };
+                                    updateConfiguration('adSets', updatedAdSets);
+                                  }}
+                                />
+                              ) : (
+                                <div className="text-sm text-muted-foreground">R$ {adSet.budget}/dia</div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label>Segmentação Específica</Label>
+                            {isEditing ? (
+                              <Textarea
+                                value={adSet.targeting || ''}
+                                onChange={(e) => {
+                                  const updatedAdSets = [...configuration.adSets];
+                                  updatedAdSets[index] = { ...adSet, targeting: e.target.value };
+                                  updateConfiguration('adSets', updatedAdSets);
+                                }}
+                                className="min-h-20"
+                                placeholder="Descreva a segmentação específica deste conjunto"
+                              />
+                            ) : (
+                              <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
+                                {adSet.targeting}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -425,67 +494,223 @@ export function EditableCampaignReport({ campaign, onSave }: EditableCampaignRep
             <div key={creative.id || index} className="border rounded-lg p-4 bg-muted/20">
               <div className="flex items-center justify-between mb-4">
                 <h5 className="font-medium">Conjunto {index + 1}: {creative.adSetName}</h5>
-                <Badge variant="outline">Criativo Principal + Variações</Badge>
+                <Badge variant="outline">1 principal + 2 variações</Badge>
               </div>
               
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Criativo Principal */}
+              <div className="mb-6 border rounded-lg p-4 bg-background">
+                <div className="text-sm font-medium text-primary mb-3">Criativo Principal</div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Título</Label>
+                      {isEditing ? (
+                        <Textarea
+                          value={creative.headline || ''}
+                          onChange={(e) => updateCreative(index, 'headline', e.target.value)}
+                          className="min-h-16"
+                        />
+                      ) : (
+                        <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                          {creative.headline}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Texto Principal</Label>
+                      {isEditing ? (
+                        <Textarea
+                          value={creative.primaryText || ''}
+                          onChange={(e) => updateCreative(index, 'primaryText', e.target.value)}
+                          className="min-h-16"
+                        />
+                      ) : (
+                        <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                          {creative.primaryText}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Call to Action</Label>
+                      {isEditing ? (
+                        <Input
+                          value={creative.callToAction || ''}
+                          onChange={(e) => updateCreative(index, 'callToAction', e.target.value)}
+                        />
+                      ) : (
+                        <div className="text-sm text-primary bg-primary/10 p-2 rounded">
+                          {creative.callToAction}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
                   <div>
-                    <Label>Título</Label>
+                    <Label>Descrição</Label>
                     {isEditing ? (
                       <Textarea
-                        value={creative.headline || ''}
-                        onChange={(e) => updateCreative(index, 'headline', e.target.value)}
+                        value={creative.description || ''}
+                        onChange={(e) => updateCreative(index, 'description', e.target.value)}
                         className="min-h-16"
                       />
                     ) : (
                       <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                        {creative.headline}
+                        {creative.description}
                       </div>
                     )}
                   </div>
+                  
                   <div>
-                    <Label>Texto Principal</Label>
+                    <Label>Elemento Visual Sugerido</Label>
                     {isEditing ? (
                       <Textarea
-                        value={creative.primaryText || ''}
-                        onChange={(e) => updateCreative(index, 'primaryText', e.target.value)}
+                        value={creative.imageDescription || ''}
+                        onChange={(e) => updateCreative(index, 'imageDescription', e.target.value)}
                         className="min-h-16"
                       />
                     ) : (
-                      <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                        {creative.primaryText}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Call to Action</Label>
-                    {isEditing ? (
-                      <Input
-                        value={creative.callToAction || ''}
-                        onChange={(e) => updateCreative(index, 'callToAction', e.target.value)}
-                      />
-                    ) : (
-                      <div className="text-sm text-primary bg-primary/10 p-2 rounded">
-                        {creative.callToAction}
+                      <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                        {creative.imageDescription}
                       </div>
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Variações para Teste A/B */}
+              <div className="space-y-4">
+                <div className="text-sm font-medium text-primary">Variações para Teste A/B</div>
                 
-                <div>
-                  <Label>Elemento Visual Sugerido</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={creative.imageDescription || ''}
-                      onChange={(e) => updateCreative(index, 'imageDescription', e.target.value)}
-                      className="min-h-16"
-                    />
-                  ) : (
-                    <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                      {creative.imageDescription}
+                {/* Variação A */}
+                <div className="border rounded-lg p-4 bg-background/70">
+                  <div className="text-sm font-medium text-muted-foreground mb-3">Variação A</div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-xs">Título Variação A</Label>
+                        {isEditing ? (
+                          <Textarea
+                            value={creative.variations?.headline?.[0] || ''}
+                            onChange={(e) => {
+                              const variations = creative.variations || {};
+                              const headlines = variations.headline || ['', ''];
+                              headlines[0] = e.target.value;
+                              updateCreative(index, 'variations', { ...variations, headline: headlines });
+                            }}
+                            className="min-h-12 text-xs"
+                          />
+                        ) : (
+                          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            {creative.variations?.headline?.[0] || creative.headline}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs">Texto Variação A</Label>
+                        {isEditing ? (
+                          <Textarea
+                            value={creative.variations?.primaryText?.[0] || ''}
+                            onChange={(e) => {
+                              const variations = creative.variations || {};
+                              const primaryTexts = variations.primaryText || ['', ''];
+                              primaryTexts[0] = e.target.value;
+                              updateCreative(index, 'variations', { ...variations, primaryText: primaryTexts });
+                            }}
+                            className="min-h-12 text-xs"
+                          />
+                        ) : (
+                          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            {creative.variations?.primaryText?.[0] || creative.primaryText}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs">Descrição Variação A</Label>
+                        {isEditing ? (
+                          <Textarea
+                            value={creative.variations?.description?.[0] || ''}
+                            onChange={(e) => {
+                              const variations = creative.variations || {};
+                              const descriptions = variations.description || ['', ''];
+                              descriptions[0] = e.target.value;
+                              updateCreative(index, 'variations', { ...variations, description: descriptions });
+                            }}
+                            className="min-h-12 text-xs"
+                          />
+                        ) : (
+                          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            {creative.variations?.description?.[0] || creative.description}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                {/* Variação B */}
+                <div className="border rounded-lg p-4 bg-background/70">
+                  <div className="text-sm font-medium text-muted-foreground mb-3">Variação B</div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-xs">Título Variação B</Label>
+                        {isEditing ? (
+                          <Textarea
+                            value={creative.variations?.headline?.[1] || ''}
+                            onChange={(e) => {
+                              const variations = creative.variations || {};
+                              const headlines = variations.headline || ['', ''];
+                              headlines[1] = e.target.value;
+                              updateCreative(index, 'variations', { ...variations, headline: headlines });
+                            }}
+                            className="min-h-12 text-xs"
+                          />
+                        ) : (
+                          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            {creative.variations?.headline?.[1] || creative.headline}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs">Texto Variação B</Label>
+                        {isEditing ? (
+                          <Textarea
+                            value={creative.variations?.primaryText?.[1] || ''}
+                            onChange={(e) => {
+                              const variations = creative.variations || {};
+                              const primaryTexts = variations.primaryText || ['', ''];
+                              primaryTexts[1] = e.target.value;
+                              updateCreative(index, 'variations', { ...variations, primaryText: primaryTexts });
+                            }}
+                            className="min-h-12 text-xs"
+                          />
+                        ) : (
+                          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            {creative.variations?.primaryText?.[1] || creative.primaryText}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs">Descrição Variação B</Label>
+                        {isEditing ? (
+                          <Textarea
+                            value={creative.variations?.description?.[1] || ''}
+                            onChange={(e) => {
+                              const variations = creative.variations || {};
+                              const descriptions = variations.description || ['', ''];
+                              descriptions[1] = e.target.value;
+                              updateCreative(index, 'variations', { ...variations, description: descriptions });
+                            }}
+                            className="min-h-12 text-xs"
+                          />
+                        ) : (
+                          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            {creative.variations?.description?.[1] || creative.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
