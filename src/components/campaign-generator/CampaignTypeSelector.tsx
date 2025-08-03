@@ -101,11 +101,14 @@ export function CampaignTypeSelector({ campaignData, updateCampaignData }: Campa
 
       if (error) throw error;
 
-      if (data?.suggestions) {
+      if (data?.suggestions && Array.isArray(data.suggestions)) {
         setSuggestions(data.suggestions);
+      } else {
+        setSuggestions([]);
       }
     } catch (error) {
       console.error('Erro ao gerar sugestões:', error);
+      setSuggestions([]);
       toast({
         title: "Erro",
         description: "Não foi possível gerar sugestões personalizadas",

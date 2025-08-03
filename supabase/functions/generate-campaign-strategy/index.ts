@@ -181,7 +181,9 @@ serve(async (req) => {
     const content = aiResponse.choices[0].message.content;
     
     try {
-      const parsedContent = JSON.parse(content);
+      // Remove markdown code blocks if present
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsedContent = JSON.parse(cleanContent);
       console.log('Conteúdo parseado com sucesso');
       
       if (step === 'campaign_type_suggestion') {
