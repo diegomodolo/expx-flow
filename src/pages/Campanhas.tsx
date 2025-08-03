@@ -12,20 +12,14 @@ import { EditCampaignDialog } from "@/components/campaigns/EditCampaignDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
-  Plus, 
   Search, 
-  Filter, 
-  Download, 
   Eye, 
-  Edit, 
   FileText,
-  MoreHorizontal,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -328,7 +322,7 @@ const Campanhas = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-6">
+      <div className="flex flex-col h-full space-y-4 sm:space-y-6 p-4 sm:p-6">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -339,14 +333,14 @@ const Campanhas = () => {
         {!loading && (
           <>
             {/* Header Actions */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-4">
-                <h2 className="text-2xl font-bold text-gray-900">Gerenciar Campanhas</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gerenciar Campanhas</h2>
                 <Badge variant="secondary" className="px-3 py-1">
                   {totalCampaigns} campanhas
                 </Badge>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div className="text-sm text-gray-600">
                   Última sincronização: {new Date().toLocaleDateString("pt-BR")} às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </div>
@@ -358,51 +352,53 @@ const Campanhas = () => {
 
             {/* Filters and Search */}
             <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-700">Status:</span>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant={statusFilter === "all" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setStatusFilter("all")}
-                          className="flex items-center space-x-2"
-                        >
-                          <span>Todas</span>
-                        </Button>
-                        <Button
-                          variant={statusFilter === "active" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setStatusFilter("active")}
-                          className="flex items-center space-x-2"
-                        >
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Ativas</span>
-                        </Button>
-                        <Button
-                          variant={statusFilter === "paused" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setStatusFilter("paused")}
-                          className="flex items-center space-x-2"
-                        >
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                          <span>Pausadas</span>
-                        </Button>
-                        <Button
-                          variant={statusFilter === "finished" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setStatusFilter("finished")}
-                          className="flex items-center space-x-2"
-                        >
-                          <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                          <span>Finalizadas</span>
-                        </Button>
-                      </div>
+              <CardContent className="p-4 sm:p-6">
+                <div className="space-y-4">
+                  {/* Status Filter - Full width on mobile */}
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-gray-700">Status:</span>
+                    <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:space-x-2">
+                      <Button
+                        variant={statusFilter === "all" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("all")}
+                        className="flex items-center justify-center space-x-2"
+                      >
+                        <span>Todas</span>
+                      </Button>
+                      <Button
+                        variant={statusFilter === "active" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("active")}
+                        className="flex items-center justify-center space-x-2"
+                      >
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Ativas</span>
+                      </Button>
+                      <Button
+                        variant={statusFilter === "paused" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("paused")}
+                        className="flex items-center justify-center space-x-2"
+                      >
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <span>Pausadas</span>
+                      </Button>
+                      <Button
+                        variant={statusFilter === "finished" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("finished")}
+                        className="flex items-center justify-center space-x-2"
+                      >
+                        <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                        <span>Finalizadas</span>
+                      </Button>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
+                  </div>
+                  
+                  {/* Client Filter and Search - Stack on mobile */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="space-y-2 sm:min-w-0 sm:flex-shrink-0">
                       <span className="text-sm font-medium text-gray-700">Cliente:</span>
                       <Popover open={openClientFilter} onOpenChange={setOpenClientFilter}>
                         <PopoverTrigger asChild>
@@ -410,7 +406,7 @@ const Campanhas = () => {
                             variant="outline"
                             role="combobox"
                             aria-expanded={openClientFilter}
-                            className="w-[200px] justify-between"
+                            className="w-full sm:w-[200px] justify-between"
                           >
                             {clientFilter === "all" 
                               ? "Todos os clientes"
@@ -464,252 +460,356 @@ const Campanhas = () => {
                         </PopoverContent>
                       </Popover>
                     </div>
+                    
+                    <div className="space-y-2 flex-1">
+                      <span className="text-sm font-medium text-gray-700 sm:hidden">Buscar:</span>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Buscar campanhas..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-full"
+                        />
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Buscar campanhas..."
-                        className="w-64 pl-10"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    <Button variant="outline" className="flex items-center space-x-2">
-                      <Filter className="w-4 h-4" />
-                      <span>Filtros</span>
-                    </Button>
-                    <Button variant="outline" className="flex items-center space-x-2">
-                      <Download className="w-4 h-4" />
-                      <span>Exportar</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center space-x-2" 
-                      onClick={() => setSyncDialogOpen(true)}
-                      disabled={syncing}
-                    >
-                      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                      <span>Sincronizar</span>
+                  {/* Action Button */}
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => setSyncDialogOpen(true)} className="w-full sm:w-auto">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sincronizar
                     </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Campaigns Table */}
-            <Card className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th 
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort('name')}
-                      >
-                        <div className="flex items-center">
-                          Campanha
-                          {getSortIcon('name')}
-                        </div>
-                      </th>
-                      <th 
-                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort('client')}
-                      >
-                        <div className="flex items-center">
-                          Cliente
-                          {getSortIcon('client')}
-                        </div>
-                      </th>
-                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         Status
-                       </th>
-                       <th 
-                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                         onClick={() => handleSort('performance')}
-                       >
-                         <div className="flex items-center">
-                           Performance
-                           {getSortIcon('performance')}
-                         </div>
-                       </th>
-                       <th 
-                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                         onClick={() => handleSort('ctr')}
-                       >
-                         <div className="flex items-center">
-                           CTR
-                           {getSortIcon('ctr')}
-                         </div>
-                       </th>
-                       <th 
-                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                         onClick={() => handleSort('cpc')}
-                       >
-                         <div className="flex items-center">
-                           CPC
-                           {getSortIcon('cpc')}
-                         </div>
-                       </th>
-                       <th 
-                         className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                         onClick={() => handleSort('conversions')}
-                       >
-                         <div className="flex items-center">
-                           Conversões
-                           {getSortIcon('conversions')}
-                         </div>
-                        </th>
-                        <th 
-                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                          onClick={() => handleSort('spend')}
-                        >
-                          <div className="flex items-center">
-                            Valor Gasto
-                            {getSortIcon('spend')}
-                          </div>
-                        </th>
-                        <th 
-                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                          onClick={() => handleSort('cpl')}
-                        >
-                          <div className="flex items-center">
-                            CPL
-                            {getSortIcon('cpl')}
-                          </div>
-                         </th>
+            {/* Campaigns Table - Desktop */}
+            <div className="hidden sm:block">
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
                           <th 
-                            className="hidden lg:table-cell px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort('objective')}
+                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('name')}
                           >
                             <div className="flex items-center">
-                              Tipo de Campanha
-                              {getSortIcon('objective')}
+                              Campanha
+                              {getSortIcon('name')}
                             </div>
                           </th>
-                         <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                           Ações
-                         </th>
-                     </tr>
-                  </thead>
-                   <tbody className="bg-white divide-y divide-gray-200">
-                     {paginatedCampaigns.map((campaign) => {
-                       const performance = evaluateCampaignPerformance(campaign);
-                       
-                       return (
-                         <tr key={campaign.id} className="hover:bg-gray-50 cursor-pointer">
-                           <td className="px-6 py-4 whitespace-nowrap">
-                             <div className="flex items-center space-x-3">
-                               <div className={`w-3 h-3 rounded-full ${statusConfig[campaign.status].dotColor}`}></div>
-                               <div>
-                                 <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
-                                 <div className="text-sm text-gray-500">{campaign.platforms}</div>
-                               </div>
+                          <th 
+                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('client')}
+                          >
+                            <div className="flex items-center">
+                              Cliente
+                              {getSortIcon('client')}
+                            </div>
+                          </th>
+                          <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th 
+                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('performance')}
+                          >
+                            <div className="flex items-center">
+                              Performance
+                              {getSortIcon('performance')}
+                            </div>
+                          </th>
+                          <th 
+                            className="hidden md:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('ctr')}
+                          >
+                            <div className="flex items-center">
+                              CTR
+                              {getSortIcon('ctr')}
+                            </div>
+                          </th>
+                          <th 
+                            className="hidden lg:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('cpc')}
+                          >
+                            <div className="flex items-center">
+                              CPC
+                              {getSortIcon('cpc')}
+                            </div>
+                          </th>
+                          <th 
+                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('conversions')}
+                          >
+                            <div className="flex items-center">
+                              Conv.
+                              {getSortIcon('conversions')}
+                            </div>
+                          </th>
+                          <th 
+                            className="hidden xl:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('spend')}
+                          >
+                            <div className="flex items-center">
+                              Valor Gasto
+                              {getSortIcon('spend')}
+                            </div>
+                          </th>
+                           <th 
+                             className="hidden lg:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                             onClick={() => handleSort('cpl')}
+                           >
+                             <div className="flex items-center">
+                               CPL
+                               {getSortIcon('cpl')}
                              </div>
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap">
-                             <div className="flex items-center space-x-2">
-                               <Avatar className="w-8 h-8">
-                                 <AvatarImage src={campaign.client?.avatar} alt={campaign.client?.name} />
-                                 <AvatarFallback>{campaign.client?.name?.charAt(0)}</AvatarFallback>
-                               </Avatar>
-                               <div className="text-sm text-gray-900">{campaign.client?.name}</div>
-                             </div>
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap">
-                             <Badge className={statusConfig[campaign.status].color}>
-                               {statusConfig[campaign.status].label}
-                             </Badge>
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap">
-                             <div className="flex items-center space-x-2">
-                               <div className={`w-3 h-3 rounded-full ${performance.dotColor}`}></div>
-                               <Badge 
-                                 className={performance.color}
-                                 title={performance.issues.length > 0 ? `Problemas: ${performance.issues.join(', ')}` : 'Performance dentro do esperado'}
-                               >
-                                 {performance.label}
-                               </Badge>
-                             </div>
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                             {campaign.ctr}%
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                             R$ {campaign.cpc.toFixed(2)}
-                           </td>
-                           <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                             campaign.status === "active" ? "text-green-600" : 
-                             campaign.status === "paused" ? "text-yellow-600" : "text-gray-600"
-                           }`}>
-                              {campaign.conversions}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              R$ {(campaign.spend || 0).toFixed(2)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {campaign.conversions > 0 
-                                ? `R$ ${((campaign.spend || 0) / campaign.conversions).toFixed(2)}` 
-                                : "R$ 0,00"
-                              }
-                             </td>
-                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  {objectiveConfig[campaign.objective || ""] || campaign.objective || "Não definido"}
+                            </th>
+                            <th 
+                              className="hidden 2xl:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                              onClick={() => handleSort('objective')}
+                            >
+                              <div className="flex items-center">
+                                Tipo
+                                {getSortIcon('objective')}
+                              </div>
+                            </th>
+                           <th className="px-4 lg:px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                             Ações
+                           </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {paginatedCampaigns.map((campaign) => {
+                          const performance = evaluateCampaignPerformance(campaign);
+                          
+                          return (
+                            <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 lg:px-6 py-4">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0">
+                                    <Avatar className="w-8 h-8">
+                                      <AvatarImage src="/placeholder.svg" alt="Campaign" />
+                                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                                        {campaign.name.substring(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </div>
+                                  <div className="ml-4 min-w-0 flex-1">
+                                    <div className="text-sm font-medium text-gray-900 truncate" title={campaign.name}>
+                                      {campaign.name}
+                                    </div>
+                                    <div className="text-sm text-gray-500 truncate">
+                                      {campaign.platforms}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 lg:px-6 py-4">
+                                <div className="text-sm text-gray-900 truncate">
+                                  {campaign.client?.name || "Cliente não informado"}
+                                </div>
+                              </td>
+                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                                <Badge 
+                                  variant="outline" 
+                                  className={`${statusConfig[campaign.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800"}`}
+                                >
+                                  <div className={`w-2 h-2 rounded-full mr-2 ${statusConfig[campaign.status as keyof typeof statusConfig]?.dotColor || "bg-gray-500"}`}></div>
+                                  {statusConfig[campaign.status as keyof typeof statusConfig]?.label || campaign.status}
                                 </Badge>
                               </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-8 h-8 p-0"
-                              title="Visualizar"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {campaign.status !== "finished" ? (
-                              <>
-                              </>
-                            ) : (
-                              <>
+                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                                <Badge 
+                                  variant="outline" 
+                                  className={performance.color}
+                                >
+                                  <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
+                                  {performance.label}
+                                </Badge>
+                              </td>
+                              <td className="hidden md:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">
+                                  {campaign.ctr ? `${campaign.ctr.toFixed(2)}%` : "0%"}
+                                </div>
+                              </td>
+                              <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">
+                                  R$ {campaign.cpc?.toFixed(2) || "0,00"}
+                                </div>
+                              </td>
+                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">
+                                  {campaign.conversions || 0}
+                                </div>
+                              </td>
+                              <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">
+                                  R$ {campaign.spend?.toLocaleString('pt-BR', { 
+                                    minimumFractionDigits: 2, 
+                                    maximumFractionDigits: 2 
+                                  }) || "0,00"}
+                                </div>
+                              </td>
+                               <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                                 <div className="text-sm text-gray-900">
+                                   {campaign.conversions > 0 
+                                     ? `R$ ${((campaign.spend || 0) / campaign.conversions).toFixed(2)}`
+                                  : "R$ 0,00"
+                                 }
+                                </div>
+                                </td>
+                                <td className="hidden 2xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                    {objectiveConfig[campaign.objective || ""] || campaign.objective || "Não definido"}
+                                  </Badge>
+                                </td>
+                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-8 h-8 p-0"
+                                title="Ver detalhes"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              {campaign.status === "finished" && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="w-8 h-8 p-0"
-                                  title="Relatório"
+                                  className="w-8 h-8 p-0 ml-1"
+                                  title="Ver relatório"
                                 >
                                   <FileText className="w-4 h-4" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-8 h-8 p-0"
-                                  title="Mais opções"
-                                >
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                           </div>
-                         </td>
-                       </tr>
-                       );
-                     })}
-                   </tbody>
-                </table>
-              </div>
-              
-              {/* Pagination */}
-              <div className="bg-white px-6 py-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
+                              )}
+                            </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Campaigns Cards - Mobile */}
+            <div className="sm:hidden space-y-4">
+              {paginatedCampaigns.map((campaign) => {
+                const performance = evaluateCampaignPerformance(campaign);
+                
+                return (
+                  <Card key={campaign.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
+                          <Avatar className="w-10 h-10 flex-shrink-0">
+                            <AvatarImage src="/placeholder.svg" alt="Campaign" />
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                              {campaign.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-medium text-gray-900 truncate" title={campaign.name}>
+                              {campaign.name}
+                            </h3>
+                            <p className="text-sm text-gray-500 truncate">
+                              {campaign.client?.name || "Cliente não informado"}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-8 h-8 p-0 flex-shrink-0"
+                          title="Ver detalhes"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      {/* Status and Performance */}
+                      <div className="flex items-center justify-between">
+                        <Badge 
+                          variant="outline" 
+                          className={`${statusConfig[campaign.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800"}`}
+                        >
+                          <div className={`w-2 h-2 rounded-full mr-2 ${statusConfig[campaign.status as keyof typeof statusConfig]?.dotColor || "bg-gray-500"}`}></div>
+                          {statusConfig[campaign.status as keyof typeof statusConfig]?.label || campaign.status}
+                        </Badge>
+                        <Badge 
+                          variant="outline" 
+                          className={performance.color}
+                        >
+                          <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
+                          {performance.label}
+                        </Badge>
+                      </div>
+
+                      {/* Metrics Grid */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-500">CTR:</span>
+                          <span className="ml-1 font-medium">{campaign.ctr ? `${campaign.ctr.toFixed(2)}%` : "0%"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Conversões:</span>
+                          <span className="ml-1 font-medium">{campaign.conversions || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">CPC:</span>
+                          <span className="ml-1 font-medium">R$ {campaign.cpc?.toFixed(2) || "0,00"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">CPL:</span>
+                          <span className="ml-1 font-medium">
+                            {campaign.conversions > 0 
+                              ? `R$ ${((campaign.spend || 0) / campaign.conversions).toFixed(2)}`
+                              : "R$ 0,00"
+                            }
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Additional Info (Expandable) */}
+                      <div className="pt-2 border-t border-gray-100">
+                        <div className="text-sm text-gray-600">
+                          <span className="font-medium">Valor Gasto:</span> R$ {campaign.spend?.toLocaleString('pt-BR', { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 2 
+                          }) || "0,00"}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          <span className="font-medium">Plataforma:</span> {campaign.platforms}
+                        </div>
+                        {campaign.objective && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            <span className="font-medium">Tipo:</span> {objectiveConfig[campaign.objective] || campaign.objective}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            <Card className="mt-6">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                  <div className="text-sm text-gray-700 text-center sm:text-left">
                     Mostrando <span className="font-medium">{startIndex + 1}</span> a{" "}
                     <span className="font-medium">{Math.min(startIndex + itemsPerPage, totalCampaigns)}</span> de{" "}
                     <span className="font-medium">{totalCampaigns}</span> campanhas
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -718,11 +818,21 @@ const Campanhas = () => {
                       className="flex items-center space-x-1"
                     >
                       <ChevronLeft className="w-4 h-4" />
-                      <span>Anterior</span>
+                      <span className="hidden sm:inline">Anterior</span>
                     </Button>
                     
-                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                      const page = i + 1;
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let page;
+                      if (totalPages <= 5) {
+                        page = i + 1;
+                      } else if (currentPage <= 3) {
+                        page = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        page = totalPages - 4 + i;
+                      } else {
+                        page = currentPage - 2 + i;
+                      }
+                      
                       return (
                         <Button
                           key={page}
@@ -743,12 +853,12 @@ const Campanhas = () => {
                       disabled={currentPage === totalPages}
                       className="flex items-center space-x-1"
                     >
-                      <span>Próximo</span>
+                      <span className="hidden sm:inline">Próximo</span>
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           </>
         )}
