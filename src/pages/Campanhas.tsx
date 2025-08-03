@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +39,29 @@ const statusConfig = {
   active: { label: "Ativa", color: "bg-green-100 text-green-800", dotColor: "bg-green-500" },
   paused: { label: "Pausada", color: "bg-yellow-100 text-yellow-800", dotColor: "bg-yellow-500" },
   finished: { label: "Finalizada", color: "bg-gray-100 text-gray-800", dotColor: "bg-gray-500" }
+};
+
+// Mapeamento dos tipos de campanha para português
+const objectiveConfig: { [key: string]: string } = {
+  "CONVERSIONS": "Conversões",
+  "TRAFFIC": "Tráfego", 
+  "BRAND_AWARENESS": "Reconhecimento da Marca",
+  "REACH": "Alcance",
+  "ENGAGEMENT": "Engajamento",
+  "APP_INSTALLS": "Instalações do App",
+  "VIDEO_VIEWS": "Visualizações de Vídeo",
+  "LEAD_GENERATION": "Geração de Leads",
+  "MESSAGES": "Mensagens",
+  "CATALOG_SALES": "Vendas do Catálogo",
+  "STORE_VISITS": "Visitas à Loja",
+  "LINK_CLICKS": "Cliques no Link",
+  "POST_ENGAGEMENT": "Engajamento da Publicação",
+  "PAGE_LIKES": "Curtidas da Página",
+  "EVENT_RESPONSES": "Respostas de Eventos",
+  "OUTCOME_TRAFFIC": "Tráfego de Resultados",
+  "OUTCOME_ENGAGEMENT": "Engajamento de Resultados",
+  "OUTCOME_LEADS": "Leads de Resultados",
+  "OUTCOME_SALES": "Vendas de Resultados"
 };
 
 // Função para avaliar o desempenho da campanha
@@ -634,7 +656,7 @@ const Campanhas = () => {
                              </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  {campaign.objective || "Não definido"}
+                                  {objectiveConfig[campaign.objective || ""] || campaign.objective || "Não definido"}
                                 </Badge>
                               </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -658,11 +680,6 @@ const Campanhas = () => {
                                 >
                                   <Edit className="w-4 h-4" />
                                 </Button>
-                                <Switch
-                                  checked={campaign.is_active}
-                                  onCheckedChange={(checked) => handleToggleCampaign(campaign.id, checked)}
-                                  title={campaign.is_active ? "Pausar" : "Ativar"}
-                                />
                               </>
                             ) : (
                               <>
