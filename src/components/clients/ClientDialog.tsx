@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Combobox } from "@/components/ui/combobox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,15 +89,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     );
     return !isUsedByOtherClient;
   });
-
-  // Preparar opções para o Combobox
-  const adAccountOptions = [
-    { value: "", label: "Nenhuma conta selecionada" },
-    ...availableAdAccounts.map(account => ({
-      value: account.id,
-      label: `${account.account_name} (${account.currency})`
-    }))
-  ];
 
   // Simplificado: apenas sincroniza quando o client muda
   useEffect(() => {
@@ -473,15 +463,19 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ad_account_id">Conta de Anúncios</Label>
-                <Combobox
-                  options={adAccountOptions}
-                  value={formData.ad_account_id || ""}
-                  onValueChange={(value) => setFormData({ ...formData, ad_account_id: value })}
-                  placeholder="Selecione a conta de anúncios"
-                  searchPlaceholder="Buscar contas de anúncios..."
-                  emptyMessage="Nenhuma conta de anúncios encontrada."
-                  disabled={readOnly}
-                />
+                <Select value={formData.ad_account_id || "none"} onValueChange={(value) => setFormData({ ...formData, ad_account_id: value === "none" ? "" : value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta de anúncios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma conta selecionada</SelectItem>
+                    {availableAdAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.account_name} ({account.currency})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

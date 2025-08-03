@@ -3,19 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar, Info, Loader2 } from 'lucide-react';
-
-interface SyncOptions {
-  campaigns: boolean;
-  adSets: boolean;
-  ads: boolean;
-}
 
 interface SyncPeriodDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (period: string, options: SyncOptions) => void;
+  onConfirm: (period: string) => void;
   syncing?: boolean;
   title?: string;
 }
@@ -36,11 +29,6 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
   title = "Selecionar Período de Sincronização"
 }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
-  const [syncOptions, setSyncOptions] = useState<SyncOptions>({
-    campaigns: true,
-    adSets: true,
-    ads: true
-  });
 
   // Load last selected period from localStorage
   useEffect(() => {
@@ -53,14 +41,7 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
   const handleConfirm = () => {
     // Save selected period to localStorage
     localStorage.setItem('lastSyncPeriod', selectedPeriod);
-    onConfirm(selectedPeriod, syncOptions);
-  };
-
-  const handleOptionChange = (option: keyof SyncOptions, checked: boolean) => {
-    setSyncOptions(prev => ({
-      ...prev,
-      [option]: checked
-    }));
+    onConfirm(selectedPeriod);
   };
 
   const selectedOption = periodOptions.find(option => option.value === selectedPeriod);
@@ -76,12 +57,6 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-sm text-green-800">
-              <strong>Sincronização completa:</strong> Campanhas, conjuntos de anúncios e criativos do Facebook serão importados com métricas atualizadas.
-            </p>
-          </div>
-          
           <div className="space-y-2">
             <Label htmlFor="period-select">Período dos dados</Label>
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -99,44 +74,6 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Dados para sincronizar</Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="campaigns"
-                  checked={syncOptions.campaigns}
-                  onCheckedChange={(checked) => handleOptionChange('campaigns', checked as boolean)}
-                />
-                <Label htmlFor="campaigns" className="text-sm font-normal">
-                  Campanhas
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="adsets"
-                  checked={syncOptions.adSets}
-                  onCheckedChange={(checked) => handleOptionChange('adSets', checked as boolean)}
-                />
-                <Label htmlFor="adsets" className="text-sm font-normal">
-                  Conjuntos de anúncios
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="ads"
-                  checked={syncOptions.ads}
-                  onCheckedChange={(checked) => handleOptionChange('ads', checked as boolean)}
-                />
-                <Label htmlFor="ads" className="text-sm font-normal">
-                  Criativos/Anúncios
-                </Label>
-              </div>
-            </div>
           </div>
 
           {selectedOption && (
@@ -174,12 +111,12 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
               {syncing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Sincronizando Dados...</span>
+                  <span>Sincronizando...</span>
                 </>
               ) : (
                 <>
                   <Calendar className="w-4 h-4" />
-                  <span>Sincronizar Dados</span>
+                  <span>Sincronizar</span>
                 </>
               )}
             </Button>

@@ -23,7 +23,7 @@ export const SyncProgressModal = ({ open, progress }: SyncProgressModalProps) =>
             Sincronizando clientes
           </DialogTitle>
           <DialogDescription>
-            Aguarde enquanto sincronizamos campanhas, conjuntos de anúncios e criativos do Facebook...
+            Aguarde enquanto sincronizamos os dados dos clientes...
           </DialogDescription>
         </DialogHeader>
         

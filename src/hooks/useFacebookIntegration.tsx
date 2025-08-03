@@ -119,10 +119,12 @@ export const useFacebookIntegration = () => {
   const loadIntegration = async (companyId: string) => {
     setLoading(true);
     try {
-      // First query: get the Facebook integration
       const { data: integrations, error } = await supabase
         .from("facebook_integrations")
-        .select("*")
+        .select(`
+          *,
+          facebook_ad_accounts(*)
+        `)
         .eq("company_id", companyId)
         .eq("is_active", true)
         .maybeSingle();
@@ -133,20 +135,7 @@ export const useFacebookIntegration = () => {
 
       if (integrations) {
         setIntegration(integrations);
-        
-        // Second query: get all ad accounts separately with explicit limit
-        const { data: adAccounts, error: adAccountsError } = await supabase
-          .from("facebook_ad_accounts")
-          .select("*")
-          .eq("integration_id", integrations.id)
-          .limit(100);
-
-        if (adAccountsError) {
-          console.error("Error loading ad accounts:", adAccountsError);
-          setAdAccounts([]);
-        } else {
-          setAdAccounts(adAccounts || []);
-        }
+        setAdAccounts(integrations.facebook_ad_accounts || []);
       } else {
         setIntegration(null);
         setAdAccounts([]);

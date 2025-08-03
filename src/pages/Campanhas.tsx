@@ -925,10 +925,7 @@ const Campanhas = () => {
         <SyncPeriodDialog
           open={syncDialogOpen}
           onOpenChange={setSyncDialogOpen}
-          onConfirm={(period, options) => {
-            setSyncDialogOpen(false);
-            syncAllClients(period);
-          }}
+          onConfirm={syncAllClients}
           syncing={syncing}
           title="Sincronizar Campanhas"
         />

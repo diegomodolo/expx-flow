@@ -2,29 +2,18 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-interface SyncOptions {
-  campaigns: boolean;
-  adSets: boolean;
-  ads: boolean;
-}
-
 export const useFacebookCampaignSync = () => {
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, clientName: '' });
   const { toast } = useToast();
 
-  const syncCampaigns = async (
-    clientId: string, 
-    period: string = '30', 
-    options: SyncOptions = { campaigns: true, adSets: true, ads: true }, 
-    silent: boolean = false
-  ) => {
+  const syncCampaigns = async (clientId: string, period: string = '30', fullSync: boolean = false, silent: boolean = false) => {
     if (!clientId) return;
 
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
-        body: { clientId, period, syncOptions: options }
+        body: { clientId, period, fullSync }
       });
 
       if (error) {
@@ -41,12 +30,7 @@ export const useFacebookCampaignSync = () => {
       // Only show individual toast if not in silent mode (bulk sync)
       if (!silent) {
         const periodLabel = period === 'lifetime' ? 'máximo' : `${period} dias`;
-        const syncTypes = [];
-        if (options.campaigns) syncTypes.push('campanhas');
-        if (options.adSets) syncTypes.push('conjuntos de anúncios');
-        if (options.ads) syncTypes.push('criativos');
-        const syncType = syncTypes.join(', ');
-        
+        const syncType = fullSync ? 'campanhas, conjuntos de anúncios e criativos' : 'campanhas';
         toast({
           title: "Sincronização concluída",
           description: `${syncType} atualizados com sucesso! (${periodLabel})`,
@@ -91,14 +75,14 @@ export const useFacebookCampaignSync = () => {
         const client = clients![i];
         setProgress({ current: i + 1, total: totalClients, clientName: client.name });
         
-        const result = await syncCampaigns(client.id, period, { campaigns: true, adSets: true, ads: true }, true); // Full sync for all clients, silent mode
+        const result = await syncCampaigns(client.id, period, false, true); // Always campaigns only for bulk sync, silent mode
         if (result) successCount++;
       }
 
       const periodLabel = period === 'lifetime' ? 'máximo' : `${period} dias`;
       toast({
         title: "Sincronização concluída",
-        description: `${successCount} de ${clients?.length || 0} clientes sincronizados com campanhas, conjuntos de anúncios e criativos (${periodLabel}).`,
+        description: `${successCount} de ${clients?.length || 0} clientes sincronizados (${periodLabel}).`,
       });
 
     } catch (error: any) {
