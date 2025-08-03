@@ -43,20 +43,21 @@ interface ClientData {
   voice_tone: string;
 }
 
-interface Suggestion {
+interface CampaignRecommendation {
   id: string;
-  type: 'critical' | 'warning' | 'opportunity' | 'optimization';
+  campaignId: string | null; // null para oportunidades de novas campanhas
+  campaignName: string;
+  type: 'suggestion' | 'alert' | 'opportunity' | 'new_campaign';
   category: string;
   title: string;
   description: string;
-  action: string;
-  campaigns: string[];
+  justification: string;
   priority: 'high' | 'medium' | 'low';
-  impact: 'high' | 'medium' | 'low';
+  impact: string; // Ex: "+15% em CTR"
+  expectedMetric: string; // CAC, CTR, ROI, etc.
+  status: 'pending' | 'task_created' | 'dismissed';
+  actionSteps: string[];
   effort: 'low' | 'medium' | 'high';
-  estimatedImpact: string;
-  implementationSteps: string[];
-  relatedMetrics: string[];
 }
 
 serve(async (req) => {
@@ -96,17 +97,18 @@ serve(async (req) => {
 
     // Ensure we always have at least 5 suggestions
     while (suggestions.length < 5) {
-      suggestions.push(...generateFallbackSuggestions(clientData, campaigns, suggestions.length));
+      const fallbackSuggestions = generateFallbackSuggestions(clientData, campaigns, suggestions.length);
+      suggestions.push(...fallbackSuggestions);
     }
 
-    // Sort by priority and impact
+    // Sort by priority and type
     const sortedSuggestions = suggestions
       .sort((a, b) => {
         const priorityOrder = { high: 3, medium: 2, low: 1 };
-        const impactOrder = { high: 3, medium: 2, low: 1 };
+        const typeOrder = { alert: 4, suggestion: 3, opportunity: 2, new_campaign: 1 };
         
-        const aScore = priorityOrder[a.priority] + impactOrder[a.impact];
-        const bScore = priorityOrder[b.priority] + impactOrder[b.impact];
+        const aScore = priorityOrder[a.priority] + typeOrder[a.type];
+        const bScore = priorityOrder[b.priority] + typeOrder[b.type];
         
         return bScore - aScore;
       })
@@ -137,176 +139,291 @@ async function generateComprehensiveSuggestions(
   clientData: ClientData,
   campaigns: CampaignData[],
   historicalData: CampaignData[]
-): Promise<Suggestion[]> {
-  const suggestions: Suggestion[] = [];
+): Promise<CampaignRecommendation[]> {
+  const recommendations: CampaignRecommendation[] = [];
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
-  const pausedCampaigns = campaigns.filter(c => c.status === 'paused');
   
-  // 1. Budget Distribution Analysis
-  if (activeCampaigns.length > 0) {
-    const totalSpend = activeCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
-    const highSpendCampaigns = activeCampaigns.filter(c => (c.spend || 0) > totalSpend * 0.3);
-    
-    if (highSpendCampaigns.length === 1 && activeCampaigns.length > 3) {
-      suggestions.push({
-        id: 'budget-concentration',
-        type: 'warning',
-        category: 'Distribuição de Orçamento',
-        title: 'Concentração excessiva de budget',
-        description: `${Math.round((highSpendCampaigns[0].spend / totalSpend) * 100)}% do orçamento está concentrado em apenas uma campanha`,
-        action: 'Redistribuir budget para diversificar riscos e testar outras estratégias',
-        campaigns: highSpendCampaigns.map(c => c.name),
-        priority: 'medium',
-        impact: 'medium',
-        effort: 'low',
-        estimatedImpact: 'Redução de 15-25% no risco de performance',
-        implementationSteps: [
-          'Identificar campanhas com bom potencial',
-          'Reduzir budget da campanha principal em 20%',
-          'Redistribuir para 2-3 campanhas promissoras',
-          'Monitorar performance por 7 dias'
-        ],
-        relatedMetrics: ['CPA', 'ROAS', 'Volume de Conversões']
-      });
-    }
+  // Analisar cada campanha ativa individualmente
+  for (const campaign of activeCampaigns) {
+    const campaignRecommendations = await analyzeCampaignIndividually(campaign, clientData, activeCampaigns);
+    recommendations.push(...campaignRecommendations);
   }
+  
+  // Adicionar oportunidades de novas campanhas
+  const newCampaignOpportunities = generateNewCampaignOpportunities(clientData, activeCampaigns, historicalData);
+  recommendations.push(...newCampaignOpportunities);
+  
+  return recommendations;
+}
 
-  // 2. Time-based Performance Analysis
-  const recentCampaigns = campaigns.filter(c => {
-    const campaignDate = new Date(c.period);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return campaignDate >= thirtyDaysAgo;
-  });
-
-  if (recentCampaigns.length > 0) {
-    const avgCTR = recentCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0) / recentCampaigns.length;
-    if (avgCTR < 1.0) {
-      suggestions.push({
-        id: 'low-ctr-optimization',
-        type: 'optimization',
-        category: 'Otimização de Criativos',
-        title: 'CTR abaixo da média do mercado',
-        description: `CTR médio de ${avgCTR.toFixed(2)}% está abaixo da média de mercado (1-2%)`,
-        action: 'Renovar criativos e testar novos formatos de anúncio',
-        campaigns: recentCampaigns.filter(c => (c.ctr || 0) < avgCTR).map(c => c.name).slice(0, 3),
-        priority: 'high',
-        impact: 'high',
-        effort: 'medium',
-        estimatedImpact: 'Aumento de 20-40% no CTR',
-        implementationSteps: [
-          'Analisar criativos de melhor performance',
-          'Criar 3-5 variações de copy e visual',
-          'Implementar testes A/B',
-          'Pausar criativos com CTR < 0.8%'
-        ],
-        relatedMetrics: ['CTR', 'CPC', 'Relevance Score']
-      });
-    }
-  }
-
-  // 3. Frequency Analysis
-  const highFrequencyCampaigns = activeCampaigns.filter(c => (c.frequency || 0) > 3);
-  if (highFrequencyCampaigns.length > 0) {
-    suggestions.push({
-      id: 'high-frequency-fatigue',
-      type: 'warning',
-      category: 'Gestão de Audiência',
-      title: 'Fadiga de audiência detectada',
-      description: `${highFrequencyCampaigns.length} campanha(s) com frequência acima de 3, indicando possível fadiga`,
-      action: 'Expandir audiências ou renovar criativos para reduzir frequência',
-      campaigns: highFrequencyCampaigns.map(c => c.name),
-      priority: 'medium',
-      impact: 'medium',
-      effort: 'medium',
-      estimatedImpact: 'Redução de 10-20% no CPC',
-      implementationSteps: [
-        'Expandir audiências similar em 10-20%',
-        'Criar criativos exclusivos para alta frequência',
-        'Implementar frequency capping',
-        'Testar lookalike audiences'
-      ],
-      relatedMetrics: ['Frequency', 'CPC', 'CTR']
-    });
-  }
-
-  // 4. Device Performance Analysis
-  if (activeCampaigns.length > 0) {
-    suggestions.push({
-      id: 'device-optimization',
-      type: 'optimization',
-      category: 'Segmentação de Dispositivos',
-      title: 'Otimização por dispositivo',
-      description: 'Analisar performance por dispositivo pode revelar oportunidades de otimização',
-      action: 'Segmentar campanhas por dispositivo e ajustar bids accordingly',
-      campaigns: activeCampaigns.slice(0, 3).map(c => c.name),
-      priority: 'low',
-      impact: 'medium',
-      effort: 'low',
-      estimatedImpact: 'Melhoria de 5-15% na eficiência',
-      implementationSteps: [
-        'Analisar relatório de dispositivos',
-        'Identificar dispositivos com melhor performance',
-        'Criar campanhas específicas para dispositivos',
-        'Ajustar bids por dispositivo'
-      ],
-      relatedMetrics: ['CPA por dispositivo', 'CTR por dispositivo']
-    });
-  }
-
-  // 5. Seasonality and Timing
-  suggestions.push({
-    id: 'timing-optimization',
-    type: 'optimization',
-    category: 'Horários de Veiculação',
-    title: 'Otimização de horários',
-    description: 'Análise de horários pode identificar janelas de melhor performance',
-    action: 'Implementar dayparting baseado em dados de conversão',
-    campaigns: activeCampaigns.slice(0, 2).map(c => c.name),
-    priority: 'low',
-    impact: 'medium',
-    effort: 'low',
-    estimatedImpact: 'Redução de 10-20% no CPA',
-    implementationSteps: [
-      'Analisar relatório de horários',
-      'Identificar horários de pico',
-      'Configurar agendamento otimizado',
-      'Aumentar bids em horários de alta conversão'
-    ],
-    relatedMetrics: ['CPA por horário', 'Volume de conversões']
-  });
-
-  // 6. Landing Page Analysis
-  if (activeCampaigns.some(c => (c.ctr || 0) > 1.5 && (c.conversions || 0) < 5)) {
-    suggestions.push({
-      id: 'landing-page-optimization',
-      type: 'critical',
-      category: 'Landing Page',
-      title: 'Possível problema na landing page',
-      description: 'Alto CTR mas baixas conversões indica problema na página de destino',
-      action: 'Otimizar landing page para melhorar taxa de conversão',
-      campaigns: activeCampaigns.filter(c => (c.ctr || 0) > 1.5 && (c.conversions || 0) < 5).map(c => c.name),
+async function analyzeCampaignIndividually(
+  campaign: CampaignData,
+  clientData: ClientData,
+  allActiveCampaigns: CampaignData[]
+): Promise<CampaignRecommendation[]> {
+  const recommendations: CampaignRecommendation[] = [];
+  
+  // 1. Análise de Performance - CPA Alto
+  if (campaign.cpa > 0 && campaign.cpa > 100 && campaign.conversions > 0) {
+    recommendations.push({
+      id: `high-cpa-${campaign.id}`,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'alert',
+      category: 'Performance',
+      title: `CPA alto na ${campaign.name}`,
+      description: `CPA de R$ ${campaign.cpa.toFixed(2)} está acima do ideal`,
+      justification: `CPA atual está ${Math.round(((campaign.cpa - 80) / 80) * 100)}% acima do benchmark de R$ 80`,
       priority: 'high',
-      impact: 'high',
-      effort: 'high',
-      estimatedImpact: 'Aumento de 30-60% nas conversões',
-      implementationSteps: [
-        'Implementar Google Analytics para tracking',
-        'Analisar taxa de rejeição da página',
-        'Testar diferentes versões da landing page',
-        'Otimizar formulários e CTAs'
+      impact: 'Redução de 25-40% no CPA',
+      expectedMetric: 'CPA',
+      status: 'pending',
+      actionSteps: [
+        'Analisar audiências com CPA mais alto',
+        'Pausar segmentos com CPA > R$ 150',
+        'Otimizar criativos com baixo CTR',
+        'Testar estratégias de bidding conservadoras'
       ],
-      relatedMetrics: ['Taxa de conversão', 'Bounce rate', 'Time on page']
+      effort: 'medium'
     });
   }
+  
+  // 2. Análise de Performance - CTR Baixo
+  if (campaign.ctr > 0 && campaign.ctr < 1.0) {
+    recommendations.push({
+      id: `low-ctr-${campaign.id}`,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'suggestion',
+      category: 'Criativos',
+      title: `CTR baixo na ${campaign.name}`,
+      description: `CTR de ${campaign.ctr.toFixed(2)}% está abaixo da média`,
+      justification: 'CTR abaixo de 1% indica que os criativos não estão engajando adequadamente',
+      priority: 'high',
+      impact: 'Aumento de 30-50% no CTR',
+      expectedMetric: 'CTR',
+      status: 'pending',
+      actionSteps: [
+        'Criar 3-5 variações de criativos',
+        'Testar diferentes formatos (vídeo/imagem)',
+        'Renovar copy com foco em dor/benefício',
+        'Implementar testes A/B estruturados'
+      ],
+      effort: 'medium'
+    });
+  }
+  
+  // 3. Análise de Frequência - Fadiga de Audiência
+  if (campaign.frequency > 3) {
+    recommendations.push({
+      id: `high-frequency-${campaign.id}`,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'alert',
+      category: 'Audiência',
+      title: `Fadiga de audiência na ${campaign.name}`,
+      description: `Frequência de ${campaign.frequency.toFixed(1)} indica saturação`,
+      justification: 'Frequência acima de 3 geralmente resulta em queda de performance e aumento de custos',
+      priority: 'medium',
+      impact: 'Redução de 15-25% no CPC',
+      expectedMetric: 'CPC',
+      status: 'pending',
+      actionSteps: [
+        'Expandir audiências similares em 20%',
+        'Criar criativos exclusivos para alta frequência',
+        'Implementar frequency capping de 2-3',
+        'Testar lookalike audiences de 2-3%'
+      ],
+      effort: 'low'
+    });
+  }
+  
+  // 4. Análise de Orçamento - Oportunidade de Escala
+  if (campaign.cpa > 0 && campaign.cpa < 60 && campaign.conversions >= 10) {
+    const totalSpend = allActiveCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
+    const campaignSpendPercentage = (campaign.spend / totalSpend) * 100;
+    
+    if (campaignSpendPercentage < 40) {
+      recommendations.push({
+        id: `scale-opportunity-${campaign.id}`,
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        type: 'opportunity',
+        category: 'Escalonamento',
+        title: `Oportunidade de escalar ${campaign.name}`,
+        description: `CPA baixo (R$ ${campaign.cpa.toFixed(2)}) com bom volume de conversões`,
+        justification: `Performance excelente com CPA ${Math.round(((60 - campaign.cpa) / 60) * 100)}% abaixo do benchmark`,
+        priority: 'medium',
+        impact: 'Aumento de 40-60% no volume',
+        expectedMetric: 'Volume de Conversões',
+        status: 'pending',
+        actionSteps: [
+          'Aumentar budget diário em 30%',
+          'Expandir para audiências similares',
+          'Duplicar criativos performantes',
+          'Monitorar CPA durante escalonamento'
+        ],
+        effort: 'low'
+      });
+    }
+  }
+  
+  // 5. Análise de Conversões - Campanha sem Conversões
+  if (campaign.spend > 50 && campaign.conversions === 0) {
+    recommendations.push({
+      id: `no-conversions-${campaign.id}`,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'alert',
+      category: 'Conversões',
+      title: `${campaign.name} sem conversões`,
+      description: `R$ ${campaign.spend.toFixed(2)} investidos sem conversões`,
+      justification: 'Campanha com investimento significativo não está gerando resultados',
+      priority: 'high',
+      impact: 'Geração das primeiras conversões',
+      expectedMetric: 'Conversões',
+      status: 'pending',
+      actionSteps: [
+        'Revisar configuração de conversões',
+        'Analisar fluxo da landing page',
+        'Verificar público-alvo',
+        'Considerar pausar temporariamente'
+      ],
+      effort: 'high'
+    });
+  }
+  
+  // 6. Análise de Landing Page - Alto CTR, Baixas Conversões
+  if (campaign.ctr > 1.5 && campaign.conversions < 5 && campaign.clicks > 100) {
+    recommendations.push({
+      id: `landing-page-${campaign.id}`,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'alert',
+      category: 'Landing Page',
+      title: `Problema na landing page - ${campaign.name}`,
+      description: `Alto CTR (${campaign.ctr.toFixed(2)}%) mas baixas conversões`,
+      justification: 'Discrepância entre engajamento no anúncio e conversões indica problema na página',
+      priority: 'high',
+      impact: 'Aumento de 50-80% nas conversões',
+      expectedMetric: 'Taxa de Conversão',
+      status: 'pending',
+      actionSteps: [
+        'Implementar hotjar para análise UX',
+        'A/B testar headline da landing page',
+        'Otimizar formulário de conversão',
+        'Melhorar velocidade de carregamento'
+      ],
+      effort: 'high'
+    });
+  }
+  
+  return recommendations;
+}
 
-  return suggestions;
+function generateNewCampaignOpportunities(
+  clientData: ClientData,
+  activeCampaigns: CampaignData[],
+  historicalData: CampaignData[]
+): CampaignRecommendation[] {
+  const opportunities: CampaignRecommendation[] = [];
+  
+  // Verificar gaps no funil
+  const hasTopoFunil = activeCampaigns.some(c => 
+    c.objective?.includes('AWARENESS') || c.objective?.includes('REACH') || c.objective?.includes('VIDEO_VIEWS')
+  );
+  const hasMeioFunil = activeCampaigns.some(c => 
+    c.objective?.includes('TRAFFIC') || c.objective?.includes('ENGAGEMENT') || c.objective?.includes('LEADS')
+  );
+  const hasFundoFunil = activeCampaigns.some(c => 
+    c.objective?.includes('CONVERSIONS') || c.objective?.includes('CATALOG_SALES')
+  );
+  const hasRetencao = activeCampaigns.some(c => 
+    c.objective?.includes('RETENTION') || c.name.toLowerCase().includes('remarketing')
+  );
+  
+  // 1. Oportunidade de Topo de Funil
+  if (!hasTopoFunil) {
+    opportunities.push({
+      id: 'new-awareness-campaign',
+      campaignId: null,
+      campaignName: 'Nova Campanha de Awareness',
+      type: 'new_campaign',
+      category: 'Topo de Funil',
+      title: 'Criar campanha de awareness',
+      description: 'Ausência de campanhas de awareness pode limitar o crescimento',
+      justification: 'Sem campanhas de topo de funil, você pode estar perdendo potenciais clientes na fase de descoberta',
+      priority: 'medium',
+      impact: 'Aumento de 20-30% na base de prospects',
+      expectedMetric: 'Reach e Awareness',
+      status: 'pending',
+      actionSteps: [
+        'Definir persona para awareness',
+        'Criar vídeos educacionais sobre o produto',
+        'Configurar campanha de video views',
+        'Implementar pixel para remarketing'
+      ],
+      effort: 'medium'
+    });
+  }
+  
+  // 2. Oportunidade de Remarketing
+  if (!hasRetencao && activeCampaigns.length > 0) {
+    opportunities.push({
+      id: 'new-remarketing-campaign',
+      campaignId: null,
+      campaignName: 'Nova Campanha de Remarketing',
+      type: 'new_campaign',
+      category: 'Retenção',
+      title: 'Implementar estratégia de remarketing',
+      description: 'Campanhas de remarketing podem recuperar 70% dos visitantes perdidos',
+      justification: 'Sem remarketing, você está perdendo clientes que já demonstraram interesse',
+      priority: 'high',
+      impact: 'Aumento de 40-60% na taxa de conversão',
+      expectedMetric: 'ROAS',
+      status: 'pending',
+      actionSteps: [
+        'Instalar pixel do Facebook',
+        'Criar audiências de visitantes do site',
+        'Desenvolver criativos específicos',
+        'Configurar funil de remarketing completo'
+      ],
+      effort: 'medium'
+    });
+  }
+  
+  // 3. Oportunidade de Teste com Lookalike
+  if (activeCampaigns.length > 0 && !activeCampaigns.some(c => c.name.toLowerCase().includes('lookalike'))) {
+    opportunities.push({
+      id: 'new-lookalike-campaign',
+      campaignId: null,
+      campaignName: 'Nova Campanha Lookalike',
+      type: 'new_campaign',
+      category: 'Expansão de Audiência',
+      title: 'Testar audiências lookalike',
+      description: 'Expandir para audiências similares aos seus melhores clientes',
+      justification: 'Lookalike audiences podem encontrar novos clientes com perfil similar aos atuais',
+      priority: 'medium',
+      impact: 'Aumento de 25-40% no alcance qualificado',
+      expectedMetric: 'CPA e Volume',
+      status: 'pending',
+      actionSteps: [
+        'Criar audiência customizada de compradores',
+        'Gerar lookalike de 1% e 2%',
+        'Duplicar campanha performante',
+        'Testar com 20% do budget total'
+      ],
+      effort: 'low'
+    });
+  }
+  
+  return opportunities;
 }
 
 async function generateAISuggestions(
   clientData: ClientData,
   campaigns: CampaignData[]
-): Promise<Suggestion[]> {
+): Promise<CampaignRecommendation[]> {
   if (!openAIApiKey) {
     console.log('OpenAI API key not found, skipping AI suggestions');
     return [];
@@ -367,23 +484,24 @@ Responda em JSON no formato:
 
     return aiResponse.suggestions.map((suggestion: any, index: number) => ({
       id: `ai-suggestion-${index}`,
-      type: 'optimization',
+      campaignId: null,
+      campaignName: 'Recomendação Geral',
+      type: 'suggestion',
       category: suggestion.category,
       title: suggestion.title,
       description: suggestion.description,
-      action: suggestion.action,
-      campaigns: [],
+      justification: 'Baseado em análise de IA dos padrões de mercado',
       priority: 'medium',
-      impact: 'medium',
-      effort: 'medium',
-      estimatedImpact: suggestion.estimatedImpact,
-      implementationSteps: [
+      impact: suggestion.estimatedImpact,
+      expectedMetric: 'Performance Geral',
+      status: 'pending',
+      actionSteps: [
         'Analisar dados detalhados',
         'Implementar mudanças gradualmente',
         'Monitorar resultados',
         'Ajustar conforme necessário'
       ],
-      relatedMetrics: ['Performance geral']
+      effort: 'medium'
     }));
 
   } catch (error) {
@@ -396,107 +514,91 @@ function generateFallbackSuggestions(
   clientData: ClientData,
   campaigns: CampaignData[],
   currentCount: number
-): Suggestion[] {
-  const fallbackSuggestions: Suggestion[] = [
+): CampaignRecommendation[] {
+  const fallbackSuggestions: CampaignRecommendation[] = [
     {
       id: 'competitor-analysis',
-      type: 'optimization',
+      campaignId: null,
+      campaignName: 'Análise Geral',
+      type: 'suggestion',
       category: 'Análise Competitiva',
       title: 'Monitoramento da concorrência',
       description: 'Analise os anúncios dos concorrentes para identificar oportunidades',
-      action: 'Implementar monitoramento regular da concorrência',
-      campaigns: [],
+      justification: 'Conhecer a concorrência é fundamental para manter competitividade',
       priority: 'low',
-      impact: 'medium',
-      effort: 'low',
-      estimatedImpact: 'Insights valiosos para estratégia',
-      implementationSteps: [
+      impact: 'Insights valiosos para estratégia',
+      expectedMetric: 'Market Share',
+      status: 'pending',
+      actionSteps: [
         'Identificar principais concorrentes',
         'Monitorar biblioteca de anúncios',
         'Analisar criativos que funcionam',
         'Adaptar insights para suas campanhas'
       ],
-      relatedMetrics: ['Market share', 'Competitive positioning']
+      effort: 'low'
     },
     {
       id: 'creative-testing',
-      type: 'optimization',
+      campaignId: null,
+      campaignName: 'Análise Geral',
+      type: 'suggestion',
       category: 'Testes de Criativos',
       title: 'Programa de testes A/B contínuos',
       description: 'Implementar sistema de testes contínuos para otimização',
-      action: 'Estabelecer cronograma de testes semanais',
-      campaigns: [],
+      justification: 'Testes contínuos são essenciais para manter competitividade',
       priority: 'medium',
-      impact: 'high',
-      effort: 'medium',
-      estimatedImpact: 'Melhoria contínua de 5-10% mensal',
-      implementationSteps: [
+      impact: 'Melhoria contínua de 5-10% mensal',
+      expectedMetric: 'CTR e CVR',
+      status: 'pending',
+      actionSteps: [
         'Definir elementos para testar',
         'Criar cronograma de testes',
         'Implementar testes A/B',
         'Documentar aprendizados'
       ],
-      relatedMetrics: ['CTR', 'CVR', 'CPA']
+      effort: 'medium'
     },
     {
       id: 'audience-expansion',
+      campaignId: null,
+      campaignName: 'Análise Geral',
       type: 'opportunity',
       category: 'Expansão de Audiência',
       title: 'Oportunidade de expansão',
       description: 'Teste novas audiências para aumentar o alcance',
-      action: 'Criar campanhas para audiências lookalike e interesses afins',
-      campaigns: [],
+      justification: 'Expansão de audiências pode descobrir novos segmentos rentáveis',
       priority: 'medium',
-      impact: 'medium',
-      effort: 'low',
-      estimatedImpact: 'Aumento de 20-40% no alcance',
-      implementationSteps: [
+      impact: 'Aumento de 20-40% no alcance',
+      expectedMetric: 'Reach e CPM',
+      status: 'pending',
+      actionSteps: [
         'Criar audiências lookalike',
         'Testar interesses relacionados',
         'Configurar campanhas de teste',
         'Escalar audiências performantes'
       ],
-      relatedMetrics: ['Reach', 'CPM', 'Frequency']
-    },
-    {
-      id: 'remarketing-setup',
-      type: 'opportunity',
-      category: 'Remarketing',
-      title: 'Implementar estratégia de remarketing',
-      description: 'Capture visitantes que não converteram na primeira visita',
-      action: 'Configurar pixels e criar campanhas de remarketing',
-      campaigns: [],
-      priority: 'high',
-      impact: 'high',
-      effort: 'medium',
-      estimatedImpact: 'Aumento de 25-50% na taxa de conversão',
-      implementationSteps: [
-        'Instalar pixel do Facebook',
-        'Criar audiências customizadas',
-        'Desenvolver criativos específicos',
-        'Configurar funil de remarketing'
-      ],
-      relatedMetrics: ['ROAS', 'Conversion rate', 'Customer acquisition']
+      effort: 'low'
     },
     {
       id: 'mobile-optimization',
-      type: 'optimization',
+      campaignId: null,
+      campaignName: 'Análise Geral',
+      type: 'suggestion',
       category: 'Otimização Mobile',
       title: 'Otimização para dispositivos móveis',
       description: 'Maioria dos usuários acessa via mobile, otimize a experiência',
-      action: 'Priorizar experiência mobile em campanhas e landing pages',
-      campaigns: [],
+      justification: 'Mobile representa 80%+ do tráfego, otimização é crucial',
       priority: 'medium',
-      impact: 'medium',
-      effort: 'medium',
-      estimatedImpact: 'Melhoria de 15-30% nas conversões mobile',
-      implementationSteps: [
+      impact: 'Melhoria de 15-30% nas conversões mobile',
+      expectedMetric: 'Mobile CVR',
+      status: 'pending',
+      actionSteps: [
         'Analisar performance mobile vs desktop',
         'Otimizar landing pages para mobile',
         'Ajustar criativos para formato mobile',
         'Testar campanhas mobile-first'
       ],
-      relatedMetrics: ['Mobile conversion rate', 'Mobile CTR']
+      effort: 'medium'
     }
   ];
 
