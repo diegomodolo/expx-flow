@@ -399,26 +399,51 @@ export default function CampanhaDetalhes() {
       }
       
       if (targetingObj.geo_locations?.regions?.length > 0) {
-        details.push(`Região: ${targetingObj.geo_locations.regions.length} selecionadas`);
+        const regions = targetingObj.geo_locations.regions;
+        if (regions.length <= 3) {
+          details.push(`Região: ${regions.map((r: any) => r.name || r).join(', ')}`);
+        } else {
+          details.push(`Região: ${regions.slice(0, 3).map((r: any) => r.name || r).join(', ')} +${regions.length - 3} outras`);
+        }
       }
       
       if (targetingObj.geo_locations?.cities?.length > 0) {
-        details.push(`Cidades: ${targetingObj.geo_locations.cities.length} selecionadas`);
+        const cities = targetingObj.geo_locations.cities;
+        if (cities.length <= 3) {
+          details.push(`Cidades: ${cities.map((c: any) => c.name || c).join(', ')}`);
+        } else {
+          details.push(`Cidades: ${cities.slice(0, 3).map((c: any) => c.name || c).join(', ')} +${cities.length - 3} outras`);
+        }
       }
       
-      // Extrair audiências customizadas
+      // Extrair audiências customizadas - mostrar os nomes
       if (targetingObj.custom_audiences?.length > 0) {
-        details.push(`Audiências: ${targetingObj.custom_audiences.length} configuradas`);
+        const audiences = targetingObj.custom_audiences;
+        if (audiences.length <= 3) {
+          details.push(`Audiências: ${audiences.map((a: any) => a.name || a).join(', ')}`);
+        } else {
+          details.push(`Audiências: ${audiences.slice(0, 3).map((a: any) => a.name || a).join(', ')} +${audiences.length - 3} outras`);
+        }
       }
       
-      // Extrair interesses
+      // Extrair interesses - mostrar os nomes
       if (targetingObj.interests?.length > 0) {
-        details.push(`Interesses: ${targetingObj.interests.length} selecionados`);
+        const interests = targetingObj.interests;
+        if (interests.length <= 3) {
+          details.push(`Interesses: ${interests.map((i: any) => i.name || i).join(', ')}`);
+        } else {
+          details.push(`Interesses: ${interests.slice(0, 3).map((i: any) => i.name || i).join(', ')} +${interests.length - 3} outros`);
+        }
       }
       
-      // Extrair comportamentos
+      // Extrair comportamentos - mostrar os nomes
       if (targetingObj.behaviors?.length > 0) {
-        details.push(`Comportamentos: ${targetingObj.behaviors.length} selecionados`);
+        const behaviors = targetingObj.behaviors;
+        if (behaviors.length <= 3) {
+          details.push(`Comportamentos: ${behaviors.map((b: any) => b.name || b).join(', ')}`);
+        } else {
+          details.push(`Comportamentos: ${behaviors.slice(0, 3).map((b: any) => b.name || b).join(', ')} +${behaviors.length - 3} outros`);
+        }
       }
       
       // Extrair nome da audiência se disponível
