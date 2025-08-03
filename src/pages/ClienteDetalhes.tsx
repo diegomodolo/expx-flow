@@ -56,6 +56,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
+  console.log('ClienteDetalhes - ID from params:', id);
+  console.log('ClienteDetalhes - Current URL:', window.location.pathname);
+  
   const { client, loading, error, refetch } = useClientDetails(id || "");
   const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
