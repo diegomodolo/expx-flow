@@ -18,7 +18,8 @@ import {
   Share2,
   Play,
   AlertTriangle,
-  Zap
+  Zap,
+  MessageSquare
 } from "lucide-react";
 
 interface Ad {
