@@ -52,7 +52,13 @@ serve(async (req) => {
       )
     }
 
-    const { clientId, period = '30', fullSync = false } = requestBody
+    const { 
+      clientId, 
+      period = '30', 
+      syncCampaigns = true, 
+      syncAdSets = false, 
+      syncAds = false 
+    } = requestBody
 
     if (!clientId) {
       console.error('Client ID missing from request:', requestBody)
@@ -68,7 +74,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Processing sync for client ID:', clientId, 'Full sync:', fullSync)
+    console.log('Processing sync for client ID:', clientId, 'Sync options:', { syncCampaigns, syncAdSets, syncAds })
 
     // Get client info
     console.log('Fetching client data...')
@@ -369,38 +375,47 @@ serve(async (req) => {
     let totalLeads = 0
     let totalClicks = 0
 
-    // First, remove existing data for this client
-    const { error: deleteCampaignsError } = await supabase
-      .from('campaigns')
-      .delete()
-      .eq('client_id', clientId)
-    
-    if (deleteCampaignsError) {
-      console.error('Error deleting existing campaigns:', deleteCampaignsError)
-    } else {
-      console.log('Cleared existing campaigns for client')
+    // Clear existing data based on sync options
+    if (syncCampaigns) {
+      const { error: deleteCampaignsError } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('client_id', clientId)
+      
+      if (deleteCampaignsError) {
+        console.error('Error deleting existing campaigns:', deleteCampaignsError)
+      } else {
+        console.log('Cleared existing campaigns for client')
+      }
     }
 
-    // Only clear ad sets and ads if doing a full sync
-    if (fullSync) {
+    if (syncAdSets) {
       const { error: deleteAdSetsError } = await supabase
         .from('ad_sets')
         .delete()
         .eq('client_id', clientId)
       
+      if (deleteAdSetsError) {
+        console.error('Error deleting existing ad sets:', deleteAdSetsError)
+      } else {
+        console.log('Cleared existing ad sets for client')
+      }
+    }
+
+    if (syncAds) {
       const { error: deleteAdsError } = await supabase
         .from('ads')
         .delete()
         .eq('client_id', clientId)
       
-      if (deleteAdSetsError || deleteAdsError) {
-        console.error('Error deleting existing ad sets/ads:', { deleteAdSetsError, deleteAdsError })
+      if (deleteAdsError) {
+        console.error('Error deleting existing ads:', deleteAdsError)
       } else {
-        console.log('Cleared existing ad sets and ads for client')
+        console.log('Cleared existing ads for client')
       }
     }
 
-    // Process each campaign
+    // Process each campaign if sync campaigns is enabled
     for (const campaign of campaigns) {
       console.log('Processing campaign:', campaign.name, 'Status:', campaign.status)
       
@@ -409,111 +424,136 @@ serve(async (req) => {
         activeCampaigns++
       }
 
-      const insights = campaign.insights?.data?.[0]
-      let spend = 0
-      let clicks = 0
-      let leads = 0
-      let cpc = 0
-      let ctr = 0
-      let impressions = 0
-      let reach = 0
-      let frequency = 0
-      let qualityRanking = null
-      let engagementRateRanking = null
-      let conversionRateRanking = null
+      let savedCampaign = null
 
-      if (insights) {
-        spend = parseFloat(insights.spend || 0)
-        clicks = parseInt(insights.clicks || 0)
-        impressions = parseInt(insights.impressions || 0)
-        reach = parseInt(insights.reach || 0)
-        frequency = parseFloat(insights.frequency || 0)
-        qualityRanking = insights.quality_ranking || null
-        engagementRateRanking = insights.engagement_rate_ranking || null
-        conversionRateRanking = insights.conversion_rate_ranking || null
-        
-        totalSpend += spend
-        totalClicks += clicks
-        
-        // Calculate CTR (Click Through Rate)
-        ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
-        
-        console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
-        console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
-        
-        // Count leads from actions
-        if (insights.actions) {
-          insights.actions.forEach((action: any) => {
-            if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-              const actionLeads = parseInt(action.value || 0)
-              leads += actionLeads
-              totalLeads += actionLeads
-              console.log('Found leads:', actionLeads, 'for action type:', action.action_type)
-            }
-          })
+      // Process campaign data if syncing campaigns
+      if (syncCampaigns) {
+        const insights = campaign.insights?.data?.[0]
+        let spend = 0
+        let clicks = 0
+        let leads = 0
+        let cpc = 0
+        let ctr = 0
+        let impressions = 0
+        let reach = 0
+        let frequency = 0
+        let qualityRanking = null
+        let engagementRateRanking = null
+        let conversionRateRanking = null
+
+        if (insights) {
+          spend = parseFloat(insights.spend || 0)
+          clicks = parseInt(insights.clicks || 0)
+          impressions = parseInt(insights.impressions || 0)
+          reach = parseInt(insights.reach || 0)
+          frequency = parseFloat(insights.frequency || 0)
+          qualityRanking = insights.quality_ranking || null
+          engagementRateRanking = insights.engagement_rate_ranking || null
+          conversionRateRanking = insights.conversion_rate_ranking || null
+          
+          totalSpend += spend
+          totalClicks += clicks
+          
+          // Calculate CTR (Click Through Rate)
+          ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
+          
+          console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
+          console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
+          
+          // Count leads from actions
+          if (insights.actions) {
+            insights.actions.forEach((action: any) => {
+              if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
+                const actionLeads = parseInt(action.value || 0)
+                leads += actionLeads
+                totalLeads += actionLeads
+                console.log('Found leads:', actionLeads, 'for action type:', action.action_type)
+              }
+            })
+          }
+
+          // Calculate CPC
+          cpc = clicks > 0 ? spend / clicks : 0
         }
 
-        // Calculate CPC
-        cpc = clicks > 0 ? spend / clicks : 0
-      }
+        // Save campaign to database
+        const campaignData = {
+          name: campaign.name,
+          platforms: 'Facebook Ads',
+          status: isActive ? 'active' : 'paused',
+          is_active: isActive,
+          ctr: ctr,
+          cpc: cpc,
+          cpa: leads > 0 ? spend / leads : 0,
+          conversions: leads,
+          spend: spend,
+          impressions: impressions,
+          clicks: clicks,
+          reach: reach,
+          frequency: frequency,
+          objective: campaign.objective || null,
+          quality_ranking: qualityRanking,
+          engagement_rate_ranking: engagementRateRanking,
+          conversion_rate_ranking: conversionRateRanking,
+          client_id: clientId,
+          user_id: client.user_id,
+          company_id: client.company_id,
+          period: '30 dias'
+        }
 
-      // Save campaign to database
-      const campaignData = {
-        name: campaign.name,
-        platforms: 'Facebook Ads',
-        status: isActive ? 'active' : 'paused',
-        is_active: isActive,
-        ctr: ctr,
-        cpc: cpc,
-        cpa: leads > 0 ? spend / leads : 0,
-        conversions: leads,
-        spend: spend,
-        impressions: impressions,
-        clicks: clicks,
-        reach: reach,
-        frequency: frequency,
-        objective: campaign.objective || null,
-        quality_ranking: qualityRanking,
-        engagement_rate_ranking: engagementRateRanking,
-        conversion_rate_ranking: conversionRateRanking,
-        client_id: clientId,
-        user_id: client.user_id,
-        company_id: client.company_id,
-        period: '30 dias'
-      }
+        const { data: insertedCampaign, error: campaignError } = await supabase
+          .from('campaigns')
+          .insert(campaignData)
+          .select()
+          .single()
 
-      const { data: savedCampaign, error: campaignError } = await supabase
-        .from('campaigns')
-        .insert(campaignData)
-        .select()
-        .single()
-
-      if (campaignError) {
-        console.error('Error inserting campaign:', campaignError)
-        continue
+        if (campaignError) {
+          console.error('Error inserting campaign:', campaignError)
+          continue
+        } else {
+          console.log('Campaign saved:', campaign.name)
+          savedCampaign = insertedCampaign
+        }
       } else {
-        console.log('Campaign saved:', campaign.name)
+        // If not syncing campaigns, try to find existing campaign for ad sets/ads sync
+        if (syncAdSets || syncAds) {
+          const { data: existingCampaign } = await supabase
+            .from('campaigns')
+            .select('id')
+            .eq('client_id', clientId)
+            .eq('name', campaign.name)
+            .single()
+          
+          if (existingCampaign) {
+            savedCampaign = existingCampaign
+          }
+        }
       }
 
-      // Only fetch ad sets and ads if doing a full sync
-      if (!fullSync) {
-        console.log('Skipping ad sets and ads sync (campaigns only)')
+      // Skip ad sets and ads if not syncing them or if no campaign reference
+      if ((!syncAdSets && !syncAds) || !savedCampaign) {
+        if (!syncAdSets && !syncAds) {
+          console.log('Skipping ad sets and ads sync (not requested)')
+        } else {
+          console.log('Skipping ad sets and ads sync (no campaign reference)')
+        }
         continue
       }
 
-      // Fetch ad sets for this campaign
-      try {
-        console.log('Fetching ad sets for campaign:', campaign.id)
-        const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}{impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
-        const adSetsResponse = await fetch(adSetsUrl)
-        
-        if (adSetsResponse.ok) {
-          const adSetsData = await adSetsResponse.json()
-          const adSets = adSetsData.data || []
-          console.log('Found', adSets.length, 'ad sets for campaign:', campaign.name)
+      // Fetch ad sets for this campaign if enabled
+      if (syncAdSets) {
+        try {
+          console.log('Fetching ad sets for campaign:', campaign.id)
+          const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}{impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+          const adSetsResponse = await fetch(adSetsUrl)
           
-          // Process each ad set
-          for (const adSet of adSets) {
+          if (adSetsResponse.ok) {
+            const adSetsData = await adSetsResponse.json()
+            const adSets = adSetsData.data || []
+            console.log('Found', adSets.length, 'ad sets for campaign:', campaign.name)
+            
+            // Process each ad set
+            for (const adSet of adSets) {
             const adSetInsights = adSet.insights?.data?.[0]
             let adSetSpend = 0
             let adSetClicks = 0
@@ -594,14 +634,15 @@ serve(async (req) => {
               console.log('Ad set saved:', adSet.name)
             }
 
-            // Fetch ads for this ad set
-            try {
-              console.log('Fetching ads for ad set:', adSet.id)
-              // Add actions and quality fields back
-              const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
-              console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
-              const adsResponse = await fetch(adsUrl)
-              console.log('Ads API response status:', adsResponse.status)
+            // Fetch ads for this ad set if enabled
+            if (syncAds) {
+              try {
+                console.log('Fetching ads for ad set:', adSet.id)
+                // Add actions and quality fields back
+                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+                console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
+                const adsResponse = await fetch(adsUrl)
+                console.log('Ads API response status:', adsResponse.status)
               
               if (adsResponse.ok) {
                 const adsData = await adsResponse.json()
@@ -777,15 +818,21 @@ serve(async (req) => {
                 const errorResponse = await adsResponse.text()
                 console.error('Failed to fetch ads for ad set:', adSet.id, 'Status:', adsResponse.status, 'Response:', errorResponse)
               }
-            } catch (adsError) {
-              console.error('Error fetching ads for ad set:', adSet.id, adsError)
+              } catch (adsError) {
+                console.error('Error fetching ads for ad set:', adSet.id, adsError)
+              }
+            } else {
+              console.log('Skipping ads sync for ad set:', adSet.id, '(not requested)')
             }
           }
-        } else {
-          console.error('Failed to fetch ad sets for campaign:', campaign.id)
+          } else {
+            console.error('Failed to fetch ad sets for campaign:', campaign.id)
+          }
+        } catch (adSetsError) {
+          console.error('Error fetching ad sets for campaign:', campaign.id, adSetsError)
         }
-      } catch (adSetsError) {
-        console.error('Error fetching ad sets for campaign:', campaign.id, adSetsError)
+      } else {
+        console.log('Skipping ad sets sync for campaign:', campaign.id, '(not requested)')
       }
     }
 
