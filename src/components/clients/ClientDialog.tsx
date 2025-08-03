@@ -133,7 +133,14 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     setLoading(true);
 
     try {
-      await onSubmit(formData);
+      // Combinar formData com dados do localClient (incluindo briefing)
+      const submitData = {
+        ...formData,
+        ai_briefing: localClient?.ai_briefing,
+        briefing_generated_at: localClient?.briefing_generated_at,
+      };
+      
+      await onSubmit(submitData);
       toast({
         title: "Sucesso",
         description: client ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!",
@@ -219,6 +226,12 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
 
   const handleBriefingUpdate = (updatedClient: Client) => {
     setLocalClient(updatedClient);
+    // Atualizar formData para incluir dados do briefing
+    setFormData(prev => ({
+      ...prev,
+      ai_briefing: updatedClient.ai_briefing,
+      briefing_generated_at: updatedClient.briefing_generated_at,
+    }));
   };
 
   return (
