@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Plus } from "lucide-react";
 import { ClientBriefingTab } from "./ClientBriefingTab";
@@ -28,6 +29,7 @@ interface ClientDialogProps {
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const { sectors, createSector } = useSectors();
   const { adAccounts } = useFacebookIntegration();
+  const { clients } = useClients();
   const { toast } = useToast();
   const [formData, setFormData] = useState(() => {
     if (client) {
@@ -79,6 +81,14 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const platforms = ["Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
   const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
+
+  // Filtrar contas de anúncios disponíveis (não vinculadas a outros clientes ou vinculadas ao cliente atual)
+  const availableAdAccounts = adAccounts.filter(account => {
+    const isUsedByOtherClient = clients.some(c => 
+      c.ad_account_id === account.id && c.id !== client?.id
+    );
+    return !isUsedByOtherClient;
+  });
 
   // Simplificado: apenas sincroniza quando o client muda
   useEffect(() => {
@@ -459,7 +469,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhuma conta selecionada</SelectItem>
-                    {adAccounts.map((account) => (
+                    {availableAdAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.account_name} ({account.currency})
                       </SelectItem>
