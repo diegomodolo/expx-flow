@@ -1,10 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
-import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 import { CompanySettings } from "@/components/company/CompanySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
-import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { PlansSettings } from "@/components/settings/PlansSettings";
 
 import { FacebookIntegrationSettings } from "@/components/facebook/FacebookIntegrationSettings";
@@ -23,14 +21,9 @@ const Configuracoes = () => {
         
         <SettingsLayout>
           <Routes>
-            <Route index element={
-              <div className="space-y-6">
-                <UserProfileSettings />
-              </div>
-            } />
+            <Route index element={<CompanySettings />} />
             <Route path="empresa" element={<CompanySettings />} />
             <Route path="notificacoes" element={<NotificationSettings />} />
-            <Route path="seguranca" element={<SecuritySettings />} />
             <Route path="planos" element={<PlansSettings />} />
             <Route path="facebook" element={<FacebookIntegrationSettings />} />
             <Route path="planner" element={<PlannerSettings />} />

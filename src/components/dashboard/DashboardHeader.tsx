@@ -115,9 +115,15 @@ export function DashboardHeader() {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
+                <Link to="/perfil" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Meu Perfil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/configuracoes" className="flex items-center">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações</span>
+                  <span>Configurações da Empresa</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

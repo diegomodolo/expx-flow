@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { User, Building, Bell, Shield, CreditCard, Facebook, Calendar } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar } from "lucide-react";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -11,14 +11,8 @@ interface SettingsLayoutProps {
 
 const settingsNavItems = [
   {
-    title: "Perfil",
-    href: "/configuracoes",
-    icon: User,
-    description: "Gerencie suas informações pessoais",
-  },
-  {
     title: "Empresa",
-    href: "/configuracoes/empresa",
+    href: "/configuracoes",
     icon: Building,
     description: "Configurações da empresa",
   },
@@ -27,12 +21,6 @@ const settingsNavItems = [
     href: "/configuracoes/notificacoes",
     icon: Bell,
     description: "Preferências de notificação",
-  },
-  {
-    title: "Segurança",
-    href: "/configuracoes/seguranca",
-    icon: Shield,
-    description: "Senha e autenticação",
   },
   {
     title: "Planos",
