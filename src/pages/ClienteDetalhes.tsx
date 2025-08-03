@@ -109,17 +109,136 @@ const ClienteDetalhes = () => {
   const dangerAlerts: any[] = [];
   const opportunityAlerts: any[] = [];
 
+  // Estados para sugestões
+  const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
+
   // Funções para manipular alertas
   const handleAnalyzeCampaigns = async () => {
+    if (!client?.campaigns) return;
+    
     setIsAnalyzing(true);
     try {
       setConvertedAlerts(new Set());
+      
+      // Analisar campanhas e gerar sugestões sempre
+      const suggestions = await generateCampaignSuggestions();
+      setCampaignSuggestions(suggestions);
+      
       await refetchDashboardData(client?.id);
     } catch (error) {
       console.error('Error analyzing campaigns:', error);
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  // Função para gerar sugestões baseadas nas campanhas
+  const generateCampaignSuggestions = async () => {
+    if (!client?.campaigns) return [];
+
+    const suggestions = [];
+    const campaigns = client.campaigns;
+    const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.is_active === true);
+
+    // Sempre gerar pelo menos algumas sugestões
+    
+    // 1. Análise de campanhas sem conversões
+    const campaignsWithoutConversions = activeCampaigns.filter(c => (c.conversions || 0) === 0 && (c.spend || 0) > 50);
+    if (campaignsWithoutConversions.length > 0) {
+      suggestions.push({
+        id: 'no-conversions',
+        type: 'warning',
+        title: 'Campanhas sem conversões detectadas',
+        description: `${campaignsWithoutConversions.length} campanha(s) ativa(s) com investimento acima de R$ 50 não estão gerando conversões.`,
+        action: 'Revisar segmentação e criativos das campanhas',
+        campaigns: campaignsWithoutConversions.map(c => c.name).slice(0, 3),
+        priority: 'high'
+      });
+    }
+
+    // 2. Análise de CPA alto
+    const highCpaCampaigns = activeCampaigns.filter(c => (c.cpa || 0) > 100 && (c.conversions || 0) > 0);
+    if (highCpaCampaigns.length > 0) {
+      suggestions.push({
+        id: 'high-cpa',
+        type: 'warning',
+        title: 'CPAs elevados identificados',
+        description: `${highCpaCampaigns.length} campanha(s) com CPA acima de R$ 100. CPA médio: R$ ${(highCpaCampaigns.reduce((sum, c) => sum + (c.cpa || 0), 0) / highCpaCampaigns.length).toFixed(2)}`,
+        action: 'Otimizar segmentação e ajustar orçamentos',
+        campaigns: highCpaCampaigns.map(c => c.name).slice(0, 3),
+        priority: 'high'
+      });
+    }
+
+    // 3. Oportunidades de escalonamento
+    const lowCpaCampaigns = activeCampaigns.filter(c => (c.cpa || 0) > 0 && (c.cpa || 0) < 50 && (c.conversions || 0) >= 5);
+    if (lowCpaCampaigns.length > 0) {
+      suggestions.push({
+        id: 'scale-opportunity',
+        type: 'opportunity',
+        title: 'Oportunidade de escalonamento',
+        description: `${lowCpaCampaigns.length} campanha(s) com CPA baixo (< R$ 50) e bom volume de conversões podem ser escalonadas.`,
+        action: 'Aumentar orçamento das campanhas performantes',
+        campaigns: lowCpaCampaigns.map(c => c.name).slice(0, 3),
+        priority: 'medium'
+      });
+    }
+
+    // 4. Análise de campanhas pausadas com bom histórico
+    const pausedCampaigns = campaigns.filter(c => c.status === 'paused' && (c.conversions || 0) > 0 && (c.cpa || 0) < 80);
+    if (pausedCampaigns.length > 0) {
+      suggestions.push({
+        id: 'paused-good-campaigns',
+        type: 'opportunity',
+        title: 'Campanhas pausadas com bom histórico',
+        description: `${pausedCampaigns.length} campanha(s) pausada(s) com CPA abaixo de R$ 80 e conversões registradas.`,
+        action: 'Considerar reativar campanhas com bom desempenho histórico',
+        campaigns: pausedCampaigns.map(c => c.name).slice(0, 3),
+        priority: 'medium'
+      });
+    }
+
+    // 5. Diversificação de objetivos
+    const objectives = [...new Set(activeCampaigns.map(c => c.objective))];
+    if (objectives.length <= 2 && activeCampaigns.length > 3) {
+      suggestions.push({
+        id: 'objective-diversity',
+        type: 'opportunity',
+        title: 'Diversificar objetivos de campanha',
+        description: `Apenas ${objectives.length} tipo(s) de objetivo sendo usado(s). Considere diversificar para cobrir todo o funil.`,
+        action: 'Criar campanhas de awareness, engajamento e remarketing',
+        campaigns: [],
+        priority: 'low'
+      });
+    }
+
+    // 6. Sugestão geral se nenhuma campanha ativa
+    if (activeCampaigns.length === 0) {
+      suggestions.push({
+        id: 'no-active-campaigns',
+        type: 'warning',
+        title: 'Nenhuma campanha ativa',
+        description: 'O cliente não possui campanhas ativas no momento.',
+        action: 'Criar e ativar campanhas para gerar resultados',
+        campaigns: [],
+        priority: 'high'
+      });
+    }
+
+    // 7. Se não há sugestões críticas, dar dicas gerais de otimização
+    if (suggestions.length === 0) {
+      suggestions.push({
+        id: 'general-optimization',
+        type: 'opportunity',
+        title: 'Oportunidades de otimização geral',
+        description: 'As campanhas estão funcionando bem! Considere algumas melhorias.',
+        action: 'Testar novos criativos, ajustar horários de veiculação ou expandir audiências',
+        campaigns: activeCampaigns.slice(0, 3).map(c => c.name),
+        priority: 'low'
+      });
+    }
+
+    return suggestions;
   };
 
   const handleConvertAlertToTask = (alert: any) => {
@@ -1802,148 +1921,82 @@ const ClienteDetalhes = () => {
                   </Button>
                 </div>
 
-                {(dangerAlerts.length > 0 || opportunityAlerts.length > 0) ? (
-                  <div className="space-y-6">
-                    {/* Seção Problemas Detectados */}
-                    {dangerAlerts.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <AlertTriangle className="w-5 h-5 text-red-500" />
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            Problemas Detectados
-                          </h3>
-                          <span className="text-sm text-gray-500">
-                            {dangerAlerts.length} items
-                          </span>
-                        </div>
-                        <div className="space-y-3">
-                          {dangerAlerts.map((alert, index) => (
-                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                      alert.title.includes('CPA alto') ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
-                                    }`}>
-                                      {alert.title.includes('CPA alto') ? 'Crítico' : 'Alto'}
-                                    </span>
-                                    <h4 className="font-medium text-gray-900 text-sm">
-                                      {alert.campaign}
-                                    </h4>
-                                  </div>
-                                  <div className="mb-2">
-                                    <p className="font-semibold text-gray-900">
-                                      {alert.title}: {alert.value}
-                                    </p>
-                                  </div>
-                                  <div className="text-sm text-gray-600">
-                                    <span>Campanha: {alert.campaign || 'N/A'} • </span>
-                                    <span>Detectado agora</span>
-                                  </div>
-                                  {alert.recommendation && (
-                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                                      {alert.recommendation}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDiscardAlert(alert)}
-                                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                                  >
-                                    Descartar
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleConvertAlertToTask(alert)}
-                                    className="bg-red-600 hover:bg-red-700 text-white"
-                                  >
-                                    Criar Tarefa
-                                  </Button>
-                                </div>
+                {campaignSuggestions.length > 0 ? (
+                  <div className="space-y-4">
+                    {campaignSuggestions.map((suggestion) => (
+                      <Card key={suggestion.id} className={`border-l-4 ${
+                        suggestion.type === 'warning' ? 'border-l-red-500' : 'border-l-blue-500'
+                      }`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                {suggestion.type === 'warning' ? (
+                                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                                ) : (
+                                  <Target className="w-5 h-5 text-blue-500" />
+                                )}
+                                <h5 className="font-medium text-gray-900">{suggestion.title}</h5>
+                                <Badge variant={suggestion.priority === 'high' ? 'destructive' : suggestion.priority === 'medium' ? 'default' : 'secondary'}>
+                                  {suggestion.priority === 'high' ? 'Alta' : suggestion.priority === 'medium' ? 'Média' : 'Baixa'}
+                                </Badge>
                               </div>
+                              <p className="text-sm text-gray-600 mb-3">{suggestion.description}</p>
+                              <div className="bg-gray-50 p-3 rounded-lg mb-3">
+                                <p className="text-sm font-medium text-gray-900 mb-1">Ação recomendada:</p>
+                                <p className="text-sm text-gray-700">{suggestion.action}</p>
+                              </div>
+                              {suggestion.campaigns && suggestion.campaigns.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-gray-500 mb-1">Campanhas afetadas:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {suggestion.campaigns.map((campaignName, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {campaignName}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Seção Oportunidades Detectadas */}
-                    {opportunityAlerts.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleConvertAlertToTask({
+                                  id: suggestion.id,
+                                  type: suggestion.type,
+                                  title: suggestion.title,
+                                  description: suggestion.description,
+                                  action: suggestion.action,
+                                  client_id: client?.id,
+                                  client_name: client?.name
+                                })}
+                                disabled={convertedAlerts.has(suggestion.id)}
+                              >
+                                {convertedAlerts.has(suggestion.id) ? (
+                                  <CheckCircle className="w-4 h-4" />
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    Criar Tarefa
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            Oportunidades Detectadas
-                          </h3>
-                          <span className="text-sm text-gray-500">
-                            {opportunityAlerts.length} items
-                          </span>
-                        </div>
-                        <div className="space-y-3">
-                          {opportunityAlerts.map((alert, index) => (
-                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                      Excelente
-                                    </span>
-                                    <h4 className="font-medium text-gray-900 text-sm">
-                                      {alert.campaign}
-                                    </h4>
-                                  </div>
-                                  <div className="mb-2">
-                                    <p className="font-semibold text-gray-900">
-                                      {alert.title}: {alert.value}
-                                    </p>
-                                  </div>
-                                  <div className="text-sm text-gray-600">
-                                    <span>Campanha: {alert.campaign || 'N/A'} • </span>
-                                    <span>Detectado agora</span>
-                                  </div>
-                                  {alert.recommendation && (
-                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                                      {alert.recommendation}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDiscardAlert(alert)}
-                                    className="text-gray-600 border-gray-300 hover:bg-gray-50"
-                                  >
-                                    Descartar
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleConvertAlertToTask(alert)}
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                  >
-                                    Criar Tarefa
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
                     <div className="text-6xl mb-4">🎯</div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Nenhum alerta encontrado
+                      Clique para analisar campanhas
                     </h3>
                     <p className="text-gray-500 mb-6">
-                      Clique no botão "Buscar Sugestões" para analisar as campanhas deste cliente e encontrar oportunidades de otimização.
+                      Clique no botão "Buscar Sugestões" para analisar as campanhas deste cliente e receber sugestões personalizadas de otimização.
                     </p>
                   </div>
                 )}
