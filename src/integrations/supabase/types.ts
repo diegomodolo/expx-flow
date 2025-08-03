@@ -895,6 +895,51 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_campaigns: {
+        Row: {
+          campaign_type: string
+          client_id: string
+          company_id: string
+          configuration: Json
+          created_at: string
+          creatives: Json
+          funnel_stage: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_type: string
+          client_id: string
+          company_id: string
+          configuration?: Json
+          created_at?: string
+          creatives?: Json
+          funnel_stage: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_type?: string
+          client_id?: string
+          company_id?: string
+          configuration?: Json
+          created_at?: string
+          creatives?: Json
+          funnel_stage?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       optimization_history: {
         Row: {
           client_id: string

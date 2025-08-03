@@ -3,15 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Share2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useGeneratedCampaigns } from "@/hooks/useGeneratedCampaigns";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import type { CampaignData } from "@/pages/GeradorCampanhas";
 
 interface CampaignReportProps {
   campaignData: CampaignData;
   updateCampaignData: (field: keyof CampaignData, value: any) => void;
+  isViewMode?: boolean;
 }
 
-export function CampaignReport({ campaignData }: CampaignReportProps) {
+export function CampaignReport({ campaignData, isViewMode = false }: CampaignReportProps) {
   const { toast } = useToast();
+  const { createCampaign } = useGeneratedCampaigns();
+  const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
 
   if (!campaignData.client || !campaignData.configuration || !campaignData.creatives) {
     return (
@@ -35,6 +42,20 @@ export function CampaignReport({ campaignData }: CampaignReportProps) {
       title: "Link Copiado",
       description: "Link do relatório copiado para a área de transferência",
     });
+  };
+
+  const handleSaveCampaign = async () => {
+    if (saving) return;
+    
+    try {
+      setSaving(true);
+      await createCampaign(campaignData);
+      navigate('/gerador-campanhas');
+    } catch (error) {
+      console.error('Error saving campaign:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const { configuration, creatives, client } = campaignData;
@@ -293,12 +314,19 @@ export function CampaignReport({ campaignData }: CampaignReportProps) {
         </div>
       </Card>
 
-      <div className="text-center">
-        <Button size="lg" className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          Estratégia Concluída
-        </Button>
-      </div>
+      {!isViewMode && (
+        <div className="text-center">
+          <Button 
+            size="lg" 
+            className="flex items-center gap-2"
+            onClick={handleSaveCampaign}
+            disabled={saving}
+          >
+            <CheckCircle className="w-5 h-5" />
+            {saving ? "Salvando..." : "Estratégia Concluída"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

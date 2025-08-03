@@ -172,11 +172,16 @@ const App = () => {
                      <RelatorioAlertasCriticos />
                    </ProtectedRoute>
                  } />
-               <Route path="/gerador-campanhas" element={
-                 <ProtectedRoute>
-                   <GeradorCampanhas />
-                 </ProtectedRoute>
-               } />
+                <Route path="/gerador-campanhas" element={
+                  <ProtectedRoute>
+                    <GeradorCampanhas />
+                  </ProtectedRoute>
+                } />
+                <Route path="/gerador-campanhas/:id" element={
+                  <ProtectedRoute>
+                    <GeradorCampanhas />
+                  </ProtectedRoute>
+                } />
                <Route path="/configuracoes/*" element={
                  <ProtectedRoute>
                    <Configuracoes />

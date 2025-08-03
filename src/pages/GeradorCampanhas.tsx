@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ClientSelector } from "@/components/campaign-generator/ClientSelector";
 import { FunnelStageSelector } from "@/components/campaign-generator/FunnelStageSelector";
@@ -6,9 +7,11 @@ import { CampaignTypeSelector } from "@/components/campaign-generator/CampaignTy
 import { CampaignConfiguration } from "@/components/campaign-generator/CampaignConfiguration";
 import { CreativeGenerator } from "@/components/campaign-generator/CreativeGenerator";
 import { CampaignReport } from "@/components/campaign-generator/CampaignReport";
+import { CampaignsList } from "@/components/campaign-generator/CampaignsList";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useGeneratedCampaigns } from "@/hooks/useGeneratedCampaigns";
 import type { Client } from "@/hooks/useClients";
 
 export type FunnelStage = "topo" | "meio" | "fundo" | "retencao";
@@ -23,6 +26,11 @@ export interface CampaignData {
 }
 
 const GeradorCampanhas = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { getCampaign } = useGeneratedCampaigns();
+  
+  const [mode, setMode] = useState<'list' | 'generator' | 'view'>('list');
   const [currentStep, setCurrentStep] = useState(1);
   const [campaignData, setCampaignData] = useState<CampaignData>({
     client: null,
@@ -31,6 +39,7 @@ const GeradorCampanhas = () => {
     configuration: null,
     creatives: [],
   });
+  const [viewingCampaign, setViewingCampaign] = useState<any>(null);
 
   const steps = [
     { number: 1, title: "Seleção do Cliente", component: ClientSelector },
@@ -40,6 +49,63 @@ const GeradorCampanhas = () => {
     { number: 5, title: "Criativos", component: CreativeGenerator },
     { number: 6, title: "Relatório Final", component: CampaignReport },
   ];
+
+  useEffect(() => {
+    if (id) {
+      // Se há um ID na URL, carrega a campanha para visualização
+      loadCampaignForView(id);
+    } else {
+      // Se não há ID, mostra a lista
+      setMode('list');
+    }
+  }, [id]);
+
+  const loadCampaignForView = async (campaignId: string) => {
+    try {
+      const campaign = await getCampaign(campaignId);
+      if (campaign) {
+        setViewingCampaign(campaign);
+        setMode('view');
+        
+        // Converte os dados salvos para o formato esperado pelo CampaignReport
+        setCampaignData({
+          client: campaign.clients as any,
+          funnelStage: campaign.funnel_stage as FunnelStage,
+          campaignType: campaign.campaign_type as CampaignType,
+          configuration: campaign.configuration,
+          creatives: campaign.creatives as any[],
+        });
+        setCurrentStep(6); // Vai direto para o relatório
+      } else {
+        navigate('/gerador-campanhas');
+      }
+    } catch (error) {
+      console.error('Error loading campaign:', error);
+      navigate('/gerador-campanhas');
+    }
+  };
+
+  const handleNewCampaign = () => {
+    setMode('generator');
+    setCurrentStep(1);
+    setCampaignData({
+      client: null,
+      funnelStage: null,
+      campaignType: null,
+      configuration: null,
+      creatives: [],
+    });
+    navigate('/gerador-campanhas');
+  };
+
+  const handleViewCampaign = (campaignId: string) => {
+    navigate(`/gerador-campanhas/${campaignId}`);
+  };
+
+  const handleBackToList = () => {
+    setMode('list');
+    navigate('/gerador-campanhas');
+  };
 
   const canProceed = () => {
     switch (currentStep) {
@@ -68,13 +134,67 @@ const GeradorCampanhas = () => {
     setCampaignData(prev => ({ ...prev, [field]: value }));
   };
 
+  if (mode === 'list') {
+    return (
+      <DashboardLayout>
+        <CampaignsList
+          onNewCampaign={handleNewCampaign}
+          onViewCampaign={handleViewCampaign}
+        />
+      </DashboardLayout>
+    );
+  }
+
+  if (mode === 'view') {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <Button
+                variant="outline"
+                onClick={handleBackToList}
+                className="flex items-center gap-2 mb-4"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Voltar para Lista
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground">
+                {viewingCampaign?.title}
+              </h1>
+            </div>
+          </div>
+          
+          <Card className="p-6">
+            <CampaignReport
+              campaignData={campaignData}
+              updateCampaignData={updateCampaignData}
+              isViewMode={true}
+            />
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Generator mode
   const CurrentStepComponent = steps[currentStep - 1].component;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Gerador de Campanhas Inteligente</h1>
+          <div>
+            <Button
+              variant="outline"
+              onClick={handleBackToList}
+              className="flex items-center gap-2 mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Lista
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">Gerador de Campanhas Inteligente</h1>
+          </div>
           <div className="text-sm text-muted-foreground">
             Passo {currentStep} de {steps.length}
           </div>
