@@ -17,6 +17,7 @@ import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModa
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { supabase } from "@/integrations/supabase/client";
+// Fixed: Removed all isRefreshingData references
 
 // Interface local para compatibilidade
 interface CampaignForModal {
