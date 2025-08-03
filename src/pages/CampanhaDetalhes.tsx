@@ -631,6 +631,67 @@ export default function CampanhaDetalhes() {
         </Card>
       </div>
 
+      {/* Indicadores Principais */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Eye className="w-4 h-4 text-blue-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Alcance</p>
+                <p className="text-lg font-semibold">
+                  {campaign.reach?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Target className="w-4 h-4 text-green-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Impressões</p>
+                <p className="text-lg font-semibold">
+                  {campaign.impressions?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="w-4 h-4 text-purple-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Cliques</p>
+                <p className="text-lg font-semibold">
+                  {campaign.clicks?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4 text-orange-500" />
+              <div>
+                <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
+                <p className="text-lg font-semibold">
+                  {campaign.conversions && campaign.clicks 
+                    ? ((campaign.conversions / campaign.clicks) * 100).toFixed(2) + '%'
+                    : '0,00%'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card>
