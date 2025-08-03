@@ -734,6 +734,51 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_permissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          is_enabled: boolean
+          menu_item: Database["public"]["Enums"]["menu_item_type"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_enabled?: boolean
+          menu_item: Database["public"]["Enums"]["menu_item_type"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_enabled?: boolean
+          menu_item?: Database["public"]["Enums"]["menu_item_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_permissions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           avatar: string | null
@@ -1353,6 +1398,16 @@ export type Database = {
     Enums: {
       campaign_status: "active" | "paused" | "finished"
       client_status: "green" | "yellow" | "red"
+      menu_item_type:
+        | "dashboard"
+        | "clientes"
+        | "campanhas"
+        | "squad"
+        | "tarefas"
+        | "colaboradores"
+        | "relatorios"
+        | "gerador-campanhas"
+        | "configuracoes"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
@@ -1485,6 +1540,17 @@ export const Constants = {
     Enums: {
       campaign_status: ["active", "paused", "finished"],
       client_status: ["green", "yellow", "red"],
+      menu_item_type: [
+        "dashboard",
+        "clientes",
+        "campanhas",
+        "squad",
+        "tarefas",
+        "colaboradores",
+        "relatorios",
+        "gerador-campanhas",
+        "configuracoes",
+      ],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
       task_status: ["todo", "progress", "review", "done"],
