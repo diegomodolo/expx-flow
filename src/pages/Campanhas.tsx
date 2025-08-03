@@ -138,7 +138,7 @@ const Campanhas = () => {
   const [openClientFilter, setOpenClientFilter] = useState(false);
   
   // Estados para ordenação
-  const [sortColumn, setSortColumn] = useState<'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | null>('performance');
+  const [sortColumn, setSortColumn] = useState<'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl' | null>('performance');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc'); // asc = pior performance primeiro
   
   const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
@@ -150,7 +150,7 @@ const Campanhas = () => {
   
   
   // Função para lidar com clique nos cabeçalhos
-  const handleSort = (column: 'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client') => {
+  const handleSort = (column: 'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl') => {
     if (sortColumn === column) {
       // Se já está ordenando por essa coluna, inverte a direção
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -215,6 +215,16 @@ const Campanhas = () => {
           
         case 'conversions':
           result = (a.conversions || 0) - (b.conversions || 0);
+          break;
+          
+        case 'spend':
+          result = (a.spend || 0) - (b.spend || 0);
+          break;
+          
+        case 'cpl':
+          const cplA = a.conversions > 0 ? (a.spend || 0) / a.conversions : 0;
+          const cplB = b.conversions > 0 ? (b.spend || 0) / b.conversions : 0;
+          result = cplA - cplB;
           break;
           
         default:
@@ -503,13 +513,31 @@ const Campanhas = () => {
                            Conversões
                            {getSortIcon('conversions')}
                          </div>
-                       </th>
-                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         Período
-                       </th>
-                       <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                         Ações
-                       </th>
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleSort('spend')}
+                        >
+                          <div className="flex items-center">
+                            Valor Gasto
+                            {getSortIcon('spend')}
+                          </div>
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                          onClick={() => handleSort('cpl')}
+                        >
+                          <div className="flex items-center">
+                            CPL
+                            {getSortIcon('cpl')}
+                          </div>
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Período
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ações
+                        </th>
                      </tr>
                   </thead>
                    <tbody className="bg-white divide-y divide-gray-200">
@@ -562,11 +590,20 @@ const Campanhas = () => {
                              campaign.status === "active" ? "text-green-600" : 
                              campaign.status === "paused" ? "text-yellow-600" : "text-gray-600"
                            }`}>
-                             {campaign.conversions}
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                             {campaign.period}
-                           </td>
+                              {campaign.conversions}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              R$ {(campaign.spend || 0).toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {campaign.conversions > 0 
+                                ? `R$ ${((campaign.spend || 0) / campaign.conversions).toFixed(2)}` 
+                                : "R$ 0,00"
+                              }
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {campaign.period}
+                            </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <Button
