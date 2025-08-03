@@ -51,17 +51,12 @@ export function DashboardSidebar() {
     >
       <SidebarContent className="pt-6 bg-white">
         {/* Logo Section */}
-        <div className="flex items-center justify-center py-4 px-4 mb-6">
+        <div className="flex items-center justify-center py-2 px-4 mb-4">
           <img 
             src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
             alt="Controle de Trafego" 
-            className="w-10 h-10"
+            className="w-10 h-10 object-contain"
           />
-          {open && (
-            <span className="ml-3 text-lg font-bold text-gray-800">
-              Controle de Trafego
-            </span>
-          )}
         </div>
         <SidebarGroup>
           <SidebarGroupContent>
