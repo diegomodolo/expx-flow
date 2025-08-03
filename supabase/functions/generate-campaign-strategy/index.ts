@@ -109,7 +109,7 @@ serve(async (req) => {
         3. **CPA Alvo**: ${campaigns?.length ? 'Baseado no CPA histórico médio' : 'Usar benchmark do setor'}
         4. **Cronograma**: Otimizado para o público-alvo
 
-        JSON obrigatório (sem ```json):
+        JSON obrigatório (sem markdown):
         {
           "budget": {
             "daily": ${client.monthly_budget ? Math.round(client.monthly_budget / 30) : 167},
