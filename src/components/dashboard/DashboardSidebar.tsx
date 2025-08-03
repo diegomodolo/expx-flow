@@ -40,12 +40,17 @@ export function DashboardSidebar() {
   const { open, setOpen } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { hasPermission } = useEmployeePermissions();
+  const { hasPermission, permissionsLoading, isOwner } = useEmployeePermissions();
 
   const isActive = (path: string) => currentPath === path;
 
   // Filtrar itens baseado nas permissões
-  const visibleItems = items.filter(item => hasPermission(item.permission));
+  // Durante o loading, mostrar todos os itens para owners ou apenas dashboard/tarefas para outros
+  const visibleItems = permissionsLoading 
+    ? (isOwner ? items : items.filter(item => item.permission === 'dashboard' || item.permission === 'tarefas'))
+    : items.filter(item => hasPermission(item.permission));
+
+  console.log('Sidebar - Loading:', permissionsLoading, 'IsOwner:', isOwner, 'Visible items:', visibleItems.length);
 
   return (
     <Sidebar
