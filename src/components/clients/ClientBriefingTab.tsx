@@ -6,19 +6,34 @@ import { Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { Client } from "@/hooks/useClients";
 
 interface ClientBriefingTabProps {
-  client: Client;
+  client?: Client;
+  formData: {
+    website_url: string;
+    [key: string]: any;
+  };
   onBriefingUpdate: (updatedClient: Client) => void;
 }
 
-export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTabProps) {
+export function ClientBriefingTab({ client, formData, onBriefingUpdate }: ClientBriefingTabProps) {
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
   const generateBriefing = async () => {
-    if (!client.website_url) {
+    const websiteUrl = formData.website_url;
+    
+    if (!websiteUrl) {
       toast({
         title: "Website necessário",
         description: "É necessário preencher o campo Website na aba Informações Gerais para gerar o briefing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!client?.id) {
+      toast({
+        title: "Cliente não salvo",
+        description: "É necessário salvar o cliente primeiro antes de gerar o briefing.",
         variant: "destructive",
       });
       return;
@@ -29,7 +44,7 @@ export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTa
       const { data, error } = await supabase.functions.invoke('generate-client-briefing', {
         body: {
           clientId: client.id,
-          websiteUrl: client.website_url,
+          websiteUrl: websiteUrl,
         },
       });
 
@@ -39,6 +54,7 @@ export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTa
         // Update local client state
         const updatedClient = {
           ...client,
+          website_url: websiteUrl,
           ai_briefing: data.briefing,
           briefing_generated_at: new Date().toISOString(),
         };
@@ -84,7 +100,7 @@ export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTa
         </div>
         
         <div className="flex items-center gap-2">
-          {client.briefing_generated_at && (
+          {client?.briefing_generated_at && (
             <span className="text-xs text-muted-foreground">
               Atualizado em {formatDate(client.briefing_generated_at)}
             </span>
@@ -92,22 +108,22 @@ export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTa
           
           <Button
             onClick={generateBriefing}
-            disabled={generating || !client.website_url}
+            disabled={generating || !formData.website_url || !client?.id}
             className="flex items-center gap-2"
           >
             {generating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
-            ) : client.ai_briefing ? (
+            ) : client?.ai_briefing ? (
               <RefreshCw className="w-4 h-4" />
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            {generating ? "Gerando..." : client.ai_briefing ? "Atualizar Briefing" : "Gerar Briefing via IA"}
+            {generating ? "Gerando..." : client?.ai_briefing ? "Atualizar Briefing" : "Gerar Briefing via IA"}
           </Button>
         </div>
       </div>
 
-      {!client.website_url && (
+      {!formData.website_url && (
         <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
           <p className="text-sm text-yellow-800">
             💡 <strong>Dica:</strong> Preencha o campo "Website" na aba "Informações Gerais" para gerar um briefing detalhado automaticamente.
@@ -115,7 +131,15 @@ export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTa
         </div>
       )}
 
-      {client.ai_briefing ? (
+      {!client?.id && formData.website_url && (
+        <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            ℹ️ <strong>Aviso:</strong> Salve o cliente primeiro clicando em "Criar" na aba "Informações Gerais" para poder gerar o briefing.
+          </p>
+        </div>
+      )}
+
+      {client?.ai_briefing ? (
         <div className="space-y-4">
           <div className="prose prose-sm max-w-none">
             <div 
@@ -135,7 +159,7 @@ export function ClientBriefingTab({ client, onBriefingUpdate }: ClientBriefingTa
           <p className="text-muted-foreground mb-4 max-w-md mx-auto">
             Gere um briefing inteligente baseado na análise completa do website do cliente para criar campanhas mais eficazes.
           </p>
-          {client.website_url && (
+          {formData.website_url && client?.id && (
             <Button onClick={generateBriefing} disabled={generating}>
               <Sparkles className="w-4 h-4 mr-2" />
               Gerar Briefing via IA

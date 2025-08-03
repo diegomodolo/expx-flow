@@ -572,12 +572,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       </TabsContent>
 
       <TabsContent value="briefing">
-        {localClient && (
-          <ClientBriefingTab 
-            client={localClient} 
-            onBriefingUpdate={handleBriefingUpdate}
-          />
-        )}
+        <ClientBriefingTab 
+          client={localClient} 
+          formData={formData}
+          onBriefingUpdate={handleBriefingUpdate}
+        />
       </TabsContent>
     </Tabs>
   </DialogContent>
