@@ -161,9 +161,9 @@ export default function CampanhaDetalhes() {
       // Chamar a edge function para sincronizar a campanha específica
       const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
         body: {
-          campaign_id: campaign.id,
-          facebook_campaign_id: campaign.id, // Usar o ID da campanha como fallback
-          sync_type: 'campaign_details' // Especifica que queremos sincronizar detalhes da campanha
+          clientId: campaign.client_id,
+          period: '30',
+          fullSync: true
         }
       });
 
