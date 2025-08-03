@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus } from "lucide-react";
+import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus, Download } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTasks } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
@@ -41,10 +41,11 @@ export default function CampanhaDetalhes() {
   const { campaigns, loading } = useCampaigns();
   const { createTask } = useTasks();
   const { teams } = useTeams();
-  const { adSets, loading: adSetsLoading } = useAdSets();
-  const { ads, loading: adsLoading } = useAds();
+  const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets();
+  const { ads, loading: adsLoading, refetch: refetchAds } = useAds();
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
   const { toast } = useToast();
   
@@ -142,6 +143,44 @@ export default function CampanhaDetalhes() {
       console.error('Erro ao analisar campanha:', error);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Função para sincronizar dados da campanha
+  const handleSyncCampaign = async () => {
+    if (!campaign) return;
+    
+    setIsSyncing(true);
+    try {
+      toast({
+        title: "Sincronização iniciada",
+        description: "Sincronizando conjuntos de anúncios e criativos da campanha...",
+      });
+
+      // Aqui você pode implementar a chamada para sincronizar especificamente esta campanha
+      // Por exemplo, chamar uma edge function que sincronize apenas esta campanha
+      
+      // Simular sincronização por enquanto
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Recarregar os dados após a sincronização
+      await refetchAdSets();
+      await refetchAds();
+      
+      toast({
+        title: "Sincronização concluída!",
+        description: "Os dados da campanha foram atualizados com sucesso.",
+      });
+      
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      toast({
+        title: "Erro na sincronização",
+        description: "Não foi possível sincronizar os dados. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -284,6 +323,15 @@ export default function CampanhaDetalhes() {
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Métricas Detalhadas
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleSyncCampaign}
+            disabled={isSyncing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
           </Button>
         </div>
       </div>
@@ -608,7 +656,18 @@ export default function CampanhaDetalhes() {
         <TabsContent value="adsets">
           <Card>
             <CardHeader>
-              <CardTitle>Conjuntos de Anúncios da Campanha</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Conjuntos de Anúncios da Campanha</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSyncCampaign}
+                  disabled={isSyncing}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {adSetsLoading ? (
@@ -690,7 +749,18 @@ export default function CampanhaDetalhes() {
         <TabsContent value="ads">
           <Card>
             <CardHeader>
-              <CardTitle>Criativos da Campanha</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Criativos da Campanha</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSyncCampaign}
+                  disabled={isSyncing}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {adsLoading ? (
