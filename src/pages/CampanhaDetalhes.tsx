@@ -743,29 +743,29 @@ export default function CampanhaDetalhes() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Impressões</p>
+                <p className="text-sm text-muted-foreground">CTR</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {campaign.impressions?.toLocaleString('pt-BR') || '0'}
+                  {campaign.ctr?.toFixed(2) || '0,00'}%
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Cliques</p>
+                <p className="text-sm text-muted-foreground">CPC</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {campaign.clicks?.toLocaleString('pt-BR') || '0'}
+                  R$ {campaign.cpc?.toFixed(2) || '0,00'}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Alcance</p>
-                <p className="text-xl font-semibold text-foreground">
-                  {campaign.reach?.toLocaleString('pt-BR') || '0'}
-                </p>
-              </div>
-              <div>
                 <p className="text-sm text-muted-foreground">Frequência</p>
                 <p className="text-xl font-semibold text-foreground">
                   {campaign.frequency?.toFixed(2) || '0,00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Conversões</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {campaign.conversions?.toLocaleString('pt-BR') || '0'}
                 </p>
               </div>
             </div>
