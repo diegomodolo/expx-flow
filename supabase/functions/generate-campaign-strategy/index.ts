@@ -56,7 +56,7 @@ serve(async (req) => {
     
     if (step === 'campaign_type_suggestion') {
       prompt = `
-        Como especialista em marketing digital, analise o cliente e sugira os melhores tipos de campanha.
+        Como especialista em marketing digital, analise detalhadamente o cliente e sugira os melhores tipos de campanha.
 
         **CLIENTE:**
         - Nome: ${client.name}
@@ -66,6 +66,13 @@ serve(async (req) => {
         - Objetivos: ${client.objectives || 'Não informado'}
         - Tom de Voz: ${client.voice_tone || 'Profissional'}
 
+        ${client.ai_briefing ? `
+        **BRIEFING DETALHADO DO CLIENTE:**
+        ${client.ai_briefing}
+
+        **IMPORTANTE:** Use as informações específicas do briefing acima para criar sugestões altamente relevantes e personalizadas. Não use segmentações genéricas.
+        ` : ''}
+
         **HISTÓRICO DE PERFORMANCE:**
         ${campaigns?.length ? campaigns.map(c => 
           `- ${c.name}: CPA R$ ${c.cpa}, CTR ${c.ctr}%, ${c.conversions} conversões`
@@ -73,7 +80,7 @@ serve(async (req) => {
 
         **ETAPA DO FUNIL:** ${funnelStage}
 
-        Com base no histórico e na etapa "${funnelStage}", forneça 3-4 sugestões específicas de por que cada tipo de campanha seria adequado para este cliente. Seja conciso e estratégico.
+        Com base no briefing detalhado e na etapa "${funnelStage}", forneça 3-4 sugestões específicas de por que cada tipo de campanha seria adequado para este cliente. Seja conciso e estratégico.
 
         Responda em formato JSON:
         {
@@ -91,6 +98,19 @@ serve(async (req) => {
         - Público-Alvo: ${client.target_audience || 'Não informado'}
         - Objetivos: ${client.objectives || 'Não informado'}
 
+        ${client.ai_briefing ? `
+        **BRIEFING DETALHADO DO CLIENTE:**
+        ${client.ai_briefing}
+
+        **INSTRUÇÕES CRÍTICAS PARA SEGMENTAÇÃO:**
+        1. Analise o briefing detalhadamente para identificar o público REAL (não genérico)
+        2. Se o briefing menciona B2B, foque em segmentação empresarial/profissional específica
+        3. Use interesses, comportamentos e demografia específicos mencionados no briefing
+        4. Evite segmentações genéricas baseadas apenas no setor
+        5. Priorize informações do briefing sobre dados básicos do cliente
+        6. Se o público são empresários/gestores, use interesses profissionais, não de consumo
+        ` : ''}
+
         **HISTÓRICO DE PERFORMANCE:**
         ${campaigns?.length ? campaigns.map(c => 
           `- ${c.name}: Gasto R$ ${c.spend}, CPA R$ ${c.cpa}, CTR ${c.ctr}%, ${c.conversions} conversões, ${c.impressions} impressões`
@@ -102,12 +122,12 @@ serve(async (req) => {
 
         CRÍTICO: Retorne APENAS um JSON válido, sem markdown ou explicações.
         
-        Baseado no histórico de performance (ou benchmarks do setor), calcule valores específicos e crie uma configuração otimizada:
+        Baseado no briefing detalhado e histórico de performance, crie uma configuração com SEGMENTAÇÃO ALTAMENTE ESPECÍFICA:
 
         1. **Orçamento**: Baseado no orçamento mensal de R$ ${client.monthly_budget || 5000}
-        2. **Segmentação**: Específica para o setor ${client.sector}
+        2. **Segmentação**: ESPECÍFICA baseada no briefing (não genérica do setor)
         3. **CPA Alvo**: ${campaigns?.length ? 'Baseado no CPA histórico médio' : 'Usar benchmark do setor'}
-        4. **Cronograma**: Otimizado para o público-alvo
+        4. **Cronograma**: Otimizado para o público-alvo real
 
         JSON obrigatório (sem markdown):
         {
@@ -115,12 +135,12 @@ serve(async (req) => {
             "daily": ${client.monthly_budget ? Math.round(client.monthly_budget / 30) : 167},
             "total": ${client.monthly_budget || 5000},
             "duration": 30,
-            "distribution": "Estratégia detalhada de distribuição"
+            "distribution": "Estratégia detalhada de distribuição baseada no briefing"
           },
           "targeting": {
-            "demographics": "Idade específica, gênero, localização",
-            "interests": ["interesse1", "interesse2", "interesse3"],
-            "behaviors": "Comportamentos específicos",
+            "demographics": "Demografia específica do briefing (idade, gênero, localização, cargo/função)",
+            "interests": ["interesses específicos do briefing", "não genéricos"],
+            "behaviors": "Comportamentos específicos mencionados no briefing",
             "estimatedReach": "XX.XXX-XX.XXX"
           },
           "bidding": {
@@ -131,18 +151,18 @@ serve(async (req) => {
             "duration": 30,
             "startDate": "2025-01-03",
             "endDate": "2025-02-02",
-            "optimalHours": "Horários específicos"
+            "optimalHours": "Horários específicos baseados no briefing"
           },
           "adSets": [
-            {"name": "Nome 1", "budget": ${Math.round((client.monthly_budget || 5000) * 0.5 / 30)}, "targeting": "Segmentação 1"},
-            {"name": "Nome 2", "budget": ${Math.round((client.monthly_budget || 5000) * 0.3 / 30)}, "targeting": "Segmentação 2"},
-            {"name": "Nome 3", "budget": ${Math.round((client.monthly_budget || 5000) * 0.2 / 30)}, "targeting": "Segmentação 3"}
+            {"name": "Nome específico 1", "budget": ${Math.round((client.monthly_budget || 5000) * 0.5 / 30)}, "targeting": "Segmentação específica baseada no briefing"},
+            {"name": "Nome específico 2", "budget": ${Math.round((client.monthly_budget || 5000) * 0.3 / 30)}, "targeting": "Segunda segmentação do briefing"},
+            {"name": "Nome específico 3", "budget": ${Math.round((client.monthly_budget || 5000) * 0.2 / 30)}, "targeting": "Terceira segmentação do briefing"}
           ],
           "recommendations": [
-            "Recomendação 1",
-            "Recomendação 2", 
-            "Recomendação 3",
-            "Recomendação 4"
+            "Recomendação específica baseada no briefing",
+            "Recomendação estratégica do cliente", 
+            "Otimização personalizada",
+            "Monitoramento específico"
           ]
         }
       `;
