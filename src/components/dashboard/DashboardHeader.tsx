@@ -72,7 +72,6 @@ export function DashboardHeader() {
     <header className="h-16 bg-card border-b border-border z-20 shrink-0">
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center space-x-6">
-          <SidebarTrigger className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground" />
           <img 
             src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
             alt="Controle de Trafego" 
