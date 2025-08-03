@@ -736,10 +736,21 @@ export default function CampanhaDetalhes() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Nenhum conjunto de anúncios encontrado para esta campanha.</p>
-                  <p className="text-sm text-gray-400 mt-1">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Target className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <div className="text-center">
+                    <p className="text-gray-500 mb-1">Nenhum conjunto de anúncios encontrado para esta campanha.</p>
+                    <p className="text-sm text-gray-400">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSyncCampaign}
+                    disabled={isSyncing}
+                    className="mt-4"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Dados'}
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -865,10 +876,21 @@ export default function CampanhaDetalhes() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Nenhum criativo encontrado para esta campanha.</p>
-                  <p className="text-sm text-gray-400 mt-1">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Eye className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <div className="text-center">
+                    <p className="text-gray-500 mb-1">Nenhum criativo encontrado para esta campanha.</p>
+                    <p className="text-sm text-gray-400">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSyncCampaign}
+                    disabled={isSyncing}
+                    className="mt-4"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Dados'}
+                  </Button>
                 </div>
               )}
             </CardContent>
