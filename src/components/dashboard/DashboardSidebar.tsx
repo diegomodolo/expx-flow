@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Home,
   LayoutDashboard,
@@ -21,6 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 const items = [
@@ -36,53 +36,45 @@ const items = [
 ];
 
 export function DashboardSidebar() {
-  const [isHovered, setIsHovered] = useState(false);
+  const { open, setOpen } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
 
   const isActive = (path: string) => currentPath === path;
 
-  // Sidebar fica retraído por padrão, expande no hover como overlay
-  const isExpanded = isHovered;
-
   return (
     <Sidebar
-      className={`h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-30 ${
-        isExpanded ? "w-64 shadow-lg" : "w-16"
-      }`}
       collapsible="icon"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
     >
-      <SidebarContent className="pt-24 px-2">
+      <SidebarContent className="pt-6">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                     <NavLink 
+                    <NavLink 
                       to={item.url} 
                       end 
                       className={({ isActive }) =>
-                        `flex items-center ${isExpanded ? 'gap-3 px-4' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
+                        `flex items-center gap-3 py-3 rounded-lg transition-all duration-300 ${
                           isActive
                             ? "bg-blue-50 text-blue-600"
                             : "text-gray-700 hover:bg-gray-50"
                         }`
                       }
-                      title={!isExpanded ? item.title : ''}
+                      title={!open ? item.title : ''}
                     >
                       <item.icon className={`w-5 h-5 transition-colors duration-200 ${
                         isActive(item.url) ? "text-blue-600" : "text-gray-500"
                       }`} />
-                      {isExpanded && (
-                        <span className={`font-medium transition-all duration-300 ${
-                          isActive(item.url) ? "text-blue-600" : "text-gray-700"
-                        }`}>
-                          {item.title}
-                        </span>
-                      )}
+                      <span className={`font-medium transition-all duration-300 ${
+                        isActive(item.url) ? "text-blue-600" : "text-gray-700"
+                      }`}>
+                        {item.title}
+                      </span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
