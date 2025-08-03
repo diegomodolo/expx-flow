@@ -31,7 +31,7 @@ const items = [
   { title: "Tarefas", url: "/tarefas", icon: CheckSquare },
   { title: "Colaboradores", url: "/colaboradores", icon: UserCheck },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-  { title: "Base de Conhecimento", url: "/conhecimento", icon: BookOpen },
+  { title: "Gerador de Campanhas", url: "/gerador-campanhas", icon: BookOpen },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

@@ -31,7 +31,7 @@ import RelatorioTarefasPlanner from "./pages/reports/RelatorioTarefasPlanner";
 import RelatorioProdutividadeSquads from "./pages/reports/RelatorioProdutividadeSquads";
 import RelatorioRHColaboradores from "./pages/reports/RelatorioRHColaboradores";
 import RelatorioAlertasCriticos from "./pages/reports/RelatorioAlertasCriticos";
-import Conhecimento from "./pages/Conhecimento";
+import GeradorCampanhas from "./pages/GeradorCampanhas";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 
@@ -172,9 +172,9 @@ const App = () => {
                      <RelatorioAlertasCriticos />
                    </ProtectedRoute>
                  } />
-               <Route path="/conhecimento" element={
+               <Route path="/gerador-campanhas" element={
                  <ProtectedRoute>
-                   <Conhecimento />
+                   <GeradorCampanhas />
                  </ProtectedRoute>
                } />
                <Route path="/configuracoes/*" element={
