@@ -14,6 +14,7 @@ import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
 import { useToast } from "@/hooks/use-toast";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
+import { supabase } from "@/integrations/supabase/client";
 
 // Interface local para compatibilidade
 interface CampaignForModal {
@@ -157,15 +158,24 @@ export default function CampanhaDetalhes() {
         description: "Sincronizando conjuntos de anúncios e criativos da campanha...",
       });
 
-      // Aqui você pode implementar a chamada para sincronizar especificamente esta campanha
-      // Por exemplo, chamar uma edge function que sincronize apenas esta campanha
-      
-      // Simular sincronização por enquanto
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Chamar a edge function para sincronizar a campanha específica
+      const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
+        body: {
+          campaign_id: campaign.id,
+          facebook_campaign_id: campaign.id, // Usar o ID da campanha como fallback
+          sync_type: 'campaign_details' // Especifica que queremos sincronizar detalhes da campanha
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
       
       // Recarregar os dados após a sincronização
-      await refetchAdSets();
-      await refetchAds();
+      await Promise.all([
+        refetchAdSets(),
+        refetchAds()
+      ]);
       
       toast({
         title: "Sincronização concluída!",
