@@ -85,18 +85,35 @@ Deno.serve(async (req) => {
       const tokenData = await tokenResponse.json()
       console.log('Token exchange successful, expires in:', tokenData.expires_in);
       
-      // Get user's ad accounts with specific fields
-      const adAccountsResponse = await fetch(`https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&access_token=${tokenData.access_token}`)
+      // Get user's ad accounts with pagination to fetch all accounts
+      let allAdAccounts = [];
+      let nextUrl = `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${tokenData.access_token}`;
       
-      if (!adAccountsResponse.ok) {
-        const error = await adAccountsResponse.text()
-        console.error('Failed to fetch ad accounts:', error)
-        throw new Error('Failed to fetch ad accounts')
-      }
+      while (nextUrl) {
+        console.log('Fetching ad accounts from:', nextUrl.replace(tokenData.access_token, '[TOKEN_HIDDEN]'));
+        
+        const adAccountsResponse = await fetch(nextUrl);
+        
+        if (!adAccountsResponse.ok) {
+          const error = await adAccountsResponse.text()
+          console.error('Failed to fetch ad accounts:', error)
+          throw new Error('Failed to fetch ad accounts')
+        }
 
-      const adAccountsData = await adAccountsResponse.json()
-      console.log('Ad accounts response:', JSON.stringify(adAccountsData, null, 2));
-      console.log('Number of ad accounts found:', adAccountsData.data?.length || 0);
+        const adAccountsData = await adAccountsResponse.json();
+        console.log(`Fetched ${adAccountsData.data?.length || 0} accounts in this batch`);
+        
+        // Add accounts from this batch to the total
+        if (adAccountsData.data) {
+          allAdAccounts.push(...adAccountsData.data);
+        }
+        
+        // Check if there's a next page
+        nextUrl = adAccountsData.paging?.next || null;
+      }
+      
+      console.log('Total ad accounts found:', allAdAccounts.length);
+      const adAccountsData = { data: allAdAccounts };
 
       // Save integration to database
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000))
@@ -200,20 +217,38 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Fetch current ad accounts from Facebook
-      const adAccountsResponse = await fetch(`https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&access_token=${integration.access_token}`)
+      // Fetch current ad accounts from Facebook with pagination
+      let allAdAccounts = [];
+      let nextUrl = `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${integration.access_token}`;
       
-      if (!adAccountsResponse.ok) {
-        const error = await adAccountsResponse.text()
-        console.error('Failed to fetch ad accounts:', error)
-        return new Response(
-          JSON.stringify({ success: false, error: 'Failed to fetch accounts from Facebook' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
+      while (nextUrl) {
+        console.log('Refreshing ad accounts from:', nextUrl.replace(integration.access_token, '[TOKEN_HIDDEN]'));
+        
+        const adAccountsResponse = await fetch(nextUrl);
+        
+        if (!adAccountsResponse.ok) {
+          const error = await adAccountsResponse.text()
+          console.error('Failed to fetch ad accounts:', error)
+          return new Response(
+            JSON.stringify({ success: false, error: 'Failed to fetch accounts from Facebook' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
 
-      const adAccountsData = await adAccountsResponse.json()
-      console.log('Refreshing ad accounts:', JSON.stringify(adAccountsData, null, 2));
+        const adAccountsData = await adAccountsResponse.json();
+        console.log(`Refreshed ${adAccountsData.data?.length || 0} accounts in this batch`);
+        
+        // Add accounts from this batch to the total
+        if (adAccountsData.data) {
+          allAdAccounts.push(...adAccountsData.data);
+        }
+        
+        // Check if there's a next page
+        nextUrl = adAccountsData.paging?.next || null;
+      }
+      
+      console.log('Total ad accounts refreshed:', allAdAccounts.length);
+      const adAccountsData = { data: allAdAccounts };
 
       // Update ad accounts in database (preserve existing relationships)
       const savedAccounts = [];
