@@ -136,23 +136,94 @@ const ClienteDetalhes = () => {
   const generateCampaignSuggestions = async () => {
     if (!client?.campaigns) return [];
 
+    try {
+      console.log('Gerando sugestões para cliente:', client.name);
+      
+      // Prepare client data for AI analysis
+      const clientData = {
+        id: client.id,
+        name: client.name,
+        sector: client.sector,
+        product_name: client.product_name,
+        monthly_budget: client.monthly_budget,
+        leads_generated: client.leads_generated,
+        status: client.status,
+        objectives: client.objectives,
+        preferred_platforms: client.preferred_platforms,
+        target_audience: client.target_audience,
+        voice_tone: client.voice_tone
+      };
+
+      // Prepare campaigns data
+      const campaignsData = client.campaigns.map(campaign => ({
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.status,
+        objective: campaign.objective,
+        spend: campaign.spend || 0,
+        conversions: campaign.conversions || 0,
+        cpa: campaign.cpa || 0,
+        cpc: campaign.cpc || 0,
+        ctr: campaign.ctr || 0,
+        impressions: campaign.impressions || 0,
+        clicks: campaign.clicks || 0,
+        reach: campaign.reach || 0,
+        frequency: campaign.frequency || 0,
+        period: campaign.created_at || new Date().toISOString(),
+        platforms: campaign.platforms
+      }));
+
+      // Call AI suggestions function
+      const { data, error } = await supabase.functions.invoke('generate-client-suggestions', {
+        body: {
+          clientData,
+          campaigns: campaignsData
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao gerar sugestões:', error);
+        // Fallback to basic suggestions if AI fails
+        return generateBasicSuggestions(client.campaigns);
+      }
+
+      console.log(`Sugestões geradas: ${data.suggestions.length}`);
+      return data.suggestions || [];
+
+    } catch (error) {
+      console.error('Erro na geração de sugestões:', error);
+      // Fallback to basic suggestions
+      return generateBasicSuggestions(client.campaigns);
+    }
+  };
+
+  // Função de fallback para sugestões básicas
+  const generateBasicSuggestions = (campaigns: any[]) => {
     const suggestions = [];
-    const campaigns = client.campaigns;
     const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.is_active === true);
 
-    // Sempre gerar pelo menos algumas sugestões
-    
     // 1. Análise de campanhas sem conversões
     const campaignsWithoutConversions = activeCampaigns.filter(c => (c.conversions || 0) === 0 && (c.spend || 0) > 50);
     if (campaignsWithoutConversions.length > 0) {
       suggestions.push({
         id: 'no-conversions',
         type: 'warning',
+        category: 'Performance',
         title: 'Campanhas sem conversões detectadas',
         description: `${campaignsWithoutConversions.length} campanha(s) ativa(s) com investimento acima de R$ 50 não estão gerando conversões.`,
         action: 'Revisar segmentação e criativos das campanhas',
         campaigns: campaignsWithoutConversions.map(c => c.name).slice(0, 3),
-        priority: 'high'
+        priority: 'high',
+        impact: 'high',
+        effort: 'medium',
+        estimatedImpact: 'Potencial de gerar primeiras conversões',
+        implementationSteps: [
+          'Analisar público-alvo das campanhas',
+          'Revisar criativos e copy',
+          'Verificar landing page',
+          'Ajustar estratégia de bidding'
+        ],
+        relatedMetrics: ['Conversões', 'CPA', 'CTR']
       });
     }
 
@@ -162,11 +233,22 @@ const ClienteDetalhes = () => {
       suggestions.push({
         id: 'high-cpa',
         type: 'warning',
+        category: 'Custo por Aquisição',
         title: 'CPAs elevados identificados',
         description: `${highCpaCampaigns.length} campanha(s) com CPA acima de R$ 100. CPA médio: R$ ${(highCpaCampaigns.reduce((sum, c) => sum + (c.cpa || 0), 0) / highCpaCampaigns.length).toFixed(2)}`,
-        action: 'Otimizar segmentação e ajustar orçamentos',
+        action: 'Otimizar segmentação e ajustar orçamentos para reduzir custos',
         campaigns: highCpaCampaigns.map(c => c.name).slice(0, 3),
-        priority: 'high'
+        priority: 'high',
+        impact: 'high',
+        effort: 'medium',
+        estimatedImpact: 'Redução de 20-40% no CPA',
+        implementationSteps: [
+          'Analisar audiências com maior CPA',
+          'Pausar segmentos ineficientes',
+          'Otimizar criativos com baixo CTR',
+          'Testar estratégias de bidding'
+        ],
+        relatedMetrics: ['CPA', 'CTR', 'Quality Score']
       });
     }
 
@@ -176,69 +258,70 @@ const ClienteDetalhes = () => {
       suggestions.push({
         id: 'scale-opportunity',
         type: 'opportunity',
+        category: 'Escalonamento',
         title: 'Oportunidade de escalonamento',
         description: `${lowCpaCampaigns.length} campanha(s) com CPA baixo (< R$ 50) e bom volume de conversões podem ser escalonadas.`,
-        action: 'Aumentar orçamento das campanhas performantes',
+        action: 'Aumentar orçamento das campanhas performantes em 20-30%',
         campaigns: lowCpaCampaigns.map(c => c.name).slice(0, 3),
-        priority: 'medium'
+        priority: 'medium',
+        impact: 'high',
+        effort: 'low',
+        estimatedImpact: 'Aumento de 30-50% no volume',
+        implementationSteps: [
+          'Identificar campanhas com CPA < R$ 50',
+          'Aumentar budget em 20% inicialmente',
+          'Monitorar performance por 3 dias',
+          'Escalar gradualmente se performance mantém'
+        ],
+        relatedMetrics: ['Volume', 'ROAS', 'CPA']
       });
     }
 
-    // 4. Análise de campanhas pausadas com bom histórico
-    const pausedCampaigns = campaigns.filter(c => c.status === 'paused' && (c.conversions || 0) > 0 && (c.cpa || 0) < 80);
-    if (pausedCampaigns.length > 0) {
-      suggestions.push({
-        id: 'paused-good-campaigns',
-        type: 'opportunity',
-        title: 'Campanhas pausadas com bom histórico',
-        description: `${pausedCampaigns.length} campanha(s) pausada(s) com CPA abaixo de R$ 80 e conversões registradas.`,
-        action: 'Considerar reativar campanhas com bom desempenho histórico',
-        campaigns: pausedCampaigns.map(c => c.name).slice(0, 3),
-        priority: 'medium'
-      });
-    }
+    // 4. Análise de horários
+    suggestions.push({
+      id: 'timing-optimization',
+      type: 'optimization',
+      category: 'Horários de Veiculação',
+      title: 'Otimização de horários de veiculação',
+      description: 'Analisar horários de melhor performance pode reduzir custos significativamente.',
+      action: 'Implementar dayparting baseado em dados de conversão',
+      campaigns: activeCampaigns.slice(0, 3).map(c => c.name),
+      priority: 'medium',
+      impact: 'medium',
+      effort: 'low',
+      estimatedImpact: 'Redução de 10-20% no CPA',
+      implementationSteps: [
+        'Analisar relatório de performance por horário',
+        'Identificar janelas de melhor performance',
+        'Configurar agendamento de anúncios',
+        'Aumentar bids em horários de pico'
+      ],
+      relatedMetrics: ['CPA por horário', 'CTR por horário']
+    });
 
-    // 5. Diversificação de objetivos
-    const objectives = [...new Set(activeCampaigns.map(c => c.objective))];
-    if (objectives.length <= 2 && activeCampaigns.length > 3) {
-      suggestions.push({
-        id: 'objective-diversity',
-        type: 'opportunity',
-        title: 'Diversificar objetivos de campanha',
-        description: `Apenas ${objectives.length} tipo(s) de objetivo sendo usado(s). Considere diversificar para cobrir todo o funil.`,
-        action: 'Criar campanhas de awareness, engajamento e remarketing',
-        campaigns: [],
-        priority: 'low'
-      });
-    }
+    // 5. Análise de dispositivos
+    suggestions.push({
+      id: 'device-optimization',
+      type: 'optimization',
+      category: 'Segmentação de Dispositivos',
+      title: 'Otimização por dispositivo',
+      description: 'Mobile representa 80%+ do tráfego no Facebook. Otimize a experiência mobile.',
+      action: 'Criar campanhas específicas para mobile com criativos otimizados',
+      campaigns: activeCampaigns.slice(0, 2).map(c => c.name),
+      priority: 'medium',
+      impact: 'medium',
+      effort: 'medium',
+      estimatedImpact: 'Melhoria de 15-25% na performance mobile',
+      implementationSteps: [
+        'Analisar performance mobile vs desktop',
+        'Criar criativos mobile-first',
+        'Otimizar landing pages para mobile',
+        'Ajustar bids por dispositivo'
+      ],
+      relatedMetrics: ['CTR mobile', 'CPA mobile', 'Mobile conversion rate']
+    });
 
-    // 6. Sugestão geral se nenhuma campanha ativa
-    if (activeCampaigns.length === 0) {
-      suggestions.push({
-        id: 'no-active-campaigns',
-        type: 'warning',
-        title: 'Nenhuma campanha ativa',
-        description: 'O cliente não possui campanhas ativas no momento.',
-        action: 'Criar e ativar campanhas para gerar resultados',
-        campaigns: [],
-        priority: 'high'
-      });
-    }
-
-    // 7. Se não há sugestões críticas, dar dicas gerais de otimização
-    if (suggestions.length === 0) {
-      suggestions.push({
-        id: 'general-optimization',
-        type: 'opportunity',
-        title: 'Oportunidades de otimização geral',
-        description: 'As campanhas estão funcionando bem! Considere algumas melhorias.',
-        action: 'Testar novos criativos, ajustar horários de veiculação ou expandir audiências',
-        campaigns: activeCampaigns.slice(0, 3).map(c => c.name),
-        priority: 'low'
-      });
-    }
-
-    return suggestions;
+    return suggestions.slice(0, 8); // Limitar a 8 sugestões
   };
 
   const handleConvertAlertToTask = (alert: any) => {
@@ -1925,44 +2008,114 @@ const ClienteDetalhes = () => {
                   <div className="space-y-4">
                     {campaignSuggestions.map((suggestion) => (
                       <Card key={suggestion.id} className={`border-l-4 ${
-                        suggestion.type === 'warning' ? 'border-l-red-500' : 'border-l-blue-500'
-                      }`}>
-                        <CardContent className="p-4">
+                        suggestion.type === 'critical' ? 'border-l-red-600' :
+                        suggestion.type === 'warning' ? 'border-l-orange-500' : 
+                        suggestion.type === 'optimization' ? 'border-l-blue-500' :
+                        'border-l-green-500'
+                      } hover:shadow-md transition-shadow`}>
+                        <CardContent className="p-6">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                {suggestion.type === 'warning' ? (
-                                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                                ) : (
+                              <div className="flex items-center gap-3 mb-3">
+                                {suggestion.type === 'critical' ? (
+                                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                                ) : suggestion.type === 'warning' ? (
+                                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                                ) : suggestion.type === 'optimization' ? (
                                   <Target className="w-5 h-5 text-blue-500" />
+                                ) : (
+                                  <TrendingUp className="w-5 h-5 text-green-500" />
                                 )}
-                                <h5 className="font-medium text-gray-900">{suggestion.title}</h5>
-                                <Badge variant={suggestion.priority === 'high' ? 'destructive' : suggestion.priority === 'medium' ? 'default' : 'secondary'}>
-                                  {suggestion.priority === 'high' ? 'Alta' : suggestion.priority === 'medium' ? 'Média' : 'Baixa'}
-                                </Badge>
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900 text-base">{suggestion.title}</h5>
+                                  {suggestion.category && (
+                                    <p className="text-xs text-gray-500 mt-1">{suggestion.category}</p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Badge variant={suggestion.priority === 'high' ? 'destructive' : suggestion.priority === 'medium' ? 'default' : 'secondary'} className="text-xs">
+                                    {suggestion.priority === 'high' ? 'Alta' : suggestion.priority === 'medium' ? 'Média' : 'Baixa'}
+                                  </Badge>
+                                  {suggestion.impact && (
+                                    <Badge variant="outline" className={`text-xs ${
+                                      suggestion.impact === 'high' ? 'border-green-500 text-green-700' :
+                                      suggestion.impact === 'medium' ? 'border-blue-500 text-blue-700' :
+                                      'border-gray-400 text-gray-600'
+                                    }`}>
+                                      Impacto {suggestion.impact === 'high' ? 'Alto' : suggestion.impact === 'medium' ? 'Médio' : 'Baixo'}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-sm text-gray-600 mb-3">{suggestion.description}</p>
-                              <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                                <p className="text-sm font-medium text-gray-900 mb-1">Ação recomendada:</p>
-                                <p className="text-sm text-gray-700">{suggestion.action}</p>
+                              
+                              <p className="text-sm text-gray-600 mb-4 leading-relaxed">{suggestion.description}</p>
+                              
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-100">
+                                <p className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                                  <Target className="w-4 h-4 text-blue-600" />
+                                  Ação recomendada:
+                                </p>
+                                <p className="text-sm text-gray-700 leading-relaxed">{suggestion.action}</p>
                               </div>
-                              {suggestion.campaigns && suggestion.campaigns.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500 mb-1">Campanhas afetadas:</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {suggestion.campaigns.map((campaignName, index) => (
-                                      <Badge key={index} variant="outline" className="text-xs">
-                                        {campaignName}
-                                      </Badge>
-                                    ))}
-                                  </div>
+
+                              {suggestion.estimatedImpact && (
+                                <div className="bg-green-50 p-3 rounded-lg mb-3 border border-green-100">
+                                  <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4" />
+                                    Impacto estimado:
+                                  </p>
+                                  <p className="text-sm text-green-700">{suggestion.estimatedImpact}</p>
                                 </div>
                               )}
+
+                              {suggestion.implementationSteps && suggestion.implementationSteps.length > 0 && (
+                                <div className="mb-4">
+                                  <p className="text-sm font-medium text-gray-900 mb-2">Passos de implementação:</p>
+                                  <ul className="text-sm text-gray-600 space-y-1">
+                                    {suggestion.implementationSteps.map((step, index) => (
+                                      <li key={index} className="flex items-start gap-2">
+                                        <span className="text-xs bg-gray-200 text-gray-700 rounded-full w-5 h-5 flex items-center justify-center mt-0.5 flex-shrink-0">
+                                          {index + 1}
+                                        </span>
+                                        <span>{step}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                                {suggestion.campaigns && suggestion.campaigns.length > 0 && (
+                                  <div>
+                                    <p className="font-medium mb-1">Campanhas afetadas:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {suggestion.campaigns.map((campaignName, index) => (
+                                        <Badge key={index} variant="outline" className="text-xs">
+                                          {campaignName}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {suggestion.relatedMetrics && suggestion.relatedMetrics.length > 0 && (
+                                  <div>
+                                    <p className="font-medium mb-1">Métricas relacionadas:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {suggestion.relatedMetrics.map((metric, index) => (
+                                        <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                          {metric}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex gap-2 ml-4">
+                            
+                            <div className="flex flex-col gap-2 ml-6">
                               <Button
                                 size="sm"
-                                variant="outline"
                                 onClick={() => handleConvertAlertToTask({
                                   id: suggestion.id,
                                   type: suggestion.type,
@@ -1973,6 +2126,7 @@ const ClienteDetalhes = () => {
                                   client_name: client?.name
                                 })}
                                 disabled={convertedAlerts.has(suggestion.id)}
+                                className={convertedAlerts.has(suggestion.id) ? 'bg-green-100 text-green-800 border-green-200' : ''}
                               >
                                 {convertedAlerts.has(suggestion.id) ? (
                                   <CheckCircle className="w-4 h-4" />
@@ -1983,6 +2137,19 @@ const ClienteDetalhes = () => {
                                   </>
                                 )}
                               </Button>
+                              
+                              {suggestion.effort && (
+                                <div className="text-center">
+                                  <p className="text-xs text-gray-500 mb-1">Esforço</p>
+                                  <Badge variant="outline" className={`text-xs ${
+                                    suggestion.effort === 'low' ? 'border-green-400 text-green-600' :
+                                    suggestion.effort === 'medium' ? 'border-yellow-400 text-yellow-600' :
+                                    'border-red-400 text-red-600'
+                                  }`}>
+                                    {suggestion.effort === 'low' ? 'Baixo' : suggestion.effort === 'medium' ? 'Médio' : 'Alto'}
+                                  </Badge>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -1990,14 +2157,39 @@ const ClienteDetalhes = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="text-6xl mb-4">🎯</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Clique para analisar campanhas
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Target className="w-10 h-10 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                      Análise Inteligente de Campanhas
                     </h3>
-                    <p className="text-gray-500 mb-6">
-                      Clique no botão "Buscar Sugestões" para analisar as campanhas deste cliente e receber sugestões personalizadas de otimização.
+                    <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+                      Nossa IA analisará as campanhas deste cliente e fornecerá pelo menos 5 sugestões específicas e acionáveis para otimizar performance.
                     </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+                      <div className="text-center p-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                          <BarChart3 className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">Análise de Performance</p>
+                        <p className="text-xs text-gray-500 mt-1">CPA, CTR, Frequência</p>
+                      </div>
+                      <div className="text-center p-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                          <TrendingUp className="w-6 h-6 text-green-600" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">Oportunidades</p>
+                        <p className="text-xs text-gray-500 mt-1">Escalonamento e Crescimento</p>
+                      </div>
+                      <div className="text-center p-4">
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                          <Users className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-900">Segmentação</p>
+                        <p className="text-xs text-gray-500 mt-1">Audiências e Dispositivos</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
