@@ -382,6 +382,42 @@ export default function CampanhaDetalhes() {
     };
   };
 
+  // Função para traduzir CTA para português
+  const formatCallToAction = (callToAction?: string) => {
+    if (!callToAction) return null;
+    
+    try {
+      // Se for JSON, fazer parse
+      const cta = typeof callToAction === 'string' && callToAction.startsWith('{') 
+        ? JSON.parse(callToAction) 
+        : { type: callToAction };
+      
+      const ctaTranslations: { [key: string]: string } = {
+        'LEARN_MORE': 'Saiba Mais',
+        'SHOP_NOW': 'Compre Agora',
+        'SIGN_UP': 'Cadastre-se',
+        'DOWNLOAD': 'Baixar',
+        'WATCH_MORE': 'Assistir Mais',
+        'CONTACT_US': 'Entre em Contato',
+        'BOOK_TRAVEL': 'Reservar Viagem',
+        'GET_QUOTE': 'Solicitar Orçamento',
+        'CALL_NOW': 'Ligar Agora',
+        'APPLY_NOW': 'Candidatar-se',
+        'GET_OFFER': 'Ver Oferta',
+        'SUBSCRIBE': 'Inscrever-se',
+        'NO_BUTTON': 'Sem Botão',
+        'LIKE_PAGE': 'Curtir Página',
+        'MESSAGE_PAGE': 'Enviar Mensagem',
+        'INSTALL_APP': 'Instalar App'
+      };
+      
+      return ctaTranslations[cta.type] || cta.type || 'Não especificado';
+    } catch (error) {
+      // Se não conseguir fazer parse, retornar como string
+      return callToAction;
+    }
+  };
+
   // Função para formatar dados de segmentação
   const formatTargeting = (targeting?: string) => {
     if (!targeting) return { formatted: 'Não especificado', details: [] };
@@ -1080,7 +1116,7 @@ export default function CampanhaDetalhes() {
                               )}
                               {ad.call_to_action && (
                                 <Badge variant="outline" className="text-xs">
-                                  CTA: {ad.call_to_action}
+                                  CTA: {formatCallToAction(ad.call_to_action)}
                                 </Badge>
                               )}
                             </div>
