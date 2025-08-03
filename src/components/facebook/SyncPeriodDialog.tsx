@@ -57,6 +57,12 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4">
+          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm text-green-800">
+              <strong>Sincronização completa:</strong> Campanhas, conjuntos de anúncios e criativos do Facebook serão importados com métricas atualizadas.
+            </p>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="period-select">Período dos dados</Label>
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -111,12 +117,12 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
               {syncing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Sincronizando...</span>
+                  <span>Sincronizando Dados...</span>
                 </>
               ) : (
                 <>
                   <Calendar className="w-4 h-4" />
-                  <span>Sincronizar</span>
+                  <span>Sincronizar Dados</span>
                 </>
               )}
             </Button>
