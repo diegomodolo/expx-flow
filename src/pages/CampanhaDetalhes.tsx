@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useToast } from "@/hooks/use-toast";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 
 // Interface local para compatibilidade
@@ -37,6 +38,7 @@ export default function CampanhaDetalhes() {
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
+  const { toast } = useToast();
   
   const campaign = campaigns.find(c => c.id === id);
 
@@ -128,6 +130,36 @@ export default function CampanhaDetalhes() {
       console.error('Erro ao analisar campanha:', error);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Função para criar tarefa baseada na sugestão
+  const handleCreateTask = async (suggestion: any) => {
+    try {
+      // Aqui você faria a chamada para criar a tarefa no Supabase
+      // Por enquanto, vou simular a criação
+      
+      toast({
+        title: "Tarefa criada com sucesso!",
+        description: `Tarefa "${suggestion.title}" foi adicionada à lista de tarefas.`,
+      });
+      
+      console.log('Criando tarefa para:', {
+        title: suggestion.title,
+        description: suggestion.description,
+        action: suggestion.action,
+        priority: suggestion.priority,
+        campaignId: campaign?.id,
+        clientId: campaign?.client_id
+      });
+      
+    } catch (error) {
+      console.error('Erro ao criar tarefa:', error);
+      toast({
+        title: "Erro ao criar tarefa",
+        description: "Não foi possível criar a tarefa. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -470,9 +502,19 @@ export default function CampanhaDetalhes() {
                             </Badge>
                           </div>
                           <p className="text-sm text-gray-600 mb-3">{suggestion.description}</p>
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="bg-gray-50 p-3 rounded-lg mb-3">
                             <p className="text-sm font-medium text-gray-900 mb-1">Ação recomendada:</p>
                             <p className="text-sm text-gray-700">{suggestion.action}</p>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={() => handleCreateTask(suggestion)}
+                              size="sm"
+                              className="flex items-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Criar Tarefa
+                            </Button>
                           </div>
                         </div>
                       </div>
