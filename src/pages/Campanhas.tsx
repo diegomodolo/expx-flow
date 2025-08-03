@@ -361,7 +361,7 @@ const Campanhas = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -391,7 +391,7 @@ const Campanhas = () => {
 
             {/* Filters and Search - Single Line Responsive */}
             <Card>
-              <CardContent className="p-4 sm:p-6">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
                   {/* Status Filters */}
                   <div className="flex-shrink-0">
@@ -732,12 +732,12 @@ const Campanhas = () => {
             </div>
 
             {/* Campaigns Cards - Mobile */}
-            <div className="sm:hidden space-y-4">
+            <div className="sm:hidden space-y-3">
               {paginatedCampaigns.map((campaign) => {
                 const performance = evaluateCampaignPerformance(campaign);
                 
                 return (
-                  <Card key={campaign.id} className="p-4">
+                  <Card key={campaign.id} className="p-3">
                     <div className="space-y-3">
                       {/* Header */}
                       <div className="flex items-start justify-between">
@@ -843,8 +843,8 @@ const Campanhas = () => {
             </div>
 
             {/* Pagination */}
-            <Card className="mt-6">
-              <CardContent className="p-4">
+            <Card className="mt-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                   <div className="text-sm text-gray-700 text-center sm:text-left">
                     Mostrando <span className="font-medium">{startIndex + 1}</span> a{" "}
