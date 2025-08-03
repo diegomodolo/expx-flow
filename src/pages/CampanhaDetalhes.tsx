@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useTasks } from "@/hooks/useTasks";
+import { useTeams } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 
@@ -35,6 +37,8 @@ export default function CampanhaDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { campaigns, loading } = useCampaigns();
+  const { createTask } = useTasks();
+  const { teams } = useTeams();
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
@@ -136,22 +140,49 @@ export default function CampanhaDetalhes() {
   // Função para criar tarefa baseada na sugestão
   const handleCreateTask = async (suggestion: any) => {
     try {
-      // Aqui você faria a chamada para criar a tarefa no Supabase
-      // Por enquanto, vou simular a criação
+      if (!campaign) return;
       
-      toast({
-        title: "Tarefa criada com sucesso!",
-        description: `Tarefa "${suggestion.title}" foi adicionada à lista de tarefas.`,
-      });
+      // Pegar o primeiro time disponível ou criar uma tarefa sem time específico
+      const defaultTeam = teams.length > 0 ? teams[0] : null;
       
-      console.log('Criando tarefa para:', {
+      if (!defaultTeam) {
+        toast({
+          title: "Erro ao criar tarefa",
+          description: "Nenhuma equipe encontrada. Crie uma equipe primeiro nas configurações.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Calcular deadline baseado na prioridade
+      const now = new Date();
+      const deadline = new Date();
+      if (suggestion.priority === 'high') {
+        deadline.setDate(now.getDate() + 2); // 2 dias para alta prioridade
+      } else if (suggestion.priority === 'medium') {
+        deadline.setDate(now.getDate() + 5); // 5 dias para média prioridade
+      } else {
+        deadline.setDate(now.getDate() + 10); // 10 dias para baixa prioridade
+      }
+
+      const taskData = {
         title: suggestion.title,
-        description: suggestion.description,
-        action: suggestion.action,
-        priority: suggestion.priority,
-        campaignId: campaign?.id,
-        clientId: campaign?.client_id
-      });
+        description: `${suggestion.description}\n\nAção recomendada: ${suggestion.action}`,
+        team_id: defaultTeam.id,
+        responsible_name: "Não atribuído",
+        responsible_avatar: "",
+        status: "todo" as const,
+        priority: suggestion.priority as "high" | "medium" | "low",
+        deadline: deadline.toISOString().split('T')[0], // Format: YYYY-MM-DD
+        progress: 0,
+        origin: "automation" as const,
+        related_campaign_id: campaign.id,
+        related_client_id: campaign.client_id,
+      };
+
+      await createTask(taskData);
+      
+      // O toast de sucesso é exibido automaticamente pelo hook useTasks
       
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
