@@ -594,10 +594,6 @@ export default function CampanhaDetalhes() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Edit className="w-4 h-4 mr-2" />
-            Editar
-          </Button>
           <Button 
             variant="outline" 
             size="sm"
