@@ -13,7 +13,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="min-h-screen w-full bg-background">
         <DashboardSidebar />
         <DashboardHeader />
-        <main className="ml-16 pt-16 p-6">
+        <main className="ml-16 pt-16 p-6 min-h-screen">
           {children}
         </main>
       </div>

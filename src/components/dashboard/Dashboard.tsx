@@ -28,7 +28,8 @@ const metricsData = [
 
 export function Dashboard() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-red-100 border border-red-500">
+      <h1 className="text-2xl font-bold">Dashboard Test - Conteúdo Visível</h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         <MetricsCard
           title="Resumo Geral"
