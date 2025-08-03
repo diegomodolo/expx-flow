@@ -8,13 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown } from "lucide-react";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 
 interface ClientDialogProps {
@@ -73,6 +75,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [adAccountOpen, setAdAccountOpen] = useState(false);
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
@@ -463,19 +466,61 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ad_account_id">Conta de Anúncios</Label>
-                <Select value={formData.ad_account_id || "none"} onValueChange={(value) => setFormData({ ...formData, ad_account_id: value === "none" ? "" : value })} disabled={readOnly}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a conta de anúncios" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma conta selecionada</SelectItem>
-                    {availableAdAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_name} ({account.currency})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={adAccountOpen} onOpenChange={setAdAccountOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={adAccountOpen}
+                      className="w-full justify-between"
+                      disabled={readOnly}
+                    >
+                      {formData.ad_account_id 
+                        ? availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.account_name + 
+                          ` (${availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.currency})`
+                        : "Selecione a conta de anúncios..."
+                      }
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar conta de anúncios..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => {
+                              setFormData({ ...formData, ad_account_id: "" });
+                              setAdAccountOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${!formData.ad_account_id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            Nenhuma conta selecionada
+                          </CommandItem>
+                          {availableAdAccounts.map((account) => (
+                            <CommandItem
+                              key={account.id}
+                              value={`${account.account_name} ${account.currency} ${account.id}`}
+                              onSelect={() => {
+                                setFormData({ ...formData, ad_account_id: account.id });
+                                setAdAccountOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${formData.ad_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              {account.account_name} ({account.currency})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
