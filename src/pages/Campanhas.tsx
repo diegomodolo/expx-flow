@@ -579,15 +579,15 @@ const Campanhas = () => {
                             {getSortIcon('cpl')}
                           </div>
                          </th>
-                         <th 
-                           className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                           onClick={() => handleSort('objective')}
-                         >
-                           <div className="flex items-center">
-                             Tipo de Campanha
-                             {getSortIcon('objective')}
-                           </div>
-                         </th>
+                          <th 
+                            className="hidden lg:table-cell px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('objective')}
+                          >
+                            <div className="flex items-center">
+                              Tipo de Campanha
+                              {getSortIcon('objective')}
+                            </div>
+                          </th>
                          <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                            Ações
                          </th>
@@ -654,7 +654,7 @@ const Campanhas = () => {
                                 : "R$ 0,00"
                               }
                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                   {objectiveConfig[campaign.objective || ""] || campaign.objective || "Não definido"}
                                 </Badge>
@@ -671,15 +671,6 @@ const Campanhas = () => {
                             </Button>
                             {campaign.status !== "finished" ? (
                               <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-8 h-8 p-0"
-                                  title="Editar"
-                                  onClick={() => handleEditCampaign(campaign)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
                               </>
                             ) : (
                               <>
