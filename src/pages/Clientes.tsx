@@ -31,7 +31,9 @@ import {
   ChevronRight,
   Loader2,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 
@@ -42,6 +44,9 @@ const statusConfig = {
   yellow: { label: "Atenção", color: "bg-yellow-100 text-yellow-800", dotColor: "bg-yellow-500" },
   red: { label: "Emergencial", color: "bg-red-100 text-red-800", dotColor: "bg-red-500" }
 };
+
+type SortField = 'name' | 'company' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend';
+type SortDirection = 'asc' | 'desc';
 
 const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
@@ -58,6 +63,8 @@ const Clientes = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('status');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients } = useClients();
   const { sectors, fetchSectors } = useSectors();
   const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
@@ -76,11 +83,25 @@ const Clientes = () => {
   const handleApplyFilters = () => {
     toast({
       title: "Filtros aplicados",
-      description: `${filteredClients.length} clientes encontrados.`,
+      description: `${filteredAndSortedClients.length} clientes encontrados.`,
     });
   };
 
-  const filteredClients = clients.filter(client => {
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />;
+  };
+
+  const filteredAndSortedClients = clients.filter(client => {
     const matchesStatus = statusFilter === "all" || client.status === statusFilter;
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,12 +132,43 @@ const Clientes = () => {
     })();
     
     return matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns;
+  }).sort((a, b) => {
+    let aValue: any = a[sortField];
+    let bValue: any = b[sortField];
+
+    // Handle status field specially for emergency order
+    if (sortField === 'status') {
+      const statusOrder = { red: 3, yellow: 2, green: 1 };
+      aValue = statusOrder[a.status];
+      bValue = statusOrder[b.status];
+    }
+    
+    // Handle spend field (simulated as avg_cpl * active_campaigns)
+    if (sortField === 'spend') {
+      aValue = a.avg_cpl * a.active_campaigns;
+      bValue = b.avg_cpl * b.active_campaigns;
+    }
+
+    // Handle null/undefined values
+    if (aValue == null) aValue = 0;
+    if (bValue == null) bValue = 0;
+
+    if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+    } else {
+      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+    }
   });
 
-  const totalClients = filteredClients.length;
+  const totalClients = filteredAndSortedClients.length;
   const totalPages = Math.ceil(totalClients / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedClients = filteredClients.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedClients = filteredAndSortedClients.slice(startIndex, startIndex + itemsPerPage);
   
   // Reset da página quando os filtros mudarem
   useEffect(() => {
@@ -125,8 +177,8 @@ const Clientes = () => {
 
   
   const exportToCSV = () => {
-    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Leads Gerados"];
-    const csvData = filteredClients.map(client => [
+    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Leads Gerados", "Orçamento Mensal", "Gasto Estimado"];
+    const csvData = filteredAndSortedClients.map(client => [
       client.name,
       client.email,
       client.company,
@@ -134,7 +186,9 @@ const Clientes = () => {
       statusConfig[client.status].label,
       client.active_campaigns,
       `R$ ${client.avg_cpl.toFixed(2)}`,
-      client.leads_generated
+      client.leads_generated,
+      `R$ ${(client.monthly_budget || 0).toFixed(2)}`,
+      `R$ ${(client.avg_cpl * client.active_campaigns).toFixed(2)}`
     ]);
     
     const csvContent = [headers, ...csvData]
@@ -353,9 +407,9 @@ const Clientes = () => {
                     >
                       Limpar Filtros
                     </Button>
-                    <Button onClick={handleApplyFilters} className="w-full sm:w-auto">
-                      Aplicar ({filteredClients.length})
-                    </Button>
+                     <Button onClick={handleApplyFilters} className="w-full sm:w-auto">
+                       Aplicar ({filteredAndSortedClients.length})
+                     </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -366,32 +420,86 @@ const Clientes = () => {
               <Card>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Cliente
-                          </th>
-                          <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Empresa
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Campanhas
-                          </th>
-                          <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CPL Médio
-                          </th>
-                          <th className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Leads
-                          </th>
-                          <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ações
-                          </th>
-                        </tr>
-                      </thead>
+                     <table className="w-full">
+                       <thead className="bg-gray-50">
+                         <tr>
+                           <th 
+                             className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('name')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Cliente</span>
+                               {getSortIcon('name')}
+                             </div>
+                           </th>
+                           <th 
+                             className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('company')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Empresa</span>
+                               {getSortIcon('company')}
+                             </div>
+                           </th>
+                           <th 
+                             className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('status')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Status</span>
+                               {getSortIcon('status')}
+                             </div>
+                           </th>
+                           <th 
+                             className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('active_campaigns')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Campanhas</span>
+                               {getSortIcon('active_campaigns')}
+                             </div>
+                           </th>
+                           <th 
+                             className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('avg_cpl')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>CPL Médio</span>
+                               {getSortIcon('avg_cpl')}
+                             </div>
+                           </th>
+                           <th 
+                             className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('leads_generated')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Leads</span>
+                               {getSortIcon('leads_generated')}
+                             </div>
+                           </th>
+                           <th 
+                             className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('monthly_budget')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Orçamento</span>
+                               {getSortIcon('monthly_budget')}
+                             </div>
+                           </th>
+                           <th 
+                             className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             onClick={() => handleSort('spend')}
+                           >
+                             <div className="flex items-center space-x-1">
+                               <span>Gasto</span>
+                               {getSortIcon('spend')}
+                             </div>
+                           </th>
+                           <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                             Ações
+                           </th>
+                         </tr>
+                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {paginatedClients.map((client) => (
                           <tr key={client.id} className="hover:bg-gray-50 transition-colors">
@@ -431,12 +539,28 @@ const Clientes = () => {
                                 R$ {client.avg_cpl.toFixed(2)}
                               </div>
                             </td>
-                            <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                {client.leads_generated}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
+                             <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
+                               <div className="text-sm text-gray-900">
+                                 {client.leads_generated}
+                               </div>
+                             </td>
+                             <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
+                               <div className="text-sm text-gray-900">
+                                 R$ {(client.monthly_budget || 0).toLocaleString('pt-BR', { 
+                                   minimumFractionDigits: 2, 
+                                   maximumFractionDigits: 2 
+                                 })}
+                               </div>
+                             </td>
+                             <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
+                               <div className="text-sm text-gray-900">
+                                 R$ {(client.avg_cpl * client.active_campaigns).toLocaleString('pt-BR', { 
+                                   minimumFractionDigits: 2, 
+                                   maximumFractionDigits: 2 
+                                 })}
+                               </div>
+                             </td>
+                             <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="sm" className="w-7 h-7 p-0">
@@ -550,25 +674,39 @@ const Clientes = () => {
                       </div>
                     </div>
 
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-gray-500">Campanhas:</span>
-                        <span className="ml-1 font-medium">{client.active_campaigns}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Leads:</span>
-                        <span className="ml-1 font-medium">{client.leads_generated}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">CPL Médio:</span>
-                        <span className="ml-1 font-medium">R$ {client.avg_cpl.toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Setor:</span>
-                        <span className="ml-1 font-medium truncate" title={client.sector}>{client.sector}</span>
-                      </div>
-                    </div>
+                     {/* Metrics Grid */}
+                     <div className="grid grid-cols-2 gap-3 text-sm">
+                       <div>
+                         <span className="text-gray-500">Campanhas:</span>
+                         <span className="ml-1 font-medium">{client.active_campaigns}</span>
+                       </div>
+                       <div>
+                         <span className="text-gray-500">Leads:</span>
+                         <span className="ml-1 font-medium">{client.leads_generated}</span>
+                       </div>
+                       <div>
+                         <span className="text-gray-500">CPL Médio:</span>
+                         <span className="ml-1 font-medium">R$ {client.avg_cpl.toFixed(2)}</span>
+                       </div>
+                       <div>
+                         <span className="text-gray-500">Setor:</span>
+                         <span className="ml-1 font-medium truncate" title={client.sector}>{client.sector}</span>
+                       </div>
+                       <div>
+                         <span className="text-gray-500">Orçamento:</span>
+                         <span className="ml-1 font-medium">R$ {(client.monthly_budget || 0).toLocaleString('pt-BR', { 
+                           minimumFractionDigits: 0, 
+                           maximumFractionDigits: 0 
+                         })}</span>
+                       </div>
+                       <div>
+                         <span className="text-gray-500">Gasto:</span>
+                         <span className="ml-1 font-medium">R$ {(client.avg_cpl * client.active_campaigns).toLocaleString('pt-BR', { 
+                           minimumFractionDigits: 0, 
+                           maximumFractionDigits: 0 
+                         })}</span>
+                       </div>
+                     </div>
 
                     {/* Additional Info */}
                     {client.monthly_budget > 0 && (
