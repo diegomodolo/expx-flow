@@ -43,23 +43,49 @@ export const useGeneratedCampaigns = () => {
 
   const fetchCampaigns = async () => {
     if (!user || !activeCompany) return;
-
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      const { data, error } = await supabase
+      // Primeiro buscar as campanhas geradas
+      const { data: campaigns, error: campaignsError } = await supabase
         .from('generated_campaigns')
-        .select(`
-          *,
-          clients(name, company)
-        `)
+        .select('*')
         .eq('company_id', activeCompany.company_id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setCampaigns(data as any[] || []);
+      if (campaignsError) {
+        console.error('Error fetching campaigns:', campaignsError);
+        setError('Erro ao carregar campanhas');
+        return;
+      }
+
+      // Buscar dados dos clientes separadamente
+      if (campaigns && campaigns.length > 0) {
+        const clientIds = [...new Set(campaigns.map(c => c.client_id))];
+        const { data: clients, error: clientsError } = await supabase
+          .from('clients')
+          .select('id, name, company, email')
+          .in('id', clientIds);
+
+        if (clientsError) {
+          console.error('Error fetching clients:', clientsError);
+        }
+
+        // Combinar os dados
+        const campaignsWithClients = campaigns.map(campaign => ({
+          ...campaign,
+          clients: clients?.find(client => client.id === campaign.client_id) || null
+        }));
+
+        setCampaigns(campaignsWithClients);
+      } else {
+        setCampaigns([]);
+      }
     } catch (err) {
-      console.error('Error fetching campaigns:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar campanhas');
+      console.error('Error:', err);
+      setError('Erro ao carregar campanhas');
     } finally {
       setLoading(false);
     }
@@ -114,18 +140,31 @@ export const useGeneratedCampaigns = () => {
     if (!user || !activeCompany) return null;
 
     try {
-      const { data, error } = await supabase
+      // Buscar a campanha
+      const { data: campaign, error: campaignError } = await supabase
         .from('generated_campaigns')
-        .select(`
-          *,
-          client:clients(name, company, email, sector, avatar)
-        `)
+        .select('*')
         .eq('id', id)
         .eq('company_id', activeCompany.company_id)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (campaignError) throw campaignError;
+
+      // Buscar dados do cliente separadamente
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('name, company, email, sector, avatar')
+        .eq('id', campaign.client_id)
+        .single();
+
+      if (clientError) {
+        console.error('Error fetching client:', clientError);
+      }
+
+      return {
+        ...campaign,
+        clients: client || null
+      };
     } catch (err) {
       console.error('Error fetching campaign:', err);
       return null;
