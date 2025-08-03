@@ -12,6 +12,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Clientes from "./pages/Clientes";
 import ClienteDetalhes from "./pages/ClienteDetalhes";
 import Campanhas from "./pages/Campanhas";
+import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
 import Tarefas from "./pages/Tarefas";
@@ -74,6 +75,11 @@ const App = () => {
                <Route path="/campanhas" element={
                  <ProtectedRoute>
                    <Campanhas />
+                 </ProtectedRoute>
+               } />
+               <Route path="/campanhas/:id" element={
+                 <ProtectedRoute>
+                   <CampanhaDetalhes />
                  </ProtectedRoute>
                } />
                <Route path="/colaboradores" element={

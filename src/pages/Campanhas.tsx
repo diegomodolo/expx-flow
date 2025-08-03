@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,6 +189,7 @@ const getPerformanceTooltip = (campaign: Campaign) => {
 };
 
 const Campanhas = () => {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StatusType>("active"); // Padrão: apenas campanhas ativas
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -711,6 +713,7 @@ const Campanhas = () => {
                                 size="sm"
                                 className="w-7 h-7 p-0"
                                 title="Ver detalhes"
+                                onClick={() => navigate(`/campanhas/${campaign.id}`)}
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </Button>
@@ -766,6 +769,7 @@ const Campanhas = () => {
                           size="sm"
                           className="w-8 h-8 p-0 flex-shrink-0"
                           title="Ver detalhes"
+                          onClick={() => navigate(`/campanhas/${campaign.id}`)}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
