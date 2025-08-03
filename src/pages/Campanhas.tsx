@@ -359,6 +359,8 @@ const Campanhas = () => {
     });
   }
 
+  console.log("Campanhas component rendering", { loading, error, campaigns: campaigns?.length });
+
   return (
     <DashboardLayout>
       <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">
@@ -908,27 +910,27 @@ const Campanhas = () => {
             </Card>
           </>
         )}
+
+        <EditCampaignDialog
+          campaign={editingCampaign}
+          isOpen={isEditDialogOpen}
+          onClose={handleCloseEditDialog}
+          onSave={handleSaveCampaign}
+        />
+
+        <SyncPeriodDialog
+          open={syncDialogOpen}
+          onOpenChange={setSyncDialogOpen}
+          onConfirm={syncAllClients}
+          syncing={syncing}
+          title="Sincronizar Campanhas"
+        />
+
+        <SyncProgressModal
+          open={syncing}
+          progress={progress}
+        />
       </div>
-
-      <EditCampaignDialog
-        campaign={editingCampaign}
-        isOpen={isEditDialogOpen}
-        onClose={handleCloseEditDialog}
-        onSave={handleSaveCampaign}
-      />
-
-      <SyncPeriodDialog
-        open={syncDialogOpen}
-        onOpenChange={setSyncDialogOpen}
-        onConfirm={syncAllClients}
-        syncing={syncing}
-        title="Sincronizar Campanhas"
-      />
-
-      <SyncProgressModal
-        open={syncing}
-        progress={progress}
-      />
     </DashboardLayout>
   );
 };
