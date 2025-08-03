@@ -45,10 +45,13 @@ serve(async (req) => {
     // Step 1: Scrape website with Firecrawl
     const firecrawl = new FirecrawlApp({ apiKey: firecrawlApiKey });
     
+    console.log('Fazendo scrape da URL:', websiteUrl);
     const crawlResponse = await firecrawl.scrapeUrl(websiteUrl, {
       formats: ['markdown'],
       onlyMainContent: true
     });
+
+    console.log('Resposta do Firecrawl:', JSON.stringify(crawlResponse, null, 2));
 
     if (!crawlResponse.success) {
       console.error('Erro no Firecrawl:', crawlResponse.error);
@@ -58,7 +61,32 @@ serve(async (req) => {
       );
     }
 
-    const websiteContent = crawlResponse.data.markdown;
+    // Handle different response structures from Firecrawl
+    let websiteContent = '';
+    
+    if (crawlResponse.data && crawlResponse.data.markdown) {
+      websiteContent = crawlResponse.data.markdown;
+    } else if (crawlResponse.data && crawlResponse.data.content) {
+      websiteContent = crawlResponse.data.content;
+    } else if (crawlResponse.markdown) {
+      websiteContent = crawlResponse.markdown;
+    } else if (crawlResponse.content) {
+      websiteContent = crawlResponse.content;
+    } else {
+      console.error('Estrutura de resposta inesperada do Firecrawl:', crawlResponse);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao extrair conteúdo do website. Formato de resposta inesperado.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!websiteContent || websiteContent.trim().length === 0) {
+      console.error('Conteúdo vazio extraído do website');
+      return new Response(
+        JSON.stringify({ error: 'Não foi possível extrair conteúdo útil do website.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     console.log('Website analisado com sucesso, iniciando geração do briefing...');
 
     // Step 2: Generate briefing with OpenAI
@@ -170,7 +198,7 @@ Seja específico, prático e focado em resultados. Use dados e insights do websi
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           {
             role: 'system',
