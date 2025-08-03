@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus, Download } from "lucide-react";
+import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, DollarSign, RefreshCw, AlertTriangle, Plus, Download, CheckCircle, Loader2 } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTasks } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
@@ -57,6 +57,8 @@ export default function CampanhaDetalhes() {
   const [showAdSetMetrics, setShowAdSetMetrics] = useState(false);
   const [showAdMetrics, setShowAdMetrics] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
+  const [campaignAnalysis, setCampaignAnalysis] = useState<string | null>(null);
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const { toast } = useToast();
 
   // Filtrar ad sets e ads desta campanha
@@ -210,6 +212,53 @@ export default function CampanhaDetalhes() {
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  // Função para gerar análise completa da campanha
+  const handleGenerateAnalysis = async () => {
+    if (!campaign) return;
+    
+    setIsGeneratingAnalysis(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-campaign-analysis', {
+        body: {
+          clientData: {
+            name: campaign.client?.name || 'Cliente',
+            sector: 'Não especificado',
+            product_name: campaign.name || 'Campanha',
+            monthly_budget: campaign.spend || 0,
+            leads_generated: campaign.conversions || 0,
+            status: campaign.status || 'unknown',
+          },
+          campaigns: [campaign], // Enviar apenas esta campanha
+        },
+      });
+
+      if (error) {
+        console.error('Error generating analysis:', error);
+        toast({
+          title: "Erro ao gerar análise",
+          description: "Não foi possível gerar a análise. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCampaignAnalysis(data.analysis);
+      toast({
+        title: "Análise gerada com sucesso!",
+        description: "A análise detalhada da campanha foi gerada pela IA.",
+      });
+    } catch (error) {
+      console.error('Error generating analysis:', error);
+      toast({
+        title: "Erro ao gerar análise",
+        description: "Não foi possível gerar a análise. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAnalysis(false);
     }
   };
 
@@ -918,6 +967,81 @@ export default function CampanhaDetalhes() {
                     <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
                     <p className="text-sm font-medium text-purple-900">Ações Estratégicas</p>
                     <p className="text-xs text-purple-700">Próximos passos recomendados</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Aba de Análise Completa */}
+        <TabsContent value="analysis" className="p-4 sm:p-6">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h4 className="text-lg font-semibold">Análise Completa da Campanha</h4>
+              <Button
+                onClick={handleGenerateAnalysis}
+                className="flex items-center gap-2"
+                disabled={isGeneratingAnalysis}
+              >
+                <BarChart3 className={`w-4 h-4 ${isGeneratingAnalysis ? 'animate-pulse' : ''}`} />
+                {isGeneratingAnalysis ? 'Gerando Análise...' : 'Gerar Análise com IA'}
+              </Button>
+            </div>
+
+            {campaignAnalysis ? (
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="prose prose-gray max-w-none">
+                  <div 
+                    className="markdown-content"
+                    dangerouslySetInnerHTML={{ 
+                      __html: campaignAnalysis.replace(/\n/g, '<br/>').replace(/##\s+(.+)/g, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/- (.+)/g, '<li class="ml-4">• $1</li>') 
+                    }}
+                  />
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Análise gerada por IA especializada em tráfego pago</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🧠</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Análise Estratégica com IA
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-2xl mx-auto">
+                  Obtenha uma análise detalhada desta campanha feita por nossa IA especializada em tráfego pago. 
+                  Receba insights estratégicos, identificação de oportunidades e recomendações baseadas nas melhores práticas do mercado.
+                </p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <p className="text-sm font-medium text-blue-900">Diagnóstico da Campanha</p>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                    </div>
+                    <p className="text-sm font-medium text-green-900">Estratégias de Otimização</p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Target className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <p className="text-sm font-medium text-purple-900">Ações Prioritárias</p>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <p className="text-sm font-medium text-orange-900">Recomendações de Escala</p>
                   </div>
                 </div>
               </div>
