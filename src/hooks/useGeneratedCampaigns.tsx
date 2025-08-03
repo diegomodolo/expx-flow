@@ -171,6 +171,30 @@ export const useGeneratedCampaigns = () => {
     }
   };
 
+  const updateCampaign = async (id: string, updates: Partial<GeneratedCampaign>) => {
+    if (!user || !activeCompany) {
+      throw new Error('Usuário ou empresa não encontrados');
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('generated_campaigns')
+        .update(updates)
+        .eq('id', id)
+        .eq('company_id', activeCompany.company_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchCampaigns();
+      return data;
+    } catch (err) {
+      console.error('Error updating campaign:', err);
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchCampaigns();
   }, [user, activeCompany]);
@@ -182,5 +206,6 @@ export const useGeneratedCampaigns = () => {
     fetchCampaigns,
     createCampaign,
     getCampaign,
+    updateCampaign,
   };
 };

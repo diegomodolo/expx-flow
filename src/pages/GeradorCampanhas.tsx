@@ -7,6 +7,7 @@ import { CampaignTypeSelector } from "@/components/campaign-generator/CampaignTy
 import { CampaignConfiguration } from "@/components/campaign-generator/CampaignConfiguration";
 import { CreativeGenerator } from "@/components/campaign-generator/CreativeGenerator";
 import { CampaignReport } from "@/components/campaign-generator/CampaignReport";
+import { EditableCampaignReport } from "@/components/campaign-generator/EditableCampaignReport";
 import { CampaignsList } from "@/components/campaign-generator/CampaignsList";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,13 +166,10 @@ const GeradorCampanhas = () => {
             </div>
           </div>
           
-          <Card className="p-6">
-            <CampaignReport
-              campaignData={campaignData}
-              updateCampaignData={updateCampaignData}
-              isViewMode={true}
-            />
-          </Card>
+          <EditableCampaignReport
+            campaign={viewingCampaign}
+            onSave={() => loadCampaignForView(id!)}
+          />
         </div>
       </DashboardLayout>
     );
