@@ -14,6 +14,8 @@ import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
 import { useToast } from "@/hooks/use-toast";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
+import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
+import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 import { supabase } from "@/integrations/supabase/client";
 
 // Interface local para compatibilidade
@@ -51,6 +53,10 @@ export default function CampanhaDetalhes() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
+  const [selectedAdSet, setSelectedAdSet] = useState<any>(null);
+  const [selectedAd, setSelectedAd] = useState<any>(null);
+  const [showAdSetMetrics, setShowAdSetMetrics] = useState(false);
+  const [showAdMetrics, setShowAdMetrics] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
   const { toast } = useToast();
 
@@ -913,17 +919,28 @@ export default function CampanhaDetalhes() {
                                 <p className="text-xs text-gray-500">Conjunto de Anúncios</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Badge className={performance.badgeColor}>
-                                {performance.label}
-                              </Badge>
-                              <Badge 
-                                variant={adSet.status === 'ACTIVE' ? 'default' : 'secondary'}
-                                className={adSet.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                              >
-                                {adSet.status}
-                              </Badge>
-                            </div>
+                             <div className="flex items-center gap-2">
+                               <Badge className={performance.badgeColor}>
+                                 {performance.label}
+                               </Badge>
+                               <Badge 
+                                 variant={adSet.status === 'ACTIVE' ? 'default' : 'secondary'}
+                                 className={adSet.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
+                               >
+                                 {adSet.status}
+                               </Badge>
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => {
+                                   setSelectedAdSet(adSet);
+                                   setShowAdSetMetrics(true);
+                                 }}
+                               >
+                                 <Eye className="w-4 h-4 mr-1" />
+                                 Ver Métricas
+                               </Button>
+                             </div>
                           </div>
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
@@ -1058,14 +1075,27 @@ export default function CampanhaDetalhes() {
                                     {performance.label}
                                   </Badge>
                                 </div>
-                              </div>
-                            </div>
-                            <Badge 
-                              variant={ad.status === 'ACTIVE' ? 'default' : 'secondary'}
-                              className={ad.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                            >
-                              {ad.status}
-                            </Badge>
+                               </div>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <Badge 
+                                 variant={ad.status === 'ACTIVE' ? 'default' : 'secondary'}
+                                 className={ad.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
+                               >
+                                 {ad.status}
+                               </Badge>
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => {
+                                   setSelectedAd(ad);
+                                   setShowAdMetrics(true);
+                                 }}
+                               >
+                                 <Eye className="w-4 h-4 mr-1" />
+                                 Ver Métricas
+                               </Button>
+                             </div>
                           </div>
 
                           {(ad.creative_title || ad.creative_body) && (
@@ -1205,6 +1235,24 @@ export default function CampanhaDetalhes() {
           onClose={() => setShowMetricsModal(false)}
         />
       )}
+
+      <AdSetMetricsModal
+        adSet={selectedAdSet}
+        isOpen={showAdSetMetrics}
+        onClose={() => {
+          setShowAdSetMetrics(false);
+          setSelectedAdSet(null);
+        }}
+      />
+
+      <AdCreativeMetricsModal
+        ad={selectedAd}
+        isOpen={showAdMetrics}
+        onClose={() => {
+          setShowAdMetrics(false);
+          setSelectedAd(null);
+        }}
+      />
     </DashboardLayout>
   );
 }
