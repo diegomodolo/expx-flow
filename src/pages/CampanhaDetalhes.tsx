@@ -825,7 +825,7 @@ export default function CampanhaDetalhes() {
 
       {/* Tabs para seções adicionais */}
       <Tabs defaultValue="insights" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="insights">Insights & Recomendações</TabsTrigger>
           <TabsTrigger value="alerts" className="relative">
             Alertas & Sugestões
@@ -835,6 +835,7 @@ export default function CampanhaDetalhes() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="analysis">Análise Completa</TabsTrigger>
           <TabsTrigger value="adsets">
             Conjuntos de Anúncios
             <Badge variant="secondary" className="ml-2 text-xs">
