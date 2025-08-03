@@ -22,6 +22,7 @@ export interface Campaign {
   quality_ranking?: string;
   engagement_rate_ranking?: string;
   conversion_rate_ranking?: string;
+  objective?: string; // Tipo/objetivo da campanha
   created_at?: string;
   updated_at?: string;
   clicks?: number;

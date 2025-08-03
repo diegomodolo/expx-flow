@@ -143,7 +143,7 @@ const Campanhas = () => {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   
   // Estados para ordenação
-  const [sortColumn, setSortColumn] = useState<'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl' | null>('performance');
+  const [sortColumn, setSortColumn] = useState<'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl' | 'objective' | null>('performance');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc'); // asc = pior performance primeiro
   
   const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
@@ -156,7 +156,7 @@ const Campanhas = () => {
   
   
   // Função para lidar com clique nos cabeçalhos
-  const handleSort = (column: 'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl') => {
+  const handleSort = (column: 'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl' | 'objective') => {
     if (sortColumn === column) {
       // Se já está ordenando por essa coluna, inverte a direção
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -231,6 +231,12 @@ const Campanhas = () => {
           const cplA = a.conversions > 0 ? (a.spend || 0) / a.conversions : 0;
           const cplB = b.conversions > 0 ? (b.spend || 0) / b.conversions : 0;
           result = cplA - cplB;
+          break;
+          
+        case 'objective':
+          const objectiveA = a.objective || '';
+          const objectiveB = b.objective || '';
+          result = objectiveA.localeCompare(objectiveB);
           break;
           
         default:
@@ -546,9 +552,18 @@ const Campanhas = () => {
                             CPL
                             {getSortIcon('cpl')}
                           </div>
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Período
+                         </th>
+                         <th 
+                           className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                           onClick={() => handleSort('objective')}
+                         >
+                           <div className="flex items-center">
+                             Tipo de Campanha
+                             {getSortIcon('objective')}
+                           </div>
+                         </th>
+                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                           Período
                         </th>
                         <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Ações
@@ -615,10 +630,13 @@ const Campanhas = () => {
                                 ? `R$ ${((campaign.spend || 0) / campaign.conversions).toFixed(2)}` 
                                 : "R$ 0,00"
                               }
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {campaign.period}
-                            </td>
+                             </td>
+                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                               {campaign.objective || 'Não definido'}
+                             </td>
+                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                               {campaign.period}
+                             </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <Button
