@@ -350,27 +350,26 @@ const Campanhas = () => {
               </div>
             </div>
 
-            {/* Filters and Search */}
+            {/* Filters and Search - Single Line Responsive */}
             <Card>
               <CardContent className="p-4 sm:p-6">
-                <div className="space-y-4">
-                  {/* Status Filter - Full width on mobile */}
-                  <div className="space-y-2">
-                    <span className="text-sm font-medium text-gray-700">Status:</span>
-                    <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:space-x-2">
+                <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+                  {/* Status Filters */}
+                  <div className="flex-shrink-0">
+                    <span className="text-sm font-medium text-gray-700 block mb-2">Status:</span>
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         variant={statusFilter === "all" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setStatusFilter("all")}
-                        className="flex items-center justify-center space-x-2"
                       >
-                        <span>Todas</span>
+                        Todas
                       </Button>
                       <Button
                         variant={statusFilter === "active" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setStatusFilter("active")}
-                        className="flex items-center justify-center space-x-2"
+                        className="flex items-center space-x-1"
                       >
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span>Ativas</span>
@@ -379,7 +378,7 @@ const Campanhas = () => {
                         variant={statusFilter === "paused" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setStatusFilter("paused")}
-                        className="flex items-center justify-center space-x-2"
+                        className="flex items-center space-x-1"
                       >
                         <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                         <span>Pausadas</span>
@@ -388,7 +387,7 @@ const Campanhas = () => {
                         variant={statusFilter === "finished" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setStatusFilter("finished")}
-                        className="flex items-center justify-center space-x-2"
+                        className="flex items-center space-x-1"
                       >
                         <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
                         <span>Finalizadas</span>
@@ -396,88 +395,88 @@ const Campanhas = () => {
                     </div>
                   </div>
                   
-                  {/* Client Filter and Search - Stack on mobile */}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="space-y-2 sm:min-w-0 sm:flex-shrink-0">
-                      <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                      <Popover open={openClientFilter} onOpenChange={setOpenClientFilter}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openClientFilter}
-                            className="w-full sm:w-[200px] justify-between"
-                          >
-                            {clientFilter === "all" 
-                              ? "Todos os clientes"
-                              : clients.find((client) => client.id === clientFilter)?.name || "Cliente não encontrado"
-                            }
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0 bg-white z-50">
-                          <Command>
-                            <CommandInput placeholder="Buscar cliente..." />
-                            <CommandList>
-                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                              <CommandGroup>
+                  {/* Client Filter */}
+                  <div className="flex-shrink-0 w-full sm:w-auto lg:w-[200px]">
+                    <span className="text-sm font-medium text-gray-700 block mb-2">Cliente:</span>
+                    <Popover open={openClientFilter} onOpenChange={setOpenClientFilter}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openClientFilter}
+                          className="w-full justify-between"
+                        >
+                          {clientFilter === "all" 
+                            ? "Todos os clientes"
+                            : clients.find((client) => client.id === clientFilter)?.name || "Cliente não encontrado"
+                          }
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 bg-white z-50">
+                        <Command>
+                          <CommandInput placeholder="Buscar cliente..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="all"
+                                onSelect={() => {
+                                  setClientFilter("all");
+                                  setOpenClientFilter(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    clientFilter === "all" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Todos os clientes
+                              </CommandItem>
+                              {clients.map((client) => (
                                 <CommandItem
-                                  value="all"
+                                  key={client.id}
+                                  value={client.name}
                                   onSelect={() => {
-                                    setClientFilter("all");
+                                    setClientFilter(client.id);
                                     setOpenClientFilter(false);
                                   }}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      clientFilter === "all" ? "opacity-100" : "opacity-0"
+                                      clientFilter === client.id ? "opacity-100" : "opacity-0"
                                     )}
                                   />
-                                  Todos os clientes
+                                  {client.name}
                                 </CommandItem>
-                                {clients.map((client) => (
-                                  <CommandItem
-                                    key={client.id}
-                                    value={client.name}
-                                    onSelect={() => {
-                                      setClientFilter(client.id);
-                                      setOpenClientFilter(false);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        clientFilter === client.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {client.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    
-                    <div className="space-y-2 flex-1">
-                      <span className="text-sm font-medium text-gray-700 sm:hidden">Buscar:</span>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Buscar campanhas..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 w-full"
-                        />
-                      </div>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  {/* Search */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-gray-700 block mb-2">Buscar:</span>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Buscar campanhas..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-full"
+                      />
                     </div>
                   </div>
                   
-                  {/* Action Button */}
-                  <div className="flex justify-end">
-                    <Button variant="outline" onClick={() => setSyncDialogOpen(true)} className="w-full sm:w-auto">
+                  {/* Sync Button */}
+                  <div className="flex-shrink-0">
+                    <span className="text-sm font-medium text-gray-700 block mb-2 opacity-0">Ação:</span>
+                    <Button variant="outline" onClick={() => setSyncDialogOpen(true)} className="w-full lg:w-auto">
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Sincronizar
                     </Button>
@@ -495,7 +494,7 @@ const Campanhas = () => {
                       <thead className="bg-gray-50">
                         <tr>
                           <th 
-                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                             onClick={() => handleSort('name')}
                           >
                             <div className="flex items-center">
@@ -504,7 +503,7 @@ const Campanhas = () => {
                             </div>
                           </th>
                           <th 
-                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                             onClick={() => handleSort('client')}
                           >
                             <div className="flex items-center">
@@ -512,38 +511,20 @@ const Campanhas = () => {
                               {getSortIcon('client')}
                             </div>
                           </th>
-                          <th className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status
                           </th>
                           <th 
-                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                             onClick={() => handleSort('performance')}
                           >
                             <div className="flex items-center">
-                              Performance
+                              Perf.
                               {getSortIcon('performance')}
                             </div>
                           </th>
                           <th 
-                            className="hidden md:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort('ctr')}
-                          >
-                            <div className="flex items-center">
-                              CTR
-                              {getSortIcon('ctr')}
-                            </div>
-                          </th>
-                          <th 
-                            className="hidden lg:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort('cpc')}
-                          >
-                            <div className="flex items-center">
-                              CPC
-                              {getSortIcon('cpc')}
-                            </div>
-                          </th>
-                          <th 
-                            className="px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                             onClick={() => handleSort('conversions')}
                           >
                             <div className="flex items-center">
@@ -552,16 +533,34 @@ const Campanhas = () => {
                             </div>
                           </th>
                           <th 
-                            className="hidden xl:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('ctr')}
+                          >
+                            <div className="flex items-center">
+                              CTR
+                              {getSortIcon('ctr')}
+                            </div>
+                          </th>
+                          <th 
+                            className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort('cpc')}
+                          >
+                            <div className="flex items-center">
+                              CPC
+                              {getSortIcon('cpc')}
+                            </div>
+                          </th>
+                          <th 
+                            className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                             onClick={() => handleSort('spend')}
                           >
                             <div className="flex items-center">
-                              Valor Gasto
+                              Gasto
                               {getSortIcon('spend')}
                             </div>
                           </th>
                            <th 
-                             className="hidden lg:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                             className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                              onClick={() => handleSort('cpl')}
                            >
                              <div className="flex items-center">
@@ -569,16 +568,7 @@ const Campanhas = () => {
                                {getSortIcon('cpl')}
                              </div>
                             </th>
-                            <th 
-                              className="hidden 2xl:table-cell px-4 lg:px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                              onClick={() => handleSort('objective')}
-                            >
-                              <div className="flex items-center">
-                                Tipo
-                                {getSortIcon('objective')}
-                              </div>
-                            </th>
-                           <th className="px-4 lg:px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                           <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                              Ações
                            </th>
                         </tr>
@@ -589,65 +579,65 @@ const Campanhas = () => {
                           
                           return (
                             <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 lg:px-6 py-4">
+                              <td className="px-3 py-3">
                                 <div className="flex items-center">
                                   <div className="flex-shrink-0">
-                                    <Avatar className="w-8 h-8">
+                                    <Avatar className="w-7 h-7">
                                       <AvatarImage src="/placeholder.svg" alt="Campaign" />
                                       <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
                                         {campaign.name.substring(0, 2).toUpperCase()}
                                       </AvatarFallback>
                                     </Avatar>
                                   </div>
-                                  <div className="ml-4 min-w-0 flex-1">
+                                  <div className="ml-3 min-w-0 flex-1">
                                     <div className="text-sm font-medium text-gray-900 truncate" title={campaign.name}>
                                       {campaign.name}
                                     </div>
-                                    <div className="text-sm text-gray-500 truncate">
-                                      {campaign.platforms}
+                                    <div className="text-xs text-gray-500 truncate sm:hidden">
+                                      {campaign.client?.name || "Cliente não informado"}
                                     </div>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-4 lg:px-6 py-4">
+                              <td className="hidden sm:table-cell px-3 py-3">
                                 <div className="text-sm text-gray-900 truncate">
                                   {campaign.client?.name || "Cliente não informado"}
                                 </div>
                               </td>
-                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                              <td className="px-3 py-3 whitespace-nowrap">
                                 <Badge 
                                   variant="outline" 
-                                  className={`${statusConfig[campaign.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800"}`}
+                                  className={`${statusConfig[campaign.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800"} text-xs`}
                                 >
-                                  <div className={`w-2 h-2 rounded-full mr-2 ${statusConfig[campaign.status as keyof typeof statusConfig]?.dotColor || "bg-gray-500"}`}></div>
+                                  <div className={`w-1.5 h-1.5 rounded-full mr-1 ${statusConfig[campaign.status as keyof typeof statusConfig]?.dotColor || "bg-gray-500"}`}></div>
                                   {statusConfig[campaign.status as keyof typeof statusConfig]?.label || campaign.status}
                                 </Badge>
                               </td>
-                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                              <td className="px-3 py-3 whitespace-nowrap">
                                 <Badge 
                                   variant="outline" 
-                                  className={performance.color}
+                                  className={`${performance.color} text-xs`}
                                 >
-                                  <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
+                                  <div className={`w-1.5 h-1.5 rounded-full mr-1 ${performance.dotColor}`}></div>
                                   {performance.label}
                                 </Badge>
                               </td>
-                              <td className="hidden md:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                              <td className="px-3 py-3 whitespace-nowrap">
+                                <div className="text-sm text-gray-900 font-medium">
+                                  {campaign.conversions || 0}
+                                </div>
+                              </td>
+                              <td className="hidden md:table-cell px-3 py-3 whitespace-nowrap">
                                 <div className="text-sm text-gray-900">
                                   {campaign.ctr ? `${campaign.ctr.toFixed(2)}%` : "0%"}
                                 </div>
                               </td>
-                              <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                              <td className="hidden lg:table-cell px-3 py-3 whitespace-nowrap">
                                 <div className="text-sm text-gray-900">
                                   R$ {campaign.cpc?.toFixed(2) || "0,00"}
                                 </div>
                               </td>
-                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">
-                                  {campaign.conversions || 0}
-                                </div>
-                              </td>
-                              <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                              <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
                                 <div className="text-sm text-gray-900">
                                   R$ {campaign.spend?.toLocaleString('pt-BR', { 
                                     minimumFractionDigits: 2, 
@@ -655,7 +645,7 @@ const Campanhas = () => {
                                   }) || "0,00"}
                                 </div>
                               </td>
-                               <td className="hidden lg:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
+                               <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
                                  <div className="text-sm text-gray-900">
                                    {campaign.conversions > 0 
                                      ? `R$ ${((campaign.spend || 0) / campaign.conversions).toFixed(2)}`
@@ -663,28 +653,23 @@ const Campanhas = () => {
                                  }
                                 </div>
                                 </td>
-                                <td className="hidden 2xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                    {objectiveConfig[campaign.objective || ""] || campaign.objective || "Não definido"}
-                                  </Badge>
-                                </td>
-                              <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="w-8 h-8 p-0"
+                                className="w-7 h-7 p-0"
                                 title="Ver detalhes"
                               >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-3.5 h-3.5" />
                               </Button>
                               {campaign.status === "finished" && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="w-8 h-8 p-0 ml-1"
+                                  className="w-7 h-7 p-0 ml-1"
                                   title="Ver relatório"
                                 >
-                                  <FileText className="w-4 h-4" />
+                                  <FileText className="w-3.5 h-3.5" />
                                 </Button>
                               )}
                             </td>
