@@ -217,10 +217,176 @@ export default function CampanhaDetalhes() {
         </div>
       </div>
 
-      {/* Tabs para diferentes seções */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      {/* Status e Performance */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <Badge className={getStatusColor(campaign.status)}>
+                  {campaign.status}
+                </Badge>
+              </div>
+              <div className={`w-3 h-3 rounded-full ${
+                campaign.status?.toLowerCase() === "ativa" ? "bg-emerald-500" : 
+                campaign.status?.toLowerCase() === "pausada" ? "bg-amber-500" : "bg-slate-500"
+              }`} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Performance</p>
+                <p className={`text-lg font-semibold ${performance.color}`}>
+                  {performance.level}
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">CTR</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {campaign.ctr?.toFixed(2)}%
+                </p>
+              </div>
+              <Target className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Conversões</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {campaign.conversions || 0}
+                </p>
+              </div>
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Métricas Principais */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <DollarSign className="w-5 h-5" />
+              <span>Investimento e Resultados</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Investimento Total</p>
+                <p className="text-2xl font-bold text-foreground">
+                  R$ {campaign.spend?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">CPC Médio</p>
+                <p className="text-2xl font-bold text-foreground">
+                  R$ {campaign.cpc?.toFixed(2) || '0,00'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">CPA</p>
+                <p className="text-xl font-semibold text-foreground">
+                  R$ {campaign.cpa?.toFixed(2) || '0,00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {conversionRate}%
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <BarChart3 className="w-5 h-5" />
+              <span>Alcance e Engajamento</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Impressões</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {campaign.impressions?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cliques</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {campaign.clicks?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Alcance</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {campaign.reach?.toLocaleString('pt-BR') || '0'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Frequência</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {campaign.frequency?.toFixed(2) || '0,00'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Progresso da Campanha */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="w-5 h-5" />
+            <span>Progresso da Campanha</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between text-sm">
+              <span>Data de Início: {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString('pt-BR') : 'N/A'}</span>
+              <span>Status: {campaign.status}</span>
+            </div>
+            <Progress value={75} className="w-full" />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>75% concluída</span>
+              <span>Estimativa de conclusão: 30 dias</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabs para seções adicionais */}
+      <Tabs defaultValue="insights" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="insights">Insights & Recomendações</TabsTrigger>
           <TabsTrigger value="alerts" className="relative">
             Alertas & Sugestões
             {campaignSuggestions.length > 0 && (
@@ -231,174 +397,7 @@ export default function CampanhaDetalhes() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          {/* Status e Performance */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Status</p>
-                    <Badge className={getStatusColor(campaign.status)}>
-                      {campaign.status}
-                    </Badge>
-                  </div>
-                  <div className={`w-3 h-3 rounded-full ${
-                    campaign.status?.toLowerCase() === "ativa" ? "bg-emerald-500" : 
-                    campaign.status?.toLowerCase() === "pausada" ? "bg-amber-500" : "bg-slate-500"
-                  }`} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Performance</p>
-                    <p className={`text-lg font-semibold ${performance.color}`}>
-                      {performance.level}
-                    </p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">CTR</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      {campaign.ctr?.toFixed(2)}%
-                    </p>
-                  </div>
-                  <Target className="w-8 h-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Conversões</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      {campaign.conversions || 0}
-                    </p>
-                  </div>
-                  <Users className="w-8 h-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Métricas Principais */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5" />
-                  <span>Investimento e Resultados</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Investimento Total</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      R$ {campaign.spend?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">CPC Médio</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      R$ {campaign.cpc?.toFixed(2) || '0,00'}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">CPA</p>
-                    <p className="text-xl font-semibold text-foreground">
-                      R$ {campaign.cpa?.toFixed(2) || '0,00'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Taxa de Conversão</p>
-                    <p className="text-xl font-semibold text-foreground">
-                      {conversionRate}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="w-5 h-5" />
-                  <span>Alcance e Engajamento</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Impressões</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {campaign.impressions?.toLocaleString('pt-BR') || '0'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Cliques</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {campaign.clicks?.toLocaleString('pt-BR') || '0'}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Alcance</p>
-                    <p className="text-xl font-semibold text-foreground">
-                      {campaign.reach?.toLocaleString('pt-BR') || '0'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Frequência</p>
-                    <p className="text-xl font-semibold text-foreground">
-                      {campaign.frequency?.toFixed(2) || '0,00'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Progresso da Campanha */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
-                <span>Progresso da Campanha</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span>Data de Início: {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString('pt-BR') : 'N/A'}</span>
-                  <span>Status: {campaign.status}</span>
-                </div>
-                <Progress value={75} className="w-full" />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>75% concluída</span>
-                  <span>Estimativa de conclusão: 30 dias</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Insights e Recomendações */}
+        <TabsContent value="insights">
           <Card>
             <CardHeader>
               <CardTitle>Insights e Recomendações</CardTitle>
@@ -436,7 +435,7 @@ export default function CampanhaDetalhes() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-6">
+        <TabsContent value="alerts">
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h4 className="text-lg font-semibold">Alertas & Sugestões da Campanha</h4>
