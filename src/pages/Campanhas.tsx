@@ -10,6 +10,9 @@ import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { EditCampaignDialog } from "@/components/campaigns/EditCampaignDialog";
+import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
+import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
+import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -26,7 +29,8 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 
 
@@ -136,6 +140,7 @@ const Campanhas = () => {
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [openClientFilter, setOpenClientFilter] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   
   // Estados para ordenação
   const [sortColumn, setSortColumn] = useState<'performance' | 'ctr' | 'cpc' | 'conversions' | 'name' | 'client' | 'spend' | 'cpl' | null>('performance');
@@ -143,6 +148,7 @@ const Campanhas = () => {
   
   const { campaigns, loading, error, toggleCampaign, updateCampaign } = useCampaigns();
   const { clients } = useClients();
+  const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
   const { toast } = useToast();
   
   // Usar valor fixo maior para aproveitar melhor a tela
@@ -446,6 +452,15 @@ const Campanhas = () => {
                       <Download className="w-4 h-4" />
                       <span>Exportar</span>
                     </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex items-center space-x-2" 
+                      onClick={() => setSyncDialogOpen(true)}
+                      disabled={syncing}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                      <span>Sincronizar</span>
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -718,6 +733,19 @@ const Campanhas = () => {
         isOpen={isEditDialogOpen}
         onClose={handleCloseEditDialog}
         onSave={handleSaveCampaign}
+      />
+
+      <SyncPeriodDialog
+        open={syncDialogOpen}
+        onOpenChange={setSyncDialogOpen}
+        onConfirm={syncAllClients}
+        syncing={syncing}
+        title="Sincronizar Campanhas"
+      />
+
+      <SyncProgressModal
+        open={syncing}
+        progress={progress}
       />
     </DashboardLayout>
   );
