@@ -10,6 +10,8 @@ import { ArrowLeft, Edit, BarChart3, Users, Target, TrendingUp, Eye, Calendar, D
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTasks } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
+import { useAdSets } from "@/hooks/useAdSets";
+import { useAds } from "@/hooks/useAds";
 import { useToast } from "@/hooks/use-toast";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 
@@ -39,12 +41,18 @@ export default function CampanhaDetalhes() {
   const { campaigns, loading } = useCampaigns();
   const { createTask } = useTasks();
   const { teams } = useTeams();
+  const { adSets, loading: adSetsLoading } = useAdSets();
+  const { ads, loading: adsLoading } = useAds();
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
   const { toast } = useToast();
   
   const campaign = campaigns.find(c => c.id === id);
+
+  // Filtrar ad sets e ads desta campanha
+  const campaignAdSets = adSets.filter(adSet => adSet.campaign_id === id);
+  const campaignAds = ads.filter(ad => ad.campaign_id === id);
 
   // Função para analisar a campanha e gerar sugestões
   const handleAnalyzeCampaign = async () => {
@@ -448,7 +456,7 @@ export default function CampanhaDetalhes() {
 
       {/* Tabs para seções adicionais */}
       <Tabs defaultValue="insights" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="insights">Insights & Recomendações</TabsTrigger>
           <TabsTrigger value="alerts" className="relative">
             Alertas & Sugestões
@@ -457,6 +465,18 @@ export default function CampanhaDetalhes() {
                 {campaignSuggestions.length}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="adsets">
+            Conjuntos de Anúncios
+            <Badge variant="secondary" className="ml-2 text-xs">
+              {campaignAdSets.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="ads">
+            Criativos
+            <Badge variant="secondary" className="ml-2 text-xs">
+              {campaignAds.length}
+            </Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -583,6 +603,206 @@ export default function CampanhaDetalhes() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="adsets">
+          <Card>
+            <CardHeader>
+              <CardTitle>Conjuntos de Anúncios da Campanha</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {adSetsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Carregando conjuntos de anúncios...</p>
+                </div>
+              ) : campaignAdSets.length > 0 ? (
+                <div className="space-y-4">
+                  {campaignAdSets.map((adSet) => (
+                    <Card key={adSet.id} className="border border-gray-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-gray-900">{adSet.name}</h4>
+                          <Badge 
+                            variant={adSet.status === 'ACTIVE' ? 'default' : 'secondary'}
+                            className={adSet.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
+                          >
+                            {adSet.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">Orçamento Diário</p>
+                            <p className="font-medium">R$ {adSet.daily_budget?.toFixed(2) || '0,00'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Investimento</p>
+                            <p className="font-medium">R$ {adSet.spend?.toFixed(2) || '0,00'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">CTR</p>
+                            <p className="font-medium">{adSet.ctr?.toFixed(2) || '0,00'}%</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">CPC</p>
+                            <p className="font-medium">R$ {adSet.cpc?.toFixed(2) || '0,00'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Impressões</p>
+                            <p className="font-medium">{adSet.impressions?.toLocaleString('pt-BR') || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Cliques</p>
+                            <p className="font-medium">{adSet.clicks?.toLocaleString('pt-BR') || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Conversões</p>
+                            <p className="font-medium">{adSet.conversions || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">CPA</p>
+                            <p className="font-medium">R$ {adSet.cpa?.toFixed(2) || '0,00'}</p>
+                          </div>
+                        </div>
+
+                        {adSet.targeting && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-gray-500 text-sm mb-1">Segmentação:</p>
+                            <p className="text-sm text-gray-700">{adSet.targeting}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Nenhum conjunto de anúncios encontrado para esta campanha.</p>
+                  <p className="text-sm text-gray-400 mt-1">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ads">
+          <Card>
+            <CardHeader>
+              <CardTitle>Criativos da Campanha</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {adsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Carregando criativos...</p>
+                </div>
+              ) : campaignAds.length > 0 ? (
+                <div className="space-y-4">
+                  {campaignAds.map((ad) => (
+                    <Card key={ad.id} className="border border-gray-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 mb-1">{ad.name}</h4>
+                            <p className="text-sm text-gray-600">{ad.creative_type}</p>
+                          </div>
+                          <Badge 
+                            variant={ad.status === 'ACTIVE' ? 'default' : 'secondary'}
+                            className={ad.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
+                          >
+                            {ad.status}
+                          </Badge>
+                        </div>
+
+                        {(ad.creative_title || ad.creative_body) && (
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                            {ad.creative_title && (
+                              <h5 className="font-medium text-gray-900 mb-1">{ad.creative_title}</h5>
+                            )}
+                            {ad.creative_body && (
+                              <p className="text-sm text-gray-700">{ad.creative_body}</p>
+                            )}
+                            {ad.call_to_action && (
+                              <p className="text-xs text-gray-500 mt-2">CTA: {ad.call_to_action}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">Investimento</p>
+                            <p className="font-medium">R$ {ad.spend?.toFixed(2) || '0,00'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">CTR</p>
+                            <p className="font-medium">{ad.ctr?.toFixed(2) || '0,00'}%</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">CPC</p>
+                            <p className="font-medium">R$ {ad.cpc?.toFixed(2) || '0,00'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Conversões</p>
+                            <p className="font-medium">{ad.conversions || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Impressões</p>
+                            <p className="font-medium">{ad.impressions?.toLocaleString('pt-BR') || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Cliques</p>
+                            <p className="font-medium">{ad.clicks?.toLocaleString('pt-BR') || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Curtidas</p>
+                            <p className="font-medium">{ad.likes || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Comentários</p>
+                            <p className="font-medium">{ad.comments || 0}</p>
+                          </div>
+                        </div>
+
+                        {(ad.image_url || ad.video_url) && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-gray-500 text-sm mb-2">Mídia:</p>
+                            <div className="flex gap-2">
+                              {ad.image_url && (
+                                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                                  <img 
+                                    src={ad.image_url} 
+                                    alt="Creative" 
+                                    className="w-full h-full object-cover rounded-lg"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                  <Eye className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                              {ad.video_url && (
+                                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                                  <BarChart3 className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Nenhum criativo encontrado para esta campanha.</p>
+                  <p className="text-sm text-gray-400 mt-1">Os dados aparecerão aqui após a sincronização com o Facebook.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
