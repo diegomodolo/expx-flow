@@ -137,7 +137,7 @@ export default function NewDashboard() {
     await refetch();
   };
 
-  const handleSyncConfirm = async (period: string) => {
+  const handleSyncConfirm = async (period: string, options: any) => {
     setSyncDialogOpen(false);
     await syncAllClients(period);
   };

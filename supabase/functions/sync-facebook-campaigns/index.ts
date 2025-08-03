@@ -52,7 +52,7 @@ serve(async (req) => {
       )
     }
 
-    const { clientId, period = '30', fullSync = false } = requestBody
+    const { clientId, period = '30', fullSync = false, syncOptions } = requestBody
 
     if (!clientId) {
       console.error('Client ID missing from request:', requestBody)
@@ -68,7 +68,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Processing sync for client ID:', clientId, 'Full sync:', fullSync)
+    console.log('Processing sync for client ID:', clientId, 'Full sync:', fullSync, 'Sync options:', syncOptions)
 
     // Get client info
     console.log('Fetching client data...')
