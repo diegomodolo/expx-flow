@@ -655,14 +655,16 @@ const Campanhas = () => {
                               <td className="px-3 py-3 whitespace-nowrap">
                                 <TooltipProvider>
                                   <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge 
-                                        variant="outline" 
-                                        className={`${performance.color} text-xs cursor-help`}
-                                      >
-                                        <div className={`w-1.5 h-1.5 rounded-full mr-1 ${performance.dotColor}`}></div>
-                                        {performance.label}
-                                      </Badge>
+                                    <TooltipTrigger>
+                                      <div>
+                                        <Badge 
+                                          variant="outline" 
+                                          className={`${performance.color} text-xs cursor-help`}
+                                        >
+                                          <div className={`w-1.5 h-1.5 rounded-full mr-1 ${performance.dotColor}`}></div>
+                                          {performance.label}
+                                        </Badge>
+                                      </div>
                                     </TooltipTrigger>
                                     <TooltipContent className="max-w-xs whitespace-pre-line">
                                       <p>{getPerformanceTooltip(campaign)}</p>
@@ -778,14 +780,16 @@ const Campanhas = () => {
                         </Badge>
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge 
-                                variant="outline" 
-                                className={`${performance.color} cursor-help`}
-                              >
-                                <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
-                                {performance.label}
-                              </Badge>
+                            <TooltipTrigger>
+                              <div>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`${performance.color} cursor-help`}
+                                >
+                                  <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
+                                  {performance.label}
+                                </Badge>
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs whitespace-pre-line">
                               <p>{getPerformanceTooltip(campaign)}</p>
