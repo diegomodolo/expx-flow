@@ -153,16 +153,34 @@ export default function CampanhaDetalhes() {
     
     setIsSyncing(true);
     try {
+      // Buscar o último período de sincronização usado
+      const getLastSyncPeriod = async (clientId: string): Promise<string> => {
+        const { data } = await supabase
+          .from('clients')
+          .select('last_sync_period')
+          .eq('id', clientId)
+          .single();
+        
+        if (data?.last_sync_period) {
+          return data.last_sync_period;
+        }
+        
+        return localStorage.getItem('lastSyncPeriod') || '30';
+      };
+
+      const syncPeriod = await getLastSyncPeriod(campaign.client_id);
+      const periodLabel = syncPeriod === 'lifetime' ? 'máximo' : `${syncPeriod} dias`;
+
       toast({
         title: "Sincronização iniciada",
-        description: "Sincronizando conjuntos de anúncios e criativos da campanha...",
+        description: `Sincronizando conjuntos de anúncios e criativos (${periodLabel})...`,
       });
 
       // Chamar a edge function para sincronizar a campanha específica
       const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
         body: {
           clientId: campaign.client_id,
-          period: '30',
+          period: syncPeriod,
           fullSync: true
         }
       });
