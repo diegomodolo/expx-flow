@@ -97,16 +97,52 @@ export function useCampaigns() {
 
   const toggleCampaign = async (id: string, isActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from("campaigns")
-        .update({ 
-          is_active: isActive,
-          status: isActive ? "active" : "paused"
-        })
-        .eq("id", id);
+      // First, get the campaign to find the client_id
+      const campaign = campaigns.find(c => c.id === id);
+      if (!campaign) {
+        throw new Error("Campanha não encontrada");
+      }
 
-      if (error) throw error;
-      await fetchCampaigns(); // Refresh the list
+      // Try to update via Facebook API first
+      try {
+        const { data: result, error: functionError } = await supabase.functions.invoke('manage-facebook-campaign', {
+          body: {
+            campaignId: id,
+            status: isActive ? "active" : "paused",
+            clientId: campaign.client_id
+          }
+        });
+
+        if (functionError) {
+          console.warn('Facebook API update failed, falling back to local update:', functionError);
+          throw functionError;
+        }
+
+        if (result?.error) {
+          console.warn('Facebook API returned error, falling back to local update:', result.error);
+          throw new Error(result.error);
+        }
+
+        // Facebook update successful, refresh campaigns to get latest data
+        await fetchCampaigns();
+        return;
+
+      } catch (facebookError) {
+        console.warn('Facebook API update failed, falling back to local update:', facebookError);
+        
+        // Fallback to local update only
+        const { error } = await supabase
+          .from("campaigns")
+          .update({ 
+            is_active: isActive,
+            status: isActive ? "active" : "paused"
+          })
+          .eq("id", id);
+
+        if (error) throw error;
+        await fetchCampaigns(); // Refresh the list
+      }
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao alterar status da campanha");
     }
