@@ -220,9 +220,13 @@ Deno.serve(async (req) => {
       // Fetch current ad accounts from Facebook with pagination
       let allAdAccounts = [];
       let nextUrl = `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,name,account_id,currency,account_status,business_name&limit=100&access_token=${integration.access_token}`;
+      let batchCount = 0;
+      
+      console.log('Starting refresh accounts pagination...');
       
       while (nextUrl) {
-        console.log('Refreshing ad accounts from:', nextUrl.replace(integration.access_token, '[TOKEN_HIDDEN]'));
+        batchCount++;
+        console.log(`Batch ${batchCount} - Refreshing ad accounts from: ${nextUrl.replace(integration.access_token, '[TOKEN_HIDDEN]')}`);
         
         const adAccountsResponse = await fetch(nextUrl);
         
@@ -235,19 +239,21 @@ Deno.serve(async (req) => {
           );
         }
 
-        const adAccountsData = await adAccountsResponse.json();
-        console.log(`Refreshed ${adAccountsData.data?.length || 0} accounts in this batch`);
+        const batchData = await adAccountsResponse.json();
+        console.log(`Batch ${batchCount} - Fetched ${batchData.data?.length || 0} accounts`);
+        console.log(`Batch ${batchCount} - Has next page: ${!!batchData.paging?.next}`);
         
         // Add accounts from this batch to the total
-        if (adAccountsData.data) {
-          allAdAccounts.push(...adAccountsData.data);
+        if (batchData.data) {
+          allAdAccounts.push(...batchData.data);
         }
         
         // Check if there's a next page
-        nextUrl = adAccountsData.paging?.next || null;
+        nextUrl = batchData.paging?.next || null;
+        console.log(`Batch ${batchCount} - Next URL: ${nextUrl ? 'EXISTS' : 'NULL'}`);
       }
       
-      console.log('Total ad accounts refreshed:', allAdAccounts.length);
+      console.log(`Pagination complete! Total batches: ${batchCount}, Total accounts: ${allAdAccounts.length}`);
       const adAccountsData = { data: allAdAccounts };
 
       // Update ad accounts in database (preserve existing relationships)
