@@ -2168,11 +2168,8 @@ const ClienteDetalhes = () => {
     </DashboardLayout>
   );
 };
-                              <Button
-                                size="sm"
-                                onClick={() => handleConvertAlertToTask({
-                                  id: suggestion.id,
-                                  type: suggestion.type,
+
+export default ClienteDetalhes;
                                   title: suggestion.title,
                                   description: suggestion.description,
                                   action: suggestion.action,
