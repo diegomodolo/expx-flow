@@ -32,6 +32,7 @@ export interface EmployeeWithPermissions {
 export function useEmployeePermissions() {
   const [employeesWithPermissions, setEmployeesWithPermissions] = useState<EmployeeWithPermissions[]>([]);
   const [currentUserPermissions, setCurrentUserPermissions] = useState<MenuItemType[]>([]);
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -89,6 +90,23 @@ export function useEmployeePermissions() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Verificar se é proprietário da empresa
+      const { data: member } = await supabase
+        .from('company_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('company_id', activeCompany.id)
+        .single();
+
+      const userIsOwner = member?.role === 'owner';
+      setIsOwner(userIsOwner);
+
+      // Se for proprietário, não precisa verificar permissões específicas
+      if (userIsOwner) {
+        setCurrentUserPermissions(['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'configuracoes']);
+        return;
+      }
 
       // Buscar colaborador atual
       const { data: employee } = await supabase
@@ -202,7 +220,12 @@ export function useEmployeePermissions() {
 
   // Verificar se usuário tem permissão para acessar um menu
   const hasPermission = (menuItem: MenuItemType): boolean => {
-    // Dashboard e tarefas são sempre acessíveis
+    // Proprietário da empresa sempre tem acesso a tudo
+    if (isOwner) {
+      return true;
+    }
+
+    // Dashboard e tarefas são sempre acessíveis para todos os colaboradores
     if (menuItem === 'dashboard' || menuItem === 'tarefas') {
       return true;
     }
@@ -218,7 +241,7 @@ export function useEmployeePermissions() {
 
   return {
     employeesWithPermissions,
-    currentUserPermissions,
+    isOwner,
     loading,
     error,
     fetchAllEmployeePermissions,
