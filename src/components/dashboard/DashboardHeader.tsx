@@ -73,11 +73,13 @@ export function DashboardHeader() {
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center space-x-6">
           <SidebarTrigger className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground" />
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded"></div>
-            <div className="h-6 w-px bg-border"></div>
-            <h1 className="text-lg font-semibold text-foreground">MarketingHub</h1>
-          </div>
+          <img 
+            src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
+            alt="Controle de Trafego" 
+            className="w-8 h-8 object-contain"
+          />
+          <div className="h-6 w-px bg-border"></div>
+          <h1 className="text-lg font-semibold text-foreground">Controle de Trafego</h1>
         </div>
         
         <div className="flex items-center space-x-4">

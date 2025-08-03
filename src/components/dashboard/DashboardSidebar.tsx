@@ -50,14 +50,6 @@ export function DashboardSidebar() {
       className="bg-white border-r border-gray-200"
     >
       <SidebarContent className="pt-6 bg-white">
-        {/* Logo Section */}
-        <div className="flex items-center justify-center py-2 px-4 mb-4">
-          <img 
-            src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
-            alt="Controle de Trafego" 
-            className="w-10 h-10 object-contain"
-          />
-        </div>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
