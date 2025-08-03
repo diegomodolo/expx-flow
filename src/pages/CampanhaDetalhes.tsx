@@ -42,15 +42,17 @@ export default function CampanhaDetalhes() {
   const { campaigns, loading } = useCampaigns();
   const { createTask } = useTasks();
   const { teams } = useTeams();
-  const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets();
-  const { ads, loading: adsLoading, refetch: refetchAds } = useAds();
+  
+  const campaign = campaigns.find(c => c.id === id);
+  
+  const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(campaign?.client_id);
+  const { ads, loading: adsLoading, refetch: refetchAds } = useAds(campaign?.client_id);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
   const [campaignSuggestions, setCampaignSuggestions] = useState<any[]>([]);
   const { toast } = useToast();
-  
-  const campaign = campaigns.find(c => c.id === id);
 
   // Filtrar ad sets e ads desta campanha
   const campaignAdSets = adSets.filter(adSet => adSet.campaign_id === id);
@@ -189,11 +191,33 @@ export default function CampanhaDetalhes() {
         throw error;
       }
       
-      // Recarregar os dados após a sincronização
-      await Promise.all([
-        refetchAdSets(),
-        refetchAds()
-      ]);
+      // Aguardar um tempo para os dados serem inseridos no banco
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Mostrar feedback visual de que os dados estão sendo atualizados
+      setIsRefreshingData(true);
+      
+      // Implementar retry com verificação
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        await Promise.all([
+          refetchAdSets(),
+          refetchAds()
+        ]);
+        
+        // Aguardar um pouco para os dados serem carregados
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Aguardar antes da próxima tentativa
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      setIsRefreshingData(false);
       
       toast({
         title: "Sincronização concluída!",
@@ -524,10 +548,10 @@ export default function CampanhaDetalhes() {
             variant="outline" 
             size="sm"
             onClick={handleSyncCampaign}
-            disabled={isSyncing}
+            disabled={isSyncing || isRefreshingData}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing || isRefreshingData ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Sincronizando...' : isRefreshingData ? 'Atualizando dados...' : 'Sincronizar'}
           </Button>
         </div>
       </div>
@@ -858,10 +882,10 @@ export default function CampanhaDetalhes() {
                   variant="outline" 
                   size="sm"
                   onClick={handleSyncCampaign}
-                  disabled={isSyncing}
+                  disabled={isSyncing || isRefreshingData}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing || isRefreshingData ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : isRefreshingData ? 'Atualizando dados...' : 'Sincronizar'}
                 </Button>
               </div>
             </CardHeader>
@@ -980,11 +1004,11 @@ export default function CampanhaDetalhes() {
                   <Button 
                     variant="outline" 
                     onClick={handleSyncCampaign}
-                    disabled={isSyncing}
+                    disabled={isSyncing || isRefreshingData}
                     className="mt-4"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Dados'}
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing || isRefreshingData ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Sincronizando...' : isRefreshingData ? 'Atualizando dados...' : 'Sincronizar Dados'}
                   </Button>
                 </div>
               )}
@@ -1001,10 +1025,10 @@ export default function CampanhaDetalhes() {
                   variant="outline" 
                   size="sm"
                   onClick={handleSyncCampaign}
-                  disabled={isSyncing}
+                  disabled={isSyncing || isRefreshingData}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing || isRefreshingData ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : isRefreshingData ? 'Atualizando dados...' : 'Sincronizar'}
                 </Button>
               </div>
             </CardHeader>
@@ -1157,11 +1181,11 @@ export default function CampanhaDetalhes() {
                   <Button 
                     variant="outline" 
                     onClick={handleSyncCampaign}
-                    disabled={isSyncing}
+                    disabled={isSyncing || isRefreshingData}
                     className="mt-4"
                   >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Dados'}
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing || isRefreshingData ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Sincronizando...' : isRefreshingData ? 'Atualizando dados...' : 'Sincronizar Dados'}
                   </Button>
                 </div>
               )}
