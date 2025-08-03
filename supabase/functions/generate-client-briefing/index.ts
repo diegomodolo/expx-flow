@@ -42,14 +42,74 @@ serve(async (req) => {
 
     console.log('Iniciando análise do website:', websiteUrl);
 
-    // Step 1: Scrape website with Firecrawl
+    // Normalize URL
+    let normalizedUrl = websiteUrl;
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+
+    console.log('URL normalizada:', normalizedUrl);
+
+    // Step 1: Scrape website with Firecrawl (with retry logic)
     const firecrawl = new FirecrawlApp({ apiKey: firecrawlApiKey });
     
-    console.log('Fazendo scrape da URL:', websiteUrl);
-    const crawlResponse = await firecrawl.scrapeUrl(websiteUrl, {
-      formats: ['markdown'],
-      onlyMainContent: true
-    });
+    let crawlResponse;
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`Tentativa ${retryCount + 1} de scraping da URL:`, normalizedUrl);
+        
+        const startTime = Date.now();
+        
+        // First attempt with optimized settings
+        if (retryCount === 0) {
+          crawlResponse = await firecrawl.scrapeUrl(normalizedUrl, {
+            formats: ['markdown'],
+            onlyMainContent: true,
+            timeout: 15000, // 15 seconds timeout
+            waitFor: 1000,  // Wait 1 second for page load
+            skipTlsVerification: false,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; FirecrawlBot/1.0)'
+            }
+          });
+        } else {
+          // Fallback attempt with simpler settings
+          console.log('Tentando com configurações simplificadas...');
+          crawlResponse = await firecrawl.scrapeUrl(normalizedUrl, {
+            formats: ['markdown'],
+            onlyMainContent: true,
+            timeout: 10000, // 10 seconds timeout
+            waitFor: 500,   // Wait only 0.5 second
+            includeHtml: false,
+            screenshot: false
+          });
+        }
+        
+        const endTime = Date.now();
+        console.log(`Scraping concluído em ${endTime - startTime}ms`);
+        break; // Success, exit retry loop
+        
+      } catch (error) {
+        retryCount++;
+        console.error(`Erro na tentativa ${retryCount}:`, error.message);
+        
+        if (retryCount > maxRetries) {
+          console.error('Todas as tentativas falharam');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Não foi possível acessar o website. Verifique se a URL está correta e se o site está online. Se o problema persistir, tente novamente em alguns minutos.' 
+            }),
+            { status: 408, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+      }
+    }
 
     console.log('Resposta do Firecrawl:', JSON.stringify(crawlResponse, null, 2));
 
@@ -198,7 +258,7 @@ Seja específico, prático e focado em resultados. Use dados e insights do websi
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
