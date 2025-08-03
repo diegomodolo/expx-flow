@@ -10,12 +10,14 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full bg-background">
+      <div className="min-h-screen w-full bg-background flex">
         <DashboardSidebar />
-        <DashboardHeader />
-        <main className="ml-16 pt-16 p-6 min-h-screen">
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <main className="flex-1 p-6 relative z-10">
+            {children}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );

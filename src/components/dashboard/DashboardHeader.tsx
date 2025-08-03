@@ -69,7 +69,7 @@ export function DashboardHeader() {
   const displayName = profile?.full_name || user?.email || "Usuário";
 
   return (
-    <header className="fixed top-0 left-16 right-0 h-16 bg-card border-b border-border z-50">
+    <header className="h-16 bg-card border-b border-border z-20 shrink-0">
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center space-x-6">
           <SidebarTrigger className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground" />
