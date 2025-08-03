@@ -168,15 +168,7 @@ const Clientes = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-6 bg-blue-100 border border-blue-500 min-h-full">
-        <h1 className="text-2xl font-bold text-blue-800">Clientes Page Debug - Página Carregada</h1>
-        <div className="p-4 bg-yellow-100 border border-yellow-400 rounded">
-          <p>Debug Info:</p>
-          <p>Loading: {loading ? 'true' : 'false'}</p>
-          <p>Error: {error || 'nenhum erro'}</p>
-          <p>Clients count: {clients.length}</p>
-        </div>
-        
+      <div className="flex flex-col h-full space-y-6">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -184,8 +176,8 @@ const Clientes = () => {
           </div>
         )}
         
-        {/* Show content regardless of loading state for now */}
-        <>
+        {!loading && (
+          <>
         {/* Header Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -564,6 +556,7 @@ const Clientes = () => {
           </div>
         </Card>
         </>
+        )}
         
         {/* Single Client Dialog for all modes */}
         <ClientDialog
