@@ -101,10 +101,12 @@ export function CampaignConfiguration({ campaignData, updateCampaignData }: Camp
             <h4 className="font-medium">Orçamento</h4>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold">R$ {configuration.budget?.daily}</div>
+            <div className="text-2xl font-bold">
+              R$ {configuration.budget?.daily || 'N/A'}
+            </div>
             <div className="text-sm text-muted-foreground">por dia</div>
             <div className="text-xs text-muted-foreground">
-              Total: R$ {configuration.budget?.total} ({configuration.budget?.duration} dias)
+              Total: R$ {configuration.budget?.total || 'N/A'} ({configuration.budget?.duration || 30} dias)
             </div>
           </div>
         </Card>
@@ -115,7 +117,9 @@ export function CampaignConfiguration({ campaignData, updateCampaignData }: Camp
             <h4 className="font-medium">Alcance</h4>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold">{configuration.targeting?.estimatedReach}</div>
+            <div className="text-2xl font-bold">
+              {configuration.targeting?.estimatedReach || '10.000-25.000'}
+            </div>
             <div className="text-sm text-muted-foreground">pessoas</div>
             <div className="text-xs text-muted-foreground">
               Público estimado
@@ -143,10 +147,10 @@ export function CampaignConfiguration({ campaignData, updateCampaignData }: Camp
             <h4 className="font-medium">Duração</h4>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold">{configuration.schedule?.duration}</div>
+            <div className="text-2xl font-bold">{configuration.schedule?.duration || 30}</div>
             <div className="text-sm text-muted-foreground">dias</div>
             <div className="text-xs text-muted-foreground">
-              {configuration.schedule?.startDate} até {configuration.schedule?.endDate}
+              {configuration.schedule?.startDate || 'Data início'} até {configuration.schedule?.endDate || 'Data fim'}
             </div>
           </div>
         </Card>
@@ -159,24 +163,22 @@ export function CampaignConfiguration({ campaignData, updateCampaignData }: Camp
             Segmentação Detalhada
           </h4>
           <div className="space-y-3">
-            {configuration.targeting?.demographics && (
-              <div>
-                <h5 className="text-sm font-medium">Demografia</h5>
-                <p className="text-sm text-muted-foreground">{configuration.targeting.demographics}</p>
+            <div>
+              <h5 className="text-sm font-medium">Demografia</h5>
+              <p className="text-sm text-muted-foreground">
+                {configuration.targeting?.demographics || 'Idade: 25-45, ambos os gêneros, localização: Brasil'}
+              </p>
+            </div>
+            <div>
+              <h5 className="text-sm font-medium">Interesses</h5>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {(configuration.targeting?.interests || ['Marketing Digital', 'Negócios']).map((interest: string, index: number) => (
+                  <span key={index} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    {interest}
+                  </span>
+                ))}
               </div>
-            )}
-            {configuration.targeting?.interests && (
-              <div>
-                <h5 className="text-sm font-medium">Interesses</h5>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {configuration.targeting.interests.map((interest: string, index: number) => (
-                    <span key={index} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                      {interest}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            </div>
             {configuration.targeting?.behaviors && (
               <div>
                 <h5 className="text-sm font-medium">Comportamentos</h5>

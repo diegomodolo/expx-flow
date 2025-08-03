@@ -100,47 +100,49 @@ serve(async (req) => {
         - Etapa do Funil: ${funnelStage}
         - Tipo de Campanha: ${campaignType}
 
-        Com base no histórico (ou benchmarks se for o primeiro), calcule:
+        CRÍTICO: Retorne APENAS um JSON válido, sem markdown ou explicações.
+        
+        Baseado no histórico de performance (ou benchmarks do setor), calcule valores específicos e crie uma configuração otimizada:
 
-        1. **Orçamento otimizado** (diário e total baseado no histórico de performance)
-        2. **Segmentação detalhada** (demografia, interesses, comportamentos específicos do setor)
-        3. **Estratégia de lance** (baseada no CPA histórico ou benchmark)
-        4. **Cronograma estratégico** (duração, horários, dias da semana)
-        5. **Estrutura de conjuntos de anúncios** (quantidade e variações)
+        1. **Orçamento**: Baseado no orçamento mensal de R$ ${client.monthly_budget || 5000}
+        2. **Segmentação**: Específica para o setor ${client.sector}
+        3. **CPA Alvo**: ${campaigns?.length ? 'Baseado no CPA histórico médio' : 'Usar benchmark do setor'}
+        4. **Cronograma**: Otimizado para o público-alvo
 
-        Responda em formato JSON detalhado:
+        JSON obrigatório (sem ```json):
         {
           "budget": {
-            "daily": 100,
-            "total": 3000,
+            "daily": ${client.monthly_budget ? Math.round(client.monthly_budget / 30) : 167},
+            "total": ${client.monthly_budget || 5000},
             "duration": 30,
-            "distribution": "Descrição da estratégia de distribuição"
+            "distribution": "Estratégia detalhada de distribuição"
           },
           "targeting": {
-            "demographics": "Idade, gênero, localização específica",
+            "demographics": "Idade específica, gênero, localização",
             "interests": ["interesse1", "interesse2", "interesse3"],
-            "behaviors": "Comportamentos de compra específicos",
-            "estimatedReach": "50.000-80.000"
+            "behaviors": "Comportamentos específicos",
+            "estimatedReach": "XX.XXX-XX.XXX"
           },
           "bidding": {
-            "strategy": "Estratégia de lance otimizada",
-            "targetCPA": 50
+            "strategy": "Estratégia otimizada",
+            "targetCPA": ${campaigns?.length ? Math.round(campaigns.reduce((sum, c) => sum + (c.cpa || 0), 0) / campaigns.length) || 45 : 45}
           },
           "schedule": {
             "duration": 30,
-            "startDate": "2024-01-15",
-            "endDate": "2024-02-14",
-            "optimalHours": "18h-22h durante a semana, 10h-14h finais de semana"
+            "startDate": "2025-01-03",
+            "endDate": "2025-02-02",
+            "optimalHours": "Horários específicos"
           },
           "adSets": [
-            {"name": "Conjunto 1", "budget": 30, "targeting": "Segmentação específica"},
-            {"name": "Conjunto 2", "budget": 40, "targeting": "Segmentação específica"},
-            {"name": "Conjunto 3", "budget": 30, "targeting": "Segmentação específica"}
+            {"name": "Nome 1", "budget": ${Math.round((client.monthly_budget || 5000) * 0.5 / 30)}, "targeting": "Segmentação 1"},
+            {"name": "Nome 2", "budget": ${Math.round((client.monthly_budget || 5000) * 0.3 / 30)}, "targeting": "Segmentação 2"},
+            {"name": "Nome 3", "budget": ${Math.round((client.monthly_budget || 5000) * 0.2 / 30)}, "targeting": "Segmentação 3"}
           ],
           "recommendations": [
-            "Recomendação estratégica 1",
-            "Recomendação estratégica 2",
-            "Recomendação estratégica 3"
+            "Recomendação 1",
+            "Recomendação 2", 
+            "Recomendação 3",
+            "Recomendação 4"
           ]
         }
       `;
@@ -189,14 +191,68 @@ serve(async (req) => {
       if (step === 'campaign_type_suggestion') {
         return new Response(JSON.stringify({
           success: true,
-          suggestions: parsedContent.suggestions
+          suggestions: parsedContent.suggestions || []
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else if (step === 'campaign_configuration') {
+        // Calcular CPA histórico médio
+        const historicalCPA = campaigns?.length 
+          ? campaigns.reduce((sum, c) => sum + (c.cpa || 0), 0) / campaigns.length 
+          : 0;
+
+        // Validar e aplicar fallbacks para configuração da campanha
+        const validatedConfig = {
+          budget: parsedContent.budget || {
+            daily: client.monthly_budget ? Math.round(client.monthly_budget / 30) : 100,
+            total: client.monthly_budget || 3000,
+            duration: 30,
+            distribution: "Distribuição equilibrada entre conjuntos de anúncios para otimização de performance"
+          },
+          targeting: parsedContent.targeting || {
+            demographics: `Idade: 25-45, ambos os gêneros, localização: Brasil`,
+            interests: ["Marketing Digital", "Negócios", "Empreendedorismo"],
+            behaviors: "Pessoas interessadas em produtos/serviços similares",
+            estimatedReach: "10.000-25.000"
+          },
+          bidding: parsedContent.bidding || {
+            strategy: "Otimização para conversões com lance automático",
+            targetCPA: historicalCPA > 0 ? Math.round(historicalCPA) : 50
+          },
+          schedule: parsedContent.schedule || {
+            duration: 30,
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            optimalHours: "8h-22h (segunda a sexta); 10h-20h (finais de semana)"
+          },
+          adSets: parsedContent.adSets || [
+            {
+              name: "Público Principal",
+              budget: Math.round((client.monthly_budget || 3000) * 0.6 / 30),
+              targeting: "Segmentação principal baseada no público-alvo do cliente"
+            },
+            {
+              name: "Lookalike",
+              budget: Math.round((client.monthly_budget || 3000) * 0.25 / 30),
+              targeting: "Público semelhante aos melhores clientes"
+            },
+            {
+              name: "Retargeting",
+              budget: Math.round((client.monthly_budget || 3000) * 0.15 / 30),
+              targeting: "Pessoas que já interagiram com a marca"
+            }
+          ],
+          recommendations: parsedContent.recommendations || [
+            "Monitorar performance diariamente nos primeiros 7 dias",
+            "Ajustar orçamentos baseado no CPA dos conjuntos de anúncios",
+            "Testar diferentes criativos para otimizar CTR",
+            "Implementar tracking de conversões adequado"
+          ]
+        };
+
         return new Response(JSON.stringify({
           success: true,
-          configuration: parsedContent
+          configuration: validatedConfig
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -205,7 +261,69 @@ serve(async (req) => {
       console.error('Erro ao fazer parse do JSON:', parseError);
       console.log('Conteúdo recebido:', content);
       
-      // Fallback para resposta em texto
+      // Fallback completo com dados padrão
+      if (step === 'campaign_configuration') {
+        const historicalCPA = campaigns?.length 
+          ? campaigns.reduce((sum, c) => sum + (c.cpa || 0), 0) / campaigns.length 
+          : 0;
+
+        const fallbackConfig = {
+          budget: {
+            daily: client.monthly_budget ? Math.round(client.monthly_budget / 30) : 100,
+            total: client.monthly_budget || 3000,
+            duration: 30,
+            distribution: "Distribuição equilibrada entre conjuntos de anúncios para otimização de performance"
+          },
+          targeting: {
+            demographics: `Idade: 25-45, ambos os gêneros, localização: Brasil`,
+            interests: ["Marketing Digital", "Negócios", "Empreendedorismo"],
+            behaviors: "Pessoas interessadas em produtos/serviços similares",
+            estimatedReach: "10.000-25.000"
+          },
+          bidding: {
+            strategy: "Otimização para conversões com lance automático",
+            targetCPA: historicalCPA > 0 ? Math.round(historicalCPA) : 50
+          },
+          schedule: {
+            duration: 30,
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            optimalHours: "8h-22h (segunda a sexta); 10h-20h (finais de semana)"
+          },
+          adSets: [
+            {
+              name: "Público Principal",
+              budget: Math.round((client.monthly_budget || 3000) * 0.6 / 30),
+              targeting: "Segmentação principal baseada no público-alvo do cliente"
+            },
+            {
+              name: "Lookalike",
+              budget: Math.round((client.monthly_budget || 3000) * 0.25 / 30),
+              targeting: "Público semelhante aos melhores clientes"
+            },
+            {
+              name: "Retargeting",
+              budget: Math.round((client.monthly_budget || 3000) * 0.15 / 30),
+              targeting: "Pessoas que já interagiram com a marca"
+            }
+          ],
+          recommendations: [
+            "Monitorar performance diariamente nos primeiros 7 dias",
+            "Ajustar orçamentos baseado no CPA dos conjuntos de anúncios",
+            "Testar diferentes criativos para otimizar CTR",
+            "Implementar tracking de conversões adequado"
+          ]
+        };
+
+        return new Response(JSON.stringify({
+          success: true,
+          configuration: fallbackConfig
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Fallback para sugestões
       return new Response(JSON.stringify({
         success: true,
         [step === 'campaign_type_suggestion' ? 'suggestions' : 'configuration']: content
