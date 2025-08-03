@@ -292,6 +292,149 @@ export default function CampanhaDetalhes() {
     return { level: "Crítico", color: "text-red-600" };
   };
 
+  // Função para avaliar performance de conjuntos de anúncios
+  const getAdSetPerformance = (adSet: any) => {
+    const ctr = adSet.ctr || 0;
+    const cpc = adSet.cpc || 0;
+    const conversions = adSet.conversions || 0;
+
+    // Bom: CTR ≥ 2% e CPC ≤ 2 e conversões > 0
+    if (ctr >= 2 && cpc <= 2 && conversions > 0) {
+      return {
+        level: 'good',
+        label: 'Bom',
+        color: 'text-emerald-600',
+        borderColor: 'border-l-emerald-500',
+        bgColor: 'bg-emerald-50',
+        badgeColor: 'bg-emerald-100 text-emerald-800',
+        icon: TrendingUp
+      };
+    }
+    
+    // OK: CTR ≥ 1% ou CPC ≤ 3 ou conversões > 0
+    if (ctr >= 1 || cpc <= 3 || conversions > 0) {
+      return {
+        level: 'ok',
+        label: 'OK',
+        color: 'text-blue-600',
+        borderColor: 'border-l-blue-500',
+        bgColor: 'bg-blue-50',
+        badgeColor: 'bg-blue-100 text-blue-800',
+        icon: Target
+      };
+    }
+
+    // Ruim: CTR < 1% e CPC > 3 e sem conversões
+    return {
+      level: 'bad',
+      label: 'Crítico',
+      color: 'text-red-600',
+      borderColor: 'border-l-red-500',
+      bgColor: 'bg-red-50',
+      badgeColor: 'bg-red-100 text-red-800',
+      icon: AlertTriangle
+    };
+  };
+
+  // Função para avaliar performance de criativos
+  const getAdPerformance = (ad: any) => {
+    const ctr = ad.ctr || 0;
+    const cpc = ad.cpc || 0;
+    const conversions = ad.conversions || 0;
+
+    // Bom: CTR ≥ 2% e CPC ≤ 2 e conversões > 0
+    if (ctr >= 2 && cpc <= 2 && conversions > 0) {
+      return {
+        level: 'good',
+        label: 'Bom',
+        color: 'text-emerald-600',
+        borderColor: 'border-l-emerald-500',
+        bgColor: 'bg-emerald-50',
+        badgeColor: 'bg-emerald-100 text-emerald-800',
+        icon: TrendingUp
+      };
+    }
+    
+    // OK: CTR ≥ 1% ou CPC ≤ 3 ou conversões > 0
+    if (ctr >= 1 || cpc <= 3 || conversions > 0) {
+      return {
+        level: 'ok',
+        label: 'OK',
+        color: 'text-blue-600',
+        borderColor: 'border-l-blue-500',
+        bgColor: 'bg-blue-50',
+        badgeColor: 'bg-blue-100 text-blue-800',
+        icon: Target
+      };
+    }
+
+    // Ruim: CTR < 1% e CPC > 3 e sem conversões
+    return {
+      level: 'bad',
+      label: 'Crítico',
+      color: 'text-red-600',
+      borderColor: 'border-l-red-500',
+      bgColor: 'bg-red-50',
+      badgeColor: 'bg-red-100 text-red-800',
+      icon: AlertTriangle
+    };
+  };
+
+  // Função para formatar dados de segmentação
+  const formatTargeting = (targeting?: string) => {
+    if (!targeting) return { formatted: 'Não especificado', details: [] };
+    
+    try {
+      const targetingObj = JSON.parse(targeting);
+      const details = [];
+      
+      // Extrair idade
+      if (targetingObj.age_min || targetingObj.age_max) {
+        details.push(`Idade: ${targetingObj.age_min || '18'}-${targetingObj.age_max || '65+'}`);
+      }
+      
+      // Extrair localização
+      if (targetingObj.geo_locations?.countries?.length > 0) {
+        details.push(`País: ${targetingObj.geo_locations.countries.join(', ')}`);
+      }
+      
+      if (targetingObj.geo_locations?.regions?.length > 0) {
+        details.push(`Região: ${targetingObj.geo_locations.regions.length} selecionadas`);
+      }
+      
+      if (targetingObj.geo_locations?.cities?.length > 0) {
+        details.push(`Cidades: ${targetingObj.geo_locations.cities.length} selecionadas`);
+      }
+      
+      // Extrair audiências customizadas
+      if (targetingObj.custom_audiences?.length > 0) {
+        details.push(`Audiências: ${targetingObj.custom_audiences.length} configuradas`);
+      }
+      
+      // Extrair interesses
+      if (targetingObj.interests?.length > 0) {
+        details.push(`Interesses: ${targetingObj.interests.length} selecionados`);
+      }
+      
+      // Extrair comportamentos
+      if (targetingObj.behaviors?.length > 0) {
+        details.push(`Comportamentos: ${targetingObj.behaviors.length} selecionados`);
+      }
+      
+      // Extrair nome da audiência se disponível
+      if (targetingObj.name) {
+        details.push(`Audiência: ${targetingObj.name}`);
+      }
+      
+      return { 
+        formatted: details.length > 0 ? details.join(' • ') : 'Segmentação personalizada', 
+        details 
+      };
+    } catch {
+      return { formatted: 'Segmentação personalizada', details: [] };
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -705,63 +848,102 @@ export default function CampanhaDetalhes() {
                 </div>
               ) : campaignAdSets.length > 0 ? (
                 <div className="space-y-4">
-                  {campaignAdSets.map((adSet) => (
-                    <Card key={adSet.id} className="border border-gray-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-medium text-gray-900">{adSet.name}</h4>
-                          <Badge 
-                            variant={adSet.status === 'ACTIVE' ? 'default' : 'secondary'}
-                            className={adSet.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                          >
-                            {adSet.status}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-500">Orçamento Diário</p>
-                            <p className="font-medium">R$ {adSet.daily_budget?.toFixed(2) || '0,00'}</p>
+                  {campaignAdSets.map((adSet) => {
+                    const performance = getAdSetPerformance(adSet);
+                    const targeting = formatTargeting(adSet.targeting);
+                    const Icon = performance.icon;
+                    
+                    return (
+                      <Card key={adSet.id} className={`border-l-4 ${performance.borderColor} hover:shadow-lg transition-all duration-200`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <Icon className={`w-5 h-5 ${performance.color}`} />
+                              <div>
+                                <h4 className="font-medium text-gray-900">{adSet.name}</h4>
+                                <p className="text-xs text-gray-500">Conjunto de Anúncios</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={performance.badgeColor}>
+                                {performance.label}
+                              </Badge>
+                              <Badge 
+                                variant={adSet.status === 'ACTIVE' ? 'default' : 'secondary'}
+                                className={adSet.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
+                              >
+                                {adSet.status}
+                              </Badge>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-gray-500">Investimento</p>
-                            <p className="font-medium">R$ {adSet.spend?.toFixed(2) || '0,00'}</p>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                            <div className={`p-3 rounded-lg ${performance.bgColor}`}>
+                              <p className="text-gray-600 text-xs">Orçamento Diário</p>
+                              <p className="font-semibold text-gray-900">R$ {adSet.daily_budget?.toFixed(2) || '0,00'}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Investimento</p>
+                              <p className="font-medium">R$ {adSet.spend?.toFixed(2) || '0,00'}</p>
+                            </div>
+                            <div className={adSet.ctr && adSet.ctr < 1 ? 'p-2 bg-red-50 rounded' : ''}>
+                              <p className="text-gray-500">CTR</p>
+                              <p className={`font-medium ${adSet.ctr && adSet.ctr < 1 ? 'text-red-600' : ''}`}>
+                                {adSet.ctr?.toFixed(2) || '0,00'}%
+                              </p>
+                            </div>
+                            <div className={adSet.cpc && adSet.cpc > 3 ? 'p-2 bg-red-50 rounded' : ''}>
+                              <p className="text-gray-500">CPC</p>
+                              <p className={`font-medium ${adSet.cpc && adSet.cpc > 3 ? 'text-red-600' : ''}`}>
+                                R$ {adSet.cpc?.toFixed(2) || '0,00'}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-gray-500">CTR</p>
-                            <p className="font-medium">{adSet.ctr?.toFixed(2) || '0,00'}%</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">CPC</p>
-                            <p className="font-medium">R$ {adSet.cpc?.toFixed(2) || '0,00'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Impressões</p>
-                            <p className="font-medium">{adSet.impressions?.toLocaleString('pt-BR') || '0'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Cliques</p>
-                            <p className="font-medium">{adSet.clicks?.toLocaleString('pt-BR') || '0'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Conversões</p>
-                            <p className="font-medium">{adSet.conversions || 0}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">CPA</p>
-                            <p className="font-medium">R$ {adSet.cpa?.toFixed(2) || '0,00'}</p>
-                          </div>
-                        </div>
 
-                        {adSet.targeting && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
-                            <p className="text-gray-500 text-sm mb-1">Segmentação:</p>
-                            <p className="text-sm text-gray-700">{adSet.targeting}</p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-500">Impressões</p>
+                              <p className="font-medium">{adSet.impressions?.toLocaleString('pt-BR') || '0'}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Cliques</p>
+                              <p className="font-medium">{adSet.clicks?.toLocaleString('pt-BR') || '0'}</p>
+                            </div>
+                            <div className={adSet.conversions === 0 ? 'p-2 bg-amber-50 rounded' : ''}>
+                              <p className="text-gray-500">Conversões</p>
+                              <p className={`font-medium ${adSet.conversions === 0 ? 'text-amber-600' : ''}`}>
+                                {adSet.conversions || 0}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">CPA</p>
+                              <p className="font-medium">R$ {adSet.cpa?.toFixed(2) || '0,00'}</p>
+                            </div>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          {adSet.targeting && (
+                            <div className="mt-4 pt-3 border-t border-gray-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Target className="w-4 h-4 text-gray-500" />
+                                <p className="text-gray-600 text-sm font-medium">Segmentação:</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {targeting.details.length > 0 ? (
+                                  targeting.details.map((detail, index) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
+                                      {detail}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-gray-600">{targeting.formatted}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -809,99 +991,136 @@ export default function CampanhaDetalhes() {
                 </div>
               ) : campaignAds.length > 0 ? (
                 <div className="space-y-4">
-                  {campaignAds.map((ad) => (
-                    <Card key={ad.id} className="border border-gray-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 mb-1">{ad.name}</h4>
-                            <p className="text-sm text-gray-600">{ad.creative_type}</p>
-                          </div>
-                          <Badge 
-                            variant={ad.status === 'ACTIVE' ? 'default' : 'secondary'}
-                            className={ad.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                          >
-                            {ad.status}
-                          </Badge>
-                        </div>
-
-                        {(ad.creative_title || ad.creative_body) && (
-                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            {ad.creative_title && (
-                              <h5 className="font-medium text-gray-900 mb-1">{ad.creative_title}</h5>
-                            )}
-                            {ad.creative_body && (
-                              <p className="text-sm text-gray-700">{ad.creative_body}</p>
-                            )}
-                            {ad.call_to_action && (
-                              <p className="text-xs text-gray-500 mt-2">CTA: {ad.call_to_action}</p>
-                            )}
-                          </div>
-                        )}
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-500">Investimento</p>
-                            <p className="font-medium">R$ {ad.spend?.toFixed(2) || '0,00'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">CTR</p>
-                            <p className="font-medium">{ad.ctr?.toFixed(2) || '0,00'}%</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">CPC</p>
-                            <p className="font-medium">R$ {ad.cpc?.toFixed(2) || '0,00'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Conversões</p>
-                            <p className="font-medium">{ad.conversions || 0}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Impressões</p>
-                            <p className="font-medium">{ad.impressions?.toLocaleString('pt-BR') || '0'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Cliques</p>
-                            <p className="font-medium">{ad.clicks?.toLocaleString('pt-BR') || '0'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Curtidas</p>
-                            <p className="font-medium">{ad.likes || 0}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Comentários</p>
-                            <p className="font-medium">{ad.comments || 0}</p>
-                          </div>
-                        </div>
-
-                        {(ad.image_url || ad.video_url) && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
-                            <p className="text-gray-500 text-sm mb-2">Mídia:</p>
-                            <div className="flex gap-2">
-                              {ad.image_url && (
-                                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                                  <img 
-                                    src={ad.image_url} 
-                                    alt="Creative" 
-                                    className="w-full h-full object-cover rounded-lg"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                  <Eye className="w-6 h-6 text-gray-400" />
+                  {campaignAds.map((ad) => {
+                    const performance = getAdPerformance(ad);
+                    const Icon = performance.icon;
+                    
+                    return (
+                      <Card key={ad.id} className={`border-l-4 ${performance.borderColor} hover:shadow-lg transition-all duration-200`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-start gap-3">
+                              <Icon className={`w-5 h-5 ${performance.color} mt-1`} />
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900 mb-1">{ad.name}</h4>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-gray-600">{ad.creative_type}</p>
+                                  <Badge className={performance.badgeColor}>
+                                    {performance.label}
+                                  </Badge>
                                 </div>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={ad.status === 'ACTIVE' ? 'default' : 'secondary'}
+                              className={ad.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
+                            >
+                              {ad.status}
+                            </Badge>
+                          </div>
+
+                          {(ad.creative_title || ad.creative_body) && (
+                            <div className={`mb-4 p-3 rounded-lg ${performance.bgColor} border border-gray-100`}>
+                              {ad.creative_title && (
+                                <h5 className="font-medium text-gray-900 mb-1">{ad.creative_title}</h5>
                               )}
-                              {ad.video_url && (
-                                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                                  <BarChart3 className="w-6 h-6 text-gray-400" />
-                                </div>
+                              {ad.creative_body && (
+                                <p className="text-sm text-gray-700 mb-2">{ad.creative_body}</p>
+                              )}
+                              {ad.call_to_action && (
+                                <Badge variant="outline" className="text-xs">
+                                  CTA: {ad.call_to_action}
+                                </Badge>
                               )}
                             </div>
+                          )}
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                            <div>
+                              <p className="text-gray-500">Investimento</p>
+                              <p className="font-medium">R$ {ad.spend?.toFixed(2) || '0,00'}</p>
+                            </div>
+                            <div className={ad.ctr && ad.ctr < 1 ? 'p-2 bg-red-50 rounded' : ''}>
+                              <p className="text-gray-500">CTR</p>
+                              <p className={`font-medium ${ad.ctr && ad.ctr < 1 ? 'text-red-600' : ''}`}>
+                                {ad.ctr?.toFixed(2) || '0,00'}%
+                              </p>
+                            </div>
+                            <div className={ad.cpc && ad.cpc > 3 ? 'p-2 bg-red-50 rounded' : ''}>
+                              <p className="text-gray-500">CPC</p>
+                              <p className={`font-medium ${ad.cpc && ad.cpc > 3 ? 'text-red-600' : ''}`}>
+                                R$ {ad.cpc?.toFixed(2) || '0,00'}
+                              </p>
+                            </div>
+                            <div className={ad.conversions === 0 ? 'p-2 bg-amber-50 rounded' : ''}>
+                              <p className="text-gray-500">Conversões</p>
+                              <p className={`font-medium ${ad.conversions === 0 ? 'text-amber-600' : ''}`}>
+                                {ad.conversions || 0}
+                              </p>
+                            </div>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-500">Impressões</p>
+                              <p className="font-medium">{ad.impressions?.toLocaleString('pt-BR') || '0'}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Cliques</p>
+                              <p className="font-medium">{ad.clicks?.toLocaleString('pt-BR') || '0'}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Curtidas</p>
+                              <p className="font-medium">{ad.likes || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Comentários</p>
+                              <p className="font-medium">{ad.comments || 0}</p>
+                            </div>
+                          </div>
+
+                          {(ad.image_url || ad.video_url) && (
+                            <div className="mt-4 pt-3 border-t border-gray-100">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Eye className="w-4 h-4 text-gray-500" />
+                                <p className="text-gray-600 text-sm font-medium">Mídia do Criativo:</p>
+                              </div>
+                              <div className="flex gap-3">
+                                {ad.image_url && (
+                                  <div className="relative group">
+                                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
+                                      <img 
+                                        src={ad.image_url} 
+                                        alt="Creative" 
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                        onError={(e) => {
+                                          const target = e.currentTarget;
+                                          target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center"><Eye class="w-6 h-6 text-gray-400" /></div>';
+                                        }}
+                                      />
+                                    </div>
+                                    <Badge className="absolute -top-1 -right-1 text-xs bg-blue-100 text-blue-800">
+                                      IMG
+                                    </Badge>
+                                  </div>
+                                )}
+                                {ad.video_url && (
+                                  <div className="relative">
+                                    <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                                      <BarChart3 className="w-8 h-8 text-gray-400" />
+                                    </div>
+                                    <Badge className="absolute -top-1 -right-1 text-xs bg-purple-100 text-purple-800">
+                                      VID
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
