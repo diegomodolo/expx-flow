@@ -45,7 +45,7 @@ serve(async (req) => {
     const bestPerformingAds = ads?.filter(ad => ad.conversions > 0) || [];
 
     const prompt = `
-      Como copywriter especialista em Facebook Ads, crie criativos de alta conversão.
+      Como copywriter especialista em Facebook Ads, crie criativos de alta conversão baseados no briefing completo do cliente.
 
       **CLIENTE:**
       - Nome: ${client.name}
@@ -54,40 +54,49 @@ serve(async (req) => {
       - Objetivos: ${client.objectives || 'Não informado'}
       - Tom de Voz: ${client.voice_tone || 'Profissional'}
       - Produto/Serviço: ${client.product_name || client.name}
+      - Website: ${client.website_url || 'Não informado'}
+
+      **BRIEFING COMPLETO DO CLIENTE:**
+      ${client.ai_briefing || 'Briefing não disponível - use as informações básicas do cliente para criar criativos genéricos relevantes ao setor'}
 
       **CAMPANHA:**
       - Etapa do Funil: ${funnelStage}
       - Tipo: ${campaignType}
-      - Conjuntos de Anúncios: ${configuration.adSets?.length || 3}
+      - Configuração: ${JSON.stringify(configuration, null, 2)}
 
       **CRIATIVOS DE MELHOR PERFORMANCE (para referência):**
       ${bestPerformingAds.length > 0 ? bestPerformingAds.map(ad => 
         `- Título: "${ad.creative_title}" | Texto: "${ad.creative_body}" | CTR: ${ad.ctr}% | Conversões: ${ad.conversions}`
-      ).join('\n') : 'Nenhum histórico disponível - criar baseado nas melhores práticas do setor'}
+      ).join('\n') : 'Nenhum histórico disponível - criar baseado nas melhores práticas do setor e briefing do cliente'}
 
-      **INSTRUÇÕES:**
-      1. Crie ${configuration.adSets?.length || 3} conjuntos de criativos únicos
-      2. Para cada conjunto, gere 1 criativo principal + 2 variações para teste A/B
-      3. Mantenha o tom de voz do cliente: ${client.voice_tone || 'Profissional'}
-      4. Foque na etapa "${funnelStage}" do funil
-      5. Use elementos dos criativos de sucesso como inspiração (se houver)
+      **INSTRUÇÕES CRÍTICAS:**
+      1. LEIA E ANALISE TODO O BRIEFING DO CLIENTE antes de criar qualquer criativo
+      2. Use as dores, necessidades e linguagem específicas mencionadas no briefing
+      3. Incorpore os argumentos de venda e benefícios principais do briefing
+      4. Respeite o tom de voz e diretrizes criativas do briefing
+      5. Foque na etapa "${funnelStage}" do funil conforme estratégia do briefing
+      6. Crie ${configuration.adSets?.length || 3} conjuntos de criativos únicos
+      7. Para cada conjunto, gere 1 criativo principal + 2 variações para teste A/B
+      8. Use elementos dos criativos de sucesso como inspiração (se houver)
 
       **FORMATO DE CADA CRIATIVO:**
-      - Título (máx 27 caracteres, impactante)
-      - Texto Principal (máx 125 caracteres, persuasivo)
+      - Título (máx 27 caracteres, impactante, baseado no briefing)
+      - Texto Principal (máx 125 caracteres, persuasivo, com dores/benefícios do briefing)
       - Descrição (máx 27 caracteres, complementar)
-      - Call to Action (específico para a etapa do funil)
-      - Sugestão de Imagem (descrição detalhada)
-      - Sugestão de Vídeo (se aplicável)
+      - Call to Action (específico para a etapa do funil e produto do cliente)
+      - Sugestão de Imagem (descrição detalhada baseada no produto/serviço)
+      - Sugestão de Vídeo (se aplicável, baseado na natureza do produto)
 
-      Responda em formato JSON:
+      **IMPORTANTE:** Os criativos DEVEM refletir exatamente o produto/serviço descrito no briefing, suas dores específicas, benefícios únicos e linguagem apropriada. NÃO crie criativos genéricos!
+
+      Responda em formato JSON sem markdown:
       {
         "creatives": [
           {
             "id": "creative_1",
-            "adSetName": "Nome do Conjunto 1",
-            "headline": "Título principal",
-            "primaryText": "Texto principal do anúncio",
+            "adSetName": "Nome do Conjunto 1 (baseado na segmentação do briefing)",
+            "headline": "Título principal (específico do produto)",
+            "primaryText": "Texto principal (com dores/benefícios do briefing)",
             "description": "Descrição complementar",
             "callToAction": "CTA específico",
             "imageDescription": "Descrição detalhada da imagem sugerida",
@@ -99,8 +108,7 @@ serve(async (req) => {
             }
           }
         ]
-      }
-    `;
+      }`;
 
     console.log('Enviando prompt para OpenAI');
 
@@ -115,7 +123,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'Você é um copywriter especialista em Facebook Ads com foco em alta conversão. Crie criativos persuasivos baseados em dados de performance histórica.'
+            content: 'Você é um copywriter especialista em Facebook Ads que analisa briefings detalhados de clientes para criar criativos precisos e altamente relevantes. SEMPRE leia todo o briefing fornecido e crie criativos específicos para o produto/serviço descrito, nunca criativos genéricos.'
           },
           {
             role: 'user',
@@ -137,7 +145,9 @@ serve(async (req) => {
     const content = aiResponse.choices[0].message.content;
     
     try {
-      const parsedContent = JSON.parse(content);
+      // Limpar markdown se presente
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsedContent = JSON.parse(cleanContent);
       console.log('Criativos gerados com sucesso:', parsedContent.creatives?.length);
       
       return new Response(JSON.stringify({
@@ -150,19 +160,26 @@ serve(async (req) => {
       console.error('Erro ao fazer parse do JSON:', parseError);
       console.log('Conteúdo recebido:', content);
       
-      // Fallback: criar estrutura básica
+      // Fallback: criar estrutura básica baseada no briefing
+      const productKeywords = client.ai_briefing ? 
+        (client.ai_briefing.toLowerCase().includes('delivery') ? 'delivery' :
+         client.ai_briefing.toLowerCase().includes('nota fiscal') ? 'automação fiscal' :
+         client.sector) : client.sector;
+         
       const fallbackCreatives = Array.from({ length: configuration.adSets?.length || 3 }, (_, i) => ({
         id: `creative_${i + 1}`,
-        adSetName: `Conjunto ${i + 1}`,
-        headline: `${client.name} - Oferta Especial`,
-        primaryText: `Descubra como ${client.name} pode transformar seus resultados. Soluções personalizadas para ${client.sector}.`,
-        description: 'Saiba mais agora',
-        callToAction: 'Saiba Mais',
-        imageDescription: `Imagem profissional relacionada a ${client.sector} com cores vibrantes`,
+        adSetName: `Conjunto ${i + 1} - ${productKeywords}`,
+        headline: client.ai_briefing?.includes('1 clique') ? 'Nota em 1 Clique' : `${client.name} - Solução`,
+        primaryText: client.ai_briefing?.includes('retrabalho') ? 
+          'Pare de perder tempo com retrabalho. Automatize suas notas fiscais.' :
+          `Descubra como ${client.name} pode transformar seus resultados em ${client.sector}.`,
+        description: 'Experimente grátis',
+        callToAction: client.ai_briefing?.includes('teste') ? 'Teste Grátis' : 'Saiba Mais',
+        imageDescription: `Imagem de ${productKeywords} com interface moderna e resultados visuais`,
         variations: {
-          headline: [`${client.name} - Nova Oportunidade`, `Transforme seus Resultados`],
-          primaryText: [`Soluções inovadoras em ${client.sector}`, `Resultados comprovados para seu negócio`],
-          description: ['Conheça agora', 'Descubra mais']
+          headline: [`${client.name} Oficial`, `Automatize Agora`],
+          primaryText: [`Solução homologada para ${productKeywords}`, `Economize tempo e reduza erros`],
+          description: ['Comece hoje', 'Veja como']
         }
       }));
       
