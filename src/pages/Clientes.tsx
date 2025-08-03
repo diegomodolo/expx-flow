@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
-import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
+import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

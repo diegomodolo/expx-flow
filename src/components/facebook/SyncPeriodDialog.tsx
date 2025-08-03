@@ -3,12 +3,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Calendar, Info, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar, Info, Loader2, Database, Target, Image } from 'lucide-react';
+
+export interface SyncOptions {
+  period: string;
+  campaigns: boolean;
+  adsets: boolean;
+  ads: boolean;
+}
 
 interface SyncPeriodDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (period: string) => void;
+  onConfirm: (options: SyncOptions) => void;
   syncing?: boolean;
   title?: string;
 }
@@ -26,22 +34,40 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
   onOpenChange,
   onConfirm,
   syncing = false,
-  title = "Selecionar Período de Sincronização"
+  title = "Configurar Sincronização"
 }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
+  const [syncCampaigns, setSyncCampaigns] = useState<boolean>(true);
+  const [syncAdSets, setSyncAdSets] = useState<boolean>(true);
+  const [syncAds, setSyncAds] = useState<boolean>(true);
 
-  // Load last selected period from localStorage
+  // Load last selected options from localStorage
   useEffect(() => {
-    const lastPeriod = localStorage.getItem('lastSyncPeriod');
-    if (lastPeriod) {
-      setSelectedPeriod(lastPeriod);
+    const lastOptions = localStorage.getItem('lastSyncOptions');
+    if (lastOptions) {
+      try {
+        const options = JSON.parse(lastOptions);
+        setSelectedPeriod(options.period || '30');
+        setSyncCampaigns(options.campaigns !== false);
+        setSyncAdSets(options.adsets !== false);
+        setSyncAds(options.ads !== false);
+      } catch (error) {
+        console.error('Error loading sync options:', error);
+      }
     }
   }, []);
 
   const handleConfirm = () => {
-    // Save selected period to localStorage
-    localStorage.setItem('lastSyncPeriod', selectedPeriod);
-    onConfirm(selectedPeriod);
+    const options: SyncOptions = {
+      period: selectedPeriod,
+      campaigns: syncCampaigns,
+      adsets: syncAdSets,
+      ads: syncAds
+    };
+    
+    // Save selected options to localStorage
+    localStorage.setItem('lastSyncOptions', JSON.stringify(options));
+    onConfirm(options);
   };
 
   const selectedOption = periodOptions.find(option => option.value === selectedPeriod);
@@ -56,7 +82,8 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Período */}
           <div className="space-y-2">
             <Label htmlFor="period-select">Período dos dados</Label>
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
@@ -74,26 +101,98 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            
+            {selectedOption && (
+              <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-blue-900">
+                    {selectedOption.label}
+                  </p>
+                  <p className="text-blue-700">
+                    {selectedOption.description}
+                  </p>
+                  {selectedOption.value === '30' && (
+                    <p className="text-blue-600 mt-1">
+                      Período recomendado para análises mensais consistentes.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {selectedOption && (
-            <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
-              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-900">
-                  {selectedOption.label}
-                </p>
-                <p className="text-blue-700">
-                  {selectedOption.description}
-                </p>
-                {selectedOption.value === '30' && (
-                  <p className="text-blue-600 mt-1">
-                    Período recomendado para análises mensais consistentes.
-                  </p>
-                )}
+          {/* Tipos de dados para sincronizar */}
+          <div className="space-y-3">
+            <Label>Dados para sincronizar</Label>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <Checkbox 
+                  id="sync-campaigns"
+                  checked={syncCampaigns}
+                  onCheckedChange={(checked) => setSyncCampaigns(checked === true)}
+                />
+                <div className="flex items-center space-x-2 flex-1">
+                  <Database className="w-4 h-4 text-blue-600" />
+                  <div className="flex-1">
+                    <Label htmlFor="sync-campaigns" className="cursor-pointer font-medium">
+                      Campanhas
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Dados das campanhas publicitárias
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <Checkbox 
+                  id="sync-adsets"
+                  checked={syncAdSets}
+                  onCheckedChange={(checked) => setSyncAdSets(checked === true)}
+                />
+                <div className="flex items-center space-x-2 flex-1">
+                  <Target className="w-4 h-4 text-green-600" />
+                  <div className="flex-1">
+                    <Label htmlFor="sync-adsets" className="cursor-pointer font-medium">
+                      Conjuntos de Anúncios
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Segmentações e configurações de público
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <Checkbox 
+                  id="sync-ads"
+                  checked={syncAds}
+                  onCheckedChange={(checked) => setSyncAds(checked === true)}
+                />
+                <div className="flex items-center space-x-2 flex-1">
+                  <Image className="w-4 h-4 text-purple-600" />
+                  <div className="flex-1">
+                    <Label htmlFor="sync-ads" className="cursor-pointer font-medium">
+                      Criativos
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Anúncios individuais e criativos
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+            
+            {!syncCampaigns && !syncAdSets && !syncAds && (
+              <div className="flex items-start space-x-2 p-3 bg-amber-50 rounded-lg">
+                <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-amber-700">
+                  Selecione pelo menos um tipo de dados para sincronizar.
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button
@@ -105,7 +204,7 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={syncing}
+              disabled={syncing || (!syncCampaigns && !syncAdSets && !syncAds)}
               className="flex items-center space-x-2"
             >
               {syncing ? (

@@ -38,7 +38,7 @@ import { useClientDetails } from "@/hooks/useClientDetails";
 import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
-import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
+import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
@@ -757,11 +757,15 @@ const ClienteDetalhes = () => {
     return translations[objective] || objective;
   };
 
-  const handleSyncConfirm = async (period: string) => {
+  const handleSyncConfirm = async (options: SyncOptions) => {
     if (!id) return;
     
     try {
-      await syncCampaigns(id, period, true); // fullSync = true for client details page
+      await syncCampaigns(id, options.period, {
+        campaigns: options.campaigns,
+        adsets: options.adsets,
+        ads: options.ads
+      }); // Use full sync options for client details page
       setSyncDialogOpen(false);
       // Aguarda um pouco e recarrega os dados
       setTimeout(() => {

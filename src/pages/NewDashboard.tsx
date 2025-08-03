@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { SyncPeriodDialog } from "@/components/facebook/SyncPeriodDialog";
+import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { 
@@ -121,7 +121,7 @@ export default function NewDashboard() {
   };
 
   // Sincronizar todos os clientes
-  const syncAllClients = async (period: string) => {
+  const syncAllClientsLocal = async (options: SyncOptions) => {
     if (!clients || clients.length === 0) {
       console.log('No clients to sync');
       return;
@@ -129,7 +129,11 @@ export default function NewDashboard() {
 
     for (const client of clients) {
       if (client.ad_account_id) {
-        await syncCampaigns(client.id, period);
+        await syncCampaigns(client.id, options.period, {
+          campaigns: options.campaigns,
+          adsets: options.adsets,
+          ads: options.ads
+        });
       }
     }
     
@@ -137,9 +141,9 @@ export default function NewDashboard() {
     await refetch();
   };
 
-  const handleSyncConfirm = async (period: string) => {
+  const handleSyncConfirm = async (options: SyncOptions) => {
     setSyncDialogOpen(false);
-    await syncAllClients(period);
+    await syncAllClientsLocal(options);
   };
 
   // Função para converter ação em tarefa
