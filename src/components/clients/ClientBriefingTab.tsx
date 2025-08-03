@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Save, Edit } from "lucide-react";
 import { Client } from "@/hooks/useClients";
 
 interface ClientBriefingTabProps {
@@ -16,7 +17,15 @@ interface ClientBriefingTabProps {
 
 export function ClientBriefingTab({ client, formData, onBriefingUpdate }: ClientBriefingTabProps) {
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [briefingContent, setBriefingContent] = useState(client?.ai_briefing || "");
   const { toast } = useToast();
+
+  // Sincronizar o briefingContent quando o cliente mudar
+  useEffect(() => {
+    setBriefingContent(client?.ai_briefing || "");
+  }, [client?.ai_briefing]);
 
   const generateBriefing = async () => {
     const websiteUrl = formData.website_url;
@@ -51,7 +60,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
       if (error) throw error;
 
       if (data.success) {
-        // Update local client state
+        // Update local client state and briefing content
         const updatedClient = {
           ...client,
           website_url: websiteUrl,
@@ -59,6 +68,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
           briefing_generated_at: new Date().toISOString(),
         };
         onBriefingUpdate(updatedClient);
+        setBriefingContent(data.briefing);
 
         toast({
           title: "Briefing gerado com sucesso!",
@@ -77,6 +87,63 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
     } finally {
       setGenerating(false);
     }
+  };
+
+  const saveBriefing = async () => {
+    if (!client?.id) {
+      toast({
+        title: "Cliente não encontrado",
+        description: "Não foi possível salvar o briefing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          ai_briefing: briefingContent,
+          briefing_generated_at: new Date().toISOString(),
+        })
+        .eq('id', client.id);
+
+      if (error) throw error;
+
+      // Update local client state
+      const updatedClient = {
+        ...client,
+        ai_briefing: briefingContent,
+        briefing_generated_at: new Date().toISOString(),
+      };
+      onBriefingUpdate(updatedClient);
+      setIsEditing(false);
+
+      toast({
+        title: "Briefing salvo!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar briefing:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as alterações.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setBriefingContent(client?.ai_briefing || "");
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setBriefingContent(client?.ai_briefing || "");
+    setIsEditing(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -141,14 +208,67 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
 
       {client?.ai_briefing ? (
         <div className="space-y-4">
-          <div className="prose prose-sm max-w-none">
-            <div 
-              className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200"
-              dangerouslySetInnerHTML={{ 
-                __html: client.ai_briefing.replace(/\n/g, '<br>').replace(/#{1,6}\s/g, '<strong>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-              }}
-            />
+          <div className="flex items-center justify-between">
+            <h4 className="text-md font-medium">Briefing do Cliente</h4>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelEdit}
+                    disabled={saving}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={saveBriefing}
+                    disabled={saving}
+                    className="flex items-center gap-2"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {saving ? "Salvando..." : "Salvar"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEdit}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Editar
+                </Button>
+              )}
+            </div>
           </div>
+          
+          {isEditing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={briefingContent}
+                onChange={(e) => setBriefingContent(e.target.value)}
+                placeholder="Digite ou edite o briefing do cliente..."
+                className="min-h-[400px] p-4 font-mono text-sm"
+                disabled={saving}
+              />
+              <p className="text-xs text-muted-foreground">
+                💡 Dica: Use formatação Markdown para melhor organização do conteúdo.
+              </p>
+            </div>
+          ) : (
+            <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                {client.ai_briefing}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12">
