@@ -383,8 +383,10 @@ export type Database = {
         Row: {
           active_campaigns: number
           ad_account_id: string | null
+          ai_briefing: string | null
           avatar: string | null
           avg_cpl: number
+          briefing_generated_at: string | null
           campaign_type: string | null
           company: string
           company_id: string | null
@@ -406,12 +408,15 @@ export type Database = {
           updated_at: string
           user_id: string
           voice_tone: string | null
+          website_url: string | null
         }
         Insert: {
           active_campaigns?: number
           ad_account_id?: string | null
+          ai_briefing?: string | null
           avatar?: string | null
           avg_cpl?: number
+          briefing_generated_at?: string | null
           campaign_type?: string | null
           company: string
           company_id?: string | null
@@ -433,12 +438,15 @@ export type Database = {
           updated_at?: string
           user_id: string
           voice_tone?: string | null
+          website_url?: string | null
         }
         Update: {
           active_campaigns?: number
           ad_account_id?: string | null
+          ai_briefing?: string | null
           avatar?: string | null
           avg_cpl?: number
+          briefing_generated_at?: string | null
           campaign_type?: string | null
           company?: string
           company_id?: string | null
@@ -460,6 +468,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           voice_tone?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {

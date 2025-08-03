@@ -7,12 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Plus } from "lucide-react";
+import { ClientBriefingTab } from "./ClientBriefingTab";
 
 interface ClientDialogProps {
   open: boolean;
@@ -44,7 +46,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         preferred_platforms: client.preferred_platforms || [],
         campaign_type: client.campaign_type || "",
         notes: client.notes || "",
-        ad_account_id: client.ad_account_id || ""
+        ad_account_id: client.ad_account_id || "",
+        website_url: client.website_url || ""
       };
     }
     return {
@@ -62,13 +65,15 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       preferred_platforms: [] as string[],
       campaign_type: "",
       notes: "",
-      ad_account_id: ""
+      ad_account_id: "",
+      website_url: ""
     };
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
+  const [localClient, setLocalClient] = useState<Client | undefined>(client);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const platforms = ["Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
@@ -93,8 +98,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         preferred_platforms: client.preferred_platforms || [],
         campaign_type: client.campaign_type || "",
         notes: client.notes || "",
-        ad_account_id: client.ad_account_id || ""
+        ad_account_id: client.ad_account_id || "",
+        website_url: client.website_url || ""
       });
+      setLocalClient(client);
     }
   }, [client?.id, open]);
 
@@ -147,7 +154,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         preferred_platforms: [],
         campaign_type: "",
         notes: "",
-        ad_account_id: ""
+        ad_account_id: "",
+        website_url: ""
       });
     } catch (error) {
       toast({
@@ -209,17 +217,28 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     }
   };
 
+  const handleBriefingUpdate = (updatedClient: Client) => {
+    setLocalClient(updatedClient);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
           <p className="text-muted-foreground">
             {client ? "Edite as informações do cliente e configure suas preferências de tráfego" : "Adicione um novo cliente e configure suas preferências de tráfego"}
           </p>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6 py-4">
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="general">Informações Gerais</TabsTrigger>
+            <TabsTrigger value="briefing" disabled={!client}>Briefing</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="general">
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-6 py-4">
             {/* Row 1: Basic Info - 2 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -247,7 +266,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
             
-            {/* Row 2: Company Info - 2 columns */}
+            {/* Row 2: Company Info and Website - 2 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company">Empresa *</Label>
@@ -261,85 +280,98 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sector">Setor *</Label>
-                <div className="space-y-2">
-                  {!showNewSectorInput ? (
-                    <div className="flex gap-2">
-                      <Select 
-                        value={formData.sector} 
-                        onValueChange={(value) => {
-                          if (value === "new") {
-                            setShowNewSectorInput(true);
-                          } else {
-                            setFormData({ ...formData, sector: value });
-                          }
-                        }}
-                        disabled={readOnly}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecione um setor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sectors.map((sector) => (
-                            <SelectItem key={sector.id} value={sector.name}>
-                              {sector.name}
-                            </SelectItem>
-                          ))}
-                          {!readOnly && (
-                            <SelectItem value="new">
-                              <div className="flex items-center gap-2">
-                                <Plus className="w-4 h-4" />
-                                Criar novo setor
-                              </div>
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nome do novo setor"
-                        value={newSectorName}
-                        onChange={(e) => setNewSectorName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleCreateSector();
-                          }
-                          if (e.key === "Escape") {
-                            setShowNewSectorInput(false);
-                            setNewSectorName("");
-                          }
-                        }}
-                        className="flex-1"
-                      />
-                      <Button 
-                        type="button" 
-                        size="sm" 
-                        onClick={handleCreateSector}
-                        disabled={!newSectorName.trim()}
-                      >
-                        Criar
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          setShowNewSectorInput(false);
-                          setNewSectorName("");
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <Label htmlFor="website_url">Website</Label>
+                <Input
+                  id="website_url"
+                  type="url"
+                  value={formData.website_url}
+                  onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                  disabled={readOnly}
+                  placeholder="https://www.empresa.com"
+                />
               </div>
             </div>
 
-            {/* Row 3: Status, Budget, Product - 3 columns */}
+            {/* Row 3: Sector - Full width */}
+            <div className="space-y-2">
+              <Label htmlFor="sector">Setor *</Label>
+              <div className="space-y-2">
+                {!showNewSectorInput ? (
+                  <div className="flex gap-2">
+                    <Select 
+                      value={formData.sector} 
+                      onValueChange={(value) => {
+                        if (value === "new") {
+                          setShowNewSectorInput(true);
+                        } else {
+                          setFormData({ ...formData, sector: value });
+                        }
+                      }}
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione um setor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sectors.map((sector) => (
+                          <SelectItem key={sector.id} value={sector.name}>
+                            {sector.name}
+                          </SelectItem>
+                        ))}
+                        {!readOnly && (
+                          <SelectItem value="new">
+                            <div className="flex items-center gap-2">
+                              <Plus className="w-4 h-4" />
+                              Criar novo setor
+                            </div>
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nome do novo setor"
+                      value={newSectorName}
+                      onChange={(e) => setNewSectorName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCreateSector();
+                        }
+                        if (e.key === "Escape") {
+                          setShowNewSectorInput(false);
+                          setNewSectorName("");
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      onClick={handleCreateSector}
+                      disabled={!newSectorName.trim()}
+                    >
+                      Criar
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setShowNewSectorInput(false);
+                        setNewSectorName("");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Row 4: Status, Budget, Product - 3 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -378,7 +410,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 4: Voice Tone, Campaign Type, Ad Account - 3 columns */}
+            {/* Row 5: Voice Tone, Campaign Type, Ad Account - 3 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="voice_tone">Tom de Voz</Label>
@@ -424,7 +456,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 5: Avatar Upload - Full width */}
+            {/* Row 6: Avatar Upload - Full width */}
             <div className="space-y-2">
               <Label>Foto do Cliente</Label>
               <div className="flex items-center gap-4">
@@ -467,7 +499,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 6: Target Audience - Full width */}
+            {/* Row 7: Target Audience - Full width */}
             <div className="space-y-2">
               <Label htmlFor="target_audience">Público Alvo</Label>
               <Textarea
@@ -480,7 +512,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               />
             </div>
 
-            {/* Row 7: Preferred Platforms - Full width */}
+            {/* Row 8: Preferred Platforms - Full width */}
             <div className="space-y-2">
               <Label>Plataformas Preferidas</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -500,7 +532,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 8: Objectives - Full width */}
+            {/* Row 9: Objectives - Full width */}
             <div className="space-y-2">
               <Label htmlFor="objectives">Objetivos</Label>
               <Textarea
@@ -513,7 +545,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               />
             </div>
 
-            {/* Row 9: Notes - Full width */}
+            {/* Row 10: Notes - Full width */}
             <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>
               <Textarea
@@ -537,7 +569,18 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             )}
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </TabsContent>
+
+      <TabsContent value="briefing">
+        {localClient && (
+          <ClientBriefingTab 
+            client={localClient} 
+            onBriefingUpdate={handleBriefingUpdate}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
+  </DialogContent>
+</Dialog>
   );
 }

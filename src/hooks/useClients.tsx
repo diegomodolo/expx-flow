@@ -25,6 +25,9 @@ export interface Client {
   leads_generated: number;
   last_sync_at?: string;
   last_sync_period?: string;
+  website_url?: string;
+  ai_briefing?: string;
+  briefing_generated_at?: string;
   facebook_ad_accounts?: {
     id: string;
     account_name: string;
