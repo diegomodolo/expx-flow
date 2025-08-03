@@ -47,8 +47,22 @@ export function DashboardSidebar() {
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      className="bg-white border-r border-gray-200"
     >
-      <SidebarContent className="pt-6">
+      <SidebarContent className="pt-6 bg-white">
+        {/* Logo Section */}
+        <div className="flex items-center justify-center py-4 px-4 mb-6">
+          <img 
+            src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
+            alt="Controle de Trafego" 
+            className="w-10 h-10"
+          />
+          {open && (
+            <span className="ml-3 text-lg font-bold text-gray-800">
+              Controle de Trafego
+            </span>
+          )}
+        </div>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
