@@ -100,8 +100,61 @@ export function CampaignReport({ campaignData }: CampaignReportProps) {
             <p className="text-sm text-muted-foreground">{configuration.objective || campaignData.campaignType}</p>
           </div>
           <div>
-            <h5 className="font-medium">Segmentação Principal</h5>
-            <p className="text-sm text-muted-foreground">{configuration.targeting?.demographics}</p>
+            <h5 className="font-medium mb-3">Segmentação Detalhada</h5>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h6 className="text-sm font-medium text-primary mb-2">Demografia</h6>
+                  <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                    {configuration.targeting?.demographics || 'Não especificado'}
+                  </div>
+                </div>
+                <div>
+                  <h6 className="text-sm font-medium text-primary mb-2">Alcance Estimado</h6>
+                  <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                    {configuration.targeting?.estimatedReach || 'Não especificado'} pessoas
+                  </div>
+                </div>
+              </div>
+              
+              {configuration.targeting?.interests && (
+                <div>
+                  <h6 className="text-sm font-medium text-primary mb-2">Interesses Específicos</h6>
+                  <div className="flex flex-wrap gap-2">
+                    {configuration.targeting.interests.map((interest: string, index: number) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {configuration.targeting?.behaviors && (
+                <div>
+                  <h6 className="text-sm font-medium text-primary mb-2">Comportamentos e Funções</h6>
+                  <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                    {configuration.targeting.behaviors}
+                  </div>
+                </div>
+              )}
+              
+              {configuration.adSets && (
+                <div>
+                  <h6 className="text-sm font-medium text-primary mb-2">Segmentações por Conjunto</h6>
+                  <div className="space-y-2">
+                    {configuration.adSets.map((adSet: any, index: number) => (
+                      <div key={index} className="border-l-2 border-primary/30 pl-3">
+                        <div className="text-sm font-medium">{adSet.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {adSet.targeting} - Orçamento: R$ {adSet.budget}/dia
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <h5 className="font-medium">Estratégia de Lance</h5>
@@ -119,33 +172,91 @@ export function CampaignReport({ campaignData }: CampaignReportProps) {
       {/* Resumo dos Criativos */}
       <Card className="p-6">
         <h4 className="font-semibold mb-4">Criativos por Conjunto</h4>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {creatives.map((creative, index) => (
-            <div key={creative.id} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
+            <div key={creative.id} className="border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-center justify-between mb-4">
                 <h5 className="font-medium">Conjunto {index + 1}: {creative.adSetName}</h5>
-                <Badge variant="outline">3 variações</Badge>
+                <Badge variant="outline">1 principal + 2 variações</Badge>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-medium mb-1">Título Principal</div>
-                  <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                    {creative.headline}
+              
+              {/* Criativo Principal */}
+              <div className="mb-4 border rounded-lg p-4 bg-background">
+                <div className="text-sm font-medium text-primary mb-3">Criativo Principal</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm font-medium mb-1">Título</div>
+                    <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                      {creative.headline}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium mb-1">Texto Principal</div>
+                    <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                      {creative.primaryText}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium mb-1">Call to Action</div>
+                    <div className="text-sm text-primary bg-primary/10 p-2 rounded">
+                      {creative.callToAction}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium mb-1">Call to Action</div>
-                  <div className="text-sm text-primary bg-primary/10 p-2 rounded">
-                    {creative.callToAction}
+                <div className="mt-3">
+                  <div className="text-sm font-medium mb-1">Elemento Visual Sugerido</div>
+                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                    {creative.imageDescription}
                   </div>
                 </div>
+                {creative.videoSuggestion && (
+                  <div className="mt-2">
+                    <div className="text-sm font-medium mb-1">Sugestão de Vídeo</div>
+                    <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                      {creative.videoSuggestion}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="mt-3">
-                <div className="text-sm font-medium mb-1">Elemento Visual</div>
-                <div className="text-xs text-muted-foreground">
-                  {creative.imageDescription}
+
+              {/* Variações para Teste A/B */}
+              {creative.variations && (
+                <div className="space-y-3">
+                  <div className="text-sm font-medium text-primary">Variações para Teste A/B</div>
+                  
+                  {/* Variação 1 */}
+                  <div className="border rounded-lg p-3 bg-background/50">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Variação A</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span className="font-medium">Título:</span> {creative.variations.headline?.[0] || creative.headline}
+                      </div>
+                      <div>
+                        <span className="font-medium">Texto:</span> {creative.variations.primaryText?.[0] || creative.primaryText}
+                      </div>
+                      <div>
+                        <span className="font-medium">Descrição:</span> {creative.variations.description?.[0] || creative.description}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Variação 2 */}
+                  <div className="border rounded-lg p-3 bg-background/50">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Variação B</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span className="font-medium">Título:</span> {creative.variations.headline?.[1] || creative.headline}
+                      </div>
+                      <div>
+                        <span className="font-medium">Texto:</span> {creative.variations.primaryText?.[1] || creative.primaryText}
+                      </div>
+                      <div>
+                        <span className="font-medium">Descrição:</span> {creative.variations.description?.[1] || creative.description}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
