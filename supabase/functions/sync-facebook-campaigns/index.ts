@@ -622,6 +622,60 @@ serve(async (req) => {
                   const objectStory = creative.object_story_spec || {}
                   const linkData = objectStory.link_data || {}
                   
+                  // Helper function for robust creative type detection
+                  const determineCreativeType = (creative: any, objectStory: any) => {
+                    console.log('Determining creative type from:', JSON.stringify({ 
+                      creative_video_id: creative.video_id,
+                      creative_image_url: creative.image_url,
+                      link_data_picture: linkData.picture,
+                      link_data_video_id: linkData.video_id,
+                      video_data: objectStory.video_data,
+                      attachment_style: linkData.attachment_style
+                    }, null, 2))
+                    
+                    // Check for video first
+                    if (creative.video_id || 
+                        linkData.video_id || 
+                        objectStory.video_data ||
+                        (linkData.attachment_style === 'video')) {
+                      console.log('Detected as video creative')
+                      return 'video'
+                    }
+                    
+                    // Check for image in multiple possible fields
+                    if (creative.image_url || 
+                        linkData.picture || 
+                        linkData.image_url ||
+                        creative.thumbnail_url ||
+                        (linkData.attachment_style === 'link' && linkData.link) ||
+                        (linkData.attachment_style === 'photo')) {
+                      console.log('Detected as image creative')
+                      return 'image'
+                    }
+                    
+                    console.log('Defaulting to text creative')
+                    return 'text'
+                  }
+                  
+                  // Helper function to extract media URLs
+                  const extractMediaUrls = (creative: any, objectStory: any) => {
+                    const imageUrl = creative.image_url || 
+                                   linkData.picture || 
+                                   linkData.image_url || 
+                                   creative.thumbnail_url || 
+                                   ''
+                    
+                    const videoUrl = creative.video_id 
+                      ? `https://www.facebook.com/${creative.video_id}` 
+                      : (linkData.video_id ? `https://www.facebook.com/${linkData.video_id}` : '')
+                    
+                    console.log('Extracted URLs - Image:', imageUrl, 'Video:', videoUrl)
+                    return { imageUrl, videoUrl }
+                  }
+                  
+                  const creativeType = determineCreativeType(creative, objectStory)
+                  const { imageUrl, videoUrl } = extractMediaUrls(creative, objectStory)
+                  
                   // Extract insights data
                   const adInsights = ad.insights?.data?.[0]
                   let adSpend = 0
@@ -668,22 +722,22 @@ serve(async (req) => {
                      console.log('Final ad conversions for', ad.name, ':', adLeads)
                   }
                    
-                   // Save ad to database with complete data
-                   const adData = {
-                     facebook_id: ad.id,
-                     ad_set_id: savedAdSet.id,
-                     campaign_id: savedCampaign.id,
-                     client_id: clientId,
-                     user_id: client.user_id,
-                     company_id: client.company_id,
-                     name: ad.name,
-                     status: ad.status?.toLowerCase() || 'unknown',
-                     creative_type: creative.video_id ? 'video' : (creative.image_url ? 'image' : 'text'),
-                     creative_body: linkData.message || creative.body || '',
-                     creative_title: linkData.name || creative.title || '',
-                     creative_description: linkData.description || '',
-                     image_url: creative.image_url || '',
-                     video_url: creative.video_id ? `https://www.facebook.com/${creative.video_id}` : '',
+                    // Save ad to database with complete data
+                    const adData = {
+                      facebook_id: ad.id,
+                      ad_set_id: savedAdSet.id,
+                      campaign_id: savedCampaign.id,
+                      client_id: clientId,
+                      user_id: client.user_id,
+                      company_id: client.company_id,
+                      name: ad.name,
+                      status: ad.status?.toLowerCase() || 'unknown',
+                      creative_type: creativeType,
+                      creative_body: linkData.message || creative.body || '',
+                      creative_title: linkData.name || creative.title || '',
+                      creative_description: linkData.description || '',
+                      image_url: imageUrl,
+                      video_url: videoUrl,
                      link_url: linkData.link || '',
                      call_to_action: JSON.stringify(linkData.call_to_action || {}),
                      ctr: adCtr,
