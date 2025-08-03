@@ -15,6 +15,7 @@ import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { 
   Search, 
@@ -146,6 +147,44 @@ const evaluateCampaignPerformance = (campaign: Campaign) => {
       issues
     };
   }
+};
+
+// Função para gerar mensagem do tooltip baseado na performance
+const getPerformanceTooltip = (campaign: Campaign) => {
+  const performance = evaluateCampaignPerformance(campaign);
+  
+  if (campaign.status !== 'active') {
+    return "Campanha pausada ou finalizada - performance não avaliada";
+  }
+
+  let message = "";
+  
+  switch (performance.level) {
+    case 'excellent':
+      message = "🎉 Performance excelente! Esta campanha está superando as expectativas com boas métricas de CTR, CPC e conversões.";
+      break;
+    case 'attention':
+      message = "⚠️ Performance necessita atenção. ";
+      break;
+    case 'emergency':
+      message = "🚨 Performance crítica! Esta campanha precisa de otimização urgente. ";
+      break;
+    default:
+      message = "Performance neutra";
+  }
+
+  if (performance.issues && performance.issues.length > 0) {
+    message += "\n\nProblemas identificados:\n• " + performance.issues.join("\n• ");
+  }
+
+  // Adicionar métricas atuais
+  message += `\n\nMétricas atuais:
+• CTR: ${campaign.ctr ? campaign.ctr.toFixed(2) + '%' : '0%'}
+• CPC: R$ ${campaign.cpc?.toFixed(2) || '0,00'}
+• Conversões: ${campaign.conversions || 0}
+• Valor gasto: R$ ${campaign.spend?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}`;
+
+  return message;
 };
 
 const Campanhas = () => {
@@ -614,13 +653,22 @@ const Campanhas = () => {
                                 </Badge>
                               </td>
                               <td className="px-3 py-3 whitespace-nowrap">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`${performance.color} text-xs`}
-                                >
-                                  <div className={`w-1.5 h-1.5 rounded-full mr-1 ${performance.dotColor}`}></div>
-                                  {performance.label}
-                                </Badge>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`${performance.color} text-xs cursor-help`}
+                                      >
+                                        <div className={`w-1.5 h-1.5 rounded-full mr-1 ${performance.dotColor}`}></div>
+                                        {performance.label}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs whitespace-pre-line">
+                                      <p>{getPerformanceTooltip(campaign)}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </td>
                               <td className="px-3 py-3 whitespace-nowrap">
                                 <div className="text-sm text-gray-900 font-medium">
@@ -728,13 +776,22 @@ const Campanhas = () => {
                           <div className={`w-2 h-2 rounded-full mr-2 ${statusConfig[campaign.status as keyof typeof statusConfig]?.dotColor || "bg-gray-500"}`}></div>
                           {statusConfig[campaign.status as keyof typeof statusConfig]?.label || campaign.status}
                         </Badge>
-                        <Badge 
-                          variant="outline" 
-                          className={performance.color}
-                        >
-                          <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
-                          {performance.label}
-                        </Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge 
+                                variant="outline" 
+                                className={`${performance.color} cursor-help`}
+                              >
+                                <div className={`w-2 h-2 rounded-full mr-2 ${performance.dotColor}`}></div>
+                                {performance.label}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs whitespace-pre-line">
+                              <p>{getPerformanceTooltip(campaign)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
 
                       {/* Metrics Grid */}
