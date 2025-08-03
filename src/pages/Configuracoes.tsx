@@ -7,6 +7,7 @@ import { PlansSettings } from "@/components/settings/PlansSettings";
 
 import { FacebookIntegrationSettings } from "@/components/facebook/FacebookIntegrationSettings";
 import { PlannerSettings } from "@/components/planner/PlannerSettings";
+import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProtectedRoute";
 
 const Configuracoes = () => {
   return (
@@ -27,6 +28,7 @@ const Configuracoes = () => {
             <Route path="planos" element={<PlansSettings />} />
             <Route path="facebook" element={<FacebookIntegrationSettings />} />
             <Route path="planner" element={<PlannerSettings />} />
+            <Route path="permissoes" element={<PermissionsProtectedRoute />} />
           </Routes>
         </SettingsLayout>
       </div>

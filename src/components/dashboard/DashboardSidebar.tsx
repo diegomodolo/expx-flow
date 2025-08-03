@@ -11,6 +11,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
 
 import {
   Sidebar,
@@ -24,23 +25,27 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Clientes", url: "/clientes", icon: Users },
-  { title: "Campanhas", url: "/campanhas", icon: Megaphone },
-  { title: "Squad", url: "/squad", icon: UsersRound },
-  { title: "Tarefas", url: "/tarefas", icon: CheckSquare },
-  { title: "Colaboradores", url: "/colaboradores", icon: UserCheck },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-  { title: "Gerador de Campanhas", url: "/gerador-campanhas", icon: BookOpen },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { title: "Dashboard", url: "/dashboard", icon: Home, permission: "dashboard" as MenuItemType },
+  { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
+  { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
+  { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
+  { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
+  { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
+  { title: "Gerador de Campanhas", url: "/gerador-campanhas", icon: BookOpen, permission: "gerador-campanhas" as MenuItemType },
+  { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
 ];
 
 export function DashboardSidebar() {
   const { open, setOpen } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { hasPermission } = useEmployeePermissions();
 
   const isActive = (path: string) => currentPath === path;
+
+  // Filtrar itens baseado nas permissões
+  const visibleItems = items.filter(item => hasPermission(item.permission));
 
   return (
     <Sidebar
@@ -53,7 +58,7 @@ export function DashboardSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 

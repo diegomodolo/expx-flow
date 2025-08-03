@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, CreditCard, Facebook, Calendar } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar, Shield } from "lucide-react";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -39,6 +39,12 @@ const settingsNavItems = [
     href: "/configuracoes/planner",
     icon: Calendar,
     description: "Configurar slots de tempo para o planner diário",
+  },
+  {
+    title: "Permissões",
+    href: "/configuracoes/permissoes",
+    icon: Shield,
+    description: "Gerenciar permissões de acesso dos colaboradores",
   },
 ];
 
