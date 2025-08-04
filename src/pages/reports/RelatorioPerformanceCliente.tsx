@@ -1,276 +1,268 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useClients } from "@/hooks/useClients";
+import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  AlertTriangle,
+  Plus,
+  CheckCircle,
+  User
+} from "lucide-react";
+
+interface ClientAnalysis {
+  id: string;
+  name: string;
+  investment: number;
+  leads: number;
+  cpa: number;
+  efficiency: number;
+  analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
+  issues: string[];
+  recommendations: string[];
+  roi: number;
+}
 
 const RelatorioPerformanceCliente = () => {
   const { clientsPerformance } = useDashboardData();
   const { clients } = useClients();
+  const { convertAlertToTask } = useTaskAutomation();
+  
+  const [clientsAnalysis, setClientsAnalysis] = useState<ClientAnalysis[]>([]);
+  const [filteredData, setFilteredData] = useState<ClientAnalysis[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   const primaryFilters: FilterConfig[] = [
     {
-      id: 'cliente',
-      label: 'Cliente',
-      type: 'select',
-      options: [
-        { value: 'todos', label: 'Todos os clientes' },
-        ...clients.map(client => ({ value: client.id, label: client.name }))
-      ],
-      placeholder: 'Todos os clientes'
-    },
-    {
-      id: 'periodo',
-      label: 'Período',
-      type: 'select',
-      options: [
-        { value: '30d', label: 'Últimos 30 dias' },
-        { value: '60d', label: 'Últimos 60 dias' },
-        { value: '90d', label: 'Últimos 90 dias' }
-      ],
-      placeholder: 'Últimos 30 dias'
-    },
-    {
-      id: 'status-cliente',
-      label: 'Status do Cliente',
+      id: 'status-analise',
+      label: 'Status de Performance',
       type: 'select',
       options: [
         { value: 'todos', label: 'Todos os status' },
-        { value: 'ativo', label: 'Ativo' },
-        { value: 'pausado', label: 'Pausado' },
-        { value: 'critico', label: 'Crítico' }
+        { value: 'critical', label: 'Crítico' },
+        { value: 'needs_attention', label: 'Precisa de Atenção' },
+        { value: 'good', label: 'Bom' },
+        { value: 'excellent', label: 'Excelente' }
       ],
       placeholder: 'Todos os status'
-    }
-  ];
-
-  const secondaryFilters: FilterConfig[] = [
+    },
     {
       id: 'faturamento-minimo',
       label: 'Faturamento Mínimo',
       type: 'select',
       options: [
-        { value: 'sem-limite', label: 'Sem limite' },
+        { value: 'todos', label: 'Todos os faturamentos' },
         { value: '5000', label: 'R$ 5.000+' },
         { value: '10000', label: 'R$ 10.000+' },
         { value: '25000', label: 'R$ 25.000+' }
       ],
-      placeholder: 'Sem limite'
+      placeholder: 'Todos os faturamentos'
     }
   ];
 
-  const chartConfig = {
-    investment: { label: "Investimento", color: "hsl(var(--primary))" },
-    leads: { label: "Leads", color: "hsl(var(--secondary))" },
-    cpa: { label: "CPA", color: "hsl(var(--accent))" }
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'tipo-problema',
+      label: 'Tipo de Problema',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os problemas' },
+        { value: 'roi_baixo', label: 'ROI Baixo' },
+        { value: 'cpa_alto', label: 'CPA Alto' },
+        { value: 'poucos_leads', label: 'Poucos Leads' }
+      ],
+      placeholder: 'Todos os problemas'
+    }
+  ];
+
+  const analyzeClients = () => {
+    const analysis: ClientAnalysis[] = clientsPerformance.map(client => {
+      const simulatedLeads = Math.floor(client.investment / 60);
+      const simulatedCPA = client.investment / simulatedLeads || 0;
+      const efficiency = client.investment > 0 ? (simulatedLeads / client.investment * 1000) : 0;
+      const roi = simulatedLeads / (client.investment / 1000);
+
+      // Identificar problemas
+      const issues: string[] = [];
+      if (efficiency < 10) issues.push('ROI baixo');
+      if (simulatedCPA > 120) issues.push('CPA muito alto');
+      if (simulatedLeads < 5 && client.investment > 3000) issues.push('Poucos leads para o investimento');
+      if (roi < 0.5) issues.push('Retorno do investimento insatisfatório');
+
+      // Determinar status
+      const analysisStatus: ClientAnalysis['analysisStatus'] = 
+        efficiency < 5 || roi < 0.3 ? 'critical' :
+        efficiency < 10 || issues.length >= 2 ? 'needs_attention' :
+        efficiency > 20 && roi > 1 ? 'excellent' : 'good';
+
+      // Gerar recomendações
+      const recommendations: string[] = [];
+      if (efficiency < 10) recommendations.push('Revisar estratégia de marketing e otimizar campanhas');
+      if (simulatedCPA > 120) recommendations.push('Melhorar segmentação e criativos');
+      if (simulatedLeads < 5) recommendations.push('Aumentar investimento ou melhorar funil');
+      if (roi < 0.5) recommendations.push('Reavaliar estratégia completa do cliente');
+
+      return {
+        id: client.name,
+        name: client.name,
+        investment: client.investment,
+        leads: simulatedLeads,
+        cpa: simulatedCPA,
+        efficiency: Math.round(efficiency),
+        analysisStatus,
+        issues,
+        recommendations,
+        roi: Math.round(roi * 100) / 100
+      };
+    });
+
+    setClientsAnalysis(analysis);
   };
 
-  const totalInvestment = clientsPerformance.reduce((acc, client) => acc + client.investment, 0);
-  const totalLeads = clientsPerformance.reduce((acc, client) => acc + (client.investment / 50 || 0), 0); // Simular leads
-  const avgCPA = totalInvestment / totalLeads || 0;
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
 
-  const topPerformers = clientsPerformance
-    .sort((a, b) => b.investment - a.investment)
-    .slice(0, 5);
+    let filtered = clientsAnalysis;
 
-  const bottomPerformers = clientsPerformance
-    .sort((a, b) => a.investment - b.investment)
-    .slice(0, 3);
+    if (newFilters['status-analise'] && newFilters['status-analise'] !== 'todos') {
+      filtered = filtered.filter(client => client.analysisStatus === newFilters['status-analise']);
+    }
+
+    if (newFilters['faturamento-minimo'] && newFilters['faturamento-minimo'] !== 'todos') {
+      const minRevenue = parseInt(newFilters['faturamento-minimo']);
+      filtered = filtered.filter(client => client.investment >= minRevenue);
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handleCreateTask = async (client: ClientAnalysis) => {
+    await convertAlertToTask({
+      title: `Otimizar performance do cliente ${client.name}`,
+      description: `Problemas: ${client.issues.join(', ')}. Recomendações: ${client.recommendations.join(', ')}`,
+      priority: client.analysisStatus === 'critical' ? 'high' : 'medium',
+      type: 'optimization'
+    });
+  };
+
+  const getStatusBadge = (status: ClientAnalysis['analysisStatus']) => {
+    const variants = { excellent: 'default', good: 'secondary', needs_attention: 'outline', critical: 'destructive' } as const;
+    const labels = { excellent: 'Excelente', good: 'Bom', needs_attention: 'Precisa de Atenção', critical: 'Crítico' };
+    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  };
+
+  useEffect(() => {
+    if (clientsPerformance.length > 0) {
+      analyzeClients();
+    }
+  }, [clientsPerformance]);
+
+  useEffect(() => {
+    setFilteredData(clientsAnalysis);
+  }, [clientsAnalysis]);
+
+  const filteredMetrics = {
+    totalClients: filteredData.length,
+    criticalClients: filteredData.filter(c => c.analysisStatus === 'critical').length,
+    totalInvestment: filteredData.reduce((acc, c) => acc + c.investment, 0),
+    avgROI: filteredData.length > 0 ? filteredData.reduce((acc, c) => acc + c.roi, 0) / filteredData.length : 0
+  };
 
   return (
     <ReportLayout
       title="Relatório de Performance por Cliente"
-      description="Análise detalhada do desempenho de cada cliente"
+      description="Análise detalhada de ROI e eficiência por cliente"
       primaryFilters={primaryFilters}
       secondaryFilters={secondaryFilters}
-      filterDescription="Configure os filtros para análise de performance por cliente"
+      onFilterChange={handleFilterChange}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          title="Clientes Ativos"
-          value={clients.length}
-        />
-        <MetricCard
-          title="Investimento Total"
-          value={`R$ ${totalInvestment.toLocaleString()}`}
-          trend="up"
-        />
-        <MetricCard
-          title="Leads Totais"
-          value={totalLeads.toLocaleString()}
-          trend="up"
-        />
-        <MetricCard
-          title="CPA Médio"
-          value={`R$ ${avgCPA.toFixed(2)}`}
-          trend="down"
-        />
+        <MetricCard title="Total de Clientes" value={filteredMetrics.totalClients} />
+        <MetricCard title="Clientes Críticos" value={filteredMetrics.criticalClients} trend={filteredMetrics.criticalClients > 0 ? "down" : "up"} />
+        <MetricCard title="Investimento Total" value={`R$ ${filteredMetrics.totalInvestment.toLocaleString()}`} />
+        <MetricCard title="ROI Médio" value={`${filteredMetrics.avgROI.toFixed(2)}x`} trend={filteredMetrics.avgROI >= 1 ? "up" : "down"} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Investimento por Cliente</CardTitle>
-            <CardDescription>Distribuição do investimento mensal</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={clientsPerformance.slice(0, 8)}>
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="investment" fill="var(--color-investment)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>CPA por Cliente</CardTitle>
-            <CardDescription>Custo por aquisição comparativo</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={clientsPerformance.slice(0, 8)}>
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="cpa" 
-                    stroke="var(--color-cpa)" 
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-cpa)" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+      <div className="space-y-4">
+        {filteredData.map((client) => (
+          <Card key={client.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{client.name}</CardTitle>
+                {getStatusBadge(client.analysisStatus)}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {client.issues.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Problemas Identificados
+                  </h4>
+                  <ul className="space-y-1">
+                    {client.issues.map((issue, index) => (
+                      <li key={index} className="text-sm text-destructive flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-destructive" />
+                        {issue}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {client.recommendations.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <Target className="w-4 h-4" />
+                    Recomendações
+                  </h4>
+                  <ul className="space-y-1">
+                    {client.recommendations.map((rec, index) => (
+                      <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-primary" />
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold">R$ {client.investment.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Investimento</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">{client.leads}</div>
+                  <div className="text-xs text-muted-foreground">Leads</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">R$ {client.cpa.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">CPA</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">{client.roi}x</div>
+                  <div className="text-xs text-muted-foreground">ROI</div>
+                </div>
+              </div>
+              {(client.analysisStatus === 'critical' || client.analysisStatus === 'needs_attention') && (
+                <div className="flex justify-end pt-2">
+                  <Button variant="outline" size="sm" onClick={() => handleCreateTask(client)} className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Criar Tarefa
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Performers</CardTitle>
-            <CardDescription>Clientes com melhor ROI (leads/investimento)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {topPerformers.map((client, index) => {
-                const simulatedLeads = Math.floor(client.investment / 50);
-                const efficiency = client.investment > 0 ? (simulatedLeads / client.investment * 1000).toFixed(1) : '0';
-                
-                return (
-                  <div key={client.name} className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="font-medium">{client.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {simulatedLeads} leads • R$ {client.investment.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600">{efficiency}</p>
-                      <p className="text-xs text-muted-foreground">leads/k</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Clientes Prioritários</CardTitle>
-            <CardDescription>Requerem atenção para otimização</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {bottomPerformers.map((client, index) => {
-                const simulatedLeads = Math.floor(client.investment / 80);
-                const efficiency = client.investment > 0 ? (simulatedLeads / client.investment * 1000).toFixed(1) : '0';
-                
-                return (
-                  <div key={client.name} className="flex justify-between items-center p-3 border rounded-lg border-red-200">
-                    <div>
-                      <p className="font-medium">{client.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {simulatedLeads} leads • R$ {client.investment.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-red-600">
-                        ROI baixo
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-red-600">{efficiency}</p>
-                      <p className="text-xs text-muted-foreground">leads/k</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumo Detalhado por Cliente</CardTitle>
-          <CardDescription>Performance completa de todos os clientes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium">Cliente</th>
-                  <th className="text-right p-3 font-medium">Investimento</th>
-                  <th className="text-right p-3 font-medium">Leads</th>
-                  <th className="text-right p-3 font-medium">CPA</th>
-                  <th className="text-right p-3 font-medium">Eficiência</th>
-                  <th className="text-right p-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientsPerformance.map((client) => {
-                  const simulatedLeads = Math.floor(client.investment / 60);
-                  const simulatedCPA = client.investment / simulatedLeads || 0;
-                  const efficiency = client.investment > 0 ? (simulatedLeads / client.investment * 1000).toFixed(1) : '0';
-                  const status = parseFloat(efficiency) > 15 ? 'Excelente' : 
-                                parseFloat(efficiency) > 10 ? 'Bom' :
-                                parseFloat(efficiency) > 5 ? 'Regular' : 'Crítico';
-                  const statusColor = parseFloat(efficiency) > 15 ? 'text-green-600' : 
-                                     parseFloat(efficiency) > 10 ? 'text-blue-600' :
-                                     parseFloat(efficiency) > 5 ? 'text-yellow-600' : 'text-red-600';
-                  
-                  return (
-                    <tr key={client.name} className="border-b hover:bg-muted/50">
-                      <td className="p-3 font-medium">{client.name}</td>
-                      <td className="p-3 text-right">R$ {client.investment.toLocaleString()}</td>
-                      <td className="p-3 text-right">{simulatedLeads}</td>
-                      <td className="p-3 text-right">R$ {simulatedCPA.toFixed(2)}</td>
-                      <td className="p-3 text-right">{efficiency}</td>
-                      <td className={`p-3 text-right font-medium ${statusColor}`}>{status}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </ReportLayout>
   );
 };
