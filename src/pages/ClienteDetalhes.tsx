@@ -1889,9 +1889,24 @@ const ClienteDetalhes = () => {
                       ) : filteredAndSortedAds.length > 0 ? (
                         filteredAndSortedAds.map((ad) => (
                          <tr key={ad.id}>
-                           <td className="px-4 py-4 whitespace-nowrap">
-                             <div className="text-sm font-medium text-gray-900">{ad.name}</div>
-                           </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <TooltipProvider>
+                                <UITooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-sm font-medium text-gray-900 cursor-help">
+                                      {ad.name && ad.name.length > 60 
+                                        ? `${ad.name.substring(0, 60)}...` 
+                                        : ad.name}
+                                    </div>
+                                  </TooltipTrigger>
+                                  {ad.name && ad.name.length > 60 && (
+                                    <TooltipContent>
+                                      <p>{ad.name}</p>
+                                    </TooltipContent>
+                                  )}
+                                </UITooltip>
+                              </TooltipProvider>
+                            </td>
                              <td className="px-4 py-4 whitespace-nowrap">
                                 <div className="text-sm text-gray-500">
                                   {(() => {
