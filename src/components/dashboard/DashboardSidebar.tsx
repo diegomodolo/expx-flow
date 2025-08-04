@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Home,
   LayoutDashboard,
@@ -46,7 +46,7 @@ export function DashboardSidebar() {
   const isActive = (path: string) => currentPath === path;
 
   // Filter items based on permissions
-  const visibleItems = React.useMemo(() => {
+  const visibleItems = useMemo(() => {
     console.log('Filtering sidebar items:', { 
       permissionsLoading, 
       isOwner, 
