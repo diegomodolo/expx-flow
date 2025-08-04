@@ -373,43 +373,6 @@ export default function RelatorioCampanhasIneficientes() {
           />
         </div>
 
-        {/* Top 5 Piores Campanhas */}
-        {top5Worst.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-card-title flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Top 5 Campanhas Menos Eficientes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {top5Worst.map((campaign, index) => (
-                  <div key={campaign.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center font-bold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <h4 className="text-card-content font-semibold">{campaign.name}</h4>
-                        <p className="text-report-caption text-muted-foreground">{campaign.client_name}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${getEfficiencyColor(campaign.efficiency_score)}`}>
-                        {campaign.efficiency_score}/100
-                      </div>
-                      <div className="text-report-caption text-muted-foreground">
-                        R$ {campaign.investment.toLocaleString()} investidos
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Lista Detalhada de Campanhas */}
         <div className="grid gap-4">
           {filteredData.length === 0 ? (
