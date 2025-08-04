@@ -49,12 +49,80 @@ export default function RelatorioOrcamentoMalDistribuido() {
   const { clients, loading: clientsLoading } = useClients();
   const { campaigns, loading: campaignsLoading } = useCampaigns();
   const [budgetAnalysis, setBudgetAnalysis] = useState<BudgetDistribution[]>([]);
+  const [filteredData, setFilteredData] = useState<BudgetDistribution[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!clientsLoading && !campaignsLoading && clients && campaigns) {
       analyzeBudgetDistribution();
     }
   }, [clients, campaigns, clientsLoading, campaignsLoading]);
+
+  useEffect(() => {
+    setFilteredData(budgetAnalysis);
+  }, [budgetAnalysis]);
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+    
+    let filtered = [...budgetAnalysis];
+
+    // Filtro por cliente
+    if (newFilters.cliente && newFilters.cliente !== 'todos') {
+      filtered = filtered.filter(item => item.client_id === newFilters.cliente);
+    }
+
+    // Filtro por severidade
+    if (newFilters.severidade && newFilters.severidade !== 'todos') {
+      switch (newFilters.severidade) {
+        case 'critico':
+          filtered = filtered.filter(item => item.severity_score > 60);
+          break;
+        case 'moderado':
+          filtered = filtered.filter(item => item.severity_score >= 30 && item.severity_score <= 60);
+          break;
+        case 'leve':
+          filtered = filtered.filter(item => item.severity_score < 30);
+          break;
+      }
+    }
+
+    // Filtro por orçamento mínimo
+    if (newFilters['orcamento-minimo'] && newFilters['orcamento-minimo'] !== 'sem-limite') {
+      const minBudget = parseFloat(newFilters['orcamento-minimo']);
+      filtered = filtered.filter(item => item.total_budget >= minBudget);
+    }
+
+    // Filtro por tipo de desequilíbrio
+    if (newFilters['tipo-desequilibrio'] && newFilters['tipo-desequilibrio'] !== 'todos') {
+      const type = newFilters['tipo-desequilibrio'];
+      filtered = filtered.filter(item => 
+        item.imbalances.some(imbalance => 
+          type === 'excesso' ? imbalance.status === 'excess' : imbalance.status === 'deficit'
+        )
+      );
+    }
+
+    // Filtro por etapa do funil
+    if (newFilters['etapa-funil'] && newFilters['etapa-funil'] !== 'todas') {
+      const stage = newFilters['etapa-funil'];
+      filtered = filtered.filter(item => 
+        item.imbalances.some(imbalance => {
+          const stageNames = {
+            'topo': 'Topo do Funil',
+            'meio': 'Meio do Funil',
+            'fundo': 'Fundo do Funil',
+            'retencao': 'Retenção'
+          };
+          return imbalance.stage === stageNames[stage as keyof typeof stageNames] && 
+                 imbalance.status !== 'balanced';
+        })
+      );
+    }
+
+    setFilteredData(filtered);
+  };
 
   const analyzeBudgetDistribution = () => {
     const analysis: BudgetDistribution[] = [];
@@ -210,11 +278,14 @@ export default function RelatorioOrcamentoMalDistribuido() {
     );
   }
 
-  const totalMisallocatedBudget = budgetAnalysis.reduce((sum, a) => sum + a.total_budget, 0);
-  const avgSeverityScore = budgetAnalysis.length > 0 
-    ? budgetAnalysis.reduce((sum, a) => sum + a.severity_score, 0) / budgetAnalysis.length 
+  // Usar dados filtrados para métricas quando há filtros ativos
+  const dataToUse = Object.keys(activeFilters).length > 0 ? filteredData : budgetAnalysis;
+  
+  const totalMisallocatedBudget = dataToUse.reduce((sum, a) => sum + a.total_budget, 0);
+  const avgSeverityScore = dataToUse.length > 0 
+    ? dataToUse.reduce((sum, a) => sum + a.severity_score, 0) / dataToUse.length 
     : 0;
-  const criticalClients = budgetAnalysis.filter(a => a.severity_score > 60).length;
+  const criticalClients = dataToUse.filter(a => a.severity_score > 60).length;
 
   const availableClients = budgetAnalysis.map(analysis => ({
     value: analysis.client_id,
@@ -292,6 +363,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
       description="Detecção de clientes que não seguem a estratégia recomendada de alocação"
       primaryFilters={primaryFilters}
       secondaryFilters={secondaryFilters}
+      onFilterChange={handleFilterChange}
       filterDescription="Configure os parâmetros para análise de distribuição de orçamento"
     >
       <div className="space-y-6">
@@ -317,7 +389,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
           />
           <MetricCard
             title="Clientes Afetados"
-            value={budgetAnalysis.length}
+            value={dataToUse.length}
             subtitle="Com desequilíbrios"
           />
         </div>
@@ -396,7 +468,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
 
         {/* Lista Detalhada */}
         <div className="grid gap-4">
-          {budgetAnalysis.length === 0 ? (
+          {filteredData.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
                 <DollarSign className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -407,7 +479,7 @@ export default function RelatorioOrcamentoMalDistribuido() {
               </CardContent>
             </Card>
           ) : (
-            budgetAnalysis.map((analysis) => {
+            filteredData.map((analysis) => {
               const severityBadge = getSeverityBadge(analysis.severity_score);
               
               // Preparar dados para o gráfico de barras
