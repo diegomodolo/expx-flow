@@ -185,7 +185,7 @@ export function ReportLayout({
                         variant="outline"
                         size="sm"
                         onClick={() => setShowExtraFilters(!showExtraFilters)}
-                        className="h-8 mb-2"
+                        className="h-8"
                       >
                         {showExtraFilters ? (
                           <>
