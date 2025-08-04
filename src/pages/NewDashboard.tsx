@@ -68,11 +68,11 @@ export default function NewDashboard() {
 
   // Buscar alertas automaticamente quando os dados necessários estão disponíveis
   useEffect(() => {
-    if (!loading && !alertsLoading && metrics && campaignRankings && clientsPerformance) {
+    if (!loading && metrics && campaignRankings && clientsPerformance) {
       console.log('Dashboard data ready, generating alerts...');
       generateAlerts();
     }
-  }, [loading, alertsLoading, metrics, campaignRankings, clientsPerformance, generateAlerts]);
+  }, [loading, metrics, campaignRankings, clientsPerformance, generateAlerts]);
 
   // Calcular informações da última sincronização
   const getLastSyncInfo = () => {
