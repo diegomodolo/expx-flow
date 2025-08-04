@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate, Link } from "react-router-dom";
@@ -13,11 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const { toast } = useToast();
 
   // Redirect if already logged in
@@ -49,166 +47,81 @@ export default function AuthPage() {
     setLoading(false);
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const { error } = await signUp(email, password, fullName);
-    
-    if (error) {
-      setError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Erro no cadastro",
-        description: error.message
-      });
-    } else {
-      // Com confirmação de email desabilitada, o usuário já está logado
-      // O redirect automático acontecerá via ProtectedRoute
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Bem-vindo ao MarketingHub!"
-      });
-    }
-    
-    setLoading(false);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+          <Link to="/" className="inline-flex items-center text-purple-600 hover:text-purple-800 mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar ao site
           </Link>
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"></div>
-            <h1 className="text-2xl font-bold text-gray-900">MarketingHub</h1>
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <img 
+              src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
+              alt="Controle de Tráfego" 
+              className="h-10 w-auto"
+            />
+            <h1 className="text-2xl font-bold text-gray-900">Controle de Tráfego</h1>
           </div>
-          <p className="text-gray-600">Acesse sua conta ou crie uma nova</p>
+          <p className="text-gray-600">Acesse sua conta</p>
         </div>
 
-        <Card className="shadow-lg border-0">
+        <Card className="shadow-lg border-purple-100">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl text-center">Bem-vindo!</CardTitle>
+            <CardTitle className="text-2xl text-center">Entrar no Sistema</CardTitle>
             <CardDescription className="text-center">
-              Escolha uma opção abaixo para continuar
+              Digite suas credenciais para acessar
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Entrar</TabsTrigger>
-                <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-              </TabsList>
+            {error && (
+              <Alert className="mb-4 border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-700">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
 
-              {error && (
-                <Alert className="mb-4 border-red-200 bg-red-50">
-                  <AlertCircle className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-700">
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Sign In Tab */}
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Senha</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="Sua senha"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="w-full"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Entrando..." : "Entrar"}
-                  </Button>
-                </form>
-              </TabsContent>
-
-              {/* Sign Up Tab */}
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome completo</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="Mínimo 6 caracteres"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="w-full"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Criando conta..." : "Cadastre-se Grátis"}
-                  </Button>
-                  <p className="text-xs text-gray-500 text-center">
-                    Ao se cadastrar, você aceita nossos termos de uso e política de privacidade
-                  </p>
-                </form>
-              </TabsContent>
-            </Tabs>
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Sua senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                disabled={loading}
+              >
+                {loading ? "Entrando..." : "Entrar no Sistema"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
         <div className="text-center mt-6 text-sm text-gray-500">
-          Teste grátis por 14 dias • Sem cartão de crédito
+          Sistema exclusivo para usuários autorizados
         </div>
       </div>
     </div>
