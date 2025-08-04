@@ -244,6 +244,7 @@ export const useDashboardAlerts = () => {
         hasCompany: !!activeCompany?.company_id,
         hasUser: !!user?.id
       });
+      setLoading(false);
       return;
     }
 
@@ -355,10 +356,12 @@ export const useDashboardAlerts = () => {
       });
 
       setAlerts(generatedAlerts);
+      console.log('Debug: Successfully set alerts, setting loading to false');
     } catch (err) {
       console.error('Debug: Error fetching alerts:', err);
       setError('Erro ao buscar alertas');
     } finally {
+      console.log('Debug: Finally block - setting loading to false');
       setLoading(false);
     }
   };
