@@ -37,7 +37,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -87,7 +88,10 @@ export default {
 				},
 				'metric-positive': 'hsl(var(--metric-positive))',
 				'metric-negative': 'hsl(var(--metric-negative))',
-				'metric-neutral': 'hsl(var(--metric-neutral))'
+				'metric-neutral': 'hsl(var(--metric-neutral))',
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-accent': 'var(--gradient-accent)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
