@@ -119,7 +119,12 @@ export default function RelatorioCampanhasIneficientes() {
   const analyzeInefficientCampaigns = () => {
     const inefficient: InefficientCampaign[] = [];
 
-    campaigns?.forEach(campaign => {
+    // Filtrar apenas campanhas ativas
+    const activeCampaigns = campaigns?.filter(campaign => 
+      campaign.status === 'active' && campaign.is_active === true
+    ) || [];
+
+    activeCampaigns.forEach(campaign => {
       // Targets definidos (podem ser configuráveis por cliente)
       const cpaTarget = 150; // R$ 150 por conversão
       const roasMinimum = 3.0; // ROAS mínimo de 3:1
