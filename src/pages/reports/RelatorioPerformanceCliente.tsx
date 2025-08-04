@@ -24,6 +24,7 @@ interface ClientAnalysis {
   leads: number;
   cpa: number;
   leadsPerThousand: number; // leads por R$ 1000 investidos
+  healthScore: number; // nota de saúde de 0 a 100
   analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
   issues: string[];
   recommendations: string[];
@@ -94,6 +95,56 @@ const RelatorioPerformanceCliente = () => {
       // Calcular leads por R$ 1000 investidos
       const leadsPerThousand = realInvestment > 0 ? (realLeads / realInvestment * 1000) : 0;
 
+      // Calcular nota de saúde de 0 a 100
+      const calculateHealthScore = () => {
+        let score = 50; // Base score
+
+        // Pontuação baseada no CPA (40 pontos máximo)
+        if (realCPA === 0 && realLeads === 0) {
+          score -= 40; // Sem leads nem CPA = muito ruim
+        } else if (realCPA <= 60) {
+          score += 40; // CPA excelente
+        } else if (realCPA <= 90) {
+          score += 25; // CPA bom
+        } else if (realCPA <= 120) {
+          score += 10; // CPA aceitável
+        } else if (realCPA <= 150) {
+          score -= 10; // CPA alto
+        } else {
+          score -= 30; // CPA muito alto
+        }
+
+        // Pontuação baseada em leads por R$1000 (30 pontos máximo)
+        if (leadsPerThousand >= 15) {
+          score += 30; // Excelente volume
+        } else if (leadsPerThousand >= 10) {
+          score += 20; // Bom volume
+        } else if (leadsPerThousand >= 6) {
+          score += 10; // Volume razoável
+        } else if (leadsPerThousand >= 3) {
+          score -= 5; // Volume baixo
+        } else {
+          score -= 20; // Volume muito baixo
+        }
+
+        // Pontuação baseada no volume absoluto de leads (20 pontos máximo)
+        if (realLeads >= 50) {
+          score += 20;
+        } else if (realLeads >= 20) {
+          score += 15;
+        } else if (realLeads >= 10) {
+          score += 10;
+        } else if (realLeads >= 5) {
+          score += 5;
+        } else if (realLeads === 0) {
+          score -= 20;
+        }
+
+        return Math.max(0, Math.min(100, Math.round(score)));
+      };
+
+      const healthScore = calculateHealthScore();
+
       // Identificar problemas baseados em leads e CPA
       const issues: string[] = [];
       if (leadsPerThousand < 8) issues.push('Poucos leads por investimento (meta: 8+ leads/R$1000)');
@@ -121,6 +172,7 @@ const RelatorioPerformanceCliente = () => {
         leads: realLeads,
         cpa: realCPA,
         leadsPerThousand: Math.round(leadsPerThousand * 10) / 10,
+        healthScore,
         analysisStatus,
         issues,
         recommendations
@@ -294,7 +346,19 @@ const RelatorioPerformanceCliente = () => {
                 )}
 
                  {/* Métricas Detalhadas */}
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
+                   <div className="text-center">
+                     <div className={`text-2xl font-bold ${
+                       client.healthScore >= 80 ? 'text-green-600' :
+                       client.healthScore >= 60 ? 'text-blue-600' :
+                       client.healthScore >= 40 ? 'text-yellow-600' : 'text-destructive'
+                     }`}>
+                       {client.healthScore}/100
+                     </div>
+                     <div className="text-xs text-muted-foreground">
+                       Nota de Saúde
+                     </div>
+                   </div>
                    <div className="text-center">
                      <div className="text-2xl font-bold text-foreground">
                        R$ {client.investment.toLocaleString()}
