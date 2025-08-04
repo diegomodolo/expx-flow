@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,8 @@ export default function RelatorioClientesZonaCritica() {
   const { clients, loading: clientsLoading } = useClients();
   const { campaigns, loading: campaignsLoading } = useCampaigns();
   const [criticalClients, setCriticalClients] = useState<CriticalClient[]>([]);
+  const [filteredData, setFilteredData] = useState<CriticalClient[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [selectedClient, setSelectedClient] = useState<CriticalClient | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -37,6 +39,68 @@ export default function RelatorioClientesZonaCritica() {
       analyzeCriticalClients();
     }
   }, [clients, campaigns, clientsLoading, campaignsLoading]);
+
+  useEffect(() => {
+    setFilteredData(criticalClients);
+  }, [criticalClients]);
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+    
+    let filtered = [...criticalClients];
+
+    // Filtro por status
+    if (newFilters.status && newFilters.status !== 'todos') {
+      filtered = filtered.filter(client => client.status === newFilters.status);
+    }
+
+    // Filtro por tipo de problema
+    if (newFilters['tipo-problema'] && newFilters['tipo-problema'] !== 'todos') {
+      const problemType = newFilters['tipo-problema'];
+      filtered = filtered.filter(client => {
+        switch (problemType) {
+          case 'sem-campanhas':
+            return client.issues.some(issue => issue.includes('Sem campanhas ativas'));
+          case 'cpa-alto':
+            return client.issues.some(issue => issue.includes('CPA'));
+          case 'ctr-baixo':
+            return client.issues.some(issue => issue.includes('CTR'));
+          case 'frequencia-alta':
+            return client.issues.some(issue => issue.includes('Frequência'));
+          case 'sem-leads':
+            return client.issues.some(issue => issue.includes('sem nenhum lead'));
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filtro por nível de criticidade (número de problemas)
+    if (newFilters['nivel-criticidade'] && newFilters['nivel-criticidade'] !== 'todos') {
+      const level = newFilters['nivel-criticidade'];
+      filtered = filtered.filter(client => {
+        switch (level) {
+          case 'muito-critico':
+            return client.issues.length >= 4;
+          case 'critico':
+            return client.issues.length === 3;
+          case 'moderado':
+            return client.issues.length <= 2;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filtro por valor de CPA
+    if (newFilters['cpa-limite'] && newFilters['cpa-limite'] !== 'sem-limite') {
+      const cpaLimit = parseFloat(newFilters['cpa-limite']);
+      filtered = filtered.filter(client => client.cpa_current >= cpaLimit);
+    }
+
+    setFilteredData(filtered);
+  };
 
   const analyzeCriticalClients = () => {
     const critical: CriticalClient[] = [];
@@ -251,14 +315,78 @@ export default function RelatorioClientesZonaCritica() {
     );
   }
 
-  const criticalCount = criticalClients.filter(c => c.status === 'critical').length;
-  const warningCount = criticalClients.filter(c => c.status === 'warning').length;
-  const totalIssues = criticalClients.reduce((sum, c) => sum + c.issues.length, 0);
+  // Usar dados filtrados para métricas quando há filtros ativos
+  const dataToUse = Object.keys(activeFilters).length > 0 ? filteredData : criticalClients;
+  
+  const criticalCount = dataToUse.filter(c => c.status === 'critical').length;
+  const warningCount = dataToUse.filter(c => c.status === 'warning').length;
+  const totalIssues = dataToUse.reduce((sum, c) => sum + c.issues.length, 0);
+
+  // Configurar filtros
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'critical', label: 'Crítico' },
+        { value: 'warning', label: 'Alerta' }
+      ],
+      placeholder: 'Todos os status'
+    },
+    {
+      id: 'tipo-problema',
+      label: 'Tipo de Problema',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'sem-campanhas', label: 'Sem campanhas ativas' },
+        { value: 'cpa-alto', label: 'CPA alto' },
+        { value: 'ctr-baixo', label: 'CTR baixo' },
+        { value: 'frequencia-alta', label: 'Frequência alta' },
+        { value: 'sem-leads', label: 'Sem leads' }
+      ],
+      placeholder: 'Todos os tipos'
+    },
+    {
+      id: 'nivel-criticidade',
+      label: 'Nível de Criticidade',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os níveis' },
+        { value: 'muito-critico', label: 'Muito crítico (4+ problemas)' },
+        { value: 'critico', label: 'Crítico (3 problemas)' },
+        { value: 'moderado', label: 'Moderado (1-2 problemas)' }
+      ],
+      placeholder: 'Todos os níveis'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'cpa-limite',
+      label: 'CPA Mínimo',
+      type: 'select',
+      options: [
+        { value: 'sem-limite', label: 'Sem limite' },
+        { value: '100', label: 'R$ 100+' },
+        { value: '150', label: 'R$ 150+' },
+        { value: '200', label: 'R$ 200+' },
+        { value: '300', label: 'R$ 300+' }
+      ],
+      placeholder: 'Sem limite'
+    }
+  ];
 
   return (
     <ReportLayout
       title="Relatório de Clientes em Zona Crítica"
       description="Identificação de clientes com campanhas problemáticas"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      onFilterChange={handleFilterChange}
+      filterDescription="Configure os parâmetros para análise de clientes em zona crítica"
     >
       <div className="space-y-6">
         {/* Resumo */}
@@ -290,18 +418,21 @@ export default function RelatorioClientesZonaCritica() {
 
         {/* Lista de Clientes Críticos */}
         <div className="grid gap-4">
-          {criticalClients.length === 0 ? (
+          {filteredData.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
                 <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Nenhum cliente em zona crítica</h3>
+                <h3 className="text-lg font-semibold mb-2">Nenhum cliente encontrado</h3>
                 <p className="text-muted-foreground">
-                  Todos os clientes estão com performance dentro dos parâmetros esperados.
+                  {Object.keys(activeFilters).length > 0 
+                    ? 'Nenhum cliente corresponde aos filtros selecionados.'
+                    : 'Todos os clientes estão com performance dentro dos parâmetros esperados.'
+                  }
                 </p>
               </CardContent>
             </Card>
           ) : (
-            criticalClients.map((client) => {
+            filteredData.map((client) => {
               const StatusIcon = getStatusIcon(client.status);
               
               return (
