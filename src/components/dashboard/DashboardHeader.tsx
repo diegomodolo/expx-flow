@@ -120,12 +120,6 @@ export function DashboardHeader() {
                   <span>Meu Perfil</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/configuracoes" className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Configurações da Empresa</span>
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
