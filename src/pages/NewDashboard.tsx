@@ -281,8 +281,8 @@ export default function NewDashboard() {
         {/* Gráficos de Performance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico 1: Top Clientes por Investimento vs Leads */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary" />
               <h2 className="text-lg font-semibold text-gray-900">Top Clientes - Investimento vs Leads</h2>
             </div>
@@ -298,7 +298,7 @@ export default function NewDashboard() {
                   color: "hsl(var(--destructive))",
                 },
               }}
-              className="h-[300px]"
+              className="h-[400px]"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
@@ -307,14 +307,14 @@ export default function NewDashboard() {
                     investment: client.investment,
                     leads: client.leads_generated
                   }))}
-                  margin={{ top: 10, right: 20, left: 10, bottom: 45 }}
+                  margin={{ top: 5, right: 15, left: 5, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={50}
                     fontSize={12}
                   />
                   <YAxis yAxisId="left" />
@@ -347,8 +347,8 @@ export default function NewDashboard() {
           </div>
 
           {/* Gráfico 2: CPL vs Investimento por Cliente */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-primary" />
               <h2 className="text-lg font-semibold text-gray-900">CPL vs Investimento por Cliente</h2>
             </div>
@@ -364,7 +364,7 @@ export default function NewDashboard() {
                   color: "hsl(var(--chart-2))",
                 },
               }}
-              className="h-[300px]"
+              className="h-[400px]"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -382,14 +382,14 @@ export default function NewDashboard() {
                       };
                     });
                   })()}
-                  margin={{ top: 10, right: 20, left: 10, bottom: 45 }}
+                  margin={{ top: 5, right: 15, left: 5, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={50}
                     fontSize={12}
                   />
                   <YAxis yAxisId="left" />
