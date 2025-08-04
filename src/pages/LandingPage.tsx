@@ -1,14 +1,119 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Target, TrendingUp, BarChart3, Zap, Shield, Users, CheckCircle, Star, Quote } from "lucide-react";
+import { ArrowRight, Target, TrendingUp, BarChart3, Zap, Shield, Users, CheckCircle, Star, Quote, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setIsMenuOpen(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50">
+      {/* Header/Navbar */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-purple-100 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
+                alt="Controle de Tráfego" 
+                className="h-8 w-auto"
+              />
+              <span className="text-xl font-bold text-gray-900">Controle de Tráfego</span>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <button 
+                onClick={() => scrollToSection('inicio')} 
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                Início
+              </button>
+              <button 
+                onClick={() => scrollToSection('recursos')} 
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                Recursos
+              </button>
+              <button 
+                onClick={() => scrollToSection('beneficios')} 
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                Benefícios
+              </button>
+              <button 
+                onClick={() => scrollToSection('depoimentos')} 
+                className="text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                Depoimentos
+              </button>
+              <Link to="/auth">
+                <Button className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white">
+                  Entrar no Sistema
+                </Button>
+              </Link>
+            </nav>
+
+            {/* Mobile Menu Button */}
+            <button 
+              className="md:hidden p-2 text-gray-600 hover:text-purple-600"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          {isMenuOpen && (
+            <div className="md:hidden border-t border-purple-100 py-4">
+              <div className="flex flex-col space-y-4">
+                <button 
+                  onClick={() => scrollToSection('inicio')} 
+                  className="text-left text-gray-600 hover:text-purple-600 transition-colors"
+                >
+                  Início
+                </button>
+                <button 
+                  onClick={() => scrollToSection('recursos')} 
+                  className="text-left text-gray-600 hover:text-purple-600 transition-colors"
+                >
+                  Recursos
+                </button>
+                <button 
+                  onClick={() => scrollToSection('beneficios')} 
+                  className="text-left text-gray-600 hover:text-purple-600 transition-colors"
+                >
+                  Benefícios
+                </button>
+                <button 
+                  onClick={() => scrollToSection('depoimentos')} 
+                  className="text-left text-gray-600 hover:text-purple-600 transition-colors"
+                >
+                  Depoimentos
+                </button>
+                <Link to="/auth" className="inline-block">
+                  <Button className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white w-full">
+                    Entrar no Sistema
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section id="inicio" className="relative overflow-hidden pt-20">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-purple-500/5 to-transparent"></div>
         <div className="container mx-auto px-4 py-20 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -91,7 +196,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section id="recursos" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -179,7 +284,7 @@ export default function LandingPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 to-white">
+      <section id="beneficios" className="py-20 bg-gradient-to-br from-purple-50 to-white">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
@@ -269,7 +374,7 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-white">
+      <section id="depoimentos" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
