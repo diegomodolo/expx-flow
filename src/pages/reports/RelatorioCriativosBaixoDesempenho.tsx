@@ -26,6 +26,10 @@ interface LowPerformingCreative {
   recommendation: 'pause' | 'adjust' | 'replace';
   recommendation_reason: string;
   performance_score: number;
+  // Benchmarks ideais
+  ideal_ctr: number;
+  ideal_cpc: number;
+  ideal_cpl: number;
 }
 
 export default function RelatorioCriativosBaixoDesempenho() {
@@ -200,7 +204,11 @@ export default function RelatorioCriativosBaixoDesempenho() {
         status,
         recommendation,
         recommendation_reason: recommendationReason,
-        performance_score: Math.max(0, performanceScore)
+        performance_score: Math.max(0, performanceScore),
+        // Benchmarks ideais calculados
+        ideal_ctr: avgCTR,
+        ideal_cpc: avgCPC,
+        ideal_cpl: avgCPL
       });
     });
 
@@ -438,11 +446,17 @@ export default function RelatorioCriativosBaixoDesempenho() {
                         <div className="text-2xl font-bold text-destructive">
                           {creative.ctr.toFixed(2)}%
                         </div>
+                        <div className="text-xs text-success">
+                          Ideal: {creative.ideal_ctr.toFixed(2)}%
+                        </div>
                         <div className="text-xs text-muted-foreground">CTR</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-destructive">
                           R$ {creative.cpc.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-success">
+                          Ideal: R$ {creative.ideal_cpc.toFixed(2)}
                         </div>
                         <div className="text-xs text-muted-foreground">CPC</div>
                       </div>
@@ -450,17 +464,26 @@ export default function RelatorioCriativosBaixoDesempenho() {
                         <div className="text-2xl font-bold text-destructive">
                           {creative.cpl > 0 ? `R$ ${creative.cpl.toFixed(0)}` : 'N/A'}
                         </div>
+                        <div className="text-xs text-success">
+                          {creative.ideal_cpl > 0 ? `Ideal: R$ ${creative.ideal_cpl.toFixed(0)}` : 'Ideal: N/A'}
+                        </div>
                         <div className="text-xs text-muted-foreground">CPL</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold">
                           {creative.conversions}
                         </div>
+                        <div className="text-xs text-success">
+                          Meta: Aumentar
+                        </div>
                         <div className="text-xs text-muted-foreground">Conversões</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-destructive">
                           R$ {creative.spend.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-warning">
+                          Status: Desperdiçado
                         </div>
                         <div className="text-xs text-muted-foreground">Gasto</div>
                       </div>
