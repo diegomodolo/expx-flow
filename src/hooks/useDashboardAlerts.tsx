@@ -44,6 +44,7 @@ export const useDashboardAlerts = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
   const { activeCompany } = useCompany();
   const { user } = useAuth();
 
@@ -245,17 +246,21 @@ export const useDashboardAlerts = () => {
         hasUser: !!user?.id
       });
       setLoading(false);
-      return;
-    }
-
-    if (loading) {
-      console.log('Debug: Already loading alerts, skipping...');
+      setIsReady(true);
       return;
     }
 
     console.log('Debug: Starting alerts fetch for company:', activeCompany.company_id);
     setLoading(true);
     setError(null);
+    setIsReady(false);
+
+    // Timeout de segurança para evitar loading infinito
+    const timeoutId = setTimeout(() => {
+      console.log('Debug: Timeout reached, forcing loading to false');
+      setLoading(false);
+      setIsReady(true);
+    }, 30000); // 30 segundos
 
     try {
       const thirtyDaysAgo = new Date();
@@ -357,12 +362,15 @@ export const useDashboardAlerts = () => {
 
       setAlerts(generatedAlerts);
       console.log('Debug: Successfully set alerts, setting loading to false');
+      setIsReady(true);
     } catch (err) {
       console.error('Debug: Error fetching alerts:', err);
       setError('Erro ao buscar alertas');
     } finally {
+      clearTimeout(timeoutId);
       console.log('Debug: Finally block - setting loading to false');
       setLoading(false);
+      setIsReady(true);
     }
   };
 
@@ -370,6 +378,7 @@ export const useDashboardAlerts = () => {
     alerts,
     loading,
     error,
+    isReady,
     generateAlerts: fetchAlerts,
   };
 };

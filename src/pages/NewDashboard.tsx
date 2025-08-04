@@ -60,7 +60,7 @@ export default function NewDashboard() {
   const topCampaignsByCPA = campaignRankings || [];
 
   // Hook para alertas automáticos
-  const { alerts, loading: alertsLoading, generateAlerts } = useDashboardAlerts();
+  const { alerts, loading: alertsLoading, isReady: alertsReady, generateAlerts } = useDashboardAlerts();
   const { convertAlertToTask } = useTaskAutomation();
   
   // Estado para controlar ações convertidas em tarefas
@@ -427,7 +427,7 @@ export default function NewDashboard() {
             <h3 className="text-sm font-medium text-yellow-800">Debug: Status da Geração de Alertas</h3>
           </div>
           <div className="text-xs text-yellow-700 space-y-1">
-            <p>Loading: {loading ? 'Sim' : 'Não'} | Alerts Loading: {alertsLoading ? 'Sim' : 'Não'}</p>
+            <p>Loading: {loading ? 'Sim' : 'Não'} | Alerts Loading: {alertsLoading ? 'Sim' : 'Não'} | Alerts Ready: {alertsReady ? 'Sim' : 'Não'}</p>
             <p>Metrics: {metrics ? 'Carregado' : 'Não carregado'} | Campaigns: {campaignRankings?.length || 0} | Clients: {clientsPerformance?.length || 0}</p>
             <p>Total Alerts: {alerts.length} | Opportunities: {opportunityAlerts.length} | Problems: {dangerAlerts.length}</p>
           </div>
@@ -447,8 +447,8 @@ export default function NewDashboard() {
                 <AlertTriangle className="w-4 h-4 text-red-500" />
                 <h3 className="text-base font-medium text-gray-900">Problemas ({dangerAlerts.length})</h3>
               </div>
-              <div className="space-y-3">
-                {alertsLoading ? (
+          <div className="space-y-3">
+                {alertsLoading && !alertsReady ? (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-4 h-4 animate-spin mr-2 text-red-500" />
@@ -498,7 +498,7 @@ export default function NewDashboard() {
                 <h3 className="text-base font-medium text-gray-900">Oportunidades ({opportunityAlerts.length})</h3>
               </div>
               <div className="space-y-3">
-                {alertsLoading ? (
+                {alertsLoading && !alertsReady ? (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center justify-center">
                       <RefreshCw className="w-4 h-4 animate-spin mr-2 text-green-500" />
