@@ -462,7 +462,7 @@ export default function NewDashboard() {
                     <p className="text-sm text-red-600 text-center">Nenhum problema detectado! 🎉</p>
                   </div>
                 ) : (
-                  dangerAlerts.filter(alert => !convertedActions.has(alert.id)).slice(0, 3).map((alert) => (
+                  dangerAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert) => (
                     <div key={alert.id} className="p-4 bg-white border-l-4 border-red-500 rounded-lg shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -516,7 +516,7 @@ export default function NewDashboard() {
                     <p className="text-sm text-green-600 text-center">Nenhuma oportunidade detectada no momento.</p>
                   </div>
                 ) : (
-                  opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).slice(0, 3).map((alert) => (
+                  opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert) => (
                     <div key={alert.id} className="p-4 bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
