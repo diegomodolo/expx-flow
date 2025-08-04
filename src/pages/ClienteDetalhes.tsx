@@ -1644,12 +1644,12 @@ const ClienteDetalhes = () => {
                                 <UITooltip>
                                   <TooltipTrigger asChild>
                                     <div className="text-sm font-medium text-gray-900 cursor-help">
-                                      {adSet.name && adSet.name.length > 60 
-                                        ? `${adSet.name.substring(0, 60)}...` 
+                                      {adSet.name && adSet.name.length > 50 
+                                        ? `${adSet.name.substring(0, 50)}...` 
                                         : adSet.name}
                                     </div>
                                   </TooltipTrigger>
-                                  {adSet.name && adSet.name.length > 60 && (
+                                  {adSet.name && adSet.name.length > 50 && (
                                     <TooltipContent>
                                       <p>{adSet.name}</p>
                                     </TooltipContent>
@@ -1664,15 +1664,15 @@ const ClienteDetalhes = () => {
                                     <div className="text-sm text-gray-500 cursor-help">
                                       {(() => {
                                         const campaignName = client?.campaigns?.find(c => c.id === adSet.campaign_id)?.name || 'N/A';
-                                        return campaignName && campaignName.length > 60 
-                                          ? `${campaignName.substring(0, 60)}...` 
+                                        return campaignName && campaignName.length > 50 
+                                          ? `${campaignName.substring(0, 50)}...` 
                                           : campaignName;
                                       })()}
                                     </div>
                                   </TooltipTrigger>
                                   {(() => {
                                     const campaignName = client?.campaigns?.find(c => c.id === adSet.campaign_id)?.name || 'N/A';
-                                    return campaignName && campaignName.length > 60 && (
+                                    return campaignName && campaignName.length > 50 && (
                                       <TooltipContent>
                                         <p>{campaignName}</p>
                                       </TooltipContent>
