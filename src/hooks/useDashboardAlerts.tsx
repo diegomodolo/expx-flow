@@ -158,8 +158,14 @@ export const useDashboardAlerts = () => {
       const hasRoomToScale = campaign.spend < 1000; // Investimento ainda com margem para escalar
       const hasConversions = campaign.conversions > 0; // Precisa ter pelo menos algumas conversões
       
-      return hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions;
+      const isOpportunity = hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions;
+      
+      console.log(`Debug: Campaign ${campaign.name} - CPA: ${campaign.cpa}, CTR: ${campaign.ctr}, Spend: ${campaign.spend}, Conversions: ${campaign.conversions}, IsOpportunity: ${isOpportunity}`);
+      
+      return isOpportunity;
     }).slice(0, Math.max(0, maxAlerts - alertsCount));
+
+    console.log('Debug: Found scalable opportunities:', scalableOpportunities.length);
 
     for (const campaign of scalableOpportunities) {
       if (alertsCount >= maxAlerts) break;
@@ -188,8 +194,16 @@ export const useDashboardAlerts = () => {
       const hasSignificantVolume = campaign.spend >= 100; // Já tem algum volume de dados
       const hasGoodConversionRate = campaign.conversions >= 5; // Pelo menos 5 conversões
       
-      return hasConsistentPerformance && hasSignificantVolume && hasGoodConversionRate;
+      const isHistoricalOpportunity = hasConsistentPerformance && hasSignificantVolume && hasGoodConversionRate;
+      
+      if (isHistoricalOpportunity) {
+        console.log(`Debug: Historical opportunity found - ${campaign.name}`);
+      }
+      
+      return isHistoricalOpportunity;
     }).slice(0, Math.max(0, maxAlerts - alertsCount));
+
+    console.log('Debug: Found historical opportunities:', historicalOpportunities.length);
 
     for (const campaign of historicalOpportunities) {
       if (alertsCount >= maxAlerts) break;
@@ -216,15 +230,19 @@ export const useDashboardAlerts = () => {
 
   const fetchAlerts = async (filterClientId?: string | null) => {
     if (!activeCompany?.company_id || !user?.id) {
-      console.log('Skipping alerts fetch: missing company or user');
+      console.log('Debug: Skipping alerts fetch - missing company or user', {
+        hasCompany: !!activeCompany?.company_id,
+        hasUser: !!user?.id
+      });
       return;
     }
 
     if (loading) {
-      console.log('Already loading alerts, skipping...');
+      console.log('Debug: Already loading alerts, skipping...');
       return;
     }
 
+    console.log('Debug: Starting alerts fetch for company:', activeCompany.company_id);
     setLoading(true);
     setError(null);
 
@@ -233,7 +251,8 @@ export const useDashboardAlerts = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       // Buscar campanhas
-      const { data: currentPeriodCampaigns } = await supabase
+      console.log('Debug: Fetching campaigns...');
+      const { data: currentPeriodCampaigns, error: campaignsError } = await supabase
         .from('campaigns')
         .select(`
           *,
@@ -242,18 +261,39 @@ export const useDashboardAlerts = () => {
         .eq('company_id', activeCompany.company_id)
         .gte('created_at', thirtyDaysAgo.toISOString());
 
+      if (campaignsError) {
+        console.error('Debug: Error fetching campaigns:', campaignsError);
+        throw campaignsError;
+      }
+
+      console.log('Debug: Found campaigns:', currentPeriodCampaigns?.length || 0);
+
       // Buscar clientes
-      const { data: clientsData } = await supabase
+      const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('*')
         .eq('company_id', activeCompany.company_id);
 
+      if (clientsError) {
+        console.error('Debug: Error fetching clients:', clientsError);
+        throw clientsError;
+      }
+
+      console.log('Debug: Found clients:', clientsData?.length || 0);
+
       // Buscar tarefas ativas
-      const { data: activeTasks } = await supabase
+      const { data: activeTasks, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
         .eq('company_id', activeCompany.company_id)
         .neq('status', 'done');
+
+      if (tasksError) {
+        console.error('Debug: Error fetching tasks:', tasksError);
+        throw tasksError;
+      }
+
+      console.log('Debug: Found active tasks:', activeTasks?.length || 0);
 
       // Processar dados
       const processedClients = clientsData?.map(client => ({
@@ -281,7 +321,16 @@ export const useDashboardAlerts = () => {
         clicks: campaign.clicks || 0
       })) || [];
 
+      console.log('Debug: Processed campaigns for alerts:', {
+        total: processedCampaigns.length,
+        active: processedCampaigns.filter(c => c.status === 'active').length,
+        withConversions: processedCampaigns.filter(c => c.conversions > 0).length,
+        lowCPA: processedCampaigns.filter(c => c.cpa <= 60).length,
+        goodCTR: processedCampaigns.filter(c => c.ctr >= 1.0).length
+      });
+
       // Gerar alertas
+      console.log('Debug: Generating alerts...');
       const generatedAlerts = await generateAlerts(
         processedClients,
         processedCampaigns,
@@ -289,9 +338,15 @@ export const useDashboardAlerts = () => {
         filterClientId
       );
 
+      console.log('Debug: Generated alerts:', {
+        total: generatedAlerts.length,
+        opportunities: generatedAlerts.filter(a => a.type === 'opportunity').length,
+        dangers: generatedAlerts.filter(a => a.type === 'danger').length
+      });
+
       setAlerts(generatedAlerts);
     } catch (err) {
-      console.error('Error fetching alerts:', err);
+      console.error('Debug: Error fetching alerts:', err);
       setError('Erro ao buscar alertas');
     } finally {
       setLoading(false);
