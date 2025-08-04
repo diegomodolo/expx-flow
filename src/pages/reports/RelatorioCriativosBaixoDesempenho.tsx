@@ -4,10 +4,11 @@ import { MetricCard } from "@/components/reports/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Target, TrendingDown, Image } from "lucide-react";
+import { AlertTriangle, Target, TrendingDown, Image, Eye } from "lucide-react";
 import { useAds } from "@/hooks/useAds";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 
 interface LowPerformingCreative {
   id: string;
@@ -41,6 +42,8 @@ export default function RelatorioCriativosBaixoDesempenho() {
   const [lowPerformingCreatives, setLowPerformingCreatives] = useState<LowPerformingCreative[]>([]);
   const [filteredData, setFilteredData] = useState<LowPerformingCreative[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [selectedAd, setSelectedAd] = useState<any>(null);
+  const [adCreativeMetricsModalOpen, setAdCreativeMetricsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!adsLoading && !campaignsLoading && ads && campaigns) {
@@ -111,6 +114,15 @@ export default function RelatorioCriativosBaixoDesempenho() {
     };
 
     convertAlertToTask(alertData);
+  };
+
+  const handleViewAdCreativeMetrics = (creative: LowPerformingCreative) => {
+    // Encontrar o anúncio original nos dados
+    const originalAd = ads?.find(ad => ad.id === creative.id);
+    if (originalAd) {
+      setSelectedAd(originalAd);
+      setAdCreativeMetricsModalOpen(true);
+    }
   };
 
   const analyzeLowPerformingCreatives = () => {
@@ -528,15 +540,24 @@ export default function RelatorioCriativosBaixoDesempenho() {
                     </div>
 
                     {/* Ação Recomendada */}
-                    <div className="flex pt-4 border-t">
+                    <div className="flex gap-2 pt-4 border-t">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full"
+                        className="flex-1"
                         onClick={() => handleCreateTask(creative)}
                       >
                         <Target className="w-4 h-4 mr-2" />
                         Criar Tarefa
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleViewAdCreativeMetrics(creative)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Detalhes
                       </Button>
                     </div>
                   </CardContent>
@@ -546,6 +567,13 @@ export default function RelatorioCriativosBaixoDesempenho() {
           )}
         </div>
       </div>
+
+      {/* Ad Creative Metrics Modal */}
+      <AdCreativeMetricsModal
+        ad={selectedAd}
+        isOpen={adCreativeMetricsModalOpen}
+        onClose={() => setAdCreativeMetricsModalOpen(false)}
+      />
     </ReportLayout>
   );
 }
