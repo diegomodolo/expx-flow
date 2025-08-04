@@ -1793,12 +1793,9 @@ const ClienteDetalhes = () => {
                            )}
                          </div>
                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Campanha
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Conjunto de Anúncios
-                        </th>
+                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                           Campanha
+                         </th>
                        <th 
                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
                          onClick={() => handleAdSort('type')}
@@ -1895,20 +1892,15 @@ const ClienteDetalhes = () => {
                            <td className="px-4 py-4 whitespace-nowrap">
                              <div className="text-sm font-medium text-gray-900">{ad.name}</div>
                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                               <div className="text-sm text-gray-500">
-                                 {(() => {
-                                   const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
-                                   const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
-                                   return campaign?.name || 'N/A';
-                                 })()}
-                               </div>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                               <div className="text-sm text-gray-500">
-                                 {adSets?.find(adSet => adSet.id === ad.ad_set_id)?.name || 'N/A'}
-                               </div>
-                            </td>
+                             <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-500">
+                                  {(() => {
+                                    const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
+                                    const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
+                                    return campaign?.name || 'N/A';
+                                  })()}
+                                </div>
+                             </td>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <Badge 
                                variant={ad.creative_type === 'video' ? 'default' : 'secondary'}
