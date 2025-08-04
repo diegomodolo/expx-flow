@@ -70,7 +70,7 @@ export function ReportLayout({
                   <h3 className="text-sm font-medium text-foreground">Filtros</h3>
                   <p className="text-xs text-muted-foreground">Configure os parâmetros para análise de distribuição de orçamento</p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
                     {/* Cliente */}
                     <div className="space-y-2">
                       <Label htmlFor="cliente" className="text-xs font-medium">Cliente</Label>
@@ -125,7 +125,7 @@ export function ReportLayout({
                   </div>
 
                   {/* Segunda linha de filtros */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
                     {/* Tipo de Desequilíbrio */}
                     <div className="space-y-2">
                       <Label htmlFor="tipo-desequilibrio" className="text-xs font-medium">Tipo de Desequilíbrio</Label>
@@ -158,22 +158,6 @@ export function ReportLayout({
                       </Select>
                     </div>
 
-                    {/* Orçamento Mínimo */}
-                    <div className="space-y-2">
-                      <Label htmlFor="orcamento-minimo" className="text-xs font-medium">Orçamento Mínimo</Label>
-                      <Select>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Sem limite" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sem-limite">Sem limite</SelectItem>
-                          <SelectItem value="1000">R$ 1.000+</SelectItem>
-                          <SelectItem value="5000">R$ 5.000+</SelectItem>
-                          <SelectItem value="10000">R$ 10.000+</SelectItem>
-                          <SelectItem value="50000">R$ 50.000+</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
                 </div>
               </CardContent>
