@@ -112,7 +112,10 @@ const RelatorioCampanhas = () => {
   ];
 
   const analyzeCampaigns = () => {
-    const analysis: CampaignAnalysis[] = campaigns.map(campaign => {
+    // Filtrar apenas campanhas ativas
+    const activeCampaigns = campaigns.filter(campaign => campaign.status === 'active');
+    
+    const analysis: CampaignAnalysis[] = activeCampaigns.map(campaign => {
       // Identificar problemas
       const issues: string[] = [];
       if (campaign.ctr < 1.5) issues.push(`CTR baixo: ${campaign.ctr.toFixed(2)}%`);
@@ -342,118 +345,114 @@ const RelatorioCampanhas = () => {
       </div>
 
       {/* Lista de campanhas analisadas */}
-      <div className="space-y-4">
+      <div className="grid gap-4">
         {filteredData.length > 0 ? (
-          filteredData.map((campaign) => (
-            <Card key={campaign.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-lg">{campaign.name}</CardTitle>
-                      {getCampaignStatusBadge(campaign.status)}
+          filteredData.map((campaign) => {
+            const statusColor = campaign.analysisStatus === 'critical' ? 'border-l-destructive' :
+                               campaign.analysisStatus === 'needs_attention' ? 'border-l-yellow-500' :
+                               campaign.analysisStatus === 'good' ? 'border-l-blue-500' : 'border-l-green-500';
+            
+            return (
+              <Card key={campaign.id} className={`border-l-4 ${statusColor}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        {getStatusIcon(campaign.analysisStatus)}
+                        <div>
+                          <CardTitle className="text-lg">{campaign.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            {campaign.platforms} • {campaign.client_name || 'Cliente não especificado'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(campaign.analysisStatus)}
+                        {getCampaignStatusBadge(campaign.status)}
+                        <Badge variant="outline">
+                          Score: {campaign.efficiency}/100
+                        </Badge>
+                      </div>
                     </div>
-                    <CardDescription>
-                      {campaign.platforms} • {campaign.client_name || 'Cliente não especificado'}
-                    </CardDescription>
+                    <div className="flex gap-2">
+                      {(campaign.analysisStatus === 'critical' || campaign.analysisStatus === 'needs_attention') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateTask(campaign)}
+                        >
+                          <Target className="w-4 h-4 mr-2" />
+                          Criar Tarefa
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(campaign.analysisStatus)}
-                    {getStatusBadge(campaign.analysisStatus)}
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                {/* Problemas identificados */}
-                {campaign.issues.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Problemas Identificados
-                    </h4>
-                    <ul className="space-y-1">
-                      {campaign.issues.map((issue, index) => (
-                        <li key={index} className="text-sm text-destructive flex items-center gap-2">
-                          <div className="w-1 h-1 rounded-full bg-destructive" />
-                          {issue}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Problemas Identificados */}
+                  {campaign.issues.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2 text-destructive">Problemas Identificados:</h4>
+                      <ul className="space-y-1">
+                        {campaign.issues.map((issue, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            {issue}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-                {/* Recomendações */}
-                {campaign.recommendations.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                      <Target className="w-4 h-4" />
-                      Recomendações
-                    </h4>
-                    <ul className="space-y-1">
-                      {campaign.recommendations.map((rec, index) => (
-                        <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
-                          <div className="w-1 h-1 rounded-full bg-primary" />
-                          {rec}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  {/* Recomendação */}
+                  {campaign.recommendations.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2 text-primary">Recomendação:</h4>
+                      <p className="text-sm bg-primary/10 p-3 rounded-lg">
+                        {campaign.recommendations[0]}
+                      </p>
+                    </div>
+                  )}
 
-                {/* Métricas */}
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
-                    Métricas de Performance
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {/* Métricas Detalhadas */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-foreground">R$ {campaign.spend.toLocaleString()}</div>
-                      <div className="text-xs text-muted-foreground">Investimento</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        R$ {campaign.spend.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Investimento Total
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">{campaign.conversions}</div>
-                      <div className="text-xs text-muted-foreground">Conversões</div>
+                      <div className="text-2xl font-bold">
+                        {campaign.conversions}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Conversões
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className={`text-lg font-bold ${campaign.ctr >= 1.5 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-2xl font-bold ${campaign.ctr >= 1.5 ? 'text-green-600' : 'text-destructive'}`}>
                         {campaign.ctr.toFixed(2)}%
                       </div>
-                      <div className="text-xs text-muted-foreground">CTR</div>
+                      <div className="text-xs text-muted-foreground">
+                        CTR (Meta: &gt;1.5%)
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className={`text-lg font-bold ${campaign.cpa <= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                        R$ {campaign.cpa.toFixed(2)}
+                      <div className={`text-2xl font-bold ${campaign.cpa <= 100 ? 'text-green-600' : 'text-destructive'}`}>
+                        R$ {campaign.cpa.toFixed(0)}
                       </div>
-                      <div className="text-xs text-muted-foreground">CPA</div>
-                    </div>
-                    <div className="text-center">
-                      <div className={`text-lg font-bold ${getStatusColor(campaign.analysisStatus)}`}>
-                        {campaign.efficiency}
+                      <div className="text-xs text-muted-foreground">
+                        CPA (Meta: &lt;R$ 100)
                       </div>
-                      <div className="text-xs text-muted-foreground">Eficiência</div>
                     </div>
                   </div>
-                </div>
-
-                {/* Botão de ação para campanhas problemáticas */}
-                {(campaign.analysisStatus === 'critical' || campaign.analysisStatus === 'needs_attention') && (
-                  <div className="flex justify-end pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleCreateTask(campaign)}
-                      className="flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Criar Tarefa de Otimização
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
           <Card>
             <CardContent className="text-center py-8">
