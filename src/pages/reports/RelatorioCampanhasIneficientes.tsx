@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Target, TrendingDown, DollarSign, BarChart3 } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { useClients } from "@/hooks/useClients";
 
 interface InefficientCampaign {
   id: string;
@@ -27,14 +28,90 @@ interface InefficientCampaign {
 
 export default function RelatorioCampanhasIneficientes() {
   const { campaigns, loading } = useCampaigns();
+  const { clients } = useClients();
   const { convertAlertToTask } = useTaskAutomation();
   const [inefficientCampaigns, setInefficientCampaigns] = useState<InefficientCampaign[]>([]);
+  const [filteredData, setFilteredData] = useState<InefficientCampaign[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && campaigns) {
       analyzeInefficientCampaigns();
     }
   }, [campaigns, loading]);
+
+  useEffect(() => {
+    setFilteredData(inefficientCampaigns);
+  }, [inefficientCampaigns]);
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+    
+    let filtered = [...inefficientCampaigns];
+
+    // Filtro por cliente
+    if (newFilters.cliente && newFilters.cliente !== 'todos') {
+      filtered = filtered.filter(item => item.client_name === newFilters.cliente);
+    }
+
+    // Filtro por nível de ineficiência
+    if (newFilters['nivel-ineficiencia'] && newFilters['nivel-ineficiencia'] !== 'todos') {
+      switch (newFilters['nivel-ineficiencia']) {
+        case 'critica':
+          filtered = filtered.filter(item => item.efficiency_score < 30);
+          break;
+        case 'baixa':
+          filtered = filtered.filter(item => item.efficiency_score >= 30 && item.efficiency_score < 60);
+          break;
+        case 'moderada':
+          filtered = filtered.filter(item => item.efficiency_score >= 60);
+          break;
+      }
+    }
+
+    // Filtro por plataforma
+    if (newFilters.plataforma && newFilters.plataforma !== 'todas') {
+      // Como não temos plataforma no modelo, vamos simular baseado em dados disponíveis
+      // Em um cenário real, seria filtrado por campaign.platform
+      filtered = filtered; // Manter todos por enquanto
+    }
+
+    // Filtro por CPA mínimo
+    if (newFilters['cpa-minimo'] && newFilters['cpa-minimo'] !== 'sem-limite') {
+      const minCPA = parseFloat(newFilters['cpa-minimo']);
+      filtered = filtered.filter(item => item.cpa_current >= minCPA);
+    }
+
+    // Filtro por tipo de problema
+    if (newFilters['tipo-problema'] && newFilters['tipo-problema'] !== 'todos') {
+      const problemType = newFilters['tipo-problema'];
+      filtered = filtered.filter(item => {
+        switch (problemType) {
+          case 'sem-conversao':
+            return item.conversions === 0;
+          case 'cpa-alto':
+            return item.cpa_current > item.cpa_target;
+          case 'roas-baixo':
+            return item.roas_current < item.roas_minimum;
+          case 'investimento-alto':
+            return item.investment > 5000 && item.conversions < 5;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filtro por período
+    if (newFilters.periodo && newFilters.periodo !== 'todos') {
+      const days = parseInt(newFilters.periodo);
+      if (!isNaN(days)) {
+        filtered = filtered.filter(item => item.days_running >= days);
+      }
+    }
+
+    setFilteredData(filtered);
+  };
 
   const analyzeInefficientCampaigns = () => {
     const inefficient: InefficientCampaign[] = [];
@@ -165,17 +242,108 @@ export default function RelatorioCampanhasIneficientes() {
     );
   }
 
-  const totalWastedBudget = inefficientCampaigns.reduce((sum, c) => sum + c.investment, 0);
-  const avgEfficiencyScore = inefficientCampaigns.length > 0 
-    ? inefficientCampaigns.reduce((sum, c) => sum + c.efficiency_score, 0) / inefficientCampaigns.length 
+  // Usar dados filtrados para métricas quando há filtros ativos
+  const dataToUse = Object.keys(activeFilters).length > 0 ? filteredData : inefficientCampaigns;
+  
+  const totalWastedBudget = dataToUse.reduce((sum, c) => sum + c.investment, 0);
+  const avgEfficiencyScore = dataToUse.length > 0 
+    ? dataToUse.reduce((sum, c) => sum + c.efficiency_score, 0) / dataToUse.length 
     : 0;
-  const criticalCampaigns = inefficientCampaigns.filter(c => c.efficiency_score < 30).length;
-  const top5Worst = inefficientCampaigns.slice(0, 5);
+  const criticalCampaigns = dataToUse.filter(c => c.efficiency_score < 30).length;
+  const top5Worst = dataToUse.slice(0, 5);
+
+  // Preparar dados únicos para filtros
+  const uniqueClients = Array.from(new Set(inefficientCampaigns.map(c => c.client_name)))
+    .sort()
+    .map(name => ({ value: name, label: name }));
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...uniqueClients
+      ],
+      placeholder: 'Todos os clientes'
+    },
+    {
+      id: 'nivel-ineficiencia',
+      label: 'Nível de Ineficiência',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os níveis' },
+        { value: 'critica', label: 'Crítica (< 30)' },
+        { value: 'baixa', label: 'Baixa (30-60)' },
+        { value: 'moderada', label: 'Moderada (> 60)' }
+      ],
+      placeholder: 'Todos os níveis'
+    },
+    {
+      id: 'plataforma',
+      label: 'Plataforma',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as plataformas' },
+        { value: 'facebook', label: 'Facebook' },
+        { value: 'google', label: 'Google Ads' },
+        { value: 'instagram', label: 'Instagram' }
+      ],
+      placeholder: 'Todas as plataformas'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'cpa-minimo',
+      label: 'CPA Mínimo',
+      type: 'select',
+      options: [
+        { value: 'sem-limite', label: 'Sem limite' },
+        { value: '100', label: 'R$ 100+' },
+        { value: '200', label: 'R$ 200+' },
+        { value: '300', label: 'R$ 300+' },
+        { value: '500', label: 'R$ 500+' }
+      ],
+      placeholder: 'Sem limite'
+    },
+    {
+      id: 'tipo-problema',
+      label: 'Tipo de Problema',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'sem-conversao', label: 'Sem conversões' },
+        { value: 'cpa-alto', label: 'CPA alto' },
+        { value: 'roas-baixo', label: 'ROAS baixo' },
+        { value: 'investimento-alto', label: 'Alto investimento' }
+      ],
+      placeholder: 'Todos os tipos'
+    },
+    {
+      id: 'periodo',
+      label: 'Período Mínimo (dias)',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os períodos' },
+        { value: '7', label: '7+ dias' },
+        { value: '15', label: '15+ dias' },
+        { value: '30', label: '30+ dias' },
+        { value: '60', label: '60+ dias' }
+      ],
+      placeholder: 'Todos os períodos'
+    }
+  ];
 
   return (
     <ReportLayout
       title="Relatório de Campanhas Ineficientes"
       description="Campanhas que estão consumindo verba sem gerar resultados proporcionais"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      onFilterChange={handleFilterChange}
+      filterDescription="Configure os parâmetros para análise de campanhas ineficientes"
     >
       <div className="space-y-6">
         {/* Resumo */}
@@ -200,7 +368,7 @@ export default function RelatorioCampanhasIneficientes() {
           />
           <MetricCard
             title="Total Ineficientes"
-            value={inefficientCampaigns.length}
+            value={dataToUse.length}
             subtitle="Campanhas identificadas"
           />
         </div>
@@ -209,7 +377,7 @@ export default function RelatorioCampanhasIneficientes() {
         {top5Worst.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="text-card-title flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
                 Top 5 Campanhas Menos Eficientes
               </CardTitle>
@@ -223,15 +391,15 @@ export default function RelatorioCampanhasIneficientes() {
                         {index + 1}
                       </div>
                       <div>
-                        <h4 className="font-semibold">{campaign.name}</h4>
-                        <p className="text-sm text-muted-foreground">{campaign.client_name}</p>
+                        <h4 className="text-card-content font-semibold">{campaign.name}</h4>
+                        <p className="text-report-caption text-muted-foreground">{campaign.client_name}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className={`text-2xl font-bold ${getEfficiencyColor(campaign.efficiency_score)}`}>
                         {campaign.efficiency_score}/100
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-report-caption text-muted-foreground">
                         R$ {campaign.investment.toLocaleString()} investidos
                       </div>
                     </div>
@@ -244,18 +412,21 @@ export default function RelatorioCampanhasIneficientes() {
 
         {/* Lista Detalhada de Campanhas */}
         <div className="grid gap-4">
-          {inefficientCampaigns.length === 0 ? (
+          {filteredData.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
                 <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">Nenhuma campanha ineficiente detectada</h3>
                 <p className="text-muted-foreground">
-                  Todas as campanhas estão com performance dentro dos parâmetros esperados.
+                  {Object.keys(activeFilters).length > 0 
+                    ? 'Nenhuma campanha corresponde aos filtros selecionados.'
+                    : 'Todas as campanhas estão com performance dentro dos parâmetros esperados.'
+                  }
                 </p>
               </CardContent>
             </Card>
           ) : (
-            inefficientCampaigns.map((campaign) => {
+            filteredData.map((campaign) => {
               const efficiencyBadge = getEfficiencyBadge(campaign.efficiency_score);
               
               return (
