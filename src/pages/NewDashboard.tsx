@@ -319,7 +319,7 @@ export default function NewDashboard() {
                     fontSize={12}
                   />
                   <YAxis yAxisId="left" width={0} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" />
+                  <YAxis yAxisId="right" orientation="right" width={0} axisLine={false} tickLine={false} />
                   <ChartTooltip 
                     content={<ChartTooltipContent 
                       formatter={(value, name) => [
@@ -394,7 +394,7 @@ export default function NewDashboard() {
                     fontSize={12}
                   />
                   <YAxis yAxisId="left" width={0} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" />
+                  <YAxis yAxisId="right" orientation="right" width={0} axisLine={false} tickLine={false} />
                   <ChartTooltip 
                     content={<ChartTooltipContent 
                       formatter={(value, name) => [
