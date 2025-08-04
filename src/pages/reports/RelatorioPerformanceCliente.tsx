@@ -87,37 +87,43 @@ const RelatorioPerformanceCliente = () => {
     const activeClients = clientsPerformance.filter(client => client.investment > 0);
     
     const analysis: ClientAnalysis[] = activeClients.map(client => {
-      const simulatedLeads = Math.floor(client.investment / 60);
-      const simulatedCPA = client.investment / simulatedLeads || 0;
-      const efficiency = client.investment > 0 ? (simulatedLeads / client.investment * 1000) : 0;
-      const roi = simulatedLeads / (client.investment / 1000);
+      // Usar dados REAIS ao invés de simulados
+      const realLeads = client.totalLeads || client.leads_generated || 0;
+      const realInvestment = client.totalInvestment || client.investment || 0;
+      const realCPA = client.averageCPA || client.avg_cpl || (realInvestment > 0 && realLeads > 0 ? realInvestment / realLeads : 0);
+      
+      // Calcular eficiência baseada em dados reais
+      const efficiency = realInvestment > 0 ? (realLeads / realInvestment * 1000) : 0;
+      const roi = realInvestment > 0 ? (realLeads * 100) / realInvestment : 0; // Assumindo valor médio de R$100 por lead
 
-      // Identificar problemas
+      // Identificar problemas baseados em dados reais
       const issues: string[] = [];
-      if (efficiency < 10) issues.push('ROI baixo');
-      if (simulatedCPA > 120) issues.push('CPA muito alto');
-      if (simulatedLeads < 5 && client.investment > 3000) issues.push('Poucos leads para o investimento');
-      if (roi < 0.5) issues.push('Retorno do investimento insatisfatório');
+      if (efficiency < 10) issues.push('ROI baixo para o investimento atual');
+      if (realCPA > 120) issues.push(`CPA muito alto: R$ ${realCPA.toFixed(2)}`);
+      if (realLeads < 5 && realInvestment > 3000) issues.push('Poucos leads para o investimento realizado');
+      if (roi < 50) issues.push('Retorno do investimento insatisfatório');
+      if (realLeads === 0 && realInvestment > 0) issues.push('Nenhum lead gerado com investimento ativo');
 
-      // Determinar status
+      // Determinar status baseado em dados reais
       const analysisStatus: ClientAnalysis['analysisStatus'] = 
-        efficiency < 5 || roi < 0.3 ? 'critical' :
+        efficiency < 5 || roi < 30 ? 'critical' :
         efficiency < 10 || issues.length >= 2 ? 'needs_attention' :
-        efficiency > 20 && roi > 1 ? 'excellent' : 'good';
+        efficiency > 20 && roi > 100 ? 'excellent' : 'good';
 
-      // Gerar recomendações
+      // Gerar recomendações baseadas em dados reais
       const recommendations: string[] = [];
       if (efficiency < 10) recommendations.push('Revisar estratégia de marketing e otimizar campanhas');
-      if (simulatedCPA > 120) recommendations.push('Melhorar segmentação e criativos');
-      if (simulatedLeads < 5) recommendations.push('Aumentar investimento ou melhorar funil');
-      if (roi < 0.5) recommendations.push('Reavaliar estratégia completa do cliente');
+      if (realCPA > 120) recommendations.push('Melhorar segmentação e criativos para reduzir CPA');
+      if (realLeads < 5) recommendations.push('Aumentar investimento ou melhorar funil de conversão');
+      if (roi < 50) recommendations.push('Reavaliar estratégia completa do cliente');
+      if (realLeads === 0) recommendations.push('Urgente: Investigar por que não há conversões');
 
       return {
-        id: client.name,
+        id: client.id || client.name,
         name: client.name,
-        investment: client.investment,
-        leads: simulatedLeads,
-        cpa: simulatedCPA,
+        investment: realInvestment,
+        leads: realLeads,
+        cpa: realCPA,
         efficiency: Math.round(efficiency),
         analysisStatus,
         issues,
