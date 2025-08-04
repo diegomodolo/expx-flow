@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
@@ -10,6 +10,58 @@ import { Users, Target, TrendingUp, Clock } from "lucide-react";
 const RelatorioProdutividadeSquads = () => {
   const { teams } = useTeams();
   const { tasks } = useTasks();
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'squad',
+      label: 'Squad',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as squads' },
+        ...teams.map(team => ({ value: team.id, label: team.name }))
+      ],
+      placeholder: 'Todas as squads'
+    },
+    {
+      id: 'periodo',
+      label: 'Período',
+      type: 'select',
+      options: [
+        { value: '7d', label: 'Últimos 7 dias' },
+        { value: '30d', label: 'Últimos 30 dias' },
+        { value: '90d', label: 'Últimos 90 dias' }
+      ],
+      placeholder: 'Últimos 30 dias'
+    },
+    {
+      id: 'status-tarefa',
+      label: 'Status da Tarefa',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'concluidas', label: 'Concluídas' },
+        { value: 'andamento', label: 'Em andamento' },
+        { value: 'pendentes', label: 'Pendentes' }
+      ],
+      placeholder: 'Todos os status'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'tipo-projeto',
+      label: 'Tipo de Projeto',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'campanha', label: 'Campanhas' },
+        { value: 'criativo', label: 'Criativos' },
+        { value: 'estrategia', label: 'Estratégia' },
+        { value: 'otimizacao', label: 'Otimização' }
+      ],
+      placeholder: 'Todos os tipos'
+    }
+  ];
 
   const chartConfig = {
     productivity: { label: "Produtividade", color: "hsl(var(--primary))" },
@@ -55,6 +107,9 @@ const RelatorioProdutividadeSquads = () => {
     <ReportLayout
       title="Relatório de Produtividade de Squads"
       description="Métricas de eficiência por equipe"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      filterDescription="Configure os filtros para análise de produtividade de squads"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard

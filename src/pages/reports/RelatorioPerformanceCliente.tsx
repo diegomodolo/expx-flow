@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -9,6 +9,57 @@ import { useClients } from "@/hooks/useClients";
 const RelatorioPerformanceCliente = () => {
   const { clientsPerformance } = useDashboardData();
   const { clients } = useClients();
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...clients.map(client => ({ value: client.id, label: client.name }))
+      ],
+      placeholder: 'Todos os clientes'
+    },
+    {
+      id: 'periodo',
+      label: 'Período',
+      type: 'select',
+      options: [
+        { value: '30d', label: 'Últimos 30 dias' },
+        { value: '60d', label: 'Últimos 60 dias' },
+        { value: '90d', label: 'Últimos 90 dias' }
+      ],
+      placeholder: 'Últimos 30 dias'
+    },
+    {
+      id: 'status-cliente',
+      label: 'Status do Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'ativo', label: 'Ativo' },
+        { value: 'pausado', label: 'Pausado' },
+        { value: 'critico', label: 'Crítico' }
+      ],
+      placeholder: 'Todos os status'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'faturamento-minimo',
+      label: 'Faturamento Mínimo',
+      type: 'select',
+      options: [
+        { value: 'sem-limite', label: 'Sem limite' },
+        { value: '5000', label: 'R$ 5.000+' },
+        { value: '10000', label: 'R$ 10.000+' },
+        { value: '25000', label: 'R$ 25.000+' }
+      ],
+      placeholder: 'Sem limite'
+    }
+  ];
 
   const chartConfig = {
     investment: { label: "Investimento", color: "hsl(var(--primary))" },
@@ -32,6 +83,9 @@ const RelatorioPerformanceCliente = () => {
     <ReportLayout
       title="Relatório de Performance por Cliente"
       description="Análise detalhada do desempenho de cada cliente"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      filterDescription="Configure os filtros para análise de performance por cliente"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard

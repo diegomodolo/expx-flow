@@ -1,16 +1,81 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useClients } from "@/hooks/useClients";
 import { Play, Pause, AlertCircle, TrendingUp } from "lucide-react";
 
 const RelatorioCampanhas = () => {
   const { campaignRankings } = useDashboardData();
   const { campaigns } = useCampaigns();
+  const { clients } = useClients();
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...clients.map(client => ({ value: client.id, label: client.name }))
+      ],
+      placeholder: 'Todos os clientes'
+    },
+    {
+      id: 'status-campanha',
+      label: 'Status da Campanha',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'active', label: 'Ativas' },
+        { value: 'paused', label: 'Pausadas' },
+        { value: 'finished', label: 'Finalizadas' }
+      ],
+      placeholder: 'Todos os status'
+    },
+    {
+      id: 'plataforma',
+      label: 'Plataforma',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as plataformas' },
+        { value: 'facebook', label: 'Facebook' },
+        { value: 'instagram', label: 'Instagram' },
+        { value: 'google', label: 'Google Ads' }
+      ],
+      placeholder: 'Todas as plataformas'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'periodo',
+      label: 'Período',
+      type: 'select',
+      options: [
+        { value: '7d', label: 'Últimos 7 dias' },
+        { value: '30d', label: 'Últimos 30 dias' },
+        { value: '90d', label: 'Últimos 90 dias' }
+      ],
+      placeholder: 'Últimos 30 dias'
+    },
+    {
+      id: 'orcamento-minimo',
+      label: 'Orçamento Mínimo',
+      type: 'select',
+      options: [
+        { value: 'sem-limite', label: 'Sem limite' },
+        { value: '1000', label: 'R$ 1.000+' },
+        { value: '5000', label: 'R$ 5.000+' },
+        { value: '10000', label: 'R$ 10.000+' }
+      ],
+      placeholder: 'Sem limite'
+    }
+  ];
 
   const chartConfig = {
     spend: { label: "Investimento", color: "hsl(var(--primary))" },
@@ -58,6 +123,9 @@ const RelatorioCampanhas = () => {
     <ReportLayout
       title="Relatório de Campanhas"
       description="Status detalhado e KPIs de todas as campanhas"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      filterDescription="Configure os filtros para análise detalhada de campanhas"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard

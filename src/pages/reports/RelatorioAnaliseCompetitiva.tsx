@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { useCompetitors } from "@/hooks/useCompetitors";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,10 +9,65 @@ const RelatorioAnaliseCompetitiva = () => {
   const { user } = useAuth();
   const { competitors, competitorAds } = useCompetitors("all");
 
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'concorrente',
+      label: 'Concorrente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os concorrentes' },
+        ...competitors.map(comp => ({ value: comp.id, label: comp.name }))
+      ],
+      placeholder: 'Todos os concorrentes'
+    },
+    {
+      id: 'setor',
+      label: 'Setor',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os setores' },
+        { value: 'ecommerce', label: 'E-commerce' },
+        { value: 'servicos', label: 'Serviços' },
+        { value: 'educacao', label: 'Educação' },
+        { value: 'saude', label: 'Saúde' }
+      ],
+      placeholder: 'Todos os setores'
+    },
+    {
+      id: 'tipo-anuncio',
+      label: 'Tipo de Anúncio',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'imagem', label: 'Imagem' },
+        { value: 'video', label: 'Vídeo' },
+        { value: 'carrossel', label: 'Carrossel' }
+      ],
+      placeholder: 'Todos os tipos'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'periodo',
+      label: 'Período',
+      type: 'select',
+      options: [
+        { value: '30d', label: 'Últimos 30 dias' },
+        { value: '90d', label: 'Últimos 90 dias' },
+        { value: '180d', label: 'Últimos 180 dias' }
+      ],
+      placeholder: 'Últimos 30 dias'
+    }
+  ];
+
   return (
     <ReportLayout
       title="Relatório de Análise Competitiva"
       description="Monitoramento e insights da concorrência"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      filterDescription="Configure os filtros para análise competitiva"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard

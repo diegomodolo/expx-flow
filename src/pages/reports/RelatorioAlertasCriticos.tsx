@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useClients } from "@/hooks/useClients";
@@ -73,10 +73,69 @@ const RelatorioAlertasCriticos = () => {
     return actions[alertType as keyof typeof actions] || 'Análise detalhada necessária';
   };
 
+  const clientOptions = clients.map(client => ({
+    value: client.id,
+    label: client.name
+  }));
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'tipo-alerta',
+      label: 'Tipo de Alerta',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'danger', label: 'Crítico' },
+        { value: 'opportunity', label: 'Oportunidade' },
+        { value: 'warning', label: 'Atenção' }
+      ],
+      placeholder: 'Todos os tipos'
+    },
+    {
+      id: 'severidade',
+      label: 'Severidade',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as severidades' },
+        { value: 'alta', label: 'Alta' },
+        { value: 'media', label: 'Média' },
+        { value: 'baixa', label: 'Baixa' }
+      ],
+      placeholder: 'Todas as severidades'
+    },
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...clientOptions
+      ],
+      placeholder: 'Todos os clientes'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'periodo',
+      label: 'Período',
+      type: 'select',
+      options: [
+        { value: '7d', label: 'Últimos 7 dias' },
+        { value: '30d', label: 'Últimos 30 dias' },
+        { value: '90d', label: 'Últimos 90 dias' }
+      ],
+      placeholder: 'Últimos 30 dias'
+    }
+  ];
+
   return (
     <ReportLayout
       title="Relatório de Alertas Críticos"
       description="Clientes em situação crítica com ações recomendadas"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      filterDescription="Configure os filtros para análise de alertas críticos"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard

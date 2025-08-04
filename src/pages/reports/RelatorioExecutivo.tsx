@@ -1,13 +1,52 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useClients } from "@/hooks/useClients";
 import { TrendingUp, Target, DollarSign } from "lucide-react";
 
 const RelatorioExecutivo = () => {
   const { metrics, clientsPerformance, campaignRankings, trends, loading } = useDashboardData();
+  const { clients } = useClients();
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'periodo',
+      label: 'Período',
+      type: 'select',
+      options: [
+        { value: 'mensal', label: 'Mensal' },
+        { value: 'trimestral', label: 'Trimestral' },
+        { value: 'semestral', label: 'Semestral' },
+        { value: 'anual', label: 'Anual' }
+      ],
+      placeholder: 'Mensal'
+    },
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...clients.map(client => ({ value: client.id, label: client.name }))
+      ],
+      placeholder: 'Todos os clientes'
+    },
+    {
+      id: 'tipo-metrica',
+      label: 'Tipo de Métrica',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as métricas' },
+        { value: 'financeiro', label: 'Financeiro' },
+        { value: 'performance', label: 'Performance' },
+        { value: 'roi', label: 'ROI' }
+      ],
+      placeholder: 'Todas as métricas'
+    }
+  ];
 
   // Show loading state while data is being fetched
   if (loading || !metrics) {
@@ -15,6 +54,8 @@ const RelatorioExecutivo = () => {
       <ReportLayout
         title="Relatório Executivo"
         description="Visão geral para gestores e proprietários"
+        primaryFilters={primaryFilters}
+        filterDescription="Configure os parâmetros para análise executiva"
       >
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">Carregando dados...</p>
@@ -45,6 +86,8 @@ const RelatorioExecutivo = () => {
     <ReportLayout
       title="Relatório Executivo"
       description="Visão geral para gestores e proprietários"
+      primaryFilters={primaryFilters}
+      filterDescription="Configure os parâmetros para análise executiva"
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard

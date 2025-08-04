@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -217,15 +217,82 @@ export default function RelatorioOrcamentoMalDistribuido() {
   const criticalClients = budgetAnalysis.filter(a => a.severity_score > 60).length;
 
   const availableClients = budgetAnalysis.map(analysis => ({
-    id: analysis.client_id,
-    name: analysis.client_name
+    value: analysis.client_id,
+    label: analysis.client_name
   }));
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...availableClients
+      ],
+      placeholder: 'Todos os clientes'
+    },
+    {
+      id: 'severidade',
+      label: 'Nível de Severidade',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os níveis' },
+        { value: 'critico', label: 'Crítico (> 60%)' },
+        { value: 'moderado', label: 'Moderado (30-60%)' },
+        { value: 'leve', label: 'Leve (< 30%)' }
+      ],
+      placeholder: 'Todos os níveis'
+    },
+    {
+      id: 'orcamento-minimo',
+      label: 'Orçamento Mínimo',
+      type: 'select',
+      options: [
+        { value: 'sem-limite', label: 'Sem limite' },
+        { value: '1000', label: 'R$ 1.000+' },
+        { value: '5000', label: 'R$ 5.000+' },
+        { value: '10000', label: 'R$ 10.000+' },
+        { value: '50000', label: 'R$ 50.000+' }
+      ],
+      placeholder: 'Sem limite'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'tipo-desequilibrio',
+      label: 'Tipo de Desequilíbrio',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'excesso', label: 'Excesso de verba' },
+        { value: 'deficit', label: 'Déficit de verba' }
+      ],
+      placeholder: 'Todos os tipos'
+    },
+    {
+      id: 'etapa-funil',
+      label: 'Etapa do Funil',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as etapas' },
+        { value: 'topo', label: 'Topo do Funil' },
+        { value: 'meio', label: 'Meio do Funil' },
+        { value: 'fundo', label: 'Fundo do Funil' },
+        { value: 'retencao', label: 'Retenção' }
+      ],
+      placeholder: 'Todas as etapas'
+    }
+  ];
 
   return (
     <ReportLayout
       title="Relatório de Orçamento Mal Distribuído"
       description="Detecção de clientes que não seguem a estratégia recomendada de alocação"
-      availableClients={availableClients}
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      filterDescription="Configure os parâmetros para análise de distribuição de orçamento"
     >
       <div className="space-y-6">
         {/* Resumo */}
