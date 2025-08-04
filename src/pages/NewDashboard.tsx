@@ -307,14 +307,14 @@ export default function NewDashboard() {
                     investment: client.investment,
                     leads: client.leads_generated
                   }))}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  margin={{ top: 10, right: 20, left: 10, bottom: 45 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={80}
+                    height={60}
                     fontSize={12}
                   />
                   <YAxis yAxisId="left" />
@@ -382,14 +382,14 @@ export default function NewDashboard() {
                       };
                     });
                   })()}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  margin={{ top: 10, right: 20, left: 10, bottom: 45 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
                     angle={-45}
                     textAnchor="end"
-                    height={80}
+                    height={60}
                     fontSize={12}
                   />
                   <YAxis yAxisId="left" />
