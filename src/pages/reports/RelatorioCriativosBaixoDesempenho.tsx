@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Pause, Edit, Trash2, TrendingDown, Image } from "lucide-react";
+import { AlertTriangle, Target, TrendingDown, Image } from "lucide-react";
 import { useAds } from "@/hooks/useAds";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 
 interface LowPerformingCreative {
   id: string;
@@ -28,13 +29,76 @@ interface LowPerformingCreative {
 export default function RelatorioCriativosBaixoDesempenho() {
   const { ads, loading: adsLoading } = useAds();
   const { campaigns, loading: campaignsLoading } = useCampaigns();
+  const { convertAlertToTask } = useTaskAutomation();
   const [lowPerformingCreatives, setLowPerformingCreatives] = useState<LowPerformingCreative[]>([]);
+  const [filteredData, setFilteredData] = useState<LowPerformingCreative[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!adsLoading && !campaignsLoading && ads && campaigns) {
       analyzeLowPerformingCreatives();
     }
   }, [ads, campaigns, adsLoading, campaignsLoading]);
+
+  useEffect(() => {
+    setFilteredData(lowPerformingCreatives);
+  }, [lowPerformingCreatives]);
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+    
+    let filtered = [...lowPerformingCreatives];
+
+    // Filtro por cliente
+    if (newFilters.cliente && newFilters.cliente !== 'todos') {
+      filtered = filtered.filter(item => item.client_name === newFilters.cliente);
+    }
+
+    // Filtro por tipo de criativo
+    if (newFilters['tipo-criativo'] && newFilters['tipo-criativo'] !== 'todos') {
+      // Como não temos tipo no modelo, vamos simular baseado em dados disponíveis
+      filtered = filtered; // Manter todos por enquanto
+    }
+
+    // Filtro por performance mínima (score)
+    if (newFilters['performance-minima'] && newFilters['performance-minima'] !== 'sem-limite') {
+      const minScore = parseInt(newFilters['performance-minima']);
+      filtered = filtered.filter(item => item.performance_score <= minScore);
+    }
+
+    // Filtro por período
+    if (newFilters.periodo && newFilters.periodo !== 'todos') {
+      const days = parseInt(newFilters.periodo);
+      if (!isNaN(days)) {
+        filtered = filtered.filter(item => item.days_active >= days);
+      }
+    }
+
+    // Filtro por status
+    if (newFilters.status && newFilters.status !== 'todos') {
+      filtered = filtered.filter(item => item.status === newFilters.status);
+    }
+
+    // Filtro por recomendação
+    if (newFilters.recomendacao && newFilters.recomendacao !== 'todas') {
+      filtered = filtered.filter(item => item.recommendation === newFilters.recomendacao);
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handleCreateTask = (creative: LowPerformingCreative) => {
+    const alertData = {
+      type: 'warning',
+      description: `Criativo com baixo desempenho: Score ${creative.performance_score}/100 - ${creative.recommendation_reason}`,
+      campaign_id: undefined, // Seria extraído do ad_id no backend
+      client_id: undefined,
+      id: `low_performing_creative_${creative.id}`
+    };
+
+    convertAlertToTask(alertData);
+  };
 
   const analyzeLowPerformingCreatives = () => {
     const lowPerforming: LowPerformingCreative[] = [];
@@ -160,9 +224,9 @@ export default function RelatorioCriativosBaixoDesempenho() {
 
   const getRecommendationIcon = (recommendation: string) => {
     switch (recommendation) {
-      case 'pause': return Pause;
-      case 'replace': return Trash2;
-      default: return Edit;
+      case 'pause': return AlertTriangle;
+      case 'replace': return TrendingDown;
+      default: return Target;
     }
   };
 
@@ -183,17 +247,106 @@ export default function RelatorioCriativosBaixoDesempenho() {
     );
   }
 
-  const criticalCount = lowPerformingCreatives.filter(c => c.status === 'critical').length;
-  const warningCount = lowPerformingCreatives.filter(c => c.status === 'warning').length;
-  const totalWaste = lowPerformingCreatives.reduce((sum, c) => sum + c.spend, 0);
-  const avgPerformanceScore = lowPerformingCreatives.length > 0 
-    ? lowPerformingCreatives.reduce((sum, c) => sum + c.performance_score, 0) / lowPerformingCreatives.length 
+  // Usar dados filtrados para métricas quando há filtros ativos
+  const dataToUse = Object.keys(activeFilters).length > 0 ? filteredData : lowPerformingCreatives;
+  
+  const criticalCount = dataToUse.filter(c => c.status === 'critical').length;
+  const warningCount = dataToUse.filter(c => c.status === 'warning').length;
+  const totalWaste = dataToUse.reduce((sum, c) => sum + c.spend, 0);
+  const avgPerformanceScore = dataToUse.length > 0 
+    ? dataToUse.reduce((sum, c) => sum + c.performance_score, 0) / dataToUse.length 
     : 0;
+
+  // Preparar dados únicos para filtros
+  const uniqueClients = Array.from(new Set(lowPerformingCreatives.map(c => c.client_name)))
+    .sort()
+    .map(name => ({ value: name, label: name }));
+
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...uniqueClients
+      ],
+      placeholder: 'Todos os clientes'
+    },
+    {
+      id: 'tipo-criativo',
+      label: 'Tipo de Criativo',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os tipos' },
+        { value: 'imagem', label: 'Imagem' },
+        { value: 'video', label: 'Vídeo' },
+        { value: 'carousel', label: 'Carrossel' }
+      ],
+      placeholder: 'Todos os tipos'
+    },
+    {
+      id: 'performance-minima',
+      label: 'Performance Máxima',
+      type: 'select',
+      options: [
+        { value: 'sem-limite', label: 'Sem limite' },
+        { value: '20', label: 'Score ≤ 20' },
+        { value: '40', label: 'Score ≤ 40' },
+        { value: '60', label: 'Score ≤ 60' },
+        { value: '80', label: 'Score ≤ 80' }
+      ],
+      placeholder: 'Sem limite'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'periodo',
+      label: 'Período Mínimo (dias)',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os períodos' },
+        { value: '7', label: '7+ dias' },
+        { value: '15', label: '15+ dias' },
+        { value: '30', label: '30+ dias' }
+      ],
+      placeholder: 'Todos os períodos'
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'critical', label: 'Crítico' },
+        { value: 'warning', label: 'Alerta' },
+        { value: 'underperforming', label: 'Baixa Performance' }
+      ],
+      placeholder: 'Todos os status'
+    },
+    {
+      id: 'recomendacao',
+      label: 'Recomendação',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as recomendações' },
+        { value: 'pause', label: 'Pausar' },
+        { value: 'replace', label: 'Substituir' },
+        { value: 'adjust', label: 'Ajustar' }
+      ],
+      placeholder: 'Todas as recomendações'
+    }
+  ];
 
   return (
     <ReportLayout
       title="Relatório de Criativos de Baixo Desempenho"
       description="Identificação de anúncios que estão queimando verba sem retorno"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      onFilterChange={handleFilterChange}
+      filterDescription="Configure os parâmetros para análise de criativos de baixo desempenho"
     >
       <div className="space-y-6">
         {/* Resumo */}
@@ -226,7 +379,7 @@ export default function RelatorioCriativosBaixoDesempenho() {
 
         {/* Lista de Criativos */}
         <div className="grid gap-4">
-          {lowPerformingCreatives.length === 0 ? (
+          {filteredData.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
                 <Image className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -237,7 +390,7 @@ export default function RelatorioCriativosBaixoDesempenho() {
               </CardContent>
             </Card>
           ) : (
-            lowPerformingCreatives.map((creative) => {
+            filteredData.map((creative) => {
               const RecommendationIcon = getRecommendationIcon(creative.recommendation);
               
               return (
@@ -316,23 +469,16 @@ export default function RelatorioCriativosBaixoDesempenho() {
                       </div>
                     </div>
 
-                    {/* Ações Recomendadas */}
-                    <div className="flex gap-2 pt-4 border-t">
+                    {/* Ação Recomendada */}
+                    <div className="flex pt-4 border-t">
                       <Button
-                        variant={creative.recommendation === 'pause' ? 'destructive' : 'outline'}
+                        variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="w-full"
+                        onClick={() => handleCreateTask(creative)}
                       >
-                        <Pause className="w-4 h-4 mr-2" />
-                        Pausar
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Substituir
+                        <Target className="w-4 h-4 mr-2" />
+                        Criar Tarefa
                       </Button>
                     </div>
                   </CardContent>
