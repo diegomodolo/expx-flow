@@ -400,16 +400,12 @@ export default function NewDashboard() {
                   })(),
                   datasets: [
                     {
-                      label: 'Investimento Acumulado',
+                      label: 'Investimento',
                        data: (() => {
                          const sortedClients = [...topClientsByROI]
                            .filter(client => client.investment > 0 && client.avg_cpl > 0)
                            .sort((a, b) => a.investment - b.investment);
-                         let accumulatedInvestment = 0;
-                         return sortedClients.slice(0, 8).map(client => {
-                           accumulatedInvestment += client.investment;
-                           return accumulatedInvestment;
-                         });
+                         return sortedClients.slice(0, 8).map(client => client.investment);
                        })(),
                       borderColor: '#3b82f6',
                       backgroundColor: '#3b82f6',
