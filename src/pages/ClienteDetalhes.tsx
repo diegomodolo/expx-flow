@@ -1639,14 +1639,48 @@ const ClienteDetalhes = () => {
                       ) : filteredAndSortedAdSets.length > 0 ? (
                         filteredAndSortedAdSets.map((adSet) => (
                          <tr key={adSet.id}>
-                           <td className="px-4 py-4 whitespace-nowrap">
-                             <div className="text-sm font-medium text-gray-900">{adSet.name}</div>
-                           </td>
-                           <td className="px-4 py-4 whitespace-nowrap">
-                             <div className="text-sm text-gray-500">
-                               {client?.campaigns?.find(c => c.id === adSet.campaign_id)?.name || 'N/A'}
-                             </div>
-                           </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <TooltipProvider>
+                                <UITooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-sm font-medium text-gray-900 cursor-help">
+                                      {adSet.name && adSet.name.length > 60 
+                                        ? `${adSet.name.substring(0, 60)}...` 
+                                        : adSet.name}
+                                    </div>
+                                  </TooltipTrigger>
+                                  {adSet.name && adSet.name.length > 60 && (
+                                    <TooltipContent>
+                                      <p>{adSet.name}</p>
+                                    </TooltipContent>
+                                  )}
+                                </UITooltip>
+                              </TooltipProvider>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <TooltipProvider>
+                                <UITooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="text-sm text-gray-500 cursor-help">
+                                      {(() => {
+                                        const campaignName = client?.campaigns?.find(c => c.id === adSet.campaign_id)?.name || 'N/A';
+                                        return campaignName && campaignName.length > 60 
+                                          ? `${campaignName.substring(0, 60)}...` 
+                                          : campaignName;
+                                      })()}
+                                    </div>
+                                  </TooltipTrigger>
+                                  {(() => {
+                                    const campaignName = client?.campaigns?.find(c => c.id === adSet.campaign_id)?.name || 'N/A';
+                                    return campaignName && campaignName.length > 60 && (
+                                      <TooltipContent>
+                                        <p>{campaignName}</p>
+                                      </TooltipContent>
+                                    );
+                                  })()}
+                                </UITooltip>
+                              </TooltipProvider>
+                            </td>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <Badge className={
                                adSet.status === 'active' 
