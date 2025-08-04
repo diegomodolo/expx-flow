@@ -206,7 +206,20 @@ const RelatorioPerformanceCliente = () => {
       </div>
 
       <div className="grid gap-4">
-        {filteredData.map((client) => {
+        {filteredData
+          .sort((a, b) => {
+            // Ordenar primeiro por status (melhor para pior)
+            const statusOrder = { excellent: 4, good: 3, needs_attention: 2, critical: 1 };
+            const statusDiff = statusOrder[b.analysisStatus] - statusOrder[a.analysisStatus];
+            
+            // Se status igual, ordenar por leads per thousand (maior para menor)
+            if (statusDiff === 0) {
+              return b.leadsPerThousand - a.leadsPerThousand;
+            }
+            
+            return statusDiff;
+          })
+          .map((client, index) => {
           const statusColor = client.analysisStatus === 'critical' ? 'border-l-destructive' :
                              client.analysisStatus === 'needs_attention' ? 'border-l-yellow-500' :
                              client.analysisStatus === 'good' ? 'border-l-blue-500' : 'border-l-green-500';
@@ -216,15 +229,20 @@ const RelatorioPerformanceCliente = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(client.analysisStatus)}
-                      <div>
-                         <CardTitle className="text-lg">{client.name}</CardTitle>
-                         <p className="text-sm text-muted-foreground">
-                           Cliente ativo • CPA: R$ {client.cpa.toFixed(0)}
-                         </p>
-                      </div>
-                    </div>
+                     <div className="flex items-center gap-3">
+                       <div className="flex items-center gap-2">
+                         <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-sm font-bold">
+                           #{index + 1}
+                         </div>
+                         {getStatusIcon(client.analysisStatus)}
+                       </div>
+                       <div>
+                          <CardTitle className="text-lg">{client.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Cliente ativo • CPA: R$ {client.cpa.toFixed(0)}
+                          </p>
+                       </div>
+                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(client.analysisStatus)}
                        <Badge variant="outline">
