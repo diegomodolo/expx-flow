@@ -222,13 +222,6 @@ export default function RelatorioCriativosBaixoDesempenho() {
     }
   };
 
-  const getRecommendationIcon = (recommendation: string) => {
-    switch (recommendation) {
-      case 'pause': return AlertTriangle;
-      case 'replace': return TrendingDown;
-      default: return Target;
-    }
-  };
 
   if (adsLoading || campaignsLoading) {
     return (
@@ -391,8 +384,6 @@ export default function RelatorioCriativosBaixoDesempenho() {
             </Card>
           ) : (
             filteredData.map((creative) => {
-              const RecommendationIcon = getRecommendationIcon(creative.recommendation);
-              
               return (
                 <Card key={creative.id} className="border-l-4 border-l-destructive">
                   <CardHeader>
@@ -422,7 +413,9 @@ export default function RelatorioCriativosBaixoDesempenho() {
                       </div>
                       <div className="text-right">
                         <div className={`flex items-center gap-2 ${getRecommendationColor(creative.recommendation)}`}>
-                          <RecommendationIcon className="w-4 h-4" />
+                          {creative.recommendation === 'pause' && <AlertTriangle className="w-4 h-4" />}
+                          {creative.recommendation === 'replace' && <TrendingDown className="w-4 h-4" />}
+                          {creative.recommendation === 'adjust' && <Target className="w-4 h-4" />}
                           <span className="font-semibold">
                             {creative.recommendation === 'pause' ? 'PAUSAR' :
                              creative.recommendation === 'replace' ? 'SUBSTITUIR' : 'AJUSTAR'}
