@@ -394,7 +394,7 @@ const RelatorioOportunidades = () => {
         />
       </div>
 
-      <div className="space-y-4">
+      <div className="grid gap-4">
         {filteredData.length > 0 ? (
           filteredData
             .sort((a, b) => {
@@ -413,28 +413,21 @@ const RelatorioOportunidades = () => {
                                opportunity.priority === 'medium' ? 'border-l-yellow-500' : 'border-l-green-500';
             
             return (
-            <Card key={opportunity.id} className={`border-l-4 ${statusColor} hover:shadow-md transition-shadow`}>
-              <CardHeader className="pb-3">
+            <Card key={opportunity.id} className={`border-l-4 ${statusColor}`}>
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-sm font-bold">
-                          #{index + 1}
-                        </div>
-                        {getTypeIcon(opportunity.type)}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-sm font-bold">
+                        #{index + 1}
                       </div>
-                       <div>
-                         <CardTitle className="text-lg">{opportunity.title}</CardTitle>
-                         <div className="flex items-center gap-2 mt-1">
-                           <CardDescription>{opportunity.description}</CardDescription>
-                         </div>
-                         {opportunity.clientName && (
-                           <div className="text-sm text-primary font-medium mt-1">
-                             Cliente: {opportunity.clientName}
-                           </div>
-                         )}
-                       </div>
+                      {getTypeIcon(opportunity.type)}
+                      <div>
+                        <CardTitle className="text-lg">{opportunity.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {opportunity.clientName} • {opportunity.timeframe}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {getPriorityBadge(opportunity.priority)}
@@ -444,27 +437,27 @@ const RelatorioOportunidades = () => {
                       <Badge variant="outline">
                         {opportunity.effort} esforço
                       </Badge>
+                      <Badge variant="outline">
+                        Score: {opportunity.healthScore}/100
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className={`text-xl font-bold ${
-                        opportunity.healthScore >= 80 ? 'text-green-600' :
-                        opportunity.healthScore >= 60 ? 'text-blue-600' :
-                        opportunity.healthScore >= 40 ? 'text-yellow-600' : 'text-destructive'
-                      }`}>
-                        {opportunity.healthScore}/100
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Nota de Viabilidade
-                      </div>
-                    </div>
-                    <div className="text-right">
+                  <div className="flex gap-2">
+                    <div className="text-right mr-4">
                       <div className="text-lg font-bold text-green-600">
                         R$ {opportunity.estimatedSaving.toLocaleString()}
                       </div>
                       <div className="text-xs text-muted-foreground">economia/mês</div>
                     </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleCreateTask(opportunity)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Implementar
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
