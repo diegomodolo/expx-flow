@@ -1,334 +1,482 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useTasks } from "@/hooks/useTasks";
 import { useTaskStats } from "@/hooks/useTaskStats";
-import { CheckCircle, Clock, AlertTriangle, Calendar } from "lucide-react";
+import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { 
+  CheckCircle, 
+  Clock, 
+  AlertTriangle, 
+  Calendar,
+  Target,
+  TrendingUp,
+  Plus,
+  User
+} from "lucide-react";
+
+interface TaskAnalysis {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  assigned_to?: string;
+  deadline?: string;
+  progress: number;
+  created_at: string;
+  team_id?: string;
+  analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
+  issues: string[];
+  recommendations: string[];
+  daysOverdue: number;
+  efficiency: number;
+}
 
 const RelatorioTarefasPlanner = () => {
   const { tasks } = useTasks();
   const taskStats = useTaskStats();
+  const { convertAlertToTask } = useTaskAutomation();
+  
+  const [tasksAnalysis, setTasksAnalysis] = useState<TaskAnalysis[]>([]);
+  const [filteredData, setFilteredData] = useState<TaskAnalysis[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
-  const chartConfig = {
-    completed: { label: "Concluídas", color: "hsl(var(--primary))" },
-    inProgress: { label: "Em Progresso", color: "hsl(var(--secondary))" },
-    pending: { label: "Pendentes", color: "hsl(var(--accent))" }
-  };
-
-  const statusData = [
-    { name: 'Concluídas', value: Number(taskStats.data?.completed_tasks || 0), color: 'hsl(var(--primary))' },
-    { name: 'Em Progresso', value: Number(taskStats.data?.in_progress_tasks || 0), color: 'hsl(var(--secondary))' },
-    { name: 'Pendentes', value: Number(taskStats.data?.pending_tasks || 0), color: 'hsl(var(--accent))' },
-    { name: 'Em Revisão', value: Number(taskStats.data?.review_tasks || 0), color: 'hsl(var(--muted))' }
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'status-analise',
+      label: 'Status de Análise',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'critical', label: 'Crítico' },
+        { value: 'needs_attention', label: 'Precisa de Atenção' },
+        { value: 'good', label: 'Bom' },
+        { value: 'excellent', label: 'Excelente' }
+      ],
+      placeholder: 'Todos os status'
+    },
+    {
+      id: 'status-tarefa',
+      label: 'Status da Tarefa',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todas as tarefas' },
+        { value: 'todo', label: 'Pendentes' },
+        { value: 'progress', label: 'Em Progresso' },
+        { value: 'done', label: 'Concluídas' }
+      ],
+      placeholder: 'Todas as tarefas'
+    },
+    {
+      id: 'prioridade',
+      label: 'Prioridade',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as prioridades' },
+        { value: 'high', label: 'Alta' },
+        { value: 'medium', label: 'Média' },
+        { value: 'low', label: 'Baixa' }
+      ],
+      placeholder: 'Todas as prioridades'
+    }
   ];
 
-  const priorityData = tasks.reduce((acc, task) => {
-    acc[task.priority] = (acc[task.priority] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'tipo-problema',
+      label: 'Tipo de Problema',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os problemas' },
+        { value: 'atrasada', label: 'Tarefas Atrasadas' },
+        { value: 'sem_progresso', label: 'Sem Progresso' },
+        { value: 'alta_prioridade_parada', label: 'Alta Prioridade Parada' },
+        { value: 'prazo_apertado', label: 'Prazo Apertado' }
+      ],
+      placeholder: 'Todos os problemas'
+    },
+    {
+      id: 'progresso-minimo',
+      label: 'Progresso Mínimo',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os progressos' },
+        { value: '80', label: '80%+' },
+        { value: '60', label: '60%+' },
+        { value: '40', label: '40%+' },
+        { value: '20', label: '20%+' }
+      ],
+      placeholder: 'Todos os progressos'
+    }
+  ];
 
-  const priorityChartData = Object.entries(priorityData).map(([priority, count]) => ({
-    priority,
-    count,
-    color: priority === 'high' ? 'hsl(var(--destructive))' : 
-           priority === 'medium' ? 'hsl(var(--secondary))' : 
-           'hsl(var(--muted))'
-  }));
+  const analyzeTasks = () => {
+    const today = new Date();
+    
+    const analysis: TaskAnalysis[] = tasks.map(task => {
+      const createdDate = new Date(task.created_at);
+      const dueDate = task.deadline ? new Date(task.deadline) : null;
+      const daysOverdue = dueDate && dueDate < today 
+        ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      
+      const daysSinceCreated = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+      const expectedProgress = Math.min(100, daysSinceCreated * 10); // 10% por dia esperado
+      const efficiency = expectedProgress > 0 ? (task.progress / expectedProgress) * 100 : 100;
 
-  const getStatusIcon = (status: string) => {
+      // Identificar problemas
+      const issues: string[] = [];
+      if (daysOverdue > 0) issues.push(`Atrasada há ${daysOverdue} dias`);
+      if (task.progress === 0 && daysSinceCreated > 2) issues.push('Sem progresso há mais de 2 dias');
+      if (task.priority === 'high' && task.status === 'todo') issues.push('Alta prioridade não iniciada');
+      if (dueDate && (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) < 2 && task.progress < 80) {
+        issues.push('Prazo apertado com baixo progresso');
+      }
+      if (task.status === 'progress' && task.progress < 20 && daysSinceCreated > 3) {
+        issues.push('Em progresso mas com baixo avanço');
+      }
+
+      // Determinar status
+      const analysisStatus: TaskAnalysis['analysisStatus'] = 
+        daysOverdue > 3 || (task.priority === 'high' && task.status === 'todo') ? 'critical' :
+        issues.length >= 2 || daysOverdue > 0 ? 'needs_attention' :
+        efficiency >= 100 && task.progress > 50 ? 'excellent' : 'good';
+
+      // Gerar recomendações
+      const recommendations: string[] = [];
+      if (daysOverdue > 0) recommendations.push('Revisar prazo e realocar recursos');
+      if (task.progress === 0) recommendations.push('Iniciar execução imediatamente');
+      if (task.priority === 'high' && task.status === 'todo') recommendations.push('Priorizar início desta tarefa');
+      if (efficiency < 50) recommendations.push('Revisar escopo e remover impedimentos');
+      if (!task.user_id) recommendations.push('Atribuir responsável');
+
+      return {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assigned_to: task.user_id,
+        deadline: task.deadline,
+        progress: task.progress,
+        created_at: task.created_at,
+        team_id: task.team_id,
+        analysisStatus,
+        issues,
+        recommendations,
+        daysOverdue,
+        efficiency: Math.round(efficiency)
+      };
+    });
+
+    setTasksAnalysis(analysis);
+  };
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+
+    let filtered = tasksAnalysis;
+
+    // Filtro por status de análise
+    if (newFilters['status-analise'] && newFilters['status-analise'] !== 'todos') {
+      filtered = filtered.filter(task => task.analysisStatus === newFilters['status-analise']);
+    }
+
+    // Filtro por status da tarefa
+    if (newFilters['status-tarefa'] && newFilters['status-tarefa'] !== 'todos') {
+      filtered = filtered.filter(task => task.status === newFilters['status-tarefa']);
+    }
+
+    // Filtro por prioridade
+    if (newFilters['prioridade'] && newFilters['prioridade'] !== 'todas') {
+      filtered = filtered.filter(task => task.priority === newFilters['prioridade']);
+    }
+
+    // Filtro por tipo de problema
+    if (newFilters['tipo-problema'] && newFilters['tipo-problema'] !== 'todos') {
+      const problemMap: Record<string, string> = {
+        'atrasada': 'Atrasada',
+        'sem_progresso': 'Sem progresso',
+        'alta_prioridade_parada': 'Alta prioridade não iniciada',
+        'prazo_apertado': 'Prazo apertado'
+      };
+      const problemText = problemMap[newFilters['tipo-problema']];
+      if (problemText) {
+        filtered = filtered.filter(task => task.issues.some(issue => issue.includes(problemText)));
+      }
+    }
+
+    // Filtro por progresso mínimo
+    if (newFilters['progresso-minimo'] && newFilters['progresso-minimo'] !== 'todos') {
+      const minProgress = parseInt(newFilters['progresso-minimo']);
+      filtered = filtered.filter(task => task.progress >= minProgress);
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handleCreateTask = async (task: TaskAnalysis) => {
+    const taskTitle = `Resolver problemas da tarefa: ${task.title}`;
+    const taskDescription = `Problemas: ${task.issues.join(', ')}. Recomendações: ${task.recommendations.join(', ')}`;
+    
+    await convertAlertToTask({
+      title: taskTitle,
+      description: taskDescription,
+      priority: task.analysisStatus === 'critical' ? 'high' : 'medium',
+      type: 'improvement'
+    });
+  };
+
+  const getStatusColor = (status: TaskAnalysis['analysisStatus']) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'in_progress': return <Clock className="w-4 h-4 text-blue-600" />;
-      case 'todo': return <Calendar className="w-4 h-4 text-gray-600" />;
-      case 'review': return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+      case 'excellent': return 'text-green-600';
+      case 'good': return 'text-blue-600';
+      case 'needs_attention': return 'text-yellow-600';
+      case 'critical': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const getStatusBadge = (status: TaskAnalysis['analysisStatus']) => {
+    const variants = {
+      excellent: 'default',
+      good: 'secondary',
+      needs_attention: 'outline',
+      critical: 'destructive'
+    } as const;
+
+    const labels = {
+      excellent: 'Excelente',
+      good: 'Bom',
+      needs_attention: 'Precisa de Atenção',
+      critical: 'Crítico'
+    };
+
+    return (
+      <Badge variant={variants[status]}>
+        {labels[status]}
+      </Badge>
+    );
+  };
+
+  const getStatusIcon = (status: TaskAnalysis['analysisStatus']) => {
+    switch (status) {
+      case 'excellent': return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'good': return <Target className="w-4 h-4 text-blue-600" />;
+      case 'needs_attention': return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'critical': return <AlertTriangle className="w-4 h-4 text-red-600" />;
       default: return <Calendar className="w-4 h-4 text-gray-600" />;
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     const variants = {
-      high: 'bg-red-100 text-red-800 border-red-200',
-      medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      low: 'bg-green-100 text-green-800 border-green-200'
-    };
-    return variants[priority as keyof typeof variants] || variants.low;
-  };
+      high: 'destructive',
+      medium: 'outline',
+      low: 'secondary'
+    } as const;
 
-  const getOverdueTasks = () => {
-    const today = new Date();
-    return tasks.filter(task => 
-      task.deadline && new Date(task.deadline) < today && task.status !== 'done'
+    const labels = {
+      high: 'Alta',
+      medium: 'Média',
+      low: 'Baixa'
+    };
+
+    return (
+      <Badge variant={variants[priority as keyof typeof variants] || 'outline'}>
+        {labels[priority as keyof typeof labels] || priority}
+      </Badge>
     );
   };
 
-  const overdueTasks = getOverdueTasks();
-  const completionRate = taskStats.data?.total_tasks ? 
-    ((Number(taskStats.data.completed_tasks) / Number(taskStats.data.total_tasks)) * 100).toFixed(1) : '0';
+  useEffect(() => {
+    if (tasks.length > 0) {
+      analyzeTasks();
+    }
+  }, [tasks]);
+
+  useEffect(() => {
+    setFilteredData(tasksAnalysis);
+  }, [tasksAnalysis]);
+
+  // Métricas de resumo baseadas nos dados filtrados
+  const filteredMetrics = {
+    totalTasks: filteredData.length,
+    criticalTasks: filteredData.filter(t => t.analysisStatus === 'critical').length,
+    overdueTasks: filteredData.filter(t => t.daysOverdue > 0).length,
+    avgEfficiency: filteredData.length > 0 
+      ? Math.round(filteredData.reduce((acc, t) => acc + t.efficiency, 0) / filteredData.length)
+      : 0
+  };
 
   return (
     <ReportLayout
-      title="Relatório de Tarefas e Planner"
-      description="Produtividade e tempo de execução das tarefas"
+      title="Relatório de Tarefas do Planner"
+      description="Análise detalhada de performance e eficiência das tarefas"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      onFilterChange={handleFilterChange}
+      filterDescription="Use os filtros para analisar tarefas específicas e identificar gargalos"
     >
+      {/* Métricas de resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          title="Tarefas Totais"
-          value={Number(taskStats.data?.total_tasks || 0)}
+          title="Total de Tarefas"
+          value={filteredMetrics.totalTasks}
+          subtitle="Tarefas analisadas"
         />
         <MetricCard
-          title="Taxa de Conclusão"
-          value={`${completionRate.toString()}%`}
-          trend={parseFloat(completionRate) > 80 ? "up" : "down"}
+          title="Tarefas Críticas"
+          value={filteredMetrics.criticalTasks}
+          trend={filteredMetrics.criticalTasks > 0 ? "down" : "up"}
+          subtitle="Precisam de atenção imediata"
         />
         <MetricCard
           title="Tarefas Atrasadas"
-          value={overdueTasks.length}
-          trend={overdueTasks.length > 0 ? "down" : "up"}
+          value={filteredMetrics.overdueTasks}
+          trend={filteredMetrics.overdueTasks > 0 ? "down" : "up"}
+          subtitle="Fora do prazo"
         />
         <MetricCard
-          title="Tempo Médio"
-          value={`${Number(taskStats.data?.avg_completion_days || 0).toFixed(1)} dias`}
-          subtitle="Para conclusão"
+          title="Eficiência Média"
+          value={`${filteredMetrics.avgEfficiency}%`}
+          trend={filteredMetrics.avgEfficiency >= 80 ? "up" : "down"}
+          subtitle="Taxa de progresso esperado"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição por Status</CardTitle>
-            <CardDescription>Estado atual das tarefas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição por Prioridade</CardTitle>
-            <CardDescription>Classificação das tarefas por urgência</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={priorityChartData}>
-                  <XAxis dataKey="priority" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {overdueTasks.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-red-600">Tarefas Atrasadas</CardTitle>
-            <CardDescription>Requerem atenção imediata</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {overdueTasks.slice(0, 5).map((task) => {
-                const daysOverdue = Math.floor(
-                  (new Date().getTime() - new Date(task.deadline).getTime()) / (1000 * 60 * 60 * 24)
-                );
-                
-                return (
-                  <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg border-red-200 bg-red-50">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="w-5 h-5 text-red-600" />
-                      <div>
-                        <p className="font-medium">{task.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Responsável: {task.responsible_name}
-                        </p>
-                      </div>
+      {/* Lista de tarefas analisadas */}
+      <div className="space-y-4">
+        {filteredData.length > 0 ? (
+          filteredData.map((task) => (
+            <Card key={task.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CardTitle className="text-lg">{task.title}</CardTitle>
+                      {getPriorityBadge(task.priority)}
                     </div>
-                    <div className="text-right">
-                      <Badge className="bg-red-100 text-red-800 border-red-200">
-                        {daysOverdue} dias em atraso
-                      </Badge>
+                    <CardDescription>{task.description}</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(task.analysisStatus)}
+                    {getStatusBadge(task.analysisStatus)}
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {/* Problemas identificados */}
+                {task.issues.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Problemas Identificados
+                    </h4>
+                    <ul className="space-y-1">
+                      {task.issues.map((issue, index) => (
+                        <li key={index} className="text-sm text-destructive flex items-center gap-2">
+                          <div className="w-1 h-1 rounded-full bg-destructive" />
+                          {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recomendações */}
+                {task.recommendations.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      Recomendações
+                    </h4>
+                    <ul className="space-y-1">
+                      {task.recommendations.map((rec, index) => (
+                        <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
+                          <div className="w-1 h-1 rounded-full bg-primary" />
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Métricas */}
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Métricas da Tarefa
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-foreground">{task.progress}%</div>
+                      <div className="text-xs text-muted-foreground">Progresso</div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-lg font-bold ${getStatusColor(task.analysisStatus)}`}>
+                        {task.efficiency}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">Eficiência</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-foreground">
+                        {task.daysOverdue > 0 ? task.daysOverdue : 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Dias Atraso</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-foreground">
+                        {task.status === 'done' ? 'Concluída' : 
+                         task.status === 'progress' ? 'Em Progresso' : 'Pendente'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Status</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-foreground">
+                        {task.assigned_to ? '✓' : '✗'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Responsável</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tarefas Recentes</CardTitle>
-          <CardDescription>Últimas atividades do planner</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium">Tarefa</th>
-                  <th className="text-center p-3 font-medium">Status</th>
-                  <th className="text-center p-3 font-medium">Prioridade</th>
-                  <th className="text-left p-3 font-medium">Responsável</th>
-                  <th className="text-right p-3 font-medium">Prazo</th>
-                  <th className="text-right p-3 font-medium">Progresso</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.slice(0, 10).map((task) => (
-                  <tr key={task.id} className="border-b hover:bg-muted/50">
-                    <td className="p-3">
-                      <div>
-                        <p className="font-medium">{task.title}</p>
-                        {task.description && (
-                          <p className="text-sm text-muted-foreground truncate max-w-xs">
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {getStatusIcon(task.status)}
-                        <span className="text-sm">{task.status}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-center">
-                      <Badge className={getPriorityBadge(task.priority)}>
-                        {task.priority}
-                      </Badge>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        {task.responsible_avatar && (
-                          <img 
-                            src={task.responsible_avatar} 
-                            alt={task.responsible_name}
-                            className="w-6 h-6 rounded-full"
-                          />
-                        )}
-                        <span className="text-sm">{task.responsible_name}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right text-sm">
-                      {task.deadline ? new Date(task.deadline).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-16 bg-secondary rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full" 
-                            style={{ width: `${task.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-sm">{task.progress}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Produtividade por Responsável</CardTitle>
-            <CardDescription>Performance individual da equipe</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(
-                tasks.reduce((acc, task) => {
-                  if (!acc[task.responsible_name]) {
-                    acc[task.responsible_name] = { completed: 0, total: 0 };
-                  }
-                  acc[task.responsible_name].total++;
-                  if (task.status === 'done') {
-                    acc[task.responsible_name].completed++;
-                  }
-                  return acc;
-                }, {} as Record<string, { completed: number; total: number }>)
-              )
-              .sort(([,a], [,b]) => (b.completed / b.total) - (a.completed / a.total))
-              .slice(0, 6)
-              .map(([name, data]) => {
-                const rate = ((data.completed / data.total) * 100).toFixed(1);
-                
-                return (
-                  <div key={name} className="flex justify-between items-center">
-                    <span className="font-medium">{name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-secondary rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${rate}%` }}
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">{rate}%</span>
-                    </div>
+                {/* Botão de ação para tarefas problemáticas */}
+                {(task.analysisStatus === 'critical' || task.analysisStatus === 'needs_attention') && (
+                  <div className="flex justify-end pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleCreateTask(task)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Criar Tarefa de Melhoria
+                    </Button>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tarefas Organizadas por IA</CardTitle>
-            <CardDescription>Automação e eficiência do planner</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 border rounded-lg">
-                <span>Tarefas organizadas automaticamente</span>
-                <span className="font-semibold">
-                  {tasks.filter(t => t.organized_by_ai).length}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-3 border rounded-lg">
-                <span>Tempo estimado por IA</span>
-                <span className="font-semibold">
-                  {tasks.filter(t => t.ai_estimated_minutes).length} tarefas
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-3 border rounded-lg">
-                <span>Economia de tempo</span>
-                <span className="font-semibold text-green-600">
-                  ~{Math.round(tasks.filter(t => t.organized_by_ai).length * 15)} min/dia
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                Nenhuma tarefa encontrada
+              </h3>
+              <p className="text-muted-foreground">
+                Ajuste os filtros para ver mais resultados ou verifique se há tarefas cadastradas.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </ReportLayout>
   );
