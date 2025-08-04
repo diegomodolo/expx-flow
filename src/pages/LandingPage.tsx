@@ -37,7 +37,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/auth">
                   <Button size="lg" className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 group">
-                    Começar Agora
+                    Entrar no Sistema
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -49,7 +49,7 @@ export default function LandingPage() {
               <div className="flex items-center space-x-6 text-sm text-gray-500">
                 <div className="flex items-center space-x-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Configuração em 5 minutos</span>
+                  <span>Acesso instantâneo</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
@@ -352,16 +352,16 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto space-y-8">
             <h2 className="text-3xl lg:text-4xl font-bold text-white">
-              Pronto para transformar seus resultados?
+              Acesse o sistema agora
             </h2>
             <p className="text-xl text-purple-100">
-              Junte-se a centenas de empresas que já otimizaram suas campanhas com o Controle de Tráfego.
+              Entre no Controle de Tráfego e gerencie suas campanhas com inteligência artificial.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth">
                 <Button size="lg" className="bg-white text-purple-700 hover:bg-purple-50 shadow-lg hover:shadow-xl transition-all duration-300">
-                  Começar Gratuitamente
+                  Entrar no Sistema
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -380,8 +380,8 @@ export default function LandingPage() {
                 <p className="text-purple-200">Em Tráfego Gerenciado</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">24/7</p>
-                <p className="text-purple-200">Suporte Especializado</p>
+                <p className="text-3xl font-bold text-white">Resultados</p>
+                <p className="text-purple-200">Comprovados</p>
               </div>
             </div>
           </div>
