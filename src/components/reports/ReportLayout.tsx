@@ -167,7 +167,7 @@ export function ReportLayout({
           {(primaryFilters.length > 0 || secondaryFilters.length > 0) && (
             <Card>
               <CardContent className="p-4">
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <h3 className="text-sm font-medium text-foreground">Filtros</h3>
                   {filterDescription && (
                     <p className="text-xs text-muted-foreground">{filterDescription}</p>
