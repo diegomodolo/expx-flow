@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { ComposedChart, LineChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
@@ -273,6 +275,152 @@ export default function NewDashboard() {
                 <p className="text-sm text-gray-600">Taxa de cliques</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Gráficos de Performance */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico 1: Top Clientes por Investimento vs Leads */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold text-gray-900">Top Clientes - Investimento vs Leads</h2>
+            </div>
+            
+            <ChartContainer
+              config={{
+                investment: {
+                  label: "Investimento",
+                  color: "hsl(var(--primary))",
+                },
+                leads: {
+                  label: "Leads",
+                  color: "hsl(var(--destructive))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={topClientsByROI.slice(0, 8).map(client => ({
+                    name: client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name,
+                    investment: client.investment,
+                    leads: client.leads_generated
+                  }))}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={12}
+                  />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      formatter={(value, name) => [
+                        name === 'investment' ? formatCurrency(value as number) : value,
+                        name === 'investment' ? 'Investimento' : 'Leads'
+                      ]}
+                    />}
+                  />
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="investment" 
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="leads" 
+                    stroke="hsl(var(--destructive))"
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--destructive))", strokeWidth: 2, r: 4 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </div>
+
+          {/* Gráfico 2: CPL vs Investimento por Cliente */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold text-gray-900">CPL vs Investimento por Cliente</h2>
+            </div>
+            
+            <ChartContainer
+              config={{
+                investment: {
+                  label: "Investimento Acumulado",
+                  color: "hsl(var(--primary))",
+                },
+                cpl: {
+                  label: "CPL",
+                  color: "hsl(var(--chart-2))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={(() => {
+                    const sortedClients = [...topClientsByROI]
+                      .sort((a, b) => a.investment - b.investment);
+                    let accumulatedInvestment = 0;
+                    
+                    return sortedClients.slice(0, 8).map(client => {
+                      accumulatedInvestment += client.investment;
+                      return {
+                        name: client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name,
+                        investment: accumulatedInvestment,
+                        cpl: client.avg_cpl
+                      };
+                    });
+                  })()}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    fontSize={12}
+                  />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      formatter={(value, name) => [
+                        name === 'investment' ? formatCurrency(value as number) : formatCurrency(value as number),
+                        name === 'investment' ? 'Investimento Acumulado' : 'CPL'
+                      ]}
+                    />}
+                  />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="investment" 
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="cpl" 
+                    stroke="hsl(var(--chart-2))"
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </div>
 
