@@ -18,6 +18,17 @@ export default {
 			}
 		},
 		extend: {
+			fontSize: {
+				// Sistema de tipografia padronizado
+				'report-title': ['2rem', { lineHeight: '1.2', fontWeight: '700' }], // 32px, bold
+				'report-subtitle': ['1rem', { lineHeight: '1.5', fontWeight: '600' }], // 16px, semibold
+				'report-description': ['0.875rem', { lineHeight: '1.4', fontWeight: '400' }], // 14px, normal
+				'report-label': ['0.75rem', { lineHeight: '1.3', fontWeight: '500' }], // 12px, medium
+				'report-caption': ['0.75rem', { lineHeight: '1.3', fontWeight: '400' }], // 12px, normal
+				'dashboard-title': ['1.5rem', { lineHeight: '1.2', fontWeight: '700' }], // 24px, bold
+				'card-title': ['1.125rem', { lineHeight: '1.3', fontWeight: '600' }], // 18px, semibold
+				'card-content': ['0.875rem', { lineHeight: '1.4', fontWeight: '400' }], // 14px, normal
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

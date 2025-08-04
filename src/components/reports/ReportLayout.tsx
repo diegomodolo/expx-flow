@@ -60,7 +60,7 @@ export function ReportLayout({
       case 'select':
         return (
           <div key={filter.id} className="space-y-2">
-            <Label htmlFor={filter.id} className="text-xs font-medium">{filter.label}</Label>
+            <Label htmlFor={filter.id} className="text-report-label text-foreground">{filter.label}</Label>
             <Select onValueChange={(value) => handleFilterChange(filter.id, value)}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder={filter.placeholder || `Selecione ${filter.label.toLowerCase()}`} />
@@ -79,7 +79,7 @@ export function ReportLayout({
       case 'input':
         return (
           <div key={filter.id} className="space-y-2">
-            <Label htmlFor={filter.id} className="text-xs font-medium">{filter.label}</Label>
+            <Label htmlFor={filter.id} className="text-report-label text-foreground">{filter.label}</Label>
             <Input
               id={filter.id}
               placeholder={filter.placeholder}
@@ -92,7 +92,7 @@ export function ReportLayout({
       case 'date':
         return (
           <div key={filter.id} className="space-y-2">
-            <Label htmlFor={filter.id} className="text-xs font-medium">{filter.label}</Label>
+            <Label htmlFor={filter.id} className="text-report-label text-foreground">{filter.label}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -137,8 +137,8 @@ export function ReportLayout({
           {/* Title and Actions */}
           <div className="flex items-start justify-between">
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <h1 className="text-report-title text-foreground">{title}</h1>
+              <p className="text-report-description text-muted-foreground">{description}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button 
@@ -168,9 +168,9 @@ export function ReportLayout({
             <Card>
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-foreground">Filtros</h3>
+                  <h3 className="text-report-subtitle text-foreground">Filtros</h3>
                   {filterDescription && (
-                    <p className="text-xs text-muted-foreground">{filterDescription}</p>
+                    <p className="text-report-caption text-muted-foreground">{filterDescription}</p>
                   )}
                   
                   {/* Primeira linha de filtros */}
