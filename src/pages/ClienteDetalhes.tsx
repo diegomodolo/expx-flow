@@ -1928,12 +1928,12 @@ const ClienteDetalhes = () => {
                                 <UITooltip>
                                   <TooltipTrigger asChild>
                                     <div className="text-sm font-medium text-gray-900 cursor-help">
-                                      {ad.name && ad.name.length > 60 
-                                        ? `${ad.name.substring(0, 60)}...` 
+                                      {ad.name && ad.name.length > 50 
+                                        ? `${ad.name.substring(0, 50)}...` 
                                         : ad.name}
                                     </div>
                                   </TooltipTrigger>
-                                  {ad.name && ad.name.length > 60 && (
+                                  {ad.name && ad.name.length > 50 && (
                                     <TooltipContent>
                                       <p>{ad.name}</p>
                                     </TooltipContent>
@@ -1950,8 +1950,8 @@ const ClienteDetalhes = () => {
                                           const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
                                           const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
                                           const campaignName = campaign?.name || 'N/A';
-                                          return campaignName && campaignName.length > 60 
-                                            ? `${campaignName.substring(0, 60)}...` 
+                                          return campaignName && campaignName.length > 50 
+                                            ? `${campaignName.substring(0, 50)}...` 
                                             : campaignName;
                                         })()}
                                       </div>
@@ -1960,7 +1960,7 @@ const ClienteDetalhes = () => {
                                       const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
                                       const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
                                       const campaignName = campaign?.name || 'N/A';
-                                      return campaignName && campaignName.length > 60 && (
+                                      return campaignName && campaignName.length > 50 && (
                                         <TooltipContent>
                                           <p>{campaignName}</p>
                                         </TooltipContent>
