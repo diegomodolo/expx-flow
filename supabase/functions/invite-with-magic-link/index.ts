@@ -38,9 +38,22 @@ const handler = async (req: Request): Promise<Response> => {
       redirectTo 
     }: InviteWithMagicLinkRequest = await req.json();
 
-    // 1. Criar usuário usando admin (sem confirmação por email)
+    // Gerar senha temporária
+    const generateTempPassword = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+      let password = '';
+      for (let i = 0; i < 10; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+    
+    const tempPassword = generateTempPassword();
+
+    // 1. Criar usuário usando admin (com senha temporária)
     const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
       email,
+      password: tempPassword,
       email_confirm: false, // Não confirmar automaticamente
       user_metadata: {
         full_name: name,
@@ -74,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // 3. Gerar magic link
-    const finalRedirectTo = redirectTo || `${supabaseUrl.replace('supabase.co', 'lovableproject.com')}/`;
+    const finalRedirectTo = redirectTo || 'https://controledetrafego.com.br/';
     
     const { data: magicLinkData, error: magicLinkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
@@ -125,28 +138,43 @@ const handler = async (req: Request): Promise<Response> => {
                   </p>
                 </div>
                 
+                <!-- Magic Link Section -->
                 <div style="text-align: center; margin: 35px 0;">
+                  <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">🚀 Opção 1: Acesso Rápido</h3>
                   <a href="${magicLinkData.properties?.action_link}" 
                      style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 30px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">
-                    🚀 Acessar Plataforma
+                    Acessar com Magic Link
                   </a>
+                  <p style="color: #666; font-size: 12px; margin: 10px 0 0 0;">
+                    Clique no botão acima para acesso direto, sem necessidade de senha
+                  </p>
+                </div>
+                
+                <!-- Credentials Section -->
+                <div style="background: #e8f5e8; border: 1px solid #c3e6c3; border-radius: 8px; padding: 25px; margin: 30px 0;">
+                  <h3 style="color: #2d5e2d; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">
+                    🔑 Opção 2: Login Tradicional (caso o link não funcione)
+                  </h3>
+                  <p style="margin: 0 0 15px 0; color: #2d5e2d; font-size: 14px;">
+                    Use estas credenciais para fazer login em: <strong>https://controledetrafego.com.br</strong>
+                  </p>
+                  <div style="background: #fff; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                    <p style="margin: 0; color: #333; font-size: 14px;"><strong>Email:</strong> ${email}</p>
+                    <p style="margin: 5px 0 0 0; color: #333; font-size: 14px;"><strong>Senha temporária:</strong> <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: monospace;">${tempPassword}</code></p>
+                  </div>
+                  <p style="margin: 15px 0 0 0; color: #856404; font-size: 12px; font-style: italic;">
+                    ⚠️ Recomendamos alterar a senha no primeiro acesso por motivos de segurança.
+                  </p>
                 </div>
                 
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 25px 0;">
                   <p style="margin: 0; color: #856404; font-size: 14px; font-weight: 600;">
-                    ⚡ Link de acesso rápido (Magic Link)
+                    💡 Dica de Acesso
                   </p>
                   <p style="margin: 10px 0 0 0; color: #856404; font-size: 14px; line-height: 1.5;">
-                    Este link permite acesso direto sem necessidade de senha. Após o primeiro acesso, você poderá configurar sua conta e definir suas preferências.
-                  </p>
-                </div>
-                
-                <div style="margin: 30px 0; text-align: center;">
-                  <p style="color: #666; font-size: 14px; margin: 0;">
-                    Ou copie e cole este link no seu navegador:
-                  </p>
-                  <p style="background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px; color: #333; word-break: break-all;">
-                    ${magicLinkData.properties?.action_link}
+                    • Primeiro, tente o <strong>Magic Link</strong> (mais fácil e seguro)<br>
+                    • Se não funcionar, use o <strong>login tradicional</strong> com email e senha<br>
+                    • Após o primeiro acesso, você poderá personalizar sua conta
                   </p>
                 </div>
               </div>
@@ -175,6 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
       success: true, 
       user_id: userId,
       magic_link: magicLinkData.properties?.action_link,
+      temp_password: tempPassword,
       email_sent: !!resendApiKey
     }), {
       status: 200,

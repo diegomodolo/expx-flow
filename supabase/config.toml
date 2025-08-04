@@ -39,8 +39,8 @@ public_buckets = ["avatars", "client-avatars", "company-logos"]
 
 [auth]
 enabled = true
-site_url = "https://472c93c8-440a-48d2-b6f0-87c59e507f50.lovableproject.com"
-additional_redirect_urls = ["https://472c93c8-440a-48d2-b6f0-87c59e507f50.lovableproject.com/**"]
+site_url = "https://controledetrafego.com.br"
+additional_redirect_urls = ["https://controledetrafego.com.br/**", "https://472c93c8-440a-48d2-b6f0-87c59e507f50.lovableproject.com/**"]
 jwt_expiry = 3600
 refresh_token_rotation_enabled = true
 security_update_password_require_reauthentication = false
