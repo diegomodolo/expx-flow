@@ -23,11 +23,10 @@ interface ClientAnalysis {
   investment: number;
   leads: number;
   cpa: number;
-  efficiency: number;
+  leadsPerThousand: number; // leads por R$ 1000 investidos
   analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
   issues: string[];
   recommendations: string[];
-  roi: number;
 }
 
 const RelatorioPerformanceCliente = () => {
@@ -74,9 +73,9 @@ const RelatorioPerformanceCliente = () => {
       type: 'select',
       options: [
         { value: 'todos', label: 'Todos os problemas' },
-        { value: 'roi_baixo', label: 'ROI Baixo' },
         { value: 'cpa_alto', label: 'CPA Alto' },
-        { value: 'poucos_leads', label: 'Poucos Leads' }
+        { value: 'poucos_leads', label: 'Poucos Leads' },
+        { value: 'sem_leads', label: 'Sem Leads' }
       ],
       placeholder: 'Todos os problemas'
     }
@@ -92,31 +91,28 @@ const RelatorioPerformanceCliente = () => {
       const realInvestment = client.totalInvestment || client.investment || 0;
       const realCPA = client.averageCPA || client.avg_cpl || (realInvestment > 0 && realLeads > 0 ? realInvestment / realLeads : 0);
       
-      // Calcular eficiência baseada em dados reais
-      const efficiency = realInvestment > 0 ? (realLeads / realInvestment * 1000) : 0;
-      const roi = realInvestment > 0 ? (realLeads * 100) / realInvestment : 0; // Assumindo valor médio de R$100 por lead
+      // Calcular leads por R$ 1000 investidos
+      const leadsPerThousand = realInvestment > 0 ? (realLeads / realInvestment * 1000) : 0;
 
-      // Identificar problemas baseados em dados reais
+      // Identificar problemas baseados em leads e CPA
       const issues: string[] = [];
-      if (efficiency < 10) issues.push('ROI baixo para o investimento atual');
-      if (realCPA > 120) issues.push(`CPA muito alto: R$ ${realCPA.toFixed(2)}`);
-      if (realLeads < 5 && realInvestment > 3000) issues.push('Poucos leads para o investimento realizado');
-      if (roi < 50) issues.push('Retorno do investimento insatisfatório');
+      if (leadsPerThousand < 8) issues.push('Poucos leads por investimento (meta: 8+ leads/R$1000)');
+      if (realCPA > 120) issues.push(`CPA muito alto: R$ ${realCPA.toFixed(2)} (meta: <R$120)`);
+      if (realLeads < 5 && realInvestment > 3000) issues.push('Volume de leads insuficiente para o investimento');
       if (realLeads === 0 && realInvestment > 0) issues.push('Nenhum lead gerado com investimento ativo');
 
-      // Determinar status baseado em dados reais
+      // Determinar status baseado em leads e CPA
       const analysisStatus: ClientAnalysis['analysisStatus'] = 
-        efficiency < 5 || roi < 30 ? 'critical' :
-        efficiency < 10 || issues.length >= 2 ? 'needs_attention' :
-        efficiency > 20 && roi > 100 ? 'excellent' : 'good';
+        realLeads === 0 || realCPA > 150 ? 'critical' :
+        realCPA > 120 || leadsPerThousand < 5 ? 'needs_attention' :
+        realCPA <= 80 && leadsPerThousand >= 12 ? 'excellent' : 'good';
 
-      // Gerar recomendações baseadas em dados reais
+      // Gerar recomendações focadas em leads e CPA
       const recommendations: string[] = [];
-      if (efficiency < 10) recommendations.push('Revisar estratégia de marketing e otimizar campanhas');
-      if (realCPA > 120) recommendations.push('Melhorar segmentação e criativos para reduzir CPA');
-      if (realLeads < 5) recommendations.push('Aumentar investimento ou melhorar funil de conversão');
-      if (roi < 50) recommendations.push('Reavaliar estratégia completa do cliente');
-      if (realLeads === 0) recommendations.push('Urgente: Investigar por que não há conversões');
+      if (realCPA > 120) recommendations.push('Otimizar campanhas para reduzir CPA: revisar segmentação e criativos');
+      if (leadsPerThousand < 8) recommendations.push('Melhorar eficiência: aumentar volume de leads por real investido');
+      if (realLeads === 0) recommendations.push('URGENTE: Investigar campanhas - sem conversões detectadas');
+      if (realLeads < 10 && realInvestment > 5000) recommendations.push('Escalar investimento ou revisar funil de conversão');
 
       return {
         id: client.id || client.name,
@@ -124,11 +120,10 @@ const RelatorioPerformanceCliente = () => {
         investment: realInvestment,
         leads: realLeads,
         cpa: realCPA,
-        efficiency: Math.round(efficiency),
+        leadsPerThousand: Math.round(leadsPerThousand * 10) / 10,
         analysisStatus,
         issues,
-        recommendations,
-        roi: Math.round(roi * 100) / 100
+        recommendations
       };
     });
 
@@ -192,13 +187,13 @@ const RelatorioPerformanceCliente = () => {
     totalClients: filteredData.length,
     criticalClients: filteredData.filter(c => c.analysisStatus === 'critical').length,
     totalInvestment: filteredData.reduce((acc, c) => acc + c.investment, 0),
-    avgROI: filteredData.length > 0 ? filteredData.reduce((acc, c) => acc + c.roi, 0) / filteredData.length : 0
+    avgCPA: filteredData.length > 0 ? filteredData.reduce((acc, c) => acc + c.cpa, 0) / filteredData.length : 0
   };
 
   return (
     <ReportLayout
       title="Relatório de Performance por Cliente"
-      description="Análise detalhada de ROI e eficiência por cliente"
+      description="Análise detalhada de leads e CPA por cliente"
       primaryFilters={primaryFilters}
       secondaryFilters={secondaryFilters}
       onFilterChange={handleFilterChange}
@@ -207,7 +202,7 @@ const RelatorioPerformanceCliente = () => {
         <MetricCard title="Total de Clientes" value={filteredMetrics.totalClients} />
         <MetricCard title="Clientes Críticos" value={filteredMetrics.criticalClients} trend={filteredMetrics.criticalClients > 0 ? "down" : "up"} />
         <MetricCard title="Investimento Total" value={`R$ ${filteredMetrics.totalInvestment.toLocaleString()}`} />
-        <MetricCard title="ROI Médio" value={`${filteredMetrics.avgROI.toFixed(2)}x`} trend={filteredMetrics.avgROI >= 1 ? "up" : "down"} />
+        <MetricCard title="CPA Médio" value={`R$ ${filteredMetrics.avgCPA.toFixed(0)}`} trend={filteredMetrics.avgCPA <= 120 ? "up" : "down"} />
       </div>
 
       <div className="grid gap-4">
@@ -224,17 +219,17 @@ const RelatorioPerformanceCliente = () => {
                     <div className="flex items-center gap-3">
                       {getStatusIcon(client.analysisStatus)}
                       <div>
-                        <CardTitle className="text-lg">{client.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Cliente ativo • ROI: {client.roi}x
-                        </p>
+                         <CardTitle className="text-lg">{client.name}</CardTitle>
+                         <p className="text-sm text-muted-foreground">
+                           Cliente ativo • CPA: R$ {client.cpa.toFixed(0)}
+                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(client.analysisStatus)}
-                      <Badge variant="outline">
-                        Eficiência: {client.efficiency}/100
-                      </Badge>
+                       <Badge variant="outline">
+                         {client.leadsPerThousand} leads/R$1000
+                       </Badge>
                       <Badge variant="outline">
                         {client.leads} leads gerados
                       </Badge>
@@ -280,41 +275,33 @@ const RelatorioPerformanceCliente = () => {
                   </div>
                 )}
 
-                {/* Métricas Detalhadas */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-foreground">
-                      R$ {client.investment.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Investimento Total
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">
-                      {client.leads}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Leads Gerados
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${client.cpa <= 120 ? 'text-green-600' : 'text-destructive'}`}>
-                      R$ {client.cpa.toFixed(0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      CPA (Meta: &lt;R$ 120)
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${client.roi >= 1 ? 'text-green-600' : 'text-destructive'}`}>
-                      {client.roi}x
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      ROI (Meta: &gt;1x)
-                    </div>
-                  </div>
-                </div>
+                 {/* Métricas Detalhadas */}
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                   <div className="text-center">
+                     <div className="text-2xl font-bold text-foreground">
+                       R$ {client.investment.toLocaleString()}
+                     </div>
+                     <div className="text-xs text-muted-foreground">
+                       Investimento Total
+                     </div>
+                   </div>
+                   <div className="text-center">
+                     <div className="text-2xl font-bold">
+                       {client.leads}
+                     </div>
+                     <div className="text-xs text-muted-foreground">
+                       Leads Gerados
+                     </div>
+                   </div>
+                   <div className="text-center">
+                     <div className={`text-2xl font-bold ${client.cpa <= 120 ? 'text-green-600' : 'text-destructive'}`}>
+                       R$ {client.cpa.toFixed(0)}
+                     </div>
+                     <div className="text-xs text-muted-foreground">
+                       CPA (Meta: &lt;R$ 120)
+                     </div>
+                   </div>
+                 </div>
               </CardContent>
             </Card>
           );
