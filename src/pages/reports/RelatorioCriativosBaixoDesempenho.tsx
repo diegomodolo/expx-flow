@@ -457,19 +457,23 @@ export default function RelatorioCriativosBaixoDesempenho() {
                           {creative.status === 'critical' ? 'EFICIÊNCIA BAIXA' : 
                            creative.status === 'warning' ? 'ALERTA' : 'BAIXA PERFORMANCE'}
                         </Badge>
-                        <Badge variant="outline">
-                          #{creative.performance_score}/100 score
-                        </Badge>
-                        <Badge variant="outline">
-                          {creative.days_active} dias ativo{creative.days_active !== 1 ? 's' : ''}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCreateTask(creative)}
-                        >
-                          Criar Tarefa
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCreateTask(creative)}
+                          >
+                            Criar Tarefa
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewAdCreativeMetrics(creative)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Detalhes
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
@@ -508,14 +512,20 @@ export default function RelatorioCriativosBaixoDesempenho() {
                       </p>
                     </div>
 
-                    {/* Status da Campanha */}
-                    <div className="flex items-center gap-2">
+                    {/* Status da Campanha e badges */}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge 
                         variant={creative.campaign_status === 'active' ? 'default' : 'secondary'}
                         className={creative.campaign_status === 'active' ? 'bg-success text-success-foreground' : ''}
                       >
                         Campanha: {creative.campaign_status === 'active' ? 'Ativa' : 
                                   creative.campaign_status === 'paused' ? 'Pausada' : 'Finalizada'}
+                      </Badge>
+                      <Badge variant="outline">
+                        Score: {creative.performance_score}/100
+                      </Badge>
+                      <Badge variant="outline">
+                        {creative.days_active} dias ativo{creative.days_active !== 1 ? 's' : ''}
                       </Badge>
                     </div>
 
@@ -557,19 +567,6 @@ export default function RelatorioCriativosBaixoDesempenho() {
                           CPC (Mín: R$ {creative.ideal_cpc.toFixed(2)})
                         </div>
                       </div>
-                    </div>
-
-                    {/* Botão Ver Detalhes */}
-                    <div className="pt-4 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => handleViewAdCreativeMetrics(creative)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Ver Detalhes Completos
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
