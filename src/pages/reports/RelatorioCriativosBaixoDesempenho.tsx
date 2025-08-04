@@ -14,6 +14,8 @@ interface LowPerformingCreative {
   name: string;
   campaign_id: string;
   campaign_name: string;
+  campaign_status: 'active' | 'paused' | 'finished';
+  campaign_is_active: boolean;
   client_id: string;
   client_name: string;
   ctr: number;
@@ -91,6 +93,11 @@ export default function RelatorioCriativosBaixoDesempenho() {
       filtered = filtered.filter(item => item.recommendation === newFilters.recomendacao);
     }
 
+    // Filtro por status da campanha
+    if (newFilters['status-campanha'] && newFilters['status-campanha'] !== 'todos') {
+      filtered = filtered.filter(item => item.campaign_status === newFilters['status-campanha']);
+    }
+
     setFilteredData(filtered);
   };
 
@@ -109,11 +116,20 @@ export default function RelatorioCriativosBaixoDesempenho() {
   const analyzeLowPerformingCreatives = () => {
     const lowPerforming: LowPerformingCreative[] = [];
 
-    // Calcular benchmarks globais
-    const totalImpressions = ads?.reduce((sum, ad) => sum + (ad.impressions || 0), 0) || 0;
-    const totalClicks = ads?.reduce((sum, ad) => sum + (ad.clicks || 0), 0) || 0;
-    const totalSpend = ads?.reduce((sum, ad) => sum + (ad.spend || 0), 0) || 0;
-    const totalConversions = ads?.reduce((sum, ad) => sum + (ad.conversions || 0), 0) || 0;
+    // Filtrar campanhas ativas apenas (padrão)
+    const activeCampaigns = campaigns?.filter(c => 
+      c.status === 'active' && c.is_active === true
+    ) || [];
+
+    // Calcular benchmarks globais apenas de campanhas ativas
+    const activeAds = ads?.filter(ad => 
+      activeCampaigns.some(c => c.id === ad.campaign_id)
+    ) || [];
+
+    const totalImpressions = activeAds.reduce((sum, ad) => sum + (ad.impressions || 0), 0);
+    const totalClicks = activeAds.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+    const totalSpend = activeAds.reduce((sum, ad) => sum + (ad.spend || 0), 0);
+    const totalConversions = activeAds.reduce((sum, ad) => sum + (ad.conversions || 0), 0);
 
     const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
@@ -124,8 +140,9 @@ export default function RelatorioCriativosBaixoDesempenho() {
     const cpcThreshold = avgCPC * 1.5; // 50% acima da média
     const cplThreshold = avgCPL * 1.5; // 50% acima da média
 
-    ads?.forEach(ad => {
-      const campaign = campaigns?.find(c => c.id === ad.campaign_id);
+    // Analisar apenas anúncios de campanhas ativas
+    activeAds.forEach(ad => {
+      const campaign = activeCampaigns.find(c => c.id === ad.campaign_id);
       if (!campaign) return;
 
       const adCTR = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
@@ -193,6 +210,8 @@ export default function RelatorioCriativosBaixoDesempenho() {
         name: ad.name,
         campaign_id: campaign.id,
         campaign_name: campaign.name,
+        campaign_status: campaign.status,
+        campaign_is_active: campaign.is_active,
         client_id: campaign.client_id,
         client_name: campaign.client?.name || 'Cliente não identificado',
         ctr: adCTR,
@@ -341,6 +360,18 @@ export default function RelatorioCriativosBaixoDesempenho() {
         { value: 'adjust', label: 'Ajustar' }
       ],
       placeholder: 'Todas as recomendações'
+    },
+    {
+      id: 'status-campanha',
+      label: 'Status da Campanha',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'active', label: 'Ativas' },
+        { value: 'paused', label: 'Pausadas' },
+        { value: 'finished', label: 'Finalizadas' }
+      ],
+      placeholder: 'Todos os status'
     }
   ];
 
@@ -410,10 +441,17 @@ export default function RelatorioCriativosBaixoDesempenho() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={getStatusColor(creative.status)}>
                             {creative.status === 'critical' ? 'CRÍTICO' : 
                              creative.status === 'warning' ? 'ALERTA' : 'BAIXA PERFORMANCE'}
+                          </Badge>
+                          <Badge 
+                            variant={creative.campaign_status === 'active' ? 'default' : 'secondary'}
+                            className={creative.campaign_status === 'active' ? 'bg-success text-success-foreground' : ''}
+                          >
+                            Campanha: {creative.campaign_status === 'active' ? 'Ativa' : 
+                                      creative.campaign_status === 'paused' ? 'Pausada' : 'Finalizada'}
                           </Badge>
                           <Badge variant="outline">
                             Score: {creative.performance_score}/100
