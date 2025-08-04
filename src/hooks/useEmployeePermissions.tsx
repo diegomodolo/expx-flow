@@ -41,13 +41,19 @@ export function useEmployeePermissions() {
 
   // Buscar todas as permissões dos colaboradores (para administradores)
   const fetchAllEmployeePermissions = async () => {
-    if (!activeCompany?.id) return;
+    // Use company_id instead of id
+    if (!activeCompany?.company_id) {
+      console.log('No active company_id found:', activeCompany);
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
+      
+      console.log('Fetching employees for company:', activeCompany.company_id);
 
-      // Buscar colaboradores com suas permissões
+      // Buscar colaboradores com suas permissões (LEFT JOIN para incluir colaboradores sem permissões)
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select(`
@@ -55,17 +61,22 @@ export function useEmployeePermissions() {
           name,
           email,
           role,
-          employee_permissions!inner(
+          employee_permissions(
             id,
             employee_id,
             menu_item,
             is_enabled
           )
         `)
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .eq('status', 'active');
 
-      if (employeesError) throw employeesError;
+      if (employeesError) {
+        console.error('Error fetching employees:', employeesError);
+        throw employeesError;
+      }
+
+      console.log('Fetched employees:', employees);
 
       const employeesWithPerms: EmployeeWithPermissions[] = employees?.map(emp => ({
         id: emp.id,
@@ -75,6 +86,7 @@ export function useEmployeePermissions() {
         permissions: emp.employee_permissions || []
       })) || [];
 
+      console.log('Employees with permissions:', employeesWithPerms);
       setEmployeesWithPermissions(employeesWithPerms);
     } catch (err: any) {
       console.error('Erro ao buscar permissões:', err);
@@ -86,7 +98,8 @@ export function useEmployeePermissions() {
 
   // Buscar permissões do usuário atual
   const fetchCurrentUserPermissions = async () => {
-    if (!activeCompany?.id) {
+    if (!activeCompany?.company_id) {
+      console.log('No active company_id for current user permissions');
       setPermissionsLoading(false);
       return;
     }
@@ -109,7 +122,7 @@ export function useEmployeePermissions() {
         .from('company_members')
         .select('role')
         .eq('user_id', user.id)
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .single();
 
       if (memberError) {
@@ -135,7 +148,7 @@ export function useEmployeePermissions() {
         .from('employees')
         .select('id')
         .eq('user_id', user.id)
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .single();
 
       if (!employee) {
@@ -285,10 +298,11 @@ export function useEmployeePermissions() {
   };
 
   useEffect(() => {
-    if (activeCompany?.id) {
+    if (activeCompany?.company_id) {
+      console.log('Active company changed, fetching permissions for:', activeCompany.company_id);
       fetchCurrentUserPermissions();
     }
-  }, [activeCompany?.id]);
+  }, [activeCompany?.company_id]);
 
   return {
     employeesWithPermissions,
