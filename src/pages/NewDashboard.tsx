@@ -10,8 +10,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { ComposedChart, LineChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+} from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement
+);
 import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
@@ -287,64 +308,76 @@ export default function NewDashboard() {
               <h2 className="text-lg font-semibold text-gray-900">Top Clientes - Investimento vs Leads</h2>
             </div>
             
-            <ChartContainer
-              config={{
-                investment: {
-                  label: "Investimento",
-                  color: "hsl(var(--primary))",
-                },
-                leads: {
-                  label: "Leads",
-                  color: "hsl(var(--destructive))",
-                },
-              }}
-              className="h-[400px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={topClientsByROI.slice(0, 8).map(client => ({
-                    name: client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name,
-                    investment: client.investment,
-                    leads: client.leads_generated
-                  }))}
-                  margin={{ top: 5, right: 0, left: 0, bottom: 40 }}
-                  barCategoryGap="10%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    fontSize={12}
-                  />
-                  <YAxis yAxisId="left" width={0} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" width={0} axisLine={false} tickLine={false} />
-                  <ChartTooltip 
-                    content={<ChartTooltipContent 
-                      formatter={(value, name) => [
-                        name === 'investment' ? formatCurrency(value as number) : value,
-                        name === 'investment' ? 'Investimento' : 'Leads'
-                      ]}
-                    />}
-                  />
-                  <Bar 
-                    yAxisId="left"
-                    dataKey="investment" 
-                    fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="leads" 
-                    stroke="hsl(var(--destructive))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--destructive))", strokeWidth: 2, r: 4 }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <div className="h-[400px] w-full">
+              <Bar
+                data={{
+                  labels: topClientsByROI.slice(0, 8).map(client => 
+                    client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name
+                  ),
+                  datasets: [
+                    {
+                      label: 'Investimento',
+                      data: topClientsByROI.slice(0, 8).map(client => client.investment),
+                      backgroundColor: 'hsl(var(--primary))',
+                      borderColor: 'hsl(var(--primary))',
+                      borderWidth: 1,
+                      yAxisID: 'y',
+                    },
+                    {
+                      label: 'Leads',
+                      data: topClientsByROI.slice(0, 8).map(client => client.leads_generated),
+                      backgroundColor: 'hsl(var(--destructive))',
+                      borderColor: 'hsl(var(--destructive))',
+                      borderWidth: 1,
+                      yAxisID: 'y1',
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  layout: {
+                    padding: 0,
+                  },
+                  plugins: {
+                    legend: {
+                      position: 'top' as const,
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const label = context.dataset.label || '';
+                          const value = context.parsed.y;
+                          return `${label}: ${label === 'Investimento' ? formatCurrency(value) : value}`;
+                        },
+                      },
+                    },
+                  },
+                  scales: {
+                    x: {
+                      display: true,
+                      ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                      },
+                    },
+                    y: {
+                      type: 'linear' as const,
+                      display: false,
+                      position: 'left' as const,
+                    },
+                    y1: {
+                      type: 'linear' as const,
+                      display: false,
+                      position: 'right' as const,
+                      grid: {
+                        drawOnChartArea: false,
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
           </div>
 
           {/* Gráfico 2: CPL vs Investimento por Cliente */}
@@ -354,74 +387,98 @@ export default function NewDashboard() {
               <h2 className="text-lg font-semibold text-gray-900">CPL vs Investimento por Cliente</h2>
             </div>
             
-            <ChartContainer
-              config={{
-                investment: {
-                  label: "Investimento Acumulado",
-                  color: "hsl(var(--primary))",
-                },
-                cpl: {
-                  label: "CPL",
-                  color: "hsl(var(--chart-2))",
-                },
-              }}
-              className="h-[400px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={(() => {
+            <div className="h-[400px] w-full">
+              <Line
+                data={{
+                  labels: (() => {
                     const sortedClients = [...topClientsByROI]
                       .sort((a, b) => a.investment - b.investment);
-                    let accumulatedInvestment = 0;
-                    
-                    return sortedClients.slice(0, 8).map(client => {
-                      accumulatedInvestment += client.investment;
-                      return {
-                        name: client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name,
-                        investment: accumulatedInvestment,
-                        cpl: client.avg_cpl
-                      };
-                    });
-                  })()}
-                  margin={{ top: 5, right: 0, left: 0, bottom: 40 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                    fontSize={12}
-                  />
-                  <YAxis yAxisId="left" width={0} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" width={0} axisLine={false} tickLine={false} />
-                  <ChartTooltip 
-                    content={<ChartTooltipContent 
-                      formatter={(value, name) => [
-                        name === 'investment' ? formatCurrency(value as number) : formatCurrency(value as number),
-                        name === 'investment' ? 'Investimento Acumulado' : 'CPL'
-                      ]}
-                    />}
-                  />
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="investment" 
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                  />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="cpl" 
-                    stroke="hsl(var(--chart-2))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+                    return sortedClients.slice(0, 8).map(client => 
+                      client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name
+                    );
+                  })(),
+                  datasets: [
+                    {
+                      label: 'Investimento Acumulado',
+                      data: (() => {
+                        const sortedClients = [...topClientsByROI]
+                          .sort((a, b) => a.investment - b.investment);
+                        let accumulatedInvestment = 0;
+                        return sortedClients.slice(0, 8).map(client => {
+                          accumulatedInvestment += client.investment;
+                          return accumulatedInvestment;
+                        });
+                      })(),
+                      borderColor: 'hsl(var(--primary))',
+                      backgroundColor: 'hsl(var(--primary))',
+                      borderWidth: 3,
+                      pointBackgroundColor: 'hsl(var(--primary))',
+                      pointBorderColor: 'hsl(var(--primary))',
+                      pointRadius: 4,
+                      yAxisID: 'y',
+                    },
+                    {
+                      label: 'CPL',
+                      data: (() => {
+                        const sortedClients = [...topClientsByROI]
+                          .sort((a, b) => a.investment - b.investment);
+                        return sortedClients.slice(0, 8).map(client => client.avg_cpl);
+                      })(),
+                      borderColor: 'hsl(var(--chart-2))',
+                      backgroundColor: 'hsl(var(--chart-2))',
+                      borderWidth: 3,
+                      pointBackgroundColor: 'hsl(var(--chart-2))',
+                      pointBorderColor: 'hsl(var(--chart-2))',
+                      pointRadius: 4,
+                      yAxisID: 'y1',
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  layout: {
+                    padding: 0,
+                  },
+                  plugins: {
+                    legend: {
+                      position: 'top' as const,
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const label = context.dataset.label || '';
+                          const value = context.parsed.y;
+                          return `${label}: ${formatCurrency(value)}`;
+                        },
+                      },
+                    },
+                  },
+                  scales: {
+                    x: {
+                      display: true,
+                      ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                      },
+                    },
+                    y: {
+                      type: 'linear' as const,
+                      display: false,
+                      position: 'left' as const,
+                    },
+                    y1: {
+                      type: 'linear' as const,
+                      display: false,
+                      position: 'right' as const,
+                      grid: {
+                        drawOnChartArea: false,
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
           </div>
         </div>
 
