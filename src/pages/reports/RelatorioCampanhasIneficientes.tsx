@@ -4,10 +4,11 @@ import { MetricCard } from "@/components/reports/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Target, TrendingDown, DollarSign, BarChart3 } from "lucide-react";
+import { AlertTriangle, Target, TrendingDown, DollarSign, BarChart3, Eye } from "lucide-react";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 import { useClients } from "@/hooks/useClients";
+import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 
 interface InefficientCampaign {
   id: string;
@@ -33,6 +34,8 @@ export default function RelatorioCampanhasIneficientes() {
   const [inefficientCampaigns, setInefficientCampaigns] = useState<InefficientCampaign[]>([]);
   const [filteredData, setFilteredData] = useState<InefficientCampaign[]>([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [campaignMetricsModalOpen, setCampaignMetricsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && campaigns) {
@@ -211,6 +214,18 @@ export default function RelatorioCampanhasIneficientes() {
     };
 
     convertAlertToTask(alertData);
+  };
+
+  const handleViewCampaignMetrics = (campaign: InefficientCampaign) => {
+    // Encontrar a campanha original nos dados
+    const originalCampaign = campaigns?.find(c => c.id === campaign.id);
+    if (originalCampaign) {
+      setSelectedCampaign({
+        ...originalCampaign,
+        created_at: originalCampaign.created_at || new Date().toISOString()
+      });
+      setCampaignMetricsModalOpen(true);
+    }
   };
 
   const getEfficiencyColor = (score: number) => {
@@ -418,14 +433,24 @@ export default function RelatorioCampanhasIneficientes() {
                           </Badge>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCreateTask(campaign)}
-                      >
-                        <Target className="w-4 h-4 mr-2" />
-                        Criar Tarefa
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateTask(campaign)}
+                        >
+                          <Target className="w-4 h-4 mr-2" />
+                          Criar Tarefa
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewCampaignMetrics(campaign)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -492,6 +517,13 @@ export default function RelatorioCampanhasIneficientes() {
           )}
         </div>
       </div>
+
+      {/* Campaign Metrics Modal */}
+      <CampaignMetricsModal
+        campaign={selectedCampaign}
+        isOpen={campaignMetricsModalOpen}
+        onClose={() => setCampaignMetricsModalOpen(false)}
+      />
     </ReportLayout>
   );
 }
