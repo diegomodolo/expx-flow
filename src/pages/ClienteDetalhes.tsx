@@ -1907,15 +1907,34 @@ const ClienteDetalhes = () => {
                                 </UITooltip>
                               </TooltipProvider>
                             </td>
-                             <td className="px-4 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-500">
-                                  {(() => {
-                                    const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
-                                    const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
-                                    return campaign?.name || 'N/A';
-                                  })()}
-                                </div>
-                             </td>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <TooltipProvider>
+                                  <UITooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="text-sm text-gray-500 cursor-help">
+                                        {(() => {
+                                          const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
+                                          const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
+                                          const campaignName = campaign?.name || 'N/A';
+                                          return campaignName && campaignName.length > 60 
+                                            ? `${campaignName.substring(0, 60)}...` 
+                                            : campaignName;
+                                        })()}
+                                      </div>
+                                    </TooltipTrigger>
+                                    {(() => {
+                                      const adSet = adSets?.find(adSet => adSet.id === ad.ad_set_id);
+                                      const campaign = client?.campaigns?.find(campaign => campaign.id === adSet?.campaign_id);
+                                      const campaignName = campaign?.name || 'N/A';
+                                      return campaignName && campaignName.length > 60 && (
+                                        <TooltipContent>
+                                          <p>{campaignName}</p>
+                                        </TooltipContent>
+                                      );
+                                    })()}
+                                  </UITooltip>
+                                </TooltipProvider>
+                              </td>
                            <td className="px-4 py-4 whitespace-nowrap">
                              <Badge 
                                variant={ad.creative_type === 'video' ? 'default' : 'secondary'}
