@@ -338,6 +338,173 @@ export type Database = {
           },
         ]
       }
+      change_audit_log: {
+        Row: {
+          campaign_id: string | null
+          change_source: string
+          change_type: string
+          changed_by: string
+          changed_fields: string[] | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          sync_period: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          change_source?: string
+          change_type: string
+          changed_by: string
+          changed_fields?: string[] | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          sync_period?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          change_source?: string
+          change_type?: string
+          changed_by?: string
+          changed_fields?: string[] | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          sync_period?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_change_audit_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_impact_analysis: {
+        Row: {
+          after_conversions: number | null
+          after_cpa: number | null
+          after_ctr: number | null
+          after_daily_avg_conversions: number | null
+          after_spend: number | null
+          analysis_period_end: string
+          analysis_period_start: string
+          before_conversions: number | null
+          before_cpa: number | null
+          before_ctr: number | null
+          before_daily_avg_conversions: number | null
+          before_spend: number | null
+          calculated_at: string
+          campaign_id: string
+          change_log_id: string
+          client_id: string
+          company_id: string
+          confidence_level: number | null
+          conversion_improvement_pct: number | null
+          cpa_improvement_pct: number | null
+          ctr_improvement_pct: number | null
+          days_after_change: number
+          days_before_change: number
+          id: string
+          impact_classification: string | null
+          impact_score: number | null
+          is_significant: boolean | null
+          spend_efficiency_pct: number | null
+        }
+        Insert: {
+          after_conversions?: number | null
+          after_cpa?: number | null
+          after_ctr?: number | null
+          after_daily_avg_conversions?: number | null
+          after_spend?: number | null
+          analysis_period_end: string
+          analysis_period_start: string
+          before_conversions?: number | null
+          before_cpa?: number | null
+          before_ctr?: number | null
+          before_daily_avg_conversions?: number | null
+          before_spend?: number | null
+          calculated_at?: string
+          campaign_id: string
+          change_log_id: string
+          client_id: string
+          company_id: string
+          confidence_level?: number | null
+          conversion_improvement_pct?: number | null
+          cpa_improvement_pct?: number | null
+          ctr_improvement_pct?: number | null
+          days_after_change?: number
+          days_before_change?: number
+          id?: string
+          impact_classification?: string | null
+          impact_score?: number | null
+          is_significant?: boolean | null
+          spend_efficiency_pct?: number | null
+        }
+        Update: {
+          after_conversions?: number | null
+          after_cpa?: number | null
+          after_ctr?: number | null
+          after_daily_avg_conversions?: number | null
+          after_spend?: number | null
+          analysis_period_end?: string
+          analysis_period_start?: string
+          before_conversions?: number | null
+          before_cpa?: number | null
+          before_ctr?: number | null
+          before_daily_avg_conversions?: number | null
+          before_spend?: number | null
+          calculated_at?: string
+          campaign_id?: string
+          change_log_id?: string
+          client_id?: string
+          company_id?: string
+          confidence_level?: number | null
+          conversion_improvement_pct?: number | null
+          cpa_improvement_pct?: number | null
+          ctr_improvement_pct?: number | null
+          days_after_change?: number
+          days_before_change?: number
+          id?: string
+          impact_classification?: string | null
+          impact_score?: number | null
+          is_significant?: boolean | null
+          spend_efficiency_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_change_impact_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_change_impact_log"
+            columns: ["change_log_id"]
+            isOneToOne: false
+            referencedRelation: "change_audit_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_rotations: {
         Row: {
           company_id: string
@@ -734,6 +901,83 @@ export type Database = {
         }
         Relationships: []
       }
+      creative_versions: {
+        Row: {
+          ad_id: string
+          call_to_action: string | null
+          campaign_id: string
+          change_reason: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          creative_body: string | null
+          creative_description: string | null
+          creative_title: string | null
+          creative_type: string | null
+          id: string
+          image_url: string | null
+          is_current: boolean
+          link_url: string | null
+          performance_before_change: Json | null
+          replaced_at: string | null
+          replaced_by: string | null
+          version_number: number
+          video_url: string | null
+        }
+        Insert: {
+          ad_id: string
+          call_to_action?: string | null
+          campaign_id: string
+          change_reason?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          creative_body?: string | null
+          creative_description?: string | null
+          creative_title?: string | null
+          creative_type?: string | null
+          id?: string
+          image_url?: string | null
+          is_current?: boolean
+          link_url?: string | null
+          performance_before_change?: Json | null
+          replaced_at?: string | null
+          replaced_by?: string | null
+          version_number?: number
+          video_url?: string | null
+        }
+        Update: {
+          ad_id?: string
+          call_to_action?: string | null
+          campaign_id?: string
+          change_reason?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          creative_body?: string | null
+          creative_description?: string | null
+          creative_title?: string | null
+          creative_type?: string | null
+          id?: string
+          image_url?: string | null
+          is_current?: boolean
+          link_url?: string | null
+          performance_before_change?: Json | null
+          replaced_at?: string | null
+          replaced_by?: string | null
+          version_number?: number
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_creative_versions_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_permissions: {
         Row: {
           company_id: string
@@ -1042,6 +1286,80 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_snapshots: {
+        Row: {
+          campaign_id: string | null
+          clicks: number | null
+          client_id: string | null
+          company_id: string
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          frequency: number | null
+          id: string
+          impressions: number | null
+          reach: number | null
+          snapshot_date: string
+          snapshot_period: string
+          spend: number | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          clicks?: number | null
+          client_id?: string | null
+          company_id: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          snapshot_date: string
+          snapshot_period: string
+          spend?: number | null
+        }
+        Update: {
+          campaign_id?: string | null
+          clicks?: number | null
+          client_id?: string | null
+          company_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          entity_id?: string
+          entity_name?: string
+          entity_type?: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          reach?: number | null
+          snapshot_date?: string
+          snapshot_period?: string
+          spend?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_performance_snapshots_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1373,6 +1691,18 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_change_impact: {
+        Args: {
+          _change_log_id: string
+          _days_before?: number
+          _days_after?: number
+        }
+        Returns: undefined
+      }
+      create_performance_snapshot: {
+        Args: { _entity_type: string; _entity_id: string; _period?: string }
+        Returns: undefined
+      }
       create_task_from_alert: {
         Args: {
           _company_id: string
