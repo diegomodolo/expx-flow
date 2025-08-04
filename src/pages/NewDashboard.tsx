@@ -65,14 +65,16 @@ export default function NewDashboard() {
   
   // Estado para controlar ações convertidas em tarefas
   const [convertedActions, setConvertedActions] = useState<Set<string>>(new Set());
+  const [alertsGenerated, setAlertsGenerated] = useState(false);
 
-  // Buscar alertas automaticamente quando os dados necessários estão disponíveis
+  // Buscar alertas automaticamente quando os dados necessários estão disponíveis (apenas uma vez)
   useEffect(() => {
-    if (!loading && metrics && campaignRankings && clientsPerformance) {
-      console.log('Dashboard data ready, generating alerts...');
+    if (!loading && metrics && campaignRankings && clientsPerformance && !alertsGenerated) {
+      console.log('Dashboard data ready, generating alerts for first time...');
+      setAlertsGenerated(true);
       generateAlerts();
     }
-  }, [loading, metrics, campaignRankings, clientsPerformance, generateAlerts]);
+  }, [loading, metrics, campaignRankings, clientsPerformance, alertsGenerated, generateAlerts]);
 
   // Calcular informações da última sincronização
   const getLastSyncInfo = () => {
@@ -479,10 +481,14 @@ export default function NewDashboard() {
                           <p className="text-sm text-gray-700 mb-2">
                             Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
                           </p>
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-3 h-3 text-red-500" />
-                            <p className="text-xs text-gray-600">{alert.recommendation}</p>
-                          </div>
+                           <div className="flex items-center gap-2">
+                             {alert.recommendation === 'Carregando recomendação...' ? (
+                               <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />
+                             ) : (
+                               <AlertTriangle className="w-3 h-3 text-red-500" />
+                             )}
+                             <p className="text-xs text-gray-600">{alert.recommendation}</p>
+                           </div>
                         </div>
                       </div>
                     </div>
@@ -529,10 +535,14 @@ export default function NewDashboard() {
                           <p className="text-sm text-gray-700 mb-2">
                             Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
                           </p>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                            <p className="text-xs text-gray-600">{alert.recommendation}</p>
-                          </div>
+                           <div className="flex items-center gap-2">
+                             {alert.recommendation === 'Carregando recomendação...' ? (
+                               <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />
+                             ) : (
+                               <CheckCircle className="w-3 h-3 text-green-500" />
+                             )}
+                             <p className="text-xs text-gray-600">{alert.recommendation}</p>
+                           </div>
                         </div>
                       </div>
                     </div>

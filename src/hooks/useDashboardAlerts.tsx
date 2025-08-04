@@ -45,6 +45,7 @@ export const useDashboardAlerts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { activeCompany } = useCompany();
   const { user } = useAuth();
 
@@ -81,8 +82,8 @@ export const useDashboardAlerts = () => {
     return defaultRecommendations[issueType] || 'Analisar métricas e otimizar';
   };
 
-  // Função para gerar alertas
-  const generateAlerts = async (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = [], filterClientId?: string | null): Promise<Alert[]> => {
+  // Função para gerar alertas básicos (sem IA)
+  const generateBasicAlerts = (campaigns: CampaignRanking[], activeTasks: any[] = []): Alert[] => {
     const problemAlerts: Alert[] = [];
     const opportunityAlerts: Alert[] = [];
     const maxProblems = 5;
@@ -96,33 +97,15 @@ export const useDashboardAlerts = () => {
     );
 
     // Filtrar apenas campanhas ativas E que não tenham tarefas ativas
-    let availableCampaigns = campaigns.filter(campaign => 
+    const availableCampaigns = campaigns.filter(campaign => 
       campaign.status === 'active' && !campaignsWithActiveTasks.has(campaign.id)
     );
 
-    // Aplicar filtro de cliente se especificado
-    if (filterClientId) {
-      const selectedClient = clients.find(client => client.id === filterClientId);
-      if (selectedClient) {
-        availableCampaigns = availableCampaigns.filter(campaign => 
-          campaign.client_name === selectedClient.name
-        );
-      }
-    }
-
-    console.log('🎯 Processing alerts with separate limits:', {
-      totalCampaigns: availableCampaigns.length,
-      maxProblems,
-      maxOpportunities
-    });
-
-    // PROCESSAR PROBLEMAS (LIMITE SEPARADO)
+    // PROCESSAR PROBLEMAS
     for (const campaign of availableCampaigns) {
       if (problemAlerts.length >= maxProblems) break;
 
       if (campaign.cpa > 50) {
-        console.log('💰 High CPA problem found:', campaign.name, 'CPA:', campaign.cpa);
-        const recommendation = await generateRecommendation(campaign, 'high_cpa');
         problemAlerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
           type: 'danger',
@@ -130,7 +113,7 @@ export const useDashboardAlerts = () => {
           description: `Campanha "${campaign.name}" com CPA de R$ ${campaign.cpa.toFixed(2)}`,
           metric: 'CPA',
           value: `R$ ${campaign.cpa.toFixed(2)}`,
-          recommendation,
+          recommendation: 'Carregando recomendação...',
           client: campaign.client_name,
           campaign: campaign.name,
           campaign_id: campaign.id,
@@ -139,8 +122,6 @@ export const useDashboardAlerts = () => {
       }
       
       if (campaign.ctr < 1.0 && problemAlerts.length < maxProblems) {
-        console.log('📉 Low CTR problem found:', campaign.name, 'CTR:', campaign.ctr);
-        const recommendation = await generateRecommendation(campaign, 'low_ctr');
         problemAlerts.push({
           id: `low-ctr-campaign-${campaign.id}`,
           type: 'danger',
@@ -148,7 +129,7 @@ export const useDashboardAlerts = () => {
           description: `Campanha "${campaign.name}" com CTR de ${campaign.ctr.toFixed(2)}%`,
           metric: 'CTR',
           value: `${campaign.ctr.toFixed(2)}%`,
-          recommendation,
+          recommendation: 'Carregando recomendação...',
           client: campaign.client_name,
           campaign: campaign.name,
           campaign_id: campaign.id,
@@ -157,26 +138,16 @@ export const useDashboardAlerts = () => {
       }
     }
 
-    // PROCESSAR OPORTUNIDADES (LIMITE SEPARADO)
-    console.log('🚀 Starting opportunities processing...');
-    
-    // Oportunidades de escala (critérios mais flexíveis)
+    // PROCESSAR OPORTUNIDADES
     for (const campaign of availableCampaigns) {
       if (opportunityAlerts.length >= maxOpportunities) break;
       
-      // Critérios mais realistas para oportunidades
-      const hasGoodCPA = campaign.cpa <= 60; // CPA aceitável até R$ 60
-      const hasGoodCTR = campaign.ctr >= 1.0; // CTR aceitável a partir de 1%
-      const hasRoomToScale = campaign.spend < 1000; // Investimento ainda com margem para escalar
-      const hasConversions = campaign.conversions > 0; // Precisa ter pelo menos algumas conversões
+      const hasGoodCPA = campaign.cpa <= 60;
+      const hasGoodCTR = campaign.ctr >= 1.0;
+      const hasRoomToScale = campaign.spend < 1000;
+      const hasConversions = campaign.conversions > 0;
       
-      const isOpportunity = hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions;
-      
-      console.log(`🔍 Campaign ${campaign.name} - CPA: ${campaign.cpa}, CTR: ${campaign.ctr}, Spend: ${campaign.spend}, Conversions: ${campaign.conversions}, IsOpportunity: ${isOpportunity}`);
-      
-      if (isOpportunity) {
-        console.log('✅ Scaling opportunity found:', campaign.name);
-        const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
+      if (hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions) {
         opportunityAlerts.push({
           id: `scale-opportunity-${campaign.id}`,
           type: 'opportunity',
@@ -184,7 +155,7 @@ export const useDashboardAlerts = () => {
           description: `Campanha "${campaign.name}" tem potencial para aumentar orçamento`,
           metric: 'Performance',
           value: `CPA: R$ ${campaign.cpa.toFixed(2)} | CTR: ${campaign.ctr.toFixed(2)}%`,
-          recommendation,
+          recommendation: 'Carregando recomendação...',
           client: campaign.client_name,
           campaign: campaign.name,
           campaign_id: campaign.id,
@@ -193,50 +164,41 @@ export const useDashboardAlerts = () => {
       }
     }
 
-    // Oportunidades baseadas em performance histórica
-    for (const campaign of availableCampaigns) {
-      if (opportunityAlerts.length >= maxOpportunities) break;
-      
-      // Campanhas com performance consistente que podem ser expandidas
-      const hasConsistentPerformance = campaign.cpa <= 80 && campaign.ctr >= 0.8;
-      const hasSignificantVolume = campaign.spend >= 100; // Já tem algum volume de dados
-      const hasGoodConversionRate = campaign.conversions >= 5; // Pelo menos 5 conversões
-      
-      const isHistoricalOpportunity = hasConsistentPerformance && hasSignificantVolume && hasGoodConversionRate;
-      
-      if (isHistoricalOpportunity) {
-        console.log('📊 Historical opportunity found:', campaign.name);
-        const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
-        opportunityAlerts.push({
-          id: `historical-opportunity-${campaign.id}`,
-          type: 'opportunity',
-          title: 'Oportunidade de Expansão',
-          description: `Campanha "${campaign.name}" mostra performance consistente`,
-          metric: 'Performance Histórica',
-          value: `${campaign.conversions} conversões | CPA: R$ ${campaign.cpa.toFixed(2)}`,
-          recommendation,
-          client: campaign.client_name,
-          campaign: campaign.name,
-          campaign_id: campaign.id,
-          client_id: campaign.client_id,
-        });
+    return [...problemAlerts, ...opportunityAlerts];
+  };
+
+  // Função para carregar recomendações assincronamente
+  const loadRecommendationsAsync = async (basicAlerts: Alert[]) => {
+    const updatedAlerts = [...basicAlerts];
+    
+    for (let i = 0; i < updatedAlerts.length; i++) {
+      const alert = updatedAlerts[i];
+      if (alert.recommendation === 'Carregando recomendação...') {
+        try {
+          let issueType = 'client_analysis';
+          if (alert.title === 'CPA Alto') issueType = 'high_cpa';
+          else if (alert.title === 'CTR Baixo') issueType = 'low_ctr';
+          else if (alert.title.includes('Oportunidade')) issueType = 'scale_opportunity';
+
+          const campaignData = {
+            name: alert.campaign,
+            cpa: parseFloat(alert.value.replace('R$ ', '').split(' ')[0]),
+            ctr: alert.metric === 'CTR' ? parseFloat(alert.value.replace('%', '')) : 0,
+          };
+
+          const recommendation = await generateRecommendation(campaignData, issueType);
+          updatedAlerts[i] = { ...alert, recommendation };
+          
+          // Atualizar estado a cada recomendação carregada
+          setAlerts([...updatedAlerts]);
+        } catch (error) {
+          console.error('Error loading recommendation for alert:', alert.id, error);
+          updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation('client_analysis') };
+        }
       }
     }
-
-    // Combinar alertas
-    const allAlerts = [...problemAlerts, ...opportunityAlerts];
-
-    console.log('✅ Alerts generation complete:', {
-      problems: problemAlerts.length,
-      opportunities: opportunityAlerts.length,
-      total: allAlerts.length,
-      breakdown: {
-        danger: allAlerts.filter(a => a.type === 'danger').length,
-        opportunity: allAlerts.filter(a => a.type === 'opportunity').length
-      }
-    });
-
-    return allAlerts;
+    
+    return updatedAlerts;
   };
 
   const fetchAlerts = async (filterClientId?: string | null) => {
@@ -250,7 +212,14 @@ export const useDashboardAlerts = () => {
       return;
     }
 
+    // Evitar múltiplas execuções simultâneas
+    if (isGenerating) {
+      console.log('Debug: Already generating alerts, skipping...');
+      return;
+    }
+
     console.log('Debug: Starting alerts fetch for company:', activeCompany.company_id);
+    setIsGenerating(true);
     setLoading(true);
     setError(null);
     setIsReady(false);
@@ -260,6 +229,7 @@ export const useDashboardAlerts = () => {
       console.log('Debug: Timeout reached, forcing loading to false');
       setLoading(false);
       setIsReady(true);
+      setIsGenerating(false);
     }, 30000); // 30 segundos
 
     try {
@@ -345,24 +315,29 @@ export const useDashboardAlerts = () => {
         goodCTR: processedCampaigns.filter(c => c.ctr >= 1.0).length
       });
 
-      // Gerar alertas
-      console.log('Debug: Generating alerts...');
-      const generatedAlerts = await generateAlerts(
-        processedClients,
-        processedCampaigns,
-        activeTasks || [],
-        filterClientId
-      );
+      // Gerar alertas básicos imediatamente
+      console.log('Debug: Generating basic alerts...');
+      const basicAlerts = generateBasicAlerts(processedCampaigns, activeTasks || []);
 
-      console.log('Debug: Generated alerts:', {
-        total: generatedAlerts.length,
-        opportunities: generatedAlerts.filter(a => a.type === 'opportunity').length,
-        dangers: generatedAlerts.filter(a => a.type === 'danger').length
+      console.log('Debug: Generated basic alerts:', {
+        total: basicAlerts.length,
+        opportunities: basicAlerts.filter(a => a.type === 'opportunity').length,
+        dangers: basicAlerts.filter(a => a.type === 'danger').length
       });
 
-      setAlerts(generatedAlerts);
-      console.log('Debug: Successfully set alerts, setting loading to false');
+      // Exibir alertas básicos imediatamente
+      setAlerts(basicAlerts);
+      setLoading(false);
       setIsReady(true);
+      setIsGenerating(false);
+      clearTimeout(timeoutId);
+
+      console.log('Debug: Basic alerts displayed, loading recommendations async...');
+
+      // Carregar recomendações assincronamente em segundo plano
+      loadRecommendationsAsync(basicAlerts).catch(error => {
+        console.error('Error loading recommendations:', error);
+      });
     } catch (err) {
       console.error('Debug: Error fetching alerts:', err);
       setError('Erro ao buscar alertas');
