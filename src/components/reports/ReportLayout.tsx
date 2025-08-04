@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, FileText, Save, Plus, Minus, Calendar } from "lucide-react";
+import { ArrowLeft, Download, FileText, Printer, Plus, Minus, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -156,9 +156,9 @@ export function ReportLayout({
                   PDF
                 </Button>
               )}
-              <Button size="sm">
-                <Save className="w-4 h-4 mr-1" />
-                Salvar
+              <Button size="sm" onClick={() => window.print()}>
+                <Printer className="w-4 h-4 mr-1" />
+                Imprimir
               </Button>
             </div>
           </div>
