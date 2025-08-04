@@ -307,7 +307,8 @@ export default function NewDashboard() {
                     investment: client.investment,
                     leads: client.leads_generated
                   }))}
-                  margin={{ top: 5, right: 2, left: 2, bottom: 40 }}
+                  margin={{ top: 5, right: 0, left: 0, bottom: 40 }}
+                  barCategoryGap="10%"
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -317,7 +318,7 @@ export default function NewDashboard() {
                     height={50}
                     fontSize={12}
                   />
-                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="left" width={0} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="right" orientation="right" />
                   <ChartTooltip 
                     content={<ChartTooltipContent 
@@ -382,7 +383,7 @@ export default function NewDashboard() {
                       };
                     });
                   })()}
-                  margin={{ top: 5, right: 2, left: 2, bottom: 40 }}
+                  margin={{ top: 5, right: 0, left: 0, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -392,7 +393,7 @@ export default function NewDashboard() {
                     height={50}
                     fontSize={12}
                   />
-                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="left" width={0} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="right" orientation="right" />
                   <ChartTooltip 
                     content={<ChartTooltipContent 
