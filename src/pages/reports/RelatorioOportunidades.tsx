@@ -516,17 +516,6 @@ const RelatorioOportunidades = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleCreateTask(opportunity)}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Implementar Oportunidade
-                  </Button>
-                </div>
               </CardContent>
             </Card>
             );
