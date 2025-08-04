@@ -83,7 +83,10 @@ const RelatorioPerformanceCliente = () => {
   ];
 
   const analyzeClients = () => {
-    const analysis: ClientAnalysis[] = clientsPerformance.map(client => {
+    // Filtrar apenas clientes com investimento ativo (> 0)
+    const activeClients = clientsPerformance.filter(client => client.investment > 0);
+    
+    const analysis: ClientAnalysis[] = activeClients.map(client => {
       const simulatedLeads = Math.floor(client.investment / 60);
       const simulatedCPA = client.investment / simulatedLeads || 0;
       const efficiency = client.investment > 0 ? (simulatedLeads / client.investment * 1000) : 0;
@@ -159,6 +162,16 @@ const RelatorioPerformanceCliente = () => {
     return <Badge variant={variants[status]}>{labels[status]}</Badge>;
   };
 
+  const getStatusIcon = (status: ClientAnalysis['analysisStatus']) => {
+    switch (status) {
+      case 'excellent': return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'good': return <TrendingUp className="w-5 h-5 text-blue-600" />;
+      case 'needs_attention': return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
+      case 'critical': return <TrendingDown className="w-5 h-5 text-red-600" />;
+      default: return <User className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
   useEffect(() => {
     if (clientsPerformance.length > 0) {
       analyzeClients();
@@ -191,77 +204,115 @@ const RelatorioPerformanceCliente = () => {
         <MetricCard title="ROI Médio" value={`${filteredMetrics.avgROI.toFixed(2)}x`} trend={filteredMetrics.avgROI >= 1 ? "up" : "down"} />
       </div>
 
-      <div className="space-y-4">
-        {filteredData.map((client) => (
-          <Card key={client.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{client.name}</CardTitle>
-                {getStatusBadge(client.analysisStatus)}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {client.issues.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    Problemas Identificados
-                  </h4>
-                  <ul className="space-y-1">
-                    {client.issues.map((issue, index) => (
-                      <li key={index} className="text-sm text-destructive flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-destructive" />
-                        {issue}
-                      </li>
-                    ))}
-                  </ul>
+      <div className="grid gap-4">
+        {filteredData.map((client) => {
+          const statusColor = client.analysisStatus === 'critical' ? 'border-l-destructive' :
+                             client.analysisStatus === 'needs_attention' ? 'border-l-yellow-500' :
+                             client.analysisStatus === 'good' ? 'border-l-blue-500' : 'border-l-green-500';
+          
+          return (
+            <Card key={client.id} className={`border-l-4 ${statusColor}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      {getStatusIcon(client.analysisStatus)}
+                      <div>
+                        <CardTitle className="text-lg">{client.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Cliente ativo • ROI: {client.roi}x
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(client.analysisStatus)}
+                      <Badge variant="outline">
+                        Eficiência: {client.efficiency}/100
+                      </Badge>
+                      <Badge variant="outline">
+                        {client.leads} leads gerados
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {(client.analysisStatus === 'critical' || client.analysisStatus === 'needs_attention') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCreateTask(client)}
+                      >
+                        <Target className="w-4 h-4 mr-2" />
+                        Criar Tarefa
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              )}
-              {client.recommendations.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                    <Target className="w-4 h-4" />
-                    Recomendações
-                  </h4>
-                  <ul className="space-y-1">
-                    {client.recommendations.map((rec, index) => (
-                      <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-primary" />
-                        {rec}
-                      </li>
-                    ))}
-                  </ul>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Problemas Identificados */}
+                {client.issues.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 text-destructive">Problemas Identificados:</h4>
+                    <ul className="space-y-1">
+                      {client.issues.map((issue, index) => (
+                        <li key={index} className="flex items-center gap-2 text-sm">
+                          <TrendingDown className="w-4 h-4 text-destructive" />
+                          {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recomendação */}
+                {client.recommendations.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 text-primary">Recomendação:</h4>
+                    <p className="text-sm bg-primary/10 p-3 rounded-lg">
+                      {client.recommendations[0]}
+                    </p>
+                  </div>
+                )}
+
+                {/* Métricas Detalhadas */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">
+                      R$ {client.investment.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Investimento Total
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">
+                      {client.leads}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Leads Gerados
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${client.cpa <= 120 ? 'text-green-600' : 'text-destructive'}`}>
+                      R$ {client.cpa.toFixed(0)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      CPA (Meta: &lt;R$ 120)
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${client.roi >= 1 ? 'text-green-600' : 'text-destructive'}`}>
+                      {client.roi}x
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ROI (Meta: &gt;1x)
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-lg font-bold">R$ {client.investment.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Investimento</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold">{client.leads}</div>
-                  <div className="text-xs text-muted-foreground">Leads</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold">R$ {client.cpa.toFixed(2)}</div>
-                  <div className="text-xs text-muted-foreground">CPA</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold">{client.roi}x</div>
-                  <div className="text-xs text-muted-foreground">ROI</div>
-                </div>
-              </div>
-              {(client.analysisStatus === 'critical' || client.analysisStatus === 'needs_attention') && (
-                <div className="flex justify-end pt-2">
-                  <Button variant="outline" size="sm" onClick={() => handleCreateTask(client)} className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Criar Tarefa
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </ReportLayout>
   );
