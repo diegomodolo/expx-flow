@@ -83,10 +83,10 @@ const RelatorioPerformanceCliente = () => {
   ];
 
   const analyzeClients = () => {
-    // Filtrar apenas clientes com investimento ativo (> 0)
-    const activeClients = clientsPerformance.filter(client => client.investment > 0);
+    // Incluir TODOS os clientes (com e sem investimento)
+    const allClients = clientsPerformance;
     
-    const analysis: ClientAnalysis[] = activeClients.map(client => {
+    const analysis: ClientAnalysis[] = allClients.map(client => {
       // Usar dados REAIS ao invés de simulados
       const realLeads = client.totalLeads || client.leads_generated || 0;
       const realInvestment = client.totalInvestment || client.investment || 0;
@@ -147,23 +147,39 @@ const RelatorioPerformanceCliente = () => {
 
       // Identificar problemas baseados em leads e CPA
       const issues: string[] = [];
-      if (leadsPerThousand < 8) issues.push('Poucos leads por investimento (meta: 8+ leads/R$1000)');
-      if (realCPA > 120) issues.push(`CPA muito alto: R$ ${realCPA.toFixed(2)} (meta: <R$120)`);
-      if (realLeads < 5 && realInvestment > 3000) issues.push('Volume de leads insuficiente para o investimento');
-      if (realLeads === 0 && realInvestment > 0) issues.push('Nenhum lead gerado com investimento ativo');
+      
+      // Clientes sem investimento (inativos)
+      if (realInvestment === 0) {
+        issues.push('Cliente inativo - sem campanhas em execução');
+        issues.push('Nenhum investimento registrado no período');
+      } else {
+        // Clientes com investimento ativo
+        if (leadsPerThousand < 8) issues.push('Poucos leads por investimento (meta: 8+ leads/R$1000)');
+        if (realCPA > 120) issues.push(`CPA muito alto: R$ ${realCPA.toFixed(2)} (meta: <R$120)`);
+        if (realLeads < 5 && realInvestment > 3000) issues.push('Volume de leads insuficiente para o investimento');
+        if (realLeads === 0 && realInvestment > 0) issues.push('Nenhum lead gerado com investimento ativo');
+      }
 
       // Determinar status baseado em leads e CPA
       const analysisStatus: ClientAnalysis['analysisStatus'] = 
+        realInvestment === 0 ? 'critical' : // Clientes inativos são sempre críticos
         realLeads === 0 || realCPA > 150 ? 'critical' :
         realCPA > 120 || leadsPerThousand < 5 ? 'needs_attention' :
         realCPA <= 80 && leadsPerThousand >= 12 ? 'excellent' : 'good';
 
       // Gerar recomendações focadas em leads e CPA
       const recommendations: string[] = [];
-      if (realCPA > 120) recommendations.push('Otimizar campanhas para reduzir CPA: revisar segmentação e criativos');
-      if (leadsPerThousand < 8) recommendations.push('Melhorar eficiência: aumentar volume de leads por real investido');
-      if (realLeads === 0) recommendations.push('URGENTE: Investigar campanhas - sem conversões detectadas');
-      if (realLeads < 10 && realInvestment > 5000) recommendations.push('Escalar investimento ou revisar funil de conversão');
+      
+      if (realInvestment === 0) {
+        recommendations.push('URGENTE: Reativar cliente - criar estratégia de campanhas');
+        recommendations.push('Agendar reunião para entender necessidades atuais');
+        recommendations.push('Desenvolver proposta comercial personalizada');
+      } else {
+        if (realCPA > 120) recommendations.push('Otimizar campanhas para reduzir CPA: revisar segmentação e criativos');
+        if (leadsPerThousand < 8) recommendations.push('Melhorar eficiência: aumentar volume de leads por real investido');
+        if (realLeads === 0) recommendations.push('URGENTE: Investigar campanhas - sem conversões detectadas');
+        if (realLeads < 10 && realInvestment > 5000) recommendations.push('Escalar investimento ou revisar funil de conversão');
+      }
 
       return {
         id: client.id || client.name,
@@ -288,12 +304,15 @@ const RelatorioPerformanceCliente = () => {
                          </div>
                          {getStatusIcon(client.analysisStatus)}
                        </div>
-                       <div>
-                          <CardTitle className="text-lg">{client.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Cliente ativo • CPA: R$ {client.cpa.toFixed(0)}
-                          </p>
-                       </div>
+                        <div>
+                           <CardTitle className="text-lg">{client.name}</CardTitle>
+                           <p className="text-sm text-muted-foreground">
+                             {client.investment > 0 ? 
+                               `Cliente ativo • CPA: R$ ${client.cpa.toFixed(0)}` : 
+                               'Cliente inativo • Sem campanhas'
+                             }
+                           </p>
+                        </div>
                      </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(client.analysisStatus)}
