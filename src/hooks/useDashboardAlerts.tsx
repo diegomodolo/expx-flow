@@ -82,7 +82,10 @@ export const useDashboardAlerts = () => {
 
   // Função para gerar alertas
   const generateAlerts = async (clients: ClientPerformance[], campaigns: CampaignRanking[], activeTasks: any[] = [], filterClientId?: string | null): Promise<Alert[]> => {
-    const alertsArray: Alert[] = [];
+    const problemAlerts: Alert[] = [];
+    const opportunityAlerts: Alert[] = [];
+    const maxProblems = 5;
+    const maxOpportunities = 5;
 
     // Extrair IDs de campanhas que já possuem tarefas ativas
     const campaignsWithActiveTasks = new Set(
@@ -106,16 +109,20 @@ export const useDashboardAlerts = () => {
       }
     }
 
-    // Processar alertas de problemas em lotes para evitar muitas chamadas simultâneas
-    let alertsCount = 0;
-    const maxAlerts = 10; // Limitar total de alertas para não sobrecarregar
+    console.log('🎯 Processing alerts with separate limits:', {
+      totalCampaigns: availableCampaigns.length,
+      maxProblems,
+      maxOpportunities
+    });
 
+    // PROCESSAR PROBLEMAS (LIMITE SEPARADO)
     for (const campaign of availableCampaigns) {
-      if (alertsCount >= maxAlerts) break;
+      if (problemAlerts.length >= maxProblems) break;
 
       if (campaign.cpa > 50) {
+        console.log('💰 High CPA problem found:', campaign.name, 'CPA:', campaign.cpa);
         const recommendation = await generateRecommendation(campaign, 'high_cpa');
-        alertsArray.push({
+        problemAlerts.push({
           id: `high-cpa-campaign-${campaign.id}`,
           type: 'danger',
           title: 'CPA Alto',
@@ -128,12 +135,12 @@ export const useDashboardAlerts = () => {
           campaign_id: campaign.id,
           client_id: campaign.client_id,
         });
-        alertsCount++;
       }
       
-      if (campaign.ctr < 1.0 && alertsCount < maxAlerts) {
+      if (campaign.ctr < 1.0 && problemAlerts.length < maxProblems) {
+        console.log('📉 Low CTR problem found:', campaign.name, 'CTR:', campaign.ctr);
         const recommendation = await generateRecommendation(campaign, 'low_ctr');
-        alertsArray.push({
+        problemAlerts.push({
           id: `low-ctr-campaign-${campaign.id}`,
           type: 'danger',
           title: 'CTR Baixo',
@@ -146,12 +153,16 @@ export const useDashboardAlerts = () => {
           campaign_id: campaign.id,
           client_id: campaign.client_id,
         });
-        alertsCount++;
       }
     }
 
-    // Processar alertas de oportunidades de escala (critérios mais flexíveis)
-    const scalableOpportunities = availableCampaigns.filter(campaign => {
+    // PROCESSAR OPORTUNIDADES (LIMITE SEPARADO)
+    console.log('🚀 Starting opportunities processing...');
+    
+    // Oportunidades de escala (critérios mais flexíveis)
+    for (const campaign of availableCampaigns) {
+      if (opportunityAlerts.length >= maxOpportunities) break;
+      
       // Critérios mais realistas para oportunidades
       const hasGoodCPA = campaign.cpa <= 60; // CPA aceitável até R$ 60
       const hasGoodCTR = campaign.ctr >= 1.0; // CTR aceitável a partir de 1%
@@ -160,35 +171,31 @@ export const useDashboardAlerts = () => {
       
       const isOpportunity = hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions;
       
-      console.log(`Debug: Campaign ${campaign.name} - CPA: ${campaign.cpa}, CTR: ${campaign.ctr}, Spend: ${campaign.spend}, Conversions: ${campaign.conversions}, IsOpportunity: ${isOpportunity}`);
+      console.log(`🔍 Campaign ${campaign.name} - CPA: ${campaign.cpa}, CTR: ${campaign.ctr}, Spend: ${campaign.spend}, Conversions: ${campaign.conversions}, IsOpportunity: ${isOpportunity}`);
       
-      return isOpportunity;
-    }).slice(0, Math.max(0, maxAlerts - alertsCount));
-
-    console.log('Debug: Found scalable opportunities:', scalableOpportunities.length);
-
-    for (const campaign of scalableOpportunities) {
-      if (alertsCount >= maxAlerts) break;
-      
-      const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
-      alertsArray.push({
-        id: `scale-opportunity-${campaign.id}`,
-        type: 'opportunity',
-        title: 'Oportunidade de Escala',
-        description: `Campanha "${campaign.name}" tem potencial para aumentar orçamento`,
-        metric: 'Performance',
-        value: `CPA: R$ ${campaign.cpa.toFixed(2)} | CTR: ${campaign.ctr.toFixed(2)}%`,
-        recommendation,
-        client: campaign.client_name,
-        campaign: campaign.name,
-        campaign_id: campaign.id,
-        client_id: campaign.client_id,
-      });
-      alertsCount++;
+      if (isOpportunity) {
+        console.log('✅ Scaling opportunity found:', campaign.name);
+        const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
+        opportunityAlerts.push({
+          id: `scale-opportunity-${campaign.id}`,
+          type: 'opportunity',
+          title: 'Oportunidade de Escala',
+          description: `Campanha "${campaign.name}" tem potencial para aumentar orçamento`,
+          metric: 'Performance',
+          value: `CPA: R$ ${campaign.cpa.toFixed(2)} | CTR: ${campaign.ctr.toFixed(2)}%`,
+          recommendation,
+          client: campaign.client_name,
+          campaign: campaign.name,
+          campaign_id: campaign.id,
+          client_id: campaign.client_id,
+        });
+      }
     }
 
-    // Adicionar oportunidades baseadas em performance histórica
-    const historicalOpportunities = availableCampaigns.filter(campaign => {
+    // Oportunidades baseadas em performance histórica
+    for (const campaign of availableCampaigns) {
+      if (opportunityAlerts.length >= maxOpportunities) break;
+      
       // Campanhas com performance consistente que podem ser expandidas
       const hasConsistentPerformance = campaign.cpa <= 80 && campaign.ctr >= 0.8;
       const hasSignificantVolume = campaign.spend >= 100; // Já tem algum volume de dados
@@ -197,35 +204,38 @@ export const useDashboardAlerts = () => {
       const isHistoricalOpportunity = hasConsistentPerformance && hasSignificantVolume && hasGoodConversionRate;
       
       if (isHistoricalOpportunity) {
-        console.log(`Debug: Historical opportunity found - ${campaign.name}`);
+        console.log('📊 Historical opportunity found:', campaign.name);
+        const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
+        opportunityAlerts.push({
+          id: `historical-opportunity-${campaign.id}`,
+          type: 'opportunity',
+          title: 'Oportunidade de Expansão',
+          description: `Campanha "${campaign.name}" mostra performance consistente`,
+          metric: 'Performance Histórica',
+          value: `${campaign.conversions} conversões | CPA: R$ ${campaign.cpa.toFixed(2)}`,
+          recommendation,
+          client: campaign.client_name,
+          campaign: campaign.name,
+          campaign_id: campaign.id,
+          client_id: campaign.client_id,
+        });
       }
-      
-      return isHistoricalOpportunity;
-    }).slice(0, Math.max(0, maxAlerts - alertsCount));
-
-    console.log('Debug: Found historical opportunities:', historicalOpportunities.length);
-
-    for (const campaign of historicalOpportunities) {
-      if (alertsCount >= maxAlerts) break;
-      
-      const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
-      alertsArray.push({
-        id: `historical-opportunity-${campaign.id}`,
-        type: 'opportunity',
-        title: 'Oportunidade de Expansão',
-        description: `Campanha "${campaign.name}" mostra performance consistente`,
-        metric: 'Performance Histórica',
-        value: `${campaign.conversions} conversões | CPA: R$ ${campaign.cpa.toFixed(2)}`,
-        recommendation,
-        client: campaign.client_name,
-        campaign: campaign.name,
-        campaign_id: campaign.id,
-        client_id: campaign.client_id,
-      });
-      alertsCount++;
     }
 
-    return alertsArray;
+    // Combinar alertas
+    const allAlerts = [...problemAlerts, ...opportunityAlerts];
+
+    console.log('✅ Alerts generation complete:', {
+      problems: problemAlerts.length,
+      opportunities: opportunityAlerts.length,
+      total: allAlerts.length,
+      breakdown: {
+        danger: allAlerts.filter(a => a.type === 'danger').length,
+        opportunity: allAlerts.filter(a => a.type === 'opportunity').length
+      }
+    });
+
+    return allAlerts;
   };
 
   const fetchAlerts = async (filterClientId?: string | null) => {
