@@ -12,7 +12,9 @@ import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 interface LowPerformingCreative {
   id: string;
   name: string;
+  campaign_id: string;
   campaign_name: string;
+  client_id: string;
   client_name: string;
   ctr: number;
   cpc: number;
@@ -92,8 +94,8 @@ export default function RelatorioCriativosBaixoDesempenho() {
     const alertData = {
       type: 'warning',
       description: `Criativo com baixo desempenho: Score ${creative.performance_score}/100 - ${creative.recommendation_reason}`,
-      campaign_id: undefined, // Seria extraído do ad_id no backend
-      client_id: undefined,
+      campaign_id: creative.campaign_id,
+      client_id: creative.client_id,
       id: `low_performing_creative_${creative.id}`
     };
 
@@ -185,7 +187,9 @@ export default function RelatorioCriativosBaixoDesempenho() {
       lowPerforming.push({
         id: ad.id,
         name: ad.name,
+        campaign_id: campaign.id,
         campaign_name: campaign.name,
+        client_id: campaign.client_id,
         client_name: campaign.client?.name || 'Cliente não identificado',
         ctr: adCTR,
         cpc: adCPC,
