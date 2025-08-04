@@ -5,6 +5,7 @@ import { MetricCard } from "@/components/reports/MetricCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useClients } from "@/hooks/useClients";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 import { 
   TrendingUp, 
@@ -20,6 +21,8 @@ interface OpportunityAnalysis {
   id: string;
   title: string;
   description: string;
+  clientId?: string;
+  clientName?: string;
   type: 'optimization' | 'creative' | 'budget' | 'audience' | 'strategy';
   priority: 'high' | 'medium' | 'low';
   impact: 'Alto' | 'Médio' | 'Baixo';
@@ -35,6 +38,7 @@ interface OpportunityAnalysis {
 
 const RelatorioOportunidades = () => {
   const { metrics, clientsPerformance, campaignRankings, funnelMetrics } = useDashboardData();
+  const { clients } = useClients();
   const { convertAlertToTask } = useTaskAutomation();
   
   const [opportunitiesAnalysis, setOpportunitiesAnalysis] = useState<OpportunityAnalysis[]>([]);
@@ -42,6 +46,19 @@ const RelatorioOportunidades = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   const primaryFilters: FilterConfig[] = [
+    {
+      id: 'cliente',
+      label: 'Cliente',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os clientes' },
+        ...clients.map(client => ({
+          value: client.id,
+          label: client.name
+        }))
+      ],
+      placeholder: 'Todos os clientes'
+    },
     {
       id: 'tipo-oportunidade',
       label: 'Tipo de Oportunidade',
@@ -67,18 +84,6 @@ const RelatorioOportunidades = () => {
         { value: 'low', label: 'Baixa' }
       ],
       placeholder: 'Todas as prioridades'
-    },
-    {
-      id: 'impacto',
-      label: 'Impacto',
-      type: 'select',
-      options: [
-        { value: 'todos', label: 'Todos os impactos' },
-        { value: 'Alto', label: 'Alto' },
-        { value: 'Médio', label: 'Médio' },
-        { value: 'Baixo', label: 'Baixo' }
-      ],
-      placeholder: 'Todos os impactos'
     }
   ];
 
@@ -162,6 +167,12 @@ const RelatorioOportunidades = () => {
 
     // Oportunidades de otimização de campanhas
     campaignRankings.forEach((campaign, index) => {
+      // Tentar associar campanha ao cliente pelo nome ou ID
+      const associatedClient = clientsPerformance.find(client => 
+        campaign.name.toLowerCase().includes(client.name.toLowerCase()) ||
+        client.name.toLowerCase().includes(campaign.name.toLowerCase())
+      );
+
       if (campaign.ctr < 1.5) {
         const priority = campaign.ctr < 1 ? 'high' : 'medium';
         const impact = campaign.spend > 10000 ? 'Alto' : 'Médio';
@@ -172,6 +183,8 @@ const RelatorioOportunidades = () => {
           id: `ctr-${index}`,
           title: `Otimizar CTR da campanha ${campaign.name}`,
           description: `CTR atual de ${campaign.ctr}% está abaixo da média de mercado (2%)`,
+          clientId: associatedClient?.id,
+          clientName: associatedClient?.name || 'Cliente não identificado',
           type: 'creative',
           priority,
           impact,
@@ -196,6 +209,8 @@ const RelatorioOportunidades = () => {
           id: `cpa-${index}`,
           title: `Reduzir CPA da campanha ${campaign.name}`,
           description: `CPA de R$ ${campaign.cpa} está acima do target de R$ 80`,
+          clientId: associatedClient?.id,
+          clientName: associatedClient?.name || 'Cliente não identificado',
           type: 'optimization',
           priority,
           impact,
@@ -222,6 +237,7 @@ const RelatorioOportunidades = () => {
         id: 'budget-redistribution',
         title: 'Redistribuir orçamento entre campanhas',
         description: `CPL médio de R$ ${funnelMetrics.cpl} indica oportunidade de realocação`,
+        clientName: 'Estratégia Geral',
         type: 'budget',
         priority,
         impact,
@@ -250,6 +266,8 @@ const RelatorioOportunidades = () => {
             id: `audience-${index}`,
             title: `Expandir audiências para ${client.name}`,
             description: `Alto investimento (R$ ${client.investment.toLocaleString()}) com baixa eficiência`,
+            clientId: client.id,
+            clientName: client.name,
             type: 'audience',
             priority,
             impact,
@@ -275,16 +293,16 @@ const RelatorioOportunidades = () => {
 
     let filtered = opportunitiesAnalysis;
 
+    if (newFilters['cliente'] && newFilters['cliente'] !== 'todos') {
+      filtered = filtered.filter(opp => opp.clientId === newFilters['cliente']);
+    }
+
     if (newFilters['tipo-oportunidade'] && newFilters['tipo-oportunidade'] !== 'todas') {
       filtered = filtered.filter(opp => opp.type === newFilters['tipo-oportunidade']);
     }
 
     if (newFilters['prioridade'] && newFilters['prioridade'] !== 'todas') {
       filtered = filtered.filter(opp => opp.priority === newFilters['prioridade']);
-    }
-
-    if (newFilters['impacto'] && newFilters['impacto'] !== 'todos') {
-      filtered = filtered.filter(opp => opp.impact === newFilters['impacto']);
     }
 
     if (newFilters['economia-minima'] && newFilters['economia-minima'] !== 'todas') {
@@ -406,10 +424,17 @@ const RelatorioOportunidades = () => {
                         </div>
                         {getTypeIcon(opportunity.type)}
                       </div>
-                      <div>
-                        <CardTitle className="text-lg">{opportunity.title}</CardTitle>
-                        <CardDescription className="mt-1">{opportunity.description}</CardDescription>
-                      </div>
+                       <div>
+                         <CardTitle className="text-lg">{opportunity.title}</CardTitle>
+                         <div className="flex items-center gap-2 mt-1">
+                           <CardDescription>{opportunity.description}</CardDescription>
+                         </div>
+                         {opportunity.clientName && (
+                           <div className="text-sm text-primary font-medium mt-1">
+                             Cliente: {opportunity.clientName}
+                           </div>
+                         )}
+                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {getPriorityBadge(opportunity.priority)}
