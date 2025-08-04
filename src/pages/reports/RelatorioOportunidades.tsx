@@ -26,6 +26,7 @@ interface OpportunityAnalysis {
   effort: 'Alto' | 'Médio' | 'Baixo';
   estimatedSaving: number;
   timeframe: string;
+  healthScore: number; // nota de saúde de 0 a 100
   analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
   issues: string[];
   recommendations: string[];
@@ -108,6 +109,50 @@ const RelatorioOportunidades = () => {
     }
   ];
 
+  const calculateHealthScore = (priority: string, impact: string, effort: string, estimatedSaving: number): number => {
+    let score = 50; // Base score
+    
+    // Pontuação baseada na prioridade (30 pontos máximo)
+    if (priority === 'high') {
+      score += 30;
+    } else if (priority === 'medium') {
+      score += 15;
+    } else {
+      score += 5;
+    }
+    
+    // Pontuação baseada no impacto (25 pontos máximo)
+    if (impact === 'Alto') {
+      score += 25;
+    } else if (impact === 'Médio') {
+      score += 15;
+    } else {
+      score += 5;
+    }
+    
+    // Pontuação baseada no esforço (15 pontos máximo - menor esforço = maior pontuação)
+    if (effort === 'Baixo') {
+      score += 15;
+    } else if (effort === 'Médio') {
+      score += 10;
+    } else {
+      score += 3;
+    }
+    
+    // Pontuação baseada na economia estimada (20 pontos máximo)
+    if (estimatedSaving >= 20000) {
+      score += 20;
+    } else if (estimatedSaving >= 10000) {
+      score += 15;
+    } else if (estimatedSaving >= 5000) {
+      score += 10;
+    } else {
+      score += 5;
+    }
+    
+    return Math.max(0, Math.min(100, Math.round(score)));
+  };
+
   const analyzeOpportunities = () => {
     if (!metrics || !clientsPerformance || !campaignRankings || !funnelMetrics) {
       return;
@@ -118,16 +163,22 @@ const RelatorioOportunidades = () => {
     // Oportunidades de otimização de campanhas
     campaignRankings.forEach((campaign, index) => {
       if (campaign.ctr < 1.5) {
+        const priority = campaign.ctr < 1 ? 'high' : 'medium';
+        const impact = campaign.spend > 10000 ? 'Alto' : 'Médio';
+        const effort = 'Médio';
+        const estimatedSaving = campaign.spend * 0.25;
+        
         opportunities.push({
           id: `ctr-${index}`,
           title: `Otimizar CTR da campanha ${campaign.name}`,
           description: `CTR atual de ${campaign.ctr}% está abaixo da média de mercado (2%)`,
           type: 'creative',
-          priority: campaign.ctr < 1 ? 'high' : 'medium',
-          impact: campaign.spend > 10000 ? 'Alto' : 'Médio',
-          effort: 'Médio',
-          estimatedSaving: campaign.spend * 0.25,
+          priority,
+          impact,
+          effort,
+          estimatedSaving,
           timeframe: '2-4 semanas',
+          healthScore: calculateHealthScore(priority, impact, effort, estimatedSaving),
           analysisStatus: campaign.ctr < 1 ? 'critical' : 'needs_attention',
           issues: [`CTR baixo: ${campaign.ctr}%`, 'Criativos podem estar saturados'],
           recommendations: ['Testar novos criativos', 'A/B test de headlines', 'Revisar copy'],
@@ -136,16 +187,22 @@ const RelatorioOportunidades = () => {
       }
 
       if (campaign.cpa > 100) {
+        const priority = campaign.cpa > 150 ? 'high' : 'medium';
+        const impact = 'Alto';
+        const effort = 'Médio';
+        const estimatedSaving = (campaign.cpa - 80) * campaign.conversions;
+        
         opportunities.push({
           id: `cpa-${index}`,
           title: `Reduzir CPA da campanha ${campaign.name}`,
           description: `CPA de R$ ${campaign.cpa} está acima do target de R$ 80`,
           type: 'optimization',
-          priority: campaign.cpa > 150 ? 'high' : 'medium',
-          impact: 'Alto',
-          effort: 'Médio',
-          estimatedSaving: (campaign.cpa - 80) * campaign.conversions,
+          priority,
+          impact,
+          effort,
+          estimatedSaving,
           timeframe: '1-3 semanas',
+          healthScore: calculateHealthScore(priority, impact, effort, estimatedSaving),
           analysisStatus: campaign.cpa > 150 ? 'critical' : 'needs_attention',
           issues: [`CPA alto: R$ ${campaign.cpa}`, 'Audiência pode estar mal segmentada'],
           recommendations: ['Refinar audiência', 'Otimizar lances', 'Melhorar landing page'],
@@ -156,16 +213,22 @@ const RelatorioOportunidades = () => {
 
     // Oportunidades de redistribuição de budget
     if (funnelMetrics.cpl && funnelMetrics.cpl > 80) {
+      const priority = 'high';
+      const impact = 'Alto';
+      const effort = 'Baixo';
+      const estimatedSaving = (metrics?.totalInvestment || 0) * 0.15;
+      
       opportunities.push({
         id: 'budget-redistribution',
         title: 'Redistribuir orçamento entre campanhas',
         description: `CPL médio de R$ ${funnelMetrics.cpl} indica oportunidade de realocação`,
         type: 'budget',
-        priority: 'high',
-        impact: 'Alto',
-        effort: 'Baixo',
-        estimatedSaving: (metrics?.totalInvestment || 0) * 0.15,
+        priority,
+        impact,
+        effort,
+        estimatedSaving,
         timeframe: '1 semana',
+        healthScore: calculateHealthScore(priority, impact, effort, estimatedSaving),
         analysisStatus: 'needs_attention',
         issues: ['Orçamento mal distribuído', 'Campanhas com baixo ROI recebendo muito budget'],
         recommendations: ['Mover budget para campanhas top performers', 'Pausar campanhas ineficientes'],
@@ -178,16 +241,22 @@ const RelatorioOportunidades = () => {
       if (client.investment > 15000) {
         const efficiency = (client.investment / 60) / client.investment * 1000;
         if (efficiency < 15) {
+          const priority = 'medium';
+          const impact = 'Alto';
+          const effort = 'Médio';
+          const estimatedSaving = client.investment * 0.20;
+          
           opportunities.push({
             id: `audience-${index}`,
             title: `Expandir audiências para ${client.name}`,
             description: `Alto investimento (R$ ${client.investment.toLocaleString()}) com baixa eficiência`,
             type: 'audience',
-            priority: 'medium',
-            impact: 'Alto',
-            effort: 'Médio',
-            estimatedSaving: client.investment * 0.20,
+            priority,
+            impact,
+            effort,
+            estimatedSaving,
             timeframe: '3-6 semanas',
+            healthScore: calculateHealthScore(priority, impact, effort, estimatedSaving),
             analysisStatus: 'needs_attention',
             issues: ['Audiência limitada', 'Possível saturação'],
             recommendations: ['Criar lookalikes', 'Testar interesses similares', 'Expandir geo-targeting'],
@@ -309,19 +378,62 @@ const RelatorioOportunidades = () => {
 
       <div className="space-y-4">
         {filteredData.length > 0 ? (
-          filteredData.map((opportunity) => (
-            <Card key={opportunity.id} className="hover:shadow-md transition-shadow">
+          filteredData
+            .sort((a, b) => {
+              // Ordenar primeiro por nota de saúde (maior para menor)
+              const healthDiff = b.healthScore - a.healthScore;
+              
+              // Se nota igual, ordenar por economia estimada (maior para menor)
+              if (healthDiff === 0) {
+                return b.estimatedSaving - a.estimatedSaving;
+              }
+              
+              return healthDiff;
+            })
+            .map((opportunity, index) => {
+            const statusColor = opportunity.priority === 'high' ? 'border-l-destructive' :
+                               opportunity.priority === 'medium' ? 'border-l-yellow-500' : 'border-l-green-500';
+            
+            return (
+            <Card key={opportunity.id} className={`border-l-4 ${statusColor} hover:shadow-md transition-shadow`}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      {getTypeIcon(opportunity.type)}
-                      <CardTitle className="text-lg">{opportunity.title}</CardTitle>
-                      {getPriorityBadge(opportunity.priority)}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full text-sm font-bold">
+                          #{index + 1}
+                        </div>
+                        {getTypeIcon(opportunity.type)}
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{opportunity.title}</CardTitle>
+                        <CardDescription className="mt-1">{opportunity.description}</CardDescription>
+                      </div>
                     </div>
-                    <CardDescription>{opportunity.description}</CardDescription>
+                    <div className="flex items-center gap-2">
+                      {getPriorityBadge(opportunity.priority)}
+                      <Badge variant="outline">
+                        {opportunity.impact} impacto
+                      </Badge>
+                      <Badge variant="outline">
+                        {opportunity.effort} esforço
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className={`text-xl font-bold ${
+                        opportunity.healthScore >= 80 ? 'text-green-600' :
+                        opportunity.healthScore >= 60 ? 'text-blue-600' :
+                        opportunity.healthScore >= 40 ? 'text-yellow-600' : 'text-destructive'
+                      }`}>
+                        {opportunity.healthScore}/100
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Nota de Viabilidade
+                      </div>
+                    </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-green-600">
                         R$ {opportunity.estimatedSaving.toLocaleString()}
@@ -399,7 +511,8 @@ const RelatorioOportunidades = () => {
                 </div>
               </CardContent>
             </Card>
-          ))
+            );
+          })
         ) : (
           <Card>
             <CardContent className="text-center py-8">
