@@ -392,6 +392,7 @@ export default function NewDashboard() {
                 data={{
                   labels: (() => {
                     const sortedClients = [...topClientsByROI]
+                      .filter(client => client.investment > 0 && client.avg_cpl > 0)
                       .sort((a, b) => a.investment - b.investment);
                     return sortedClients.slice(0, 8).map(client => 
                       client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name
@@ -400,15 +401,16 @@ export default function NewDashboard() {
                   datasets: [
                     {
                       label: 'Investimento Acumulado',
-                      data: (() => {
-                        const sortedClients = [...topClientsByROI]
-                          .sort((a, b) => a.investment - b.investment);
-                        let accumulatedInvestment = 0;
-                        return sortedClients.slice(0, 8).map(client => {
-                          accumulatedInvestment += client.investment;
-                          return accumulatedInvestment;
-                        });
-                      })(),
+                       data: (() => {
+                         const sortedClients = [...topClientsByROI]
+                           .filter(client => client.investment > 0 && client.avg_cpl > 0)
+                           .sort((a, b) => a.investment - b.investment);
+                         let accumulatedInvestment = 0;
+                         return sortedClients.slice(0, 8).map(client => {
+                           accumulatedInvestment += client.investment;
+                           return accumulatedInvestment;
+                         });
+                       })(),
                       borderColor: '#3b82f6',
                       backgroundColor: '#3b82f6',
                       borderWidth: 3,
@@ -419,11 +421,12 @@ export default function NewDashboard() {
                     },
                     {
                       label: 'CPL',
-                      data: (() => {
-                        const sortedClients = [...topClientsByROI]
-                          .sort((a, b) => a.investment - b.investment);
-                        return sortedClients.slice(0, 8).map(client => client.avg_cpl);
-                      })(),
+                       data: (() => {
+                         const sortedClients = [...topClientsByROI]
+                           .filter(client => client.investment > 0 && client.avg_cpl > 0)
+                           .sort((a, b) => a.investment - b.investment);
+                         return sortedClients.slice(0, 8).map(client => client.avg_cpl);
+                       })(),
                       borderColor: '#f59e0b',
                       backgroundColor: '#f59e0b',
                       borderWidth: 3,
