@@ -66,7 +66,7 @@ export function ReportLayout({
               <CardContent className="p-4">
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium text-foreground">Filtros</h3>
-                  <p className="text-xs text-muted-foreground">Configure os parâmetros do relatório (Esta seção especifica)</p>
+                  <p className="text-xs text-muted-foreground">Configure os parâmetros para análise de distribuição de orçamento</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Data Inicial */}
@@ -103,23 +103,77 @@ export function ReportLayout({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="todos">Todos os clientes</SelectItem>
-                          <SelectItem value="cliente1">Cliente 1</SelectItem>
-                          <SelectItem value="cliente2">Cliente 2</SelectItem>
+                          <SelectItem value="automafour">Automafour</SelectItem>
+                          <SelectItem value="andes">Andes</SelectItem>
+                          <SelectItem value="implantaweb">ImplantaWeb</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {/* Colaborador */}
+                    {/* Nível de Severidade */}
                     <div className="space-y-2">
-                      <Label htmlFor="colaborador" className="text-xs font-medium">Colaborador</Label>
+                      <Label htmlFor="severidade" className="text-xs font-medium">Nível de Severidade</Label>
                       <Select>
                         <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Todos os colaboradores" />
+                          <SelectValue placeholder="Todos os níveis" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="todos">Todos os colaboradores</SelectItem>
-                          <SelectItem value="colaborador1">Colaborador 1</SelectItem>
-                          <SelectItem value="colaborador2">Colaborador 2</SelectItem>
+                          <SelectItem value="todos">Todos os níveis</SelectItem>
+                          <SelectItem value="critico">Crítico (&gt; 60%)</SelectItem>
+                          <SelectItem value="moderado">Moderado (30-60%)</SelectItem>
+                          <SelectItem value="leve">Leve (&lt; 30%)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Segunda linha de filtros */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Tipo de Desequilíbrio */}
+                    <div className="space-y-2">
+                      <Label htmlFor="tipo-desequilibrio" className="text-xs font-medium">Tipo de Desequilíbrio</Label>
+                      <Select>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Todos os tipos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos os tipos</SelectItem>
+                          <SelectItem value="excesso">Excesso de verba</SelectItem>
+                          <SelectItem value="deficit">Déficit de verba</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Etapa do Funil */}
+                    <div className="space-y-2">
+                      <Label htmlFor="etapa-funil" className="text-xs font-medium">Etapa do Funil</Label>
+                      <Select>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Todas as etapas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todas">Todas as etapas</SelectItem>
+                          <SelectItem value="topo">Topo do Funil</SelectItem>
+                          <SelectItem value="meio">Meio do Funil</SelectItem>
+                          <SelectItem value="fundo">Fundo do Funil</SelectItem>
+                          <SelectItem value="retencao">Retenção</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Orçamento Mínimo */}
+                    <div className="space-y-2">
+                      <Label htmlFor="orcamento-minimo" className="text-xs font-medium">Orçamento Mínimo</Label>
+                      <Select>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Sem limite" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sem-limite">Sem limite</SelectItem>
+                          <SelectItem value="1000">R$ 1.000+</SelectItem>
+                          <SelectItem value="5000">R$ 5.000+</SelectItem>
+                          <SelectItem value="10000">R$ 10.000+</SelectItem>
+                          <SelectItem value="50000">R$ 50.000+</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
