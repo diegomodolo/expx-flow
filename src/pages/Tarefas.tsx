@@ -182,10 +182,6 @@ export default function Tarefas() {
       setConvertedAlerts(new Set());
       
       await generateAlerts(selectedClientId);
-      console.log('Alerts generated, total alerts:', alerts?.length || 0);
-      console.log('Danger alerts:', alerts?.filter(a => a.type === 'danger').length || 0);
-      console.log('Opportunity alerts:', alerts?.filter(a => a.type === 'opportunity').length || 0);
-      console.log('Selected client filter:', selectedClientId);
     } catch (error) {
       console.error('Error analyzing campaigns:', error);
     } finally {

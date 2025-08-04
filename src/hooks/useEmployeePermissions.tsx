@@ -43,15 +43,12 @@ export function useEmployeePermissions() {
   const fetchAllEmployeePermissions = async () => {
     // Use company_id instead of id
     if (!activeCompany?.company_id) {
-      console.log('No active company_id found:', activeCompany);
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('Fetching employees for company:', activeCompany.company_id);
 
       // Buscar colaboradores com suas permissões (LEFT JOIN para incluir colaboradores sem permissões)
       const { data: employees, error: employeesError } = await supabase
@@ -76,8 +73,6 @@ export function useEmployeePermissions() {
         throw employeesError;
       }
 
-      console.log('Fetched employees:', employees);
-
       const employeesWithPerms: EmployeeWithPermissions[] = employees?.map(emp => ({
         id: emp.id,
         name: emp.name,
@@ -85,8 +80,6 @@ export function useEmployeePermissions() {
         role: emp.role,
         permissions: emp.employee_permissions || []
       })) || [];
-
-      console.log('Employees with permissions:', employeesWithPerms);
       setEmployeesWithPermissions(employeesWithPerms);
     } catch (err: any) {
       console.error('Erro ao buscar permissões:', err);
@@ -99,23 +92,18 @@ export function useEmployeePermissions() {
   // Buscar permissões do usuário atual
   const fetchCurrentUserPermissions = async () => {
     if (!activeCompany?.company_id) {
-      console.log('No active company_id for current user permissions');
       setPermissionsLoading(false);
       return;
     }
 
     try {
       setPermissionsLoading(true);
-      console.log('Buscando permissões para empresa:', activeCompany.id);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('Usuário não encontrado');
         setPermissionsLoading(false);
         return;
       }
-
-      console.log('Usuário encontrado:', user.id);
 
       // Verificar se é proprietário da empresa
       const { data: member, error: memberError } = await supabase
@@ -130,7 +118,6 @@ export function useEmployeePermissions() {
       }
 
       const userIsOwner = member?.role === 'owner';
-      console.log('É proprietário?', userIsOwner, 'Role:', member?.role);
       
       setIsOwner(userIsOwner);
 
@@ -138,7 +125,6 @@ export function useEmployeePermissions() {
       if (userIsOwner) {
         const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'configuracoes'];
         setCurrentUserPermissions(allPermissions);
-        console.log('Proprietário - definindo todas as permissões:', allPermissions);
         setPermissionsLoading(false);
         return;
       }
@@ -152,12 +138,9 @@ export function useEmployeePermissions() {
         .single();
 
       if (!employee) {
-        console.log('Colaborador não encontrado');
         setPermissionsLoading(false);
         return;
       }
-
-      console.log('Colaborador encontrado:', employee.id);
 
       // Buscar permissões habilitadas
       const { data: permissions } = await supabase
@@ -167,7 +150,6 @@ export function useEmployeePermissions() {
         .eq('is_enabled', true);
 
       const enabledMenus = permissions?.map(p => p.menu_item as MenuItemType) || [];
-      console.log('Permissões do colaborador:', enabledMenus);
       setCurrentUserPermissions(enabledMenus);
     } catch (err: any) {
       console.error('Erro ao buscar permissões do usuário atual:', err);
@@ -264,26 +246,16 @@ export function useEmployeePermissions() {
 
   // Verificar se usuário tem permissão para acessar um menu
   const hasPermission = (menuItem: MenuItemType): boolean => {
-    console.log('hasPermission check:', { 
-      menuItem, 
-      isOwner, 
-      permissionsLoading, 
-      activeCompany: activeCompany?.id,
-      companyRole: activeCompany?.role
-    });
-    
     // Check if user is owner directly from company context
     const isOwnerFromContext = activeCompany?.role === 'owner';
     
     // Owners have access to everything - check both sources
     if (isOwner || isOwnerFromContext) {
-      console.log(`Owner accessing ${menuItem}: true (isOwner: ${isOwner}, contextRole: ${activeCompany?.role})`);
       return true;
     }
     
     // During loading, only allow dashboard and tarefas for non-owners
     if (permissionsLoading) {
-      console.log(`Loading state - allowing basic access for ${menuItem}:`, menuItem === 'dashboard' || menuItem === 'tarefas');
       return menuItem === 'dashboard' || menuItem === 'tarefas';
     }
 
@@ -293,13 +265,11 @@ export function useEmployeePermissions() {
     }
     
     const hasAccess = currentUserPermissions.includes(menuItem);
-    console.log(`Permission for ${menuItem}:`, hasAccess, 'Current permissions:', currentUserPermissions);
     return hasAccess;
   };
 
   useEffect(() => {
     if (activeCompany?.company_id) {
-      console.log('Active company changed, fetching permissions for:', activeCompany.company_id);
       fetchCurrentUserPermissions();
     }
   }, [activeCompany?.company_id]);

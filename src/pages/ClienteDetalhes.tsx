@@ -137,8 +137,6 @@ const ClienteDetalhes = () => {
     if (!client?.campaigns) return [];
 
     try {
-      console.log('Gerando sugestões para cliente:', client.name);
-      
       // Prepare client data for AI analysis
       const clientData = {
         id: client.id,
@@ -187,7 +185,6 @@ const ClienteDetalhes = () => {
         return generateBasicSuggestions(client.campaigns);
       }
 
-      console.log(`Sugestões geradas: ${data.suggestions.length}`);
       return data.suggestions || [];
 
     } catch (error) {

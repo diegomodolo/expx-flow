@@ -93,7 +93,6 @@ export default function NewDashboard() {
   // Buscar alertas automaticamente quando os dados necessários estão disponíveis (apenas uma vez)
   useEffect(() => {
     if (!loading && metrics && campaignRankings && clientsPerformance && !alertsGenerated) {
-      console.log('Dashboard data ready, generating alerts for first time...');
       setAlertsGenerated(true);
       generateAlerts();
     }
@@ -136,7 +135,6 @@ export default function NewDashboard() {
   // Sincronizar todos os clientes
   const syncAllClientsLocal = async (options: SyncOptions) => {
     if (!clients || clients.length === 0) {
-      console.log('No clients to sync');
       return;
     }
 

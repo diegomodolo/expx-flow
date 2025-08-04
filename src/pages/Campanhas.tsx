@@ -361,8 +361,6 @@ const Campanhas = () => {
     });
   }
 
-  console.log("Campanhas component rendering", { loading, error, campaigns: campaigns?.length });
-
   return (
     <DashboardLayout>
       <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">

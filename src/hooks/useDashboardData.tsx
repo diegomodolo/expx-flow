@@ -58,7 +58,6 @@ interface TrendData {
 }
 
 export const useDashboardData = () => {
-  console.log('useDashboardData hook called');
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [clientsPerformance, setClientsPerformance] = useState<ClientPerformance[]>([]);
   const [campaignRankings, setCampaignRankings] = useState<CampaignRanking[]>([]);
@@ -273,13 +272,11 @@ export const useDashboardData = () => {
       });
 
       if (error) {
-        console.error('Error generating recommendation:', error);
         return getDefaultRecommendation(issueType);
       }
 
       return data.recommendation || getDefaultRecommendation(issueType);
     } catch (error) {
-      console.error('Error calling recommendation function:', error);
       return getDefaultRecommendation(issueType);
     }
   };

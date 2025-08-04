@@ -60,13 +60,11 @@ export const useDashboardAlerts = () => {
       });
 
       if (error) {
-        console.error('Error generating recommendation:', error);
         return getDefaultRecommendation(issueType);
       }
 
       return data?.recommendation || getDefaultRecommendation(issueType);
     } catch (error) {
-      console.error('Error generating recommendation:', error);
       return getDefaultRecommendation(issueType);
     }
   };
@@ -192,7 +190,6 @@ export const useDashboardAlerts = () => {
           // Atualizar estado a cada recomendação carregada
           setAlerts([...updatedAlerts]);
         } catch (error) {
-          console.error('Error loading recommendation for alert:', alert.id, error);
           updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation('client_analysis') };
         }
       }
@@ -203,10 +200,6 @@ export const useDashboardAlerts = () => {
 
   const fetchAlerts = async (filterClientId?: string | null) => {
     if (!activeCompany?.company_id || !user?.id) {
-      console.log('Debug: Skipping alerts fetch - missing company or user', {
-        hasCompany: !!activeCompany?.company_id,
-        hasUser: !!user?.id
-      });
       setLoading(false);
       setIsReady(true);
       return;
@@ -214,11 +207,8 @@ export const useDashboardAlerts = () => {
 
     // Evitar múltiplas execuções simultâneas
     if (isGenerating) {
-      console.log('Debug: Already generating alerts, skipping...');
       return;
     }
-
-    console.log('Debug: Starting alerts fetch for company:', activeCompany.company_id);
     setIsGenerating(true);
     setLoading(true);
     setError(null);
@@ -226,7 +216,6 @@ export const useDashboardAlerts = () => {
 
     // Timeout de segurança para evitar loading infinito
     const timeoutId = setTimeout(() => {
-      console.log('Debug: Timeout reached, forcing loading to false');
       setLoading(false);
       setIsReady(true);
       setIsGenerating(false);
@@ -237,7 +226,6 @@ export const useDashboardAlerts = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       // Buscar campanhas
-      console.log('Debug: Fetching campaigns...');
       const { data: currentPeriodCampaigns, error: campaignsError } = await supabase
         .from('campaigns')
         .select(`
@@ -248,11 +236,9 @@ export const useDashboardAlerts = () => {
         .gte('created_at', thirtyDaysAgo.toISOString());
 
       if (campaignsError) {
-        console.error('Debug: Error fetching campaigns:', campaignsError);
+        console.error('Error fetching campaigns:', campaignsError);
         throw campaignsError;
       }
-
-      console.log('Debug: Found campaigns:', currentPeriodCampaigns?.length || 0);
 
       // Buscar clientes
       const { data: clientsData, error: clientsError } = await supabase
@@ -261,11 +247,9 @@ export const useDashboardAlerts = () => {
         .eq('company_id', activeCompany.company_id);
 
       if (clientsError) {
-        console.error('Debug: Error fetching clients:', clientsError);
+        console.error('Error fetching clients:', clientsError);
         throw clientsError;
       }
-
-      console.log('Debug: Found clients:', clientsData?.length || 0);
 
       // Buscar tarefas ativas
       const { data: activeTasks, error: tasksError } = await supabase
@@ -275,11 +259,9 @@ export const useDashboardAlerts = () => {
         .neq('status', 'done');
 
       if (tasksError) {
-        console.error('Debug: Error fetching tasks:', tasksError);
+        console.error('Error fetching tasks:', tasksError);
         throw tasksError;
       }
-
-      console.log('Debug: Found active tasks:', activeTasks?.length || 0);
 
       // Processar dados
       const processedClients = clientsData?.map(client => ({
@@ -307,23 +289,8 @@ export const useDashboardAlerts = () => {
         clicks: campaign.clicks || 0
       })) || [];
 
-      console.log('Debug: Processed campaigns for alerts:', {
-        total: processedCampaigns.length,
-        active: processedCampaigns.filter(c => c.status === 'active').length,
-        withConversions: processedCampaigns.filter(c => c.conversions > 0).length,
-        lowCPA: processedCampaigns.filter(c => c.cpa <= 60).length,
-        goodCTR: processedCampaigns.filter(c => c.ctr >= 1.0).length
-      });
-
       // Gerar alertas básicos imediatamente
-      console.log('Debug: Generating basic alerts...');
       const basicAlerts = generateBasicAlerts(processedCampaigns, activeTasks || []);
-
-      console.log('Debug: Generated basic alerts:', {
-        total: basicAlerts.length,
-        opportunities: basicAlerts.filter(a => a.type === 'opportunity').length,
-        dangers: basicAlerts.filter(a => a.type === 'danger').length
-      });
 
       // Exibir alertas básicos imediatamente
       setAlerts(basicAlerts);
@@ -332,18 +299,15 @@ export const useDashboardAlerts = () => {
       setIsGenerating(false);
       clearTimeout(timeoutId);
 
-      console.log('Debug: Basic alerts displayed, loading recommendations async...');
-
       // Carregar recomendações assincronamente em segundo plano
       loadRecommendationsAsync(basicAlerts).catch(error => {
         console.error('Error loading recommendations:', error);
       });
     } catch (err) {
-      console.error('Debug: Error fetching alerts:', err);
+      console.error('Error fetching alerts:', err);
       setError('Erro ao buscar alertas');
     } finally {
       clearTimeout(timeoutId);
-      console.log('Debug: Finally block - setting loading to false');
       setLoading(false);
       setIsReady(true);
     }
