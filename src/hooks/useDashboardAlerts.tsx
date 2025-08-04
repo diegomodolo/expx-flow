@@ -150,10 +150,16 @@ export const useDashboardAlerts = () => {
       }
     }
 
-    // Processar alertas de oportunidades de escala (limitado)
-    const scalableOpportunities = availableCampaigns.filter(campaign => 
-      campaign.cpa <= 30 && campaign.ctr >= 2.0 && campaign.spend < 500
-    ).slice(0, Math.max(0, maxAlerts - alertsCount)); // Limitar baseado no que já foi processado
+    // Processar alertas de oportunidades de escala (critérios mais flexíveis)
+    const scalableOpportunities = availableCampaigns.filter(campaign => {
+      // Critérios mais realistas para oportunidades
+      const hasGoodCPA = campaign.cpa <= 60; // CPA aceitável até R$ 60
+      const hasGoodCTR = campaign.ctr >= 1.0; // CTR aceitável a partir de 1%
+      const hasRoomToScale = campaign.spend < 1000; // Investimento ainda com margem para escalar
+      const hasConversions = campaign.conversions > 0; // Precisa ter pelo menos algumas conversões
+      
+      return hasGoodCPA && hasGoodCTR && hasRoomToScale && hasConversions;
+    }).slice(0, Math.max(0, maxAlerts - alertsCount));
 
     for (const campaign of scalableOpportunities) {
       if (alertsCount >= maxAlerts) break;
@@ -166,6 +172,36 @@ export const useDashboardAlerts = () => {
         description: `Campanha "${campaign.name}" tem potencial para aumentar orçamento`,
         metric: 'Performance',
         value: `CPA: R$ ${campaign.cpa.toFixed(2)} | CTR: ${campaign.ctr.toFixed(2)}%`,
+        recommendation,
+        client: campaign.client_name,
+        campaign: campaign.name,
+        campaign_id: campaign.id,
+        client_id: campaign.client_id,
+      });
+      alertsCount++;
+    }
+
+    // Adicionar oportunidades baseadas em performance histórica
+    const historicalOpportunities = availableCampaigns.filter(campaign => {
+      // Campanhas com performance consistente que podem ser expandidas
+      const hasConsistentPerformance = campaign.cpa <= 80 && campaign.ctr >= 0.8;
+      const hasSignificantVolume = campaign.spend >= 100; // Já tem algum volume de dados
+      const hasGoodConversionRate = campaign.conversions >= 5; // Pelo menos 5 conversões
+      
+      return hasConsistentPerformance && hasSignificantVolume && hasGoodConversionRate;
+    }).slice(0, Math.max(0, maxAlerts - alertsCount));
+
+    for (const campaign of historicalOpportunities) {
+      if (alertsCount >= maxAlerts) break;
+      
+      const recommendation = await generateRecommendation(campaign, 'scale_opportunity');
+      alertsArray.push({
+        id: `historical-opportunity-${campaign.id}`,
+        type: 'opportunity',
+        title: 'Oportunidade de Expansão',
+        description: `Campanha "${campaign.name}" mostra performance consistente`,
+        metric: 'Performance Histórica',
+        value: `${campaign.conversions} conversões | CPA: R$ ${campaign.cpa.toFixed(2)}`,
         recommendation,
         client: campaign.client_name,
         campaign: campaign.name,
