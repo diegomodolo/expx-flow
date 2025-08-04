@@ -12,34 +12,60 @@ export function PermissionsProtectedRoute() {
 
   useEffect(() => {
     checkAdminPermissions();
-  }, [activeCompany?.id]);
+  }, [activeCompany?.company_id, activeCompany?.role]);
 
   const checkAdminPermissions = async () => {
     try {
       setLoading(true);
       
-      if (!activeCompany?.id) {
+      console.log('Checking admin permissions for:', { 
+        companyId: activeCompany?.company_id, 
+        role: activeCompany?.role 
+      });
+      
+      if (!activeCompany?.company_id) {
+        console.log('No active company found');
         setIsAdmin(false);
         return;
       }
 
+      // Check role directly from company context first
+      const isOwnerOrAdmin = activeCompany.role === 'owner' || activeCompany.role === 'admin';
+      
+      if (isOwnerOrAdmin) {
+        console.log('User is owner/admin from context:', activeCompany.role);
+        setIsAdmin(true);
+        return;
+      }
+
+      // Fallback: verify in database
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('No user found');
         setIsAdmin(false);
         return;
       }
 
-      // Verificar se o usuário é admin ou owner da empresa
-      const { data: member } = await supabase
+      console.log('Checking database for user role:', user.id, 'in company:', activeCompany.company_id);
+
+      const { data: member, error } = await supabase
         .from('company_members')
         .select('role')
         .eq('user_id', user.id)
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .single();
 
-      setIsAdmin(member?.role === 'owner' || member?.role === 'admin');
+      if (error) {
+        console.error('Error checking company member:', error);
+        setIsAdmin(false);
+        return;
+      }
+
+      const isAdminFromDB = member?.role === 'owner' || member?.role === 'admin';
+      console.log('Database role check result:', member?.role, 'isAdmin:', isAdminFromDB);
+      setIsAdmin(isAdminFromDB);
     } catch (error) {
-      console.error('Erro ao verificar permissões de admin:', error);
+      console.error('Error checking admin permissions:', error);
       setIsAdmin(false);
     } finally {
       setLoading(false);
