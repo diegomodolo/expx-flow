@@ -1,24 +1,46 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useCompetitors } from "@/hooks/useCompetitors";
-import { useAuth } from "@/hooks/useAuth";
-import { useCompanies } from "@/hooks/useCompanies";
+import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { Eye, TrendingUp, AlertTriangle, Target, Plus, Users } from "lucide-react";
+
+interface CompetitorAnalysis {
+  id: string;
+  name: string;
+  industry: string;
+  activeAds: number;
+  totalAds: number;
+  adTypes: string[];
+  analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
+  threats: string[];
+  opportunities: string[];
+  marketShare: number;
+}
 
 const RelatorioAnaliseCompetitiva = () => {
-  const { user } = useAuth();
   const { competitors, competitorAds } = useCompetitors("all");
+  const { convertAlertToTask } = useTaskAutomation();
+  
+  const [competitorsAnalysis, setCompetitorsAnalysis] = useState<CompetitorAnalysis[]>([]);
+  const [filteredData, setFilteredData] = useState<CompetitorAnalysis[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   const primaryFilters: FilterConfig[] = [
     {
-      id: 'concorrente',
-      label: 'Concorrente',
+      id: 'status-ameaca',
+      label: 'Nível de Ameaça',
       type: 'select',
       options: [
-        { value: 'todos', label: 'Todos os concorrentes' },
-        ...competitors.map(comp => ({ value: comp.id, label: comp.name }))
+        { value: 'todos', label: 'Todos os níveis' },
+        { value: 'critical', label: 'Ameaça Alta' },
+        { value: 'needs_attention', label: 'Ameaça Média' },
+        { value: 'good', label: 'Ameaça Baixa' }
       ],
-      placeholder: 'Todos os concorrentes'
+      placeholder: 'Todos os níveis'
     },
     {
       id: 'setor',
@@ -32,160 +54,239 @@ const RelatorioAnaliseCompetitiva = () => {
         { value: 'saude', label: 'Saúde' }
       ],
       placeholder: 'Todos os setores'
-    },
-    {
-      id: 'tipo-anuncio',
-      label: 'Tipo de Anúncio',
-      type: 'select',
-      options: [
-        { value: 'todos', label: 'Todos os tipos' },
-        { value: 'imagem', label: 'Imagem' },
-        { value: 'video', label: 'Vídeo' },
-        { value: 'carrossel', label: 'Carrossel' }
-      ],
-      placeholder: 'Todos os tipos'
     }
   ];
 
   const secondaryFilters: FilterConfig[] = [
     {
-      id: 'periodo',
-      label: 'Período',
+      id: 'atividade-minima',
+      label: 'Atividade Mínima',
       type: 'select',
       options: [
-        { value: '30d', label: 'Últimos 30 dias' },
-        { value: '90d', label: 'Últimos 90 dias' },
-        { value: '180d', label: 'Últimos 180 dias' }
+        { value: 'todas', label: 'Todas as atividades' },
+        { value: '10', label: '10+ anúncios ativos' },
+        { value: '20', label: '20+ anúncios ativos' },
+        { value: '50', label: '50+ anúncios ativos' }
       ],
-      placeholder: 'Últimos 30 dias'
+      placeholder: 'Todas as atividades'
     }
   ];
+
+  const analyzeCompetitors = () => {
+    const analysis: CompetitorAnalysis[] = competitors.map(competitor => {
+      const ads = competitorAds.filter(ad => ad.competitor_id === competitor.id);
+      const activeAds = ads.filter(ad => ad.is_active).length;
+      const adTypes = [...new Set(ads.map(ad => ad.ad_type))];
+      
+      // Avaliar ameaças
+      const threats: string[] = [];
+      if (activeAds > 50) threats.push('Alta atividade publicitária');
+      if (adTypes.length > 3) threats.push('Diversidade de formatos criativos');
+      if (ads.some(ad => ad.call_to_action?.includes('Desconto'))) threats.push('Estratégia agressiva de preços');
+      
+      // Determinar status de ameaça
+      const analysisStatus: CompetitorAnalysis['analysisStatus'] = 
+        activeAds > 50 && threats.length >= 2 ? 'critical' :
+        activeAds > 20 || threats.length >= 2 ? 'needs_attention' : 'good';
+
+      // Identificar oportunidades
+      const opportunities: string[] = [];
+      if (adTypes.length < 2) opportunities.push('Explorar formatos criativos não utilizados');
+      if (!ads.some(ad => ad.ad_type === 'Video')) opportunities.push('Investir em vídeo marketing');
+      if (activeAds < 10) opportunities.push('Aproveitar baixa atividade para ganhar mercado');
+
+      return {
+        id: competitor.id,
+        name: competitor.name,
+        industry: competitor.industry,
+        activeAds,
+        totalAds: ads.length,
+        adTypes,
+        analysisStatus,
+        threats,
+        opportunities,
+        marketShare: Math.round((activeAds / Math.max(competitorAds.filter(ad => ad.is_active).length, 1)) * 100)
+      };
+    });
+
+    setCompetitorsAnalysis(analysis);
+  };
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+
+    let filtered = competitorsAnalysis;
+
+    if (newFilters['status-ameaca'] && newFilters['status-ameaca'] !== 'todos') {
+      filtered = filtered.filter(comp => comp.analysisStatus === newFilters['status-ameaca']);
+    }
+
+    if (newFilters['setor'] && newFilters['setor'] !== 'todos') {
+      filtered = filtered.filter(comp => comp.industry.toLowerCase().includes(newFilters['setor']));
+    }
+
+    if (newFilters['atividade-minima'] && newFilters['atividade-minima'] !== 'todas') {
+      const minActivity = parseInt(newFilters['atividade-minima']);
+      filtered = filtered.filter(comp => comp.activeAds >= minActivity);
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handleCreateTask = async (competitor: CompetitorAnalysis) => {
+    await convertAlertToTask({
+      title: `Analisar estratégias do concorrente ${competitor.name}`,
+      description: `Ameaças: ${competitor.threats.join(', ')}. Oportunidades: ${competitor.opportunities.join(', ')}`,
+      priority: competitor.analysisStatus === 'critical' ? 'high' : 'medium',
+      type: 'analysis'
+    });
+  };
+
+  const getStatusBadge = (status: CompetitorAnalysis['analysisStatus']) => {
+    const variants = { excellent: 'default', good: 'secondary', needs_attention: 'outline', critical: 'destructive' } as const;
+    const labels = { excellent: 'Baixa Ameaça', good: 'Baixa Ameaça', needs_attention: 'Ameaça Média', critical: 'Ameaça Alta' };
+    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  };
+
+  useEffect(() => {
+    if (competitors.length > 0) {
+      analyzeCompetitors();
+    }
+  }, [competitors, competitorAds]);
+
+  useEffect(() => {
+    setFilteredData(competitorsAnalysis);
+  }, [competitorsAnalysis]);
+
+  const filteredMetrics = {
+    totalCompetitors: filteredData.length,
+    highThreatCompetitors: filteredData.filter(c => c.analysisStatus === 'critical').length,
+    totalActiveAds: filteredData.reduce((acc, c) => acc + c.activeAds, 0),
+    avgMarketShare: filteredData.length > 0 ? Math.round(filteredData.reduce((acc, c) => acc + c.marketShare, 0) / filteredData.length) : 0
+  };
 
   return (
     <ReportLayout
       title="Relatório de Análise Competitiva"
-      description="Monitoramento e insights da concorrência"
+      description="Monitoramento e análise estratégica da concorrência"
       primaryFilters={primaryFilters}
       secondaryFilters={secondaryFilters}
-      filterDescription="Configure os filtros para análise competitiva"
+      onFilterChange={handleFilterChange}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Concorrentes Monitorados"
-          value={competitors.length}
+          value={filteredMetrics.totalCompetitors}
+          subtitle="Total analisados"
         />
         <MetricCard
-          title="Anúncios Coletados"
-          value={competitorAds.length}
-        />
-        <MetricCard
-          title="Novos Anúncios (7d)"
-          value={competitorAds.filter(ad => {
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            return new Date(ad.date_spotted) >= sevenDaysAgo;
-          }).length}
-          trend="up"
+          title="Ameaças Críticas"
+          value={filteredMetrics.highThreatCompetitors}
+          trend={filteredMetrics.highThreatCompetitors > 0 ? "down" : "up"}
+          subtitle="Requerem atenção"
         />
         <MetricCard
           title="Anúncios Ativos"
-          value={competitorAds.filter(ad => ad.is_active).length}
+          value={filteredMetrics.totalActiveAds}
+          subtitle="Total no mercado"
+        />
+        <MetricCard
+          title="Share Médio"
+          value={`${filteredMetrics.avgMarketShare}%`}
+          subtitle="Participação de mercado"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Concorrentes por Atividade</CardTitle>
-            <CardDescription>Baseado no número de anúncios ativos</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {competitors.slice(0, 5).map((competitor, index) => {
-                const adsCount = competitorAds.filter(ad => 
-                  ad.competitor_id === competitor.id && ad.is_active
-                ).length;
-                
-                return (
-                  <div key={competitor.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{competitor.name}</p>
-                      <p className="text-sm text-muted-foreground">{competitor.industry}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{adsCount}</p>
-                      <p className="text-xs text-muted-foreground">anúncios ativos</p>
-                    </div>
+      <div className="space-y-4">
+        {filteredData.map((competitor) => (
+          <Card key={competitor.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <CardTitle className="text-lg">{competitor.name}</CardTitle>
+                    <Badge variant="outline">{competitor.industry}</Badge>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Análise de Criativos</CardTitle>
-            <CardDescription>Tipos de anúncios mais utilizados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {['Video', 'Image', 'Carousel', 'Collection'].map((type) => {
-                const count = competitorAds.filter(ad => ad.ad_type === type).length;
-                const percentage = competitorAds.length > 0 ? (count / competitorAds.length * 100).toFixed(1) : 0;
-                
-                return (
-                  <div key={type} className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{type}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 bg-secondary rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">{percentage}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Anúncios Recentes da Concorrência</CardTitle>
-          <CardDescription>Últimos anúncios coletados para análise</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {competitorAds.slice(0, 10).map((ad) => {
-              const competitor = competitors.find(c => c.id === ad.competitor_id);
-              return (
-                <div key={ad.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-medium">{ad.ad_title}</h4>
-                      <p className="text-sm text-muted-foreground">{competitor?.name}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(ad.date_spotted).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm mb-2">{ad.ad_description}</p>
-                  {ad.call_to_action && (
-                    <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded text-xs">
-                      {ad.call_to_action}
-                    </span>
-                  )}
+                  <CardDescription>
+                    {competitor.activeAds} anúncios ativos • {competitor.marketShare}% share de mercado
+                  </CardDescription>
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                {getStatusBadge(competitor.analysisStatus)}
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {competitor.threats.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Ameaças Identificadas
+                  </h4>
+                  <ul className="space-y-1">
+                    {competitor.threats.map((threat, index) => (
+                      <li key={index} className="text-sm text-destructive flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-destructive" />
+                        {threat}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {competitor.opportunities.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <Target className="w-4 h-4" />
+                    Oportunidades
+                  </h4>
+                  <ul className="space-y-1">
+                    {competitor.opportunities.map((opp, index) => (
+                      <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-primary" />
+                        {opp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{competitor.activeAds}</div>
+                  <div className="text-xs text-muted-foreground">Anúncios Ativos</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{competitor.totalAds}</div>
+                  <div className="text-xs text-muted-foreground">Total Anúncios</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{competitor.adTypes.length}</div>
+                  <div className="text-xs text-muted-foreground">Formatos</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{competitor.marketShare}%</div>
+                  <div className="text-xs text-muted-foreground">Market Share</div>
+                </div>
+              </div>
+
+              {(competitor.analysisStatus === 'critical' || competitor.analysisStatus === 'needs_attention') && (
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCreateTask(competitor)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Criar Análise
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </ReportLayout>
   );
 };

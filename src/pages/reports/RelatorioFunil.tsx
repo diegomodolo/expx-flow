@@ -1,22 +1,216 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReportLayout } from "@/components/reports/ReportLayout";
+import { ReportLayout, FilterConfig } from "@/components/reports/ReportLayout";
 import { MetricCard } from "@/components/reports/MetricCard";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { FunnelChart, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { FunnelAnalysis } from "@/components/funnel/FunnelAnalysis";
-import { Users, MousePointer, Target, Repeat } from "lucide-react";
+import { useTaskAutomation } from "@/hooks/useTaskAutomation";
+import { Users, MousePointer, Target, Repeat, AlertTriangle, Plus, TrendingDown } from "lucide-react";
+
+interface FunnelStageAnalysis {
+  id: string;
+  stage: string;
+  stageName: string;
+  volume: number;
+  conversionRate: number;
+  cost: number;
+  cpl: number;
+  efficiency: string;
+  analysisStatus: 'excellent' | 'good' | 'needs_attention' | 'critical';
+  issues: string[];
+  recommendations: string[];
+  dropoffRate: number;
+}
 
 const RelatorioFunil = () => {
   const { funnelMetrics, campaignRankings } = useDashboardData();
+  const { convertAlertToTask } = useTaskAutomation();
+  
+  const [funnelAnalysis, setFunnelAnalysis] = useState<FunnelStageAnalysis[]>([]);
+  const [filteredData, setFilteredData] = useState<FunnelStageAnalysis[]>([]);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
-  // Loading state
-  if (!funnelMetrics || !campaignRankings) {
+  const primaryFilters: FilterConfig[] = [
+    {
+      id: 'status-eficiencia',
+      label: 'Status de Eficiência',
+      type: 'select',
+      options: [
+        { value: 'todos', label: 'Todos os status' },
+        { value: 'critical', label: 'Crítico' },
+        { value: 'needs_attention', label: 'Precisa Atenção' },
+        { value: 'good', label: 'Bom' },
+        { value: 'excellent', label: 'Excelente' }
+      ],
+      placeholder: 'Todos os status'
+    },
+    {
+      id: 'etapa-funil',
+      label: 'Etapa do Funil',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as etapas' },
+        { value: 'topo', label: 'Topo (Awareness)' },
+        { value: 'meio', label: 'Meio (Consideration)' },
+        { value: 'fundo', label: 'Fundo (Conversion)' },
+        { value: 'retencao', label: 'Retenção' }
+      ],
+      placeholder: 'Todas as etapas'
+    }
+  ];
+
+  const secondaryFilters: FilterConfig[] = [
+    {
+      id: 'conversao-minima',
+      label: 'Conversão Mínima',
+      type: 'select',
+      options: [
+        { value: 'todas', label: 'Todas as conversões' },
+        { value: '5', label: '5%+' },
+        { value: '10', label: '10%+' },
+        { value: '15', label: '15%+' }
+      ],
+      placeholder: 'Todas as conversões'
+    }
+  ];
+
+  const analyzeFunnel = () => {
+    if (!funnelMetrics) return;
+
+    const stages = [
+      {
+        id: 'topo',
+        stage: 'topo',
+        stageName: 'Topo (Awareness)',
+        volume: funnelMetrics.reach || 0,
+        cost: (funnelMetrics.reach || 0) * 0.01,
+        icon: Users
+      },
+      {
+        id: 'meio',
+        stage: 'meio',
+        stageName: 'Meio (Consideration)',
+        volume: funnelMetrics.clicks || 0,
+        cost: (funnelMetrics.clicks || 0) * 0.5,
+        icon: MousePointer
+      },
+      {
+        id: 'fundo',
+        stage: 'fundo',
+        stageName: 'Fundo (Conversion)',
+        volume: funnelMetrics.leads || 0,
+        cost: (funnelMetrics.leads || 0) * (funnelMetrics.cpl || 0),
+        icon: Target
+      },
+      {
+        id: 'retencao',
+        stage: 'retencao',
+        stageName: 'Retenção',
+        volume: Math.floor((funnelMetrics.leads || 0) * 0.7),
+        cost: Math.floor((funnelMetrics.leads || 0) * 0.7) * 50,
+        icon: Repeat
+      }
+    ];
+
+    const analysis: FunnelStageAnalysis[] = stages.map((stage, index) => {
+      const prevStage = index > 0 ? stages[index - 1] : null;
+      const conversionRate = prevStage ? (stage.volume / prevStage.volume * 100) : 100;
+      const dropoffRate = 100 - conversionRate;
+      const cpl = stage.volume > 0 ? stage.cost / stage.volume : 0;
+      
+      // Identificar problemas
+      const issues: string[] = [];
+      if (conversionRate < 5 && index > 0) issues.push(`Taxa de conversão baixa: ${conversionRate.toFixed(1)}%`);
+      if (dropoffRate > 80 && index > 0) issues.push(`Alto índice de abandono: ${dropoffRate.toFixed(1)}%`);
+      if (cpl > 100 && index === 2) issues.push(`CPL alto: R$ ${cpl.toFixed(2)}`);
+      
+      // Determinar status
+      const analysisStatus: FunnelStageAnalysis['analysisStatus'] = 
+        conversionRate < 3 && index > 0 ? 'critical' :
+        conversionRate < 8 && index > 0 ? 'needs_attention' :
+        conversionRate > 15 ? 'excellent' : 'good';
+
+      // Gerar recomendações
+      const recommendations: string[] = [];
+      if (conversionRate < 5 && index === 1) recommendations.push('Melhorar criativos para aumentar CTR');
+      if (conversionRate < 5 && index === 2) recommendations.push('Otimizar landing pages e formulários');
+      if (dropoffRate > 70) recommendations.push('Revisar jornada do usuário nesta etapa');
+      if (cpl > 80) recommendations.push('Melhorar segmentação de audiência');
+
+      const efficiency = conversionRate > 15 ? 'Excelente' : 
+                        conversionRate > 10 ? 'Boa' : 
+                        conversionRate > 5 ? 'Regular' : 'Crítica';
+
+      return {
+        id: stage.id,
+        stage: stage.stage,
+        stageName: stage.stageName,
+        volume: stage.volume,
+        conversionRate: Math.round(conversionRate * 100) / 100,
+        cost: stage.cost,
+        cpl: Math.round(cpl * 100) / 100,
+        efficiency,
+        analysisStatus,
+        issues,
+        recommendations,
+        dropoffRate: Math.round(dropoffRate * 100) / 100
+      };
+    });
+
+    setFunnelAnalysis(analysis);
+  };
+
+  const handleFilterChange = (filterId: string, value: string) => {
+    const newFilters = { ...activeFilters, [filterId]: value };
+    setActiveFilters(newFilters);
+
+    let filtered = funnelAnalysis;
+
+    if (newFilters['status-eficiencia'] && newFilters['status-eficiencia'] !== 'todos') {
+      filtered = filtered.filter(stage => stage.analysisStatus === newFilters['status-eficiencia']);
+    }
+
+    if (newFilters['etapa-funil'] && newFilters['etapa-funil'] !== 'todas') {
+      filtered = filtered.filter(stage => stage.stage === newFilters['etapa-funil']);
+    }
+
+    if (newFilters['conversao-minima'] && newFilters['conversao-minima'] !== 'todas') {
+      const minConversion = parseInt(newFilters['conversao-minima']);
+      filtered = filtered.filter(stage => stage.conversionRate >= minConversion);
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handleCreateTask = async (stage: FunnelStageAnalysis) => {
+    await convertAlertToTask({
+      title: `Otimizar ${stage.stageName}`,
+      description: `Problemas: ${stage.issues.join(', ')}. Recomendações: ${stage.recommendations.join(', ')}`,
+      priority: stage.analysisStatus === 'critical' ? 'high' : 'medium',
+      type: 'optimization'
+    });
+  };
+
+  const getStatusBadge = (status: FunnelStageAnalysis['analysisStatus']) => {
+    const variants = { excellent: 'default', good: 'secondary', needs_attention: 'outline', critical: 'destructive' } as const;
+    const labels = { excellent: 'Excelente', good: 'Bom', needs_attention: 'Precisa Atenção', critical: 'Crítico' };
+    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+  };
+
+  useEffect(() => {
+    if (funnelMetrics) {
+      analyzeFunnel();
+    }
+  }, [funnelMetrics]);
+
+  useEffect(() => {
+    setFilteredData(funnelAnalysis);
+  }, [funnelAnalysis]);
+
+  if (!funnelMetrics) {
     return (
-      <ReportLayout
-        title="Relatório de Funil Completo"
-        description="Análise detalhada do funil de conversão"
-      >
+      <ReportLayout title="Relatório de Funil Completo" description="Carregando análise do funil...">
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">Carregando dados...</p>
         </div>
@@ -24,257 +218,138 @@ const RelatorioFunil = () => {
     );
   }
 
-  const chartConfig = {
-    reach: { label: "Alcance", color: "hsl(var(--primary))" },
-    clicks: { label: "Cliques", color: "hsl(var(--secondary))" },
-    leads: { label: "Leads", color: "hsl(var(--accent))" }
+  const filteredMetrics = {
+    totalStages: filteredData.length,
+    criticalStages: filteredData.filter(s => s.analysisStatus === 'critical').length,
+    avgConversion: filteredData.length > 0 ? filteredData.reduce((acc, s) => acc + s.conversionRate, 0) / filteredData.length : 0,
+    totalCost: filteredData.reduce((acc, s) => acc + s.cost, 0)
   };
-
-  // Simulação de dados do funil por etapa - com valores padrão
-  const funnelStages = [
-    {
-      stage: "Topo (Awareness)",
-      reach: funnelMetrics?.reach || 0,
-      cost: (funnelMetrics?.reach || 0) * 0.01, // R$ 0,01 por impressão
-      cpl: 0,
-      percentage: 100,
-      icon: Users,
-      color: "hsl(var(--primary))"
-    },
-    {
-      stage: "Meio (Consideration)", 
-      reach: funnelMetrics?.clicks || 0,
-      cost: (funnelMetrics?.clicks || 0) * 0.5, // R$ 0,50 por clique
-      cpl: (funnelMetrics?.clicks || 0) > 0 ? ((funnelMetrics?.clicks || 0) * 0.5) / ((funnelMetrics?.clicks || 0) * 0.3) : 0,
-      percentage: (funnelMetrics?.reach || 0) > 0 ? ((funnelMetrics?.clicks || 0) / (funnelMetrics?.reach || 1) * 100).toFixed(1) : 0,
-      icon: MousePointer,
-      color: "hsl(var(--secondary))"
-    },
-    {
-      stage: "Fundo (Conversion)",
-      reach: funnelMetrics?.leads || 0,
-      cost: (funnelMetrics?.leads || 0) * (funnelMetrics?.cpl || 0),
-      cpl: funnelMetrics?.cpl || 0,
-      percentage: (funnelMetrics?.clicks || 0) > 0 ? ((funnelMetrics?.leads || 0) / (funnelMetrics?.clicks || 1) * 100).toFixed(1) : 0,
-      icon: Target,
-      color: "hsl(var(--accent))"
-    },
-    {
-      stage: "Retenção",
-      reach: Math.floor((funnelMetrics?.leads || 0) * 0.7), // 70% retention estimate
-      cost: Math.floor((funnelMetrics?.leads || 0) * 0.7) * 50, // R$ 50 custo de retenção
-      cpl: 50,
-      percentage: "70",
-      icon: Repeat,
-      color: "hsl(var(--muted))"
-    }
-  ];
-
-  const budgetDistribution = funnelStages.map(stage => ({
-    stage: stage.stage.split(' ')[0],
-    current: stage.cost,
-    recommended: stage.cost * (stage.stage.includes('Fundo') ? 1.2 : 0.9) // Recomendar mais investimento no fundo
-  }));
-
-  const bottlenecks = funnelStages
-    .map((stage, index) => ({
-      ...stage,
-      dropRate: index > 0 ? 100 - parseFloat(stage.percentage.toString()) : 0
-    }))
-    .filter(stage => stage.dropRate > 0)
-    .sort((a, b) => b.dropRate - a.dropRate);
 
   return (
     <ReportLayout
       title="Relatório de Funil Completo"
-      description="Análise detalhada do funil de conversão"
+      description="Análise detalhada de conversão e otimização do funil"
+      primaryFilters={primaryFilters}
+      secondaryFilters={secondaryFilters}
+      onFilterChange={handleFilterChange}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          title="Alcance Total"
-          value={(funnelMetrics?.reach || 0).toLocaleString()}
-          subtitle="Impressões"
-          trend="up"
+          title="Etapas Analisadas"
+          value={filteredMetrics.totalStages}
+          subtitle="Total do funil"
         />
         <MetricCard
-          title="Taxa de Cliques"
-          value={`${(funnelMetrics?.reach || 0) > 0 ? ((funnelMetrics?.clicks || 0) / (funnelMetrics?.reach || 1) * 100).toFixed(2) : 0}%`}
-          subtitle="CTR médio"
-          trend="up"
+          title="Etapas Críticas"
+          value={filteredMetrics.criticalStages}
+          trend={filteredMetrics.criticalStages > 0 ? "down" : "up"}
+          subtitle="Precisam otimização"
         />
         <MetricCard
-          title="Taxa de Conversão"
-          value={`${(funnelMetrics?.clicks || 0) > 0 ? ((funnelMetrics?.leads || 0) / (funnelMetrics?.clicks || 1) * 100).toFixed(2) : 0}%`}
-          subtitle="Cliques para leads"
-          trend="neutral"
+          title="Conversão Média"
+          value={`${filteredMetrics.avgConversion.toFixed(1)}%`}
+          trend={filteredMetrics.avgConversion >= 10 ? "up" : "down"}
+          subtitle="Entre etapas"
         />
         <MetricCard
-          title="CPL Médio Funil"
-          value={`R$ ${(funnelMetrics?.cpl || 0).toFixed(2)}`}
-          subtitle="Custo por lead"
-          trend="down"
+          title="Custo Total"
+          value={`R$ ${filteredMetrics.totalCost.toLocaleString()}`}
+          subtitle="Investimento no funil"
         />
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Análise Visual do Funil</CardTitle>
-          <CardDescription>Visualização da jornada do cliente</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FunnelAnalysis campaigns={campaignRankings} />
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição de Orçamento</CardTitle>
-            <CardDescription>Atual vs Recomendado por etapa</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={budgetDistribution}>
-                  <XAxis dataKey="stage" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="current" fill="var(--color-reach)" name="Atual" />
-                  <Bar dataKey="recommended" fill="var(--color-clicks)" name="Recomendado" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Gargalos Identificados</CardTitle>
-            <CardDescription>Etapas com maior perda de usuários</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {bottlenecks.slice(0, 3).map((bottleneck, index) => {
-                const Icon = bottleneck.icon;
-                return (
-                  <div key={bottleneck.stage} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
-                        {index + 1}
-                      </div>
-                      <Icon className="w-5 h-5" style={{ color: bottleneck.color }} />
-                      <div>
-                        <h4 className="font-medium">{bottleneck.stage}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {bottleneck.reach.toLocaleString()} usuários
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-red-600 font-semibold">
-                        -{bottleneck.dropRate.toFixed(1)}%
-                      </span>
-                      <p className="text-xs text-muted-foreground">perda</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Métricas Detalhadas por Etapa</CardTitle>
-          <CardDescription>Performance completa do funil de conversão</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium">Etapa do Funil</th>
-                  <th className="text-right p-3 font-medium">Volume</th>
-                  <th className="text-right p-3 font-medium">Taxa de Conversão</th>
-                  <th className="text-right p-3 font-medium">Custo Total</th>
-                  <th className="text-right p-3 font-medium">CPL/CPA</th>
-                  <th className="text-right p-3 font-medium">Eficiência</th>
-                </tr>
-              </thead>
-              <tbody>
-                {funnelStages.map((stage, index) => {
-                  const Icon = stage.icon;
-                  const efficiency = index === 0 ? 100 : parseFloat(stage.percentage.toString());
-                  const efficiencyColor = efficiency > 15 ? 'text-green-600' : 
-                                         efficiency > 10 ? 'text-yellow-600' : 'text-red-600';
-                  
-                  return (
-                    <tr key={stage.stage} className="border-b hover:bg-muted/50">
-                      <td className="p-3">
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5" style={{ color: stage.color }} />
-                          <span className="font-medium">{stage.stage}</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right">{stage.reach.toLocaleString()}</td>
-                      <td className="p-3 text-right">{stage.percentage}%</td>
-                      <td className="p-3 text-right">R$ {stage.cost.toLocaleString()}</td>
-                      <td className="p-3 text-right">R$ {stage.cpl.toFixed(2)}</td>
-                      <td className="p-3 text-right">
-                        <span className={`font-semibold ${efficiencyColor}`}>
-                          {efficiency > 50 ? 'Ótima' : efficiency > 20 ? 'Boa' : efficiency > 10 ? 'Regular' : 'Crítica'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recomendações de Otimização</CardTitle>
-          <CardDescription>Ações para melhorar a performance do funil</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-3 border rounded-lg">
-              <Users className="w-5 h-5 text-blue-600 mt-1" />
-              <div>
-                <h4 className="font-medium">Otimizar Topo do Funil</h4>
-                <p className="text-sm text-muted-foreground">
-                  Expandir públicos-alvo e testar novos criativos para aumentar o alcance qualificado
-                </p>
+      <div className="space-y-4">
+        {filteredData.map((stage) => (
+          <Card key={stage.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">{stage.stageName}</CardTitle>
+                  <CardDescription>
+                    {stage.volume.toLocaleString()} usuários • {stage.conversionRate}% conversão
+                  </CardDescription>
+                </div>
+                {getStatusBadge(stage.analysisStatus)}
               </div>
-            </div>
+            </CardHeader>
             
-            <div className="flex items-start gap-3 p-3 border rounded-lg">
-              <MousePointer className="w-5 h-5 text-green-600 mt-1" />
-              <div>
-                <h4 className="font-medium">Melhorar Taxa de Cliques</h4>
-                <p className="text-sm text-muted-foreground">
-                  CTR atual de {(funnelMetrics?.reach || 0) > 0 ? ((funnelMetrics?.clicks || 0) / (funnelMetrics?.reach || 1) * 100).toFixed(2) : 0}% 
-                  pode ser otimizado para 3-4% com criativos mais atrativos
-                </p>
-              </div>
-            </div>
+            <CardContent className="space-y-4">
+              {stage.issues.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Problemas Identificados
+                  </h4>
+                  <ul className="space-y-1">
+                    {stage.issues.map((issue, index) => (
+                      <li key={index} className="text-sm text-destructive flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-destructive" />
+                        {issue}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            <div className="flex items-start gap-3 p-3 border rounded-lg">
-              <Target className="w-5 h-5 text-purple-600 mt-1" />
-              <div>
-                <h4 className="font-medium">Otimizar Conversões</h4>
-                <p className="text-sm text-muted-foreground">
-                  Revisar landing pages e formulários para reduzir fricção na conversão
-                </p>
+              {stage.recommendations.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                    <Target className="w-4 h-4" />
+                    Recomendações
+                  </h4>
+                  <ul className="space-y-1">
+                    {stage.recommendations.map((rec, index) => (
+                      <li key={index} className="text-sm text-muted-foreground flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-primary" />
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{stage.volume.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Volume</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-lg font-bold ${stage.conversionRate >= 10 ? 'text-green-600' : 'text-red-600'}`}>
+                    {stage.conversionRate}%
+                  </div>
+                  <div className="text-xs text-muted-foreground">Conversão</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">R$ {stage.cost.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Custo</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">R$ {stage.cpl.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">CPL</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{stage.efficiency}</div>
+                  <div className="text-xs text-muted-foreground">Eficiência</div>
+                </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
+              {(stage.analysisStatus === 'critical' || stage.analysisStatus === 'needs_attention') && (
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCreateTask(stage)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Otimizar Etapa
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </ReportLayout>
   );
 };
