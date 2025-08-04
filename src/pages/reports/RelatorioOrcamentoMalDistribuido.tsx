@@ -216,10 +216,16 @@ export default function RelatorioOrcamentoMalDistribuido() {
     : 0;
   const criticalClients = budgetAnalysis.filter(a => a.severity_score > 60).length;
 
+  const availableClients = budgetAnalysis.map(analysis => ({
+    id: analysis.client_id,
+    name: analysis.client_name
+  }));
+
   return (
     <ReportLayout
       title="Relatório de Orçamento Mal Distribuído"
       description="Detecção de clientes que não seguem a estratégia recomendada de alocação"
+      availableClients={availableClients}
     >
       <div className="space-y-6">
         {/* Resumo */}
