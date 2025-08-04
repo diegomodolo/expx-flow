@@ -307,7 +307,7 @@ export default function NewDashboard() {
                     investment: client.investment,
                     leads: client.leads_generated
                   }))}
-                  margin={{ top: 5, right: 15, left: 5, bottom: 40 }}
+                  margin={{ top: 5, right: 2, left: 2, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -382,7 +382,7 @@ export default function NewDashboard() {
                       };
                     });
                   })()}
-                  margin={{ top: 5, right: 15, left: 5, bottom: 40 }}
+                  margin={{ top: 5, right: 2, left: 2, bottom: 40 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
