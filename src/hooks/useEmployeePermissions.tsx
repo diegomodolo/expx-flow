@@ -251,20 +251,27 @@ export function useEmployeePermissions() {
 
   // Verificar se usuário tem permissão para acessar um menu
   const hasPermission = (menuItem: MenuItemType): boolean => {
-    // Durante o loading, permitir acesso se for owner ou se for dashboard/tarefas
-    if (permissionsLoading) {
-      // Se já sabemos que é owner, libera tudo
-      if (isOwner) {
-        return true;
-      }
-      // Para outros usuários, libera apenas dashboard e tarefas durante loading
-      return menuItem === 'dashboard' || menuItem === 'tarefas';
-    }
-
-    // Proprietário da empresa sempre tem acesso a tudo
-    if (isOwner) {
-      console.log(`Proprietário acessando ${menuItem}: true`);
+    console.log('hasPermission check:', { 
+      menuItem, 
+      isOwner, 
+      permissionsLoading, 
+      activeCompany: activeCompany?.id,
+      companyRole: activeCompany?.role
+    });
+    
+    // Check if user is owner directly from company context
+    const isOwnerFromContext = activeCompany?.role === 'owner';
+    
+    // Owners have access to everything - check both sources
+    if (isOwner || isOwnerFromContext) {
+      console.log(`Owner accessing ${menuItem}: true (isOwner: ${isOwner}, contextRole: ${activeCompany?.role})`);
       return true;
+    }
+    
+    // During loading, only allow dashboard and tarefas for non-owners
+    if (permissionsLoading) {
+      console.log(`Loading state - allowing basic access for ${menuItem}:`, menuItem === 'dashboard' || menuItem === 'tarefas');
+      return menuItem === 'dashboard' || menuItem === 'tarefas';
     }
 
     // Dashboard e tarefas são sempre acessíveis para todos os colaboradores
@@ -273,7 +280,7 @@ export function useEmployeePermissions() {
     }
     
     const hasAccess = currentUserPermissions.includes(menuItem);
-    console.log(`Permissão para ${menuItem}:`, hasAccess, 'Permissões atuais:', currentUserPermissions);
+    console.log(`Permission for ${menuItem}:`, hasAccess, 'Current permissions:', currentUserPermissions);
     return hasAccess;
   };
 

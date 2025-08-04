@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Home,
   LayoutDashboard,
@@ -44,13 +45,32 @@ export function DashboardSidebar() {
 
   const isActive = (path: string) => currentPath === path;
 
-  // Filtrar itens baseado nas permissões
-  // Durante o loading, mostrar todos os itens para owners ou apenas dashboard/tarefas para outros
-  const visibleItems = permissionsLoading 
-    ? (isOwner ? items : items.filter(item => item.permission === 'dashboard' || item.permission === 'tarefas'))
-    : items.filter(item => hasPermission(item.permission));
-
-  console.log('Sidebar - Loading:', permissionsLoading, 'IsOwner:', isOwner, 'Visible items:', visibleItems.length);
+  // Filter items based on permissions
+  const visibleItems = React.useMemo(() => {
+    console.log('Filtering sidebar items:', { 
+      permissionsLoading, 
+      isOwner, 
+      totalItems: items.length,
+      currentPath
+    });
+    
+    // Always show all items for owners
+    if (isOwner) {
+      console.log('User is owner, showing all items');
+      return items;
+    }
+    
+    // During loading, show basic items only
+    if (permissionsLoading) {
+      console.log('Still loading permissions, showing basic items');
+      return items.filter(item => item.permission === 'dashboard' || item.permission === 'tarefas');
+    }
+    
+    // Filter based on permissions
+    const filtered = items.filter(item => hasPermission(item.permission));
+    console.log('Filtered items:', filtered.map(item => item.title));
+    return filtered;
+  }, [permissionsLoading, isOwner, hasPermission, currentPath]);
 
   return (
     <Sidebar
