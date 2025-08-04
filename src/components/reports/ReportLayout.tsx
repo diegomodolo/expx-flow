@@ -136,7 +136,7 @@ export function ReportLayout({
         <div className="space-y-6">
           {/* Title and Actions */}
           <div className="flex items-start justify-between">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <h1 className="text-report-title text-foreground">{title}</h1>
               <p className="text-report-description text-muted-foreground">{description}</p>
             </div>
@@ -167,7 +167,7 @@ export function ReportLayout({
           {(primaryFilters.length > 0 || secondaryFilters.length > 0) && (
             <Card>
               <CardContent className="p-4">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <h3 className="text-report-subtitle text-foreground">Filtros</h3>
                   {filterDescription && (
                     <p className="text-report-caption text-muted-foreground">{filterDescription}</p>
