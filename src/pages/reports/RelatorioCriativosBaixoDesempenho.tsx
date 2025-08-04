@@ -441,123 +441,134 @@ export default function RelatorioCriativosBaixoDesempenho() {
             filteredData.map((creative) => {
               return (
                 <Card key={creative.id} className="border-l-4 border-l-destructive">
-                  <CardHeader>
+                  <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <AlertTriangle className="w-5 h-5 text-destructive" />
-                          <div>
-                            <CardTitle className="text-lg">{creative.name}</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                              {creative.campaign_name} • {creative.client_name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className={getStatusColor(creative.status)}>
-                            {creative.status === 'critical' ? 'CRÍTICO' : 
-                             creative.status === 'warning' ? 'ALERTA' : 'BAIXA PERFORMANCE'}
-                          </Badge>
-                          <Badge 
-                            variant={creative.campaign_status === 'active' ? 'default' : 'secondary'}
-                            className={creative.campaign_status === 'active' ? 'bg-success text-success-foreground' : ''}
-                          >
-                            Campanha: {creative.campaign_status === 'active' ? 'Ativa' : 
-                                      creative.campaign_status === 'paused' ? 'Pausada' : 'Finalizada'}
-                          </Badge>
-                          <Badge variant="outline">
-                            Score: {creative.performance_score}/100
-                          </Badge>
-                          <Badge variant="outline">
-                            {creative.days_active} dias ativo{creative.days_active !== 1 ? 's' : ''}
-                          </Badge>
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
+                        <div>
+                          <CardTitle className="text-lg">{creative.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            {creative.campaign_name} • {creative.client_name}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`flex items-center gap-2 ${getRecommendationColor(creative.recommendation)}`}>
-                          {creative.recommendation === 'pause' && <AlertTriangle className="w-4 h-4" />}
-                          {creative.recommendation === 'replace' && <TrendingDown className="w-4 h-4" />}
-                          {creative.recommendation === 'adjust' && <Target className="w-4 h-4" />}
-                          <span className="font-semibold">
-                            {creative.recommendation === 'pause' ? 'PAUSAR' :
-                             creative.recommendation === 'replace' ? 'SUBSTITUIR' : 'AJUSTAR'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {creative.recommendation_reason}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(creative.status)}>
+                          {creative.status === 'critical' ? 'EFICIÊNCIA BAIXA' : 
+                           creative.status === 'warning' ? 'ALERTA' : 'BAIXA PERFORMANCE'}
+                        </Badge>
+                        <Badge variant="outline">
+                          #{creative.performance_score}/100 score
+                        </Badge>
+                        <Badge variant="outline">
+                          {creative.days_active} dias ativo{creative.days_active !== 1 ? 's' : ''}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateTask(creative)}
+                        >
+                          Criar Tarefa
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    {/* Métricas de Performance */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
-                          {creative.ctr.toFixed(2)}%
-                        </div>
-                        <div className="text-xs text-success">
-                          Ideal: {creative.ideal_ctr.toFixed(2)}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">CTR</div>
+                  
+                  <CardContent className="space-y-4">
+                    {/* Problemas Identificados */}
+                    <div>
+                      <h4 className="font-semibold mb-2 text-destructive">Problemas Identificados:</h4>
+                      <div className="space-y-1">
+                        {creative.ctr < creative.ideal_ctr && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <span>CTR abaixo da meta ({creative.ctr.toFixed(2)}% vs {creative.ideal_ctr.toFixed(2)}%)</span>
+                          </div>
+                        )}
+                        {creative.cpc > creative.ideal_cpc && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <span>CPC acima da meta (R$ {creative.cpc.toFixed(2)} vs R$ {creative.ideal_cpc.toFixed(2)})</span>
+                          </div>
+                        )}
+                        {creative.conversions === 0 && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                            <span>Nenhuma conversão gerada</span>
+                          </div>
+                        )}
                       </div>
+                    </div>
+
+                    {/* Recomendação */}
+                    <div>
+                      <h4 className="font-semibold mb-2 text-primary">Recomendação:</h4>
+                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                        {creative.recommendation_reason}
+                      </p>
+                    </div>
+
+                    {/* Status da Campanha */}
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={creative.campaign_status === 'active' ? 'default' : 'secondary'}
+                        className={creative.campaign_status === 'active' ? 'bg-success text-success-foreground' : ''}
+                      >
+                        Campanha: {creative.campaign_status === 'active' ? 'Ativa' : 
+                                  creative.campaign_status === 'paused' ? 'Pausada' : 'Finalizada'}
+                      </Badge>
+                    </div>
+
+                    {/* Métricas Principais - Layout horizontal similar à imagem */}
+                    <div className="grid grid-cols-5 gap-4 pt-4 border-t">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-destructive">
-                          R$ {creative.cpc.toFixed(2)}
+                          R$ {creative.spend.toLocaleString()}
                         </div>
-                        <div className="text-xs text-success">
-                          Ideal: R$ {creative.ideal_cpc.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">CPC</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-destructive">
-                          {creative.cpl > 0 ? `R$ ${creative.cpl.toFixed(0)}` : 'N/A'}
-                        </div>
-                        <div className="text-xs text-success">
-                          {creative.ideal_cpl > 0 ? `Ideal: R$ ${creative.ideal_cpl.toFixed(0)}` : 'Ideal: N/A'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">CPL</div>
+                        <div className="text-xs text-muted-foreground">Investimento Total</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold">
                           {creative.conversions}
                         </div>
-                        <div className="text-xs text-success">
-                          Meta: Aumentar
-                        </div>
                         <div className="text-xs text-muted-foreground">Conversões</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-destructive">
-                          R$ {creative.spend.toLocaleString()}
+                          {creative.cpl > 0 ? `R$ ${creative.cpl.toFixed(0)}` : 'N/A'}
                         </div>
-                        <div className="text-xs text-warning">
-                          Status: Desperdiçado
+                        <div className="text-xs text-muted-foreground">
+                          CPA (Meta: {creative.ideal_cpl > 0 ? `R$ ${creative.ideal_cpl.toFixed(0)}` : 'N/A'})
                         </div>
-                        <div className="text-xs text-muted-foreground">Gasto</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-destructive">
+                          {creative.ctr.toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          CTR (Mín: {creative.ideal_ctr.toFixed(2)}%)
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-destructive">
+                          R$ {creative.cpc.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          CPC (Mín: R$ {creative.ideal_cpc.toFixed(2)})
+                        </div>
                       </div>
                     </div>
 
-                    {/* Ação Recomendada */}
-                    <div className="flex gap-2 pt-4 border-t">
+                    {/* Botão Ver Detalhes */}
+                    <div className="pt-4 border-t">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
-                        onClick={() => handleCreateTask(creative)}
-                      >
-                        <Target className="w-4 h-4 mr-2" />
-                        Criar Tarefa
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
+                        className="w-full"
                         onClick={() => handleViewAdCreativeMetrics(creative)}
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        Ver Detalhes
+                        Ver Detalhes Completos
                       </Button>
                     </div>
                   </CardContent>
