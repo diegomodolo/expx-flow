@@ -458,7 +458,7 @@ serve(async (req) => {
     // Fetch campaigns from Facebook API with enhanced insights - using only 7d_click attribution window
     console.log('Using attribution window: 7d_click only (fixed duplication issue)')
     const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click"])` +
-      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED","ARCHIVED"]&limit=100&access_token=${accessToken}`
+      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED"]&limit=100&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', baseCampaignsUrl.replace(accessToken, '[REDACTED]'))
 
     let campaigns: any[] = []
