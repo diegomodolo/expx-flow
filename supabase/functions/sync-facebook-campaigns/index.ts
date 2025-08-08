@@ -403,7 +403,7 @@ serve(async (req) => {
 
     // Fetch campaigns from Facebook API with enhanced insights
     const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
-      `{impressions,clicks,spend,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+      `{impressions,clicks,spend,actions,conversions,conversion_values,website_actions,action_values,cost_per_conversion,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
     const campaignsResponse = await fetch(facebookUrl)
     console.log('Facebook API response status:', campaignsResponse.status)
@@ -538,11 +538,18 @@ serve(async (req) => {
           console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
           console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
           
-          // Count conversions from actions (lead, subscribe, complete_registration, and pixel variants)
+          // First check direct conversions field
+          const directConversions = parseInt(insights.conversions || 0);
+          console.log(`Direct conversions field for ${campaign.name}:`, directConversions)
+          
+          // Then check conversions from actions
           const conv = countConversionsFromActions(insights.actions, campaign.objective, campaign.name);
-          leads += conv;
-          totalLeads += conv;
-          console.log('Summed conversions for campaign', campaign.name, ':', conv)
+          
+          // Use the higher value or combine them appropriately
+          const finalConversions = Math.max(directConversions, conv);
+          leads += finalConversions;
+          totalLeads += finalConversions;
+          console.log(`Final conversions for campaign ${campaign.name}: direct=${directConversions}, actions=${conv}, final=${finalConversions}`)
 
           // Calculate CPC
           cpc = clicks > 0 ? spend / clicks : 0
