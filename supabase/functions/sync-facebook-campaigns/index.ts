@@ -335,91 +335,109 @@ serve(async (req) => {
       
       const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD')
 
-      // Strict lead action types to match Meta "Leads" metric
-      const allowedLeadTypes = [
-        'lead',
-        'omni_lead',
-        'on_facebook_lead',
-        'offsite_conversion.fb_pixel_lead',
-        'onsite_conversion.lead',
-        'onsite_conversion.lead_grouped',
-        'website_lead'
-      ]
+      if (isLeadObjective) {
+        // FIXED: Use priority hierarchy for lead campaigns to prevent duplication
+        console.log('LEAD CAMPAIGN DETECTED: Using priority hierarchy instead of summing')
+        
+        // Priority order for lead actions (highest to lowest)
+        const leadPriorityTypes = [
+          'lead',                              // 1st priority: Direct lead
+          'offsite_conversion.fb_pixel_lead',  // 2nd priority: Pixel lead
+          'onsite_conversion.lead',           // 3rd priority: Onsite lead
+          'omni_lead',                        // 4th priority: Omni lead
+          'on_facebook_lead',                 // 5th priority: Facebook lead
+          'onsite_conversion.lead_grouped',   // 6th priority: Grouped lead
+          'website_lead'                      // 7th priority: Website lead
+        ]
 
-      // Previous generic list retained for non-lead objectives
-      const subscriptionConversions = [
-        'subscribe',
-        'subscription', 
-        'complete_registration',
-        'lead',
-        'offsite_conversion.fb_pixel_subscribe',
-        'offsite_conversion.fb_pixel_complete_registration',
-        'offsite_conversion.fb_pixel_lead',
-        'offsite_conversion.fb_pixel_custom',
-        'onsite_conversion.subscribe',
-        'onsite_conversion.subscription',
-        'onsite_conversion.lead_grouped',
-        'website_lead'
-      ]
-      
-      // Remove types that are not real conversions
-      const excludedTypes = [
-        'link_click',
-        'landing_page_view', 
-        'page_engagement',
-        'post_engagement',
-        'video_view',
-        'post_reaction',
-        'like',
-        'comment',
-        'share',
-        'post',
-        'omni_landing_page_view'
-      ]
-      
-      let total = 0
-      
-      for (const a of actions) {
-        const type = (a?.action_type || '').toLowerCase()
-        const val = parseInt(a?.value || 0)
-        
-        console.log(`Checking action: "${type}" = ${val}`)
-        
-        if (!type || !Number.isFinite(val)) {
-          console.log(`  -> Skipped: invalid type or value`)
-          continue
+        // Find the highest priority lead action with value > 0
+        for (const priorityType of leadPriorityTypes) {
+          for (const action of actions) {
+            const type = (action?.action_type || '').toLowerCase()
+            const val = parseInt(action?.value || 0)
+            
+            if (type === priorityType && val > 0) {
+              console.log(`  -> USING PRIORITY: "${type}" = ${val} (highest priority found)`)
+              console.log(`=== Final conversion total for ${campaignName}: ${val} (priority-based) ===\n`)
+              return val
+            }
+          }
         }
         
-        // Exclude types that are definitely not conversions
-        if (excludedTypes.some(excluded => type.includes(excluded))) {
-          console.log(`  -> Excluded: "${type}" is not a conversion`)
-          continue
-        }
+        console.log('  -> No lead actions found with values > 0')
+        console.log(`=== Final conversion total for ${campaignName}: 0 (no valid leads) ===\n`)
+        return 0
         
-        let include = false
-        if (isLeadObjective) {
-          // Only count strict lead types for Lead campaigns
-          include = allowedLeadTypes.includes(type)
-        } else {
-          // Keep earlier permissive behavior for non-lead objectives
+      } else {
+        // Non-lead campaigns: keep existing summing logic
+        console.log('NON-LEAD CAMPAIGN: Using summing logic')
+        
+        const subscriptionConversions = [
+          'subscribe',
+          'subscription', 
+          'complete_registration',
+          'lead',
+          'offsite_conversion.fb_pixel_subscribe',
+          'offsite_conversion.fb_pixel_complete_registration',
+          'offsite_conversion.fb_pixel_lead',
+          'offsite_conversion.fb_pixel_custom',
+          'onsite_conversion.subscribe',
+          'onsite_conversion.subscription',
+          'onsite_conversion.lead_grouped',
+          'website_lead'
+        ]
+        
+        // Remove types that are not real conversions
+        const excludedTypes = [
+          'link_click',
+          'landing_page_view', 
+          'page_engagement',
+          'post_engagement',
+          'video_view',
+          'post_reaction',
+          'like',
+          'comment',
+          'share',
+          'post',
+          'omni_landing_page_view'
+        ]
+        
+        let total = 0
+        
+        for (const a of actions) {
+          const type = (a?.action_type || '').toLowerCase()
+          const val = parseInt(a?.value || 0)
+          
+          console.log(`Checking action: "${type}" = ${val}`)
+          
+          if (!type || !Number.isFinite(val)) {
+            console.log(`  -> Skipped: invalid type or value`)
+            continue
+          }
+          
+          // Exclude types that are definitely not conversions
+          if (excludedTypes.some(excluded => type.includes(excluded))) {
+            console.log(`  -> Excluded: "${type}" is not a conversion`)
+            continue
+          }
+          
           const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
                                            type.includes('subscribe') ||
                                            type.includes('subscription') ||
                                            (type.includes('lead') && !type.includes('link')) ||
                                            type.includes('complete_registration')
-          include = isSubscriptionConversion
+          
+          if (isSubscriptionConversion) {
+            total += val
+            console.log(`  -> ADDED: ${val} from "${type}", total now: ${total}`)
+          } else {
+            console.log(`  -> Ignored: "${type}" not in allowed list for non-lead objective`)
+          }
         }
         
-        if (include) {
-          total += val
-          console.log(`  -> ADDED: ${val} from "${type}", total now: ${total}`)
-        } else {
-          console.log(`  -> Ignored: "${type}" not in allowed list for objective`)
-        }
+        console.log(`=== Final conversion total for ${campaignName}: ${total} (summed) ===\n`)
+        return total
       }
-      
-      console.log(`=== Final conversion total for ${campaignName}: ${total} ===\n`)
-      return total
     };
 
     // Fetch campaigns from Facebook API with enhanced insights - using only 7d_click attribution window
