@@ -330,17 +330,17 @@ serve(async (req) => {
         return 0;
       }
 
-      const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
       const getVal = (a: any) => {
-        const candidates = [a?.['7d_click'], a?.['1d_view'], a?.value]
-        for (const c of candidates) {
-          const n = typeof c === 'string' ? parseFloat(c) : Number(c)
-          if (Number.isFinite(n) && n > 0) return Math.round(n)
-        }
-        const all = candidates
-          .map(c => (typeof c === 'string' ? parseFloat(c) : Number(c)))
-          .filter(n => Number.isFinite(n))
-        return all.length ? Math.round(Math.max(0, ...all)) : 0
+        const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v))
+        const click = toNum(a?.['7d_click'])
+        const view = toNum(a?.['1d_view'])
+        const val = toNum(a?.value)
+        const sumCv = (Number.isFinite(click) ? click : 0) + (Number.isFinite(view) ? view : 0)
+        // Prefer the sum of 7d_click + 1d_view when available, but if Facebook already provides an aggregated "value",
+        // take the max between the provided value and the sum to avoid undercounting
+        const candidates = [sumCv, val, click, view].map(n => (Number.isFinite(n) ? n : 0))
+        const best = Math.max(...candidates, 0)
+        return Math.round(best > 0 ? best : 0)
       }
       
       console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
@@ -355,12 +355,13 @@ serve(async (req) => {
         // Priority order for lead actions (highest to lowest)
         const leadPriorityTypes = [
           'lead',                              // 1st priority: Direct lead
-          'offsite_conversion.fb_pixel_lead',  // 2nd priority: Pixel lead
-          'onsite_conversion.lead',            // 3rd priority: Onsite lead
-          'omni_lead',                         // 4th priority: Omni lead
-          'on_facebook_lead',                  // 5th priority: Facebook lead
-          'onsite_conversion.lead_grouped',    // 6th priority: Grouped lead
-          'website_lead'                       // 7th priority: Website lead
+          'offsite_conversion.fb_pixel_lead',  // 2nd priority: Pixel lead (standard)
+          'offsite_conversion.fb_pixel_custom',// 3rd priority: Custom pixel event mapped as conversion/lead
+          'onsite_conversion.lead',            // 4th priority: Onsite lead
+          'omni_lead',                         // 5th priority: Omni lead
+          'on_facebook_lead',                  // 6th priority: Facebook lead
+          'onsite_conversion.lead_grouped',    // 7th priority: Grouped lead
+          'website_lead'                       // 8th priority: Website lead
         ]
 
         // Normalize once
