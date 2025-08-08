@@ -325,28 +325,59 @@ serve(async (req) => {
 
     // Helper to sum conversions from various action types (lead, subscribe, complete_registration, pixel variants)
     const countConversionsFromActions = (actions: any[] | undefined) => {
-      if (!actions || !Array.isArray(actions)) return 0;
+      if (!actions || !Array.isArray(actions)) {
+        console.log('No actions array found or invalid actions')
+        return 0;
+      }
+      
+      console.log('Processing actions:', JSON.stringify(actions, null, 2))
+      
       let total = 0;
       const whitelist = [
         'lead',
         'complete_registration',
         'subscribe',
+        'subscription',
         'offsite_conversion.fb_pixel_lead',
         'offsite_conversion.fb_pixel_complete_registration',
         'offsite_conversion.fb_pixel_subscribe',
+        'offsite_conversion.custom',
         'onsite_conversion.lead_grouped',
         'onsite_conversion.subscribe',
         'onsite_conversion.subscription',
         'onsite_conversion.purchase',
+        'website_lead',
+        'app_custom_event.fb_mobile_subscribe',
+        'mobile_app_install',
+        'link_click',
       ];
+      
       for (const a of actions) {
         const type = (a?.action_type || '').toLowerCase();
         const val = parseInt(a?.value || 0);
-        if (!type || !Number.isFinite(val)) continue;
-        if (whitelist.includes(type) || type.includes('subscribe') || type.includes('lead') || type.includes('complete_registration')) {
+        
+        console.log(`Processing action: type="${type}", value="${a?.value}", parsed_value=${val}`)
+        
+        if (!type || !Number.isFinite(val)) {
+          console.log(`Skipping action: invalid type or value`)
+          continue;
+        }
+        
+        // Check whitelist or partial matches
+        if (whitelist.includes(type) || 
+            type.includes('subscribe') || 
+            type.includes('subscription') || 
+            type.includes('lead') || 
+            type.includes('complete_registration') ||
+            type.includes('custom')) {
           total += val;
+          console.log(`Added ${val} from action type "${type}", total now: ${total}`)
+        } else {
+          console.log(`Ignored action type: "${type}"`)
         }
       }
+      
+      console.log(`Final conversion total: ${total}`)
       return total;
     };
 
