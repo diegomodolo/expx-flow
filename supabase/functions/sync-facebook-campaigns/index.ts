@@ -605,14 +605,18 @@ serve(async (req) => {
           console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
           console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
           
-          const actionsConv = countConversionsFromActions(insights.actions, campaign.objective, campaign.name)
+          // Combine actions and conversions arrays to ensure we capture pixel leads
+          const combinedMetrics = [
+            ...(Array.isArray(insights.actions) ? insights.actions : []),
+            ...(Array.isArray(insights.conversions) ? insights.conversions : [])
+          ]
 
-          const directConversions = parseInt(insights.conversions || 0)
+          const countedConversions = countConversionsFromActions(combinedMetrics, campaign.objective, campaign.name)
           const isLeadObjective = (campaign.objective || '').toUpperCase().includes('LEAD')
 
-           const finalConversions = Math.max(actionsConv || 0, directConversions || 0)
+          const finalConversions = countedConversions || 0
 
-           console.log(`Conversions for ${campaign.name}: objective=${campaign.objective}, actions=${actionsConv}, direct_field=${directConversions}, chosen=${finalConversions}`)
+          console.log(`Conversions for ${campaign.name}: objective=${campaign.objective}, counted=${countedConversions}, chosen=${finalConversions}`)
 
            leads += finalConversions
            totalLeads += finalConversions
