@@ -457,49 +457,61 @@ serve(async (req) => {
 
     // Fetch campaigns from Facebook API with enhanced insights - using only 7d_click attribution window
     console.log('Using attribution window: 7d_click only (fixed duplication issue)')
-    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\"])` +
-      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
-    console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
-    const campaignsResponse = await fetch(facebookUrl)
-    console.log('Facebook API response status:', campaignsResponse.status)
+    const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click"])` +
+      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED","ARCHIVED"]&limit=100&access_token=${accessToken}`
+    console.log('Facebook API URL (without token):', baseCampaignsUrl.replace(accessToken, '[REDACTED]'))
 
-    if (!campaignsResponse.ok) {
-      const errorText = await campaignsResponse.text()
-      console.error('Facebook API error response:', errorText)
-      console.error('Facebook API status:', campaignsResponse.status)
-      console.error('Facebook API statusText:', campaignsResponse.statusText)
-      console.error('Period used:', period)
-      console.error('Date param used:', dateParam)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Failed to fetch campaigns from Facebook. Status: ${campaignsResponse.status}. Error: ${errorText}` 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    let campaigns: any[] = []
+    let pageUrl: string | null = baseCampaignsUrl
+
+    while (pageUrl) {
+      console.log('Fetching campaigns page:', pageUrl.replace(accessToken, '[REDACTED]'))
+      const response = await fetch(pageUrl)
+      console.log('Facebook API response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Facebook API error response:', errorText)
+        console.error('Facebook API status:', response.status)
+        console.error('Facebook API statusText:', response.statusText)
+        console.error('Period used:', period)
+        console.error('Date param used:', dateParam)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Failed to fetch campaigns from Facebook. Status: ${response.status}. Error: ${errorText}` 
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      const pageData = await response.json()
+      console.log('Facebook campaigns page data count:', (pageData.data || []).length)
+
+      if (pageData.error) {
+        console.error('Facebook API error in page response:', pageData.error)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: pageData.error.message || 'Facebook API error' 
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      campaigns = campaigns.concat(pageData.data || [])
+      pageUrl = pageData.paging?.next || null
+      if (pageUrl) {
+        console.log('Next page detected, continuing pagination...')
+      }
     }
 
-    const campaignsData = await campaignsResponse.json()
-    console.log('Facebook campaigns response data:', JSON.stringify(campaignsData, null, 2))
-
-    if (campaignsData.error) {
-      console.error('Facebook API error in response:', campaignsData.error)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: campaignsData.error.message || 'Facebook API error' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    const campaigns = campaignsData.data || []
     console.log('Number of campaigns found:', campaigns.length)
     
     // Calculate metrics and sync campaigns to database
