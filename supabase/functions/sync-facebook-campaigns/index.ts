@@ -332,9 +332,15 @@ serve(async (req) => {
 
       const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
       const getVal = (a: any) => {
-        const raw = (a?.['7d_click'] ?? a?.value ?? 0) as string | number
-        const n = typeof raw === 'string' ? parseFloat(raw) : Number(raw)
-        return Number.isFinite(n) ? Math.round(n) : 0
+        const candidates = [a?.['7d_click'], a?.['1d_view'], a?.value]
+        for (const c of candidates) {
+          const n = typeof c === 'string' ? parseFloat(c) : Number(c)
+          if (Number.isFinite(n) && n > 0) return Math.round(n)
+        }
+        const all = candidates
+          .map(c => (typeof c === 'string' ? parseFloat(c) : Number(c)))
+          .filter(n => Number.isFinite(n))
+        return all.length ? Math.round(Math.max(0, ...all)) : 0
       }
       
       console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
@@ -690,6 +696,7 @@ serve(async (req) => {
       }
 
       // Fetch ad sets for this campaign if enabled
+      let campaignChildLeads = 0
       if (syncAdSets) {
         try {
           console.log('Fetching ad sets for campaign:', campaign.id)
@@ -733,10 +740,17 @@ serve(async (req) => {
               adSetCtr = adSetImpressions > 0 ? (adSetClicks / adSetImpressions) * 100 : 0
               adSetCpc = adSetClicks > 0 ? adSetSpend / adSetClicks : 0
 
-              // Don't count conversions at ad set level to avoid duplication
-              // Conversions are already counted at campaign level
+              // Count conversions from ad set to use as fallback for campaign-level leads
+              const adSetCombinedMetrics = [
+                ...(Array.isArray(adSetInsights.actions) ? adSetInsights.actions : []),
+                ...(Array.isArray((adSetInsights as any).conversions) ? (adSetInsights as any).conversions : [])
+              ]
+              const adSetCounted = countConversionsFromActions(adSetCombinedMetrics, campaign.objective, `${campaign.name} → ${adSet.name}`)
+              campaignChildLeads += adSetCounted
+
+              // Still store 0 at ad set level to avoid duplication
               adSetLeads = 0
-              console.log('Ad set conversions set to 0 (counted at campaign level)', adSet.name)
+              console.log('Ad set conversions counted for campaign fallback (not saved at ad set):', adSet.name, adSetCounted)
             }
 
             // Save ad set to database
@@ -970,6 +984,26 @@ serve(async (req) => {
         }
       } else {
         console.log('Skipping ad sets sync for campaign:', campaign.id, '(not requested)')
+      }
+
+      // If no campaign-level leads, but found in child levels, update campaign totals
+      if (savedCampaign && ((savedCampaign as any).conversions ?? 0) === 0 && campaignChildLeads > 0) {
+        console.log('Updating campaign with leads from ad sets:', campaign.name, campaignChildLeads)
+        const { data: updatedCampaign, error: updateConvError } = await supabase
+          .from('campaigns')
+          .update({
+            conversions: campaignChildLeads,
+            cpa: (savedCampaign as any).spend > 0 ? (savedCampaign as any).spend / campaignChildLeads : 0
+          })
+          .eq('id', (savedCampaign as any).id)
+          .select()
+          .single()
+        if (updateConvError) {
+          console.error('Error updating campaign conversions from children:', updateConvError)
+        } else {
+          savedCampaign = updatedCampaign
+          totalLeads += campaignChildLeads
+        }
       }
     }
 
