@@ -333,9 +333,20 @@ serve(async (req) => {
       console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
       console.log('Available actions:', JSON.stringify(actions.map(a => ({ type: a.action_type, value: a.value })), null, 2))
       
-      let total = 0;
-      
-      // Para campanhas de LEADS, focar especificamente em assinaturas/leads reais
+      const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD')
+
+      // Strict lead action types to match Meta "Leads" metric
+      const allowedLeadTypes = [
+        'lead',
+        'omni_lead',
+        'on_facebook_lead',
+        'offsite_conversion.fb_pixel_lead',
+        'onsite_conversion.lead',
+        'onsite_conversion.lead_grouped',
+        'website_lead'
+      ]
+
+      // Previous generic list retained for non-lead objectives
       const subscriptionConversions = [
         'subscribe',
         'subscription', 
@@ -349,9 +360,9 @@ serve(async (req) => {
         'onsite_conversion.subscription',
         'onsite_conversion.lead_grouped',
         'website_lead'
-      ];
+      ]
       
-      // Remover tipos que não são conversões reais
+      // Remove types that are not real conversions
       const excludedTypes = [
         'link_click',
         'landing_page_view', 
@@ -364,42 +375,51 @@ serve(async (req) => {
         'share',
         'post',
         'omni_landing_page_view'
-      ];
+      ]
+      
+      let total = 0
       
       for (const a of actions) {
-        const type = (a?.action_type || '').toLowerCase();
-        const val = parseInt(a?.value || 0);
+        const type = (a?.action_type || '').toLowerCase()
+        const val = parseInt(a?.value || 0)
         
         console.log(`Checking action: "${type}" = ${val}`)
         
         if (!type || !Number.isFinite(val)) {
           console.log(`  -> Skipped: invalid type or value`)
-          continue;
+          continue
         }
         
-        // Excluir tipos que definitivamente não são conversões
+        // Exclude types that are definitely not conversions
         if (excludedTypes.some(excluded => type.includes(excluded))) {
           console.log(`  -> Excluded: "${type}" is not a conversion`)
-          continue;
+          continue
         }
         
-        // Incluir apenas tipos de conversão reais
-        const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
-                                       type.includes('subscribe') ||
-                                       type.includes('subscription') ||
-                                       (type.includes('lead') && !type.includes('link')) ||
-                                       type.includes('complete_registration');
+        let include = false
+        if (isLeadObjective) {
+          // Only count strict lead types for Lead campaigns
+          include = allowedLeadTypes.includes(type)
+        } else {
+          // Keep earlier permissive behavior for non-lead objectives
+          const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
+                                           type.includes('subscribe') ||
+                                           type.includes('subscription') ||
+                                           (type.includes('lead') && !type.includes('link')) ||
+                                           type.includes('complete_registration')
+          include = isSubscriptionConversion
+        }
         
-        if (isSubscriptionConversion) {
-          total += val;
+        if (include) {
+          total += val
           console.log(`  -> ADDED: ${val} from "${type}", total now: ${total}`)
         } else {
-          console.log(`  -> Ignored: "${type}" is not a subscription/lead conversion`)
+          console.log(`  -> Ignored: "${type}" not in allowed list for objective`)
         }
       }
       
       console.log(`=== Final conversion total for ${campaignName}: ${total} ===\n`)
-      return total;
+      return total
     };
 
     // Fetch campaigns from Facebook API with enhanced insights
@@ -539,16 +559,19 @@ serve(async (req) => {
           console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
           console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
           
-          // Count conversions from actions (including offsite_conversion.fb_pixel_custom)
-          const actionsConv = countConversionsFromActions(insights.actions, campaign.objective, campaign.name);
+          const actionsConv = countConversionsFromActions(insights.actions, campaign.objective, campaign.name)
 
-          // Direct conversions as fallback
-          const directConversions = parseInt(insights.conversions || 0);
-          console.log(`Conversions for ${campaign.name}: actions=${actionsConv}, direct_field=${directConversions}`)
-          
-          const finalConversions = actionsConv > 0 ? actionsConv : directConversions;
-          leads += finalConversions;
-          totalLeads += finalConversions;
+          const directConversions = parseInt(insights.conversions || 0)
+          const isLeadObjective = (campaign.objective || '').toUpperCase().includes('LEAD')
+
+          const finalConversions = isLeadObjective
+            ? actionsConv
+            : (actionsConv > 0 ? actionsConv : directConversions)
+
+          console.log(`Conversions for ${campaign.name}: objective=${campaign.objective}, actions=${actionsConv}, direct_field=${directConversions}, chosen=${finalConversions}`)
+
+          leads += finalConversions
+          totalLeads += finalConversions
 
           // Calculate CPC
           cpc = clicks > 0 ? spend / clicks : 0
