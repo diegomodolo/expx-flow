@@ -404,7 +404,7 @@ serve(async (req) => {
 
     // Fetch campaigns from Facebook API with enhanced insights
     const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
-      `{impressions,clicks,spend,actions,website_actions,conversions,conversion_values,action_values,cost_per_conversion,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,cost_per_conversion,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
     const campaignsResponse = await fetch(facebookUrl)
     console.log('Facebook API response status:', campaignsResponse.status)
@@ -539,16 +539,14 @@ serve(async (req) => {
           console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
           console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
           
-          // Count conversions from actions and website_actions
+          // Count conversions from actions (including offsite_conversion.fb_pixel_custom)
           const actionsConv = countConversionsFromActions(insights.actions, campaign.objective, campaign.name);
-          const websiteActionsConv = countConversionsFromActions(insights.website_actions, campaign.objective, campaign.name);
-          const combinedActions = actionsConv + websiteActionsConv;
 
           // Direct conversions as fallback
           const directConversions = parseInt(insights.conversions || 0);
-          console.log(`Conversions for ${campaign.name}: actions=${actionsConv}, website_actions=${websiteActionsConv}, combined=${combinedActions}, direct_field=${directConversions}`)
+          console.log(`Conversions for ${campaign.name}: actions=${actionsConv}, direct_field=${directConversions}`)
           
-          const finalConversions = combinedActions > 0 ? combinedActions : directConversions;
+          const finalConversions = actionsConv > 0 ? actionsConv : directConversions;
           leads += finalConversions;
           totalLeads += finalConversions;
 
@@ -625,7 +623,7 @@ serve(async (req) => {
         try {
           console.log('Fetching ad sets for campaign:', campaign.id)
             const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
-            `{impressions,clicks,spend,cpm,actions,website_actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+            `{impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
           const adSetsResponse = await fetch(adSetsUrl)
           
           if (adSetsResponse.ok) {
@@ -664,10 +662,8 @@ serve(async (req) => {
               adSetCpc = adSetClicks > 0 ? adSetSpend / adSetClicks : 0
 
               const actionsConv = countConversionsFromActions(adSetInsights.actions, campaign.objective, campaign.name)
-              const websiteActionsConv = countConversionsFromActions(adSetInsights.website_actions, campaign.objective, campaign.name)
-              const combinedActions = actionsConv + websiteActionsConv
-              adSetLeads += combinedActions
-              console.log('Summed conversions for ad set', adSet.name, ': actions=', actionsConv, 'website_actions=', websiteActionsConv, 'combined=', combinedActions)
+              adSetLeads += actionsConv
+              console.log('Summed conversions for ad set', adSet.name, ':', actionsConv)
             }
 
             // Save ad set to database
@@ -719,7 +715,7 @@ serve(async (req) => {
                 console.log('Fetching ads for ad set:', adSet.id)
                 // Add actions and quality fields back
                 const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
-                  `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,website_actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+                  `{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
                 console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
                 const adsResponse = await fetch(adsUrl)
                 console.log('Ads API response status:', adsResponse.status)
@@ -827,10 +823,8 @@ serve(async (req) => {
                     
                      // Extract conversions from actions
                      const actionsConv = countConversionsFromActions(adInsights.actions, campaign.objective, campaign.name)
-                     const websiteActionsConv = countConversionsFromActions(adInsights.website_actions, campaign.objective, campaign.name)
-                     const combinedActions = actionsConv + websiteActionsConv
-                     adLeads += combinedActions
-                     console.log('Summed conversions for ad', ad.name, ': actions=', actionsConv, 'website_actions=', websiteActionsConv, 'combined=', combinedActions)
+                     adLeads += actionsConv
+                     console.log('Summed conversions for ad', ad.name, ':', actionsConv)
                   }
                    
                     // Save ad to database with complete data
