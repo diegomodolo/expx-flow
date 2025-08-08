@@ -323,10 +323,34 @@ serve(async (req) => {
         dateParam = '.date_preset(last_30d)'; // Default to 30 days
     }
 
-    // Fetch campaigns from Facebook API with enhanced insights
-    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}{impressions,clicks,spend,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
-    console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
+    // Helper to sum conversions from various action types (lead, subscribe, complete_registration, pixel variants)
+    const countConversionsFromActions = (actions: any[] | undefined) => {
+      if (!actions || !Array.isArray(actions)) return 0;
+      let total = 0;
+      const whitelist = [
+        'lead',
+        'complete_registration',
+        'subscribe',
+        'offsite_conversion.fb_pixel_lead',
+        'offsite_conversion.fb_pixel_complete_registration',
+        'offsite_conversion.fb_pixel_subscribe',
+        'onsite_conversion.lead_grouped',
+        'onsite_conversion.purchase',
+      ];
+      for (const a of actions) {
+        const type = (a?.action_type || '').toLowerCase();
+        const val = parseInt(a?.value || 0);
+        if (!type || !Number.isFinite(val)) continue;
+        if (whitelist.includes(type) || type.includes('subscribe') || type.includes('lead') || type.includes('complete_registration')) {
+          total += val;
+        }
+      }
+      return total;
+    };
 
+    // Fetch campaigns from Facebook API with enhanced insights
+    const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion){impressions,clicks,spend,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+    console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
     const campaignsResponse = await fetch(facebookUrl)
     console.log('Facebook API response status:', campaignsResponse.status)
 
@@ -460,17 +484,11 @@ serve(async (req) => {
           console.log('Campaign insights:', { spend, clicks, impressions, reach, frequency, ctr })
           console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
           
-          // Count leads from actions
-          if (insights.actions) {
-            insights.actions.forEach((action: any) => {
-              if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-                const actionLeads = parseInt(action.value || 0)
-                leads += actionLeads
-                totalLeads += actionLeads
-                console.log('Found leads:', actionLeads, 'for action type:', action.action_type)
-              }
-            })
-          }
+          // Count conversions from actions (lead, subscribe, complete_registration, and pixel variants)
+          const conv = countConversionsFromActions(insights.actions);
+          leads += conv;
+          totalLeads += conv;
+          console.log('Summed conversions for campaign', campaign.name, ':', conv)
 
           // Calculate CPC
           cpc = clicks > 0 ? spend / clicks : 0
@@ -544,7 +562,7 @@ serve(async (req) => {
       if (syncAdSets) {
         try {
           console.log('Fetching ad sets for campaign:', campaign.id)
-          const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}{impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+          const adSetsUrl = `https://graph.facebook.com/v20.0/${campaign.id}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_strategy,optimization_goal,targeting,insights${dateParam}.action_report_time(conversion){impressions,clicks,spend,cpm,actions,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
           const adSetsResponse = await fetch(adSetsUrl)
           
           if (adSetsResponse.ok) {
@@ -583,11 +601,8 @@ serve(async (req) => {
               adSetCpc = adSetClicks > 0 ? adSetSpend / adSetClicks : 0
 
               if (adSetInsights.actions) {
-                adSetInsights.actions.forEach((action: any) => {
-                  if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-                    adSetLeads += parseInt(action.value || 0)
-                  }
-                })
+                const conv = countConversionsFromActions(adSetInsights.actions)
+                adSetLeads += conv
               }
             }
 
@@ -639,7 +654,7 @@ serve(async (req) => {
               try {
                 console.log('Fetching ads for ad set:', adSet.id)
                 // Add actions and quality fields back
-                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}{impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+                const adsUrl = `https://graph.facebook.com/v20.0/${adSet.id}/ads?fields=id,name,status,creative{title,body,image_url,video_id,object_story_spec},insights${dateParam}.action_report_time(conversion){impressions,clicks,spend,cpm,ctr,cpc,reach,frequency,actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
                 console.log('Ads API URL (without token):', adsUrl.replace(accessToken, '[REDACTED]'))
                 const adsResponse = await fetch(adsUrl)
                 console.log('Ads API response status:', adsResponse.status)
@@ -747,20 +762,12 @@ serve(async (req) => {
                     
                      // Extract conversions from actions
                      if (adInsights.actions) {
-                       console.log('Ad actions found:', JSON.stringify(adInsights.actions))
-                       adInsights.actions.forEach((action: any) => {
-                         console.log('Processing action:', action.action_type, 'value:', action.value)
-                         if (action.action_type === 'lead' || action.action_type === 'complete_registration') {
-                           const actionValue = parseInt(action.value || 0)
-                           adLeads += actionValue
-                           console.log('Added', actionValue, 'leads for ad:', ad.name)
-                         }
-                       })
+                       const conv = countConversionsFromActions(adInsights.actions)
+                       adLeads += conv
+                       console.log('Summed conversions for ad', ad.name, ':', conv)
                      } else {
                        console.log('No actions found for ad:', ad.name)
                      }
-                     
-                     console.log('Final ad conversions for', ad.name, ':', adLeads)
                   }
                    
                     // Save ad to database with complete data
