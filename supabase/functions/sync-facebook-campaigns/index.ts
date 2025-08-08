@@ -324,85 +324,80 @@ serve(async (req) => {
     }
 
     // Helper to sum conversions based on campaign objective and action types
-    const countConversionsFromActions = (actions: any[] | undefined, campaignObjective?: string) => {
+    const countConversionsFromActions = (actions: any[] | undefined, campaignObjective?: string, campaignName?: string) => {
       if (!actions || !Array.isArray(actions)) {
-        console.log('No actions array found or invalid actions')
+        console.log(`No actions array found for campaign: ${campaignName}`)
         return 0;
       }
       
-      console.log(`Processing actions for objective: ${campaignObjective}`)
-      console.log('Actions:', JSON.stringify(actions, null, 2))
+      console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
+      console.log('Available actions:', JSON.stringify(actions.map(a => ({ type: a.action_type, value: a.value })), null, 2))
       
       let total = 0;
       
-      // Define conversion types based on campaign objective
-      const leadConversions = [
-        'lead',
-        'complete_registration', 
+      // Para campanhas de LEADS, focar especificamente em assinaturas/leads reais
+      const subscriptionConversions = [
         'subscribe',
-        'subscription',
-        'offsite_conversion.fb_pixel_lead',
-        'offsite_conversion.fb_pixel_complete_registration',
+        'subscription', 
+        'complete_registration',
+        'lead',
         'offsite_conversion.fb_pixel_subscribe',
-        'onsite_conversion.lead_grouped',
+        'offsite_conversion.fb_pixel_complete_registration',
+        'offsite_conversion.fb_pixel_lead',
         'onsite_conversion.subscribe',
         'onsite_conversion.subscription',
-        'website_lead',
-        'app_custom_event.fb_mobile_subscribe'
+        'onsite_conversion.lead_grouped',
+        'website_lead'
       ];
       
-      const purchaseConversions = [
-        'purchase',
-        'onsite_conversion.purchase',
-        'offsite_conversion.fb_pixel_purchase'
+      // Remover tipos que não são conversões reais
+      const excludedTypes = [
+        'link_click',
+        'landing_page_view', 
+        'page_engagement',
+        'post_engagement',
+        'video_view',
+        'post_reaction',
+        'like',
+        'comment',
+        'share',
+        'post',
+        'omni_landing_page_view'
       ];
-      
-      // Choose whitelist based on objective
-      let whitelist: string[] = [];
-      if (campaignObjective === 'OUTCOME_LEADS') {
-        whitelist = leadConversions;
-      } else if (campaignObjective === 'OUTCOME_SALES') {
-        whitelist = [...leadConversions, ...purchaseConversions];
-      } else {
-        // For other objectives, use a conservative approach - only clear lead/subscription actions
-        whitelist = [
-          'lead',
-          'complete_registration',
-          'subscribe',
-          'subscription',
-          'offsite_conversion.fb_pixel_lead',
-          'offsite_conversion.fb_pixel_complete_registration', 
-          'offsite_conversion.fb_pixel_subscribe'
-        ];
-      }
       
       for (const a of actions) {
         const type = (a?.action_type || '').toLowerCase();
         const val = parseInt(a?.value || 0);
         
-        console.log(`Processing action: type="${type}", value="${a?.value}", parsed_value=${val}`)
+        console.log(`Checking action: "${type}" = ${val}`)
         
         if (!type || !Number.isFinite(val)) {
-          console.log(`Skipping action: invalid type or value`)
+          console.log(`  -> Skipped: invalid type or value`)
           continue;
         }
         
-        // Check if action type matches conversion criteria
-        const isConversion = whitelist.includes(type) || 
-                           type.includes('subscribe') || 
-                           type.includes('subscription') || 
-                           (type.includes('lead') && !type.includes('link')) ||
-                           type.includes('complete_registration');
+        // Excluir tipos que definitivamente não são conversões
+        if (excludedTypes.some(excluded => type.includes(excluded))) {
+          console.log(`  -> Excluded: "${type}" is not a conversion`)
+          continue;
+        }
         
-        if (isConversion) {
+        // Incluir apenas tipos de conversão reais
+        const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
+                                       type.includes('subscribe') ||
+                                       type.includes('subscription') ||
+                                       (type.includes('lead') && !type.includes('link')) ||
+                                       type.includes('complete_registration');
+        
+        if (isSubscriptionConversion) {
           total += val;
-          console.log(`Added ${val} from action type "${type}", total now: ${total}`)
+          console.log(`  -> ADDED: ${val} from "${type}", total now: ${total}`)
         } else {
-          console.log(`Ignored action type: "${type}"`)
+          console.log(`  -> Ignored: "${type}" is not a subscription/lead conversion`)
         }
       }
       
-      console.log(`Final conversion total: ${total}`)
+      console.log(`=== Final conversion total for ${campaignName}: ${total} ===\n`)
       return total;
     };
 
@@ -544,7 +539,7 @@ serve(async (req) => {
           console.log('Clicks extracted from Facebook:', clicks, 'Type:', typeof clicks)
           
           // Count conversions from actions (lead, subscribe, complete_registration, and pixel variants)
-          const conv = countConversionsFromActions(insights.actions, campaign.objective);
+          const conv = countConversionsFromActions(insights.actions, campaign.objective, campaign.name);
           leads += conv;
           totalLeads += conv;
           console.log('Summed conversions for campaign', campaign.name, ':', conv)
@@ -661,7 +656,7 @@ serve(async (req) => {
               adSetCpc = adSetClicks > 0 ? adSetSpend / adSetClicks : 0
 
               if (adSetInsights.actions) {
-                const conv = countConversionsFromActions(adSetInsights.actions, campaign.objective)
+                const conv = countConversionsFromActions(adSetInsights.actions, campaign.objective, campaign.name)
                 adSetLeads += conv
               }
             }
@@ -823,7 +818,7 @@ serve(async (req) => {
                     
                      // Extract conversions from actions
                      if (adInsights.actions) {
-                       const conv = countConversionsFromActions(adInsights.actions, campaign.objective)
+                       const conv = countConversionsFromActions(adInsights.actions, campaign.objective, campaign.name)
                        adLeads += conv
                        console.log('Summed conversions for ad', ad.name, ':', conv)
                      } else {
