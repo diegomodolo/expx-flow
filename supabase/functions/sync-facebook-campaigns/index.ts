@@ -335,6 +335,8 @@ serve(async (req) => {
         'offsite_conversion.fb_pixel_complete_registration',
         'offsite_conversion.fb_pixel_subscribe',
         'onsite_conversion.lead_grouped',
+        'onsite_conversion.subscribe',
+        'onsite_conversion.subscription',
         'onsite_conversion.purchase',
       ];
       for (const a of actions) {
