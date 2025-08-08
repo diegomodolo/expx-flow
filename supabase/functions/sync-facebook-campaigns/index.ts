@@ -404,7 +404,7 @@ serve(async (req) => {
 
     // Fetch campaigns from Facebook API with enhanced insights
     const facebookUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows([\"7d_click\",\"1d_view\"])` +
-      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,cost_per_conversion,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
+      `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', facebookUrl.replace(accessToken, '[REDACTED]'))
     const campaignsResponse = await fetch(facebookUrl)
     console.log('Facebook API response status:', campaignsResponse.status)
