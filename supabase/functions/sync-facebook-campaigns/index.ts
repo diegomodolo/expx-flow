@@ -330,6 +330,7 @@ serve(async (req) => {
         return 0;
       }
 
+      const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
       const getVal = (a: any) => {
         const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v))
         const click = toNum(a?.['7d_click'])
