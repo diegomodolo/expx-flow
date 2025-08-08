@@ -610,12 +610,12 @@ serve(async (req) => {
           const directConversions = parseInt(insights.conversions || 0)
           const isLeadObjective = (campaign.objective || '').toUpperCase().includes('LEAD')
 
-          const finalConversions = actionsConv > 0 ? actionsConv : directConversions
+           const finalConversions = Math.max(actionsConv || 0, directConversions || 0)
 
-          console.log(`Conversions for ${campaign.name}: objective=${campaign.objective}, actions=${actionsConv}, direct_field=${directConversions}, chosen=${finalConversions}`)
+           console.log(`Conversions for ${campaign.name}: objective=${campaign.objective}, actions=${actionsConv}, direct_field=${directConversions}, chosen=${finalConversions}`)
 
-          leads += finalConversions
-          totalLeads += finalConversions
+           leads += finalConversions
+           totalLeads += finalConversions
 
           // Calculate CPC
           cpc = clicks > 0 ? spend / clicks : 0
