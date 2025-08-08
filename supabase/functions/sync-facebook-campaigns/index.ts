@@ -329,48 +329,63 @@ serve(async (req) => {
         console.log(`No actions array found for campaign: ${campaignName}`)
         return 0;
       }
+
+      const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
+      const getVal = (a: any) => {
+        const raw = (a?.['7d_click'] ?? a?.value ?? 0) as string | number
+        const n = typeof raw === 'string' ? parseFloat(raw) : Number(raw)
+        return Number.isFinite(n) ? Math.round(n) : 0
+      }
       
       console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
-      console.log('Available actions:', JSON.stringify(actions.map(a => ({ type: a.action_type, value: a.value })), null, 2))
+      console.log('Available actions:', JSON.stringify(actions.map(a => ({ type: a.action_type, value: a.value, '7d_click': a?.['7d_click'] })), null, 2))
       
       const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD')
 
       if (isLeadObjective) {
-        // FIXED: Use priority hierarchy for lead campaigns to prevent duplication
-        console.log('LEAD CAMPAIGN DETECTED: Using priority hierarchy instead of summing')
+        // Lead campaigns: choose a single best source to avoid duplication
+        console.log('LEAD CAMPAIGN DETECTED: Using priority hierarchy with 7d_click when available')
         
         // Priority order for lead actions (highest to lowest)
         const leadPriorityTypes = [
           'lead',                              // 1st priority: Direct lead
           'offsite_conversion.fb_pixel_lead',  // 2nd priority: Pixel lead
-          'onsite_conversion.lead',           // 3rd priority: Onsite lead
-          'omni_lead',                        // 4th priority: Omni lead
-          'on_facebook_lead',                 // 5th priority: Facebook lead
-          'onsite_conversion.lead_grouped',   // 6th priority: Grouped lead
-          'website_lead'                      // 7th priority: Website lead
+          'onsite_conversion.lead',            // 3rd priority: Onsite lead
+          'omni_lead',                         // 4th priority: Omni lead
+          'on_facebook_lead',                  // 5th priority: Facebook lead
+          'onsite_conversion.lead_grouped',    // 6th priority: Grouped lead
+          'website_lead'                       // 7th priority: Website lead
         ]
+
+        // Normalize once
+        const normalized = actions.map(a => ({ type: norm(a?.action_type), val: getVal(a) }))
 
         // Find the highest priority lead action with value > 0
         for (const priorityType of leadPriorityTypes) {
-          for (const action of actions) {
-            const type = (action?.action_type || '').toLowerCase()
-            const val = parseInt(action?.value || 0)
-            
-            if (type === priorityType && val > 0) {
-              console.log(`  -> USING PRIORITY: "${type}" = ${val} (highest priority found)`)
-              console.log(`=== Final conversion total for ${campaignName}: ${val} (priority-based) ===\n`)
-              return val
-            }
+          const found = normalized.find(n => n.type === priorityType && n.val > 0)
+          if (found) {
+            console.log(`  -> USING PRIORITY: "${priorityType}" = ${found.val} (highest priority found)`)
+            console.log(`=== Final conversion total for ${campaignName}: ${found.val} (priority-based) ===\n`)
+            return found.val
           }
         }
-        
+
+        // Fallback: any action type containing "lead" (use the maximum to avoid double-counting)
+        const leadCandidates = normalized.filter(n => n.type.includes('lead') && n.val > 0)
+        if (leadCandidates.length > 0) {
+          const maxVal = Math.max(...leadCandidates.map(n => n.val))
+          console.log('  -> FALLBACK lead-like actions:', leadCandidates)
+          console.log(`=== Final conversion total for ${campaignName}: ${maxVal} (fallback max) ===\n`)
+          return maxVal
+        }
+
         console.log('  -> No lead actions found with values > 0')
         console.log(`=== Final conversion total for ${campaignName}: 0 (no valid leads) ===\n`)
         return 0
-        
+
       } else {
-        // Non-lead campaigns: keep existing summing logic
-        console.log('NON-LEAD CAMPAIGN: Using summing logic')
+        // Non-lead campaigns: sum only allowed conversion-like actions
+        console.log('NON-LEAD CAMPAIGN: Using summing logic (preferring 7d_click)')
         
         const subscriptionConversions = [
           'subscribe',
@@ -405,13 +420,13 @@ serve(async (req) => {
         let total = 0
         
         for (const a of actions) {
-          const type = (a?.action_type || '').toLowerCase()
-          const val = parseInt(a?.value || 0)
+          const type = norm(a?.action_type)
+          const val = getVal(a)
           
           console.log(`Checking action: "${type}" = ${val}`)
           
           if (!type || !Number.isFinite(val)) {
-            console.log(`  -> Skipped: invalid type or value`)
+            console.log('  -> Skipped: invalid type or value')
             continue
           }
           
@@ -583,9 +598,7 @@ serve(async (req) => {
           const directConversions = parseInt(insights.conversions || 0)
           const isLeadObjective = (campaign.objective || '').toUpperCase().includes('LEAD')
 
-          const finalConversions = isLeadObjective
-            ? actionsConv
-            : (actionsConv > 0 ? actionsConv : directConversions)
+          const finalConversions = actionsConv > 0 ? actionsConv : directConversions
 
           console.log(`Conversions for ${campaign.name}: objective=${campaign.objective}, actions=${actionsConv}, direct_field=${directConversions}, chosen=${finalConversions}`)
 
