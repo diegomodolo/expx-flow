@@ -654,8 +654,9 @@ serve(async (req) => {
             const adSets = adSetsData.data || []
             console.log('Found', adSets.length, 'ad sets for campaign:', campaign.name)
             
-            // Process each ad set
-            for (const adSet of adSets) {
+             // Process each ad set
+             for (const adSet of adSets) {
+            // Extract insights data for ad set
             const adSetInsights = adSet.insights?.data?.[0]
             let adSetSpend = 0
             let adSetClicks = 0
@@ -684,9 +685,10 @@ serve(async (req) => {
               adSetCtr = adSetImpressions > 0 ? (adSetClicks / adSetImpressions) * 100 : 0
               adSetCpc = adSetClicks > 0 ? adSetSpend / adSetClicks : 0
 
-              const actionsConv = countConversionsFromActions(adSetInsights.actions, campaign.objective, campaign.name)
-              adSetLeads += actionsConv
-              console.log('Summed conversions for ad set', adSet.name, ':', actionsConv)
+              // Don't count conversions at ad set level to avoid duplication
+              // Conversions are already counted at campaign level
+              adSetLeads = 0
+              console.log('Ad set conversions set to 0 (counted at campaign level)', adSet.name)
             }
 
             // Save ad set to database
@@ -844,10 +846,10 @@ serve(async (req) => {
                     adEngagementRateRanking = adInsights.engagement_rate_ranking || null
                     adConversionRateRanking = adInsights.conversion_rate_ranking || null
                     
-                     // Extract conversions from actions
-                     const actionsConv = countConversionsFromActions(adInsights.actions, campaign.objective, campaign.name)
-                     adLeads += actionsConv
-                     console.log('Summed conversions for ad', ad.name, ':', actionsConv)
+                     // Don't count conversions at ad level to avoid duplication
+                     // Conversions are already counted at campaign level
+                     adLeads = 0
+                     console.log('Ad conversions set to 0 (counted at campaign level)', ad.name)
                   }
                    
                     // Save ad to database with complete data
