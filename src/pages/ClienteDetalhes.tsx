@@ -31,7 +31,8 @@ import {
   BarChart3,
   AlertTriangle,
   RefreshCw,
-  CheckCircle
+  CheckCircle,
+  Trash2
 } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClientDetails } from "@/hooks/useClientDetails";
@@ -56,6 +57,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useClientNotes } from "@/hooks/useClientNotes";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
