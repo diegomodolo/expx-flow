@@ -104,7 +104,11 @@ const [activeTab, setActiveTab] = useState("campaigns");
   const [competitiveAnalysis, setCompetitiveAnalysis] = useState<string | null>(null);
 const [isGeneratingCompetitiveAnalysis, setIsGeneratingCompetitiveAnalysis] = useState(false);
 
-// Estado para anotações
+// Hook para anotações
+const { notes, profilesByUserId, loading: notesLoading, addNote, deleteNote } = useClientNotes(id || "");
+const { user } = useAuth();
+
+// Estado para modal de nova anotação
 const [openNoteDialog, setOpenNoteDialog] = useState(false);
 const [noteText, setNoteText] = useState<string>("");
 const [savingNote, setSavingNote] = useState(false);
@@ -390,26 +394,44 @@ const [savingNote, setSavingNote] = useState(false);
     }
   };
 
-  // Salvar anotação do cliente
+  // Salvar nova anotação
   const handleSaveNote = async () => {
-    if (!client?.id) return;
+    if (!noteText.trim()) return;
     try {
       setSavingNote(true);
-      const { error } = await supabase
-        .from('clients')
-        .update({ notes: noteText })
-        .eq('id', client.id);
-      if (error) throw error;
-      // feedback
-      toast({ title: 'Anotação salva', description: 'As anotações do cliente foram atualizadas.' });
+      await addNote(noteText.trim());
+      toast({ title: 'Anotação adicionada', description: 'Nova anotação foi criada com sucesso.' });
       setOpenNoteDialog(false);
-      await refetch();
+      setNoteText("");
     } catch (e: any) {
       console.error('Erro ao salvar anotação:', e);
       toast({ title: 'Erro ao salvar', description: e?.message || 'Tente novamente.', variant: 'destructive' });
     } finally {
       setSavingNote(false);
     }
+  };
+
+  // Excluir anotação
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNote(noteId);
+      toast({ title: 'Anotação excluída', description: 'A anotação foi removida com sucesso.' });
+    } catch (e: any) {
+      console.error('Erro ao excluir anotação:', e);
+      toast({ title: 'Erro ao excluir', description: e?.message || 'Tente novamente.', variant: 'destructive' });
+    }
+  };
+
+  // Formatar data/hora em português
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   // Calculate funnel completeness score
@@ -2575,23 +2597,56 @@ const [savingNote, setSavingNote] = useState(false);
             <TabsContent value="notes" className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Anotações</h4>
-<Button onClick={() => { setNoteText(client?.notes || ""); setOpenNoteDialog(true); }}>
-  <Plus className="w-4 h-4 mr-2" />
-  Nova Anotação
-</Button>
+                <Button onClick={() => { setNoteText(""); setOpenNoteDialog(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Anotação
+                </Button>
               </div>
+              
               <div className="space-y-4">
-                {client.notes ? (
-                  <div className="p-4 border border-gray-200 rounded-lg">
-                    <p className="text-sm text-gray-900 mb-2">{client.notes}</p>
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>Sistema</span>
-                      <span>•</span>
-                      <span>Criado com o cliente</span>
-                    </div>
+                {notesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="ml-2">Carregando anotações...</span>
                   </div>
+                ) : notes.length > 0 ? (
+                  notes.map((note) => {
+                    const authorName = profilesByUserId[note.user_id]?.full_name || 'Usuário';
+                    const isAuthor = note.user_id === user?.id;
+                    const authorInitials = authorName.split(' ').map(name => name[0]).join('').toUpperCase();
+                    
+                    return (
+                      <div key={note.id} className="p-4 border border-border rounded-lg bg-card">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={profilesByUserId[note.user_id]?.avatar_url || undefined} />
+                              <AvatarFallback className="text-xs">{authorInitials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-sm">{authorName}</p>
+                              <p className="text-xs text-muted-foreground">{formatDateTime(note.created_at)}</p>
+                            </div>
+                          </div>
+                          {isAuthor && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap break-words">
+                          {note.content}
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     <p>Nenhuma anotação encontrada</p>
                     <p className="text-sm">Clique em "Nova Anotação" para adicionar</p>
                   </div>
@@ -2602,21 +2657,21 @@ const [savingNote, setSavingNote] = useState(false);
             <Dialog open={openNoteDialog} onOpenChange={setOpenNoteDialog}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Anotações do Cliente</DialogTitle>
+                  <DialogTitle>Nova Anotação</DialogTitle>
                 </DialogHeader>
                 <div>
                   <Textarea
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Escreva suas anotações sobre o cliente..."
-                    className="min-h-[180px]"
+                    placeholder="Escreva sua anotação sobre o cliente..."
+                    className="min-h-[120px]"
                   />
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setOpenNoteDialog(false)} disabled={savingNote}>
                     Cancelar
                   </Button>
-                  <Button onClick={handleSaveNote} disabled={savingNote}>
+                  <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()}>
                     {savingNote ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Salvar
                   </Button>
