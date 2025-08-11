@@ -53,6 +53,9 @@ import { useCompetitors } from "@/hooks/useCompetitors";
 import { CompetitorDialog } from "@/components/clients/CompetitorDialog";
 import { CompetitorList } from "@/components/clients/CompetitorList";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,8 +65,9 @@ const ClienteDetalhes = () => {
   const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
   const { refetch: refetchDashboardData } = useDashboardData();
   const { competitors, competitorAds, generateCompetitiveAnalysis, refetch: refetchCompetitors } = useCompetitors(id);
-  const { convertAlertToTask } = useTaskAutomation();
-  const [activeTab, setActiveTab] = useState("campaigns");
+const { convertAlertToTask } = useTaskAutomation();
+const { toast } = useToast();
+const [activeTab, setActiveTab] = useState("campaigns");
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [adSetFilter, setAdSetFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [adFilter, setAdFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -95,9 +99,14 @@ const ClienteDetalhes = () => {
   
   // Estados para análise competitiva
   const [competitiveAnalysis, setCompetitiveAnalysis] = useState<string | null>(null);
-  const [isGeneratingCompetitiveAnalysis, setIsGeneratingCompetitiveAnalysis] = useState(false);
+const [isGeneratingCompetitiveAnalysis, setIsGeneratingCompetitiveAnalysis] = useState(false);
 
-  // Calculate campaign metrics (with safe access) - MOVED TO TOP
+// Estado para anotações
+const [openNoteDialog, setOpenNoteDialog] = useState(false);
+const [noteText, setNoteText] = useState<string>("");
+const [savingNote, setSavingNote] = useState(false);
+
+// Calculate campaign metrics (with safe access) - MOVED TO TOP
   const totalCampaigns = client?.campaigns?.length || 0;
   const activeCampaigns = client?.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
   const pausedCampaigns = client?.campaigns?.filter(c => c.status === 'paused' || c.is_active === false).length || 0;
@@ -375,6 +384,28 @@ const ClienteDetalhes = () => {
       console.error('Error generating competitive analysis:', error);
     } finally {
       setIsGeneratingCompetitiveAnalysis(false);
+    }
+  };
+
+  // Salvar anotação do cliente
+  const handleSaveNote = async () => {
+    if (!client?.id) return;
+    try {
+      setSavingNote(true);
+      const { error } = await supabase
+        .from('clients')
+        .update({ notes: noteText })
+        .eq('id', client.id);
+      if (error) throw error;
+      // feedback
+      toast({ title: 'Anotação salva', description: 'As anotações do cliente foram atualizadas.' });
+      setOpenNoteDialog(false);
+      await refetch();
+    } catch (e: any) {
+      console.error('Erro ao salvar anotação:', e);
+      toast({ title: 'Erro ao salvar', description: e?.message || 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setSavingNote(false);
     }
   };
 
@@ -2541,10 +2572,10 @@ const ClienteDetalhes = () => {
             <TabsContent value="notes" className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold">Anotações</h4>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Anotação
-                </Button>
+<Button onClick={() => { setNoteText(client?.notes || ""); setOpenNoteDialog(true); }}>
+  <Plus className="w-4 h-4 mr-2" />
+  Nova Anotação
+</Button>
               </div>
               <div className="space-y-4">
                 {client.notes ? (
@@ -2564,6 +2595,31 @@ const ClienteDetalhes = () => {
                 )}
               </div>
             </TabsContent>
+
+            <Dialog open={openNoteDialog} onOpenChange={setOpenNoteDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Anotações do Cliente</DialogTitle>
+                </DialogHeader>
+                <div>
+                  <Textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Escreva suas anotações sobre o cliente..."
+                    className="min-h-[180px]"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setOpenNoteDialog(false)} disabled={savingNote}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveNote} disabled={savingNote}>
+                    {savingNote ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Salvar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <TabsContent value="history" className="p-4 sm:p-6">
               <h4 className="text-lg font-semibold mb-4">Histórico de Interações</h4>
