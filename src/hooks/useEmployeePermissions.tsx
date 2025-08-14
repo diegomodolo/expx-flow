@@ -163,6 +163,8 @@ export function useEmployeePermissions() {
   // Alternar permissão de um colaborador
   const togglePermission = async (employeeId: string, menuItem: MenuItemType) => {
     try {
+      console.log('Toggling permission:', { employeeId, menuItem });
+      
       // Primeiro buscar o valor atual
       const { data: currentPerm } = await supabase
         .from('employee_permissions')
@@ -171,34 +173,81 @@ export function useEmployeePermissions() {
         .eq('menu_item', menuItem)
         .single();
 
-      // Alternar o valor
-      const { error } = await supabase
-        .from('employee_permissions')
-        .update({ 
-          is_enabled: !currentPerm?.is_enabled,
-          updated_at: new Date().toISOString()
-        })
-        .eq('employee_id', employeeId)
-        .eq('menu_item', menuItem);
+      console.log('Current permission:', currentPerm);
 
-      if (error) throw error;
+      // Se não existir a permissão, criar primeiro
+      if (!currentPerm) {
+        const { error: insertError } = await supabase
+          .from('employee_permissions')
+          .insert({
+            employee_id: employeeId,
+            company_id: activeCompany?.company_id,
+            menu_item: menuItem,
+            is_enabled: true
+          });
 
-      // Atualizar estado local
-      setEmployeesWithPermissions(prev => 
-        prev.map(emp => {
-          if (emp.id === employeeId) {
-            return {
-              ...emp,
-              permissions: emp.permissions.map(perm => 
-                perm.menu_item === menuItem 
-                  ? { ...perm, is_enabled: !perm.is_enabled }
-                  : perm
-              )
-            };
-          }
-          return emp;
-        })
-      );
+        if (insertError) {
+          console.error('Error inserting permission:', insertError);
+          throw insertError;
+        }
+
+        console.log('Permission created and enabled');
+        
+        // Atualizar estado local
+        setEmployeesWithPermissions(prev => 
+          prev.map(emp => {
+            if (emp.id === employeeId) {
+              return {
+                ...emp,
+                permissions: [...emp.permissions, {
+                  id: `new-${employeeId}-${menuItem}`,
+                  employee_id: employeeId,
+                  menu_item: menuItem,
+                  is_enabled: true
+                }]
+              };
+            }
+            return emp;
+          })
+        );
+      } else {
+        // Alternar o valor existente
+        const newValue = !currentPerm.is_enabled;
+        console.log('Updating to:', newValue);
+        
+        const { error } = await supabase
+          .from('employee_permissions')
+          .update({ 
+            is_enabled: newValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('employee_id', employeeId)
+          .eq('menu_item', menuItem);
+
+        if (error) {
+          console.error('Error updating permission:', error);
+          throw error;
+        }
+
+        console.log('Permission updated successfully');
+
+        // Atualizar estado local
+        setEmployeesWithPermissions(prev => 
+          prev.map(emp => {
+            if (emp.id === employeeId) {
+              return {
+                ...emp,
+                permissions: emp.permissions.map(perm => 
+                  perm.menu_item === menuItem 
+                    ? { ...perm, is_enabled: newValue }
+                    : perm
+                )
+              };
+            }
+            return emp;
+          })
+        );
+      }
 
       toast({
         title: "Permissão atualizada",
