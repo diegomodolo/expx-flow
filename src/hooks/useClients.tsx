@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useEmployeePermissions } from "./useEmployeePermissions";
 
 export interface Client {
   id: string;
@@ -47,9 +48,17 @@ export function useClients() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
+  const { hasPermission, isOwner } = useEmployeePermissions();
 
   const fetchClients = async () => {
     if (!user || !activeCompany) return;
+    
+    // Check if user has permission to access clients or content generator
+    if (!isOwner && !hasPermission('clientes') && !hasPermission('gerador-conteudo')) {
+      setClients([]);
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
