@@ -51,28 +51,18 @@ export function DashboardSidebar() {
 
   // Filter items based on permissions
   const visibleItems = useMemo(() => {
-    console.log('Sidebar filtering items:', { isOwner, permissionsLoading });
-    
     // Always show all items for owners
     if (isOwner) {
-      console.log('User is owner - showing all items');
       return items;
     }
     
     // During loading, show basic items only
     if (permissionsLoading) {
-      console.log('Permissions loading - showing basic items only');
       return items.filter(item => item.permission === 'dashboard' || item.permission === 'tarefas');
     }
     
     // Filter based on permissions
-    console.log('Filtering based on permissions...');
-    const filtered = items.filter(item => {
-      const hasAccess = hasPermission(item.permission);
-      console.log(`Permission for ${item.permission}:`, hasAccess);
-      return hasAccess;
-    });
-    console.log('Filtered items:', filtered.map(item => item.title));
+    const filtered = items.filter(item => hasPermission(item.permission));
     return filtered;
   }, [permissionsLoading, isOwner, hasPermission]);
 

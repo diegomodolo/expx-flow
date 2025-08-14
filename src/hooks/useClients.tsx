@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -50,19 +50,11 @@ export function useClients() {
   const { activeCompany } = useCompany();
   const { hasPermission, isOwner } = useEmployeePermissions();
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     if (!user || !activeCompany) return;
     
-    console.log('useClients fetchClients - checking permissions:', { 
-      isOwner, 
-      hasClientsPermission: hasPermission('clientes'),
-      hasContentPermission: hasPermission('gerador-conteudo')
-    });
-    
     // Check if user has permission to access clients or content generator
-    // Don't block during permissions loading for owners or potentially authorized users
     if (!isOwner && !hasPermission('clientes') && !hasPermission('gerador-conteudo')) {
-      console.log('User has no permission to access clients');
       setClients([]);
       setLoading(false);
       return;
@@ -96,7 +88,7 @@ export function useClients() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, activeCompany, isOwner, hasPermission]);
 
   const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
     if (!user || !activeCompany) return null;
@@ -151,7 +143,7 @@ export function useClients() {
 
   useEffect(() => {
     fetchClients();
-  }, [user?.id, activeCompany?.company_id, hasPermission, isOwner]);
+  }, [fetchClients]);
 
   // Listen for campaign sync updates
   useEffect(() => {

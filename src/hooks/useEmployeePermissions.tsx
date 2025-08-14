@@ -300,36 +300,22 @@ export function useEmployeePermissions() {
     // Check if user is owner directly from company context
     const isOwnerFromContext = activeCompany?.role === 'owner';
     
-    console.log('hasPermission check:', {
-      menuItem,
-      isOwner,
-      isOwnerFromContext,
-      permissionsLoading,
-      currentUserPermissions,
-      activeCompany: activeCompany?.company_id
-    });
-    
     // Owners have access to everything - check both sources
     if (isOwner || isOwnerFromContext) {
-      console.log('User is owner - granting access');
       return true;
     }
     
     // During loading, only allow dashboard and tarefas for non-owners
     if (permissionsLoading) {
-      const basicAccess = menuItem === 'dashboard' || menuItem === 'tarefas';
-      console.log('Permissions loading - basic access only:', basicAccess);
-      return basicAccess;
+      return menuItem === 'dashboard' || menuItem === 'tarefas';
     }
 
     // Dashboard e tarefas são sempre acessíveis para todos os colaboradores
     if (menuItem === 'dashboard' || menuItem === 'tarefas') {
-      console.log('Basic menu item - granting access');
       return true;
     }
     
     const hasAccess = currentUserPermissions.includes(menuItem);
-    console.log('Permission check result:', hasAccess);
     return hasAccess;
   };
 
