@@ -58,18 +58,12 @@ export function useAIChat() {
         throw error;
       }
       
-      console.log('Raw conversations data:', data);
-      
       // Transform data to include client_name
-      const conversationsWithClientNames = data?.map((conv: any) => {
-        console.log('Processing conversation:', conv);
-        return {
-          ...conv,
-          client_name: conv.clients?.name || 'Cliente não encontrado'
-        };
-      }) || [];
+      const conversationsWithClientNames = data?.map((conv: any) => ({
+        ...conv,
+        client_name: conv.clients?.name || 'Cliente não encontrado'
+      })) || [];
       
-      console.log('Transformed conversations:', conversationsWithClientNames);
       setConversations(conversationsWithClientNames);
     } catch (error) {
       console.error('Error fetching conversations:', error);
