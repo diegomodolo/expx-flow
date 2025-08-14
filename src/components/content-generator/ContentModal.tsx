@@ -74,7 +74,7 @@ export function ContentModal({ isOpen, onClose, contentType }: ContentModalProps
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" style={{ zIndex: 50 }}>
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="space-y-1">
             <DialogTitle className="flex items-center gap-2">

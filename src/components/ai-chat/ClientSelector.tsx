@@ -65,7 +65,7 @@ export function ClientSelector({ selectedClientId, onClientSelect, companyId }: 
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-0 bg-popover/95 backdrop-blur-sm border z-50" align="start">
+        <PopoverContent className="w-80 p-0 bg-popover/95 backdrop-blur-sm border z-[9999]" align="start">
           <Command>
             <div className="flex items-center border-b px-3">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
