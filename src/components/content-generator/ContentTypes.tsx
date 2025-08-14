@@ -334,5 +334,39 @@ export const contentTypes: ContentType[] = [
     category: '🔄 OUTROS',
     icon: '🎙️',
     color: 'text-gray-600 dark:text-gray-400'
+  },
+
+  // 🌐 LANDING PAGES
+  {
+    id: 'landing-page-leads',
+    title: 'Landing Page – Conversão de Leads',
+    description: 'Criação de páginas otimizadas para captação de leads, com foco em CTA claro, copy persuasiva e layout estruturado para alta conversão.',
+    category: '🌐 LANDING PAGES',
+    icon: '🎯',
+    color: 'text-indigo-600 dark:text-indigo-400'
+  },
+  {
+    id: 'landing-page-vendas',
+    title: 'Landing Page – Página de Vendas',
+    description: 'Estruture uma landing page completa para apresentação e venda de um produto ou serviço, com storytelling, provas sociais, ofertas e escassez.',
+    category: '🌐 LANDING PAGES',
+    icon: '💰',
+    color: 'text-indigo-600 dark:text-indigo-400'
+  },
+  {
+    id: 'landing-page-pre-lancamento',
+    title: 'Landing Page – Pré-lançamento / Lista de Espera',
+    description: 'Criação de páginas para captar e-mails de interessados em produtos ainda não lançados. Ideal para testes de mercado e estratégias de escassez.',
+    category: '🌐 LANDING PAGES',
+    icon: '⏰',
+    color: 'text-indigo-600 dark:text-indigo-400'
+  },
+  {
+    id: 'landing-page-isca-digital',
+    title: 'Landing Page – Isca Digital (eBook, Planilha etc.)',
+    description: 'Gere uma página simples para oferecer um conteúdo gratuito (como um eBook ou planilha) em troca do contato do visitante, com foco em crescimento da base de leads.',
+    category: '🌐 LANDING PAGES',
+    icon: '🎁',
+    color: 'text-indigo-600 dark:text-indigo-400'
   }
 ];
