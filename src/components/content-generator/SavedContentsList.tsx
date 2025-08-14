@@ -15,9 +15,9 @@ export function SavedContentsList() {
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [filters, setFilters] = useState({
-    client: '',
-    contentType: '',
-    status: '',
+    client: 'all',
+    contentType: 'all',
+    status: 'all',
     search: ''
   });
 
@@ -32,9 +32,9 @@ export function SavedContentsList() {
   };
 
   const filteredGenerations = generations.filter(gen => {
-    if (filters.client && gen.client_id !== filters.client) return false;
-    if (filters.contentType && gen.content_type !== filters.contentType) return false;
-    if (filters.status && gen.status !== filters.status) return false;
+    if (filters.client && filters.client !== 'all' && gen.client_id !== filters.client) return false;
+    if (filters.contentType && filters.contentType !== 'all' && gen.content_type !== filters.contentType) return false;
+    if (filters.status && filters.status !== 'all' && gen.status !== filters.status) return false;
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       const contentTypeTitle = contentTypes.find(ct => ct.id === gen.content_type)?.title || '';
@@ -83,7 +83,7 @@ export function SavedContentsList() {
                 <SelectValue placeholder="Cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os clientes</SelectItem>
+                <SelectItem value="all">Todos os clientes</SelectItem>
                 {clients.map(client => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
@@ -100,7 +100,7 @@ export function SavedContentsList() {
                 <SelectValue placeholder="Tipo de conteúdo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os tipos</SelectItem>
+                <SelectItem value="all">Todos os tipos</SelectItem>
                 {uniqueContentTypes.map(type => {
                   const contentType = contentTypes.find(ct => ct.id === type);
                   return (
@@ -120,7 +120,7 @@ export function SavedContentsList() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="draft">Rascunho</SelectItem>
                 <SelectItem value="used">Usado</SelectItem>
                 <SelectItem value="archived">Arquivado</SelectItem>
