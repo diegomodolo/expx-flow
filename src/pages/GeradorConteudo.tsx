@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ContentGrid } from "@/components/content-generator/ContentGrid";
-import { Sparkles } from "lucide-react";
+import { SavedContentsList } from "@/components/content-generator/SavedContentsList";
+import { useContentGenerations } from "@/hooks/useContentGenerations";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, History } from "lucide-react";
 
 export default function GeradorConteudo() {
+  const { generations } = useContentGenerations();
+  const [activeTab, setActiveTab] = useState("generate");
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -19,7 +25,31 @@ export default function GeradorConteudo() {
           </div>
         </div>
         
-        <ContentGrid />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="generate" className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Gerar Novo
+            </TabsTrigger>
+            <TabsTrigger value="saved" className="flex items-center gap-2">
+              <History className="w-4 h-4" />
+              Conteúdos Salvos
+              {generations.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                  {generations.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="generate" className="mt-6">
+            <ContentGrid />
+          </TabsContent>
+          
+          <TabsContent value="saved" className="mt-6">
+            <SavedContentsList />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
