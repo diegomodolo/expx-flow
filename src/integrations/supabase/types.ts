@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -236,6 +236,60 @@ export type Database = {
           video_url?: string | null
           video_view_percentage?: number | null
           video_views?: number | null
+        }
+        Relationships: []
+      }
+      ai_chat_conversations: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
         }
         Relationships: []
       }
@@ -1736,23 +1790,23 @@ export type Database = {
       calculate_change_impact: {
         Args: {
           _change_log_id: string
-          _days_before?: number
           _days_after?: number
+          _days_before?: number
         }
         Returns: undefined
       }
       create_performance_snapshot: {
-        Args: { _entity_type: string; _entity_id: string; _period?: string }
+        Args: { _entity_id: string; _entity_type: string; _period?: string }
         Returns: undefined
       }
       create_task_from_alert: {
         Args: {
-          _company_id: string
-          _alert_type: string
           _alert_description: string
+          _alert_id?: string
+          _alert_type: string
+          _company_id: string
           _related_campaign_id?: string
           _related_client_id?: string
-          _alert_id?: string
         }
         Returns: string
       }
@@ -1763,7 +1817,7 @@ export type Database = {
         }[]
       }
       is_company_admin_or_owner: {
-        Args: { _user_id: string; _company_id: string }
+        Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
     }

@@ -8,6 +8,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
+import IAChat from "./pages/IAChat";
 import Configuracoes from "./pages/Configuracoes";
 import Perfil from "./pages/Perfil";
 import Clientes from "./pages/Clientes";
@@ -61,6 +62,11 @@ const App = () => {
                <Route path="/dashboard" element={
                  <ProtectedRoute>
                    <DashboardPage />
+                 </ProtectedRoute>
+               } />
+               <Route path="/ia" element={
+                 <ProtectedRoute>
+                   <IAChat />
                  </ProtectedRoute>
                } />
                 <Route path="/clientes" element={
