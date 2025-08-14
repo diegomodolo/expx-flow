@@ -176,7 +176,9 @@ export function useAIChat() {
     if (conversation) {
       setCurrentConversation(conversation);
       await fetchMessages(conversationId);
+      return conversation.client_id; // Return client_id for syncing
     }
+    return null;
   };
 
   // Delete conversation

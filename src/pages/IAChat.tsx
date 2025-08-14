@@ -30,6 +30,13 @@ export default function IAChat() {
     }
   };
 
+  const handleConversationSelect = async (conversationId: string) => {
+    const clientId = await loadConversation(conversationId);
+    if (clientId) {
+      setSelectedClientId(clientId); // Sync selected client with loaded conversation
+    }
+  };
+
   const handleSendMessage = async (message: string) => {
     if (!selectedClientId || !currentConversation) return;
     await sendMessage(message);
@@ -54,7 +61,7 @@ export default function IAChat() {
             <ChatSidebar
               conversations={conversations}
               currentConversation={currentConversation}
-              onConversationSelect={loadConversation}
+              onConversationSelect={handleConversationSelect}
               onConversationDelete={deleteConversation}
               onNewConversation={() => {
                 if (selectedClientId) {
