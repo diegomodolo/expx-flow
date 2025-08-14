@@ -27,6 +27,15 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
+    // Check for custom prompts first
+    const { data: customPromptData } = await supabase
+      .from('content_prompts')
+      .select('custom_prompt')
+      .eq('company_id', companyId)
+      .eq('content_type', contentType)
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Fetch client data for context
     const { data: client, error: clientError } = await supabase
       .from('clients')
@@ -156,8 +165,16 @@ serve(async (req) => {
 
     IMPORTANTE: Responda APENAS com o conteúdo solicitado, sem explicações adicionais.`;
 
-    const userPrompt = contentPrompts[contentType as keyof typeof contentPrompts] || 
+    // Use custom prompt if available, otherwise use default
+    let userPrompt = contentPrompts[contentType as keyof typeof contentPrompts] || 
       `Crie conteúdo sobre "${theme}" para o tipo: ${contentType}`;
+    
+    if (customPromptData?.custom_prompt) {
+      userPrompt = customPromptData.custom_prompt
+        .replace(/\$\{theme\}/g, theme)
+        .replace(/\$\{clientContext\}/g, clientContext);
+      console.log('Using custom prompt for content type:', contentType);
+    }
 
     console.log('Generating content for:', { contentType, theme, clientName: client.name });
 

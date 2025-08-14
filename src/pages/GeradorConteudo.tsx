@@ -4,7 +4,8 @@ import { ContentGrid } from "@/components/content-generator/ContentGrid";
 import { SavedContentsList } from "@/components/content-generator/SavedContentsList";
 import { useContentGenerations } from "@/hooks/useContentGenerations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, History } from "lucide-react";
+import { Sparkles, History, Settings } from "lucide-react";
+import { PromptConfigurationList } from "@/components/content-generator/PromptConfigurationList";
 
 export default function GeradorConteudo() {
   const { generations } = useContentGenerations();
@@ -26,7 +27,7 @@ export default function GeradorConteudo() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="generate" className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
               Gerar Novo
@@ -34,6 +35,10 @@ export default function GeradorConteudo() {
             <TabsTrigger value="saved" className="flex items-center gap-2">
               <History className="w-4 h-4" />
               Conteúdos Salvos
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Configurações
             </TabsTrigger>
           </TabsList>
           
@@ -43,6 +48,10 @@ export default function GeradorConteudo() {
           
           <TabsContent value="saved" className="mt-6">
             <SavedContentsList />
+          </TabsContent>
+          
+          <TabsContent value="settings" className="mt-6">
+            <PromptConfigurationList />
           </TabsContent>
         </Tabs>
       </div>

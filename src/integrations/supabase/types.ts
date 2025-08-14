@@ -1052,6 +1052,39 @@ export type Database = {
           },
         ]
       }
+      content_prompts: {
+        Row: {
+          company_id: string
+          content_type: string
+          created_at: string
+          custom_prompt: string | null
+          default_prompt: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          content_type: string
+          created_at?: string
+          custom_prompt?: string | null
+          default_prompt: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          content_type?: string
+          created_at?: string
+          custom_prompt?: string | null
+          default_prompt?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creative_versions: {
         Row: {
           ad_id: string
