@@ -34,11 +34,6 @@ export default function GeradorConteudo() {
             <TabsTrigger value="saved" className="flex items-center gap-2">
               <History className="w-4 h-4" />
               Conteúdos Salvos
-              {generations.length > 0 && (
-                <span className="ml-1 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                  {generations.length}
-                </span>
-              )}
             </TabsTrigger>
           </TabsList>
           
