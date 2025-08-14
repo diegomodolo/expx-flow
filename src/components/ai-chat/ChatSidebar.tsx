@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, MessageSquare, Trash2 } from "lucide-react";
+import { ClientSelector } from "./ClientSelector";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -30,6 +31,8 @@ interface ChatSidebarProps {
   onConversationDelete: (conversationId: string) => void;
   onNewConversation: () => void;
   selectedClientId: string;
+  onClientSelect: (clientId: string) => void;
+  companyId?: string;
 }
 
 export function ChatSidebar({
@@ -38,11 +41,22 @@ export function ChatSidebar({
   onConversationSelect,
   onConversationDelete,
   onNewConversation,
-  selectedClientId
+  selectedClientId,
+  onClientSelect,
+  companyId
 }: ChatSidebarProps) {
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Client Selector */}
+      <div className="p-4 border-b border-border">
+        <ClientSelector
+          selectedClientId={selectedClientId}
+          onClientSelect={onClientSelect}
+          companyId={companyId}
+        />
+      </div>
+
+      {/* New Conversation Button */}
       <div className="p-4 border-b border-border">
         <Button
           onClick={onNewConversation}

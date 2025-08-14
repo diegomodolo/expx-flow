@@ -46,15 +46,6 @@ export default function IAChat() {
   return (
     <DashboardLayout>
       <div className="h-[calc(100vh-64px)] flex flex-col">
-        {/* Header with Client Selector */}
-        <div className="border-b border-border p-4 bg-card">
-          <ClientSelector
-            selectedClientId={selectedClientId}
-            onClientSelect={handleClientSelect}
-            companyId={activeCompany?.company_id}
-          />
-        </div>
-
         {/* Main Chat Area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar */}
@@ -70,6 +61,8 @@ export default function IAChat() {
                 }
               }}
               selectedClientId={selectedClientId}
+              onClientSelect={handleClientSelect}
+              companyId={activeCompany?.company_id}
             />
           </div>
 
