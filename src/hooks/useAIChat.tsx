@@ -41,20 +41,35 @@ export function useAIChat() {
       const { data, error } = await supabase
         .from('ai_chat_conversations')
         .select(`
-          *,
-          clients!inner(name)
+          id,
+          client_id,
+          company_id,
+          user_id,
+          title,
+          created_at,
+          updated_at,
+          clients(name)
         `)
         .eq('company_id', activeCompany.company_id)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching conversations with clients:', error);
+        throw error;
+      }
+      
+      console.log('Raw conversations data:', data);
       
       // Transform data to include client_name
-      const conversationsWithClientNames = data?.map((conv: any) => ({
-        ...conv,
-        client_name: conv.clients?.name
-      })) || [];
+      const conversationsWithClientNames = data?.map((conv: any) => {
+        console.log('Processing conversation:', conv);
+        return {
+          ...conv,
+          client_name: conv.clients?.name || 'Cliente não encontrado'
+        };
+      }) || [];
       
+      console.log('Transformed conversations:', conversationsWithClientNames);
       setConversations(conversationsWithClientNames);
     } catch (error) {
       console.error('Error fetching conversations:', error);
