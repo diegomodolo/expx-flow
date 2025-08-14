@@ -98,6 +98,29 @@ serve(async (req) => {
       'linkedin-ads': `Crie anúncios profissionais para LinkedIn sobre "${theme}". Tom corporativo mas envolvente, foque em valor profissional.`,
       'youtube-ads': `Desenvolva roteiro completo para YouTube Ads sobre "${theme}". Inclua diferentes durações e estratégias de segmentação.`,
       'tiktok-ads': `Crie roteiro nativo para TikTok Ads sobre "${theme}". Linguagem jovem, tendências atuais e integração natural com a plataforma.`,
+      
+      // ============= PROMPTS PARA OUTRAS IAs =============
+      'prompt-gpt4-chatgpt': `Crie um prompt otimizado para ChatGPT/GPT-4 que gere conteúdo de alta qualidade sobre "${theme}". O prompt deve incluir contexto específico, instruções claras sobre tom de voz, formato desejado, e diretrizes para maximizar a qualidade da resposta. Baseie-se no perfil do cliente e objetivo comercial.`,
+      
+      'prompt-midjourney': `Gere um prompt técnico para Midjourney criar imagens sobre "${theme}". Inclua: descrição visual detalhada, estilo artístico, paleta de cores, iluminação, composição, qualidade (4K, 8K), proporção (--ar), versão (--v 6), estilização (--s), e parâmetros específicos para resultados comerciais profissionais.`,
+      
+      'prompt-dalle': `Crie um prompt detalhado para DALL·E gerar imagens sobre "${theme}". Use linguagem clara e específica, incluindo: estilo visual, cores, composição, elementos principais, ambiente, emoção desejada, e qualidade. Otimize para resultados comerciais e profissionais.`,
+      
+      'prompt-veo3': `Desenvolva um prompt completo para Veo 3 (Google) criar um vídeo sobre "${theme}". Inclua: descrição da cena inicial e final, movimento da câmera, iluminação, tempo/duração, estilo visual, transições, áudio ambiente, e elementos específicos que contem a história da marca/produto.`,
+      
+      'prompt-runwayml': `Crie comandos específicos para RunwayML produzir vídeo sobre "${theme}". Inclua: tipo de geração (Text to Video, Image to Video, etc.), descrição da cena, movimento desejado, estilo visual, duração, configurações de qualidade, e instruções para edição/refinamento.`,
+      
+      'prompt-elevenlabs': `Gere um script e configurações para ElevenLabs criar áudio sobre "${theme}". Inclua: texto para narração, tom de voz recomendado (profissional, amigável, etc.), velocidade de fala, emoção, tipo de voz (masculina/feminina), sotaque, e configurações técnicas para qualidade comercial.`,
+      
+      'prompt-pikalabs': `Desenvolva um prompt para Pika Labs transformar conteúdo sobre "${theme}" em vídeo animado. Inclua: descrição visual da cena, estilo de animação, movimento de câmera, transições, efeitos visuais, duração, e elementos que criem impacto visual para o público-alvo.`,
+      
+      'prompt-leonardo-ai': `Crie um prompt artístico para Leonardo AI gerar arte conceitual sobre "${theme}". Inclua: estilo artístico (realista, ilustração, concept art), composição, paleta de cores, iluminação, elementos principais, mood/atmosfera, resolução, e configurações para uso comercial profissional.`,
+      
+      'prompt-kaiber': `Gere instruções para Kaiber transformar imagens sobre "${theme}" em vídeo musical. Inclua: descrição das imagens base, estilo de transição, sincronização com música, efeitos visuais, movimento de câmera, duração, e elementos que conectem com a identidade da marca.`,
+      
+      'prompt-canva-magic': `Crie sugestões de prompts para Canva Magic Write sobre "${theme}". Inclua: tipo de conteúdo (post, apresentação, e-mail), tom de voz, pontos principais a abordar, CTA sugerido, formato específico, e diretrizes para manter consistência visual com a marca.`,
+      
+      'prompt-notion-ai': `Desenvolva prompts para Notion AI organizar e criar conteúdo sobre "${theme}". Inclua: estrutura de documento, seções principais, formato de apresentação, checklist de ações, templates sugeridos, e organização hierárquica para produtividade e clareza.`,
       'headline-anuncio': `Gere 10 headlines poderosas sobre "${theme}". Use gatilhos mentais, urgência e benefícios claros. Máximo 30 caracteres cada.`,
       'subheadline-anuncio': `Crie 5 subheadlines complementares sobre "${theme}". Reforce benefícios e credibilidade. Entre 50-90 caracteres cada.`,
       'cta-criativo': `Desenvolva 15 CTAs criativos sobre "${theme}". Varie entre urgência, curiosidade e benefício direto.`,

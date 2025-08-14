@@ -368,5 +368,95 @@ export const contentTypes: ContentType[] = [
     category: '🌐 LANDING PAGES',
     icon: '🎁',
     color: 'text-indigo-600 dark:text-indigo-400'
+  },
+
+  // ============= PROMPTS PARA OUTRAS IAs =============
+  {
+    id: 'prompt-gpt4-chatgpt',
+    title: 'Prompt para GPT-4 / ChatGPT (Texto)',
+    description: 'Gera prompts otimizados para criar conteúdos textuais no ChatGPT, como roteiros, descrições, artigos, FAQs, resumos ou ideias criativas.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '💬',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-midjourney',
+    title: 'Prompt para Midjourney (Imagem)',
+    description: 'Gera prompts no formato ideal para criar imagens no Midjourney, com tags visuais, estilos, iluminação e descrições que maximizam o resultado.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎨',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-dalle',
+    title: 'Prompt para DALL·E (Imagem)',
+    description: 'Cria prompts otimizados para o modelo DALL·E, com instruções claras para geração de imagens específicas, artísticas ou comerciais.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🖼️',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-veo3',
+    title: 'Prompt para Veo 3 (Vídeo IA do Google)',
+    description: 'Gera prompts completos para criação de vídeos com Veo 3, com descrição de cena, ambientação, tempo, estilos de câmera e tom visual.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎬',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-runwayml',
+    title: 'Prompt para RunwayML (Vídeo IA)',
+    description: 'Cria comandos para edição de vídeo, geração a partir de texto e outras funções da IA de vídeo da Runway, como "Text to Video" ou "Remove Background".',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎞️',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-elevenlabs',
+    title: 'Prompt para ElevenLabs (Voz IA)',
+    description: 'Gera scripts prontos e comandos para criação de vozes sintéticas, incluindo tom de voz, sotaque, estilo de leitura e emoção.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎤',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-pikalabs',
+    title: 'Prompt para Pika Labs (Vídeo)',
+    description: 'Gera prompts para transformar imagens ou textos em vídeos animados com estilo cinematográfico, incluindo transições e elementos visuais.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎪',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-leonardo-ai',
+    title: 'Prompt para Leonardo AI (Arte, Estilo e Ilustração)',
+    description: 'Cria comandos para gerar artes conceituais, personagens, objetos, ou cenários com alta qualidade visual e estilo artístico.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎭',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-kaiber',
+    title: 'Prompt para Kaiber (Transformação de imagem em vídeo)',
+    description: 'Gera instruções para transformar imagens estáticas em vídeos animados com música, transições e efeitos visuais cinematográficos.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '🎵',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-canva-magic',
+    title: 'Prompt para Canva Magic Write',
+    description: 'Sugestões de prompts para criar posts, apresentações, e-mails ou ideias dentro do assistente de texto do Canva.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '✨',
+    color: 'text-violet-600 dark:text-violet-400'
+  },
+  {
+    id: 'prompt-notion-ai',
+    title: 'Prompt para Notion AI',
+    description: 'Criação de prompts para automatizar escrita de documentos, reuniões, checklists e organização de conteúdo dentro do Notion AI.',
+    category: '🤖 PROMPTS PARA OUTRAS IAs',
+    icon: '📝',
+    color: 'text-violet-600 dark:text-violet-400'
   }
 ];
