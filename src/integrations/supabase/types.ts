@@ -1005,6 +1005,45 @@ export type Database = {
         }
         Relationships: []
       }
+      content_generations: {
+        Row: {
+          client_id: string
+          company_id: string
+          content_type: string
+          created_at: string
+          generated_content: string
+          id: string
+          status: string
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          content_type: string
+          created_at?: string
+          generated_content: string
+          id?: string
+          status?: string
+          theme: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          content_type?: string
+          created_at?: string
+          generated_content?: string
+          id?: string
+          status?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       creative_versions: {
         Row: {
           ad_id: string
