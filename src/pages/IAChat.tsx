@@ -3,6 +3,7 @@ import { ClientSelector } from "@/components/ai-chat/ClientSelector";
 import { ChatSidebar } from "@/components/ai-chat/ChatSidebar";
 import { ChatMessages } from "@/components/ai-chat/ChatMessages";
 import { ChatInput } from "@/components/ai-chat/ChatInput";
+import { QuickActionsPanel } from "@/components/ai-chat/QuickActionsPanel";
 import { useAIChat } from "@/hooks/useAIChat";
 import { useCompany } from "@/contexts/CompanyContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -101,6 +102,13 @@ export default function IAChat() {
               </div>
             )}
           </div>
+
+          {/* Quick Actions Panel */}
+          <QuickActionsPanel
+            onSendMessage={handleSendMessage}
+            selectedClientId={selectedClientId}
+            disabled={!currentConversation || loading}
+          />
         </div>
       </div>
     </DashboardLayout>
