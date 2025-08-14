@@ -37,7 +37,7 @@ export default function IAChat() {
 
   return (
     <DashboardLayout>
-      <div className="h-full flex flex-col -m-6">
+      <div className="h-[calc(100vh-64px)] flex flex-col">
         {/* Header with Client Selector */}
         <div className="border-b border-border p-4 bg-card">
           <ClientSelector
