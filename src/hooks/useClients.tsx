@@ -53,8 +53,16 @@ export function useClients() {
   const fetchClients = async () => {
     if (!user || !activeCompany) return;
     
+    console.log('useClients fetchClients - checking permissions:', { 
+      isOwner, 
+      hasClientsPermission: hasPermission('clientes'),
+      hasContentPermission: hasPermission('gerador-conteudo')
+    });
+    
     // Check if user has permission to access clients or content generator
+    // Don't block during permissions loading for owners or potentially authorized users
     if (!isOwner && !hasPermission('clientes') && !hasPermission('gerador-conteudo')) {
+      console.log('User has no permission to access clients');
       setClients([]);
       setLoading(false);
       return;
@@ -143,7 +151,7 @@ export function useClients() {
 
   useEffect(() => {
     fetchClients();
-  }, [user?.id, activeCompany?.company_id]);
+  }, [user?.id, activeCompany?.company_id, hasPermission, isOwner]);
 
   // Listen for campaign sync updates
   useEffect(() => {
