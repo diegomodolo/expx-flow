@@ -48,13 +48,23 @@ export function useClients() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
-  const { hasPermission, isOwner } = useEmployeePermissions();
+  const { hasPermission, isOwner, permissionsLoading, currentUserPermissions } = useEmployeePermissions();
 
   const fetchClients = useCallback(async () => {
     if (!user || !activeCompany) return;
     
+    // During permissions loading, don't fetch for non-owners
+    if (permissionsLoading && !isOwner) {
+      setLoading(true);
+      return;
+    }
+    
     // Check if user has permission to access clients or content generator
-    if (!isOwner && !hasPermission('clientes') && !hasPermission('gerador-conteudo')) {
+    // Use currentUserPermissions directly instead of hasPermission function
+    const hasClientsPermission = currentUserPermissions.includes('clientes');
+    const hasContentPermission = currentUserPermissions.includes('gerador-conteudo');
+    
+    if (!isOwner && !hasClientsPermission && !hasContentPermission) {
       setClients([]);
       setLoading(false);
       return;
@@ -88,7 +98,7 @@ export function useClients() {
     } finally {
       setLoading(false);
     }
-  }, [user, activeCompany, isOwner, hasPermission]);
+  }, [user, activeCompany, isOwner, permissionsLoading, currentUserPermissions]);
 
   const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
     if (!user || !activeCompany) return null;

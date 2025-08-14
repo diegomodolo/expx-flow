@@ -327,6 +327,7 @@ export function useEmployeePermissions() {
 
   return {
     employeesWithPermissions,
+    currentUserPermissions,
     isOwner,
     loading,
     permissionsLoading,
