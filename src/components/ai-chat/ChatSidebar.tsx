@@ -20,6 +20,7 @@ interface Conversation {
   title: string;
   created_at: string;
   updated_at: string;
+  client_name?: string;
 }
 
 interface ChatSidebarProps {
@@ -75,6 +76,9 @@ export function ChatSidebar({
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-sm">
+                    {conversation.client_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
                     {conversation.title}
                   </p>
                   <p className="text-xs text-muted-foreground">

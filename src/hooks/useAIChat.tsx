@@ -12,6 +12,7 @@ interface Conversation {
   title: string;
   created_at: string;
   updated_at: string;
+  client_name?: string;
 }
 
 interface Message {
@@ -39,12 +40,22 @@ export function useAIChat() {
     try {
       const { data, error } = await supabase
         .from('ai_chat_conversations')
-        .select('*')
+        .select(`
+          *,
+          clients!inner(name)
+        `)
         .eq('company_id', activeCompany.company_id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      setConversations(data || []);
+      
+      // Transform data to include client_name
+      const conversationsWithClientNames = data?.map((conv: any) => ({
+        ...conv,
+        client_name: conv.clients?.name
+      })) || [];
+      
+      setConversations(conversationsWithClientNames);
     } catch (error) {
       console.error('Error fetching conversations:', error);
       toast({
