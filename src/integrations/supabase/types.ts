@@ -1889,6 +1889,8 @@ export type Database = {
         | "relatorios"
         | "gerador-campanhas"
         | "configuracoes"
+        | "gerador-conteudo"
+        | "ia"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
@@ -2031,6 +2033,8 @@ export const Constants = {
         "relatorios",
         "gerador-campanhas",
         "configuracoes",
+        "gerador-conteudo",
+        "ia",
       ],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
