@@ -74,25 +74,33 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
         <head>
           <title>Relatório Semanal - ${data.clientInfo.name}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; }
-            .company-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px; }
-            .company-logo { height: 50px; width: auto; max-width: 200px; }
-            .company-name { font-size: 24px; font-weight: bold; color: #3b82f6; }
-            .section { margin: 20px 0; page-break-inside: avoid; }
-            .section-title { font-size: 18px; font-weight: bold; color: #1f2937; margin-bottom: 10px; }
-            .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 15px 0; }
-            .metric-card { border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px; text-align: center; }
-            .metric-value { font-size: 24px; font-weight: bold; color: #059669; }
-            .metric-label { font-size: 12px; color: #6b7280; margin-top: 5px; }
-            .campaign-item, .insight-item { border: 1px solid #e5e7eb; padding: 15px; margin: 10px 0; border-radius: 8px; }
-            .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+            body { font-family: Arial, sans-serif; margin: 10px; color: #333; line-height: 1.4; }
+            .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+            .company-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+            .company-logo { height: 40px; width: auto; max-width: 150px; }
+            .company-name { font-size: 20px; font-weight: bold; color: #3b82f6; }
+            .section { margin: 10px 0; page-break-inside: avoid; }
+            .section-title { font-size: 16px; font-weight: bold; color: #1f2937; margin-bottom: 8px; }
+            .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+            .metric-card { border: 1px solid #e5e7eb; padding: 12px; border-radius: 6px; text-align: center; }
+            .metric-value { font-size: 20px; font-weight: bold; color: #059669; }
+            .metric-label { font-size: 11px; color: #6b7280; margin-top: 4px; }
+            .campaign-item, .insight-item { border: 1px solid #e5e7eb; padding: 12px; margin: 8px 0; border-radius: 6px; }
+            .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
             .status-active { background: #dcfce7; color: #166534; }
             .status-paused { background: #fef3c7; color: #92400e; }
             .insight-warning { border-left: 4px solid #f59e0b; }
             .insight-opportunity { border-left: 4px solid #10b981; }
             .insight-action { border-left: 4px solid #ef4444; }
-            @media print { .no-print { display: none; } }
+            @media print { 
+              .no-print { display: none; } 
+              body { margin: 5px !important; font-size: 12px; }
+              .header { margin-bottom: 10px !important; padding-bottom: 8px !important; }
+              .section { margin: 8px 0 !important; }
+              .metrics-grid { gap: 8px !important; margin: 8px 0 !important; }
+              .metric-card, .campaign-item, .insight-item { padding: 10px !important; margin: 6px 0 !important; }
+              .page-break { page-break-before: always; }
+            }
           </style>
         </head>
         <body>
