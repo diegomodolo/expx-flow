@@ -67,16 +67,27 @@ export function CreativeContextValidator({
 
     setIsGenerating(true);
     try {
+      console.log('Calling generate-creative-context with data:', {
+        theme,
+        creativeType,
+        clientBriefing: client.ai_briefing || '',
+        clientSector: client.sector || '',
+        targetAudience: client.notes || '',
+        voiceTone: client.voice_tone || ''
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-creative-context', {
         body: {
           theme,
           creativeType,
-          clientBriefing: client.notes || '',
+          clientBriefing: client.ai_briefing || '',
           clientSector: client.sector || '',
           targetAudience: client.notes || '',
-          voiceTone: ''
+          voiceTone: client.voice_tone || ''
         }
       });
+
+      console.log('Edge function response:', { data, error });
 
       if (error) throw error;
 
