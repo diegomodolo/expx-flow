@@ -35,15 +35,23 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
     setGenerationError(null);
     
     try {
+      const requestBody = {
+        creativeType: data.creativeType,
+        clientId: data.clientId,
+        theme: data.theme,
+        context: data.context,
+        companyId: activeCompany?.company_id,
+      };
+      
+      console.log('Sending request to generate-visual-creative:', requestBody);
+      console.log('Context data:', data.context);
+      console.log('Active company:', activeCompany);
+      
       const { data: result, error } = await supabase.functions.invoke('generate-visual-creative', {
-        body: {
-          creativeType: data.creativeType,
-          clientId: data.clientId,
-          theme: data.theme,
-          context: data.context,
-          companyId: activeCompany?.company_id,
-        },
+        body: requestBody,
       });
+
+      console.log('Response from generate-visual-creative:', { result, error });
 
       if (error) throw error;
 

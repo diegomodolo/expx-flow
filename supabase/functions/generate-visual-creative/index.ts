@@ -37,14 +37,29 @@ serve(async (req) => {
     });
 
     // Validar dados obrigatórios
+    if (!creativeType) {
+      throw new Error('Creative type is required');
+    }
+    
+    if (!clientId) {
+      throw new Error('Client ID is required');
+    }
+    
+    if (!companyId) {
+      throw new Error('Company ID is required');
+    }
+    
     if (!context) {
+      console.error('Context is missing, received:', context);
       throw new Error('Context is required');
     }
+
+    console.log('Searching for client with ID:', clientId, 'and company ID:', companyId);
 
     // Buscar dados completos do cliente
     const { data: clientData, error: clientError } = await supabase
       .from('clients')
-      .select('name, sector, briefing, target_audience')
+      .select('name, sector, briefing, target_audience, ai_briefing')
       .eq('id', clientId)
       .eq('company_id', companyId)
       .single();
@@ -54,10 +69,16 @@ serve(async (req) => {
       throw new Error(`Erro ao buscar dados do cliente: ${clientError.message}`);
     }
 
+    if (!clientData) {
+      console.error('No client data found for ID:', clientId);
+      throw new Error('Cliente não encontrado');
+    }
+
     console.log('Client data retrieved:', {
       clientName: clientData?.name,
       sector: clientData?.sector,
-      hasTargetAudience: !!clientData?.target_audience
+      hasTargetAudience: !!clientData?.target_audience,
+      hasBriefing: !!clientData?.ai_briefing
     });
 
     // Extrair informações do contexto
