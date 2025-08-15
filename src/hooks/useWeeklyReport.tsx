@@ -68,6 +68,7 @@ export interface WeeklyReportData {
     responsibleUser?: string;
     lastAccess?: string;
     briefing?: string;
+    monthlyBudget?: number;
   };
   companyInfo: {
     name: string;
@@ -179,6 +180,7 @@ export function useWeeklyReport(clientId: string) {
           responsibleUser: user?.email || undefined,
           lastAccess: clientData.last_sync_at,
           briefing: clientData.ai_briefing || undefined,
+          monthlyBudget: clientData.monthly_budget,
         },
         companyInfo: {
           name: activeCompany.company?.name || "Sistema de Gestão",

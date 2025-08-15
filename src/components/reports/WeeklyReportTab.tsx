@@ -366,7 +366,10 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
               </div>
               <div className="text-sm text-muted-foreground">Total Gasto</div>
                <div className="text-xs text-muted-foreground">
-                 {getChangePercentage(reportData.currentWeekMetrics.totalSpend, reportData.previousWeekMetrics.totalSpend)} esta semana
+                 {reportData.clientInfo.monthlyBudget ? 
+                   `${((reportData.currentWeekMetrics.totalSpend / reportData.clientInfo.monthlyBudget) * 100).toFixed(1)}% do orçamento mensal` :
+                   'Orçamento não definido'
+                 }
                </div>
             </div>
 
