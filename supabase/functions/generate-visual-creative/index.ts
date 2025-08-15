@@ -213,7 +213,7 @@ CRITICAL REQUIREMENTS:
       let aspectRatio = 'ASPECT_1_1'; // Default
       
       // Mapeamento completo dos tipos de criativo para aspect ratios
-      const aspectRatioMap: Record<string, string> = {
+      const aspectRatioMap = {
         // Stories e formatos verticais 9:16
         'instagram-stories': 'ASPECT_9_16',
         'reels-cover': 'ASPECT_9_16',
