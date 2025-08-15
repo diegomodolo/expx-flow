@@ -365,9 +365,9 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
                 R$ {reportData.currentWeekMetrics.totalSpend.toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">Total Gasto</div>
-              <div className="text-xs text-muted-foreground">
-                {getChangePercentage(reportData.currentWeekMetrics.totalSpend, reportData.previousWeekMetrics.totalSpend)} vs semana anterior
-              </div>
+               <div className="text-xs text-muted-foreground">
+                 {getChangePercentage(reportData.currentWeekMetrics.totalSpend, reportData.previousWeekMetrics.totalSpend)} esta semana
+               </div>
             </div>
 
             <div className="text-center">
