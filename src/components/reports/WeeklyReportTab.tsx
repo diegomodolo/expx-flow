@@ -431,7 +431,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
                    Math.round((reportData.currentWeekMetrics.totalConversions / reportData.currentWeekMetrics.totalSpend) * 1000) : 0
                  }
                </div>
-               <div className="text-sm text-muted-foreground">Leads por R$ 1000</div>
+               <div className="text-sm text-muted-foreground">Leads/1k</div>
              </div>
             <div className="text-center">
               <div className="text-lg font-semibold">
