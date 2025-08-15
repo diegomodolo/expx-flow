@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useVisualCreatives } from "@/hooks/useVisualCreatives";
 import { CreativeData } from "./CreativeGenerator";
 import { 
   Wand2, 
@@ -29,6 +30,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
   const [generationError, setGenerationError] = useState<string | null>(null);
   const { toast } = useToast();
   const { activeCompany } = useCompany();
+  const { createCreative } = useVisualCreatives();
 
   const handleGenerateImage = async () => {
     setIsGenerating(true);
@@ -102,22 +104,41 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
   };
 
   const handleSaveCreative = async () => {
-    if (!data.generatedImageUrl) return;
+    if (!data.generatedImageUrl || !activeCompany?.company_id) return;
     
     setIsSaving(true);
     try {
-      // For now, simulate save since table might not be fully ready
-      toast({
-        title: "Criativo salvo!",
-        description: "O criativo foi salvo no seu histórico com sucesso.",
-      });
+      // Buscar nome do cliente no banco
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('name')
+        .eq('id', data.clientId)
+        .single();
+
+      const creativeData = {
+        company_id: activeCompany.company_id,
+        client_id: data.clientId,
+        client_name: clientData?.name || 'Cliente não encontrado',
+        creative_type: data.creativeType,
+        theme: data.theme,
+        title: data.context.title || 'Criativo sem título',
+        description: data.context.description || 'Criativo gerado automaticamente',
+        objective: data.context.objective || 'Sem objetivo definido',
+        target_audience: data.context.targetAudience || null,
+        copy_text: data.context.copy || null,
+        caption: data.context.caption || null,
+        image_url: data.generatedImageUrl,
+        status: 'completed' as const
+      };
+
+      console.log('Saving creative to database:', creativeData);
+      
+      await createCreative(creativeData);
+      
+      // Remover o toast aqui pois já é exibido no hook
     } catch (error: any) {
       console.error('Error saving creative:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar o criativo no histórico.",
-        variant: "destructive",
-      });
+      // O erro já é tratado no hook, mas mantemos um log aqui
     } finally {
       setIsSaving(false);
     }

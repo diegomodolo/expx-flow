@@ -68,18 +68,38 @@ export function useVisualCreatives() {
 
   const createCreative = async (creativeData: Omit<VisualCreative, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      // For now, just add to local state since we're implementing incrementally
+      console.log('Creating visual creative:', creativeData);
+      
+      const { data, error } = await supabase
+        .from('visual_creatives')
+        .insert([creativeData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error creating creative:', error);
+        throw error;
+      }
+
+      console.log('Visual creative created successfully:', data);
+
+      // Atualizar lista local
+      setCreatives(prev => [{
+        ...data,
+        status: data.status as 'generating' | 'completed' | 'failed'
+      }, ...prev]);
+
       toast({
         title: "Criativo salvo",
         description: "O criativo foi adicionado ao histórico com sucesso.",
       });
 
-      return creativeData;
+      return data;
     } catch (err: any) {
       console.error('Error creating creative:', err);
       toast({
         title: "Erro ao salvar criativo",
-        description: "Não foi possível salvar o criativo.",
+        description: err.message || "Não foi possível salvar o criativo.",
         variant: "destructive",
       });
       throw err;
