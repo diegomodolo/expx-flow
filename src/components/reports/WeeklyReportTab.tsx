@@ -383,7 +383,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
               </div>
               <div className="text-sm text-muted-foreground">Conversões</div>
               <div className="text-xs text-muted-foreground">
-                {getChangePercentage(reportData.currentWeekMetrics.totalConversions, reportData.previousWeekMetrics.totalConversions)} vs semana anterior
+                {getChangePercentage(reportData.currentWeekMetrics.totalConversions, reportData.previousWeekMetrics.totalConversions)} Número de Leads Gerados
               </div>
             </div>
 
