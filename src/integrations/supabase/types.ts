@@ -1924,6 +1924,7 @@ export type Database = {
         | "configuracoes"
         | "gerador-conteudo"
         | "ia"
+        | "gerador-criativos"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
@@ -2068,6 +2069,7 @@ export const Constants = {
         "configuracoes",
         "gerador-conteudo",
         "ia",
+        "gerador-criativos",
       ],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
