@@ -103,13 +103,8 @@ export function PromptConfigurationList() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground overflow-hidden">
-                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                              {content.description.length > 80 
-                                ? `${content.description.substring(0, 80)}...` 
-                                : content.description
-                              }
-                            </span>
+                          <p className="text-xs text-muted-foreground line-clamp-2 overflow-hidden">
+                            {content.description}
                           </p>
                         </div>
                       </div>
