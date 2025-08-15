@@ -35,6 +35,7 @@ import RelatorioRHColaboradores from "./pages/reports/RelatorioRHColaboradores";
 import RelatorioAlertasCriticos from "./pages/reports/RelatorioAlertasCriticos";
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
+import GeradorCriativos from "./pages/GeradorCriativos";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 
@@ -188,6 +189,11 @@ const App = () => {
                  <Route path="/gerador-conteudo" element={
                   <ProtectedRoute>
                     <GeradorConteudo />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/gerador-criativos" element={
+                  <ProtectedRoute>
+                    <GeradorCriativos />
                   </ProtectedRoute>
                 } />
                 <Route path="/gerador-campanhas/:id" element={

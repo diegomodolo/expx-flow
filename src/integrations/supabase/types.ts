@@ -1850,6 +1850,60 @@ export type Database = {
           },
         ]
       }
+      visual_creatives: {
+        Row: {
+          caption: string | null
+          client_id: string
+          company_id: string
+          copy_text: string | null
+          created_at: string
+          creative_type: string
+          description: string | null
+          id: string
+          image_url: string | null
+          objective: string | null
+          status: string
+          target_audience: string | null
+          theme: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          client_id: string
+          company_id: string
+          copy_text?: string | null
+          created_at?: string
+          creative_type: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          objective?: string | null
+          status?: string
+          target_audience?: string | null
+          theme: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          client_id?: string
+          company_id?: string
+          copy_text?: string | null
+          created_at?: string
+          creative_type?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          objective?: string | null
+          status?: string
+          target_audience?: string | null
+          theme?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       task_stats: {
