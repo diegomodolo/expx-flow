@@ -125,6 +125,8 @@ REQUISITOS ESPECÍFICOS:
 Crie uma imagem que capture a atenção do público-alvo específico e comunique efetivamente a proposta de valor do cliente.`;
 
     // Chamar a API de geração de imagens do OpenAI
+    console.log('Calling OpenAI API with prompt length:', prompt.length);
+    
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -136,7 +138,7 @@ Crie uma imagem que capture a atenção do público-alvo específico e comunique
         prompt: prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'high',
+        quality: 'standard',
         response_format: 'url'
       }),
     });
