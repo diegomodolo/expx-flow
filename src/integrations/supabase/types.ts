@@ -1854,6 +1854,7 @@ export type Database = {
         Row: {
           caption: string | null
           client_id: string
+          client_name: string | null
           company_id: string
           copy_text: string | null
           created_at: string
@@ -1871,6 +1872,7 @@ export type Database = {
         Insert: {
           caption?: string | null
           client_id: string
+          client_name?: string | null
           company_id: string
           copy_text?: string | null
           created_at?: string
@@ -1888,6 +1890,7 @@ export type Database = {
         Update: {
           caption?: string | null
           client_id?: string
+          client_name?: string | null
           company_id?: string
           copy_text?: string | null
           created_at?: string
