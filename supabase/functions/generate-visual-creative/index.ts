@@ -129,15 +129,33 @@ serve(async (req) => {
       // Criar prompt ultra-simplificado e imperativo para controle absoluto do texto
       console.log('Creating ultra-simplified prompt for precise text rendering...');
       
-      // Prompt ultra-minimalista focado APENAS no texto exato
+      // Prompt balanceado: controle de texto + contexto visual relevante
+      const clientBriefing = clientData.ai_briefing || '';
+      const sectorContext = clientData.sector || '';
+      const audienceContext = clientData.target_audience || targetAudience || '';
+      
       const prompt = `TEXT: "${textToUse}"
-LANGUAGE: Portuguese Brazil  
-STYLE: Professional ${creativeType.replace('-', ' ')}
-FORMAT: Clean typography, high contrast
-NO EXTRA TEXT
-NO ADDITIONS
-NO MODIFICATIONS
-USE EXACT TEXT ONLY`;
+MANDATORY: Use EXACTLY this text in Portuguese Brazil - no changes, additions or modifications
+
+VISUAL CONTEXT:
+- Client: ${clientData.name} (${sectorContext} sector)
+- Target audience: ${audienceContext}
+- Campaign theme: ${theme}
+- Creative type: ${creativeType.replace('-', ' ')}
+${clientBriefing ? `- Brand context: ${clientBriefing.substring(0, 200)}` : ''}
+
+STYLE REQUIREMENTS:
+- Professional design for ${creativeType.replace('-', ' ')}
+- Clean, modern typography with high contrast
+- Colors and style appropriate for ${sectorContext} sector
+- Visual appeal for ${audienceContext}
+
+STRICT TEXT RULES:
+- TEXT MUST BE EXACTLY: "${textToUse}"
+- NO extra words, slogans, or additional text
+- NO English words
+- NO spelling errors or invented words
+- Professional typography only`;
 
       // Chamar a API de geração de imagens do Ideogram
       console.log('Calling Ideogram API with prompt length:', prompt.length);
@@ -178,10 +196,16 @@ USE EXACT TEXT ONLY`;
 
         ideogramRequestBody.image_request.style_reference_images = styleReferences;
         
-        // Ajustar prompt quando há referências - mantendo foco no texto exato
+        // Ajustar prompt quando há referências - incluindo diretrizes específicas
         const enhancedPrompt = `${prompt}
 
-STYLE REFERENCE: Follow the visual style, composition patterns, color palette, and design elements shown in the reference images. However, NEVER change the text content - use ONLY the exact text provided: "${textToUse}"`;
+STYLE REFERENCE GUIDELINES:
+- Follow the visual composition, layout, and design patterns from reference images
+- Adopt similar color schemes, typography styles, and visual hierarchy
+- Maintain consistent visual elements and aesthetic approach
+- Use reference images as inspiration for overall design quality and professional appearance
+
+CRITICAL: Despite following style references, the text MUST remain exactly: "${textToUse}"`;
         
         ideogramRequestBody.image_request.prompt = enhancedPrompt;
         console.log('Enhanced prompt with style references for Ideogram');
