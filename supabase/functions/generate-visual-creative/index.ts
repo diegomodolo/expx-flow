@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const ideogramApiKey = Deno.env.get('IDEOGRAM_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -62,6 +63,11 @@ serve(async (req) => {
     if (!openAIApiKey) {
       console.error('Missing OpenAI API key');
       throw new Error('OpenAI API key is not configured');
+    }
+
+    if (!ideogramApiKey) {
+      console.error('Missing Ideogram API key');
+      throw new Error('Ideogram API key is not configured');
     }
 
      console.log('Searching for client with ID:', clientId, 'and company ID:', companyId);
@@ -154,39 +160,47 @@ VISUAL STYLE:
 
 Create an engaging, conversion-focused image that clearly communicates the value proposition to ${targetAudience}.`;
 
-      // Chamar a API de geração de imagens do OpenAI
-      console.log('Calling OpenAI API with prompt length:', prompt.length);
+      // Chamar a API de geração de imagens do Ideogram
+      console.log('Calling Ideogram API with prompt length:', prompt.length);
       
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
+      // Determinar aspect ratio baseado no tipo de criativo
+      let aspectRatio = 'ASPECT_1_1'; // Default para Facebook Ad
+      if (creativeType === 'instagram-story') {
+        aspectRatio = 'ASPECT_9_16';
+      } else if (creativeType === 'facebook-cover') {
+        aspectRatio = 'ASPECT_16_9';
+      }
+      
+      const response = await fetch('https://api.ideogram.ai/generate', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Api-Key': ideogramApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'dall-e-3',
-          prompt: prompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'standard',
-          response_format: 'url'
+          image_request: {
+            prompt: prompt,
+            aspect_ratio: aspectRatio,
+            model: 'V_2',
+            magic_prompt_option: 'AUTO'
+          }
         }),
       });
 
-      console.log('OpenAI response status:', response.status);
+      console.log('Ideogram response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('OpenAI API error:', response.status, errorData);
-        throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+        console.error('Ideogram API error:', response.status, errorData);
+        throw new Error(`Ideogram API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
-      console.log('OpenAI response received, checking data structure...');
+      console.log('Ideogram response received, checking data structure...');
       
       if (!data.data || !data.data[0] || !data.data[0].url) {
-        console.error('Invalid OpenAI response structure:', data);
-        throw new Error('Invalid response from OpenAI API');
+        console.error('Invalid Ideogram response structure:', data);
+        throw new Error('Invalid response from Ideogram API');
       }
 
       const imageUrl = data.data[0].url;
