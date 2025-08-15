@@ -126,25 +126,18 @@ serve(async (req) => {
       const textToUse = approvedText || copy || title || theme;
       console.log('Text to use in image:', textToUse);
 
-      // Criar prompt ultra-simplificado para renderização precisa do texto
+      // Criar prompt ultra-simplificado e imperativo para controle absoluto do texto
       console.log('Creating ultra-simplified prompt for precise text rendering...');
       
-      const prompt = `RENDER THIS EXACT TEXT ONLY: "${textToUse}"
-
-Language: Portuguese (Brazil)
-Format: Professional ${creativeType.replace('-', ' ')} design
-Requirements:
-- Use ONLY the text provided above
-- NO additional text, words, or invented content  
-- Perfect Portuguese spelling and grammar
-- Modern typography with high contrast
-- Clean, professional layout
-- Clear readability
-- Do NOT add any other text or words
-- Do NOT translate or modify the text
-- Do NOT invent company names or additional phrases
-
-Visual style: Modern, professional, clean design appropriate for ${clientData?.sector || 'business'} sector`;
+      // Prompt ultra-minimalista focado APENAS no texto exato
+      const prompt = `TEXT: "${textToUse}"
+LANGUAGE: Portuguese Brazil  
+STYLE: Professional ${creativeType.replace('-', ' ')}
+FORMAT: Clean typography, high contrast
+NO EXTRA TEXT
+NO ADDITIONS
+NO MODIFICATIONS
+USE EXACT TEXT ONLY`;
 
       // Chamar a API de geração de imagens do Ideogram
       console.log('Calling Ideogram API with prompt length:', prompt.length);
@@ -163,7 +156,9 @@ Visual style: Modern, professional, clean design appropriate for ${clientData?.s
           prompt: prompt,
           aspect_ratio: aspectRatio,
           model: 'V_2_TURBO', // Use latest model for better text accuracy
-          magic_prompt_option: 'OFF' // ALWAYS OFF to prevent text modifications
+          magic_prompt_option: 'OFF', // ALWAYS OFF to prevent text modifications
+          negative_prompt: 'extra text, random words, invented text, english words, spelling errors, blurry text, distorted text, additional content',
+          style_type: 'DESIGN'
         }
       };
 

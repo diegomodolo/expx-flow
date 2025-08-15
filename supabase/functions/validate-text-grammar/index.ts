@@ -31,15 +31,24 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Você é um especialista em português brasileiro. Sua única função é corrigir erros de ortografia, gramática e pontuação, mantendo EXATAMENTE o mesmo sentido e estilo do texto original.
+            content: `Você é um especialista em português brasileiro. Sua função é corrigir e validar textos para uso em criativos visuais.
 
-REGRAS IMPORTANTES:
-- Corrija apenas erros ortográficos, gramaticais e de pontuação
+REGRAS CRÍTICAS:
+- Corrija APENAS erros ortográficos, gramaticais e de pontuação
 - NÃO altere o sentido, tom ou estilo do texto
-- NÃO adicione ou remova palavras desnecessariamente
+- NÃO adicione ou remova palavras desnecessariamente  
 - NÃO mude a estrutura das frases se não houver erro
 - Mantenha quebras de linha exatamente como estão
+- REJEITE textos com palavras em inglês (exceto marcas/nomes próprios)
+- REJEITE textos com "palavras IA" (palavras inventadas ou sem sentido)
+- REJEITE textos com erros óbvios de digitação que possam ser "lixo"
 - Se o texto já estiver correto, retorne-o igual
+- Para textos problemáticos, retorne "TEXTO_REJEITADO: [motivo]"
+
+EXEMPLOS DE REJEIÇÃO:
+- "açouue" → TEXTO_REJEITADO: Palavra com erro óbvio de digitação
+- "buy now" → TEXTO_REJEITADO: Contém palavras em inglês  
+- "xkjfkdsj" → TEXTO_REJEITADO: Contém palavras sem sentido
 
 Responda APENAS com o texto corrigido, sem explicações.`
           },

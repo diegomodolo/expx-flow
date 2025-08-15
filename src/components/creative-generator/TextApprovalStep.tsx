@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Edit3, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CreativeTextValidator } from "./CreativeTextValidator";
 
 interface TextApprovalStepProps {
   text: string;
@@ -18,11 +19,60 @@ export function TextApprovalStep({ text, onTextApproved, creativeType }: TextApp
   const [hasBeenValidated, setHasBeenValidated] = useState(false);
   const { toast } = useToast();
 
+  // Validações de texto obrigatórias
+  const validateTextContent = (text: string): { isValid: boolean; error?: string } => {
+    if (!text.trim()) {
+      return { isValid: false, error: "O texto não pode estar vazio" };
+    }
+
+    // Verificar se tem caracteres especiais problemáticos
+    const problematicChars = /[^\p{L}\p{N}\p{P}\p{Z}\p{S}]/gu;
+    if (problematicChars.test(text)) {
+      return { isValid: false, error: "O texto contém caracteres especiais que podem causar problemas na renderização" };
+    }
+
+    // Verificar comprimento por tipo de criativo
+    const maxLengths: Record<string, number> = {
+      'instagram-stories': 80,
+      'instagram-feed': 120,
+      'facebook-ad': 150,
+      'youtube-thumbnail': 60,
+      'website-banner': 100
+    };
+
+    const maxLength = maxLengths[creativeType] || 200;
+    if (text.length > maxLength) {
+      return { 
+        isValid: false, 
+        error: `O texto é muito longo para ${creativeType}. Máximo: ${maxLength} caracteres. Atual: ${text.length}` 
+      };
+    }
+
+    // Verificar se contém palavras em inglês comuns (básico)
+    const englishWords = /\b(the|and|or|but|in|on|at|to|for|of|with|by)\b/gi;
+    if (englishWords.test(text)) {
+      return { isValid: false, error: "O texto contém palavras em inglês. Use apenas português brasileiro." };
+    }
+
+    return { isValid: true };
+  };
+
   const handleValidateGrammar = async () => {
     if (!currentText.trim()) {
       toast({
         title: "Erro",
         description: "Digite um texto para validar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validação prévia obrigatória
+    const preValidation = validateTextContent(currentText);
+    if (!preValidation.isValid) {
+      toast({
+        title: "Erro de Validação",
+        description: preValidation.error,
         variant: "destructive"
       });
       return;
@@ -63,10 +113,22 @@ export function TextApprovalStep({ text, onTextApproved, creativeType }: TextApp
   };
 
   const handleApproveText = () => {
-    if (!currentText.trim()) {
+    // Validação final obrigatória antes da aprovação
+    const validation = validateTextContent(currentText);
+    if (!validation.isValid) {
       toast({
-        title: "Erro",
-        description: "O texto não pode estar vazio",
+        title: "Erro de Validação",
+        description: validation.error,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verificar se foi validado gramaticalmente
+    if (!hasBeenValidated) {
+      toast({
+        title: "Validação Obrigatória",
+        description: "É obrigatório validar a gramática antes de aprovar o texto",
         variant: "destructive"
       });
       return;
@@ -102,9 +164,19 @@ export function TextApprovalStep({ text, onTextApproved, creativeType }: TextApp
             className="min-h-[120px] text-base"
           />
           
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <AlertCircle className="w-4 h-4" />
-            Este texto aparecerá EXATAMENTE como está escrito na imagem gerada
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <AlertCircle className="w-4 h-4" />
+              Este texto aparecerá EXATAMENTE como está escrito na imagem gerada
+            </div>
+            
+            <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+              <strong>Validação obrigatória:</strong> É necessário validar a gramática antes de aprovar o texto
+            </div>
+            
+            {currentText && (
+              <CreativeTextValidator text={currentText} creativeType={creativeType} />
+            )}
           </div>
 
           <div className="flex gap-3">
@@ -128,7 +200,7 @@ export function TextApprovalStep({ text, onTextApproved, creativeType }: TextApp
 
             <Button
               onClick={handleApproveText}
-              disabled={!currentText.trim()}
+              disabled={!currentText.trim() || !hasBeenValidated}
               className="bg-primary hover:bg-primary/90"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
