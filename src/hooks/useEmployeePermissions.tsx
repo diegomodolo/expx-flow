@@ -13,6 +13,7 @@ export type MenuItemType =
   | 'relatorios'
   | 'gerador-campanhas'
   | 'gerador-conteudo'
+  | 'gerador-criativos'
   | 'ia'
   | 'configuracoes';
 
@@ -125,7 +126,7 @@ export function useEmployeePermissions() {
 
       // Se for proprietário, não precisa verificar permissões específicas
       if (userIsOwner) {
-        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'ia', 'configuracoes'];
+        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'ia', 'configuracoes'];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
         return;
