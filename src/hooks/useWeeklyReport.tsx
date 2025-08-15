@@ -299,7 +299,7 @@ export function useWeeklyReport(clientId: string) {
     // Group by status
     const campaignsByStatus: Record<string, number> = {};
     campaigns.forEach(campaign => {
-      const status = campaign.status || 'unknown';
+      const status = campaign.status || 'desconhecido';
       campaignsByStatus[status] = (campaignsByStatus[status] || 0) + 1;
     });
 
@@ -334,7 +334,7 @@ export function useWeeklyReport(clientId: string) {
       .map(c => c.quality_ranking);
     const averageQualityRanking = qualityRankings.length > 0 
       ? qualityRankings[0] // Simplified - could be calculated properly
-      : 'UNKNOWN';
+      : 'Desconhecido';
 
     // Budget utilization (simplified)
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);

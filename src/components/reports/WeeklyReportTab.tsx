@@ -216,6 +216,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
       'OUTCOME_AWARENESS': 'Conscientização',
       'OUTCOME_LOCAL_AWARENESS': 'Conscientização Local',
       'OUTCOME_VIDEO_VIEWS': 'Visualizações de Vídeo',
+      'OUTCOME_MESSAGES': 'Mensagens',
       'LEADS': 'Leads',
       'TRAFFIC': 'Tráfego',
       'ENGAGEMENT': 'Engajamento',
@@ -223,7 +224,10 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
       'APP_PROMOTION': 'Promoção de App',
       'AWARENESS': 'Conscientização',
       'LOCAL_AWARENESS': 'Conscientização Local',
-      'VIDEO_VIEWS': 'Visualizações de Vídeo'
+      'VIDEO_VIEWS': 'Visualizações de Vídeo',
+      'MESSAGES': 'Mensagens',
+      'LINK_CLICKS': 'Cliques no Link',
+      'UNKNOWN': 'Desconhecido'
     };
     
     // Remove prefixos comuns e underscore
