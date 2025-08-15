@@ -69,6 +69,7 @@ export interface WeeklyReportData {
     lastAccess?: string;
     briefing?: string;
     monthlyBudget?: number;
+    lastSyncPeriod?: string;
   };
   companyInfo: {
     name: string;
@@ -181,6 +182,7 @@ export function useWeeklyReport(clientId: string) {
           lastAccess: clientData.last_sync_at,
           briefing: clientData.ai_briefing || undefined,
           monthlyBudget: clientData.monthly_budget,
+          lastSyncPeriod: clientData.last_sync_period,
         },
         companyInfo: {
           name: activeCompany.company?.name || "Sistema de Gestão",

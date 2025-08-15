@@ -286,9 +286,9 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Relatório Semanal</h2>
-          <p className="text-muted-foreground">
-            Período: {formatDate(reportData.dateRange.startDate)} a {formatDate(reportData.dateRange.endDate)}
-          </p>
+           <p className="text-muted-foreground">
+             Período da última sincronização: {reportData.clientInfo.lastSyncPeriod ? `${reportData.clientInfo.lastSyncPeriod} dias` : 'Não definido'}
+           </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={regenerateReport} variant="outline" size="sm">
