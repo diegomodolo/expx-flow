@@ -114,18 +114,45 @@ serve(async (req) => {
       // Criar prompt detalhado para geração da imagem
       console.log('Creating prompt for image generation...');
 
-      // Criar prompt simplificado para geração da imagem
-      const prompt = `Create a professional ${creativeType} image for ${clientData.name}, a ${clientData.sector} company. 
+      // Processar copy para melhor formatação na imagem
+      const formattedCopy = copy ? copy.replace(/\n/g, ' | ') : '';
       
-Theme: ${theme}
-Style: Modern, professional, clean design
-Colors: Professional color palette suitable for ${clientData.sector}
-Elements: Dashboard interface, real-time monitoring displays, charts and graphs
-Text overlay: "${copy}"
-Target audience: Technology professionals and decision makers
-Quality: High resolution, suitable for ${creativeType}
+      // Criar prompt detalhado e contextualizado
+      const prompt = `Create a professional ${creativeType} advertisement image with the following specifications:
 
-Create an engaging image that showcases real-time monitoring and control capabilities.`;
+BRAND & CONTEXT:
+- Company: ${clientData.name}
+- Industry: ${clientData.sector}
+- Campaign Theme: ${theme}
+- Main Title: ${title}
+- Key Message: ${description}
+
+VISUAL ELEMENTS:
+- Style: Modern, professional design appropriate for ${clientData.sector} industry
+- Layout: Clean composition with clear visual hierarchy
+- Colors: Professional color palette that conveys trust and innovation for ${clientData.sector}
+- Typography: Bold, readable fonts for headlines and supporting text
+
+TEXT CONTENT TO INCLUDE:
+${formattedCopy ? `- Main copy text: "${formattedCopy}"` : '- Focus on visual elements without overlapping text'}
+- Headline: "${title}"
+
+TARGET AUDIENCE: ${targetAudience}
+
+SPECIFIC REQUIREMENTS:
+- Format: Optimized for ${creativeType} (1080x1080px if square format)
+- Message: Must communicate "${objective}"
+- Industry relevance: Include visual elements that resonate with ${clientData.sector} professionals
+- Call-to-action feel: Should inspire action towards the campaign objective
+
+VISUAL STYLE:
+- Professional photography or illustration style
+- High contrast for text readability
+- Balanced composition with clear focal points
+- Modern gradient or solid backgrounds that don't compete with text
+- Include relevant industry iconography or metaphors for ${clientData.sector}
+
+Create an engaging, conversion-focused image that clearly communicates the value proposition to ${targetAudience}.`;
 
       // Chamar a API de geração de imagens do OpenAI
       console.log('Calling OpenAI API with prompt length:', prompt.length);
