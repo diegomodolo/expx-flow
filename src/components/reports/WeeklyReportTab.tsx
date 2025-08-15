@@ -425,12 +425,14 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
               </div>
               <div className="text-sm text-muted-foreground">ROAS</div>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold">
-                {reportData.currentWeekMetrics.engagements.toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">Engajamentos</div>
-            </div>
+             <div className="text-center">
+               <div className="text-lg font-semibold">
+                 {reportData.currentWeekMetrics.totalSpend > 0 ? 
+                   Math.round((reportData.currentWeekMetrics.totalConversions / reportData.currentWeekMetrics.totalSpend) * 1000) : 0
+                 }
+               </div>
+               <div className="text-sm text-muted-foreground">Leads por R$ 1000</div>
+             </div>
             <div className="text-center">
               <div className="text-lg font-semibold">
                 {reportData.currentWeekMetrics.totalImpressions.toLocaleString()}
