@@ -126,36 +126,60 @@ serve(async (req) => {
       const textToUse = approvedText || copy || title || theme;
       console.log('Text to use in image:', textToUse);
 
-      // Criar prompt ultra-simplificado e imperativo para controle absoluto do texto
-      console.log('Creating ultra-simplified prompt for precise text rendering...');
+      // Buscar prompt personalizado da empresa ou usar o padrão
+      console.log('Fetching custom or default prompt for company...');
       
-      // Prompt balanceado: controle de texto + contexto visual relevante
-      const clientBriefing = clientData.ai_briefing || '';
-      const sectorContext = clientData.sector || '';
-      const audienceContext = clientData.target_audience || targetAudience || '';
-      
-      const prompt = `TEXT: "${textToUse}"
+      const { data: customPromptData } = await supabase
+        .from('content_prompts')
+        .select('custom_prompt, default_prompt')
+        .eq('company_id', companyId)
+        .eq('content_type', 'ideogram_creative')
+        .maybeSingle();
+
+      // Prompt padrão como fallback
+      const defaultPrompt = `TEXT: "{textToUse}"
 MANDATORY: Use EXACTLY this text in Portuguese Brazil - no changes, additions or modifications
 
 VISUAL CONTEXT:
-- Client: ${clientData.name} (${sectorContext} sector)
-- Target audience: ${audienceContext}
-- Campaign theme: ${theme}
-- Creative type: ${creativeType.replace('-', ' ')}
-${clientBriefing ? `- Brand context: ${clientBriefing.substring(0, 200)}` : ''}
+- Client: {clientName} ({sectorContext} sector)
+- Target audience: {audienceContext}
+- Campaign theme: {theme}
+- Creative type: {creativeType}
+{clientBriefing}
 
 STYLE REQUIREMENTS:
-- Professional design for ${creativeType.replace('-', ' ')}
+- Professional design for {creativeType}
 - Clean, modern typography with high contrast
-- Colors and style appropriate for ${sectorContext} sector
-- Visual appeal for ${audienceContext}
+- Colors and style appropriate for {sectorContext} sector
+- Visual appeal for {audienceContext}
 
 STRICT TEXT RULES:
-- TEXT MUST BE EXACTLY: "${textToUse}"
+- TEXT MUST BE EXACTLY: "{textToUse}"
 - NO extra words, slogans, or additional text
 - NO English words
 - NO spelling errors or invented words
 - Professional typography only`;
+
+      // Usar prompt personalizado ou padrão
+      let promptTemplate = customPromptData?.custom_prompt && customPromptData.custom_prompt.trim()
+        ? customPromptData.custom_prompt
+        : defaultPrompt;
+
+      console.log('Using prompt type:', customPromptData?.custom_prompt ? 'custom' : 'default');
+
+      // Substituir variáveis no prompt
+      const clientBriefing = clientData.ai_briefing || '';
+      const sectorContext = clientData.sector || '';
+      const audienceContext = clientData.target_audience || targetAudience || '';
+      
+      const prompt = promptTemplate
+        .replace(/\{textToUse\}/g, textToUse)
+        .replace(/\{clientName\}/g, clientData.name)
+        .replace(/\{sectorContext\}/g, sectorContext)
+        .replace(/\{audienceContext\}/g, audienceContext)
+        .replace(/\{theme\}/g, theme)
+        .replace(/\{creativeType\}/g, creativeType.replace('-', ' '))
+        .replace(/\{clientBriefing\}/g, clientBriefing ? `- Brand context: ${clientBriefing.substring(0, 200)}` : '');
 
       // Chamar a API de geração de imagens do Ideogram
       console.log('Calling Ideogram API with prompt length:', prompt.length);
