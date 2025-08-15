@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreativeType {
@@ -202,8 +204,22 @@ interface CreativeTypeSelectorProps {
 }
 
 export function CreativeTypeSelector({ selectedType, onTypeSelect }: CreativeTypeSelectorProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Filter creative types based on search term
+  const filteredTypes = useMemo(() => {
+    if (!searchTerm.trim()) return CREATIVE_TYPES;
+    
+    const search = searchTerm.toLowerCase().trim();
+    return CREATIVE_TYPES.filter(type => 
+      type.name.toLowerCase().includes(search) ||
+      type.description.toLowerCase().includes(search) ||
+      type.platform.toLowerCase().includes(search)
+    );
+  }, [searchTerm]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium mb-2">Escolha o tipo de criativo</h3>
         <p className="text-muted-foreground">
@@ -211,8 +227,38 @@ export function CreativeTypeSelector({ selectedType, onTypeSelect }: CreativeTyp
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CREATIVE_TYPES.map((type) => (
+      {/* Search Field */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          placeholder="Buscar tipo de criativo..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Results count */}
+      {searchTerm && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {filteredTypes.length} resultado(s) encontrado(s)
+          </p>
+          {filteredTypes.length > 0 && searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="text-sm text-primary hover:underline"
+            >
+              Limpar busca
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Creative types grid */}
+      {filteredTypes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTypes.map((type) => (
           <Card
             key={type.id}
             className={cn(
@@ -246,6 +292,23 @@ export function CreativeTypeSelector({ selectedType, onTypeSelect }: CreativeTyp
           </Card>
         ))}
       </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+            <Search className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h4 className="font-medium mb-2">Nenhum resultado encontrado</h4>
+          <p className="text-muted-foreground mb-4">
+            Tente ajustar sua busca ou{" "}
+            <button
+              onClick={() => setSearchTerm("")}
+              className="text-primary hover:underline"
+            >
+              ver todos os tipos
+            </button>
+          </p>
+        </div>
+      )}
 
       {selectedType && (
         <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
