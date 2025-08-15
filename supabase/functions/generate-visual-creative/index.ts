@@ -28,7 +28,8 @@ serve(async (req) => {
       clientId,
       theme,
       context,
-      companyId
+      companyId,
+      references = []
     } = await req.json();
 
     console.log('Request data received:', {
@@ -36,7 +37,9 @@ serve(async (req) => {
       clientId,
       theme,
       companyId,
-      contextKeys: Object.keys(context || {})
+      contextKeys: Object.keys(context || {}),
+      hasReferences: references && references.length > 0,
+      referencesCount: references ? references.length : 0
     });
 
     // Validar dados obrigatórios
@@ -171,20 +174,48 @@ Create an engaging, conversion-focused image that clearly communicates the value
         aspectRatio = 'ASPECT_16_9';
       }
       
+      // Preparar o corpo da requisição para o Ideogram
+      const ideogramRequestBody: any = {
+        image_request: {
+          prompt: prompt,
+          aspect_ratio: aspectRatio,
+          model: 'V_2',
+          magic_prompt_option: references && references.length > 0 ? 'OFF' : 'AUTO'
+        }
+      };
+
+      // Adicionar imagens de referência se disponíveis
+      if (references && references.length > 0) {
+        console.log(`Adding ${references.length} reference images to Ideogram request`);
+        
+        // Converter base64 para format esperado pelo Ideogram
+        const styleReferences = references.map((base64Image: string) => {
+          // Remover o prefixo data:image/...;base64, se presente
+          const base64Data = base64Image.split(',')[1] || base64Image;
+          return {
+            weight: 1.0 / references.length, // Distribuir peso igualmente entre referências
+            image_base64: base64Data
+          };
+        });
+
+        ideogramRequestBody.image_request.style_reference_images = styleReferences;
+        
+        // Ajustar prompt quando há referências
+        const enhancedPrompt = `${prompt}
+
+IMPORTANT: Follow the visual style, composition patterns, color palette, and design elements shown in the reference images. Maintain the same aesthetic approach while adapting the content for ${clientData.name} and the ${theme} campaign.`;
+        
+        ideogramRequestBody.image_request.prompt = enhancedPrompt;
+        console.log('Enhanced prompt with style references for Ideogram');
+      }
+      
       const response = await fetch('https://api.ideogram.ai/generate', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          image_request: {
-            prompt: prompt,
-            aspect_ratio: aspectRatio,
-            model: 'V_2',
-            magic_prompt_option: 'AUTO'
-          }
-        }),
+        body: JSON.stringify(ideogramRequestBody),
       });
 
       console.log('Ideogram response status:', response.status);

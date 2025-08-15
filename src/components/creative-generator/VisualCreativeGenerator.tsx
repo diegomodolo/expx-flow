@@ -35,12 +35,30 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
     setGenerationError(null);
     
     try {
+      // Converter referências para base64 se existirem
+      let references: string[] = [];
+      if (data.references && data.references.length > 0) {
+        console.log('Converting reference images to base64...');
+        references = await Promise.all(
+          data.references.map(async (file: File) => {
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+          })
+        );
+        console.log(`Converted ${references.length} reference images`);
+      }
+
       const requestBody = {
         creativeType: data.creativeType,
         clientId: data.clientId,
         theme: data.theme,
         context: data.context,
         companyId: activeCompany?.company_id,
+        references: references.length > 0 ? references : undefined,
       };
       
       console.log('Sending request to generate-visual-creative:', requestBody);
