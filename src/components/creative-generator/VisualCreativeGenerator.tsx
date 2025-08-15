@@ -49,6 +49,12 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
 
       if (result?.imageUrl) {
         onImageGenerated(result.imageUrl);
+        
+        // Se uma legenda foi gerada, armazenar no contexto
+        if (result?.suggestedCaption && data.context) {
+          data.context.caption = result.suggestedCaption;
+        }
+        
         toast({
           title: "Criativo gerado com sucesso!",
           description: "Sua imagem foi gerada e está pronta para uso.",

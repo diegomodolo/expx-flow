@@ -1,7 +1,12 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,42 +21,87 @@ serve(async (req) => {
 
   try {
     const { 
-      title,
-      description,
-      copy,
       creativeType,
-      clientSector,
-      voiceTone 
+      clientId,
+      theme,
+      context,
+      companyId
     } = await req.json();
 
-    console.log('Generating visual creative for:', {
-      title,
+    console.log('Generating visual creative with data:', {
       creativeType,
-      clientSector
+      clientId,
+      theme,
+      companyId,
+      contextKeys: Object.keys(context || {})
     });
+
+    // Validar dados obrigatórios
+    if (!context) {
+      throw new Error('Context is required');
+    }
+
+    // Buscar dados completos do cliente
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('name, sector, briefing, target_audience')
+      .eq('id', clientId)
+      .eq('company_id', companyId)
+      .single();
+
+    if (clientError) {
+      console.error('Error fetching client data:', clientError);
+      throw new Error(`Erro ao buscar dados do cliente: ${clientError.message}`);
+    }
+
+    console.log('Client data retrieved:', {
+      clientName: clientData?.name,
+      sector: clientData?.sector,
+      hasTargetAudience: !!clientData?.target_audience
+    });
+
+    // Extrair informações do contexto
+    const {
+      title = '',
+      description = '',
+      copy = '',
+      targetAudience = '',
+      objective = ''
+    } = context;
 
     // Criar prompt detalhado para geração da imagem
     const prompt = `
 Crie uma imagem profissional para ${creativeType} com as seguintes especificações:
 
-TÍTULO/HEADLINE: ${title}
-DESCRIÇÃO: ${description}
-COPY PARA IMAGEM: ${copy}
-SETOR DO CLIENTE: ${clientSector}
-TOM DE VOZ: ${voiceTone}
+CONTEXTO DO CLIENTE:
+- Nome: ${clientData.name}
+- Setor: ${clientData.sector}
+- Público-alvo: ${clientData.target_audience || targetAudience}
+- Briefing: ${clientData.briefing || 'Não especificado'}
+
+DETALHES DA CAMPANHA:
+- Tema: ${theme}
+- Título/Headline: ${title}
+- Descrição: ${description}
+- Copy para imagem: ${copy}
+- Objetivo: ${objective}
 
 INSTRUÇÕES PARA A IMAGEM:
-- Style: Profissional, moderno e atrativo
+- Style: Profissional, moderno e atrativo para o setor ${clientData.sector}
 - Layout: Limpo e bem organizado
-- Cores: Use cores adequadas ao setor ${clientSector}
-- Texto: Incluir o copy "${copy}" de forma legível e destacada
-- Qualidade: Alta resolução, adequada para redes sociais
-- Composição: Equilibrada e visualmente atrativa
+- Cores: Use paleta de cores adequada ao setor ${clientData.sector} e que transmita confiança
+- Texto: ${copy ? `Incluir o copy "${copy}" de forma legível e destacada` : 'Foco visual sem texto sobreposto'}
+- Qualidade: Ultra alta resolução, adequada para ${creativeType}
+- Composição: Equilibrada e visualmente atrativa para o público ${clientData.target_audience || targetAudience}
+- Tema: Incorporar elementos visuais relacionados ao tema "${theme}"
 
-A imagem deve ser adequada para o tipo de criativo: ${creativeType}
-Tom de comunicação: ${voiceTone}
+REQUISITOS ESPECÍFICOS:
+- A imagem deve ser adequada para: ${creativeType}
+- Deve comunicar efetivamente para: ${clientData.target_audience || targetAudience}
+- Deve refletir o posicionamento do cliente no setor: ${clientData.sector}
+- Deve transmitir a mensagem: ${objective || title}
 
-Crie uma imagem que capture a atenção do público-alvo e comunique efetivamente a mensagem.`;
+Crie uma imagem que capture a atenção do público-alvo específico e comunique efetivamente a proposta de valor do cliente.`;
 
     // Chamar a API de geração de imagens do OpenAI
     const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -86,7 +136,7 @@ Crie uma imagem que capture a atenção do público-alvo e comunique efetivament
 
     console.log('Image generated successfully:', imageUrl);
 
-    // Gerar uma legenda sugerida baseada no contexto
+    // Gerar uma legenda sugerida baseada no contexto completo
     const captionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -98,36 +148,52 @@ Crie uma imagem que capture a atenção do público-alvo e comunique efetivament
         messages: [
           { 
             role: 'system', 
-            content: 'Você é um especialista em marketing digital. Crie legendas envolventes para redes sociais em português brasileiro.' 
+            content: 'Você é um especialista em marketing digital e copywriting. Crie legendas envolventes e persuasivas para redes sociais em português brasileiro, sempre considerando o público-alvo específico e o posicionamento da marca.' 
           },
           { 
             role: 'user', 
-            content: `Crie uma legenda envolvente para redes sociais baseada em:
-            
-            Título: ${title}
-            Descrição: ${description}
-            Setor: ${clientSector}
-            Tom: ${voiceTone}
-            
-            A legenda deve:
-            - Ter entre 100-200 caracteres
-            - Incluir emojis relevantes
-            - Ter 2-3 hashtags estratégicas
-            - Ser persuasiva e chamar para ação
-            
-            Responda apenas com a legenda, sem explicações.`
+            content: `Crie uma legenda envolvente para redes sociais baseada no seguinte contexto:
+
+CLIENTE:
+- Nome: ${clientData.name}
+- Setor: ${clientData.sector}
+- Público-alvo: ${clientData.target_audience || targetAudience}
+- Briefing: ${clientData.briefing || 'Não especificado'}
+
+CAMPANHA:
+- Tema: ${theme}
+- Título: ${title}
+- Descrição: ${description}
+- Copy da imagem: ${copy}
+- Objetivo: ${objective}
+- Tipo de criativo: ${creativeType}
+
+REQUISITOS PARA A LEGENDA:
+- Ter entre 120-250 caracteres
+- Incluir emojis relevantes ao setor ${clientData.sector}
+- Ter 2-4 hashtags estratégicas para o público ${clientData.target_audience || targetAudience}
+- Ser persuasiva e incluir uma call-to-action clara
+- Refletir o tom profissional mas acessível
+- Conectar com a proposta de valor do cliente
+- Ser adequada para o tipo de criativo: ${creativeType}
+
+Responda APENAS com a legenda, sem explicações ou comentários adicionais.`
           }
         ],
         temperature: 0.7,
-        max_tokens: 150,
+        max_tokens: 200,
       }),
     });
 
-    let suggestedCaption = "🚀 Transforme seus resultados! Conheça nossa solução. #Marketing #Inovação";
+    let suggestedCaption = `🚀 Transforme seus resultados com ${clientData.name}! Soluções inovadoras para ${clientData.sector}. #${clientData.sector.replace(/\s+/g, '')} #Inovação #Resultados`;
     
     if (captionResponse.ok) {
       const captionData = await captionResponse.json();
-      suggestedCaption = captionData.choices[0].message.content.trim();
+      if (captionData.choices && captionData.choices[0] && captionData.choices[0].message) {
+        suggestedCaption = captionData.choices[0].message.content.trim();
+      }
+    } else {
+      console.error('Caption generation failed:', await captionResponse.text());
     }
 
     return new Response(JSON.stringify({ 
