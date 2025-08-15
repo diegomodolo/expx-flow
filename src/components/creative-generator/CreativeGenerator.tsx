@@ -114,14 +114,20 @@ export function CreativeGenerator() {
           {currentStep === 1 && (
             <CreativeTypeSelector
               selectedType={data.creativeType}
-              onTypeSelect={(type) => updateData("creativeType", type)}
+              onTypeSelect={(type) => {
+                updateData("creativeType", type);
+                setTimeout(handleNext, 300); // Pequeno delay para feedback visual
+              }}
             />
           )}
 
           {currentStep === 2 && (
             <ClientSelectorForCreatives
               selectedClientId={data.clientId}
-              onClientSelect={(clientId) => updateData("clientId", clientId)}
+              onClientSelect={(clientId) => {
+                updateData("clientId", clientId);
+                setTimeout(handleNext, 300); // Pequeno delay para feedback visual
+              }}
             />
           )}
 
