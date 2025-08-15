@@ -14,7 +14,9 @@ interface IdeogramPrompt {
   updated_at?: string;
 }
 
-const DEFAULT_IDEOGRAM_PROMPT = `TEXT: "{textToUse}"
+const DEFAULT_IDEOGRAM_PROMPT = `PROFESSIONAL PHOTOGRAPHY: Create a real marketing campaign photograph - NOT an illustration or cartoon
+
+TEXT: "{textToUse}"
 MANDATORY: Use EXACTLY this text in Portuguese Brazil - no changes, additions or modifications
 
 VISUAL CONTEXT:
@@ -24,13 +26,15 @@ VISUAL CONTEXT:
 - Creative type: {creativeType}
 {clientBriefing}
 
-STYLE REQUIREMENTS:
-- Ultra-realistic photography style (NOT illustration or cartoon)
-- Use only photographic assets or lifelike AI-generated images
+PHOTOGRAPHY SPECIFICATIONS:
+- MUST be ultra-realistic photography style - like shot with professional DSLR camera
+- Professional studio lighting or natural lighting setup
+- High-resolution commercial photography quality
 - Corporate, professional design with clean, modern layout
 - Clean, modern **typography** with excellent readability
 - Colors and visual style aligned with the branding of the {sectorContext} sector
 - Visual appeal for {audienceContext}
+- Background: Clean, professional, and contextually appropriate
 
 STRICT TEXT RULES:
 - TEXT MUST BE EXACTLY: "{textToUse}"
@@ -40,11 +44,12 @@ STRICT TEXT RULES:
 - NO distortions or variations in the text
 - NO decorative or artistic fonts — only professional fonts
 
-IMPORTANT INSTRUCTIONS:
-- DO NOT use cartoon, flat, childish, comic, manga, anime, 3D render, or illustration style
-- Image must look like a real marketing campaign photo
-- Focus on creating a highly professional and realistic ad
-- Use clean background and realistic lighting`;
+CRITICAL REQUIREMENTS:
+- NEVER use illustration, cartoon, drawing, sketch, anime, manga, comic, flat design, vector art, digital art, painting, artistic rendering, 3D render, clipart, icon, logo, symbol, or graphic design
+- MUST look like an actual photograph taken by a professional photographer
+- MUST appear as a real marketing campaign photo that could be used by a major brand
+- Use realistic lighting, shadows, depth of field, and photographic composition
+- Focus on creating a highly professional and realistic advertisement photograph`;
 
 export function useIdeogramPrompt() {
   const { activeCompany } = useCompany();
