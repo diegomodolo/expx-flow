@@ -21,6 +21,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string }[] = 
   { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises' },
   { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Ferramenta de criação de campanhas' },
   { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Ferramenta de criação de conteúdo com IA' },
+  { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Ferramenta de criação de criativos visuais com IA' },
   { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial' },
   { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema' },
 ];
