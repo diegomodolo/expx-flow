@@ -45,10 +45,21 @@ export function CreativeContextValidator({
   const hasEmptyFields = completedFields === 0;
 
   const generateContextWithAI = async () => {
-    if (!theme || !client) {
+    console.log('Debug - generateContextWithAI called:', { theme, clientId, client });
+    
+    if (!theme || !clientId) {
       toast({
         title: "Erro",
-        description: "Tema ou cliente não encontrado",
+        description: `Dados incompletos: tema="${theme}", clientId="${clientId}"`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!client) {
+      toast({
+        title: "Erro", 
+        description: `Cliente não encontrado para ID: ${clientId}`,
         variant: "destructive",
       });
       return;
@@ -94,10 +105,12 @@ export function CreativeContextValidator({
 
   // Auto-gerar contexto quando entrar na tela se estiver vazio
   useEffect(() => {
+    console.log('Debug - useEffect triggered:', { hasEmptyFields, theme, clientId, isGenerating, client });
     if (hasEmptyFields && theme && clientId && !isGenerating) {
+      console.log('Auto-generating context...');
       generateContextWithAI();
     }
-  }, [theme, clientId]);
+  }, [theme, clientId, client]);
 
   const fieldConfigs = [
     {
