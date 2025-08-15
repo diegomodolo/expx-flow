@@ -161,10 +161,10 @@ export function CreativeContextValidator({
     },
     {
       key: "copy" as keyof CreativeContext,
-      label: "Copy da Imagem",
+      label: "Copy da Imagem (TEXTO QUE APARECERÁ NA IMAGEM) ⭐",
       placeholder: "Ex: BLACK FRIDAY\\n50% OFF\\nCompre agora!",
       icon: Quote,
-      description: "Texto que deve aparecer na imagem (máximo 3-4 linhas)",
+      description: "ESTE TEXTO aparecerá EXATAMENTE como escrito na imagem gerada (máximo 3-4 linhas)",
       multiline: true,
       required: true,
     },
@@ -278,9 +278,14 @@ export function CreativeContextValidator({
                   )}
                   
                   {field.key === "copy" && (
-                    <p className="text-xs text-muted-foreground">
-                      💡 Use \\n para quebras de linha. Mantenha o texto conciso para melhor legibilidade.
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        💡 Use \\n para quebras de linha. Este texto será usado EXATAMENTE como está na imagem.
+                      </p>
+                      <p className="text-xs text-orange-600 font-medium">
+                        ⚠️ IMPORTANTE: Este texto aparecerá na imagem final sem modificações.
+                      </p>
+                    </div>
                   )}
                 </div>
               </CardContent>

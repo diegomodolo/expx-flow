@@ -61,6 +61,7 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
         context: data.context,
         companyId: activeCompany?.company_id,
         references: references.length > 0 ? references : undefined,
+        approvedText: data.approvedText,
       };
       
       console.log('Sending request to generate-visual-creative:', requestBody);

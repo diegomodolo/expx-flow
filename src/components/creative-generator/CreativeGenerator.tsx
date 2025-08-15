@@ -8,6 +8,7 @@ import { ReferenceUploader } from "./ReferenceUploader";
 import { ThemeSuggestionGenerator } from "./ThemeSuggestionGenerator";
 import { CreativeContextValidator } from "./CreativeContextValidator";
 import { VisualCreativeGenerator } from "./VisualCreativeGenerator";
+import { TextApprovalStep } from "./TextApprovalStep";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export interface CreativeData {
@@ -23,6 +24,7 @@ export interface CreativeData {
     copy: string;
     caption: string;
   };
+  approvedText?: string;
   generatedImageUrl?: string;
 }
 
@@ -44,7 +46,7 @@ export function CreativeGenerator() {
   });
 
   const handleNext = () => {
-    if (currentStep < 6) {
+    if (currentStep < 7) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -70,6 +72,7 @@ export function CreativeGenerator() {
         copy: "",
         caption: "",
       },
+      approvedText: "",
     });
   };
 
@@ -92,6 +95,7 @@ export function CreativeGenerator() {
   const canProceedFromStep3 = true; // References are optional
   const canProceedFromStep4 = data.theme !== "";
   const canProceedFromStep5 = Object.values(data.context).some(value => value !== "");
+  const canProceedFromStep6 = data.approvedText !== "";
 
   const steps = [
     { number: 1, title: "Tipo de Criativo", completed: canProceedFromStep1 },
@@ -99,7 +103,8 @@ export function CreativeGenerator() {
     { number: 3, title: "Referências", completed: canProceedFromStep3 },
     { number: 4, title: "Tema", completed: canProceedFromStep4 },
     { number: 5, title: "Contexto", completed: canProceedFromStep5 },
-    { number: 6, title: "Gerar", completed: !!data.generatedImageUrl },
+    { number: 6, title: "Aprovar Texto", completed: canProceedFromStep6 },
+    { number: 7, title: "Gerar Imagem", completed: !!data.generatedImageUrl },
   ];
 
   return (
@@ -159,6 +164,17 @@ export function CreativeGenerator() {
           )}
 
           {currentStep === 6 && (
+            <TextApprovalStep
+              text={data.context.copy}
+              onTextApproved={(approvedText) => {
+                updateData("approvedText", approvedText);
+                setTimeout(handleNext, 300);
+              }}
+              creativeType={data.creativeType}
+            />
+          )}
+
+          {currentStep === 7 && (
             <VisualCreativeGenerator
               data={data}
               onImageGenerated={(url) => updateData("generatedImageUrl", url)}
@@ -177,13 +193,14 @@ export function CreativeGenerator() {
           </div>
 
           <div className="space-x-2">
-            {currentStep < 6 && (
+            {currentStep < 7 && currentStep !== 6 && (
               <Button
                 onClick={handleNext}
                 disabled={
                   (currentStep === 1 && !canProceedFromStep1) ||
                   (currentStep === 2 && !canProceedFromStep2) ||
-                  (currentStep === 4 && !canProceedFromStep4)
+                  (currentStep === 4 && !canProceedFromStep4) ||
+                  (currentStep === 5 && !canProceedFromStep5)
                 }
               >
                 Próximo
@@ -191,7 +208,7 @@ export function CreativeGenerator() {
               </Button>
             )}
 
-            {currentStep === 6 && data.generatedImageUrl && (
+            {currentStep === 7 && data.generatedImageUrl && (
               <Button variant="outline" onClick={handleReset}>
                 Novo Criativo
               </Button>

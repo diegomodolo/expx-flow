@@ -29,7 +29,8 @@ serve(async (req) => {
       theme,
       context,
       companyId,
-      references = []
+      references = [],
+      approvedText
     } = await req.json();
 
     console.log('Request data received:', {
@@ -39,7 +40,8 @@ serve(async (req) => {
       companyId,
       contextKeys: Object.keys(context || {}),
       hasReferences: references && references.length > 0,
-      referencesCount: references ? references.length : 0
+      referencesCount: references ? references.length : 0,
+      hasApprovedText: !!approvedText
     });
 
     // Validar dados obrigatórios
@@ -120,48 +122,30 @@ serve(async (req) => {
 
       console.log('Context extracted:', { title, description, copy, targetAudience, objective });
 
-      // Criar prompt detalhado para geração da imagem
-      console.log('Creating prompt for image generation...');
+      // Usar texto aprovado se disponível, senão usar o copy do contexto
+      const textToUse = approvedText || copy || title || theme;
+      console.log('Text to use in image:', textToUse);
 
-      // Processar copy para melhor formatação na imagem
-      const formattedCopy = copy ? copy.replace(/\n/g, ' | ') : '';
+      // Criar prompt simplificado focado APENAS no texto exato
+      console.log('Creating simplified prompt for image generation...');
       
-      // Criar prompt detalhado e contextualizado
-      const prompt = `Create a professional ${creativeType} advertisement image with the following specifications:
+      const prompt = `Create a professional ${creativeType.replace('-', ' ')} design.
 
-BRAND & CONTEXT:
-- Company: ${clientData.name}
-- Industry: ${clientData.sector}
-- Campaign Theme: ${theme}
-- Main Title: ${title}
-- Key Message: ${description}
+CRITICAL INSTRUCTION: Use EXCLUSIVELY this text exactly as it is written, without any changes, additions, or translations:
 
-VISUAL ELEMENTS:
-- Style: Modern, professional design appropriate for ${clientData.sector} industry
-- Layout: Clean composition with clear visual hierarchy
-- Colors: Professional color palette that conveys trust and innovation for ${clientData.sector}
-- Typography: Bold, readable fonts for headlines and supporting text
+"${textToUse}"
 
-TEXT CONTENT TO INCLUDE:
-${formattedCopy ? `- Main copy text: "${formattedCopy}"` : '- Focus on visual elements without overlapping text'}
-- Headline: "${title}"
+DESIGN REQUIREMENTS:
+- Modern, clean typography that is highly legible
+- High contrast between text and background for maximum readability  
+- Professional layout appropriate for ${creativeType.replace('-', ' ')}
+- Use the text EXACTLY as provided above - do not add, modify, translate, or change any part of it
+- Focus on excellent visual design while preserving the exact text content
+- Choose colors and fonts that make the text stand out clearly
+- Create visual hierarchy if the text has multiple lines
+- Ensure the text is the main focal point of the design
 
-TARGET AUDIENCE: ${targetAudience}
-
-SPECIFIC REQUIREMENTS:
-- Format: Optimized for ${creativeType} (1080x1080px if square format)
-- Message: Must communicate "${objective}"
-- Industry relevance: Include visual elements that resonate with ${clientData.sector} professionals
-- Call-to-action feel: Should inspire action towards the campaign objective
-
-VISUAL STYLE:
-- Professional photography or illustration style
-- High contrast for text readability
-- Balanced composition with clear focal points
-- Modern gradient or solid backgrounds that don't compete with text
-- Include relevant industry iconography or metaphors for ${clientData.sector}
-
-Create an engaging, conversion-focused image that clearly communicates the value proposition to ${targetAudience}.`;
+IMPORTANT: Use the provided text EXACTLY as written. Do not make any changes to the text content whatsoever.`;
 
       // Chamar a API de geração de imagens do Ideogram
       console.log('Calling Ideogram API with prompt length:', prompt.length);
@@ -200,10 +184,10 @@ Create an engaging, conversion-focused image that clearly communicates the value
 
         ideogramRequestBody.image_request.style_reference_images = styleReferences;
         
-        // Ajustar prompt quando há referências
+        // Ajustar prompt quando há referências - mantendo foco no texto exato
         const enhancedPrompt = `${prompt}
 
-IMPORTANT: Follow the visual style, composition patterns, color palette, and design elements shown in the reference images. Maintain the same aesthetic approach while adapting the content for ${clientData.name} and the ${theme} campaign.`;
+STYLE REFERENCE: Follow the visual style, composition patterns, color palette, and design elements shown in the reference images. However, NEVER change the text content - use ONLY the exact text provided: "${textToUse}"`;
         
         ideogramRequestBody.image_request.prompt = enhancedPrompt;
         console.log('Enhanced prompt with style references for Ideogram');
