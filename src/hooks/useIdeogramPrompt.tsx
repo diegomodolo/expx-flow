@@ -25,9 +25,11 @@ VISUAL CONTEXT:
 {clientBriefing}
 
 STYLE REQUIREMENTS:
-- Professional design for {creativeType}
-- Clean, modern typography with high contrast
-- Colors and style appropriate for {sectorContext} sector
+- Ultra-realistic photography style (NOT illustration or cartoon)
+- Use only photographic assets or lifelike AI-generated images
+- Corporate, professional design with clean, modern layout
+- Clean, modern **typography** with excellent readability
+- Colors and visual style aligned with the branding of the {sectorContext} sector
 - Visual appeal for {audienceContext}
 
 STRICT TEXT RULES:
@@ -35,7 +37,14 @@ STRICT TEXT RULES:
 - NO extra words, slogans, or additional text
 - NO English words
 - NO spelling errors or invented words
-- Professional typography only`;
+- NO distortions or variations in the text
+- NO decorative or artistic fonts — only professional fonts
+
+IMPORTANT INSTRUCTIONS:
+- DO NOT use cartoon, flat, childish, comic, manga, anime, 3D render, or illustration style
+- Image must look like a real marketing campaign photo
+- Focus on creating a highly professional and realistic ad
+- Use clean background and realistic lighting`;
 
 export function useIdeogramPrompt() {
   const { activeCompany } = useCompany();
