@@ -139,8 +139,8 @@ serve(async (req) => {
       // Prompt padrão como fallback
   const defaultPrompt = `PROFESSIONAL PHOTOGRAPHY: Create a real marketing campaign photograph - NOT an illustration or cartoon
 
-TEXT: "{textToUse}"
-MANDATORY: Use EXACTLY this text in Portuguese Brazil - no changes, additions or modifications
+TEXT OVERLAY REQUIREMENT: "{textToUse}"
+CRITICAL: This text must appear as a TEXT OVERLAY on top of the image - NOT as text printed on objects, clothing, mugs, or any physical items in the photo.
 
 VISUAL CONTEXT:
 - Client: {clientName} ({sectorContext} sector)
@@ -154,25 +154,34 @@ PHOTOGRAPHY SPECIFICATIONS:
 - Professional studio lighting or natural lighting setup
 - High-resolution commercial photography quality
 - Corporate, professional design with clean, modern layout
-- Clean, modern **typography** with excellent readability
 - Colors and visual style aligned with the branding of the {sectorContext} sector
 - Visual appeal for {audienceContext}
 - Background: Clean, professional, and contextually appropriate
 
+TEXT OVERLAY SPECIFICATIONS:
+- Text "{textToUse}" must appear as a DIGITAL TEXT OVERLAY on top of the photograph
+- Text should be positioned strategically (top, center, or bottom area of the image)
+- Use professional, readable typography with good contrast against the background
+- Text should NOT be part of the physical scene (not on signs, products, clothing, etc.)
+- Text should look like it was added as a graphic element over the photo
+- Ensure text is clearly legible with proper color contrast
+- Use modern, clean fonts appropriate for marketing materials
+
 STRICT TEXT RULES:
-- TEXT MUST BE EXACTLY: "{textToUse}"
-- NO extra words, slogans, or additional text
-- NO English words
+- TEXT OVERLAY MUST BE EXACTLY: "{textToUse}"
+- NO extra words, slogans, or additional text beyond this
+- NO English words unless specifically in the provided text
 - NO spelling errors or invented words
 - NO distortions or variations in the text
-- NO decorative or artistic fonts — only professional fonts
+- Text appears as overlay/graphic element, NOT as physical text in the scene
 
 CRITICAL REQUIREMENTS:
 - NEVER use illustration, cartoon, drawing, sketch, anime, manga, comic, flat design, vector art, digital art, painting, artistic rendering, 3D render, clipart, icon, logo, symbol, or graphic design
-- MUST look like an actual photograph taken by a professional photographer
+- MUST look like an actual photograph taken by a professional photographer with text overlay added
 - MUST appear as a real marketing campaign photo that could be used by a major brand
 - Use realistic lighting, shadows, depth of field, and photographic composition
-- Focus on creating a highly professional and realistic advertisement photograph`;
+- The photograph itself should be clean without text, with the specified text appearing as an overlay
+- Focus on creating a highly professional and realistic advertisement photograph with professional text overlay`;
 
       // Usar prompt personalizado ou padrão
       let promptTemplate = customPromptData?.custom_prompt && customPromptData.custom_prompt.trim()
@@ -199,12 +208,45 @@ CRITICAL REQUIREMENTS:
       console.log('Calling Ideogram API with prompt length:', prompt.length);
       
       // Determinar aspect ratio baseado no tipo de criativo
-      let aspectRatio = 'ASPECT_1_1'; // Default para Facebook Ad
-      if (creativeType === 'instagram-story') {
-        aspectRatio = 'ASPECT_9_16';
-      } else if (creativeType === 'facebook-cover') {
-        aspectRatio = 'ASPECT_16_9';
-      }
+      console.log('Mapping aspect ratio for creative type:', creativeType);
+      
+      let aspectRatio = 'ASPECT_1_1'; // Default
+      
+      // Mapeamento completo dos tipos de criativo para aspect ratios
+      const aspectRatioMap: Record<string, string> = {
+        // Stories e formatos verticais 9:16
+        'instagram-stories': 'ASPECT_9_16',
+        'reels-cover': 'ASPECT_9_16',
+        'tiktok-cover': 'ASPECT_9_16',
+        
+        // Formatos quadrados 1:1
+        'instagram-feed': 'ASPECT_1_1',
+        'whatsapp-business': 'ASPECT_1_1',
+        'carousel-post': 'ASPECT_1_1',
+        'awareness-campaign': 'ASPECT_1_1',
+        'institutional-post': 'ASPECT_1_1',
+        'event-promotion': 'ASPECT_1_1',
+        'seasonal-post': 'ASPECT_1_1',
+        'product-mockup': 'ASPECT_1_1',
+        
+        // Formatos horizontais 16:9
+        'facebook-cover': 'ASPECT_16_9',
+        'youtube-cover': 'ASPECT_16_9',
+        'youtube-thumbnail': 'ASPECT_16_9',
+        
+        // Formatos para anúncios (aproximadamente 2:1)
+        'facebook-ad': 'ASPECT_1_1', // Mantendo 1:1 para compatibilidade
+        'linkedin-post': 'ASPECT_1_1',
+        'remarketing-ad': 'ASPECT_1_1',
+        
+        // Formatos especiais
+        'pinterest-pin': 'ASPECT_9_16', // Aproximado para 2:3
+        'email-banner': 'ASPECT_16_9', // Aproximado para 3:1
+        'website-banner': 'ASPECT_16_9' // Aproximado para 3.2:1
+      };
+      
+      aspectRatio = aspectRatioMap[creativeType] || 'ASPECT_1_1';
+      console.log('Selected aspect ratio:', aspectRatio, 'for creative type:', creativeType);
       
       // Preparar o corpo da requisição para o Ideogram
       const ideogramRequestBody: any = {
