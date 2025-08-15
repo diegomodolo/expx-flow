@@ -146,6 +146,9 @@ export function CreativeGenerator() {
             <CreativeContextValidator
               context={data.context}
               onContextUpdate={updateContext}
+              theme={data.theme}
+              clientId={data.clientId}
+              creativeType={data.creativeType}
             />
           )}
 

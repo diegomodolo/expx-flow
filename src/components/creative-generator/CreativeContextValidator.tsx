@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, FileText, Target, Users, MessageSquare, Quote } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, FileText, Target, Users, MessageSquare, Quote, Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useClients } from "@/hooks/useClients";
+import { toast } from "@/hooks/use-toast";
 
 interface CreativeContext {
   title: string;
@@ -18,12 +22,82 @@ interface CreativeContext {
 interface CreativeContextValidatorProps {
   context: CreativeContext;
   onContextUpdate: <K extends keyof CreativeContext>(key: K, value: CreativeContext[K]) => void;
+  theme: string;
+  clientId: string;
+  creativeType: string;
 }
 
-export function CreativeContextValidator({ context, onContextUpdate }: CreativeContextValidatorProps) {
+export function CreativeContextValidator({ 
+  context, 
+  onContextUpdate, 
+  theme, 
+  clientId, 
+  creativeType 
+}: CreativeContextValidatorProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { clients } = useClients();
+  
+  const client = clients?.find(c => c.id === clientId);
+  
   const completedFields = Object.values(context).filter(value => value.trim() !== "").length;
   const totalFields = Object.keys(context).length;
   const completionPercentage = Math.round((completedFields / totalFields) * 100);
+  const hasEmptyFields = completedFields === 0;
+
+  const generateContextWithAI = async () => {
+    if (!theme || !client) {
+      toast({
+        title: "Erro",
+        description: "Tema ou cliente não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-creative-context', {
+        body: {
+          theme,
+          creativeType,
+          clientBriefing: client.notes || '',
+          clientSector: client.sector || '',
+          targetAudience: client.notes || '',
+          voiceTone: ''
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.context) {
+        // Atualizar todos os campos do contexto
+        Object.entries(data.context).forEach(([key, value]) => {
+          onContextUpdate(key as keyof CreativeContext, value as string);
+        });
+        
+        toast({
+          title: "Contexto gerado com sucesso!",
+          description: "Os campos foram preenchidos automaticamente com base no tema escolhido.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error generating context:', error);
+      toast({
+        title: "Erro ao gerar contexto",
+        description: "Não foi possível gerar o contexto automaticamente. Preencha manualmente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Auto-gerar contexto quando entrar na tela se estiver vazio
+  useEffect(() => {
+    if (hasEmptyFields && theme && clientId && !isGenerating) {
+      generateContextWithAI();
+    }
+  }, [theme, clientId]);
 
   const fieldConfigs = [
     {
@@ -89,7 +163,22 @@ export function CreativeContextValidator({ context, onContextUpdate }: CreativeC
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={generateContextWithAI}
+            disabled={isGenerating}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {isGenerating ? "Gerando..." : "Gerar com IA"}
+          </Button>
+          
           <Badge variant={completionPercentage === 100 ? "default" : "secondary"}>
             {completionPercentage}% completo
           </Badge>
