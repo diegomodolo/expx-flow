@@ -184,11 +184,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
   };
 
   const getChangeIcon = (current: number, previous: number) => {
-    if (previous === 0) return null;
-    const change = ((current - previous) / previous) * 100;
-    return change > 0 ? 
-      <TrendingUp className="w-4 h-4 text-green-600" /> : 
-      <TrendingDown className="w-4 h-4 text-red-600" />;
+    return null;
   };
 
   const getChangePercentage = (current: number, previous: number): string => {
