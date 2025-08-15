@@ -625,18 +625,6 @@ export default function NewDashboard() {
           </div>
         </div>
 
-        {/* Debug Info (Temporary) */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-600" />
-            <h3 className="text-sm font-medium text-yellow-800">Debug: Status da Geração de Alertas</h3>
-          </div>
-          <div className="text-xs text-yellow-700 space-y-1">
-            <p>Loading: {loading ? 'Sim' : 'Não'} | Alerts Loading: {alertsLoading ? 'Sim' : 'Não'} | Alerts Ready: {alertsReady ? 'Sim' : 'Não'}</p>
-            <p>Metrics: {metrics ? 'Carregado' : 'Não carregado'} | Campaigns: {campaignRankings?.length || 0} | Clients: {clientsPerformance?.length || 0}</p>
-            <p>Total Alerts: {alerts.length} | Opportunities: {opportunityAlerts.length} | Problems: {dangerAlerts.length}</p>
-          </div>
-        </div>
 
         {/* Alertas & Oportunidades */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
