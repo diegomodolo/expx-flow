@@ -76,7 +76,9 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; }
-            .logo { font-size: 24px; font-weight: bold; color: #3b82f6; }
+            .company-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px; }
+            .company-logo { height: 50px; width: auto; max-width: 200px; }
+            .company-name { font-size: 24px; font-weight: bold; color: #3b82f6; }
             .section { margin: 20px 0; page-break-inside: avoid; }
             .section-title { font-size: 18px; font-weight: bold; color: #1f2937; margin-bottom: 10px; }
             .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 15px 0; }
@@ -95,7 +97,13 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
         </head>
         <body>
           <div class="header">
-            <div class="logo">Sistema de Gestão</div>
+            <div class="company-header">
+              ${data.companyInfo.logo ? 
+                `<img src="${data.companyInfo.logo}" alt="${data.companyInfo.name}" class="company-logo" />` : 
+                ''
+              }
+              <div class="company-name">${data.companyInfo.name}</div>
+            </div>
             <h1>Relatório Semanal</h1>
             <h2>${data.clientInfo.name}</h2>
             <p>Período: ${formatDate(data.dateRange.startDate)} a ${formatDate(data.dateRange.endDate)}</p>

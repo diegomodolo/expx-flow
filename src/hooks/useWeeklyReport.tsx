@@ -69,6 +69,10 @@ export interface WeeklyReportData {
     lastAccess?: string;
     briefing?: string;
   };
+  companyInfo: {
+    name: string;
+    logo?: string;
+  };
   currentWeekMetrics: WeeklyMetrics;
   previousWeekMetrics: WeeklyMetrics;
   campaignHighlights: CampaignHighlight[];
@@ -175,6 +179,10 @@ export function useWeeklyReport(clientId: string) {
           responsibleUser: user?.email || undefined,
           lastAccess: clientData.last_sync_at,
           briefing: clientData.ai_briefing || undefined,
+        },
+        companyInfo: {
+          name: activeCompany.company?.name || "Sistema de Gestão",
+          logo: activeCompany.company?.logo,
         },
         currentWeekMetrics,
         previousWeekMetrics,
