@@ -126,26 +126,25 @@ serve(async (req) => {
       const textToUse = approvedText || copy || title || theme;
       console.log('Text to use in image:', textToUse);
 
-      // Criar prompt simplificado focado APENAS no texto exato
-      console.log('Creating simplified prompt for image generation...');
+      // Criar prompt ultra-simplificado para renderização precisa do texto
+      console.log('Creating ultra-simplified prompt for precise text rendering...');
       
-      const prompt = `Create a professional ${creativeType.replace('-', ' ')} design.
+      const prompt = `RENDER THIS EXACT TEXT ONLY: "${textToUse}"
 
-CRITICAL INSTRUCTION: Use EXCLUSIVELY this text exactly as it is written, without any changes, additions, or translations:
+Language: Portuguese (Brazil)
+Format: Professional ${creativeType.replace('-', ' ')} design
+Requirements:
+- Use ONLY the text provided above
+- NO additional text, words, or invented content  
+- Perfect Portuguese spelling and grammar
+- Modern typography with high contrast
+- Clean, professional layout
+- Clear readability
+- Do NOT add any other text or words
+- Do NOT translate or modify the text
+- Do NOT invent company names or additional phrases
 
-"${textToUse}"
-
-DESIGN REQUIREMENTS:
-- Modern, clean typography that is highly legible
-- High contrast between text and background for maximum readability  
-- Professional layout appropriate for ${creativeType.replace('-', ' ')}
-- Use the text EXACTLY as provided above - do not add, modify, translate, or change any part of it
-- Focus on excellent visual design while preserving the exact text content
-- Choose colors and fonts that make the text stand out clearly
-- Create visual hierarchy if the text has multiple lines
-- Ensure the text is the main focal point of the design
-
-IMPORTANT: Use the provided text EXACTLY as written. Do not make any changes to the text content whatsoever.`;
+Visual style: Modern, professional, clean design appropriate for ${clientData?.sector || 'business'} sector`;
 
       // Chamar a API de geração de imagens do Ideogram
       console.log('Calling Ideogram API with prompt length:', prompt.length);
@@ -163,8 +162,8 @@ IMPORTANT: Use the provided text EXACTLY as written. Do not make any changes to 
         image_request: {
           prompt: prompt,
           aspect_ratio: aspectRatio,
-          model: 'V_2',
-          magic_prompt_option: references && references.length > 0 ? 'OFF' : 'AUTO'
+          model: 'V_2_TURBO', // Use latest model for better text accuracy
+          magic_prompt_option: 'OFF' // ALWAYS OFF to prevent text modifications
         }
       };
 
