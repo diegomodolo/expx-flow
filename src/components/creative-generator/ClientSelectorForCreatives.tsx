@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useClients } from "@/hooks/useClients";
-import { Building2, Palette, Target, CheckCircle } from "lucide-react";
+import { Building2, Palette, Target, CheckCircle, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,6 +18,23 @@ export function ClientSelectorForCreatives({
   onClientSelect 
 }: ClientSelectorForCreativesProps) {
   const { clients, loading } = useClients();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter clients based on search term
+  const filteredClients = useMemo(() => {
+    if (!clients || !searchTerm.trim()) return clients;
+    
+    const search = searchTerm.toLowerCase().trim();
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(search) ||
+      client.company.toLowerCase().includes(search) ||
+      client.sector.toLowerCase().includes(search) ||
+      client.email.toLowerCase().includes(search)
+    );
+  }, [clients, searchTerm]);
+
+  const clientsWithBriefing = filteredClients?.filter(client => client.ai_briefing) || [];
+  const clientsWithoutBriefing = filteredClients?.filter(client => !client.ai_briefing) || [];
 
   if (loading) {
     return (
@@ -47,8 +65,6 @@ export function ClientSelectorForCreatives({
     );
   }
 
-  const clientsWithBriefing = clients?.filter(client => client.ai_briefing) || [];
-  const clientsWithoutBriefing = clients?.filter(client => !client.ai_briefing) || [];
 
   return (
     <div className="space-y-6">
@@ -59,6 +75,52 @@ export function ClientSelectorForCreatives({
         </p>
       </div>
 
+      {/* Search Field */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          placeholder="Buscar cliente por nome, empresa ou setor..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Results count and clear button */}
+      {searchTerm && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {(clientsWithBriefing.length + clientsWithoutBriefing.length)} resultado(s) encontrado(s)
+          </p>
+          <button
+            onClick={() => setSearchTerm("")}
+            className="text-sm text-primary hover:underline"
+          >
+            Limpar busca
+          </button>
+        </div>
+      )}
+
+      {/* No results message */}
+      {searchTerm && clientsWithBriefing.length === 0 && clientsWithoutBriefing.length === 0 && (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+            <Search className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h4 className="font-medium mb-2">Nenhum cliente encontrado</h4>
+          <p className="text-muted-foreground mb-4">
+            Tente ajustar sua busca ou{" "}
+            <button
+              onClick={() => setSearchTerm("")}
+              className="text-primary hover:underline"
+            >
+              ver todos os clientes
+            </button>
+          </p>
+        </div>
+      )}
+
+      {/* Clients with briefing */}
       {clientsWithBriefing.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -130,6 +192,7 @@ export function ClientSelectorForCreatives({
         </div>
       )}
 
+      {/* Clients without briefing */}
       {clientsWithoutBriefing.length > 0 && (
         <div className="space-y-4">
           <div>
@@ -194,6 +257,7 @@ export function ClientSelectorForCreatives({
         </div>
       )}
 
+      {/* Selected client confirmation */}
       {selectedClientId && (
         <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
           <div className="flex items-center gap-2">
@@ -208,6 +272,7 @@ export function ClientSelectorForCreatives({
         </div>
       )}
 
+      {/* No clients message */}
       {(!clients || clients.length === 0) && !loading && (
         <Card>
           <CardContent className="py-12">
