@@ -58,6 +58,8 @@ export function useContentPrompts() {
           default_prompt: defaultPrompt,
           custom_prompt: customPrompt.trim() || null,
           is_active: true,
+        }, {
+          onConflict: 'company_id,content_type'
         })
         .select()
         .single();
