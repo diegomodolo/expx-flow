@@ -114,39 +114,18 @@ serve(async (req) => {
       // Criar prompt detalhado para geração da imagem
       console.log('Creating prompt for image generation...');
 
-      // Criar prompt detalhado para geração da imagem
-      const prompt = `
-Crie uma imagem profissional para ${creativeType} com as seguintes especificações:
+      // Criar prompt simplificado para geração da imagem
+      const prompt = `Create a professional ${creativeType} image for ${clientData.name}, a ${clientData.sector} company. 
+      
+Theme: ${theme}
+Style: Modern, professional, clean design
+Colors: Professional color palette suitable for ${clientData.sector}
+Elements: Dashboard interface, real-time monitoring displays, charts and graphs
+Text overlay: "${copy}"
+Target audience: Technology professionals and decision makers
+Quality: High resolution, suitable for ${creativeType}
 
-CONTEXTO DO CLIENTE:
-- Nome: ${clientData.name}
-- Setor: ${clientData.sector}
-- Público-alvo: ${clientData.target_audience || targetAudience}
-- Briefing: ${clientData.ai_briefing || 'Não especificado'}
-
-DETALHES DA CAMPANHA:
-- Tema: ${theme}
-- Título/Headline: ${title}
-- Descrição: ${description}
-- Copy para imagem: ${copy}
-- Objetivo: ${objective}
-
-INSTRUÇÕES PARA A IMAGEM:
-- Style: Profissional, moderno e atrativo para o setor ${clientData.sector}
-- Layout: Limpo e bem organizado
-- Cores: Use paleta de cores adequada ao setor ${clientData.sector} e que transmita confiança
-- Texto: ${copy ? `Incluir o copy "${copy}" de forma legível e destacada` : 'Foco visual sem texto sobreposto'}
-- Qualidade: Ultra alta resolução, adequada para ${creativeType}
-- Composição: Equilibrada e visualmente atrativa para o público ${clientData.target_audience || targetAudience}
-- Tema: Incorporar elementos visuais relacionados ao tema "${theme}"
-
-REQUISITOS ESPECÍFICOS:
-- A imagem deve ser adequada para: ${creativeType}
-- Deve comunicar efetivamente para: ${clientData.target_audience || targetAudience}
-- Deve refletir o posicionamento do cliente no setor: ${clientData.sector}
-- Deve transmitir a mensagem: ${objective || title}
-
-Crie uma imagem que capture a atenção do público-alvo específico e comunique efetivamente a proposta de valor do cliente.`;
+Create an engaging image that showcases real-time monitoring and control capabilities.`;
 
       // Chamar a API de geração de imagens do OpenAI
       console.log('Calling OpenAI API with prompt length:', prompt.length);
