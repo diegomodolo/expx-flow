@@ -160,9 +160,19 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
               </div>
               <div class="metric-card">
                 <div class="metric-value">${data.campaignAnalytics.averageQualityRanking}</div>
-                <div class="metric-label">Quality Ranking</div>
+                <div class="metric-label">Ranking de Qualidade</div>
               </div>
             </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">🎯 Distribuição por Objetivo</div>
+            ${Object.entries(data.campaignAnalytics.campaignsByObjective).map(([objective, count]) => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin: 5px 0; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <span>${translateObjective(objective)}</span>
+                <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${count}</span>
+              </div>
+            `).join('')}
           </div>
         </body>
       </html>
@@ -194,6 +204,31 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
       case 'action_required': return <Clock className="w-5 h-5 text-red-500" />;
       default: return <Target className="w-5 h-5 text-blue-500" />;
     }
+  };
+
+  const translateObjective = (objective: string): string => {
+    const translations: { [key: string]: string } = {
+      'OUTCOME_LEADS': 'Leads',
+      'OUTCOME_TRAFFIC': 'Tráfego',
+      'OUTCOME_ENGAGEMENT': 'Engajamento', 
+      'OUTCOME_SALES': 'Vendas',
+      'OUTCOME_APP_PROMOTION': 'Promoção de App',
+      'OUTCOME_AWARENESS': 'Conscientização',
+      'OUTCOME_LOCAL_AWARENESS': 'Conscientização Local',
+      'OUTCOME_VIDEO_VIEWS': 'Visualizações de Vídeo',
+      'LEADS': 'Leads',
+      'TRAFFIC': 'Tráfego',
+      'ENGAGEMENT': 'Engajamento',
+      'SALES': 'Vendas',
+      'APP_PROMOTION': 'Promoção de App',
+      'AWARENESS': 'Conscientização',
+      'LOCAL_AWARENESS': 'Conscientização Local',
+      'VIDEO_VIEWS': 'Visualizações de Vídeo'
+    };
+    
+    // Remove prefixos comuns e underscore
+    const cleanObjective = objective.replace('OUTCOME_', '').replace(/_/g, ' ');
+    return translations[objective] || translations[cleanObjective] || cleanObjective;
   };
 
   if (loading) {
@@ -488,7 +523,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
               <div className="space-y-2">
                 {Object.entries(reportData.campaignAnalytics.campaignsByObjective).map(([objective, count]) => (
                   <div key={objective} className="flex items-center justify-between p-2 bg-muted/30 rounded">
-                    <span className="text-sm">{objective.replace('OUTCOME_', '').replace('_', ' ')}</span>
+                    <span className="text-sm">{translateObjective(objective)}</span>
                     <Badge variant="outline">{count}</Badge>
                   </div>
                 ))}
@@ -524,7 +559,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-muted/30 rounded-lg">
                   <div className="text-lg font-bold">{reportData.campaignAnalytics.averageQualityRanking}</div>
-                  <div className="text-sm text-muted-foreground">Quality Ranking Médio</div>
+                  <div className="text-sm text-muted-foreground">Ranking de Qualidade Médio</div>
                 </div>
                 <div className="p-3 bg-muted/30 rounded-lg">
                   <div className="text-lg font-bold">{reportData.currentWeekMetrics.averageFrequency.toFixed(2)}</div>
