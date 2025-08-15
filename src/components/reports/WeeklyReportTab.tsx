@@ -14,7 +14,7 @@ import {
   Users, 
   MousePointer, 
   Eye, 
-  Zap,
+  BarChart3,
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -136,26 +136,25 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
           </div>
 
           <div class="section">
-            <div class="section-title">🎨 Criativos em Destaque</div>
-            ${data.creativeHighlights.map(creative => `
-              <div class="campaign-item">
-                <h4>${creative.name} (${creative.type === 'best' ? 'Melhor' : 'Pior'} Performance)</h4>
-                <p><strong>Título:</strong> ${creative.creative_title}</p>
-                <p><strong>Conversões:</strong> ${creative.weeklyConversions} | <strong>Gasto:</strong> R$ ${creative.weeklySpend.toLocaleString()}</p>
+            <div class="section-title">📊 Análise das Campanhas</div>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value">${data.campaignAnalytics.totalCampaigns}</div>
+                <div class="metric-label">Total de Campanhas</div>
               </div>
-            `).join('')}
-          </div>
-
-          <div class="section">
-            <div class="section-title">💡 Insights e Recomendações</div>
-            ${data.insights.map(insight => `
-              <div class="insight-item insight-${insight.type}">
-                <h4>${insight.title}</h4>
-                <p><strong>Descrição:</strong> ${insight.description}</p>
-                <p><strong>Recomendação:</strong> ${insight.recommendation}</p>
-                <p><strong>Métrica:</strong> ${insight.metric} - ${insight.value}</p>
+              <div class="metric-card">
+                <div class="metric-value">${data.campaignAnalytics.activeCampaigns}</div>
+                <div class="metric-label">Campanhas Ativas</div>
               </div>
-            `).join('')}
+              <div class="metric-card">
+                <div class="metric-value">${data.campaignAnalytics.budgetUtilization.toFixed(1)}%</div>
+                <div class="metric-label">Utilização Budget</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value">${data.campaignAnalytics.averageQualityRanking}</div>
+                <div class="metric-label">Quality Ranking</div>
+              </div>
+            </div>
           </div>
         </body>
       </html>
@@ -185,7 +184,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
       case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
       case 'opportunity': return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'action_required': return <Clock className="w-5 h-5 text-red-500" />;
-      default: return <Zap className="w-5 h-5 text-blue-500" />;
+      default: return <Target className="w-5 h-5 text-blue-500" />;
     }
   };
 
@@ -443,99 +442,90 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
         </CardContent>
       </Card>
 
-      {/* Creative Highlights */}
-      {reportData.creativeHighlights.length > 0 && (
+        {/* Análise Detalhada das Campanhas */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              Criativos em Destaque
+              <BarChart3 className="h-5 w-5" />
+              Análise Detalhada das Campanhas
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {reportData.creativeHighlights.map((creative) => (
-                <div key={creative.id} className={`p-4 border rounded-lg ${creative.type === 'best' ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    {creative.type === 'best' ? (
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-red-600" />
-                    )}
-                    <Badge variant={creative.type === 'best' ? 'default' : 'destructive'}>
-                      {creative.type === 'best' ? 'Melhor Performance' : 'Pior Performance'}
-                    </Badge>
-                  </div>
-                  <h4 className="font-medium mb-2">{creative.name}</h4>
-                  {creative.creative_title && (
-                    <p className="text-sm text-muted-foreground mb-1">
-                      <strong>Título:</strong> {creative.creative_title}
-                    </p>
-                  )}
-                  {creative.image_url && (
-                    <div className="mb-2">
-                      <img src={creative.image_url} alt="Creative" className="w-16 h-16 object-cover rounded" />
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm">
-                    <span>{creative.weeklyConversions} conversões</span>
-                    <span>R$ {creative.weeklySpend.toLocaleString()}</span>
-                  </div>
+          <CardContent className="space-y-6">
+            {/* Status das Campanhas */}
+            <div>
+              <h4 className="font-medium mb-3">Status das Campanhas</h4>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{reportData.campaignAnalytics.totalCampaigns}</div>
+                  <div className="text-sm text-muted-foreground">Total</div>
                 </div>
-              ))}
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{reportData.campaignAnalytics.activeCampaigns}</div>
+                  <div className="text-sm text-muted-foreground">Ativas</div>
+                </div>
+                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600">{reportData.campaignAnalytics.pausedCampaigns}</div>
+                  <div className="text-sm text-muted-foreground">Pausadas</div>
+                </div>
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{reportData.campaignAnalytics.budgetUtilization.toFixed(1)}%</div>
+                  <div className="text-sm text-muted-foreground">Utilização Budget</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Campanhas por Objetivo */}
+            <div>
+              <h4 className="font-medium mb-3">Distribuição por Objetivo</h4>
+              <div className="space-y-2">
+                {Object.entries(reportData.campaignAnalytics.campaignsByObjective).map(([objective, count]) => (
+                  <div key={objective} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                    <span className="text-sm">{objective.replace('OUTCOME_', '').replace('_', ' ')}</span>
+                    <Badge variant="outline">{count}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top Performers */}
+            <div>
+              <h4 className="font-medium mb-3">Top Campanhas Performers</h4>
+              <div className="space-y-3">
+                {reportData.campaignAnalytics.topPerformers.slice(0, 3).map((campaign) => (
+                  <div key={campaign.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-grow">
+                      <h5 className="font-medium">{campaign.name}</h5>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>Status: {campaign.status}</span>
+                        <span>Conversões: {campaign.weeklyConversions}</span>
+                        <span>CPA: R$ {campaign.weeklyMetrics.averageCPA.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">R$ {campaign.weeklySpend.toFixed(2)}</div>
+                      <div className="text-sm text-muted-foreground">Investido</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* KPIs Adicionais */}
+            <div>
+              <h4 className="font-medium mb-3">Indicadores de Qualidade</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-muted/30 rounded-lg">
+                  <div className="text-lg font-bold">{reportData.campaignAnalytics.averageQualityRanking}</div>
+                  <div className="text-sm text-muted-foreground">Quality Ranking Médio</div>
+                </div>
+                <div className="p-3 bg-muted/30 rounded-lg">
+                  <div className="text-lg font-bold">{reportData.currentWeekMetrics.averageFrequency.toFixed(2)}</div>
+                  <div className="text-sm text-muted-foreground">Frequência Média</div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* AI Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Insights e Sugestões da IA
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {reportData.insights.length === 0 ? (
-              <div className="text-center py-8">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <p className="text-lg font-medium">Tudo em ordem!</p>
-                <p className="text-muted-foreground">Não foram identificados problemas que requerem atenção imediata.</p>
-              </div>
-            ) : (
-              reportData.insights.map((insight) => (
-                <div key={insight.id} className={`p-4 border rounded-lg ${
-                  insight.type === 'warning' ? 'border-yellow-200 bg-yellow-50/50' :
-                  insight.type === 'opportunity' ? 'border-green-200 bg-green-50/50' :
-                  'border-red-200 bg-red-50/50'
-                }`}>
-                  <div className="flex items-start gap-3">
-                    {getInsightIcon(insight.type)}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{insight.title}</h4>
-                        <Badge variant={insight.priority === 'high' ? 'destructive' : insight.priority === 'medium' ? 'outline' : 'secondary'}>
-                          {insight.priority === 'high' ? 'Alta' : insight.priority === 'medium' ? 'Média' : 'Baixa'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{insight.description}</p>
-                      <div className="bg-white/50 p-3 rounded border">
-                        <p className="text-sm"><strong>Recomendação:</strong> {insight.recommendation}</p>
-                      </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span><strong>Métrica:</strong> {insight.metric}</span>
-                        <span><strong>Valor:</strong> {insight.value}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
