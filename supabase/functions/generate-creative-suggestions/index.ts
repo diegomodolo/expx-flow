@@ -117,10 +117,19 @@ Garanta que o JSON seja válido e contenha exatamente 3 sugestões.`;
     const data = await response.json();
     const content = data.choices[0].message.content;
 
-    // Parse the JSON response
+    // Parse the JSON response - remove markdown code blocks if present
     let suggestions;
     try {
-      const parsed = JSON.parse(content);
+      let cleanContent = content.trim();
+      
+      // Remove markdown code blocks if present
+      if (cleanContent.startsWith('```json')) {
+        cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanContent.startsWith('```')) {
+        cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      const parsed = JSON.parse(cleanContent);
       suggestions = parsed.suggestions;
     } catch (error) {
       console.error('Error parsing OpenAI response:', content);
