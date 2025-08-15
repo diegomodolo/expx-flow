@@ -27,12 +27,46 @@ serve(async (req) => {
 
   try {
     if (!openAIApiKey) {
+      console.error('OpenAI API key not configured');
       throw new Error('OpenAI API key not configured');
     }
 
-    const { campaign, issue_type }: { campaign: CampaignData, issue_type: string } = await req.json();
+    const requestBody = await req.json();
+    console.log('Received request body:', JSON.stringify(requestBody, null, 2));
 
-    console.log('Generating recommendation for campaign:', campaign.name);
+    const { campaign, issue_type }: { campaign: CampaignData, issue_type: string } = requestBody;
+
+    // Validação robusta dos dados de entrada
+    if (!campaign) {
+      console.error('Campaign data is missing');
+      throw new Error('Campaign data is required');
+    }
+
+    if (!issue_type) {
+      console.error('Issue type is missing');
+      throw new Error('Issue type is required');
+    }
+
+    // Validar campos obrigatórios da campanha
+    const requiredFields = ['name', 'client_name'];
+    for (const field of requiredFields) {
+      if (!campaign[field]) {
+        console.error(`Campaign field '${field}' is missing`);
+        throw new Error(`Campaign field '${field}' is required`);
+      }
+    }
+
+    // Garantir valores numéricos válidos
+    const numericFields = ['cpa', 'ctr', 'conversions', 'spend', 'impressions', 'clicks'];
+    for (const field of numericFields) {
+      if (campaign[field] === undefined || campaign[field] === null || isNaN(Number(campaign[field]))) {
+        console.warn(`Campaign field '${field}' is invalid, using 0`);
+        campaign[field] = 0;
+      }
+    }
+
+    console.log('Validated campaign data:', JSON.stringify(campaign, null, 2));
+    console.log('Issue type:', issue_type);
 
     // Prepare context-specific prompt based on issue type
     let systemPrompt = '';
@@ -149,7 +183,7 @@ Responda APENAS com a recomendação, sem explicações adicionais.`;
     
     return new Response(JSON.stringify({ 
       recommendation: fallbackRecommendation,
-      isFlallback: true
+      isFallback: true
     }), {
       status: 200, // Sempre retorna 200 para não quebrar a UI
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

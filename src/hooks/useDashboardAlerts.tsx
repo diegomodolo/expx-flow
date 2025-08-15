@@ -178,11 +178,16 @@ export const useDashboardAlerts = () => {
           else if (alert.title === 'CTR Baixo') issueType = 'low_ctr';
           else if (alert.title.includes('Oportunidade')) issueType = 'scale_opportunity';
 
-          const campaignData = {
-            name: alert.campaign,
-            cpa: parseFloat(alert.value.replace('R$ ', '').split(' ')[0]),
-            ctr: alert.metric === 'CTR' ? parseFloat(alert.value.replace('%', '')) : 0,
-          };
+          // Encontrar dados completos da campanha nos dados processados
+          const campaignData = await findCampaignData(alert.campaign_id);
+          
+          if (!campaignData) {
+            console.warn(`Campaign data not found for ${alert.campaign_id}`);
+            updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation(issueType) };
+            continue;
+          }
+
+          console.log('Sending campaign data to AI:', campaignData, 'Issue type:', issueType);
 
           const recommendation = await generateRecommendation(campaignData, issueType);
           updatedAlerts[i] = { ...alert, recommendation };
@@ -190,12 +195,49 @@ export const useDashboardAlerts = () => {
           // Atualizar estado a cada recomendação carregada
           setAlerts([...updatedAlerts]);
         } catch (error) {
+          console.error('Error generating recommendation for alert:', alert.id, error);
           updatedAlerts[i] = { ...alert, recommendation: getDefaultRecommendation('client_analysis') };
         }
       }
     }
     
     return updatedAlerts;
+  };
+
+  // Função para buscar dados completos da campanha
+  const findCampaignData = async (campaignId?: string) => {
+    if (!campaignId || !activeCompany?.company_id) return null;
+
+    try {
+      const { data: campaign, error } = await supabase
+        .from('campaigns')
+        .select(`
+          *,
+          clients!inner(name, company)
+        `)
+        .eq('id', campaignId)
+        .eq('company_id', activeCompany.company_id)
+        .single();
+
+      if (error || !campaign) {
+        console.error('Error fetching campaign data:', error);
+        return null;
+      }
+
+      return {
+        name: campaign.name,
+        client_name: campaign.clients.name,
+        cpa: campaign.cpa || 0,
+        ctr: campaign.ctr || 0,
+        conversions: campaign.conversions || 0,
+        spend: campaign.spend || 0,
+        impressions: campaign.impressions || 0,
+        clicks: campaign.clicks || 0
+      };
+    } catch (error) {
+      console.error('Error fetching campaign data:', error);
+      return null;
+    }
   };
 
   const fetchAlerts = async (filterClientId?: string | null) => {
