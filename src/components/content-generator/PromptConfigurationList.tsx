@@ -92,7 +92,7 @@ export function PromptConfigurationList() {
                         <div className="p-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5">
                           <span className="text-lg">{content.icon}</span>
                         </div>
-                        <div className="min-w-0 flex-1 max-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-medium text-sm truncate">
                               {content.title}
