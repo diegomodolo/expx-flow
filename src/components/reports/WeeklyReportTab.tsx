@@ -114,7 +114,7 @@ export function WeeklyReportTab({ clientId }: WeeklyReportTabProps) {
             </div>
             <h1>Relatório Semanal</h1>
             <h2>${data.clientInfo.name}</h2>
-            <p>Período: ${formatDate(data.dateRange.startDate)} a ${formatDate(data.dateRange.endDate)}</p>
+            <p>Período da última sincronização: ${data.clientInfo.lastSyncPeriod ? `${data.clientInfo.lastSyncPeriod} dias` : 'Não definido'}</p>
             <p>Gerado em: ${new Date().toLocaleDateString('pt-BR')}</p>
           </div>
 
