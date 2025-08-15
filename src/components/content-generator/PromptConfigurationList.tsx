@@ -98,13 +98,18 @@ export function PromptConfigurationList() {
                               {content.title}
                             </h4>
                             {content.isCustomized && (
-                              <Badge variant="default" className="text-xs">
+                              <Badge variant="default" className="text-xs flex-shrink-0">
                                 Customizado
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {content.description}
+                          <p className="text-xs text-muted-foreground overflow-hidden">
+                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                              {content.description.length > 80 
+                                ? `${content.description.substring(0, 80)}...` 
+                                : content.description
+                              }
+                            </span>
                           </p>
                         </div>
                       </div>
