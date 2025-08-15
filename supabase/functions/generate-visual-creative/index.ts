@@ -59,7 +59,7 @@ serve(async (req) => {
     // Buscar dados completos do cliente
     const { data: clientData, error: clientError } = await supabase
       .from('clients')
-      .select('name, sector, briefing, target_audience, ai_briefing')
+      .select('name, sector, ai_briefing, target_audience')
       .eq('id', clientId)
       .eq('company_id', companyId)
       .single();
@@ -98,7 +98,7 @@ CONTEXTO DO CLIENTE:
 - Nome: ${clientData.name}
 - Setor: ${clientData.sector}
 - Público-alvo: ${clientData.target_audience || targetAudience}
-- Briefing: ${clientData.briefing || 'Não especificado'}
+- Briefing: ${clientData.ai_briefing || 'Não especificado'}
 
 DETALHES DA CAMPANHA:
 - Tema: ${theme}
@@ -179,7 +179,7 @@ CLIENTE:
 - Nome: ${clientData.name}
 - Setor: ${clientData.sector}
 - Público-alvo: ${clientData.target_audience || targetAudience}
-- Briefing: ${clientData.briefing || 'Não especificado'}
+- Briefing: ${clientData.ai_briefing || 'Não especificado'}
 
 CAMPANHA:
 - Tema: ${theme}
