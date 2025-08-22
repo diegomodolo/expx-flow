@@ -249,6 +249,25 @@ const Clientes = () => {
     }
   }, [error, toast]);
 
+  // Calculate status statistics
+  const statusStats = React.useMemo(() => {
+    const stats = {
+      excelente: filteredAndSortedClients.filter(client => client.status === 'excelente').length,
+      atencao: filteredAndSortedClients.filter(client => client.status === 'atencao').length,
+      emergencial: filteredAndSortedClients.filter(client => client.status === 'emergencial').length,
+      inativo: filteredAndSortedClients.filter(client => client.status === 'inativo').length,
+    };
+    
+    const total = totalClients || 1; // Avoid division by zero
+    
+    return {
+      excelente: { count: stats.excelente, percentage: (stats.excelente / total) * 100 },
+      atencao: { count: stats.atencao, percentage: (stats.atencao / total) * 100 },
+      emergencial: { count: stats.emergencial, percentage: (stats.emergencial / total) * 100 },
+      inativo: { count: stats.inativo, percentage: (stats.inativo / total) * 100 },
+    };
+  }, [filteredAndSortedClients, totalClients]);
+
   return (
     <DashboardLayout>
       <TooltipProvider delayDuration={300}>
@@ -274,6 +293,89 @@ const Clientes = () => {
                 <Plus className="w-4 h-4" />
                 <span>Adicionar Cliente</span>
               </Button>
+            </div>
+
+            {/* Status Statistics Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Excelente */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-status-excellent rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-600">Excelente</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{statusStats.excelente.percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-status-excellent mb-2">{statusStats.excelente.count}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-status-excellent h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${statusStats.excelente.percentage}%` }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Atenção */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-status-attention rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-600">Atenção</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{statusStats.atencao.percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-status-attention mb-2">{statusStats.atencao.count}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-status-attention h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${statusStats.atencao.percentage}%` }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Emergencial */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-status-emergency rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-600">Emergencial</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{statusStats.emergencial.percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-status-emergency mb-2">{statusStats.emergencial.count}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-status-emergency h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${statusStats.emergencial.percentage}%` }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Inativo */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-status-inactive rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-600">Inativo</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{statusStats.inativo.percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-status-inactive mb-2">{statusStats.inativo.count}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-status-inactive h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${statusStats.inativo.percentage}%` }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Filters and Search - All in One Line */}
