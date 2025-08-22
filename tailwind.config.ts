@@ -91,7 +91,24 @@ export default {
 				'metric-neutral': 'hsl(var(--metric-neutral))',
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-hero': 'var(--gradient-hero)',
-				'gradient-accent': 'var(--gradient-accent)'
+				'gradient-accent': 'var(--gradient-accent)',
+				// Status colors
+				'status-excellent': {
+					DEFAULT: 'hsl(var(--status-excellent))',
+					foreground: 'hsl(var(--status-excellent-foreground))'
+				},
+				'status-attention': {
+					DEFAULT: 'hsl(var(--status-attention))',
+					foreground: 'hsl(var(--status-attention-foreground))'
+				},
+				'status-emergency': {
+					DEFAULT: 'hsl(var(--status-emergency))',
+					foreground: 'hsl(var(--status-emergency-foreground))'
+				},
+				'status-inactive': {
+					DEFAULT: 'hsl(var(--status-inactive))',
+					foreground: 'hsl(var(--status-inactive-foreground))'
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

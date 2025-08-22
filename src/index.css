@@ -67,6 +67,16 @@ All colors MUST be HSL.
     --metric-positive: 142 76% 36%;
     --metric-negative: 0 84% 60%;
     --metric-neutral: 45 93% 47%;
+    
+    /* Status badge colors */
+    --status-excellent: 142 76% 36%; /* Green */
+    --status-excellent-foreground: 0 0% 100%;
+    --status-attention: 45 93% 47%; /* Yellow */
+    --status-attention-foreground: 0 0% 100%;
+    --status-emergency: 0 84% 60%; /* Red */
+    --status-emergency-foreground: 0 0% 100%;
+    --status-inactive: 210 9% 53%; /* Gray */
+    --status-inactive-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 100%;
 

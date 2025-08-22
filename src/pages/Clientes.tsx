@@ -44,23 +44,27 @@ type StatusType = "all" | ClientStatus;
 const statusConfig = {
   excelente: { 
     label: "Excelente", 
-    color: "bg-[#2ECC71]/10 text-[#2ECC71]", 
-    dotColor: "bg-[#2ECC71]" 
+    color: "bg-status-excellent/10 text-status-excellent border-status-excellent/20", 
+    dotColor: "bg-status-excellent",
+    filterDotColor: "bg-status-excellent"
   },
   atencao: { 
     label: "Atenção", 
-    color: "bg-[#F1C40F]/10 text-[#F1C40F]", 
-    dotColor: "bg-[#F1C40F]" 
+    color: "bg-status-attention/10 text-status-attention border-status-attention/20", 
+    dotColor: "bg-status-attention",
+    filterDotColor: "bg-status-attention"
   },
   emergencial: { 
     label: "Emergencial", 
-    color: "bg-[#E74C3C]/10 text-[#E74C3C]", 
-    dotColor: "bg-[#E74C3C]" 
+    color: "bg-status-emergency/10 text-status-emergency border-status-emergency/20", 
+    dotColor: "bg-status-emergency",
+    filterDotColor: "bg-status-emergency"
   },
   inativo: { 
     label: "Inativo", 
-    color: "bg-[#95A5A6]/10 text-[#95A5A6]", 
-    dotColor: "bg-[#95A5A6]" 
+    color: "bg-status-inactive/10 text-status-inactive border-status-inactive/20", 
+    dotColor: "bg-status-inactive",
+    filterDotColor: "bg-status-inactive"
   },
 };
 
@@ -293,7 +297,7 @@ const Clientes = () => {
                         onClick={() => setStatusFilter("excelente")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-[#2ECC71] rounded-full"></div>
+                        <div className="w-2 h-2 bg-status-excellent rounded-full"></div>
                         <span>Excelente</span>
                       </Button>
                       <Button
@@ -302,7 +306,7 @@ const Clientes = () => {
                         onClick={() => setStatusFilter("atencao")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-[#F1C40F] rounded-full"></div>
+                        <div className="w-2 h-2 bg-status-attention rounded-full"></div>
                         <span>Atenção</span>
                       </Button>
                       <Button
@@ -311,7 +315,7 @@ const Clientes = () => {
                         onClick={() => setStatusFilter("emergencial")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-[#E74C3C] rounded-full"></div>
+                        <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
                         <span>Emergencial</span>
                       </Button>
                       <Button
@@ -320,7 +324,7 @@ const Clientes = () => {
                         onClick={() => setStatusFilter("inativo")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-[#95A5A6] rounded-full"></div>
+                        <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
                         <span>Inativo</span>
                       </Button>
                     </div>
