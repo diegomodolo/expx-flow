@@ -162,44 +162,69 @@ export const calculateClientStatus = async (
     if (recentCampaigns.length === 0 || (currentWeekLeads === 0 && previousWeekLeads === 0 && daysSinceLastOptimization > 30)) {
       return {
         status: "inativo",
-        explanation: "Cliente inativo há mais de 30 dias. Sem campanhas ativas, leads ou otimizações recentes."
+        explanation: `⚫ Cliente inativo há mais de 30 dias!\n\nProblemas identificados:\n• Sem campanhas ativas\n• Nenhum lead gerado\n• Sem otimizações recentes\n\nMétricas atuais:\n• Campanhas ativas: 0\n• Leads esta semana: ${currentWeekLeads}\n• Última otimização: há ${daysSinceLastOptimization} dias`
       };
     }
 
     // FIX: Zero leads in current week should ALWAYS be emergencial
     if (currentWeekLeads === 0) {
+      const problems = [];
+      if (currentWeekLeads === 0) problems.push("• Nenhum lead gerado esta semana");
+      if (averageCTR < 0.8) problems.push("• CTR muito baixo");
+      if (hasReprovedAds) problems.push("• Anúncios reprovados");
+      if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há muito tempo");
+
       return {
         status: "emergencial",
-        explanation: `Nenhum lead foi gerado na semana atual. Leads atuais: ${currentWeekLeads}, CTR médio: ${averageCTR.toFixed(2)}%`
+        explanation: `🚨 Situação crítica! Este cliente precisa de atenção urgente.\n\nProblemas identificados:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
       };
     }
 
     if (activeCampaigns.length === 0 || (averageCTR < 0.8) || hasReprovedAds || daysSinceLastOptimization > 30) {
+      const problems = [];
+      if (activeCampaigns.length === 0) problems.push("• Sem campanhas ativas recentes");
+      if (averageCTR < 0.8) problems.push("• CTR muito baixo");
+      if (hasReprovedAds) problems.push("• Anúncios reprovados");
+      if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há mais de 30 dias");
+
       return {
         status: "emergencial",
-        explanation: `Situação crítica: ${activeCampaigns.length === 0 ? 'Sem campanhas ativas. ' : ''}${averageCTR < 0.8 ? `CTR baixo (${averageCTR.toFixed(2)}%). ` : ''}${hasReprovedAds ? 'Anúncios reprovados. ' : ''}${daysSinceLastOptimization > 30 ? 'Sem otimização há mais de 30 dias.' : ''}`
+        explanation: `🚨 Situação crítica! Este cliente precisa de atenção urgente.\n\nProblemas identificados:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
       };
     }
 
     if (leadDropPercentage >= 30 || (averageCTR >= 0.8 && averageCTR <= 1.5) || hasQualityIssues || (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30)) {
+      const problems = [];
+      if (leadDropPercentage >= 30) problems.push(`• Queda de ${leadDropPercentage.toFixed(1)}% nos leads`);
+      if (averageCTR >= 0.8 && averageCTR <= 1.5) problems.push("• CTR na média, pode melhorar");
+      if (hasQualityIssues) problems.push("• Alertas de qualidade nos anúncios");
+      if (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30) problems.push("• Otimização não recente");
+
       return {
         status: "atencao",
-        explanation: `Requer atenção: ${leadDropPercentage >= 30 ? `Queda de ${leadDropPercentage.toFixed(1)}% nos leads. ` : ''}${averageCTR >= 0.8 && averageCTR <= 1.5 ? `CTR moderado (${averageCTR.toFixed(2)}%). ` : ''}${hasQualityIssues ? 'Alertas de qualidade. ' : ''}${daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30 ? `Última otimização há ${daysSinceLastOptimization} dias.` : ''}`
+        explanation: `⚠️ Cliente requer monitoramento.\n\nPontos de atenção:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: ${leadDropPercentage > 0 ? '-' : '+'}${Math.abs(leadDropPercentage).toFixed(1)}%\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
       };
     }
 
     // FIX: Excelente status should require currentWeekLeads > 0
     if (activeCampaigns.length > 0 && currentWeekLeads > 0 && (currentWeekLeads >= previousWeekLeads) && averageCTR > 1.5 && daysSinceLastOptimization < 7 && !hasQualityIssues) {
+      const positivePoints = [];
+      positivePoints.push("• Campanhas ativas e performando bem");
+      positivePoints.push("• CTR acima da média");
+      positivePoints.push("• Leads sendo gerados consistentemente");
+      positivePoints.push("• Otimizações recentes");
+      positivePoints.push("• Sem problemas de qualidade");
+
       return {
         status: "excelente",
-        explanation: `Performance excelente: Campanhas ativas, ${currentWeekLeads} leads esta semana (${currentWeekLeads >= previousWeekLeads ? 'estáveis/crescentes' : 'boa performance'}), CTR alto (${averageCTR.toFixed(2)}%), otimizada recentemente, sem problemas de qualidade.`
+        explanation: `✅ Performance excelente! Cliente em ótimo estado.\n\nPontos positivos:\n${positivePoints.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: +${((currentWeekLeads - previousWeekLeads) / Math.max(previousWeekLeads, 1) * 100).toFixed(1)}%\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
       };
     }
 
     // Default to "atencao" if none of the other conditions are met
     return {
       status: "atencao",
-      explanation: "Cliente necessita monitoramento. Performance dentro da média mas pode ser otimizada."
+      explanation: `⚠️ Cliente requer monitoramento.\n\nSituação:\n• Performance dentro da média\n• Pode ser otimizada\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
     };
 
   } catch (error) {
