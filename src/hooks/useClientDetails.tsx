@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Client } from "./useClients";
+import { Client, ClientStatus } from "@/hooks/useClients";
 
 export interface ClientCampaign {
   id: string;

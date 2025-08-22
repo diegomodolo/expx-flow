@@ -4,13 +4,15 @@ import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useEmployeePermissions } from "./useEmployeePermissions";
 
+export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo";
+
 export interface Client {
   id: string;
   name: string;
   email: string;
   company: string;
   sector: string;
-  status: "green" | "yellow" | "red";
+  status: ClientStatus;
   active_campaigns: number;
   avg_cpl: number;
   avatar: string;
@@ -49,6 +51,146 @@ export function useClients() {
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const { hasPermission, isOwner, permissionsLoading, currentUserPermissions } = useEmployeePermissions();
+
+  // Function to calculate automatic status based on campaign metrics
+  const calculateClientStatus = async (clientId: string): Promise<{ status: ClientStatus; explanation: string }> => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    try {
+      // Fetch campaigns data
+      const { data: campaigns } = await supabase
+        .from("campaigns")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany?.company_id);
+
+      // Fetch ads data for quality rankings
+      const { data: ads } = await supabase
+        .from("ads")
+        .select("quality_ranking, engagement_rate_ranking, conversion_rate_ranking, status")
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany?.company_id);
+
+      // Fetch last optimization
+      const { data: lastOptimization } = await supabase
+        .from("optimization_history")
+        .select("performed_at")
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany?.company_id)
+        .order("performed_at", { ascending: false })
+        .limit(1);
+
+      const { data: lastChange } = await supabase
+        .from("change_audit_log")
+        .select("created_at")
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany?.company_id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          status: "inativo",
+          explanation: "Cliente sem campanhas ativas há mais de 30 dias. Nenhuma ação ou otimização foi feita recentemente."
+        };
+      }
+
+      // Check active campaigns in last 7 days
+      const activeCampaigns = campaigns.filter(c => 
+        c.is_active && c.status === 'active' && new Date(c.updated_at) >= sevenDaysAgo
+      );
+
+      // Check campaigns active in last 30 days
+      const recentCampaigns = campaigns.filter(c => 
+        new Date(c.updated_at) >= thirtyDaysAgo
+      );
+
+      // Calculate current week vs previous week leads
+      const currentWeekLeads = campaigns
+        .filter(c => new Date(c.updated_at) >= sevenDaysAgo)
+        .reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+      const previousWeekLeads = campaigns
+        .filter(c => new Date(c.updated_at) >= fourteenDaysAgo && new Date(c.updated_at) < sevenDaysAgo)
+        .reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+      // Calculate average CTR
+      const totalCTR = activeCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0);
+      const averageCTR = activeCampaigns.length > 0 ? totalCTR / activeCampaigns.length : 0;
+
+      // Check last optimization date
+      const lastOptimizationDate = lastOptimization?.[0]?.performed_at 
+        ? new Date(lastOptimization[0].performed_at)
+        : lastChange?.[0]?.created_at 
+        ? new Date(lastChange[0].created_at)
+        : null;
+
+      const daysSinceLastOptimization = lastOptimizationDate 
+        ? Math.floor((now.getTime() - lastOptimizationDate.getTime()) / (24 * 60 * 60 * 1000))
+        : 999;
+
+      // Check for quality issues
+      const hasQualityIssues = ads?.some(ad => 
+        ad.quality_ranking === 'BELOW_AVERAGE' || 
+        ad.engagement_rate_ranking === 'BELOW_AVERAGE' ||
+        ad.conversion_rate_ranking === 'BELOW_AVERAGE' ||
+        ad.status === 'disapproved'
+      ) || false;
+
+      const hasReprovedAds = ads?.some(ad => ad.status === 'disapproved') || false;
+
+      // Calculate lead drop percentage
+      const leadDropPercentage = previousWeekLeads > 0 
+        ? ((previousWeekLeads - currentWeekLeads) / previousWeekLeads) * 100 
+        : 0;
+
+      // Apply status rules
+      if (recentCampaigns.length === 0 || currentWeekLeads === 0 && previousWeekLeads === 0 && daysSinceLastOptimization > 30) {
+        return {
+          status: "inativo",
+          explanation: "Cliente inativo há mais de 30 dias. Sem campanhas ativas, leads ou otimizações recentes."
+        };
+      }
+
+      if (activeCampaigns.length === 0 || (currentWeekLeads === 0 && averageCTR < 0.8) || hasReprovedAds || daysSinceLastOptimization > 30) {
+        return {
+          status: "emergencial",
+          explanation: `Situação crítica: ${currentWeekLeads === 0 ? 'Nenhum lead gerado esta semana. ' : ''}${averageCTR < 0.8 ? `CTR baixo (${averageCTR.toFixed(2)}%). ` : ''}${hasReprovedAds ? 'Anúncios reprovados. ' : ''}${daysSinceLastOptimization > 30 ? 'Sem otimização há mais de 30 dias.' : ''}`
+        };
+      }
+
+      if (leadDropPercentage >= 30 || (averageCTR >= 0.8 && averageCTR <= 1.5) || hasQualityIssues || (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30)) {
+        return {
+          status: "atencao",
+          explanation: `Requer atenção: ${leadDropPercentage >= 30 ? `Queda de ${leadDropPercentage.toFixed(1)}% nos leads. ` : ''}${averageCTR >= 0.8 && averageCTR <= 1.5 ? `CTR moderado (${averageCTR.toFixed(2)}%). ` : ''}${hasQualityIssues ? 'Alertas de qualidade. ' : ''}${daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30 ? `Última otimização há ${daysSinceLastOptimization} dias.` : ''}`
+        };
+      }
+
+      // Excelente: all good conditions
+      if (activeCampaigns.length > 0 && (leadDropPercentage <= 0 || currentWeekLeads >= previousWeekLeads) && averageCTR > 1.5 && daysSinceLastOptimization < 7 && !hasQualityIssues) {
+        return {
+          status: "excelente",
+          explanation: `Performance excelente: Campanhas ativas, ${currentWeekLeads >= previousWeekLeads ? 'leads estáveis/crescentes' : 'boa performance'}, CTR alto (${averageCTR.toFixed(2)}%), otimizada recentemente, sem problemas de qualidade.`
+        };
+      }
+
+      // Default to "atencao" if none of the other conditions are met
+      return {
+        status: "atencao",
+        explanation: "Cliente necessita monitoramento. Performance dentro da média mas pode ser otimizada."
+      };
+
+    } catch (error) {
+      console.error('Error calculating client status:', error);
+      return {
+        status: "atencao",
+        explanation: "Erro ao calcular status. Requer análise manual."
+      };
+    }
+  };
 
   const fetchClients = useCallback(async () => {
     if (!user || !activeCompany) return;
@@ -92,7 +234,18 @@ export function useClients() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setClients(data || []);
+      
+      // Calculate automatic status for each client
+      const clientsWithStatus = await Promise.all((data || []).map(async (client) => {
+        const { status, explanation } = await calculateClientStatus(client.id);
+        return {
+          ...client,
+          status,
+          statusExplanation: explanation
+        };
+      }));
+      
+      setClients(clientsWithStatus);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao buscar clientes");
     } finally {

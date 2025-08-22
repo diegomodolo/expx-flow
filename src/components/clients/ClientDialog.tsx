@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { Client } from "@/hooks/useClients";
+import { Client, ClientStatus } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useClients } from "@/hooks/useClients";
@@ -40,7 +40,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         email: client.email || "",
         company: client.company || "",
         sector: client.sector || "",
-        status: client.status as "green" | "yellow" | "red" || "green",
+        status: client.status || ("excelente" as ClientStatus),
         avatar: client.avatar || "",
         monthly_budget: client.monthly_budget || 0,
         target_audience: client.target_audience || "",
@@ -59,7 +59,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       email: "",
       company: "",
       sector: "",
-      status: "green" as "green" | "yellow" | "red",
+      status: "excelente" as ClientStatus,
       avatar: "",
       monthly_budget: 0,
       target_audience: "",
@@ -101,7 +101,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         email: client.email || "",
         company: client.company || "",
         sector: client.sector || "",
-        status: client.status || "green",
+        status: client.status || "excelente",
         avatar: client.avatar || "",
         monthly_budget: client.monthly_budget || 0,
         target_audience: client.target_audience || "",
@@ -164,7 +164,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         email: "",
         company: "",
         sector: "",
-        status: "green",
+        status: "excelente",
         avatar: "",
         monthly_budget: 0,
         target_audience: "",
@@ -401,14 +401,15 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: "green" | "yellow" | "red") => setFormData({ ...formData, status: value })} disabled={readOnly}>
+                <Select value={formData.status} onValueChange={(value: ClientStatus) => setFormData({ ...formData, status: value })} disabled={readOnly}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="green">Excelente</SelectItem>
-                    <SelectItem value="yellow">Atenção</SelectItem>
-                    <SelectItem value="red">Crítico</SelectItem>
+                    <SelectItem value="excelente">Excelente</SelectItem>
+                    <SelectItem value="atencao">Atenção</SelectItem>
+                    <SelectItem value="emergencial">Emergencial</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useClients, Client } from "@/hooks/useClients";
+import { Client, ClientStatus } from "@/hooks/useClients";
+import { useClients } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
@@ -38,12 +39,29 @@ import {
 } from "lucide-react";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 
-type StatusType = "all" | "green" | "yellow" | "red";
+type StatusType = "all" | ClientStatus;
 
 const statusConfig = {
-  green: { label: "Excelente", color: "bg-green-100 text-green-800", dotColor: "bg-green-500" },
-  yellow: { label: "Atenção", color: "bg-yellow-100 text-yellow-800", dotColor: "bg-yellow-500" },
-  red: { label: "Emergencial", color: "bg-red-100 text-red-800", dotColor: "bg-red-500" }
+  excelente: { 
+    label: "Excelente", 
+    color: "bg-[#2ECC71]/10 text-[#2ECC71]", 
+    dotColor: "bg-[#2ECC71]" 
+  },
+  atencao: { 
+    label: "Atenção", 
+    color: "bg-[#F1C40F]/10 text-[#F1C40F]", 
+    dotColor: "bg-[#F1C40F]" 
+  },
+  emergencial: { 
+    label: "Emergencial", 
+    color: "bg-[#E74C3C]/10 text-[#E74C3C]", 
+    dotColor: "bg-[#E74C3C]" 
+  },
+  inativo: { 
+    label: "Inativo", 
+    color: "bg-[#95A5A6]/10 text-[#95A5A6]", 
+    dotColor: "bg-[#95A5A6]" 
+  },
 };
 
 type SortField = 'name' | 'company' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend';
@@ -51,52 +69,8 @@ type SortDirection = 'asc' | 'desc';
 
 // Função para gerar a explicação do status baseada nas métricas do cliente
 const getStatusExplanation = (client: Client): string => {
-  const cpa = client.avg_cpl || 0;
-  const campaigns = client.active_campaigns || 0;
-  const leads = client.leads_generated || 0;
-  const budget = client.monthly_budget || 0;
-
-  switch (client.status) {
-    case 'green':
-      if (cpa <= 50 && leads >= 10 && campaigns > 0) {
-        return "Excelente performance: CPA baixo, boa geração de leads e campanhas ativas.";
-      } else if (leads >= 20) {
-        return "Excelente performance: Alta geração de leads demonstra campanhas eficazes.";
-      } else if (cpa <= 30) {
-        return "Excelente performance: CPA muito baixo indica otimização eficiente.";
-      } else {
-        return "Status excelente: Cliente com performance geral satisfatória.";
-      }
-    
-    case 'yellow':
-      if (cpa > 50 && cpa <= 100) {
-        return "Atenção necessária: CPA moderado - revisar estratégias de otimização.";
-      } else if (campaigns === 0) {
-        return "Atenção necessária: Nenhuma campanha ativa - considerar reativação.";
-      } else if (leads < 5 && campaigns > 0) {
-        return "Atenção necessária: Baixa geração de leads com campanhas ativas.";
-      } else if (budget > 0 && leads === 0) {
-        return "Atenção necessária: Orçamento disponível mas sem conversões.";
-      } else {
-        return "Atenção necessária: Performance mista - monitoramento recomendado.";
-      }
-    
-    case 'red':
-      if (cpa > 100) {
-        return "Status crítico: CPA muito alto - intervenção urgente necessária.";
-      } else if (campaigns > 0 && leads === 0) {
-        return "Status crítico: Campanhas ativas sem geração de leads.";
-      } else if (budget > 1000 && (leads < 3 || cpa > 80)) {
-        return "Status crítico: Alto investimento com baixo retorno.";
-      } else if (campaigns === 0 && budget > 0) {
-        return "Status crítico: Orçamento disponível mas sem campanhas ativas.";
-      } else {
-        return "Status crítico: Performance insatisfatória - ação imediata requerida.";
-      }
-    
-    default:
-      return "Status do cliente baseado na análise de métricas de performance.";
-  }
+  // Use the explanation calculated by the automatic status function
+  return (client as any).statusExplanation || "Status calculado automaticamente baseado nas métricas de campanhas.";
 };
 
 const Clientes = () => {
@@ -189,7 +163,7 @@ const Clientes = () => {
 
     // Handle status field specially for emergency order
     if (sortField === 'status') {
-      const statusOrder = { red: 3, yellow: 2, green: 1 };
+      const statusOrder = { emergencial: 3, atencao: 2, excelente: 1, inativo: 0 };
       aValue = statusOrder[a.status];
       bValue = statusOrder[b.status];
     }
@@ -314,31 +288,40 @@ const Clientes = () => {
                         Todos
                       </Button>
                       <Button
-                        variant={statusFilter === "green" ? "default" : "outline"}
+                        variant={statusFilter === "excelente" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setStatusFilter("green")}
+                        onClick={() => setStatusFilter("excelente")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#2ECC71] rounded-full"></div>
                         <span>Excelente</span>
                       </Button>
                       <Button
-                        variant={statusFilter === "yellow" ? "default" : "outline"}
+                        variant={statusFilter === "atencao" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setStatusFilter("yellow")}
+                        onClick={() => setStatusFilter("atencao")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#F1C40F] rounded-full"></div>
                         <span>Atenção</span>
                       </Button>
                       <Button
-                        variant={statusFilter === "red" ? "default" : "outline"}
+                        variant={statusFilter === "emergencial" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setStatusFilter("red")}
+                        onClick={() => setStatusFilter("emergencial")}
                         className="flex items-center space-x-1"
                       >
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#E74C3C] rounded-full"></div>
                         <span>Emergencial</span>
+                      </Button>
+                      <Button
+                        variant={statusFilter === "inativo" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("inativo")}
+                        className="flex items-center space-x-1"
+                      >
+                        <div className="w-2 h-2 bg-[#95A5A6] rounded-full"></div>
+                        <span>Inativo</span>
                       </Button>
                     </div>
                   </div>
