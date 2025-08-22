@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Client, ClientStatus } from "@/hooks/useClients";
+import { Client, ClientStatus, calculateClientStatus } from "@/hooks/useClients";
 
 export interface ClientCampaign {
   id: string;
@@ -28,6 +28,7 @@ export interface ClientCampaign {
 
 export interface ClientDetailsData extends Client {
   campaigns: ClientCampaign[];
+  statusExplanation?: string;
   facebook_ad_accounts?: {
     id: string;
     account_name: string;
@@ -95,10 +96,13 @@ export function useClientDetails(clientId: string) {
 
       console.log('Campaigns fetched for client:', clientId, campaignsData);
 
-      // Combine client and campaigns data
+      // Combine client and campaigns data and calculate status
+      const { status, explanation } = await calculateClientStatus(clientId, activeCompany.company_id);
       const clientWithCampaigns: ClientDetailsData = {
         ...clientData,
-        campaigns: campaignsData || []
+        campaigns: campaignsData || [],
+        status, // This is already ClientStatus from calculateClientStatus
+        statusExplanation: explanation
       };
 
       console.log('Client with campaigns:', clientWithCampaigns);
