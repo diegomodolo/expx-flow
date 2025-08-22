@@ -583,7 +583,7 @@ const Clientes = () => {
                                     {statusConfig[client.status].label}
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
+                                <TooltipContent className="whitespace-pre-line max-w-xs bg-white shadow-lg border border-gray-200 rounded-md p-3 text-sm z-50">
                                   <p>{getStatusExplanation(client)}</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -731,7 +731,7 @@ const Clientes = () => {
                             {statusConfig[client.status].label}
                           </Badge>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
+                        <TooltipContent className="whitespace-pre-line max-w-xs bg-white shadow-lg border border-gray-200 rounded-md p-3 text-sm z-50">
                           <p>{getStatusExplanation(client)}</p>
                         </TooltipContent>
                       </Tooltip>
