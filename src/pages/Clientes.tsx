@@ -273,7 +273,7 @@ const Clientes = () => {
 
   return (
     <DashboardLayout>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={300}>
         <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">
         {loading && (
           <div className="flex items-center justify-center p-8">
