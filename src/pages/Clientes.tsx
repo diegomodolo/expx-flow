@@ -19,6 +19,7 @@ import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, 
   Search, 
@@ -47,6 +48,56 @@ const statusConfig = {
 
 type SortField = 'name' | 'company' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend';
 type SortDirection = 'asc' | 'desc';
+
+// Função para gerar a explicação do status baseada nas métricas do cliente
+const getStatusExplanation = (client: Client): string => {
+  const cpa = client.avg_cpl || 0;
+  const campaigns = client.active_campaigns || 0;
+  const leads = client.leads_generated || 0;
+  const budget = client.monthly_budget || 0;
+
+  switch (client.status) {
+    case 'green':
+      if (cpa <= 50 && leads >= 10 && campaigns > 0) {
+        return "Excelente performance: CPA baixo, boa geração de leads e campanhas ativas.";
+      } else if (leads >= 20) {
+        return "Excelente performance: Alta geração de leads demonstra campanhas eficazes.";
+      } else if (cpa <= 30) {
+        return "Excelente performance: CPA muito baixo indica otimização eficiente.";
+      } else {
+        return "Status excelente: Cliente com performance geral satisfatória.";
+      }
+    
+    case 'yellow':
+      if (cpa > 50 && cpa <= 100) {
+        return "Atenção necessária: CPA moderado - revisar estratégias de otimização.";
+      } else if (campaigns === 0) {
+        return "Atenção necessária: Nenhuma campanha ativa - considerar reativação.";
+      } else if (leads < 5 && campaigns > 0) {
+        return "Atenção necessária: Baixa geração de leads com campanhas ativas.";
+      } else if (budget > 0 && leads === 0) {
+        return "Atenção necessária: Orçamento disponível mas sem conversões.";
+      } else {
+        return "Atenção necessária: Performance mista - monitoramento recomendado.";
+      }
+    
+    case 'red':
+      if (cpa > 100) {
+        return "Status crítico: CPA muito alto - intervenção urgente necessária.";
+      } else if (campaigns > 0 && leads === 0) {
+        return "Status crítico: Campanhas ativas sem geração de leads.";
+      } else if (budget > 1000 && (leads < 3 || cpa > 80)) {
+        return "Status crítico: Alto investimento com baixo retorno.";
+      } else if (campaigns === 0 && budget > 0) {
+        return "Status crítico: Orçamento disponível mas sem campanhas ativas.";
+      } else {
+        return "Status crítico: Performance insatisfatória - ação imediata requerida.";
+      }
+    
+    default:
+      return "Status do cliente baseado na análise de métricas de performance.";
+  }
+};
 
 const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
@@ -222,7 +273,8 @@ const Clientes = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">
+      <TooltipProvider>
+        <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">
         {loading && (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -522,12 +574,19 @@ const Clientes = () => {
                               <div className="text-xs text-gray-500 truncate">{client.sector}</div>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
-                              <Badge 
-                                variant="outline" 
-                                className={`${statusConfig[client.status].color} text-xs`}
-                              >
-                                {statusConfig[client.status].label}
-                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`${statusConfig[client.status].color} text-xs cursor-help`}
+                                  >
+                                    {statusConfig[client.status].label}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>{getStatusExplanation(client)}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">
@@ -663,12 +722,19 @@ const Clientes = () => {
 
                     {/* Status and Company */}
                     <div className="flex items-center justify-between">
-                      <Badge 
-                        variant="outline" 
-                        className={statusConfig[client.status].color}
-                      >
-                        {statusConfig[client.status].label}
-                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant="outline" 
+                            className={`${statusConfig[client.status].color} cursor-help`}
+                          >
+                            {statusConfig[client.status].label}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>{getStatusExplanation(client)}</p>
+                        </TooltipContent>
+                      </Tooltip>
                       <div className="text-sm text-gray-600 truncate max-w-[150px]" title={client.company}>
                         {client.company}
                       </div>
@@ -826,6 +892,7 @@ const Clientes = () => {
           progress={progress}
         />
       </div>
+      </TooltipProvider>
     </DashboardLayout>
   );
 };
