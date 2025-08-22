@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
@@ -311,6 +312,39 @@ const Campanhas = () => {
   const totalPages = Math.ceil(totalCampaigns / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedCampaigns = filteredCampaigns.slice(startIndex, startIndex + itemsPerPage);
+
+  // Calcular estatísticas de status das campanhas
+  const campaignStats = useMemo(() => {
+    const stats = {
+      excellent: 0,
+      attention: 0,
+      emergency: 0,
+      inactive: 0
+    };
+
+    filteredCampaigns.forEach(campaign => {
+      if (campaign.status !== 'active') {
+        stats.inactive++;
+      } else {
+        const performance = evaluateCampaignPerformance(campaign);
+        switch (performance.level) {
+          case 'excellent':
+            stats.excellent++;
+            break;
+          case 'attention':
+            stats.attention++;
+            break;
+          case 'emergency':
+            stats.emergency++;
+            break;
+          default:
+            stats.inactive++;
+        }
+      }
+    });
+
+    return stats;
+  }, [filteredCampaigns]);
   
   // Reset da página quando os filtros mudarem
   useEffect(() => {
@@ -389,6 +423,117 @@ const Campanhas = () => {
                   Período: Últimos 30 dias
                 </div>
               </div>
+            </div>
+
+            {/* Cards de Estatísticas */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Excelente */}
+              <Card className="border border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Excelente</span>
+                    </div>
+                    <span className="text-lg font-bold text-green-600">
+                      {campaignStats.excellent}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500">
+                      {totalCampaigns > 0 ? ((campaignStats.excellent / totalCampaigns) * 100).toFixed(0) : 0}% do total
+                    </div>
+                    <Progress 
+                      value={totalCampaigns > 0 ? (campaignStats.excellent / totalCampaigns) * 100 : 0} 
+                      className="h-2 bg-green-100"
+                      style={{
+                        background: 'hsl(var(--green-100))'
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Atenção */}
+              <Card className="border border-yellow-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Atenção</span>
+                    </div>
+                    <span className="text-lg font-bold text-yellow-600">
+                      {campaignStats.attention}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500">
+                      {totalCampaigns > 0 ? ((campaignStats.attention / totalCampaigns) * 100).toFixed(0) : 0}% do total
+                    </div>
+                    <Progress 
+                      value={totalCampaigns > 0 ? (campaignStats.attention / totalCampaigns) * 100 : 0} 
+                      className="h-2 bg-yellow-100"
+                      style={{
+                        background: 'hsl(var(--yellow-100))'
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Emergencial */}
+              <Card className="border border-red-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Emergencial</span>
+                    </div>
+                    <span className="text-lg font-bold text-red-600">
+                      {campaignStats.emergency}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500">
+                      {totalCampaigns > 0 ? ((campaignStats.emergency / totalCampaigns) * 100).toFixed(0) : 0}% do total
+                    </div>
+                    <Progress 
+                      value={totalCampaigns > 0 ? (campaignStats.emergency / totalCampaigns) * 100 : 0} 
+                      className="h-2 bg-red-100"
+                      style={{
+                        background: 'hsl(var(--red-100))'
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pausadas/Inativas */}
+              <Card className="border border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Pausadas</span>
+                    </div>
+                    <span className="text-lg font-bold text-gray-600">
+                      {campaignStats.inactive}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500">
+                      {totalCampaigns > 0 ? ((campaignStats.inactive / totalCampaigns) * 100).toFixed(0) : 0}% do total
+                    </div>
+                    <Progress 
+                      value={totalCampaigns > 0 ? (campaignStats.inactive / totalCampaigns) * 100 : 0} 
+                      className="h-2 bg-gray-100"
+                      style={{
+                        background: 'hsl(var(--gray-100))'
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Filters and Search - Single Line Responsive */}
