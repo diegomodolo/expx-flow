@@ -25,6 +25,7 @@ export function PeriodComparisonTab({ clientId }: PeriodComparisonTabProps) {
   const [period2Start, setPeriod2Start] = useState("");
   const [period2End, setPeriod2End] = useState("");
   const [selectedComparison, setSelectedComparison] = useState<string | null>(null);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
   
   const { activeCompany } = useCompany();
   const {
@@ -205,7 +206,10 @@ export function PeriodComparisonTab({ clientId }: PeriodComparisonTabProps) {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedComparison(comparison.id)}
+                              onClick={() => {
+                                setSelectedComparison(comparison.id);
+                                setIsComparisonModalOpen(true);
+                              }}
                             >
                               Ver Resultados
                             </Button>
@@ -259,7 +263,11 @@ export function PeriodComparisonTab({ clientId }: PeriodComparisonTabProps) {
       {selectedComparison && (
         <ComparisonResults 
           comparisonId={selectedComparison}
-          onClose={() => setSelectedComparison(null)}
+          isOpen={isComparisonModalOpen}
+          onClose={() => {
+            setSelectedComparison(null);
+            setIsComparisonModalOpen(false);
+          }}
           getComparisonMetrics={getComparisonMetrics}
         />
       )}
