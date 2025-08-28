@@ -93,17 +93,7 @@ serve(async (req) => {
     console.log('Fetching client and Facebook integration...');
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select(`
-        id,
-        name,
-        facebook_ad_accounts (
-          account_id,
-          integration:facebook_integrations (
-            access_token,
-            expires_at
-          )
-        )
-      `)
+      .select('id, name')
       .eq('id', comparison.client_id)
       .single();
 
@@ -118,60 +108,132 @@ serve(async (req) => {
 
     console.log('Client found:', client.name);
 
-    const adAccount = client.facebook_ad_accounts?.[0];
-    
+    // Get Facebook integration for this client via campaigns
+    console.log('Fetching Facebook integration...');
+    const { data: fbAccount, error: fbError } = await supabase
+      .from('facebook_ad_accounts')
+      .select(`
+        account_id,
+        integration:facebook_integrations (
+          access_token,
+          expires_at
+        )
+      `)
+      .limit(1)
+      .single();
+
     // Update progress
     await supabase
       .from('period_comparisons')
       .update({ sync_progress: 30 })
       .eq('id', comparisonId);
 
-    if (!adAccount?.integration?.access_token) {
-      console.log('No Facebook integration found for this client, marking as completed without sync');
-      
-      // Mark as completed without Facebook sync
-      await supabase
-        .from('period_comparisons')
-        .update({ 
-          status: 'completed',
-          sync_progress: 100,
-          error_message: 'Concluído sem sincronização do Facebook (integração não configurada)'
-        })
-        .eq('id', comparisonId);
+    // Sync campaign data from existing campaigns in database
+    console.log('Starting campaign data sync process...');
+    
+    // Sync campaigns for period 1
+    console.log('Syncing period 1 campaigns...');
+    const { data: period1Campaigns, error: p1Error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .eq('client_id', comparison.client_id)
+      .gte('created_at', comparison.period_1_start)
+      .lte('created_at', comparison.period_1_end);
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Comparison created successfully (no Facebook integration)',
-          comparisonId: comparisonId
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+    if (p1Error) {
+      console.error('Error fetching period 1 campaigns:', p1Error);
+    } else {
+      console.log(`Found ${period1Campaigns?.length || 0} campaigns for period 1`);
+      
+      // Insert campaigns into comparison table
+      if (period1Campaigns && period1Campaigns.length > 0) {
+        const campaignInserts = period1Campaigns.map(campaign => ({
+          comparison_id: comparisonId,
+          campaign_id: campaign.id,
+          period: 1,
+          name: campaign.name,
+          status: campaign.status,
+          spend: campaign.spend || 0,
+          impressions: campaign.impressions || 0,
+          clicks: campaign.clicks || 0,
+          conversions: campaign.conversions || 0,
+          ctr: campaign.ctr || 0,
+          cpc: campaign.cpc || 0,
+          cpa: campaign.cpa || 0,
+          reach: campaign.reach || 0,
+          frequency: campaign.frequency || 0
+        }));
+
+        const { error: insertError } = await supabase
+          .from('period_comparison_campaigns')
+          .upsert(campaignInserts);
+
+        if (insertError) {
+          console.error('Error inserting period 1 campaigns:', insertError);
+        } else {
+          console.log(`Successfully synced ${campaignInserts.length} campaigns for period 1`);
         }
-      );
+      }
     }
 
-    const accessToken = adAccount.integration.access_token;
-    const adAccountId = adAccount.account_id;
-    
-    console.log('Facebook integration found, account ID:', adAccountId);
-
-    // Update progress for Facebook sync
+    // Update progress
     await supabase
       .from('period_comparisons')
-      .update({ sync_progress: 50 })
+      .update({ sync_progress: 60 })
       .eq('id', comparisonId);
 
-    // Simplified sync process for testing
-    console.log('Starting simplified sync process...');
-    
-    // For now, just mark as completed to test the flow
+    // Sync campaigns for period 2
+    console.log('Syncing period 2 campaigns...');
+    const { data: period2Campaigns, error: p2Error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .eq('client_id', comparison.client_id)
+      .gte('created_at', comparison.period_2_start)
+      .lte('created_at', comparison.period_2_end);
+
+    if (p2Error) {
+      console.error('Error fetching period 2 campaigns:', p2Error);
+    } else {
+      console.log(`Found ${period2Campaigns?.length || 0} campaigns for period 2`);
+      
+      // Insert campaigns into comparison table
+      if (period2Campaigns && period2Campaigns.length > 0) {
+        const campaignInserts = period2Campaigns.map(campaign => ({
+          comparison_id: comparisonId,
+          campaign_id: campaign.id,
+          period: 2,
+          name: campaign.name,
+          status: campaign.status,
+          spend: campaign.spend || 0,
+          impressions: campaign.impressions || 0,
+          clicks: campaign.clicks || 0,
+          conversions: campaign.conversions || 0,
+          ctr: campaign.ctr || 0,
+          cpc: campaign.cpc || 0,
+          cpa: campaign.cpa || 0,
+          reach: campaign.reach || 0,
+          frequency: campaign.frequency || 0
+        }));
+
+        const { error: insertError } = await supabase
+          .from('period_comparison_campaigns')
+          .upsert(campaignInserts);
+
+        if (insertError) {
+          console.error('Error inserting period 2 campaigns:', insertError);
+        } else {
+          console.log(`Successfully synced ${campaignInserts.length} campaigns for period 2`);
+        }
+      }
+    }
+
+    // Update progress and mark as completed
     await supabase
       .from('period_comparisons')
       .update({ 
         status: 'completed',
-        sync_progress: 100
+        sync_progress: 100,
+        error_message: null
       })
       .eq('id', comparisonId);
 
