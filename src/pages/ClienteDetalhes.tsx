@@ -54,6 +54,7 @@ import { useCompetitors } from "@/hooks/useCompetitors";
 import { CompetitorDialog } from "@/components/clients/CompetitorDialog";
 import { CompetitorList } from "@/components/clients/CompetitorList";
 import { WeeklyReportTab } from "@/components/reports/WeeklyReportTab";
+import { PeriodComparisonTab } from "@/components/clients/PeriodComparisonTab";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -1375,8 +1376,9 @@ const [savingNote, setSavingNote] = useState(false);
                       </Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="weekly-report">📊 Relatório Semanal</TabsTrigger>
-                 <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
+                   <TabsTrigger value="weekly-report">📊 Relatório Semanal</TabsTrigger>
+                   <TabsTrigger value="period-comparison">📈 Comparação de Períodos</TabsTrigger>
+                   <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
               </TabsList>
@@ -2542,6 +2544,10 @@ const [savingNote, setSavingNote] = useState(false);
             
             <TabsContent value="weekly-report">
               <WeeklyReportTab clientId={id || ""} />
+            </TabsContent>
+            
+            <TabsContent value="period-comparison">
+              <PeriodComparisonTab clientId={id || ""} />
             </TabsContent>
             
             <TabsContent value="contact" className="p-4 sm:p-6">

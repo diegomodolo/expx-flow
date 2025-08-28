@@ -1548,6 +1548,333 @@ export type Database = {
           },
         ]
       }
+      period_comparison_ads: {
+        Row: {
+          ad_name: string
+          call_to_action: string | null
+          clicks: number | null
+          comments: number | null
+          comparison_id: string
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          creative_body: string | null
+          creative_description: string | null
+          creative_title: string | null
+          creative_type: string | null
+          ctr: number | null
+          facebook_ad_id: string
+          facebook_adset_id: string
+          facebook_campaign_id: string
+          frequency: number | null
+          id: string
+          image_url: string | null
+          impressions: number | null
+          likes: number | null
+          link_url: string | null
+          period_number: number
+          reach: number | null
+          shares: number | null
+          spend: number | null
+          status: string
+          video_url: string | null
+          video_view_percentage: number | null
+          video_views: number | null
+        }
+        Insert: {
+          ad_name: string
+          call_to_action?: string | null
+          clicks?: number | null
+          comments?: number | null
+          comparison_id: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          creative_body?: string | null
+          creative_description?: string | null
+          creative_title?: string | null
+          creative_type?: string | null
+          ctr?: number | null
+          facebook_ad_id: string
+          facebook_adset_id: string
+          facebook_campaign_id: string
+          frequency?: number | null
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          likes?: number | null
+          link_url?: string | null
+          period_number: number
+          reach?: number | null
+          shares?: number | null
+          spend?: number | null
+          status: string
+          video_url?: string | null
+          video_view_percentage?: number | null
+          video_views?: number | null
+        }
+        Update: {
+          ad_name?: string
+          call_to_action?: string | null
+          clicks?: number | null
+          comments?: number | null
+          comparison_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          creative_body?: string | null
+          creative_description?: string | null
+          creative_title?: string | null
+          creative_type?: string | null
+          ctr?: number | null
+          facebook_ad_id?: string
+          facebook_adset_id?: string
+          facebook_campaign_id?: string
+          frequency?: number | null
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          likes?: number | null
+          link_url?: string | null
+          period_number?: number
+          reach?: number | null
+          shares?: number | null
+          spend?: number | null
+          status?: string
+          video_url?: string | null
+          video_view_percentage?: number | null
+          video_views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_comparison_ads_comparison_id_fkey"
+            columns: ["comparison_id"]
+            isOneToOne: false
+            referencedRelation: "period_comparisons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      period_comparison_adsets: {
+        Row: {
+          adset_name: string
+          bid_strategy: string | null
+          clicks: number | null
+          comparison_id: string
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          daily_budget: number | null
+          facebook_adset_id: string
+          facebook_campaign_id: string
+          frequency: number | null
+          id: string
+          impressions: number | null
+          lifetime_budget: number | null
+          optimization_goal: string | null
+          period_number: number
+          reach: number | null
+          spend: number | null
+          status: string
+          targeting: string | null
+        }
+        Insert: {
+          adset_name: string
+          bid_strategy?: string | null
+          clicks?: number | null
+          comparison_id: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          daily_budget?: number | null
+          facebook_adset_id: string
+          facebook_campaign_id: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          lifetime_budget?: number | null
+          optimization_goal?: string | null
+          period_number: number
+          reach?: number | null
+          spend?: number | null
+          status: string
+          targeting?: string | null
+        }
+        Update: {
+          adset_name?: string
+          bid_strategy?: string | null
+          clicks?: number | null
+          comparison_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          daily_budget?: number | null
+          facebook_adset_id?: string
+          facebook_campaign_id?: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          lifetime_budget?: number | null
+          optimization_goal?: string | null
+          period_number?: number
+          reach?: number | null
+          spend?: number | null
+          status?: string
+          targeting?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_comparison_adsets_comparison_id_fkey"
+            columns: ["comparison_id"]
+            isOneToOne: false
+            referencedRelation: "period_comparisons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      period_comparison_campaigns: {
+        Row: {
+          campaign_name: string
+          clicks: number | null
+          comparison_id: string
+          conversion_rate_ranking: string | null
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          engagement_rate_ranking: string | null
+          facebook_campaign_id: string
+          frequency: number | null
+          id: string
+          impressions: number | null
+          objective: string | null
+          period_number: number
+          quality_ranking: string | null
+          reach: number | null
+          spend: number | null
+          status: string
+        }
+        Insert: {
+          campaign_name: string
+          clicks?: number | null
+          comparison_id: string
+          conversion_rate_ranking?: string | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          engagement_rate_ranking?: string | null
+          facebook_campaign_id: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          objective?: string | null
+          period_number: number
+          quality_ranking?: string | null
+          reach?: number | null
+          spend?: number | null
+          status: string
+        }
+        Update: {
+          campaign_name?: string
+          clicks?: number | null
+          comparison_id?: string
+          conversion_rate_ranking?: string | null
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          engagement_rate_ranking?: string | null
+          facebook_campaign_id?: string
+          frequency?: number | null
+          id?: string
+          impressions?: number | null
+          objective?: string | null
+          period_number?: number
+          quality_ranking?: string | null
+          reach?: number | null
+          spend?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_comparison_campaigns_comparison_id_fkey"
+            columns: ["comparison_id"]
+            isOneToOne: false
+            referencedRelation: "period_comparisons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      period_comparisons: {
+        Row: {
+          client_id: string
+          company_id: string
+          comparison_name: string
+          created_at: string
+          error_message: string | null
+          id: string
+          period_1_end: string
+          period_1_label: string
+          period_1_start: string
+          period_2_end: string
+          period_2_label: string
+          period_2_start: string
+          status: string
+          sync_progress: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          comparison_name: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          period_1_end: string
+          period_1_label: string
+          period_1_start: string
+          period_2_end: string
+          period_2_label: string
+          period_2_start: string
+          status?: string
+          sync_progress?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          comparison_name?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          period_1_end?: string
+          period_1_label?: string
+          period_1_start?: string
+          period_2_end?: string
+          period_2_label?: string
+          period_2_start?: string
+          status?: string
+          sync_progress?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       planner_time_slots: {
         Row: {
           company_id: string
