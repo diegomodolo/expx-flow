@@ -1041,7 +1041,7 @@ const [savingNote, setSavingNote] = useState(false);
         )}
 
         {/* Performance Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {/* Funnel Completeness Score Card */}
           <Card>
             <CardContent className="p-6">
