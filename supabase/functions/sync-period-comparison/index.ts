@@ -8,17 +8,23 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log('=== Sync Period Comparison Function Started ===')
+  console.log('Request method:', req.method)
+  console.log('Request URL:', req.url)
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('Handling CORS preflight request')
+    return new Response('ok', { headers: corsHeaders });
   }
+
+  let comparisonId: string | null = null
 
   try {
     console.log('Processing period comparison sync request...')
     
     // Parse request body
-    const { comparisonId } = await req.json()
+    const requestBody = await req.json()
+    comparisonId = requestBody.comparisonId
     console.log('Comparison ID:', comparisonId)
 
     // Initialize Supabase client
@@ -215,71 +221,79 @@ serve(async (req) => {
     const fetchCampaignsForPeriod = async (startDate: string, endDate: string, periodLabel: string) => {
       console.log(`\n=== Fetching campaigns for ${periodLabel} (${startDate} to ${endDate}) ===`)
       
-      const timeRange = `{"since":"${startDate}","until":"${endDate}"}`
-      const campaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights.time_range(${timeRange}).action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"]){spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions}&access_token=${accessToken}`
+      // Properly encode the time_range parameter
+      const timeRangeParam = encodeURIComponent(`{"since":"${startDate}","until":"${endDate}"}`)
+      const campaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights.time_range(${timeRangeParam}).action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"]){spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions}&access_token=${accessToken}`
       
       console.log('Facebook API URL (without token):', campaignsUrl.replace(accessToken, '[REDACTED]'))
       
-      const response = await fetch(campaignsUrl)
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`Facebook API error (${response.status}):`, errorText)
-        throw new Error(`Facebook API error: ${response.status} - ${errorText}`)
-      }
-      
-      const data = await response.json()
-      console.log(`Campaigns data received for ${periodLabel}:`, {
-        campaignCount: data.data?.length || 0,
-        hasNext: !!data.paging?.next
-      })
-      
-      const campaigns = []
-      
-      for (const campaign of data.data || []) {
-        console.log(`\nProcessing campaign: ${campaign.name} (${campaign.id})`)
+      try {
+        const response = await fetch(campaignsUrl)
         
-        const insights = campaign.insights?.data?.[0]
-        if (!insights) {
-          console.log('No insights data for this campaign')
-          continue
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`Facebook API error (${response.status}):`, errorText)
+          throw new Error(`Facebook API error: ${response.status} - ${errorText}`)
         }
         
-        const spend = parseFloat(insights.spend || '0')
-        const impressions = parseInt(insights.impressions || '0')
-        const clicks = parseInt(insights.clicks || '0')
-        const reach = parseInt(insights.reach || '0')
-        const frequency = parseFloat(insights.frequency || '0')
-        const ctr = parseFloat(insights.ctr || '0')
-        const cpc = parseFloat(insights.cpc || '0')
-        const cpm = parseFloat(insights.cpm || '0')
-        
-        const conversions = countConversionsFromActions(insights.actions, campaign.objective, campaign.name)
-        const cpa = conversions > 0 ? spend / conversions : 0
-        
-        console.log('Campaign metrics:', {
-          spend, impressions, clicks, reach, frequency, ctr, cpc, cpm, conversions, cpa
+        const data = await response.json()
+        console.log(`Campaigns data received for ${periodLabel}:`, {
+          campaignCount: data.data?.length || 0,
+          hasNext: !!data.paging?.next
         })
         
-        campaigns.push({
-          facebook_campaign_id: campaign.id,
-          campaign_name: campaign.name,
-          status: campaign.status,
-          objective: campaign.objective,
-          spend,
-          impressions,
-          clicks,
-          conversions,
-          reach,
-          frequency,
-          ctr,
-          cpc,
-          cpa,
-          cpm
-        })
+        const campaigns = []
+        
+        for (const campaign of data.data || []) {
+          console.log(`\nProcessing campaign: ${campaign.name} (${campaign.id})`)
+          
+          const insights = campaign.insights?.data?.[0]
+          if (!insights) {
+            console.log('No insights data for this campaign, skipping...')
+            continue
+          }
+          
+          const spend = parseFloat(insights.spend || '0')
+          const impressions = parseInt(insights.impressions || '0')
+          const clicks = parseInt(insights.clicks || '0')
+          const reach = parseInt(insights.reach || '0')
+          const frequency = parseFloat(insights.frequency || '0')
+          const ctr = parseFloat(insights.ctr || '0')
+          const cpc = parseFloat(insights.cpc || '0')
+          const cpm = parseFloat(insights.cpm || '0')
+          
+          const conversions = countConversionsFromActions(insights.actions, campaign.objective, campaign.name)
+          const cpa = conversions > 0 ? spend / conversions : 0
+          
+          console.log('Campaign metrics:', {
+            spend, impressions, clicks, reach, frequency, ctr, cpc, cpm, conversions, cpa
+          })
+          
+          campaigns.push({
+            facebook_campaign_id: campaign.id,
+            campaign_name: campaign.name,
+            status: campaign.status,
+            objective: campaign.objective,
+            spend,
+            impressions,
+            clicks,
+            conversions,
+            reach,
+            frequency,
+            ctr,
+            cpc,
+            cpa,
+            cpm
+          })
+        }
+        
+        console.log(`Total campaigns processed for ${periodLabel}: ${campaigns.length}`)
+        return campaigns
+        
+      } catch (fetchError) {
+        console.error(`Error fetching campaigns for ${periodLabel}:`, fetchError)
+        throw new Error(`Failed to fetch campaigns for ${periodLabel}: ${fetchError.message}`)
       }
-      
-      console.log(`Total campaigns processed for ${periodLabel}: ${campaigns.length}`)
-      return campaigns
     }
 
     // Clear existing data for this comparison
