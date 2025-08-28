@@ -161,42 +161,73 @@ export function usePeriodComparisons(clientId?: string) {
         description: "Buscando dados dos períodos selecionados...",
       });
 
-      const { error } = await supabase.functions.invoke('sync-period-comparison', {
+      const { data, error } = await supabase.functions.invoke('sync-period-comparison', {
         body: { comparisonId }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('Function returned error:', data.error);
+        throw new Error(data.error);
+      }
 
       // Start polling for updates
+      let attempts = 0;
+      const maxAttempts = 150; // 5 minutes with 2-second intervals
+      
       const pollInterval = setInterval(async () => {
-        const { data } = await supabase
-          .from('period_comparisons')
-          .select('status, sync_progress, error_message')
-          .eq('id', comparisonId)
-          .single();
+        attempts++;
+        
+        try {
+          const { data: comparisonData } = await supabase
+            .from('period_comparisons')
+            .select('status, sync_progress, error_message')
+            .eq('id', comparisonId)
+            .single();
 
-        if (data?.status === 'completed') {
-          clearInterval(pollInterval);
-          toast({
-            title: "Sincronização concluída",
-            description: "Os dados foram sincronizados com sucesso!",
-          });
-          await fetchComparisons();
-        } else if (data?.status === 'error') {
-          clearInterval(pollInterval);
-          toast({
-            title: "Erro na sincronização",
-            description: data.error_message || "Erro desconhecido",
-            variant: "destructive",
-          });
-          await fetchComparisons();
+          if (comparisonData?.status === 'completed') {
+            clearInterval(pollInterval);
+            toast({
+              title: "Sincronização concluída",
+              description: "Os dados foram sincronizados com sucesso!",
+            });
+            await fetchComparisons();
+          } else if (comparisonData?.status === 'error') {
+            clearInterval(pollInterval);
+            toast({
+              title: "Erro na sincronização",
+              description: comparisonData.error_message || "Erro desconhecido",
+              variant: "destructive",
+            });
+            await fetchComparisons();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            toast({
+              title: "Tempo limite excedido",
+              description: "A sincronização está demorando mais que o esperado. Verifique o status mais tarde.",
+              variant: "destructive",
+            });
+            await fetchComparisons();
+          }
+        } catch (pollError) {
+          console.error('Error polling comparison status:', pollError);
+          if (attempts >= 5) {
+            clearInterval(pollInterval);
+            toast({
+              title: "Erro no monitoramento",
+              description: "Não foi possível verificar o status da sincronização.",
+              variant: "destructive",
+            });
+          }
         }
       }, 2000);
 
-      // Clear interval after 5 minutes to avoid infinite polling
-      setTimeout(() => clearInterval(pollInterval), 300000);
-
     } catch (err) {
+      console.error('Error in syncComparison:', err);
       setError(err instanceof Error ? err.message : "Erro ao sincronizar comparação");
       toast({
         title: "Erro na sincronização",
