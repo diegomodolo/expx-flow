@@ -1750,6 +1750,7 @@ export type Database = {
           conversions: number | null
           cpa: number | null
           cpc: number | null
+          cpm: number | null
           created_at: string
           ctr: number | null
           engagement_rate_ranking: string | null
@@ -1772,6 +1773,7 @@ export type Database = {
           conversions?: number | null
           cpa?: number | null
           cpc?: number | null
+          cpm?: number | null
           created_at?: string
           ctr?: number | null
           engagement_rate_ranking?: string | null
@@ -1794,6 +1796,7 @@ export type Database = {
           conversions?: number | null
           cpa?: number | null
           cpc?: number | null
+          cpm?: number | null
           created_at?: string
           ctr?: number | null
           engagement_rate_ranking?: string | null
