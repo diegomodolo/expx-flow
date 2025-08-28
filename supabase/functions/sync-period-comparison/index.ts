@@ -149,10 +149,11 @@ serve(async (req) => {
         
         const campaignInserts = period1Campaigns.map(campaign => ({
           comparison_id: comparisonId,
-          campaign_id: campaign.id,
-          period: 1,
-          name: campaign.name,
+          facebook_campaign_id: campaign.id, // Usar o campo correto da tabela 
+          period_number: 1, // Usar period_number ao invés de period
+          campaign_name: campaign.name, // Usar campaign_name ao invés de name
           status: campaign.status,
+          objective: campaign.objective || null,
           spend: campaign.spend || 0,
           impressions: campaign.impressions || 0,
           clicks: campaign.clicks || 0,
@@ -161,7 +162,10 @@ serve(async (req) => {
           cpc: campaign.cpc || 0,
           cpa: campaign.cpa || 0,
           reach: campaign.reach || 0,
-          frequency: campaign.frequency || 0
+          frequency: campaign.frequency || 0,
+          quality_ranking: campaign.quality_ranking || null,
+          engagement_rate_ranking: campaign.engagement_rate_ranking || null,
+          conversion_rate_ranking: campaign.conversion_rate_ranking || null
         }));
 
         console.log('Campaign inserts data:', JSON.stringify(campaignInserts[0])); // Log first item as sample
@@ -205,10 +209,11 @@ serve(async (req) => {
         
         const campaignInserts = period2Campaigns.map(campaign => ({
           comparison_id: comparisonId,
-          campaign_id: campaign.id,
-          period: 2,
-          name: campaign.name,
+          facebook_campaign_id: campaign.id, // Usar o campo correto da tabela
+          period_number: 2, // Usar period_number ao invés de period
+          campaign_name: campaign.name, // Usar campaign_name ao invés de name
           status: campaign.status,
+          objective: campaign.objective || null,
           spend: campaign.spend || 0,
           impressions: campaign.impressions || 0,
           clicks: campaign.clicks || 0,
@@ -217,7 +222,10 @@ serve(async (req) => {
           cpc: campaign.cpc || 0,
           cpa: campaign.cpa || 0,
           reach: campaign.reach || 0,
-          frequency: campaign.frequency || 0
+          frequency: campaign.frequency || 0,
+          quality_ranking: campaign.quality_ranking || null,
+          engagement_rate_ranking: campaign.engagement_rate_ranking || null,
+          conversion_rate_ranking: campaign.conversion_rate_ranking || null
         }));
 
         console.log('Campaign inserts data for period 2:', JSON.stringify(campaignInserts[0])); // Log first item as sample
