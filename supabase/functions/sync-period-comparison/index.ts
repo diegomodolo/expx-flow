@@ -145,6 +145,8 @@ serve(async (req) => {
       
       // Insert campaigns into comparison table
       if (period1Campaigns && period1Campaigns.length > 0) {
+        console.log(`Preparing to insert ${period1Campaigns.length} campaigns for period 1`);
+        
         const campaignInserts = period1Campaigns.map(campaign => ({
           comparison_id: comparisonId,
           campaign_id: campaign.id,
@@ -162,15 +164,20 @@ serve(async (req) => {
           frequency: campaign.frequency || 0
         }));
 
+        console.log('Campaign inserts data:', JSON.stringify(campaignInserts[0])); // Log first item as sample
+
         const { error: insertError } = await supabase
           .from('period_comparison_campaigns')
           .upsert(campaignInserts);
 
         if (insertError) {
           console.error('Error inserting period 1 campaigns:', insertError);
+          throw new Error(`Failed to insert period 1 campaigns: ${insertError.message}`);
         } else {
           console.log(`Successfully synced ${campaignInserts.length} campaigns for period 1`);
         }
+      } else {
+        console.log('No period 1 campaigns found to insert');
       }
     }
 
@@ -194,6 +201,8 @@ serve(async (req) => {
       
       // Insert campaigns into comparison table
       if (period2Campaigns && period2Campaigns.length > 0) {
+        console.log(`Preparing to insert ${period2Campaigns.length} campaigns for period 2`);
+        
         const campaignInserts = period2Campaigns.map(campaign => ({
           comparison_id: comparisonId,
           campaign_id: campaign.id,
@@ -211,15 +220,20 @@ serve(async (req) => {
           frequency: campaign.frequency || 0
         }));
 
+        console.log('Campaign inserts data for period 2:', JSON.stringify(campaignInserts[0])); // Log first item as sample
+
         const { error: insertError } = await supabase
           .from('period_comparison_campaigns')
           .upsert(campaignInserts);
 
         if (insertError) {
           console.error('Error inserting period 2 campaigns:', insertError);
+          throw new Error(`Failed to insert period 2 campaigns: ${insertError.message}`);
         } else {
           console.log(`Successfully synced ${campaignInserts.length} campaigns for period 2`);
         }
+      } else {
+        console.log('No period 2 campaigns found to insert');
       }
     }
 
