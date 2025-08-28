@@ -119,8 +119,37 @@ serve(async (req) => {
     console.log('Client found:', client.name);
 
     const adAccount = client.facebook_ad_accounts?.[0];
+    
+    // Update progress
+    await supabase
+      .from('period_comparisons')
+      .update({ sync_progress: 30 })
+      .eq('id', comparisonId);
+
     if (!adAccount?.integration?.access_token) {
-      throw new Error('Facebook integration not found or access token missing');
+      console.log('No Facebook integration found for this client, marking as completed without sync');
+      
+      // Mark as completed without Facebook sync
+      await supabase
+        .from('period_comparisons')
+        .update({ 
+          status: 'completed',
+          sync_progress: 100,
+          error_message: 'Concluído sem sincronização do Facebook (integração não configurada)'
+        })
+        .eq('id', comparisonId);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Comparison created successfully (no Facebook integration)',
+          comparisonId: comparisonId
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
     }
 
     const accessToken = adAccount.integration.access_token;
@@ -128,10 +157,10 @@ serve(async (req) => {
     
     console.log('Facebook integration found, account ID:', adAccountId);
 
-    // Update progress
+    // Update progress for Facebook sync
     await supabase
       .from('period_comparisons')
-      .update({ sync_progress: 30 })
+      .update({ sync_progress: 50 })
       .eq('id', comparisonId);
 
     // Simplified sync process for testing
