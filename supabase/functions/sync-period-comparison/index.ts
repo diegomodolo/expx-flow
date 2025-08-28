@@ -1,257 +1,363 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 serve(async (req) => {
-  console.log('Received request:', req.method, req.url);
+  console.log('=== Sync Period Comparison Function Started ===')
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight');
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
-  let comparisonId: string | null = null;
-  let supabase: any = null;
-
   try {
-    console.log('Parsing request body...');
+    console.log('Processing period comparison sync request...')
     
     // Parse request body
-    const requestBody = await req.json();
-    console.log('Request body parsed successfully:', requestBody);
-    
-    comparisonId = requestBody?.comparisonId;
-    
-    if (!comparisonId) {
-      console.error('Missing comparisonId in request');
-      throw new Error('comparisonId is required');
-    }
-    
-    console.log('ComparisonId received:', comparisonId);
+    const { comparisonId } = await req.json()
+    console.log('Comparison ID:', comparisonId)
 
     // Initialize Supabase client
-    console.log('Initializing Supabase client...');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-    
-    supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('Supabase client initialized');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // Update status to syncing
-    console.log('Updating comparison status to syncing...');
-    const { error: updateError } = await supabase
+    // Update sync status to processing
+    console.log('Updating comparison status to syncing...')
+    await supabase
       .from('period_comparisons')
       .update({ 
         status: 'syncing',
         sync_progress: 10,
-        error_message: null
+        error_message: null 
       })
-      .eq('id', comparisonId);
-      
-    if (updateError) {
-      console.error('Error updating comparison status:', updateError);
-      throw new Error(`Failed to update comparison status: ${updateError.message}`);
-    }
-    
-    console.log('Status updated to syncing');
+      .eq('id', comparisonId)
 
-    // Get comparison details
-    console.log('Fetching comparison details...');
+    // Get comparison data
+    console.log('Fetching comparison data...')
     const { data: comparison, error: comparisonError } = await supabase
       .from('period_comparisons')
       .select('*')
       .eq('id', comparisonId)
-      .single();
+      .single()
 
-    if (comparisonError) {
-      console.error('Error fetching comparison:', comparisonError);
-      throw new Error(`Failed to fetch comparison: ${comparisonError.message}`);
-    }
-    
-    if (!comparison) {
-      throw new Error('Comparison not found');
+    if (comparisonError || !comparison) {
+      console.error('Error fetching comparison:', comparisonError)
+      throw new Error('Comparison not found')
     }
 
-    console.log('Comparison found:', {
+    console.log('Comparison data:', {
       id: comparison.id,
-      name: comparison.comparison_name,
       client_id: comparison.client_id,
-      period_1: `${comparison.period_1_start} to ${comparison.period_1_end}`,
-      period_2: `${comparison.period_2_start} to ${comparison.period_2_end}`
-    });
+      period_1_start: comparison.period_1_start,
+      period_1_end: comparison.period_1_end,
+      period_2_start: comparison.period_2_start,
+      period_2_end: comparison.period_2_end
+    })
 
-    // Get client and Facebook integration
-    console.log('Fetching client and Facebook integration...');
+    // Get client data
+    console.log('Fetching client data...')
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, name')
+      .select('*')
       .eq('id', comparison.client_id)
-      .single();
+      .single()
 
-    if (clientError) {
-      console.error('Error fetching client:', clientError);
-      throw new Error(`Failed to fetch client: ${clientError.message}`);
+    if (clientError || !client) {
+      console.error('Error fetching client:', clientError)
+      throw new Error('Client not found')
     }
 
-    if (!client) {
-      throw new Error('Client not found');
+    console.log('Client found:', client.name)
+
+    if (!client.ad_account_id) {
+      console.log('No ad account linked to this client')
+      throw new Error('No ad account linked to client')
     }
 
-    console.log('Client found:', client.name);
-
-    // Get Facebook integration for this client via campaigns
-    console.log('Fetching Facebook integration...');
-    const { data: fbAccount, error: fbError } = await supabase
+    // Get ad account info
+    console.log('Fetching ad account data for ID:', client.ad_account_id)
+    const { data: adAccount, error: adAccountError } = await supabase
       .from('facebook_ad_accounts')
-      .select(`
-        account_id,
-        integration:facebook_integrations (
-          access_token,
-          expires_at
-        )
-      `)
-      .limit(1)
-      .single();
+      .select('*')
+      .eq('id', client.ad_account_id)
+      .single()
+
+    if (adAccountError || !adAccount) {
+      console.error('Error fetching ad account:', adAccountError)
+      throw new Error('Ad account not found')
+    }
+
+    console.log('Ad account found:', { id: adAccount.id, account_id: adAccount.account_id })
+
+    // Get integration info
+    console.log('Fetching integration data for ID:', adAccount.integration_id)
+    const { data: integration, error: integrationError } = await supabase
+      .from('facebook_integrations')
+      .select('*')
+      .eq('id', adAccount.integration_id)
+      .single()
+
+    if (integrationError || !integration) {
+      console.error('Error fetching integration:', integrationError)
+      throw new Error('Facebook integration not found')
+    }
+
+    console.log('Integration found, is_active:', integration.is_active)
+
+    if (!integration.is_active) {
+      console.log('Integration is not active')
+      throw new Error('Facebook integration is not active')
+    }
+
+    const accessToken = integration.access_token
+    const accountId = adAccount.account_id
+
+    // Helper function to count conversions (adapted from sync-facebook-campaigns)
+    const countConversionsFromActions = (actions: any[] | undefined, campaignObjective?: string, campaignName?: string) => {
+      if (!actions || !Array.isArray(actions)) {
+        console.log(`No actions array found for campaign: ${campaignName}`)
+        return 0;
+      }
+
+      const norm = (s: any) => (s ?? '').toString().trim().toLowerCase()
+      const getVal = (a: any) => {
+        const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v))
+        const click = toNum(a?.['7d_click'])
+        const view = toNum(a?.['1d_view'])
+        const val = toNum(a?.value)
+        const sumCv = (Number.isFinite(click) ? click : 0) + (Number.isFinite(view) ? view : 0)
+        const candidates = [sumCv, val, click, view].map(n => (Number.isFinite(n) ? n : 0))
+        const best = Math.max(...candidates, 0)
+        return Math.round(best > 0 ? best : 0)
+      }
+      
+      console.log(`Processing conversions for campaign: ${campaignName} (${campaignObjective})`)
+      
+      const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD')
+
+      if (isLeadObjective) {
+        const leadPriorityTypes = [
+          'lead',
+          'offsite_conversion.fb_pixel_lead',
+          'offsite_conversion.fb_pixel_custom',
+          'onsite_conversion.lead',
+          'omni_lead',
+          'on_facebook_lead',
+          'onsite_conversion.lead_grouped',
+          'website_lead'
+        ]
+
+        const normalized = actions.map(a => ({ type: norm(a?.action_type), val: getVal(a) }))
+
+        for (const priorityType of leadPriorityTypes) {
+          const found = normalized.find(n => n.type === priorityType && n.val > 0)
+          if (found) {
+            console.log(`Using priority: "${priorityType}" = ${found.val}`)
+            return found.val
+          }
+        }
+
+        const leadCandidates = normalized.filter(n => n.type.includes('lead') && n.val > 0)
+        if (leadCandidates.length > 0) {
+          const maxVal = Math.max(...leadCandidates.map(n => n.val))
+          console.log(`Fallback lead actions, max: ${maxVal}`)
+          return maxVal
+        }
+
+        return 0
+      } else {
+        const subscriptionConversions = [
+          'subscribe', 'subscription', 'complete_registration', 'lead',
+          'offsite_conversion.fb_pixel_subscribe', 'offsite_conversion.fb_pixel_complete_registration',
+          'offsite_conversion.fb_pixel_lead', 'offsite_conversion.fb_pixel_custom',
+          'onsite_conversion.subscribe', 'onsite_conversion.subscription',
+          'onsite_conversion.lead_grouped', 'website_lead'
+        ]
+        
+        const excludedTypes = [
+          'link_click', 'landing_page_view', 'page_engagement', 'post_engagement',
+          'video_view', 'post_reaction', 'like', 'comment', 'share', 'post', 'omni_landing_page_view'
+        ]
+        
+        let total = 0
+        
+        for (const a of actions) {
+          const type = norm(a?.action_type)
+          const val = getVal(a)
+          
+          if (!type || !Number.isFinite(val)) continue
+          
+          if (excludedTypes.some(excluded => type.includes(excluded))) continue
+          
+          const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
+                                           type.includes('subscribe') ||
+                                           type.includes('subscription') ||
+                                           (type.includes('lead') && !type.includes('link')) ||
+                                           type.includes('complete_registration')
+          
+          if (isSubscriptionConversion) {
+            total += val
+            console.log(`Added: ${val} from "${type}", total: ${total}`)
+          }
+        }
+        
+        return total
+      }
+    }
+
+    // Function to fetch campaigns for a specific period
+    const fetchCampaignsForPeriod = async (startDate: string, endDate: string, periodLabel: string) => {
+      console.log(`\n=== Fetching campaigns for ${periodLabel} (${startDate} to ${endDate}) ===`)
+      
+      const timeRange = `{"since":"${startDate}","until":"${endDate}"}`
+      const campaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights.time_range(${timeRange}).action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"]){spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions}&access_token=${accessToken}`
+      
+      console.log('Facebook API URL (without token):', campaignsUrl.replace(accessToken, '[REDACTED]'))
+      
+      const response = await fetch(campaignsUrl)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`Facebook API error (${response.status}):`, errorText)
+        throw new Error(`Facebook API error: ${response.status} - ${errorText}`)
+      }
+      
+      const data = await response.json()
+      console.log(`Campaigns data received for ${periodLabel}:`, {
+        campaignCount: data.data?.length || 0,
+        hasNext: !!data.paging?.next
+      })
+      
+      const campaigns = []
+      
+      for (const campaign of data.data || []) {
+        console.log(`\nProcessing campaign: ${campaign.name} (${campaign.id})`)
+        
+        const insights = campaign.insights?.data?.[0]
+        if (!insights) {
+          console.log('No insights data for this campaign')
+          continue
+        }
+        
+        const spend = parseFloat(insights.spend || '0')
+        const impressions = parseInt(insights.impressions || '0')
+        const clicks = parseInt(insights.clicks || '0')
+        const reach = parseInt(insights.reach || '0')
+        const frequency = parseFloat(insights.frequency || '0')
+        const ctr = parseFloat(insights.ctr || '0')
+        const cpc = parseFloat(insights.cpc || '0')
+        const cpm = parseFloat(insights.cpm || '0')
+        
+        const conversions = countConversionsFromActions(insights.actions, campaign.objective, campaign.name)
+        const cpa = conversions > 0 ? spend / conversions : 0
+        
+        console.log('Campaign metrics:', {
+          spend, impressions, clicks, reach, frequency, ctr, cpc, cpm, conversions, cpa
+        })
+        
+        campaigns.push({
+          facebook_campaign_id: campaign.id,
+          campaign_name: campaign.name,
+          status: campaign.status,
+          objective: campaign.objective,
+          spend,
+          impressions,
+          clicks,
+          conversions,
+          reach,
+          frequency,
+          ctr,
+          cpc,
+          cpa,
+          cpm
+        })
+      }
+      
+      console.log(`Total campaigns processed for ${periodLabel}: ${campaigns.length}`)
+      return campaigns
+    }
+
+    // Clear existing data for this comparison
+    console.log('Clearing existing comparison data...')
+    await supabase
+      .from('period_comparison_campaigns')
+      .delete()
+      .eq('comparison_id', comparisonId)
 
     // Update progress
     await supabase
       .from('period_comparisons')
       .update({ sync_progress: 30 })
-      .eq('id', comparisonId);
+      .eq('id', comparisonId)
 
-    // Sync campaign data from existing campaigns in database
-    console.log('Starting campaign data sync process...');
-    
-    // Sync campaigns for period 1 - use all campaigns from client and filter by period dates
-    console.log('Syncing period 1 campaigns...');
-    const { data: allCampaigns, error: campaignsError } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('client_id', comparison.client_id);
+    // Fetch campaigns for Period 1
+    console.log('\n=== Starting Period 1 Sync ===')
+    const period1Campaigns = await fetchCampaignsForPeriod(
+      comparison.period_1_start,
+      comparison.period_1_end,
+      comparison.period_1_label
+    )
 
-    if (campaignsError) {
-      console.error('Error fetching campaigns:', campaignsError);
-      throw new Error(`Failed to fetch campaigns: ${campaignsError.message}`);
-    }
-
-    console.log(`Found ${allCampaigns?.length || 0} total campaigns for client`);
-
-    // For period 1, use base campaign data
-    const period1Campaigns = allCampaigns || [];
-    
+    // Save Period 1 campaigns
     if (period1Campaigns.length > 0) {
-      console.log(`Preparing to insert ${period1Campaigns.length} campaigns for period 1`);
-      
-      const campaignInserts = period1Campaigns.map(campaign => ({
+      const period1Inserts = period1Campaigns.map(campaign => ({
         comparison_id: comparisonId,
-        facebook_campaign_id: campaign.id,
         period_number: 1,
-        campaign_name: campaign.name,
-        status: campaign.status,
-        objective: campaign.objective || null,
-        spend: campaign.spend || 0,
-        impressions: campaign.impressions || 0,
-        clicks: campaign.clicks || 0,
-        conversions: campaign.conversions || 0,
-        ctr: campaign.ctr || 0,
-        cpc: campaign.cpc || 0,
-        cpa: campaign.cpa || 0,
-        reach: campaign.reach || 0,
-        frequency: campaign.frequency || 0,
-        quality_ranking: campaign.quality_ranking || null,
-        engagement_rate_ranking: campaign.engagement_rate_ranking || null,
-        conversion_rate_ranking: campaign.conversion_rate_ranking || null
-      }));
+        ...campaign
+      }))
 
-      console.log('Campaign inserts data:', JSON.stringify(campaignInserts[0])); // Log first item as sample
-
-      const { error: insertError } = await supabase
+      const { error: insertError1 } = await supabase
         .from('period_comparison_campaigns')
-        .upsert(campaignInserts);
+        .insert(period1Inserts)
 
-      if (insertError) {
-        console.error('Error inserting period 1 campaigns:', insertError);
-        throw new Error(`Failed to insert period 1 campaigns: ${insertError.message}`);
-      } else {
-        console.log(`Successfully synced ${campaignInserts.length} campaigns for period 1`);
+      if (insertError1) {
+        console.error('Error inserting period 1 campaigns:', insertError1)
+        throw new Error(`Failed to insert period 1 campaigns: ${insertError1.message}`)
       }
-    } else {
-      console.log('No period 1 campaigns found to insert');
+
+      console.log(`Successfully saved ${period1Campaigns.length} campaigns for Period 1`)
     }
 
     // Update progress
     await supabase
       .from('period_comparisons')
-      .update({ sync_progress: 60 })
-      .eq('id', comparisonId);
+      .update({ sync_progress: 65 })
+      .eq('id', comparisonId)
 
-    // For period 2, simulate different performance data (since we don't have historical data)
-    console.log('Syncing period 2 campaigns with simulated variations...');
-    
-    const period2Campaigns = allCampaigns?.map(campaign => ({
-      ...campaign,
-      // Simulate performance variations for period 2 (±10-30% variation)
-      spend: Math.round((campaign.spend || 0) * (0.8 + Math.random() * 0.4)),
-      impressions: Math.round((campaign.impressions || 0) * (0.7 + Math.random() * 0.6)),
-      clicks: Math.round((campaign.clicks || 0) * (0.75 + Math.random() * 0.5)),
-      conversions: Math.round((campaign.conversions || 0) * (0.8 + Math.random() * 0.4)),
-      reach: Math.round((campaign.reach || 0) * (0.85 + Math.random() * 0.3)),
-      ctr: Number(((campaign.ctr || 0) * (0.9 + Math.random() * 0.2)).toFixed(2)),
-      cpc: Number(((campaign.cpc || 0) * (0.8 + Math.random() * 0.4)).toFixed(2)),
-      cpa: Number(((campaign.cpa || 0) * (0.7 + Math.random() * 0.6)).toFixed(2)),
-      frequency: Number(((campaign.frequency || 0) * (0.9 + Math.random() * 0.2)).toFixed(2))
-    })) || [];
-    
+    // Fetch campaigns for Period 2
+    console.log('\n=== Starting Period 2 Sync ===')
+    const period2Campaigns = await fetchCampaignsForPeriod(
+      comparison.period_2_start,
+      comparison.period_2_end,
+      comparison.period_2_label
+    )
+
+    // Save Period 2 campaigns
     if (period2Campaigns.length > 0) {
-      console.log(`Preparing to insert ${period2Campaigns.length} campaigns for period 2`);
-      
-      const campaignInserts = period2Campaigns.map(campaign => ({
+      const period2Inserts = period2Campaigns.map(campaign => ({
         comparison_id: comparisonId,
-        facebook_campaign_id: campaign.id,
         period_number: 2,
-        campaign_name: campaign.name,
-        status: campaign.status,
-        objective: campaign.objective || null,
-        spend: campaign.spend || 0,
-        impressions: campaign.impressions || 0,
-        clicks: campaign.clicks || 0,
-        conversions: campaign.conversions || 0,
-        ctr: campaign.ctr || 0,
-        cpc: campaign.cpc || 0,
-        cpa: campaign.cpa || 0,
-        reach: campaign.reach || 0,
-        frequency: campaign.frequency || 0,
-        quality_ranking: campaign.quality_ranking || null,
-        engagement_rate_ranking: campaign.engagement_rate_ranking || null,
-        conversion_rate_ranking: campaign.conversion_rate_ranking || null
-      }));
+        ...campaign
+      }))
 
-      console.log('Campaign inserts data for period 2:', JSON.stringify(campaignInserts[0])); // Log first item as sample
-
-      const { error: insertError } = await supabase
+      const { error: insertError2 } = await supabase
         .from('period_comparison_campaigns')
-        .upsert(campaignInserts);
+        .insert(period2Inserts)
 
-      if (insertError) {
-        console.error('Error inserting period 2 campaigns:', insertError);
-        throw new Error(`Failed to insert period 2 campaigns: ${insertError.message}`);
-      } else {
-        console.log(`Successfully synced ${campaignInserts.length} campaigns for period 2`);
+      if (insertError2) {
+        console.error('Error inserting period 2 campaigns:', insertError2)
+        throw new Error(`Failed to insert period 2 campaigns: ${insertError2.message}`)
       }
-    } else {
-      console.log('No period 2 campaigns found to insert');
+
+      console.log(`Successfully saved ${period2Campaigns.length} campaigns for Period 2`)
     }
 
-    // Update progress and mark as completed
+    // Mark as completed
     await supabase
       .from('period_comparisons')
       .update({ 
@@ -259,55 +365,59 @@ serve(async (req) => {
         sync_progress: 100,
         error_message: null
       })
-      .eq('id', comparisonId);
+      .eq('id', comparisonId)
 
-    console.log('Sync completed successfully (simplified version)');
+    console.log('=== Period Comparison Sync Completed Successfully ===')
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Sync completed successfully (simplified version)',
-        comparisonId: comparisonId
+        message: 'Period comparison sync completed successfully',
+        comparisonId: comparisonId,
+        period1_campaigns: period1Campaigns.length,
+        period2_campaigns: period2Campaigns.length
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
-    );
+    )
 
   } catch (error) {
     console.error('Error in sync-period-comparison:', {
       message: error.message,
-      stack: error.stack,
-      comparisonId: comparisonId
-    });
+      stack: error.stack
+    })
     
     // Try to update comparison with error status
-    if (comparisonId && supabase) {
+    if (comparisonId) {
       try {
-        console.log('Updating comparison with error status...');
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+        
         await supabase
           .from('period_comparisons')
           .update({ 
             status: 'error',
-            error_message: error.message.substring(0, 500) // Limit error message length
+            error_message: error.message.substring(0, 500)
           })
-          .eq('id', comparisonId);
+          .eq('id', comparisonId)
       } catch (updateError) {
-        console.error('Failed to update comparison with error status:', updateError);
+        console.error('Failed to update comparison with error status:', updateError)
       }
     }
 
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        comparisonId: comparisonId,
-        timestamp: new Date().toISOString()
+        success: false
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
       }
-    );
+    )
   }
-});
+})
