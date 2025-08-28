@@ -1157,37 +1157,6 @@ const [savingNote, setSavingNote] = useState(false);
             </CardContent>
           </Card>
 
-          {/* Account Balance Card - Only show for prepaid accounts */}
-          {client.facebook_ad_accounts && client.facebook_ad_accounts.is_prepaid ? (
-            <AccountBalanceCard
-              balance={client.facebook_ad_accounts.balance}
-              currency="BRL"
-              accountStatus={client.facebook_ad_accounts.account_status}
-              disableReason={client.facebook_ad_accounts.disable_reason}
-              hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
-              accountName={client.facebook_ad_accounts.account_name}
-              lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
-            />
-          ) : (
-            <Card className="bg-gray-50 border-dashed">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Saldo da Conta</p>
-                    <p className="text-2xl font-bold text-gray-400">--</p>
-                    <div className="flex items-center space-x-1 mt-1">
-                    <span className="text-xs text-gray-400">
-                      {!client.facebook_ad_accounts ? 'Conta não vinculada' : 'Conta pós-paga'}
-                    </span>
-                  </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-gray-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Performance Charts */}
