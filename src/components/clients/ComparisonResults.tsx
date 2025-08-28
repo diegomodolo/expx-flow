@@ -49,9 +49,9 @@ export function ComparisonResults({ comparisonId, isOpen, onClose, getComparison
     return `${value.toFixed(2)}%`;
   };
 
-  const getTrendIcon = (change: number) => {
-    if (change > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
-    if (change < 0) return <TrendingDown className="h-4 w-4 text-red-600" />;
+  const getTrendIcon = (change: number, isInverted = false) => {
+    if (change > 0) return isInverted ? <TrendingDown className="h-4 w-4 text-red-600" /> : <TrendingUp className="h-4 w-4 text-green-600" />;
+    if (change < 0) return isInverted ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />;
     return <Minus className="h-4 w-4 text-gray-500" />;
   };
 
@@ -95,7 +95,7 @@ export function ComparisonResults({ comparisonId, isOpen, onClose, getComparison
                   change: metrics.changes.spend_change,
                   changePercentage: metrics.changes.spend_change_pct,
                   formatter: formatCurrency,
-                  isInverted: false, // Higher spend is not necessarily bad
+                  isInverted: true, // Lower spend is better
                 },
                 {
                   title: "Conversões",
@@ -157,6 +157,7 @@ export function ComparisonResults({ comparisonId, isOpen, onClose, getComparison
                   period2: formatCurrency(metrics.period2.cpc),
                   change: metrics.changes.cpc_change,
                   changePercentage: metrics.changes.cpc_change_pct,
+                  isInverted: true, // Lower CPC is better
                 },
               ];
 
@@ -176,7 +177,7 @@ export function ComparisonResults({ comparisonId, isOpen, onClose, getComparison
                                   <Icon className="h-4 w-4 text-muted-foreground" />
                                   <span className="font-medium text-sm">{metric.title}</span>
                                 </div>
-                                {getTrendIcon(metric.change)}
+                                {getTrendIcon(metric.change, metric.isInverted)}
                               </div>
                               
                               <div className="space-y-1">
@@ -213,7 +214,7 @@ export function ComparisonResults({ comparisonId, isOpen, onClose, getComparison
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium text-sm">{metric.title}</span>
-                              {getTrendIcon(metric.change)}
+                              {getTrendIcon(metric.change, metric.title === 'CPC')}
                             </div>
                             
                             <div className="space-y-1">
@@ -229,9 +230,9 @@ export function ComparisonResults({ comparisonId, isOpen, onClose, getComparison
                             
                             <Separator className="my-2" />
                             
-                            <div className={`text-xs ${getTrendColor(metric.change)}`}>
-                              {metric.change >= 0 ? "+" : ""}{metric.changePercentage.toFixed(1)}%
-                            </div>
+                          <div className={`text-xs ${getTrendColor(metric.change, metric.title === 'CPC')}`}>
+                            {metric.change >= 0 ? "+" : ""}{metric.changePercentage.toFixed(1)}%
+                          </div>
                           </CardContent>
                         </Card>
                       ))}
