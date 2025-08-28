@@ -311,11 +311,17 @@ serve(async (req) => {
 
     // Fetch campaigns for Period 1
     console.log('\n=== Starting Period 1 Sync ===')
-    const period1Campaigns = await fetchCampaignsForPeriod(
-      comparison.period_1_start,
-      comparison.period_1_end,
-      comparison.period_1_label
-    )
+    let period1Campaigns = []
+    try {
+      period1Campaigns = await fetchCampaignsForPeriod(
+        comparison.period_1_start,
+        comparison.period_1_end,
+        comparison.period_1_label
+      )
+    } catch (period1Error) {
+      console.warn('Period 1 fetch failed, will continue with empty data:', period1Error.message)
+      period1Campaigns = []
+    }
 
     // Save Period 1 campaigns
     if (period1Campaigns.length > 0) {
@@ -345,11 +351,17 @@ serve(async (req) => {
 
     // Fetch campaigns for Period 2
     console.log('\n=== Starting Period 2 Sync ===')
-    const period2Campaigns = await fetchCampaignsForPeriod(
-      comparison.period_2_start,
-      comparison.period_2_end,
-      comparison.period_2_label
-    )
+    let period2Campaigns = []
+    try {
+      period2Campaigns = await fetchCampaignsForPeriod(
+        comparison.period_2_start,
+        comparison.period_2_end,
+        comparison.period_2_label
+      )
+    } catch (period2Error) {
+      console.warn('Period 2 fetch failed, will continue with empty data:', period2Error.message)
+      period2Campaigns = []
+    }
 
     // Save Period 2 campaigns
     if (period2Campaigns.length > 0) {
@@ -400,7 +412,8 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in sync-period-comparison:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      comparisonId: comparisonId
     })
     
     // Try to update comparison with error status
@@ -426,7 +439,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        success: false
+        success: false,
+        details: error.stack,
+        comparisonId: comparisonId
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
