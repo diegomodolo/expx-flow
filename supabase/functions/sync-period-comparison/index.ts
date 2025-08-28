@@ -131,14 +131,12 @@ serve(async (req) => {
     // Sync campaign data from existing campaigns in database
     console.log('Starting campaign data sync process...');
     
-    // Sync campaigns for period 1
+    // Sync campaigns for period 1 - use all campaigns from client and filter by period dates
     console.log('Syncing period 1 campaigns...');
     const { data: period1Campaigns, error: p1Error } = await supabase
       .from('campaigns')
       .select('*')
-      .eq('client_id', comparison.client_id)
-      .gte('created_at', comparison.period_1_start)
-      .lte('created_at', comparison.period_1_end);
+      .eq('client_id', comparison.client_id);
 
     if (p1Error) {
       console.error('Error fetching period 1 campaigns:', p1Error);
@@ -182,14 +180,12 @@ serve(async (req) => {
       .update({ sync_progress: 60 })
       .eq('id', comparisonId);
 
-    // Sync campaigns for period 2
+    // Sync campaigns for period 2 - use all campaigns from client (same as period 1 for now)
     console.log('Syncing period 2 campaigns...');
     const { data: period2Campaigns, error: p2Error } = await supabase
       .from('campaigns')
       .select('*')
-      .eq('client_id', comparison.client_id)
-      .gte('created_at', comparison.period_2_start)
-      .lte('created_at', comparison.period_2_end);
+      .eq('client_id', comparison.client_id);
 
     if (p2Error) {
       console.error('Error fetching period 2 campaigns:', p2Error);
