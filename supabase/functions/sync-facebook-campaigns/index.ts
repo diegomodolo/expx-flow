@@ -347,7 +347,9 @@ serve(async (req) => {
       console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
       console.log('Available actions:', JSON.stringify(actions.map(a => ({ type: a.action_type, value: a.value, '7d_click': a?.['7d_click'], '1d_view': a?.['1d_view'] })), null, 2))
       
-      const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD')
+      const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD') ||
+                          (campaignName || '').toUpperCase().includes('[LEADS]') ||
+                          (campaignName || '').toUpperCase().includes('LEAD')
 
       if (isLeadObjective) {
         // Lead campaigns: choose a single best source to avoid duplication
@@ -407,7 +409,12 @@ serve(async (req) => {
           'onsite_conversion.subscribe',
           'onsite_conversion.subscription',
           'onsite_conversion.lead_grouped',
-          'website_lead'
+          'website_lead',
+          // Add messaging conversation conversions
+          'messaging_conversation_started',
+          'messaging_conversation_started_7d',
+          'on_facebook_conversation_started',
+          'conversation_started'
         ]
         
         // Remove types that are not real conversions
@@ -448,7 +455,9 @@ serve(async (req) => {
                                            type.includes('subscribe') ||
                                            type.includes('subscription') ||
                                            (type.includes('lead') && !type.includes('link')) ||
-                                           type.includes('complete_registration')
+                                           type.includes('complete_registration') ||
+                                           type.includes('messaging_conversation') ||
+                                           type.includes('conversation_started')
           
           if (isSubscriptionConversion) {
             total += val
