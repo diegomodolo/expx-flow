@@ -347,9 +347,10 @@ serve(async (req) => {
       console.log(`\n=== Processing conversions for campaign: ${campaignName} (${campaignObjective}) ===`)
       console.log('Available actions:', JSON.stringify(actions.map(a => ({ type: a.action_type, value: a.value, '7d_click': a?.['7d_click'], '1d_view': a?.['1d_view'] })), null, 2))
       
-      const isLeadObjective = (campaignObjective || '').toUpperCase().includes('LEAD') ||
-                          (campaignName || '').toUpperCase().includes('[LEADS]') ||
-                          (campaignName || '').toUpperCase().includes('LEAD')
+      // Only treat as lead campaign if the actual objective is LEADS
+      const isLeadObjective = (campaignObjective || '').toUpperCase() === 'OUTCOME_LEADS'
+      
+      console.log(`Campaign objective check: ${campaignObjective} -> isLeadObjective: ${isLeadObjective}`)
 
       if (isLeadObjective) {
         // Lead campaigns: choose a single best source to avoid duplication
