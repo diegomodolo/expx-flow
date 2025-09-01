@@ -7,6 +7,9 @@ import { useEmployeePermissions } from "./useEmployeePermissions";
 export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo";
 export type DatabaseClientStatus = "green" | "yellow" | "red";
 
+// Threshold for considering good lead volume (leads per week)
+const GOOD_LEADS_THRESHOLD = 5;
+
 // Mapping between database status and display status
 const statusMapping = {
   database: {
@@ -180,29 +183,68 @@ export const calculateClientStatus = async (
       };
     }
 
-    if (activeCampaigns.length === 0 || (averageCTR < 0.8) || hasReprovedAds || daysSinceLastOptimization > 30) {
+    // Check if lead volume compensates for low CTR
+    const hasGoodLeadVolume = currentWeekLeads >= GOOD_LEADS_THRESHOLD;
+
+    // Emergencial status - adjust CTR condition based on lead volume
+    if (activeCampaigns.length === 0 || (averageCTR < 0.8 && !hasGoodLeadVolume) || hasReprovedAds || daysSinceLastOptimization > 30) {
       const problems = [];
       if (activeCampaigns.length === 0) problems.push("• Sem campanhas ativas recentes");
-      if (averageCTR < 0.8) problems.push("• CTR muito baixo");
+      if (averageCTR < 0.8 && !hasGoodLeadVolume) problems.push("• CTR muito baixo");
       if (hasReprovedAds) problems.push("• Anúncios reprovados");
       if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há mais de 30 dias");
 
+      // Add positive note if CTR is low but leads are good
+      const positiveNotes = [];
+      if (averageCTR < 0.8 && hasGoodLeadVolume) {
+        positiveNotes.push("• Volume de leads compensando CTR baixo");
+      }
+
+      const explanationParts = [
+        "🚨 Situação crítica! Este cliente precisa de atenção urgente.",
+        `\nProblemas identificados:\n${problems.join('\n')}`
+      ];
+
+      if (positiveNotes.length > 0) {
+        explanationParts.push(`\nPontos positivos:\n${positiveNotes.join('\n')}`);
+      }
+
+      explanationParts.push(`\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`);
+
       return {
         status: "emergencial",
-        explanation: `🚨 Situação crítica! Este cliente precisa de atenção urgente.\n\nProblemas identificados:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
+        explanation: explanationParts.join('')
       };
     }
 
-    if (leadDropPercentage >= 30 || (averageCTR >= 0.8 && averageCTR <= 1.5) || hasQualityIssues || (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30)) {
+    // Atenção status - adjust CTR condition based on lead volume
+    if (leadDropPercentage >= 30 || (averageCTR >= 0.8 && averageCTR <= 1.5 && !hasGoodLeadVolume) || hasQualityIssues || (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30)) {
       const problems = [];
       if (leadDropPercentage >= 30) problems.push(`• Queda de ${leadDropPercentage.toFixed(1)}% nos leads`);
-      if (averageCTR >= 0.8 && averageCTR <= 1.5) problems.push("• CTR na média, pode melhorar");
+      if (averageCTR >= 0.8 && averageCTR <= 1.5 && !hasGoodLeadVolume) problems.push("• CTR na média, pode melhorar");
       if (hasQualityIssues) problems.push("• Alertas de qualidade nos anúncios");
       if (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30) problems.push("• Otimização não recente");
 
+      // Add positive note if CTR is average but leads are good
+      const positiveNotes = [];
+      if (averageCTR >= 0.8 && averageCTR <= 1.5 && hasGoodLeadVolume) {
+        positiveNotes.push("• Volume de leads compensando CTR na média");
+      }
+
+      const explanationParts = [
+        "⚠️ Cliente requer monitoramento.",
+        `\nPontos de atenção:\n${problems.join('\n')}`
+      ];
+
+      if (positiveNotes.length > 0) {
+        explanationParts.push(`\nPontos positivos:\n${positiveNotes.join('\n')}`);
+      }
+
+      explanationParts.push(`\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: ${leadDropPercentage > 0 ? '-' : '+'}${Math.abs(leadDropPercentage).toFixed(1)}%\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`);
+
       return {
         status: "atencao",
-        explanation: `⚠️ Cliente requer monitoramento.\n\nPontos de atenção:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: ${leadDropPercentage > 0 ? '-' : '+'}${Math.abs(leadDropPercentage).toFixed(1)}%\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
+        explanation: explanationParts.join('')
       };
     }
 
