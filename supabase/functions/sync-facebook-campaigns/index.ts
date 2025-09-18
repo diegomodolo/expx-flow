@@ -1157,8 +1157,8 @@ serve(async (req) => {
       status: clientStatus,
       last_sync_at: new Date().toISOString(),
       last_sync_period: period,
-      // Add status reason if we have funding issues
-      ...(updatedAdAccount?.has_funding_issues && { inactive_reason: statusReason })
+      // Set inactive_reason based on client status - clear it if not red
+      inactive_reason: clientStatus === 'red' ? statusReason : null
     }
 
     console.log('Calculated metrics with enhanced status logic:', metricsData)
