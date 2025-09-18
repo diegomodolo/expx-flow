@@ -304,7 +304,7 @@ const Clientes = () => {
             </div>
 
             {/* Status Statistics Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-5 gap-2 sm:gap-3">
               {/* Excelente */}
               <Card>
                 <CardContent className="p-3 sm:p-4">
