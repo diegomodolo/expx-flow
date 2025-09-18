@@ -274,22 +274,35 @@ serve(async (req) => {
         const isPrepaid = balance > 0 && (!fundingSourceDetails.coupon && !fundingSourceDetails.direct_debit && !fundingSourceDetails.credit_card)
         
         // Enhanced funding issues detection - more refined logic
-        const hasFundingIssues = 
-          accountStatus !== 1 || // Account is not active
-          (disableReason && (
-            disableReason.includes('FUNDING') || 
-            disableReason.includes('PAYMENT') ||
-            disableReason.includes('BILLING') ||
-            disableReason.includes('SPEND_LIMIT')
-          ));
-          // Removed balance <= 0 check as it's too aggressive - many active accounts have 0 balance but work fine
+        console.log('🔍 DETAILED FUNDING ANALYSIS:')
+        console.log('  - Account Status:', accountStatus, '(1 = ACTIVE)')
+        console.log('  - Balance:', balance)
+        console.log('  - Disable Reason:', disableReason)
+        console.log('  - Spend Cap:', spendCap)
+        console.log('  - Funding Source Details:', fundingSourceDetails)
         
-        // Basic funding status logging
-        console.log(`💰 Funding check - Account Status: ${accountStatus}, Balance: ${balance}, Has Issues: ${hasFundingIssues}`)
+        // Check each condition separately for better debugging
+        const isAccountInactive = accountStatus !== 1
+        const hasDisableReasonIssues = disableReason && (
+          disableReason.includes('FUNDING') || 
+          disableReason.includes('PAYMENT') ||
+          disableReason.includes('BILLING') ||
+          disableReason.includes('SPEND_LIMIT')
+        )
         
+        console.log('  - Account Inactive?', isAccountInactive)
+        console.log('  - Has Disable Reason Issues?', hasDisableReasonIssues)
+        
+        const hasFundingIssues = isAccountInactive || hasDisableReasonIssues
+        
+        console.log(`💰 FUNDING DECISION: Has Issues = ${hasFundingIssues}`)
+        console.log(`  - Logic: (accountStatus ${accountStatus} !== 1) = ${isAccountInactive} OR hasDisableReasonIssues = ${hasDisableReasonIssues}`)
         
         // Update ad account with financial status
-        console.log(`💾 Updating account ${adAccount.id}: funding_issues ${adAccount.has_funding_issues} → ${hasFundingIssues}`)
+        console.log(`💾 UPDATING ACCOUNT ${adAccount.id}:`)
+        console.log(`  - Previous funding_issues: ${adAccount.has_funding_issues}`)
+        console.log(`  - New funding_issues: ${hasFundingIssues}`)
+        console.log(`  - Change: ${adAccount.has_funding_issues} → ${hasFundingIssues}`)
         
         const { error: adAccountUpdateError } = await supabase
           .from('facebook_ad_accounts')
@@ -306,16 +319,45 @@ serve(async (req) => {
           .eq('id', adAccount.id)
         
         if (adAccountUpdateError) {
-          console.error('❌ Error updating account balance:', adAccountUpdateError)
+          console.error('❌ ERROR UPDATING ACCOUNT BALANCE:', adAccountUpdateError)
+          console.error('❌ Failed to update account:', adAccount.id)
+          console.error('❌ Update data was:', {
+            balance,
+            account_status: accountStatus,
+            has_funding_issues: hasFundingIssues
+          })
         } else {
-          console.log('✅ Account updated - Balance:', balance, 'Status:', accountStatus, 'Funding Issues:', hasFundingIssues)
+          console.log('✅ ACCOUNT UPDATE SUCCESSFUL')
+          console.log('✅ Updated account:', adAccount.id)
+          console.log('✅ New values - Balance:', balance, 'Status:', accountStatus, 'Funding Issues:', hasFundingIssues)
+          
+          // Verify the update was successful by reading it back
+          console.log('🔍 VERIFYING DATABASE UPDATE...')
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('facebook_ad_accounts')
+            .select('has_funding_issues, account_status, balance')
+            .eq('id', adAccount.id)
+            .single()
+          
+          if (verifyError) {
+            console.error('❌ VERIFICATION FAILED:', verifyError)
+          } else {
+            console.log('✅ VERIFICATION SUCCESS - Database now contains:')
+            console.log('  - has_funding_issues:', verifyData.has_funding_issues)
+            console.log('  - account_status:', verifyData.account_status)
+            console.log('  - balance:', verifyData.balance)
+            console.log('  - Values match expected?', verifyData.has_funding_issues === hasFundingIssues)
+          }
         }
       } else {
-        console.warn('Failed to fetch account balance, status:', balanceResponse.status)
+        console.warn('❌ FAILED TO FETCH ACCOUNT BALANCE')
+        console.warn('  - Status Code:', balanceResponse.status)
         const errorText = await balanceResponse.text()
-        console.warn('Balance API error response:', errorText)
+        console.warn('  - Error Response:', errorText)
+        console.warn('  - Account ID:', adAccount.id)
         
         // If we can't check balance, mark as potential funding issue to be safe
+        console.log('⚠️ APPLYING FALLBACK: Setting has_funding_issues = true (safe fallback)')
         const { error: fallbackUpdateError } = await supabase
           .from('facebook_ad_accounts')
           .update({
@@ -325,15 +367,26 @@ serve(async (req) => {
           .eq('id', adAccount.id)
           
         if (fallbackUpdateError) {
+          console.error('❌ FALLBACK UPDATE FAILED:', fallbackUpdateError)
+        } else {
+          console.log('✅ FALLBACK UPDATE SUCCESS - Account marked as having funding issues')
+        }
+          
+        if (fallbackUpdateError) {
           console.error('Error updating account with fallback funding issue flag:', fallbackUpdateError)
         } else {
           console.log('⚠️ Account marked with funding issues due to API access failure')
         }
       }
     } catch (balanceError) {
-      console.error('Error checking account balance:', balanceError)
+      console.error('🚨 EXCEPTION DURING BALANCE CHECK:')
+      console.error('  - Account ID:', adAccount.id)
+      console.error('  - Error Type:', balanceError.constructor.name)
+      console.error('  - Error Message:', balanceError.message)
+      console.error('  - Error Stack:', balanceError.stack)
       
       // If there's an error checking balance, mark as potential funding issue for safety
+      console.log('⚠️ EXCEPTION FALLBACK: Setting has_funding_issues = true (safety measure)')
       const { error: errorFallbackUpdateError } = await supabase
         .from('facebook_ad_accounts')
         .update({
@@ -341,6 +394,12 @@ serve(async (req) => {
           last_balance_check: new Date().toISOString()
         })
         .eq('id', adAccount.id)
+        
+      if (errorFallbackUpdateError) {
+        console.error('❌ EXCEPTION FALLBACK UPDATE FAILED:', errorFallbackUpdateError)
+      } else {
+        console.log('✅ EXCEPTION FALLBACK UPDATE SUCCESS')
+      }
         
       if (errorFallbackUpdateError) {
         console.error('Error updating account with error fallback funding issue flag:', errorFallbackUpdateError)
@@ -1086,20 +1145,19 @@ serve(async (req) => {
       .single()
 
     if (adAccountFetchError) {
-      console.error('❌ Error fetching updated ad account data:', adAccountFetchError)
+      console.error('❌ ERROR FETCHING UPDATED AD ACCOUNT DATA:', adAccountFetchError)
+      console.error('❌ Account ID that failed:', adAccount.id)
     } else {
-      console.log('✅ Successfully fetched updated ad account data:')
-      console.log('Updated ad account funding status:', {
-        has_funding_issues: updatedAdAccount.has_funding_issues,
-        account_status: updatedAdAccount.account_status,
-        balance: updatedAdAccount.balance,
-        disable_reason: updatedAdAccount.disable_reason
-      })
-      console.log('📊 Funding status comparison:', {
-        'Should have funding issues?': adAccount.has_funding_issues || false,
-        'Database says has funding issues?': updatedAdAccount.has_funding_issues,
-        'Values match?': (adAccount.has_funding_issues || false) === updatedAdAccount.has_funding_issues
-      })
+      console.log('✅ SUCCESSFULLY FETCHED UPDATED AD ACCOUNT DATA:')
+      console.log('✅ Account ID:', adAccount.id)
+      console.log('✅ Updated ad account data:', JSON.stringify(updatedAdAccount, null, 2))
+      console.log('📊 FUNDING STATUS COMPARISON:')
+      console.log('  - Original ad account has_funding_issues:', adAccount.has_funding_issues || false)
+      console.log('  - Database now has_funding_issues:', updatedAdAccount.has_funding_issues)
+      console.log('  - Values match?', (adAccount.has_funding_issues || false) === updatedAdAccount.has_funding_issues)
+      console.log('  - Account status:', updatedAdAccount.account_status, '(1 = ACTIVE)')
+      console.log('  - Balance:', updatedAdAccount.balance)
+      console.log('  - Disable reason:', updatedAdAccount.disable_reason)
     }
 
     // Determine client status based on funding issues first, then active campaigns
@@ -1107,14 +1165,13 @@ serve(async (req) => {
     let statusReason = 'Conta operando normalmente'
 
     console.log('🎯 DETERMINING CLIENT STATUS for:', client.name)
-    console.log('Status determination inputs:', {
-      activeCampaigns,
-      hasUpdatedAdAccount: !!updatedAdAccount,
-      adAccountHasFundingIssues: updatedAdAccount?.has_funding_issues,
-      adAccountBalance: updatedAdAccount?.balance,
-      adAccountStatus: updatedAdAccount?.account_status,
-      adAccountDisableReason: updatedAdAccount?.disable_reason
-    })
+    console.log('📊 STATUS DETERMINATION INPUTS:')
+    console.log('  - Active Campaigns:', activeCampaigns)
+    console.log('  - Has Updated Ad Account?', !!updatedAdAccount)
+    console.log('  - Ad Account has_funding_issues:', updatedAdAccount?.has_funding_issues)
+    console.log('  - Ad Account balance:', updatedAdAccount?.balance)
+    console.log('  - Ad Account status:', updatedAdAccount?.account_status)
+    console.log('  - Ad Account disable_reason:', updatedAdAccount?.disable_reason)
 
     // Priority 1: Funding issues (most critical)
     if (updatedAdAccount && updatedAdAccount.has_funding_issues) {
@@ -1128,22 +1185,28 @@ serve(async (req) => {
       } else {
         statusReason = 'Problemas de financiamento detectados'
       }
-      console.log('🔴 Client status set to RED due to funding issues:', statusReason)
+      console.log('🔴 CLIENT STATUS SET TO RED due to funding issues')
+      console.log('  - Reason:', statusReason)
+      console.log('  - Balance:', updatedAdAccount.balance)
+      console.log('  - Account Status:', updatedAdAccount.account_status)
+      console.log('  - Disable Reason:', updatedAdAccount.disable_reason)
     }
     // Priority 2: No active campaigns
     else if (activeCampaigns === 0) {
       clientStatus = 'red' // Emergencial
       statusReason = 'Nenhuma campanha ativa'
-      console.log('🔴 Client status set to RED due to no active campaigns')
+      console.log('🔴 CLIENT STATUS SET TO RED due to no active campaigns')
     }
     // Priority 3: Few active campaigns
     else if (activeCampaigns <= 2) {
       clientStatus = 'yellow' // Atenção
       statusReason = `Apenas ${activeCampaigns} campanha(s) ativa(s)`
-      console.log('🟡 Client status set to YELLOW due to low campaign count:', activeCampaigns)
+      console.log('🟡 CLIENT STATUS SET TO YELLOW due to low campaign count:', activeCampaigns)
     }
     else {
-      console.log('🟢 Client status remains GREEN - all metrics are healthy')
+      console.log('🟢 CLIENT STATUS REMAINS GREEN - all metrics are healthy')
+      console.log('  - Active campaigns:', activeCampaigns)
+      console.log('  - No funding issues detected')
     }
 
     const metricsData = {
@@ -1157,21 +1220,32 @@ serve(async (req) => {
       inactive_reason: clientStatus === 'red' ? statusReason : null
     }
 
-    console.log(`📊 Client Status: ${clientStatus} (${activeCampaigns} campaigns, funding issues: ${updatedAdAccount?.has_funding_issues})`)
+    console.log(`📊 FINAL CLIENT STATUS SUMMARY for ${client.name}:`)
+    console.log(`  - Status: ${clientStatus} (${activeCampaigns} campaigns)`)
+    console.log(`  - Funding Issues: ${updatedAdAccount?.has_funding_issues}`)
+    console.log(`  - Inactive Reason: ${clientStatus === 'red' ? statusReason : 'None (active)'}`)
+    console.log(`  - Metrics:`, JSON.stringify(metricsData, null, 2))
 
     // Update client with real data and status
-    console.log('Updating client with new metrics and status...')
+    console.log('💾 UPDATING CLIENT IN DATABASE...')
+    console.log('  - Client ID:', clientId)
+    console.log('  - New Status:', clientStatus)
+    console.log('  - New Inactive Reason:', metricsData.inactive_reason)
+    
     const { error: updateError } = await supabase
       .from('clients')
       .update(metricsData)
       .eq('id', clientId)
 
     if (updateError) {
-      console.error('Error updating client:', updateError)
+      console.error('❌ ERROR UPDATING CLIENT:', updateError)
+      console.error('❌ Client ID that failed:', clientId)
+      console.error('❌ Data that failed to update:', JSON.stringify(metricsData, null, 2))
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Failed to update client data' 
+          error: 'Failed to update client data',
+          details: updateError.message
         }),
         { 
           status: 500, 
@@ -1180,7 +1254,26 @@ serve(async (req) => {
       )
     }
 
-    console.log('Client updated successfully')
+    console.log('✅ CLIENT UPDATE SUCCESSFUL')
+    console.log('✅ Client', clientId, 'updated with status:', clientStatus)
+    
+    // Verify the client update
+    console.log('🔍 VERIFYING CLIENT UPDATE...')
+    const { data: verifyClientData, error: verifyClientError } = await supabase
+      .from('clients')
+      .select('status, inactive_reason, active_campaigns')
+      .eq('id', clientId)
+      .single()
+    
+    if (verifyClientError) {
+      console.error('❌ CLIENT VERIFICATION FAILED:', verifyClientError)
+    } else {
+      console.log('✅ CLIENT VERIFICATION SUCCESS - Database now contains:')
+      console.log('  - status:', verifyClientData.status)
+      console.log('  - inactive_reason:', verifyClientData.inactive_reason)
+      console.log('  - active_campaigns:', verifyClientData.active_campaigns)
+      console.log('  - Status matches expected?', verifyClientData.status === clientStatus)
+    }
 
     return new Response(
       JSON.stringify({ 
