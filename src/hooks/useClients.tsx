@@ -91,11 +91,25 @@ export const calculateClientStatus = async (
 
     // Client is inactive if status is 'red' AND has an inactive_reason
     if (clientData?.status === "red" && clientData?.inactive_reason) {
-      console.log("Client is inactive, skipping status calculation");
-      return { 
-        status: "inativo", 
-        explanation: "Cliente marcado como inativo manualmente" 
-      };
+      // Check if inactive_reason indicates funding issues
+      const fundingKeywords = ['sem fundos', 'saldo', 'funding', 'balance', 'gastos', 'campanhas ativas sem gastos'];
+      const isFundingIssue = fundingKeywords.some(keyword => 
+        clientData.inactive_reason.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      if (isFundingIssue) {
+        console.log("Client has funding issues based on inactive_reason:", clientData.inactive_reason);
+        return { 
+          status: "sem_fundos", 
+          explanation: clientData.inactive_reason 
+        };
+      } else {
+        console.log("Client is inactive, skipping status calculation");
+        return { 
+          status: "inativo", 
+          explanation: "Cliente marcado como inativo manualmente" 
+        };
+      }
     }
 
     // PRIORITY CHECK: Funding issues (sem fundos)
