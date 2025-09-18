@@ -61,6 +61,7 @@ export interface Client {
     is_prepaid: boolean;
     funding_source_details?: any;
   };
+  inactive_reason?: string;
 }
 
 // Function to calculate automatic status based on campaign metrics (exported for reuse)
@@ -68,12 +69,28 @@ export const calculateClientStatus = async (
   clientId: string, 
   companyId?: string
 ): Promise<{ status: ClientStatus; explanation: string }> => {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
   try {
+    // First, check if client is manually set to inactive - if so, don't recalculate
+    const { data: clientData } = await supabase
+      .from("clients")
+      .select("status, inactive_reason")
+      .eq("id", clientId)
+      .maybeSingle();
+
+    // Client is inactive if status is 'red' AND has an inactive_reason
+    if (clientData?.status === "red" && clientData?.inactive_reason) {
+      console.log("Client is inactive, skipping status calculation");
+      return { 
+        status: "inativo", 
+        explanation: "Cliente marcado como inativo manualmente" 
+      };
+    }
+
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
     // Fetch campaigns data
     const { data: campaigns } = await supabase
       .from("campaigns")

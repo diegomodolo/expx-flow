@@ -51,7 +51,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         campaign_type: client.campaign_type || "",
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
-        website_url: client.website_url || ""
+        website_url: client.website_url || "",
+        inactive_reason: client.inactive_reason || ""
       };
     }
     return {
@@ -70,7 +71,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       campaign_type: "",
       notes: "",
       ad_account_id: "",
-      website_url: ""
+      website_url: "",
+      inactive_reason: ""
     };
   });
   const [loading, setLoading] = useState(false);
@@ -112,7 +114,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         campaign_type: client.campaign_type || "",
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
-        website_url: client.website_url || ""
+        website_url: client.website_url || "",
+        inactive_reason: client.inactive_reason || ""
       });
       setLocalClient(client);
     }
@@ -175,7 +178,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         campaign_type: "",
         notes: "",
         ad_account_id: "",
-        website_url: ""
+        website_url: "",
+        inactive_reason: ""
       });
     } catch (error) {
       toast({
@@ -411,8 +415,23 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                     <SelectItem value="emergencial">Emergencial</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
                   </SelectContent>
-                </Select>
-              </div>
+                  </Select>
+                </div>
+
+                {/* Motivo de Inatividade - aparece apenas quando status é "inativo" */}
+                {formData.status === 'inativo' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="inactive_reason">Motivo da Inatividade</Label>
+                    <Textarea
+                      id="inactive_reason"
+                      value={formData.inactive_reason || ""}
+                      onChange={(e) => setFormData({ ...formData, inactive_reason: e.target.value })}
+                      placeholder="Descreva o motivo da inatividade..."
+                      disabled={readOnly}
+                      rows={3}
+                    />
+                  </div>
+                )}
               <div className="space-y-2">
                 <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
                 <Input

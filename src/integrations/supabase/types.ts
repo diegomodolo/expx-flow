@@ -664,6 +664,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          inactive_reason: string | null
           last_sync_at: string | null
           last_sync_period: string | null
           leads_generated: number | null
@@ -694,6 +695,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          inactive_reason?: string | null
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
@@ -724,6 +726,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          inactive_reason?: string | null
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null

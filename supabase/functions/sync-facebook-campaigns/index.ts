@@ -114,6 +114,19 @@ serve(async (req) => {
 
     console.log('Client found:', { id: client.id, name: client.name, ad_account_id: client.ad_account_id })
 
+    // Check if client is inactive - skip sync if so
+    if (client.status === 'red' && client.inactive_reason) { // Client is inactive if red status + inactive_reason
+      console.log('Client is inactive, skipping sync for:', client.name, 'Reason:', client.inactive_reason)
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Client is inactive - sync skipped',
+          data: { skipped: true, reason: client.inactive_reason }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     if (!client.ad_account_id) {
       console.log('No ad account linked to this client')
       const { error: updateError } = await supabase
