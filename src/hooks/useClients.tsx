@@ -8,7 +8,7 @@ export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo" |
 export type DatabaseClientStatus = "green" | "yellow" | "red" | "orange";
 
 // Threshold for considering good lead volume (leads per week)
-const GOOD_LEADS_THRESHOLD = 5;
+const GOOD_LEADS_THRESHOLD = 7;
 
 // Mapping between database status and display status
 const statusMapping = {
@@ -230,10 +230,10 @@ export const calculateClientStatus = async (
       };
     }
 
-    // FIX: Zero leads in current week should ALWAYS be emergencial
-    if (currentWeekLeads === 0) {
+    // FIX: Low leads should ALWAYS be emergencial
+    if (currentWeekLeads < 7) {
       const problems = [];
-      if (currentWeekLeads === 0) problems.push("• Nenhum lead gerado esta semana");
+      if (currentWeekLeads < 7) problems.push(`• Poucos leads gerados esta semana (${currentWeekLeads})`);
       if (averageCTR < 0.8) problems.push("• CTR muito baixo");
       if (hasReprovedAds) problems.push("• Anúncios reprovados");
       if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há muito tempo");
@@ -248,9 +248,10 @@ export const calculateClientStatus = async (
     const hasGoodLeadVolume = currentWeekLeads >= GOOD_LEADS_THRESHOLD;
 
     // Emergencial status - adjust CTR condition based on lead volume
-    if (activeCampaigns.length === 0 || (averageCTR < 0.8 && !hasGoodLeadVolume) || hasReprovedAds || daysSinceLastOptimization > 30) {
+    if (activeCampaigns.length === 0 || (averageCTR < 0.8 && !hasGoodLeadVolume) || hasReprovedAds || daysSinceLastOptimization > 30 || currentWeekLeads < 7) {
       const problems = [];
       if (activeCampaigns.length === 0) problems.push("• Sem campanhas ativas recentes");
+      if (currentWeekLeads < 7) problems.push(`• Poucos leads gerados esta semana (${currentWeekLeads})`);
       if (averageCTR < 0.8 && !hasGoodLeadVolume) problems.push("• CTR muito baixo");
       if (hasReprovedAds) problems.push("• Anúncios reprovados");
       if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há mais de 30 dias");
