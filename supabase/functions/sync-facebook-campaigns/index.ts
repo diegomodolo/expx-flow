@@ -1186,7 +1186,7 @@ serve(async (req) => {
     
     const hasRealFundingIssues = updatedAdAccount && (
       updatedAdAccount.account_status !== 1 || // Account disabled
-      (updatedAdAccount.balance !== null && updatedAdAccount.balance <= 0) // No balance
+      (updatedAdAccount.is_prepaid && updatedAdAccount.balance !== null && updatedAdAccount.balance <= 0) // No balance (only for prepaid)
     )
     
     console.log('  - Real funding issues detected?', hasRealFundingIssues)
