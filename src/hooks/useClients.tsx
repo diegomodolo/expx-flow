@@ -10,6 +10,9 @@ export type DatabaseClientStatus = "green" | "yellow" | "red" | "orange";
 // Threshold for considering good lead volume (leads per week)
 const GOOD_LEADS_THRESHOLD = 7;
 
+// Threshold for considering good CPA (cost per acquisition)
+const GOOD_CPA_THRESHOLD = 15;
+
 // Mapping between database status and display status
 const statusMapping = {
   database: {
@@ -196,6 +199,13 @@ export const calculateClientStatus = async (
     const totalCTR = activeCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0);
     const averageCTR = activeCampaigns.length > 0 ? totalCTR / activeCampaigns.length : 0;
 
+    // Calculate spend and CPA for current week
+    const currentWeekSpend = campaigns
+      .filter(c => new Date(c.updated_at) >= sevenDaysAgo)
+      .reduce((sum, c) => sum + (c.spend || 0), 0);
+    
+    const currentWeekCPA = currentWeekLeads > 0 ? currentWeekSpend / currentWeekLeads : 0;
+
     // Check last optimization date
     const lastOptimizationDate = lastOptimization?.[0]?.performed_at 
       ? new Date(lastOptimization[0].performed_at)
@@ -310,18 +320,34 @@ export const calculateClientStatus = async (
       };
     }
 
-    // FIX: Excelente status should require currentWeekLeads > 0
-    if (activeCampaigns.length > 0 && currentWeekLeads > 0 && (currentWeekLeads >= previousWeekLeads) && averageCTR > 1.5 && daysSinceLastOptimization < 7 && !hasQualityIssues) {
+    // Excelente status - two paths: high CTR + optimization OR high volume + low cost
+    const hasHighVolumeAndLowCost = currentWeekLeads >= 50 && currentWeekCPA <= GOOD_CPA_THRESHOLD && currentWeekCPA > 0;
+    const hasHighCTRAndOptimization = averageCTR > 1.5 && daysSinceLastOptimization < 7;
+    
+    if (activeCampaigns.length > 0 && currentWeekLeads > 0 && (currentWeekLeads >= previousWeekLeads) && 
+        (hasHighVolumeAndLowCost || hasHighCTRAndOptimization) && !hasQualityIssues) {
+      
       const positivePoints = [];
       positivePoints.push("• Campanhas ativas e performando bem");
-      positivePoints.push("• CTR acima da média");
+      
+      if (hasHighVolumeAndLowCost) {
+        positivePoints.push("• Alto volume de leads com custo baixo");
+        positivePoints.push(`• CPA excelente: R$ ${currentWeekCPA.toFixed(2)}`);
+      }
+      
+      if (hasHighCTRAndOptimization) {
+        positivePoints.push("• CTR acima da média");
+        positivePoints.push("• Otimizações recentes");
+      }
+      
       positivePoints.push("• Leads sendo gerados consistentemente");
-      positivePoints.push("• Otimizações recentes");
       positivePoints.push("• Sem problemas de qualidade");
 
+      const cpaText = currentWeekCPA > 0 ? `\n• CPA: R$ ${currentWeekCPA.toFixed(2)}` : '';
+      
       return {
         status: "excelente",
-        explanation: `✅ Performance excelente! Cliente em ótimo estado.\n\nPontos positivos:\n${positivePoints.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: +${((currentWeekLeads - previousWeekLeads) / Math.max(previousWeekLeads, 1) * 100).toFixed(1)}%\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
+        explanation: `✅ Performance excelente! Cliente em ótimo estado.\n\nPontos positivos:\n${positivePoints.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: +${((currentWeekLeads - previousWeekLeads) / Math.max(previousWeekLeads, 1) * 100).toFixed(1)}%${cpaText}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
       };
     }
 
