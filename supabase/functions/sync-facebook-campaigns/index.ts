@@ -280,6 +280,7 @@ serve(async (req) => {
         console.log('  - Disable Reason:', disableReason)
         console.log('  - Spend Cap:', spendCap)
         console.log('  - Funding Source Details:', fundingSourceDetails)
+        console.log('  - Is Prepaid:', isPrepaid)
         
         // Check each condition separately for better debugging
         const isAccountInactive = accountStatus !== 1
@@ -289,14 +290,16 @@ serve(async (req) => {
           disableReason.includes('BILLING') ||
           disableReason.includes('SPEND_LIMIT')
         )
+        const hasBalanceIssues = isPrepaid && balance <= 0 // Only for prepaid accounts
         
         console.log('  - Account Inactive?', isAccountInactive)
         console.log('  - Has Disable Reason Issues?', hasDisableReasonIssues)
+        console.log('  - Has Balance Issues?', hasBalanceIssues, '(only applies to prepaid)')
         
-        const hasFundingIssues = isAccountInactive || hasDisableReasonIssues
+        const hasFundingIssues = isAccountInactive || hasDisableReasonIssues || hasBalanceIssues
         
         console.log(`💰 FUNDING DECISION: Has Issues = ${hasFundingIssues}`)
-        console.log(`  - Logic: (accountStatus ${accountStatus} !== 1) = ${isAccountInactive} OR hasDisableReasonIssues = ${hasDisableReasonIssues}`)
+        console.log(`  - Logic: accountInactive(${isAccountInactive}) OR disableReasonIssues(${hasDisableReasonIssues}) OR balanceIssues(${hasBalanceIssues})`)
         
         // Update ad account with financial status
         console.log(`💾 UPDATING ACCOUNT ${adAccount.id}:`)
@@ -1173,8 +1176,22 @@ serve(async (req) => {
     console.log('  - Ad Account status:', updatedAdAccount?.account_status)
     console.log('  - Ad Account disable_reason:', updatedAdAccount?.disable_reason)
 
-    // Priority 1: Funding issues (most critical)
-    if (updatedAdAccount && updatedAdAccount.has_funding_issues) {
+    // Priority 1: Check for real funding issues (more strict validation)
+    console.log('🔍 EVALUATING FUNDING ISSUES...')
+    console.log('  - updatedAdAccount exists?', !!updatedAdAccount)
+    console.log('  - has_funding_issues value:', updatedAdAccount?.has_funding_issues)
+    console.log('  - account_status:', updatedAdAccount?.account_status, '(1 = ACTIVE)')
+    console.log('  - balance:', updatedAdAccount?.balance)
+    console.log('  - disable_reason:', updatedAdAccount?.disable_reason)
+    
+    const hasRealFundingIssues = updatedAdAccount && (
+      updatedAdAccount.account_status !== 1 || // Account disabled
+      (updatedAdAccount.balance !== null && updatedAdAccount.balance <= 0) // No balance
+    )
+    
+    console.log('  - Real funding issues detected?', hasRealFundingIssues)
+    
+    if (hasRealFundingIssues) {
       clientStatus = 'red' // Emergencial
       if (updatedAdAccount.balance <= 0) {
         statusReason = 'Sem fundos na conta de anúncios'
@@ -1185,7 +1202,7 @@ serve(async (req) => {
       } else {
         statusReason = 'Problemas de financiamento detectados'
       }
-      console.log('🔴 CLIENT STATUS SET TO RED due to funding issues')
+      console.log('🔴 CLIENT STATUS SET TO RED due to REAL funding issues')
       console.log('  - Reason:', statusReason)
       console.log('  - Balance:', updatedAdAccount.balance)
       console.log('  - Account Status:', updatedAdAccount.account_status)
@@ -1197,16 +1214,18 @@ serve(async (req) => {
       statusReason = 'Nenhuma campanha ativa'
       console.log('🔴 CLIENT STATUS SET TO RED due to no active campaigns')
     }
-    // Priority 3: Few active campaigns
+    // Priority 3: Few active campaigns but still active
     else if (activeCampaigns <= 2) {
       clientStatus = 'yellow' // Atenção
       statusReason = `Apenas ${activeCampaigns} campanha(s) ativa(s)`
       console.log('🟡 CLIENT STATUS SET TO YELLOW due to low campaign count:', activeCampaigns)
     }
     else {
-      console.log('🟢 CLIENT STATUS REMAINS GREEN - all metrics are healthy')
+      clientStatus = 'green' // Healthy
+      statusReason = null
+      console.log('🟢 CLIENT STATUS SET TO GREEN - all metrics are healthy')
       console.log('  - Active campaigns:', activeCampaigns)
-      console.log('  - No funding issues detected')
+      console.log('  - No real funding issues detected')
     }
 
     const metricsData = {
