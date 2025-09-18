@@ -1184,19 +1184,36 @@ serve(async (req) => {
     console.log('  - balance:', updatedAdAccount?.balance)
     console.log('  - disable_reason:', updatedAdAccount?.disable_reason)
     
+    // Check campaigns spend pattern to detect funding issues
+    const { data: activeCampaignsData } = await supabase
+      .from('campaigns')
+      .select('spend, status')
+      .eq('client_id', clientId)
+      .eq('status', 'active')
+    
+    const totalActiveSpend = activeCampaignsData?.reduce((sum, campaign) => sum + (parseFloat(campaign.spend) || 0), 0) || 0
+    const hasActiveCampaignsInDB = (activeCampaignsData?.length || 0) > 0
+    
+    console.log('  - Active campaigns in DB:', activeCampaignsData?.length || 0)
+    console.log('  - Total active campaigns spend:', totalActiveSpend)
+    console.log('  - Has active campaigns with zero spend?', hasActiveCampaignsInDB && totalActiveSpend === 0)
+    
     const hasRealFundingIssues = updatedAdAccount && (
       updatedAdAccount.account_status !== 1 || // Account disabled
-      (updatedAdAccount.is_prepaid && updatedAdAccount.balance !== null && updatedAdAccount.balance <= 0) // No balance (only for prepaid)
+      (updatedAdAccount.is_prepaid && updatedAdAccount.balance !== null && updatedAdAccount.balance <= 0) || // No balance (only for prepaid)
+      (hasActiveCampaignsInDB && totalActiveSpend === 0) // Active campaigns but no spend (indicates funding issues)
     )
     
     console.log('  - Real funding issues detected?', hasRealFundingIssues)
     
     if (hasRealFundingIssues) {
       clientStatus = 'red' // Emergencial
-      if (updatedAdAccount.balance <= 0) {
-        statusReason = 'Sem fundos na conta de anúncios'
-      } else if (updatedAdAccount.account_status !== 1) {
+      if (updatedAdAccount.account_status !== 1) {
         statusReason = 'Conta de anúncios desabilitada'
+      } else if (updatedAdAccount.is_prepaid && updatedAdAccount.balance <= 0) {
+        statusReason = 'Sem fundos na conta de anúncios'
+      } else if (hasActiveCampaignsInDB && totalActiveSpend === 0) {
+        statusReason = 'Sem fundos - campanhas ativas sem gastos'
       } else if (updatedAdAccount.disable_reason) {
         statusReason = `Problema na conta: ${updatedAdAccount.disable_reason}`
       } else {
@@ -1206,6 +1223,7 @@ serve(async (req) => {
       console.log('  - Reason:', statusReason)
       console.log('  - Balance:', updatedAdAccount.balance)
       console.log('  - Account Status:', updatedAdAccount.account_status)
+      console.log('  - Active campaigns spend:', totalActiveSpend)
       console.log('  - Disable Reason:', updatedAdAccount.disable_reason)
     }
     // Priority 2: No active campaigns
