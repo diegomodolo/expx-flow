@@ -4,7 +4,7 @@ import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useEmployeePermissions } from "./useEmployeePermissions";
 
-export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo";
+export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo" | "sem_fundos";
 export type DatabaseClientStatus = "green" | "yellow" | "red";
 
 // Threshold for considering good lead volume (leads per week)
@@ -17,6 +17,7 @@ const statusMapping = {
     atencao: "yellow" as const,
     emergencial: "red" as const,
     inativo: "red" as const, // Map inativo to red in database
+    sem_fundos: "red" as const, // Temporarily map to red until migration
   },
   display: {
     green: "excelente" as const,
@@ -73,7 +74,17 @@ export const calculateClientStatus = async (
     // First, check if client is manually set to inactive - if so, don't recalculate
     const { data: clientData } = await supabase
       .from("clients")
-      .select("status, inactive_reason")
+      .select(`
+        status, 
+        inactive_reason,
+        facebook_ad_accounts!ad_account_id (
+          balance,
+          account_status,
+          has_funding_issues,
+          disable_reason,
+          last_balance_check
+        )
+      `)
       .eq("id", clientId)
       .maybeSingle();
 
@@ -84,6 +95,24 @@ export const calculateClientStatus = async (
         status: "inativo", 
         explanation: "Cliente marcado como inativo manualmente" 
       };
+    }
+
+    // PRIORITY CHECK: Funding issues (sem fundos)
+    const adAccount = clientData?.facebook_ad_accounts?.[0];
+    if (adAccount) {
+      console.log("Checking funding status:", adAccount);
+      const hasFundingIssues = 
+        adAccount.account_status !== 1 || 
+        adAccount.balance <= 0 || 
+        adAccount.has_funding_issues ||
+        (adAccount.disable_reason && adAccount.disable_reason.toLowerCase().includes('funding'));
+      
+      if (hasFundingIssues) {
+        return {
+          status: "sem_fundos",
+          explanation: `💳 Conta sem fundos suficientes para rodar anúncios!\n\nProblemas identificados:\n• Saldo atual: ${adAccount.balance}\n• Status da conta: ${adAccount.account_status === 1 ? 'Ativa' : 'Inativa'}\n• Problemas de financiamento: ${adAccount.has_funding_issues ? 'Sim' : 'Não'}\n• Última verificação: ${adAccount.last_balance_check ? new Date(adAccount.last_balance_check).toLocaleDateString() : 'N/A'}\n\nAção necessária: Adicionar saldo à conta do Facebook Ads para reativar as campanhas.`
+        };
+      }
     }
 
     const now = new Date();
