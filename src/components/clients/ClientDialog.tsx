@@ -413,6 +413,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                     <SelectItem value="excelente">Excelente</SelectItem>
                     <SelectItem value="atencao">Atenção</SelectItem>
                     <SelectItem value="emergencial">Emergencial</SelectItem>
+                    <SelectItem value="sem_fundos">Sem Fundos</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
                   </SelectContent>
                   </Select>

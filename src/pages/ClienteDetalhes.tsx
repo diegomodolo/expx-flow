@@ -951,9 +951,11 @@ const [savingNote, setSavingNote] = useState(false);
   });
 
   const statusConfig = {
-    green: { label: "Excelente", color: "bg-green-100 text-green-800" },
-    yellow: { label: "Atenção", color: "bg-yellow-100 text-yellow-800" },
-    red: { label: "Crítico", color: "bg-red-100 text-red-800" },
+    excelente: { label: "Excelente", color: "bg-green-100 text-green-800" },
+    atencao: { label: "Atenção", color: "bg-yellow-100 text-yellow-800" },
+    emergencial: { label: "Crítico", color: "bg-red-100 text-red-800" },
+    sem_fundos: { label: "Sem Fundos", color: "bg-orange-100 text-orange-800" },
+    inativo: { label: "Inativo", color: "bg-gray-100 text-gray-800" },
   };
 
   return (

@@ -60,6 +60,12 @@ const statusConfig = {
     dotColor: "bg-status-emergency",
     filterDotColor: "bg-status-emergency"
   },
+  sem_fundos: { 
+    label: "Sem Fundos", 
+    color: "bg-orange-50 text-orange-700 border-orange-200", 
+    dotColor: "bg-orange-500",
+    filterDotColor: "bg-orange-500"
+  },
   inativo: { 
     label: "Inativo", 
     color: "bg-status-inactive/10 text-status-inactive border-status-inactive/20", 
@@ -167,7 +173,7 @@ const Clientes = () => {
 
     // Handle status field specially for emergency order
     if (sortField === 'status') {
-      const statusOrder = { emergencial: 3, atencao: 2, excelente: 1, inativo: 0 };
+      const statusOrder = { emergencial: 4, sem_fundos: 3, atencao: 2, excelente: 1, inativo: 0 };
       aValue = statusOrder[a.status];
       bValue = statusOrder[b.status];
     }
@@ -255,6 +261,7 @@ const Clientes = () => {
       excelente: filteredAndSortedClients.filter(client => client.status === 'excelente').length,
       atencao: filteredAndSortedClients.filter(client => client.status === 'atencao').length,
       emergencial: filteredAndSortedClients.filter(client => client.status === 'emergencial').length,
+      sem_fundos: filteredAndSortedClients.filter(client => client.status === 'sem_fundos').length,
       inativo: filteredAndSortedClients.filter(client => client.status === 'inativo').length,
     };
     
@@ -264,6 +271,7 @@ const Clientes = () => {
       excelente: { count: stats.excelente, percentage: (stats.excelente / total) * 100 },
       atencao: { count: stats.atencao, percentage: (stats.atencao / total) * 100 },
       emergencial: { count: stats.emergencial, percentage: (stats.emergencial / total) * 100 },
+      sem_fundos: { count: stats.sem_fundos, percentage: (stats.sem_fundos / total) * 100 },
       inativo: { count: stats.inativo, percentage: (stats.inativo / total) * 100 },
     };
   }, [filteredAndSortedClients, totalClients]);
@@ -357,6 +365,26 @@ const Clientes = () => {
                 </CardContent>
               </Card>
 
+              {/* Sem Fundos */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-600">Sem Fundos</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{statusStats.sem_fundos.percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-600 mb-2">{statusStats.sem_fundos.count}</div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${statusStats.sem_fundos.percentage}%` }}
+                    ></div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Inativo */}
               <Card>
                 <CardContent className="p-3 sm:p-4">
@@ -419,6 +447,15 @@ const Clientes = () => {
                       >
                         <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
                         <span>Emergencial</span>
+                      </Button>
+                      <Button
+                        variant={statusFilter === "sem_fundos" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("sem_fundos")}
+                        className="flex items-center space-x-1"
+                      >
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span>Sem Fundos</span>
                       </Button>
                       <Button
                         variant={statusFilter === "inativo" ? "default" : "outline"}

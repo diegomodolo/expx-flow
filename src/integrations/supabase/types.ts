@@ -2301,7 +2301,7 @@ export type Database = {
     }
     Enums: {
       campaign_status: "active" | "paused" | "finished"
-      client_status: "green" | "yellow" | "red"
+      client_status: "green" | "yellow" | "red" | "orange"
       menu_item_type:
         | "dashboard"
         | "clientes"
@@ -2446,7 +2446,7 @@ export const Constants = {
   public: {
     Enums: {
       campaign_status: ["active", "paused", "finished"],
-      client_status: ["green", "yellow", "red"],
+      client_status: ["green", "yellow", "red", "orange"],
       menu_item_type: [
         "dashboard",
         "clientes",

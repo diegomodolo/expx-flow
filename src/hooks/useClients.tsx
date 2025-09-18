@@ -5,7 +5,7 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { useEmployeePermissions } from "./useEmployeePermissions";
 
 export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo" | "sem_fundos";
-export type DatabaseClientStatus = "green" | "yellow" | "red";
+export type DatabaseClientStatus = "green" | "yellow" | "red" | "orange";
 
 // Threshold for considering good lead volume (leads per week)
 const GOOD_LEADS_THRESHOLD = 5;
@@ -17,12 +17,13 @@ const statusMapping = {
     atencao: "yellow" as const,
     emergencial: "red" as const,
     inativo: "red" as const, // Map inativo to red in database
-    sem_fundos: "red" as const, // Temporarily map to red until migration
+    sem_fundos: "orange" as const,
   },
   display: {
     green: "excelente" as const,
     yellow: "atencao" as const,
     red: "emergencial" as const, // Default red to emergencial
+    orange: "sem_fundos" as const,
   }
 };
 
