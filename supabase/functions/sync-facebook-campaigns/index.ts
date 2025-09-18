@@ -1106,7 +1106,7 @@ serve(async (req) => {
     let clientStatus = 'green' // Excelente
     let statusReason = 'Conta operando normalmente'
 
-    console.log('🎯 DETERMINING CLIENT STATUS for:', clientData.name)
+    console.log('🎯 DETERMINING CLIENT STATUS for:', client.name)
     console.log('Status determination inputs:', {
       activeCampaigns,
       hasUpdatedAdAccount: !!updatedAdAccount,
