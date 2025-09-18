@@ -267,7 +267,16 @@ serve(async (req) => {
         // Prepaid accounts typically have balance > 0 and no automatic payment methods
         const isPrepaid = balance > 0 && (!fundingSourceDetails.coupon && !fundingSourceDetails.direct_debit && !fundingSourceDetails.credit_card)
         
-        const hasFundingIssues = accountStatus !== 1 || balance <= 0 || (disableReason && disableReason.includes('FUNDING'))
+        // Enhanced funding issues detection - more refined logic
+        const hasFundingIssues = 
+          accountStatus !== 1 || // Account is not active
+          (disableReason && (
+            disableReason.includes('FUNDING') || 
+            disableReason.includes('PAYMENT') ||
+            disableReason.includes('BILLING') ||
+            disableReason.includes('SPEND_LIMIT')
+          ));
+          // Removed balance <= 0 check as it's too aggressive - many active accounts have 0 balance but work fine
         
         console.log('Account financial status:', {
           balance,
