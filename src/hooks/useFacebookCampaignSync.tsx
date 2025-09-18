@@ -8,7 +8,7 @@ export const useFacebookCampaignSync = () => {
   const [progress, setProgress] = useState({ current: 0, total: 0, clientName: '' });
   const { toast } = useToast();
 
-  const syncCampaigns = async (clientId: string, period: string = '30', options?: { campaigns?: boolean; adsets?: boolean; ads?: boolean }, silent: boolean = false) => {
+  const syncCampaigns = async (clientId: string, period: string = '30', options?: { campaigns?: boolean; adsets?: boolean; ads?: boolean }, silent: boolean = false, includeInactive: boolean = false) => {
     if (!clientId) return;
 
     setSyncing(true);
@@ -19,7 +19,8 @@ export const useFacebookCampaignSync = () => {
           period, 
           syncCampaigns: options?.campaigns !== false,
           syncAdSets: options?.adsets !== false, 
-          syncAds: options?.ads !== false
+          syncAds: options?.ads !== false,
+          includeInactive
         }
       });
 
@@ -98,7 +99,7 @@ export const useFacebookCampaignSync = () => {
           campaigns: options.campaigns,
           adsets: options.adsets,
           ads: options.ads
-        }, true); // silent mode for bulk sync
+        }, true, options.includeInactive); // silent mode for bulk sync, pass includeInactive
         if (result) successCount++;
       }
 

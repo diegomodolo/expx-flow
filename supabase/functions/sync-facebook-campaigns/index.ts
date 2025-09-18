@@ -57,7 +57,8 @@ serve(async (req) => {
       period = '30', 
       syncCampaigns = true, 
       syncAdSets = false, 
-      syncAds = false 
+      syncAds = false,
+      includeInactive = false
     } = requestBody
 
     if (!clientId) {
@@ -74,7 +75,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Processing sync for client ID:', clientId, 'Sync options:', { syncCampaigns, syncAdSets, syncAds })
+    console.log('Processing sync for client ID:', clientId, 'Sync options:', { syncCampaigns, syncAdSets, syncAds, includeInactive })
 
     // Get client info
     console.log('Fetching client data...')
@@ -114,8 +115,8 @@ serve(async (req) => {
 
     console.log('Client found:', { id: client.id, name: client.name, ad_account_id: client.ad_account_id })
 
-    // Check if client is inactive - skip sync if so
-    if (client.status === 'red' && client.inactive_reason) { // Client is inactive if red status + inactive_reason
+    // Check if client is inactive - skip sync only if not explicitly including inactive clients
+    if (client.status === 'red' && client.inactive_reason && !includeInactive) {
       console.log('Client is inactive, skipping sync for:', client.name, 'Reason:', client.inactive_reason)
       return new Response(
         JSON.stringify({ 
@@ -125,6 +126,11 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // If including inactive clients, log that we're processing an inactive client
+    if (client.status === 'red' && client.inactive_reason && includeInactive) {
+      console.log('Processing inactive client due to includeInactive=true:', client.name, 'Reason:', client.inactive_reason)
     }
 
     if (!client.ad_account_id) {
