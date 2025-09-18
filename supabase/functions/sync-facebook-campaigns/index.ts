@@ -279,6 +279,22 @@ serve(async (req) => {
           hasFundingIssues
         })
         
+        // Enhanced logging for funding issues detection
+        if (hasFundingIssues) {
+          console.log('🚨 FUNDING ISSUES DETECTED:')
+          if (accountStatus !== 1) {
+            console.log(`  - Account status is ${accountStatus} (should be 1 for active)`)
+          }
+          if (balance <= 0) {
+            console.log(`  - Account balance is ${balance} (should be > 0)`)
+          }
+          if (disableReason && disableReason.includes('FUNDING')) {
+            console.log(`  - Disable reason indicates funding issue: ${disableReason}`)
+          }
+        } else {
+          console.log('✅ No funding issues detected - account appears healthy')
+        }
+        
         
         // Update ad account with financial status
         const { error: adAccountUpdateError } = await supabase
@@ -302,9 +318,41 @@ serve(async (req) => {
         }
       } else {
         console.warn('Failed to fetch account balance, status:', balanceResponse.status)
+        const errorText = await balanceResponse.text()
+        console.warn('Balance API error response:', errorText)
+        
+        // If we can't check balance, mark as potential funding issue to be safe
+        const { error: fallbackUpdateError } = await supabase
+          .from('facebook_ad_accounts')
+          .update({
+            has_funding_issues: true,
+            last_balance_check: new Date().toISOString()
+          })
+          .eq('id', adAccount.id)
+          
+        if (fallbackUpdateError) {
+          console.error('Error updating account with fallback funding issue flag:', fallbackUpdateError)
+        } else {
+          console.log('⚠️ Account marked with funding issues due to API access failure')
+        }
       }
     } catch (balanceError) {
       console.error('Error checking account balance:', balanceError)
+      
+      // If there's an error checking balance, mark as potential funding issue for safety
+      const { error: errorFallbackUpdateError } = await supabase
+        .from('facebook_ad_accounts')
+        .update({
+          has_funding_issues: true,
+          last_balance_check: new Date().toISOString()
+        })
+        .eq('id', adAccount.id)
+        
+      if (errorFallbackUpdateError) {
+        console.error('Error updating account with error fallback funding issue flag:', errorFallbackUpdateError)
+      } else {
+        console.log('⚠️ Account marked with funding issues due to balance check error')
+      }
     }
 
     console.log('Fetching campaigns from Facebook for account:', accountId)
@@ -1034,12 +1082,57 @@ serve(async (req) => {
 
     const avgCpl = totalLeads > 0 ? totalSpend / totalLeads : 0
 
-    // Determine client status based on active campaigns
+    // Get updated ad account data to check for funding issues
+    console.log('Checking for funding issues before determining client status...')
+    const { data: updatedAdAccount, error: adAccountFetchError } = await supabase
+      .from('facebook_ad_accounts')
+      .select('has_funding_issues, account_status, balance, disable_reason')
+      .eq('id', adAccount.id)
+      .single()
+
+    if (adAccountFetchError) {
+      console.error('Error fetching updated ad account data:', adAccountFetchError)
+    } else {
+      console.log('Updated ad account funding status:', {
+        has_funding_issues: updatedAdAccount.has_funding_issues,
+        account_status: updatedAdAccount.account_status,
+        balance: updatedAdAccount.balance,
+        disable_reason: updatedAdAccount.disable_reason
+      })
+    }
+
+    // Determine client status based on funding issues first, then active campaigns
     let clientStatus = 'green' // Excelente
-    if (activeCampaigns === 0) {
+    let statusReason = 'Conta operando normalmente'
+
+    // Priority 1: Funding issues (most critical)
+    if (updatedAdAccount && updatedAdAccount.has_funding_issues) {
       clientStatus = 'red' // Emergencial
-    } else if (activeCampaigns <= 2) {
+      if (updatedAdAccount.balance <= 0) {
+        statusReason = 'Sem fundos na conta de anúncios'
+      } else if (updatedAdAccount.account_status !== 1) {
+        statusReason = 'Conta de anúncios desabilitada'
+      } else if (updatedAdAccount.disable_reason) {
+        statusReason = `Problema na conta: ${updatedAdAccount.disable_reason}`
+      } else {
+        statusReason = 'Problemas de financiamento detectados'
+      }
+      console.log('Client status set to RED due to funding issues:', statusReason)
+    }
+    // Priority 2: No active campaigns
+    else if (activeCampaigns === 0) {
+      clientStatus = 'red' // Emergencial
+      statusReason = 'Nenhuma campanha ativa'
+      console.log('Client status set to RED due to no active campaigns')
+    }
+    // Priority 3: Few active campaigns
+    else if (activeCampaigns <= 2) {
       clientStatus = 'yellow' // Atenção
+      statusReason = `Apenas ${activeCampaigns} campanha(s) ativa(s)`
+      console.log('Client status set to YELLOW due to low campaign count:', activeCampaigns)
+    }
+    else {
+      console.log('Client status remains GREEN - all metrics are healthy')
     }
 
     const metricsData = {
@@ -1048,10 +1141,20 @@ serve(async (req) => {
       leads_generated: totalLeads,
       status: clientStatus,
       last_sync_at: new Date().toISOString(),
-      last_sync_period: period
+      last_sync_period: period,
+      // Add status reason if we have funding issues
+      ...(updatedAdAccount?.has_funding_issues && { inactive_reason: statusReason })
     }
 
-    console.log('Calculated metrics with status:', metricsData)
+    console.log('Calculated metrics with enhanced status logic:', metricsData)
+    console.log('Status determination factors:', {
+      activeCampaigns,
+      hasFundingIssues: updatedAdAccount?.has_funding_issues,
+      accountBalance: updatedAdAccount?.balance,
+      accountStatus: updatedAdAccount?.account_status,
+      finalStatus: clientStatus,
+      reason: statusReason
+    })
 
     // Update client with real data and status
     console.log('Updating client with new metrics and status...')
