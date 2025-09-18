@@ -990,6 +990,21 @@ const [savingNote, setSavingNote] = useState(false);
           </div>
         </div>
 
+        {/* Inactive Client Alert */}
+        {client?.status === 'inativo' && client?.inactive_reason && (
+          <Card className="border-destructive bg-destructive/5">
+            <CardContent className="flex items-start gap-3 p-4">
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-destructive mb-1">Cliente Inativo</h3>
+                <p className="text-destructive/80 text-sm whitespace-pre-wrap">
+                  {client.inactive_reason}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Client Overview Card */}
         <Card>
           <CardContent className="p-4 lg:p-6">
