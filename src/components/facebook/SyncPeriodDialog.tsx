@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar, Info, Loader2, Database, Target, Image } from 'lucide-react';
+import { Calendar, Info, Loader2, Database, Target, Image, UserX } from 'lucide-react';
 
 export interface SyncOptions {
   period: string;
   campaigns: boolean;
   adsets: boolean;
   ads: boolean;
+  includeInactive: boolean;
 }
 
 interface SyncPeriodDialogProps {
@@ -40,6 +41,7 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
   const [syncCampaigns, setSyncCampaigns] = useState<boolean>(true);
   const [syncAdSets, setSyncAdSets] = useState<boolean>(true);
   const [syncAds, setSyncAds] = useState<boolean>(true);
+  const [includeInactive, setIncludeInactive] = useState<boolean>(false);
 
   // Load last selected options from localStorage
   useEffect(() => {
@@ -51,6 +53,7 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
         setSyncCampaigns(options.campaigns !== false);
         setSyncAdSets(options.adsets !== false);
         setSyncAds(options.ads !== false);
+        setIncludeInactive(options.includeInactive || false);
       } catch (error) {
         console.error('Error loading sync options:', error);
       }
@@ -62,7 +65,8 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
       period: selectedPeriod,
       campaigns: syncCampaigns,
       adsets: syncAdSets,
-      ads: syncAds
+      ads: syncAds,
+      includeInactive: includeInactive
     };
     
     // Save selected options to localStorage
@@ -178,6 +182,25 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
                     </Label>
                     <p className="text-sm text-muted-foreground">
                       Anúncios individuais e criativos
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <Checkbox 
+                  id="include-inactive"
+                  checked={includeInactive}
+                  onCheckedChange={(checked) => setIncludeInactive(checked === true)}
+                />
+                <div className="flex items-center space-x-2 flex-1">
+                  <UserX className="w-4 h-4 text-red-600" />
+                  <div className="flex-1">
+                    <Label htmlFor="include-inactive" className="cursor-pointer font-medium">
+                      Incluir clientes inativos
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Sincronizar também clientes marcados como inativos
                     </p>
                   </div>
                 </div>

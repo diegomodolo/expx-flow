@@ -71,10 +71,17 @@ export const useFacebookCampaignSync = () => {
     
     try {
       // Get all clients with ad accounts
-      const { data: clients, error } = await supabase
+      let query = supabase
         .from('clients')
-        .select('id, name, ad_account_id')
+        .select('id, name, ad_account_id, status')
         .not('ad_account_id', 'is', null);
+
+      // Exclude inactive clients if not requested to include them
+      if (!options.includeInactive) {
+        query = query.not('status', 'eq', 'inativo' as any);
+      }
+
+      const { data: clients, error } = await query;
 
       if (error) throw error;
 
