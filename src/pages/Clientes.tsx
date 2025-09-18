@@ -409,8 +409,45 @@ const Clientes = () => {
             {/* Filters and Search - All in One Line */}
             <Card>
               <CardContent className="p-3 sm:p-4">
-                <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-                  {/* Status Filters */}
+                <div className="space-y-4">
+                  {/* First Line: Search and Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                    {/* Search Input */}
+                    <div className="flex-1 min-w-0">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Buscar clientes..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-full"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" className="flex items-center space-x-2" onClick={() => setShowFilters(!showFilters)}>
+                        <Filter className="w-4 h-4" />
+                        <span>Filtros</span>
+                      </Button>
+                      <Button variant="outline" className="flex items-center space-x-2" onClick={exportToCSV}>
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">Exportar</span>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center space-x-2" 
+                        onClick={() => setSyncDialogOpen(true)}
+                        disabled={syncing}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline">Sincronizar</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Second Line: Status Filters */}
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</span>
                     <div className="flex flex-wrap gap-2">
@@ -467,40 +504,6 @@ const Clientes = () => {
                         <span>Inativo</span>
                       </Button>
                     </div>
-                  </div>
-                  
-                  {/* Search Input */}
-                  <div className="flex-1 min-w-0">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Buscar clientes..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-full"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" className="flex items-center space-x-2" onClick={() => setShowFilters(!showFilters)}>
-                      <Filter className="w-4 h-4" />
-                      <span>Filtros</span>
-                    </Button>
-                    <Button variant="outline" className="flex items-center space-x-2" onClick={exportToCSV}>
-                      <Download className="w-4 h-4" />
-                      <span className="hidden sm:inline">Exportar</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center space-x-2" 
-                      onClick={() => setSyncDialogOpen(true)}
-                      disabled={syncing}
-                    >
-                      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                      <span className="hidden sm:inline">Sincronizar</span>
-                    </Button>
                   </div>
                 </div>
               </CardContent>
