@@ -78,7 +78,8 @@ export const useFacebookCampaignSync = () => {
 
       // Exclude inactive clients if not requested to include them
       if (!options.includeInactive) {
-        query = query.not('status', 'eq', 'inativo' as any);
+        // Exclude clients that are red status WITH inactive_reason (considered inactive)
+        query = query.or(`status.neq.red,inactive_reason.is.null,inactive_reason.eq.`);
       }
 
       const { data: clients, error } = await query;
