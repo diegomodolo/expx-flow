@@ -8,10 +8,10 @@ export type ClientStatus = "excelente" | "atencao" | "emergencial" | "inativo" |
 export type DatabaseClientStatus = "green" | "yellow" | "red" | "orange";
 
 // Threshold for considering good lead volume (leads per week)
-const GOOD_LEADS_THRESHOLD = 7;
+const GOOD_LEADS_THRESHOLD = 30;
 
 // Threshold for considering good CPA (cost per acquisition)
-const GOOD_CPA_THRESHOLD = 15;
+const GOOD_CPA_THRESHOLD = 25;
 
 // Mapping between database status and display status
 const statusMapping = {
@@ -320,19 +320,31 @@ export const calculateClientStatus = async (
       };
     }
 
-    // Excelente status - two paths: high CTR + optimization OR high volume + low cost
-    const hasHighVolumeAndLowCost = currentWeekLeads >= 50 && currentWeekCPA <= GOOD_CPA_THRESHOLD && currentWeekCPA > 0;
+    // Excelente status - múltiplos critérios alternativos:
+    // Opção A: Alto volume (>=30) + CPA bom (<=25)
+    // Opção B: Volume médio (>=20) + CPA excelente (<=15) 
+    // Opção C: Volume muito alto (>=100) + CPA aceitável (<=35)
+    // Opção D: CTR alto + otimização recente
+    const hasHighVolumeGoodCPA = currentWeekLeads >= 30 && currentWeekCPA <= GOOD_CPA_THRESHOLD && currentWeekCPA > 0;
+    const hasMediumVolumeExcellentCPA = currentWeekLeads >= 20 && currentWeekCPA <= 15 && currentWeekCPA > 0;
+    const hasVeryHighVolumeAcceptableCPA = currentWeekLeads >= 100 && currentWeekCPA <= 35 && currentWeekCPA > 0;
     const hasHighCTRAndOptimization = averageCTR > 1.5 && daysSinceLastOptimization < 7;
     
     if (activeCampaigns.length > 0 && currentWeekLeads > 0 && (currentWeekLeads >= previousWeekLeads) && 
-        (hasHighVolumeAndLowCost || hasHighCTRAndOptimization) && !hasQualityIssues) {
+        (hasHighVolumeGoodCPA || hasMediumVolumeExcellentCPA || hasVeryHighVolumeAcceptableCPA || hasHighCTRAndOptimization) && !hasQualityIssues) {
       
       const positivePoints = [];
       positivePoints.push("• Campanhas ativas e performando bem");
       
-      if (hasHighVolumeAndLowCost) {
-        positivePoints.push("• Alto volume de leads com custo baixo");
-        positivePoints.push(`• CPA excelente: R$ ${currentWeekCPA.toFixed(2)}`);
+      if (hasHighVolumeGoodCPA || hasMediumVolumeExcellentCPA || hasVeryHighVolumeAcceptableCPA) {
+        if (hasVeryHighVolumeAcceptableCPA) {
+          positivePoints.push("• Volume muito alto de leads");
+        } else if (hasMediumVolumeExcellentCPA) {
+          positivePoints.push("• Volume bom com CPA excelente");
+        } else {
+          positivePoints.push("• Volume alto com CPA bom");
+        }
+        positivePoints.push(`• CPA eficiente: R$ ${currentWeekCPA.toFixed(2)}`);
       }
       
       if (hasHighCTRAndOptimization) {
