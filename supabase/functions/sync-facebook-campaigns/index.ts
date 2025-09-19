@@ -477,12 +477,15 @@ serve(async (req) => {
         const leadPriorityTypes = [
           'lead',                              // 1st priority: Direct lead
           'offsite_conversion.fb_pixel_lead',  // 2nd priority: Pixel lead (standard)
-          'offsite_conversion.fb_pixel_custom',// 3rd priority: Custom pixel event mapped as conversion/lead
-          'onsite_conversion.lead',            // 4th priority: Onsite lead
-          'omni_lead',                         // 5th priority: Omni lead
-          'on_facebook_lead',                  // 6th priority: Facebook lead
-          'onsite_conversion.lead_grouped',    // 7th priority: Grouped lead
-          'website_lead'                       // 8th priority: Website lead
+          'messaging_conversation_started',    // 3rd priority: Message conversations
+          'conversation_started',              // 4th priority: General conversations
+          'offsite_conversion.fb_pixel_custom',// 5th priority: Custom pixel event mapped as conversion/lead
+          'onsite_conversion.lead',            // 6th priority: Onsite lead
+          'omni_lead',                         // 7th priority: Omni lead
+          'on_facebook_lead',                  // 8th priority: Facebook lead
+          'on_facebook_conversation_started',  // 9th priority: Facebook conversations
+          'onsite_conversion.lead_grouped',    // 10th priority: Grouped lead
+          'website_lead'                       // 11th priority: Website lead
         ]
 
         // Normalize once
@@ -498,8 +501,8 @@ serve(async (req) => {
           }
         }
 
-        // Fallback: any action type containing "lead" (use the maximum to avoid double-counting)
-        const leadCandidates = normalized.filter(n => n.type.includes('lead') && n.val > 0)
+        // Fallback: any action type containing "lead" or "conversation" (use the maximum to avoid double-counting)
+        const leadCandidates = normalized.filter(n => (n.type.includes('lead') || n.type.includes('conversation')) && n.val > 0)
         if (leadCandidates.length > 0) {
           const maxVal = Math.max(...leadCandidates.map(n => n.val))
           console.log('  -> FALLBACK lead-like actions:', leadCandidates)
