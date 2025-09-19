@@ -9,6 +9,7 @@ interface FundingAlertProps {
   hasFundingIssues: boolean;
   accountName?: string;
   className?: string;
+  clientStatus?: string;
 }
 
 export const FundingAlert = ({ 
@@ -17,8 +18,11 @@ export const FundingAlert = ({
   disableReason, 
   hasFundingIssues, 
   accountName = "Conta de anúncios",
-  className = ""
+  className = "",
+  clientStatus
 }: FundingAlertProps) => {
+  // Only show if client status is "sem fundos"
+  if (clientStatus !== "sem fundos") return null;
   if (!hasFundingIssues) return null;
 
   const getAlertContent = () => {
