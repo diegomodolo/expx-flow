@@ -24,9 +24,9 @@ serve(async (req) => {
       reporter_name, 
       lead_received_date, 
       disqualification_reason, 
-      additional_notes,
-      conversation_link,
-      evidence_file 
+      additional_notes, 
+      conversation_link, 
+      evidence_file_url 
     } = await req.json();
 
     console.log('Processing lead disqualification report:', { token, reporter_name, disqualification_reason });
@@ -79,25 +79,7 @@ serve(async (req) => {
       clientName: clientData.name 
     });
 
-    let evidence_file_url = null;
-
-    // Upload da evidência se fornecida
-    if (evidence_file) {
-      const fileName = `${tokenData.client_id}/${Date.now()}-${evidence_file.name}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('lead-evidence')
-        .upload(fileName, evidence_file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-      } else {
-        evidence_file_url = fileName;
-      }
-    }
+    // evidence_file_url já vem processado do frontend
 
     // Criar o report
     const { data: reportData, error: reportError } = await supabase

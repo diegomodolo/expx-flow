@@ -165,6 +165,32 @@ export default function ReportLeadDesqualificado() {
     setSubmitting(true);
 
     try {
+      let evidenceFileUrl = null;
+
+      // Upload do arquivo de evidência primeiro, se fornecido
+      if (evidenceFile && clientInfo) {
+        const fileName = `${clientInfo.id}/${Date.now()}-${evidenceFile.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('lead-evidence')
+          .upload(fileName, evidenceFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast({
+            title: "Erro no upload da evidência",
+            description: "Não foi possível fazer upload do arquivo, mas o report será enviado sem evidência.",
+            variant: "destructive",
+          });
+        } else {
+          evidenceFileUrl = fileName;
+        }
+      }
+
+      // Enviar o report com a URL do arquivo (se houver)
       const { data, error } = await supabase.functions.invoke('process-lead-disqualification-report', {
         body: {
           token,
@@ -173,7 +199,7 @@ export default function ReportLeadDesqualificado() {
           disqualification_reason: reason,
           additional_notes: notes,
           conversation_link: conversationLink || null,
-          evidence_file: evidenceFile
+          evidence_file_url: evidenceFileUrl
         }
       });
 
