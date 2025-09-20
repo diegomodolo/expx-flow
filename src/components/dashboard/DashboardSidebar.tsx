@@ -80,51 +80,43 @@ export function DashboardSidebar() {
       
       {/* Sidebar fixo posicionado sobre o conteúdo */}
       <div
-        className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 ${
+        className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 bg-white border-r border-gray-200 shadow-lg ${
           open ? 'w-60' : 'w-14'
         }`}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
       >
-        <Sidebar className="bg-white border-r border-gray-200 shadow-lg h-full w-full">
-          <SidebarContent className="pt-6 bg-white">
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu className="space-y-2">
-                  {visibleItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <NavLink 
-                          to={item.url} 
-                          end 
-                          className={({ isActive }) =>
-                            `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
-                              isActive
-                                ? "bg-blue-50 text-blue-600"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`
-                          }
-                          title={!open ? item.title : ''}
-                        >
-                          <item.icon className={`w-5 h-5 transition-colors duration-200 flex-shrink-0 ${
-                            isActive(item.url) ? "text-blue-600" : "text-gray-500"
-                          }`} />
-                          {open && (
-                            <span className={`font-medium transition-all duration-300 ${
-                              isActive(item.url) ? "text-blue-600" : "text-gray-700"
-                            }`}>
-                              {item.title}
-                            </span>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
+        <div className="pt-6 h-full">
+          <div className="space-y-2 px-2">
+            {visibleItems.map((item) => (
+              <div key={item.title}>
+                <NavLink 
+                  to={item.url} 
+                  end 
+                  className={({ isActive }) =>
+                    `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
+                      isActive
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`
+                  }
+                  title={!open ? item.title : ''}
+                >
+                  <item.icon className={`w-5 h-5 transition-colors duration-200 flex-shrink-0 ${
+                    isActive(item.url) ? "text-blue-600" : "text-gray-500"
+                  }`} />
+                  {open && (
+                    <span className={`font-medium transition-all duration-300 whitespace-nowrap ${
+                      isActive(item.url) ? "text-blue-600" : "text-gray-700"
+                    }`}>
+                      {item.title}
+                    </span>
+                  )}
+                </NavLink>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </>
   );
