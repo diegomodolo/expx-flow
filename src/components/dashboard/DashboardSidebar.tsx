@@ -86,7 +86,7 @@ export function DashboardSidebar() {
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
       >
-        <Sidebar className="bg-white border-r border-gray-200 shadow-lg h-full">
+        <Sidebar className="bg-white border-r border-gray-200 shadow-lg h-full w-full">
           <SidebarContent className="pt-6 bg-white">
             <SidebarGroup>
               <SidebarGroupContent>
@@ -98,7 +98,7 @@ export function DashboardSidebar() {
                           to={item.url} 
                           end 
                           className={({ isActive }) =>
-                            `flex items-center gap-3 py-3 rounded-lg transition-all duration-300 ${
+                            `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
                               isActive
                                 ? "bg-blue-50 text-blue-600"
                                 : "text-gray-700 hover:bg-gray-50"
@@ -106,7 +106,7 @@ export function DashboardSidebar() {
                           }
                           title={!open ? item.title : ''}
                         >
-                          <item.icon className={`w-5 h-5 transition-colors duration-200 ${
+                          <item.icon className={`w-5 h-5 transition-colors duration-200 flex-shrink-0 ${
                             isActive(item.url) ? "text-blue-600" : "text-gray-500"
                           }`} />
                           {open && (
