@@ -44,6 +44,7 @@ export default function AdminLeadReports() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [evidenceModalUrl, setEvidenceModalUrl] = useState<string | null>(null);
+  const [evidenceFileName, setEvidenceFileName] = useState<string>('evidencia.jpg');
 
   const { reports, loading, getReasonLabel, exportReports } = useLeadDisqualificationReports(filters);
   const { clients } = useClients();
@@ -257,6 +258,8 @@ export default function AdminLeadReports() {
         
         if (isImage) {
           // Abrir modal para visualizar imagem com signed URL
+          const fileName = evidenceUrl.split('/').pop() || 'evidencia.jpg';
+          setEvidenceFileName(fileName);
           setEvidenceModalUrl(data.signedUrl);
         } else {
           // Fazer download do arquivo
@@ -617,9 +620,12 @@ export default function AdminLeadReports() {
       {evidenceModalUrl && (
         <EvidenceViewerModal
           isOpen={!!evidenceModalUrl}
-          onClose={() => setEvidenceModalUrl(null)}
+          onClose={() => {
+            setEvidenceModalUrl(null);
+            setEvidenceFileName('evidencia.jpg');
+          }}
           imageUrl={evidenceModalUrl}
-          fileName="evidencia.jpg"
+          fileName={evidenceFileName}
         />
       )}
     </DashboardLayout>
