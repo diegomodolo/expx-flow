@@ -63,6 +63,35 @@ export default function AdminLeadReports() {
     try {
       console.log('markAsViewedLocal: Executando para company:', activeCompany.company_id);
       
+      // Primeiro vamos ver o que existe na tabela
+      const { data: allReports, error: fetchError } = await supabase
+        .from('lead_disqualification_reports')
+        .select('id, reporter_name, created_at, viewed_at, viewed_by')
+        .eq('company_id', activeCompany.company_id)
+        .order('created_at', { ascending: false });
+
+      console.log('markAsViewedLocal: Todos os reports da company:', allReports);
+
+      // Agora vamos ver especificamente os não visualizados
+      const { data: unviewedReports, error: unviewedError } = await supabase
+        .from('lead_disqualification_reports')
+        .select('id, reporter_name, created_at, viewed_at')
+        .eq('company_id', activeCompany.company_id)
+        .is('viewed_at', null);
+
+      console.log('markAsViewedLocal: Reports não visualizados:', unviewedReports);
+
+      if (fetchError || unviewedError) {
+        console.error('markAsViewedLocal: Erro ao buscar dados:', fetchError || unviewedError);
+        return false;
+      }
+
+      if (!unviewedReports || unviewedReports.length === 0) {
+        console.log('markAsViewedLocal: Nenhum report não visualizado encontrado');
+        return true; // Não há nada para marcar
+      }
+
+      // Agora executar o update
       const { data: updateResult, error } = await supabase
         .from('lead_disqualification_reports')
         .update({
