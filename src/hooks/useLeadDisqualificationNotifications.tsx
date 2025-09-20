@@ -35,6 +35,18 @@ export const useLeadDisqualificationNotifications = () => {
     try {
       setLoading(true);
 
+      // Primeiro buscar quantos reports precisam ser marcados
+      const { data: unviewedReports } = await supabase
+        .from('lead_disqualification_reports')
+        .select('id')
+        .eq('company_id', activeCompany.company_id)
+        .is('viewed_at', null);
+
+      if (!unviewedReports || unviewedReports.length === 0) {
+        setUnviewedCount(0);
+        return;
+      }
+
       const { error } = await supabase
         .from('lead_disqualification_reports')
         .update({
@@ -46,12 +58,10 @@ export const useLeadDisqualificationNotifications = () => {
 
       if (error) throw error;
 
+      // Atualizar imediatamente o contador local
       setUnviewedCount(0);
       
-      toast({
-        title: "Reports marcados como visualizados",
-        description: "Todos os reports foram marcados como visualizados",
-      });
+      console.log(`Marcados ${unviewedReports.length} reports como visualizados`);
     } catch (err) {
       console.error('Error marking reports as viewed:', err);
       toast({
@@ -80,6 +90,7 @@ export const useLeadDisqualificationNotifications = () => {
             filter: `company_id=eq.${activeCompany.company_id}`
           },
           () => {
+            console.log('Novo lead disqualification report recebido');
             fetchUnviewedCount();
             toast({
               title: "Novo lead desqualificado",
@@ -95,8 +106,12 @@ export const useLeadDisqualificationNotifications = () => {
             table: 'lead_disqualification_reports',
             filter: `company_id=eq.${activeCompany.company_id}`
           },
-          () => {
-            fetchUnviewedCount();
+          (payload) => {
+            console.log('Lead disqualification report atualizado:', payload);
+            // Só atualizar se não estamos na tela de admin (para evitar loops)
+            if (window.location.pathname !== '/leads-desqualificados') {
+              fetchUnviewedCount();
+            }
           }
         )
         .subscribe();

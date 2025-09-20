@@ -47,10 +47,17 @@ export default function AdminLeadReports() {
 
   // Auto-mark as viewed when component mounts
   React.useEffect(() => {
-    if (markAllAsViewed) {
-      markAllAsViewed();
-    }
-  }, [markAllAsViewed]);
+    const markAsViewed = async () => {
+      if (markAllAsViewed) {
+        console.log('Página AdminLeadReports carregada, marcando reports como visualizados');
+        await markAllAsViewed();
+      }
+    };
+    
+    // Delay para garantir que a página carregou completamente
+    const timer = setTimeout(markAsViewed, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const reasonOptions = [
     { value: "all", label: "Todos os motivos" },
