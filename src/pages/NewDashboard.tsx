@@ -5,6 +5,7 @@ import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useTaskAutomation } from '@/hooks/useTaskAutomation';
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { useClients } from "@/hooks/useClients";
+import { useLeadQuality } from "@/hooks/useLeadQuality";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ import {
   Repeat,
   Calendar,
   RefreshCw,
+  Award,
 } from "lucide-react";
 
 export default function NewDashboard() {
@@ -70,6 +72,7 @@ export default function NewDashboard() {
 
   const { clients } = useClients();
   const { syncCampaigns, syncing, progress } = useFacebookCampaignSync();
+  const { data: leadQualityData, loading: leadQualityLoading } = useLeadQuality();
 
   // Dados do funil com informações reais
   const funnelData = [
@@ -204,7 +207,7 @@ export default function NewDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Resumo Executivo</h2>
           </div>
           
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-5 gap-6">
             {/* Investimento Total */}
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
               <div className="flex items-center justify-between mb-4">
@@ -292,6 +295,35 @@ export default function NewDashboard() {
                   {metrics?.averageCTR ? `${metrics.averageCTR.toFixed(2)}%` : '0%'}
                 </p>
                 <p className="text-sm text-gray-600">Taxa de cliques</p>
+              </div>
+            </div>
+
+            {/* MQL Percentage */}
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-6 border border-emerald-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                  <Award className="text-white w-5 h-5" />
+                </div>
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  leadQualityData.mqlPercentage >= 70 
+                    ? 'text-green-600 bg-green-100' 
+                    : leadQualityData.mqlPercentage >= 50
+                    ? 'text-yellow-600 bg-yellow-100'
+                    : 'text-red-600 bg-red-100'
+                }`}>
+                  {leadQualityData.disqualifiedLeads > 0 ? 'Com Filtro' : 'Sem Dados'}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold text-gray-900">
+                  {leadQualityLoading ? '...' : `${leadQualityData.mqlPercentage.toFixed(1)}%`}
+                </p>
+                <p className="text-sm text-gray-600">MQL Rate</p>
+                {leadQualityData.totalLeads > 0 && (
+                  <p className="text-xs text-gray-500">
+                    {leadQualityData.totalLeads - leadQualityData.disqualifiedLeads} de {leadQualityData.totalLeads} leads
+                  </p>
+                )}
               </div>
             </div>
           </div>
