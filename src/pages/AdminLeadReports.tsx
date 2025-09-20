@@ -27,6 +27,7 @@ import { EvidenceViewerModal } from "@/components/ui/EvidenceViewerModal";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export default function AdminLeadReports() {
   const { markAllAsViewed } = useLeadDisqualificationNotifications();
   const { activeCompany } = useCompany();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // Função local para marcar como visualizado
   const markAsViewedLocal = async () => {
@@ -216,8 +218,70 @@ export default function AdminLeadReports() {
     return true;
   });
 
-  const handleViewEvidence = (evidenceUrl: string) => {
-    setEvidenceModalUrl(evidenceUrl);
+  const handleViewEvidence = async (evidenceUrl: string) => {
+    try {
+      // Verificar se o usuário está autenticado
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Erro de Autenticação",
+          description: "Você precisa estar logado para acessar as evidências",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Tentando acessar evidência:', evidenceUrl);
+      
+      // Criar signed URL para acessar o arquivo
+      const { data, error } = await supabase.storage
+        .from('lead-evidence')
+        .createSignedUrl(evidenceUrl, 60 * 60); // URL válida por 1 hora
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        toast({
+          title: "Erro ao Acessar Evidência",
+          description: `Erro: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.signedUrl) {
+        console.log('Signed URL criada com sucesso:', data.signedUrl);
+        
+        // Verificar se é imagem para visualizar
+        const fileExtension = evidenceUrl.split('.').pop()?.toLowerCase();
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
+        
+        if (isImage) {
+          // Abrir modal para visualizar imagem com signed URL
+          setEvidenceModalUrl(data.signedUrl);
+        } else {
+          // Fazer download do arquivo
+          const link = document.createElement('a');
+          link.href = data.signedUrl;
+          link.download = evidenceUrl.split('/').pop() || 'evidencia';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível gerar URL para o arquivo",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error('Error viewing evidence:', err);
+      toast({
+        title: "Erro",
+        description: "Erro ao tentar acessar a evidência",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
