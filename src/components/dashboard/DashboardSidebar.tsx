@@ -69,47 +69,63 @@ export function DashboardSidebar() {
   }, [permissionsLoading, isOwner, hasPermission]);
 
   return (
-    <Sidebar
-      collapsible="icon"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      className="bg-white border-r border-gray-200"
-    >
-      <SidebarContent className="pt-6 bg-white">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-2">
-              {visibleItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      end 
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 py-3 rounded-lg transition-all duration-300 ${
-                          isActive
-                            ? "bg-blue-50 text-blue-600"
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`
-                      }
-                      title={!open ? item.title : ''}
-                    >
-                      <item.icon className={`w-5 h-5 transition-colors duration-200 ${
-                        isActive(item.url) ? "text-blue-600" : "text-gray-500"
-                      }`} />
-                      <span className={`font-medium transition-all duration-300 ${
-                        isActive(item.url) ? "text-blue-600" : "text-gray-700"
-                      }`}>
-                        {item.title}
-                      </span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+    <>
+      {/* Overlay escuro quando sidebar está expandido */}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-20 z-40 transition-opacity duration-300"
+          onClick={() => setOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar fixo posicionado sobre o conteúdo */}
+      <div
+        className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 ${
+          open ? 'w-60' : 'w-14'
+        }`}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <Sidebar className="bg-white border-r border-gray-200 shadow-lg h-full">
+          <SidebarContent className="pt-6 bg-white">
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-2">
+                  {visibleItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink 
+                          to={item.url} 
+                          end 
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 py-3 rounded-lg transition-all duration-300 ${
+                              isActive
+                                ? "bg-blue-50 text-blue-600"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`
+                          }
+                          title={!open ? item.title : ''}
+                        >
+                          <item.icon className={`w-5 h-5 transition-colors duration-200 ${
+                            isActive(item.url) ? "text-blue-600" : "text-gray-500"
+                          }`} />
+                          {open && (
+                            <span className={`font-medium transition-all duration-300 ${
+                              isActive(item.url) ? "text-blue-600" : "text-gray-700"
+                            }`}>
+                              {item.title}
+                            </span>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+      </div>
+    </>
   );
 }
