@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useLeadDisqualificationTokens } from "@/hooks/useLeadDisqualificationTokens";
 import { useLeadDisqualificationReports } from "@/hooks/useLeadDisqualificationReports";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -47,6 +48,50 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
   const handleOpenPublicPage = () => {
     if (publicUrl) {
       window.open(publicUrl, '_blank');
+    }
+  };
+
+  const handleViewEvidence = async (evidenceFileUrl: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('lead-evidence')
+        .createSignedUrl(evidenceFileUrl, 60 * 60); // URL válida por 1 hora
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível acessar a evidência",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.signedUrl) {
+        // Verificar se é imagem para visualizar ou fazer download
+        const fileExtension = evidenceFileUrl.split('.').pop()?.toLowerCase();
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
+        
+        if (isImage) {
+          // Abrir imagem em nova aba
+          window.open(data.signedUrl, '_blank');
+        } else {
+          // Fazer download do arquivo
+          const link = document.createElement('a');
+          link.href = data.signedUrl;
+          link.download = evidenceFileUrl.split('/').pop() || 'evidencia';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+    } catch (err) {
+      console.error('Error viewing evidence:', err);
+      toast({
+        title: "Erro",
+        description: "Erro ao tentar acessar a evidência",
+        variant: "destructive",
+      });
     }
   };
 
@@ -206,13 +251,7 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
                         variant="outline"
                         size="sm"
                         className="h-8"
-                        onClick={() => {
-                          // Implementar visualização/download da evidência
-                          toast({
-                            title: "Em desenvolvimento",
-                            description: "Visualização de evidências em breve",
-                          });
-                        }}
+                        onClick={() => handleViewEvidence(report.evidence_file_url!)}
                       >
                         <Download className="h-3 w-3 mr-1" />
                         Ver Evidência
