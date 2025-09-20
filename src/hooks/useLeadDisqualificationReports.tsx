@@ -47,11 +47,11 @@ export const useLeadDisqualificationReports = (filters?: ReportsFilters) => {
         .select('*')
         .eq('company_id', activeCompany.company_id);
 
-      if (filters?.clientId) {
+      if (filters?.clientId && filters.clientId !== 'all') {
         query = query.eq('client_id', filters.clientId);
       }
 
-      if (filters?.reason) {
+      if (filters?.reason && filters.reason !== 'all') {
         query = query.eq('disqualification_reason', filters.reason);
       }
 
@@ -63,7 +63,7 @@ export const useLeadDisqualificationReports = (filters?: ReportsFilters) => {
         query = query.lte('created_at', filters.endDate);
       }
 
-      if (filters?.viewedStatus) {
+      if (filters?.viewedStatus && filters.viewedStatus !== 'all') {
         if (filters.viewedStatus === 'viewed') {
           query = query.not('viewed_at', 'is', null);
         } else if (filters.viewedStatus === 'unviewed') {

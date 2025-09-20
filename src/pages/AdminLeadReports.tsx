@@ -30,12 +30,12 @@ import { cn } from "@/lib/utils";
 
 export default function AdminLeadReports() {
   const [filters, setFilters] = useState({
-    clientId: "",
-    reason: "",
+    clientId: "all",
+    reason: "all",
     startDate: "",
     endDate: "",
     search: "",
-    viewedStatus: ""
+    viewedStatus: "all"
   });
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -53,7 +53,7 @@ export default function AdminLeadReports() {
   }, [markAllAsViewed]);
 
   const reasonOptions = [
-    { value: "", label: "Todos os motivos" },
+    { value: "all", label: "Todos os motivos" },
     { value: "fora_perfil", label: "Fora do perfil" },
     { value: "informacoes_incorretas", label: "Informações incorretas" },
     { value: "contato_errado", label: "Contato errado" },
@@ -62,7 +62,7 @@ export default function AdminLeadReports() {
   ];
 
   const viewedStatusOptions = [
-    { value: "", label: "Todos os status" },
+    { value: "all", label: "Todos os status" },
     { value: "viewed", label: "Visualizados" },
     { value: "unviewed", label: "Não visualizados" }
   ];
@@ -82,7 +82,7 @@ export default function AdminLeadReports() {
   };
 
   const clearFilters = () => {
-    setFilters({ clientId: "", reason: "", startDate: "", endDate: "", search: "", viewedStatus: "" });
+    setFilters({ clientId: "all", reason: "all", startDate: "", endDate: "", search: "", viewedStatus: "all" });
     setStartDate(undefined);
     setEndDate(undefined);
   };
@@ -111,7 +111,7 @@ export default function AdminLeadReports() {
     }
 
     // Filter by viewed status
-    if (filters.viewedStatus) {
+    if (filters.viewedStatus && filters.viewedStatus !== 'all') {
       if (filters.viewedStatus === 'viewed' && !report.viewed_at) return false;
       if (filters.viewedStatus === 'unviewed' && report.viewed_at) return false;
     }
@@ -190,7 +190,7 @@ export default function AdminLeadReports() {
                     <SelectValue placeholder="Todos os clientes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os clientes</SelectItem>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
                     {clients.map(client => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
