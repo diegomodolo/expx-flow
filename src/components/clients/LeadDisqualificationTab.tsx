@@ -53,6 +53,19 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
 
   const handleViewEvidence = async (evidenceFileUrl: string) => {
     try {
+      // Verificar se o usuário está autenticado
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Erro de Autenticação",
+          description: "Você precisa estar logado para acessar as evidências",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Tentando acessar evidência:', evidenceFileUrl);
+      
       const { data, error } = await supabase.storage
         .from('lead-evidence')
         .createSignedUrl(evidenceFileUrl, 60 * 60); // URL válida por 1 hora
@@ -60,14 +73,16 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
       if (error) {
         console.error('Error creating signed URL:', error);
         toast({
-          title: "Erro",
-          description: "Não foi possível acessar a evidência",
+          title: "Erro ao Acessar Evidência",
+          description: `Erro: ${error.message}`,
           variant: "destructive",
         });
         return;
       }
 
       if (data?.signedUrl) {
+        console.log('Signed URL criada com sucesso:', data.signedUrl);
+        
         // Verificar se é imagem para visualizar ou fazer download
         const fileExtension = evidenceFileUrl.split('.').pop()?.toLowerCase();
         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
@@ -84,6 +99,12 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
           link.click();
           document.body.removeChild(link);
         }
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível gerar URL para o arquivo",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error('Error viewing evidence:', err);
