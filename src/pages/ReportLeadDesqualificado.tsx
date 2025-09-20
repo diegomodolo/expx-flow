@@ -169,7 +169,18 @@ export default function ReportLeadDesqualificado() {
 
       // Upload do arquivo de evidência primeiro, se fornecido
       if (evidenceFile && clientInfo) {
-        const fileName = `${clientInfo.id}/${Date.now()}-${evidenceFile.name}`;
+        // Gerar nome de arquivo com fallback caso o nome original seja undefined
+        const originalName = evidenceFile.name || 'arquivo_sem_nome';
+        const fileExtension = originalName.split('.').pop() || 'bin';
+        const timestamp = Date.now();
+        const fileName = `${clientInfo.id}/${timestamp}-${originalName}`;
+        
+        console.log('Uploading file:', {
+          originalName: evidenceFile.name,
+          generatedName: fileName,
+          fileSize: evidenceFile.size,
+          fileType: evidenceFile.type
+        });
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('lead-evidence')
@@ -186,6 +197,7 @@ export default function ReportLeadDesqualificado() {
             variant: "destructive",
           });
         } else {
+          console.log('Upload success:', uploadData);
           evidenceFileUrl = fileName;
         }
       }

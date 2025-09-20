@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Copy, RefreshCw, AlertCircle, ExternalLink, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLeadDisqualificationTokens } from "@/hooks/useLeadDisqualificationTokens";
 import { useLeadDisqualificationReports } from "@/hooks/useLeadDisqualificationReports";
 import { supabase } from "@/integrations/supabase/client";
+import { EvidenceViewerModal } from "@/components/ui/EvidenceViewerModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,6 +23,8 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
   const { toast } = useToast();
   const { tokens, loading: tokensLoading, getPublicReportUrl } = useLeadDisqualificationTokens(clientId);
   const { reports, loading: reportsLoading, getReasonLabel } = useLeadDisqualificationReports({ clientId });
+  
+  const [modalImage, setModalImage] = useState<{ url: string; fileName: string } | null>(null);
 
   const currentToken = tokens[0]; // Primeiro token ativo
   const publicUrl = currentToken ? getPublicReportUrl(currentToken.token) : '';
@@ -66,6 +70,32 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
 
       console.log('Tentando acessar evidência:', evidenceFileUrl);
       
+      // Verificar se o arquivo realmente existe
+      const { data: listData, error: listError } = await supabase.storage
+        .from('lead-evidence')
+        .list(evidenceFileUrl.split('/')[0], {
+          search: evidenceFileUrl.split('/')[1]
+        });
+
+      if (listError || !listData || listData.length === 0) {
+        toast({
+          title: "Arquivo não encontrado",
+          description: "O arquivo de evidência não foi encontrado no storage",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const file = listData[0];
+      if (file.metadata?.size === 2) {
+        toast({
+          title: "Arquivo corrompido",
+          description: "O arquivo de evidência parece estar corrompido (2 bytes). Entre em contato com o suporte.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { data, error } = await supabase.storage
         .from('lead-evidence')
         .createSignedUrl(evidenceFileUrl, 60 * 60); // URL válida por 1 hora
@@ -88,8 +118,9 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '');
         
         if (isImage) {
-          // Abrir imagem em nova aba
-          window.open(data.signedUrl, '_blank');
+          // Abrir modal para visualizar imagem
+          const fileName = evidenceFileUrl.split('/').pop() || 'evidencia';
+          setModalImage({ url: data.signedUrl, fileName });
         } else {
           // Fazer download do arquivo
           const link = document.createElement('a');
@@ -285,6 +316,14 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
           )}
         </CardContent>
       </Card>
+      
+      {/* Modal para visualizar evidências */}
+      <EvidenceViewerModal
+        isOpen={!!modalImage}
+        onClose={() => setModalImage(null)}
+        imageUrl={modalImage?.url || ''}
+        fileName={modalImage?.fileName || ''}
+      />
     </div>
   );
 }
