@@ -100,8 +100,6 @@ export function DashboardHeader() {
         </div>
         
         <div className="flex items-center space-x-4">
-          <CompanySelector />
-          
           {/* Notification Icon for Lead Reports */}
           <div className="relative">
             <Button
@@ -121,6 +119,8 @@ export function DashboardHeader() {
               )}
             </Button>
           </div>
+          
+          <CompanySelector />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
