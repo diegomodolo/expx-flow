@@ -30,8 +30,7 @@ export const useLeadDisqualificationTokens = (clientId?: string) => {
       let query = supabase
         .from('lead_disqualification_tokens')
         .select('*')
-        .eq('company_id', activeCompany.company_id)
-        .eq('is_active', true);
+        .eq('company_id', activeCompany.company_id);
 
       if (clientId) {
         query = query.eq('client_id', clientId);
@@ -55,66 +54,7 @@ export const useLeadDisqualificationTokens = (clientId?: string) => {
     }
   };
 
-  const regenerateToken = async (tokenId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('lead_disqualification_tokens')
-        .update({ 
-          token: crypto.randomUUID(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', tokenId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Token regenerado com sucesso",
-      });
-
-      fetchTokens();
-      return data;
-    } catch (err) {
-      console.error('Error regenerating token:', err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível regenerar o token",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
-
-  const deactivateToken = async (tokenId: string) => {
-    try {
-      const { error } = await supabase
-        .from('lead_disqualification_tokens')
-        .update({ 
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', tokenId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Token desativado com sucesso",
-      });
-
-      fetchTokens();
-    } catch (err) {
-      console.error('Error deactivating token:', err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível desativar o token",
-        variant: "destructive",
-      });
-      throw err;
-    }
-  };
+  // Token é permanente, sem necessidade de regeneração ou desativação
 
   const getPublicReportUrl = (token: string) => {
     return `${window.location.origin}/report-lead-desqualificado/${token}`;
@@ -129,8 +69,6 @@ export const useLeadDisqualificationTokens = (clientId?: string) => {
     loading,
     error,
     fetchTokens,
-    regenerateToken,
-    deactivateToken,
     getPublicReportUrl
   };
 };

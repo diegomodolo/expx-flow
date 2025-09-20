@@ -38,17 +38,19 @@ serve(async (req) => {
         id,
         client_id,
         company_id,
-        is_active,
         clients!inner(name, email)
       `)
       .eq('token', token)
-      .eq('is_active', true)
       .single();
 
     if (tokenError || !tokenData) {
-      console.error('Invalid token:', tokenError);
+      console.error('Token validation error:', tokenError);
+      console.error('Token data received:', tokenData);
       return new Response(
-        JSON.stringify({ error: 'Token inválido ou expirado' }),
+        JSON.stringify({ 
+          error: 'Token não encontrado',
+          details: tokenError?.message 
+        }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

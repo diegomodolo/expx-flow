@@ -18,7 +18,7 @@ interface LeadDisqualificationTabProps {
 
 export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabProps) {
   const { toast } = useToast();
-  const { tokens, loading: tokensLoading, regenerateToken, getPublicReportUrl } = useLeadDisqualificationTokens(clientId);
+  const { tokens, loading: tokensLoading, getPublicReportUrl } = useLeadDisqualificationTokens(clientId);
   const { reports, loading: reportsLoading, getReasonLabel } = useLeadDisqualificationReports({ clientId });
 
   const currentToken = tokens[0]; // Primeiro token ativo
@@ -42,15 +42,7 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
     }
   };
 
-  const handleRegenerateToken = async () => {
-    if (!currentToken) return;
-    
-    try {
-      await regenerateToken(currentToken.id);
-    } catch (err) {
-      console.error('Error regenerating token:', err);
-    }
-  };
+  // Token é permanente, sem necessidade de regeneração
 
   const handleOpenPublicPage = () => {
     if (publicUrl) {
@@ -114,21 +106,13 @@ export function LeadDisqualificationTab({ clientId }: LeadDisqualificationTabPro
                   <Eye className="h-4 w-4" />
                   Visualizar Página
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleRegenerateToken}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Regenerar Link
-                </Button>
+                {/* Token é permanente, botão removido */}
               </div>
 
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Este link é público e não requer autenticação. O cliente pode usá-lo quantas vezes precisar.
-                  Para maior segurança, você pode regenerar o link a qualquer momento.
+                  Este link é público e permanente. O cliente pode usá-lo quantas vezes precisar para reportar leads desqualificados.
                 </AlertDescription>
               </Alert>
             </>
