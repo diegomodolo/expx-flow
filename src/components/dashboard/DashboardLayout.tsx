@@ -12,7 +12,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen w-full bg-background relative">
         <DashboardSidebar />
-        <div className="w-full min-h-screen flex flex-col ml-14">
+        <div className="min-h-screen flex flex-col ml-14" style={{ width: 'calc(100% - 56px)' }}>
           <DashboardHeader />
           <main className="flex-1 p-6">
             {children}
