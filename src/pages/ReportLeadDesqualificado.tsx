@@ -28,7 +28,6 @@ interface TokenInfo {
   id: string;
   client_id: string;
   company_id: string;
-  is_active: boolean;
 }
 
 export default function ReportLeadDesqualificado() {
@@ -74,11 +73,9 @@ export default function ReportLeadDesqualificado() {
         .select(`
           id,
           client_id,
-          company_id,
-          is_active
+          company_id
         `)
         .eq('token', token)
-        .eq('is_active', true)
         .single();
 
       if (error || !data) {
@@ -106,8 +103,7 @@ export default function ReportLeadDesqualificado() {
       setTokenInfo({
         id: data.id,
         client_id: data.client_id,
-        company_id: data.company_id,
-        is_active: data.is_active
+        company_id: data.company_id
       });
 
       setClientInfo({
