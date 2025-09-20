@@ -10,16 +10,13 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-screen w-full bg-background relative">
-        <div className="flex min-h-screen">
-          <div className="w-14 flex-shrink-0"></div> {/* Space for collapsed sidebar */}
-          <DashboardSidebar />
-          <div className="flex-1 flex flex-col min-w-0">
-            <DashboardHeader />
-            <main className="flex-1 p-6">
-              {children}
-            </main>
-          </div>
+      <div className="min-h-screen w-full bg-background">
+        <DashboardSidebar />
+        <div className="w-full min-h-screen flex flex-col">
+          <DashboardHeader />
+          <main className="flex-1 p-6">
+            {children}
+          </main>
         </div>
       </div>
     </SidebarProvider>

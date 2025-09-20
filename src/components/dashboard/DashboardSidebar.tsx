@@ -69,15 +69,17 @@ export function DashboardSidebar() {
   }, [permissionsLoading, isOwner, hasPermission]);
 
   return (
-    <Sidebar
-      collapsible="icon"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      className="bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 h-full z-50 transition-all duration-300"
-      style={{
-        width: open ? '240px' : '56px'
-      }}
-    >
+    <>
+      {open && <div className="fixed inset-0 bg-black bg-opacity-20 z-40" />}
+      <Sidebar
+        collapsible="icon"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        className="bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 h-full z-50 transition-all duration-300"
+        style={{
+          width: open ? '240px' : '56px'
+        }}
+      >
       <SidebarContent className="pt-6 bg-white">
         <SidebarGroup>
           <SidebarGroupContent>
@@ -113,6 +115,7 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-    </Sidebar>
+      </Sidebar>
+    </>
   );
 }
