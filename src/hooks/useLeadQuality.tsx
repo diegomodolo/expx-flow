@@ -21,17 +21,40 @@ export function useLeadQuality() {
   const { activeCompany } = useCompany();
 
   const fetchLeadQualityData = async () => {
-    if (!activeCompany?.id) return;
+    if (!activeCompany?.company_id) return;
 
     setLoading(true);
     setError(null);
 
     try {
+      console.log('🔍 Buscando dados de qualidade de leads para empresa:', activeCompany.company_id);
+
+      // Primeiro, buscar dados sem filtro de período para debug
+      const { data: allCampaigns, error: allCampaignsError } = await supabase
+        .from('campaigns')
+        .select('conversions, updated_at')
+        .eq('company_id', activeCompany.company_id);
+
+      if (allCampaignsError) throw allCampaignsError;
+
+      const { data: allReports, error: allReportsError } = await supabase
+        .from('lead_disqualification_reports')
+        .select('id, lead_received_date')
+        .eq('company_id', activeCompany.company_id);
+
+      if (allReportsError) throw allReportsError;
+
+      console.log('📊 Total de campanhas encontradas:', allCampaigns?.length || 0);
+      console.log('📊 Total de reports encontrados:', allReports?.length || 0);
+
+      const totalLeadsAll = allCampaigns?.reduce((sum, campaign) => sum + (campaign.conversions || 0), 0) || 0;
+      console.log('📊 Total de leads (todas as campanhas):', totalLeadsAll);
+
       // Buscar dados de sincronização mais recente para determinar o período
       const { data: clients, error: clientsError } = await supabase
         .from('clients')
         .select('last_sync_at, last_sync_period')
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .not('last_sync_at', 'is', null)
         .order('last_sync_at', { ascending: false })
         .limit(1);
@@ -40,10 +63,15 @@ export function useLeadQuality() {
 
       let periodStart: string | undefined;
       let periodEnd: string | undefined;
+      let totalLeads = totalLeadsAll;
+      let disqualifiedLeads = allReports?.length || 0;
 
+      // Se houver sincronização recente, aplicar filtro de período
       if (clients && clients.length > 0) {
         const lastSync = clients[0];
         const syncDate = new Date(lastSync.last_sync_at);
+        
+        console.log('🔄 Última sincronização:', lastSync.last_sync_at, 'Período:', lastSync.last_sync_period);
         
         // Calcular período baseado na última sincronização
         switch (lastSync.last_sync_period) {
@@ -57,52 +85,50 @@ export function useLeadQuality() {
             periodStart = new Date(syncDate.getTime() - (90 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
             break;
           case 'custom':
-            // Para período customizado, assumir 30 dias por padrão
             periodStart = new Date(syncDate.getTime() - (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
             break;
           default:
             periodStart = new Date(syncDate.getTime() - (30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
         }
         periodEnd = syncDate.toISOString().split('T')[0];
+
+        console.log('📅 Período filtrado:', periodStart, 'até', periodEnd);
+
+        // Aplicar filtro de período nas campanhas
+        const filteredCampaigns = allCampaigns?.filter(campaign => {
+          const campaignDate = campaign.updated_at.split('T')[0];
+          return campaignDate >= periodStart! && campaignDate <= periodEnd!;
+        }) || [];
+
+        totalLeads = filteredCampaigns.reduce((sum, campaign) => sum + (campaign.conversions || 0), 0);
+
+        // Aplicar filtro de período nos relatórios
+        const filteredReports = allReports?.filter(report => {
+          const reportDate = report.lead_received_date;
+          return reportDate >= periodStart! && reportDate <= periodEnd!;
+        }) || [];
+
+        disqualifiedLeads = filteredReports.length;
+
+        console.log('📊 Campanhas no período:', filteredCampaigns.length);
+        console.log('📊 Reports no período:', filteredReports.length);
+      } else {
+        console.log('⚠️ Nenhuma sincronização encontrada, usando todos os dados');
+        // Fallback: usar últimos 30 dias se não houver sincronização
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        periodStart = thirtyDaysAgo.toISOString().split('T')[0];
+        periodEnd = new Date().toISOString().split('T')[0];
       }
 
-      // Buscar total de leads (conversões) no período
-      let campaignsQuery = supabase
-        .from('campaigns')
-        .select('conversions')
-        .eq('company_id', activeCompany.id);
+      console.log('🎯 Total de leads calculado:', totalLeads);
+      console.log('❌ Leads desqualificados:', disqualifiedLeads);
 
-      if (periodStart && periodEnd) {
-        campaignsQuery = campaignsQuery
-          .gte('updated_at', periodStart)
-          .lte('updated_at', periodEnd);
-      }
-
-      const { data: campaigns, error: campaignsError } = await campaignsQuery;
-      
-      if (campaignsError) throw campaignsError;
-
-      const totalLeads = campaigns?.reduce((sum, campaign) => sum + (campaign.conversions || 0), 0) || 0;
-
-      // Buscar leads desqualificados no período
-      let reportsQuery = supabase
-        .from('lead_disqualification_reports')
-        .select('id')
-        .eq('company_id', activeCompany.id);
-
-      if (periodStart && periodEnd) {
-        reportsQuery = reportsQuery
-          .gte('lead_received_date', periodStart)
-          .lte('lead_received_date', periodEnd);
-      }
-
-      const { data: reports, error: reportsError } = await reportsQuery;
-      
-      if (reportsError) throw reportsError;
-
-      const disqualifiedLeads = reports?.length || 0;
       const qualifiedLeads = Math.max(0, totalLeads - disqualifiedLeads);
       const mqlPercentage = totalLeads > 0 ? (qualifiedLeads / totalLeads) * 100 : 0;
+
+      console.log('✅ Leads qualificados:', qualifiedLeads);
+      console.log('📈 Percentual MQL:', mqlPercentage.toFixed(2) + '%');
 
       setData({
         totalLeads,
@@ -122,7 +148,7 @@ export function useLeadQuality() {
 
   useEffect(() => {
     fetchLeadQualityData();
-  }, [activeCompany?.id]);
+  }, [activeCompany?.company_id]);
 
   return {
     data,
