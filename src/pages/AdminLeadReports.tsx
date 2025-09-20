@@ -45,6 +45,7 @@ export default function AdminLeadReports() {
   const [endDate, setEndDate] = useState<Date>();
   const [evidenceModalUrl, setEvidenceModalUrl] = useState<string | null>(null);
   const [evidenceFileName, setEvidenceFileName] = useState<string>('evidencia.jpg');
+  const [selectedReportData, setSelectedReportData] = useState<any>(null);
 
   const { reports, loading, getReasonLabel, exportReports } = useLeadDisqualificationReports(filters);
   const { clients } = useClients();
@@ -219,7 +220,7 @@ export default function AdminLeadReports() {
     return true;
   });
 
-  const handleViewEvidence = async (evidenceUrl: string) => {
+  const handleViewEvidence = async (evidenceUrl: string, report: any) => {
     try {
       // Verificar se o usuário está autenticado
       const { data: { session } } = await supabase.auth.getSession();
@@ -259,7 +260,14 @@ export default function AdminLeadReports() {
         if (isImage) {
           // Abrir modal para visualizar imagem com signed URL
           const fileName = evidenceUrl.split('/').pop() || 'evidencia.jpg';
+          const client = clients.find(c => c.id === report.client_id);
+          
           setEvidenceFileName(fileName);
+          setSelectedReportData({
+            ...report,
+            client_name: client?.name,
+            client_email: client?.email
+          });
           setEvidenceModalUrl(data.signedUrl);
         } else {
           // Fazer download do arquivo
@@ -586,8 +594,8 @@ export default function AdminLeadReports() {
                                    variant="ghost" 
                                    size="sm" 
                                    className="h-8 w-8 p-0"
-                                   onClick={() => handleViewEvidence(report.evidence_file_url!)}
-                                   title="Ver evidência"
+                                    onClick={() => handleViewEvidence(report.evidence_file_url!, report)}
+                                    title="Ver evidência"
                                  >
                                    <Eye className="h-4 w-4" />
                                  </Button>
@@ -617,15 +625,17 @@ export default function AdminLeadReports() {
       </div>
 
       {/* Evidence Modal */}
-      {evidenceModalUrl && (
+      {evidenceModalUrl && selectedReportData && (
         <EvidenceViewerModal
           isOpen={!!evidenceModalUrl}
           onClose={() => {
             setEvidenceModalUrl(null);
             setEvidenceFileName('evidencia.jpg');
+            setSelectedReportData(null);
           }}
           imageUrl={evidenceModalUrl}
           fileName={evidenceFileName}
+          reportData={selectedReportData}
         />
       )}
     </DashboardLayout>
