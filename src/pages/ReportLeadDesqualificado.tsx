@@ -169,14 +169,26 @@ export default function ReportLeadDesqualificado() {
 
       // Upload do arquivo de evidência primeiro, se fornecido
       if (evidenceFile && clientInfo) {
+        // Função para sanitizar o nome do arquivo
+        const sanitizeFileName = (name: string): string => {
+          return name
+            .normalize('NFD') // Decompor acentos
+            .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+            .replace(/[^a-zA-Z0-9.-]/g, '_') // Substituir caracteres especiais por underscore
+            .replace(/_{2,}/g, '_') // Substituir múltiplos underscores por um só
+            .replace(/^_|_$/g, ''); // Remover underscores do início e fim
+        };
+
         // Gerar nome de arquivo com fallback caso o nome original seja undefined
         const originalName = evidenceFile.name || 'arquivo_sem_nome';
-        const fileExtension = originalName.split('.').pop() || 'bin';
+        const sanitizedName = sanitizeFileName(originalName);
+        const fileExtension = sanitizedName.split('.').pop() || 'bin';
         const timestamp = Date.now();
-        const fileName = `${clientInfo.id}/${timestamp}-${originalName}`;
+        const fileName = `${clientInfo.id}/${timestamp}-${sanitizedName}`;
         
         console.log('Uploading file:', {
           originalName: evidenceFile.name,
+          sanitizedName,
           generatedName: fileName,
           fileSize: evidenceFile.size,
           fileType: evidenceFile.type
