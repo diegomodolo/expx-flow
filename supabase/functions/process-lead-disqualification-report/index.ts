@@ -31,21 +31,15 @@ serve(async (req) => {
 
     console.log('Processing lead disqualification report:', { token, reporter_name, disqualification_reason });
 
-    // Validar token e obter dados do cliente
+    // Validar token primeiro
     const { data: tokenData, error: tokenError } = await supabase
       .from('lead_disqualification_tokens')
-      .select(`
-        id,
-        client_id,
-        company_id,
-        clients!inner(name, email)
-      `)
+      .select('id, client_id, company_id')
       .eq('token', token)
       .single();
 
     if (tokenError || !tokenData) {
       console.error('Token validation error:', tokenError);
-      console.error('Token data received:', tokenData);
       return new Response(
         JSON.stringify({ 
           error: 'Token não encontrado',
@@ -57,6 +51,33 @@ serve(async (req) => {
         }
       );
     }
+
+    // Buscar dados do cliente separadamente
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('name, email')
+      .eq('id', tokenData.client_id)
+      .single();
+
+    if (clientError || !clientData) {
+      console.error('Client data error:', clientError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Cliente não encontrado',
+          details: clientError?.message 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('Token and client data loaded successfully:', { 
+      tokenId: tokenData.id, 
+      clientId: tokenData.client_id,
+      clientName: clientData.name 
+    });
 
     let evidence_file_url = null;
 
