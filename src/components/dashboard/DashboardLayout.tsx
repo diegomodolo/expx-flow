@@ -10,9 +10,9 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-screen w-full bg-background flex">
+      <div className="min-h-screen w-full bg-background relative">
         <DashboardSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="w-full flex flex-col">
           <DashboardHeader />
           <main className="flex-1 p-6">
             {children}
