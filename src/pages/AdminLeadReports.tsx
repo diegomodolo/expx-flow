@@ -24,6 +24,9 @@ import { useLeadDisqualificationReports } from "@/hooks/useLeadDisqualificationR
 import { useClients } from "@/hooks/useClients";
 import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
 import { EvidenceViewerModal } from "@/components/ui/EvidenceViewerModal";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -44,26 +47,78 @@ export default function AdminLeadReports() {
   const { reports, loading, getReasonLabel, exportReports } = useLeadDisqualificationReports(filters);
   const { clients } = useClients();
   const { markAllAsViewed } = useLeadDisqualificationNotifications();
+  const { activeCompany } = useCompany();
+  const { user } = useAuth();
+
+  // Função local para marcar como visualizado
+  const markAsViewedLocal = async () => {
+    if (!activeCompany?.company_id || !user?.id) {
+      console.log('markAsViewedLocal: Dados insuficientes', {
+        companyId: activeCompany?.company_id,
+        userId: user?.id
+      });
+      return false;
+    }
+
+    try {
+      console.log('markAsViewedLocal: Executando para company:', activeCompany.company_id);
+      
+      const { data: updateResult, error } = await supabase
+        .from('lead_disqualification_reports')
+        .update({
+          viewed_at: new Date().toISOString(),
+          viewed_by: user.id
+        })
+        .eq('company_id', activeCompany.company_id)
+        .is('viewed_at', null)
+        .select('id');
+
+      if (error) {
+        console.error('markAsViewedLocal: Erro ao atualizar:', error);
+        return false;
+      }
+
+      console.log('markAsViewedLocal: Sucesso!', updateResult?.length || 0, 'reports marcados');
+      return true;
+    } catch (err) {
+      console.error('markAsViewedLocal: Erro:', err);
+      return false;
+    }
+  };
 
   // Auto-mark as viewed when component mounts
   React.useEffect(() => {
     const markAsViewed = async () => {
-      if (markAllAsViewed) {
-        console.log('Página AdminLeadReports carregada, marcando reports como visualizados');
-        await markAllAsViewed();
+      console.log('AdminLeadReports: activeCompany disponível?', activeCompany?.company_id);
+      
+      if (activeCompany?.company_id && user?.id) {
+        console.log('Página AdminLeadReports carregada, tentando marcar como visualizados');
+        
+        // Tentar primeiro a função local
+        const localSuccess = await markAsViewedLocal();
+        
+        if (!localSuccess && markAllAsViewed) {
+          console.log('Tentativa local falhou, usando markAllAsViewed');
+          await markAllAsViewed();
+        }
         
         // Forçar update do contador no header
         setTimeout(() => {
           console.log('Forçando refresh do contador após 2 segundos');
           window.dispatchEvent(new CustomEvent('refreshNotificationCount'));
         }, 2000);
+      } else {
+        console.log('AdminLeadReports: Aguardando dados...', {
+          companyId: activeCompany?.company_id,
+          userId: user?.id
+        });
       }
     };
     
     // Delay para garantir que a página carregou completamente
-    const timer = setTimeout(markAsViewed, 1000);
+    const timer = setTimeout(markAsViewed, 1500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [activeCompany?.company_id, user?.id]);
 
   const reasonOptions = [
     { value: "all", label: "Todos os motivos" },
