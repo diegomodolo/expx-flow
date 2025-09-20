@@ -70,11 +70,10 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar
-      variant="floating"
       collapsible="icon"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
-      className="bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 z-50"
+      className="bg-white border-r border-gray-200 shadow-lg fixed left-0 top-0 z-50 h-full"
     >
       <SidebarContent className="pt-6 bg-white">
         <SidebarGroup>
