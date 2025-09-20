@@ -17,7 +17,8 @@ import {
   Search,
   TrendingDown,
   DollarSign,
-  Image
+  Image,
+  FileX
 } from "lucide-react";
 
 const Relatorios = () => {
@@ -159,6 +160,15 @@ const Relatorios = () => {
       href: "/relatorios/orcamento-mal-distribuido",
       iconColor: "#FFFFFF",
       iconBg: "hsl(262, 83%, 58%)"
+    },
+    {
+      title: "Admin - Reports de Leads",
+      description: "Administração de reports de leads desqualificados e evidências",
+      icon: FileX,
+      category: "operacional",
+      href: "/leads-desqualificados",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(350, 89%, 60%)"
     }
   ];
 
