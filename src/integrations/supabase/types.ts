@@ -1416,6 +1416,81 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_disqualification_reports: {
+        Row: {
+          additional_notes: string | null
+          client_id: string
+          company_id: string
+          conversation_link: string | null
+          created_at: string
+          disqualification_reason: string
+          evidence_file_url: string | null
+          id: string
+          lead_received_date: string
+          reporter_name: string
+          token_id: string
+          updated_at: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          client_id: string
+          company_id: string
+          conversation_link?: string | null
+          created_at?: string
+          disqualification_reason: string
+          evidence_file_url?: string | null
+          id?: string
+          lead_received_date: string
+          reporter_name: string
+          token_id: string
+          updated_at?: string
+        }
+        Update: {
+          additional_notes?: string | null
+          client_id?: string
+          company_id?: string
+          conversation_link?: string | null
+          created_at?: string
+          disqualification_reason?: string
+          evidence_file_url?: string | null
+          id?: string
+          lead_received_date?: string
+          reporter_name?: string
+          token_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_disqualification_tokens: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       optimization_history: {
         Row: {
           client_id: string

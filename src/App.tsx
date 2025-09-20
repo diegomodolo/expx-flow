@@ -38,6 +38,7 @@ import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
+import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -59,6 +60,7 @@ const App = () => {
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
+              <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={

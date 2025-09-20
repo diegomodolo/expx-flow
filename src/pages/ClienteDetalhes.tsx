@@ -61,6 +61,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientNotes } from "@/hooks/useClientNotes";
+import { LeadDisqualificationTab } from "@/components/clients/LeadDisqualificationTab";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -1366,6 +1367,7 @@ const [savingNote, setSavingNote] = useState(false);
                    <TabsTrigger value="period-comparison">📈 Comparação de Períodos</TabsTrigger>
                    <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
                 <TabsTrigger value="notes">Anotações</TabsTrigger>
+                <TabsTrigger value="leads-desqualificados">Leads Desqualificados</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
               </TabsList>
             </div>
@@ -2676,6 +2678,10 @@ const [savingNote, setSavingNote] = useState(false);
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <TabsContent value="leads-desqualificados" className="p-4 sm:p-6">
+              <LeadDisqualificationTab clientId={id || ""} />
+            </TabsContent>
 
             <TabsContent value="history" className="p-4 sm:p-6">
               <h4 className="text-lg font-semibold mb-4">Histórico de Interações</h4>

@@ -73,3 +73,6 @@ verify_jwt = true
 
 [functions.sync-period-comparison]
 verify_jwt = true
+
+[functions.process-lead-disqualification-report]
+verify_jwt = false
