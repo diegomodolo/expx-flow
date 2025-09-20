@@ -15,6 +15,7 @@ export const useLeadDisqualificationNotifications = () => {
     if (!activeCompany?.company_id) return;
 
     try {
+      console.log('Fetchando unviewed count para company:', activeCompany.company_id);
       const { data, error } = await supabase
         .from('lead_disqualification_reports')
         .select('id')
@@ -23,7 +24,9 @@ export const useLeadDisqualificationNotifications = () => {
 
       if (error) throw error;
 
-      setUnviewedCount(data?.length || 0);
+      const count = data?.length || 0;
+      console.log('Unviewed count encontrado:', count);
+      setUnviewedCount(count);
     } catch (err) {
       console.error('Error fetching unviewed count:', err);
     }
@@ -77,6 +80,14 @@ export const useLeadDisqualificationNotifications = () => {
   useEffect(() => {
     fetchUnviewedCount();
 
+    // Escutar evento customizado para forçar refresh
+    const handleRefresh = () => {
+      console.log('Evento customizado recebido, atualizando contador');
+      fetchUnviewedCount();
+    };
+
+    window.addEventListener('refreshNotificationCount', handleRefresh);
+
     // Setup realtime subscription
     if (activeCompany?.company_id) {
       const channel = supabase
@@ -117,9 +128,14 @@ export const useLeadDisqualificationNotifications = () => {
         .subscribe();
 
       return () => {
+        window.removeEventListener('refreshNotificationCount', handleRefresh);
         supabase.removeChannel(channel);
       };
     }
+
+    return () => {
+      window.removeEventListener('refreshNotificationCount', handleRefresh);
+    };
   }, [activeCompany?.company_id]);
 
   return {

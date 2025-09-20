@@ -51,6 +51,12 @@ export default function AdminLeadReports() {
       if (markAllAsViewed) {
         console.log('Página AdminLeadReports carregada, marcando reports como visualizados');
         await markAllAsViewed();
+        
+        // Forçar update do contador no header
+        setTimeout(() => {
+          console.log('Forçando refresh do contador após 2 segundos');
+          window.dispatchEvent(new CustomEvent('refreshNotificationCount'));
+        }, 2000);
       }
     };
     

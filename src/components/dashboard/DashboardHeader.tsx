@@ -78,7 +78,9 @@ export function DashboardHeader() {
   const displayName = profile?.full_name || user?.email || "Usuário";
 
   const handleNotificationClick = async () => {
+    console.log('Notification icon clicked, current count:', unviewedCount);
     if (markAllAsViewed) {
+      console.log('Calling markAllAsViewed before navigation');
       await markAllAsViewed();
     }
     navigate('/leads-desqualificados');
@@ -112,6 +114,7 @@ export function DashboardHeader() {
               {unviewedCount > 0 && (
                 <Badge 
                   className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-destructive hover:bg-destructive"
+                  title={`${unviewedCount} reports não visualizados`}
                 >
                   {unviewedCount > 99 ? '99+' : unviewedCount}
                 </Badge>
