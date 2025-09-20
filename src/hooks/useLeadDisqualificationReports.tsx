@@ -16,6 +16,8 @@ export interface LeadDisqualificationReport {
   conversation_link?: string;
   created_at: string;
   updated_at: string;
+  viewed_at?: string;
+  viewed_by?: string;
 }
 
 interface ReportsFilters {
@@ -23,6 +25,7 @@ interface ReportsFilters {
   reason?: string;
   startDate?: string;
   endDate?: string;
+  viewedStatus?: string;
 }
 
 export const useLeadDisqualificationReports = (filters?: ReportsFilters) => {
@@ -58,6 +61,14 @@ export const useLeadDisqualificationReports = (filters?: ReportsFilters) => {
 
       if (filters?.endDate) {
         query = query.lte('created_at', filters.endDate);
+      }
+
+      if (filters?.viewedStatus) {
+        if (filters.viewedStatus === 'viewed') {
+          query = query.not('viewed_at', 'is', null);
+        } else if (filters.viewedStatus === 'unviewed') {
+          query = query.is('viewed_at', null);
+        }
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -108,7 +119,7 @@ export const useLeadDisqualificationReports = (filters?: ReportsFilters) => {
 
   useEffect(() => {
     fetchReports();
-  }, [activeCompany?.company_id, filters?.clientId, filters?.reason, filters?.startDate, filters?.endDate]);
+  }, [activeCompany?.company_id, filters?.clientId, filters?.reason, filters?.startDate, filters?.endDate, filters?.viewedStatus]);
 
   return {
     reports,

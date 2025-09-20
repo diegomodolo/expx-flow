@@ -1430,6 +1430,8 @@ export type Database = {
           reporter_name: string
           token_id: string
           updated_at: string
+          viewed_at: string | null
+          viewed_by: string | null
         }
         Insert: {
           additional_notes?: string | null
@@ -1444,6 +1446,8 @@ export type Database = {
           reporter_name: string
           token_id: string
           updated_at?: string
+          viewed_at?: string | null
+          viewed_by?: string | null
         }
         Update: {
           additional_notes?: string | null
@@ -1458,6 +1462,8 @@ export type Database = {
           reporter_name?: string
           token_id?: string
           updated_at?: string
+          viewed_at?: string | null
+          viewed_by?: string | null
         }
         Relationships: []
       }

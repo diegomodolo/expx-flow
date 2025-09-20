@@ -1,4 +1,4 @@
-import { Search, Bell, Settings, LogOut, User, ChevronDown } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, ChevronDown, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -7,7 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
 import { CompanySelector } from "@/components/company/CompanySelector";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,20 +19,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function DashboardHeader() {
+  const navigate = useNavigate();
+  
   // Check if we're within AuthProvider context
   let user = null;
   let signOut = null;
   let toast = null;
   let profile = null;
+  let unviewedCount = 0;
+  let markAllAsViewed = null;
   
   try {
     const auth = useAuth();
     const toastHook = useToast();
     const userProfile = useUserProfile();
+    const notifications = useLeadDisqualificationNotifications();
     user = auth.user;
     signOut = auth.signOut;
     toast = toastHook.toast;
     profile = userProfile.profile;
+    unviewedCount = notifications.unviewedCount;
+    markAllAsViewed = notifications.markAllAsViewed;
   } catch (error) {
     // Not within AuthProvider, use fallback values
     toast = () => {}; // No-op function
@@ -68,6 +77,13 @@ export function DashboardHeader() {
 
   const displayName = profile?.full_name || user?.email || "Usuário";
 
+  const handleNotificationClick = async () => {
+    if (markAllAsViewed) {
+      await markAllAsViewed();
+    }
+    navigate('/leads-desqualificados');
+  };
+
   return (
     <header className="h-16 bg-card border-b border-border z-20 shrink-0">
       <div className="flex items-center justify-between h-full px-6">
@@ -83,6 +99,25 @@ export function DashboardHeader() {
         
         <div className="flex items-center space-x-4">
           <CompanySelector />
+          
+          {/* Notification Icon for Lead Reports */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNotificationClick}
+              className="relative p-2 h-auto hover:bg-muted/50"
+            >
+              <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+              {unviewedCount > 0 && (
+                <Badge 
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-destructive hover:bg-destructive"
+                >
+                  {unviewedCount > 99 ? '99+' : unviewedCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

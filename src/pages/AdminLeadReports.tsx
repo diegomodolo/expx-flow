@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { useLeadDisqualificationReports } from "@/hooks/useLeadDisqualificationReports";
 import { useClients } from "@/hooks/useClients";
+import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
+import { EvidenceViewerModal } from "@/components/ui/EvidenceViewerModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -32,13 +34,23 @@ export default function AdminLeadReports() {
     reason: "",
     startDate: "",
     endDate: "",
-    search: ""
+    search: "",
+    viewedStatus: ""
   });
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [evidenceModalUrl, setEvidenceModalUrl] = useState<string | null>(null);
 
   const { reports, loading, getReasonLabel, exportReports } = useLeadDisqualificationReports(filters);
   const { clients } = useClients();
+  const { markAllAsViewed } = useLeadDisqualificationNotifications();
+
+  // Auto-mark as viewed when component mounts
+  React.useEffect(() => {
+    if (markAllAsViewed) {
+      markAllAsViewed();
+    }
+  }, [markAllAsViewed]);
 
   const reasonOptions = [
     { value: "", label: "Todos os motivos" },
@@ -47,6 +59,12 @@ export default function AdminLeadReports() {
     { value: "contato_errado", label: "Contato errado" },
     { value: "ligacao_sem_resposta", label: "Ligação sem resposta" },
     { value: "outro", label: "Outro" }
+  ];
+
+  const viewedStatusOptions = [
+    { value: "", label: "Todos os status" },
+    { value: "viewed", label: "Visualizados" },
+    { value: "unviewed", label: "Não visualizados" }
   ];
 
   const handleFilterChange = (key: string, value: string) => {
@@ -64,7 +82,7 @@ export default function AdminLeadReports() {
   };
 
   const clearFilters = () => {
-    setFilters({ clientId: "", reason: "", startDate: "", endDate: "", search: "" });
+    setFilters({ clientId: "", reason: "", startDate: "", endDate: "", search: "", viewedStatus: "" });
     setStartDate(undefined);
     setEndDate(undefined);
   };
@@ -81,16 +99,29 @@ export default function AdminLeadReports() {
   };
 
   const filteredReports = reports.filter(report => {
+    // Filter by search text
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      return (
+      const matchesSearch = (
         report.reporter_name.toLowerCase().includes(searchLower) ||
         getReasonLabel(report.disqualification_reason).toLowerCase().includes(searchLower) ||
         (report.additional_notes && report.additional_notes.toLowerCase().includes(searchLower))
       );
+      if (!matchesSearch) return false;
     }
+
+    // Filter by viewed status
+    if (filters.viewedStatus) {
+      if (filters.viewedStatus === 'viewed' && !report.viewed_at) return false;
+      if (filters.viewedStatus === 'unviewed' && report.viewed_at) return false;
+    }
+
     return true;
   });
+
+  const handleViewEvidence = (evidenceUrl: string) => {
+    setEvidenceModalUrl(evidenceUrl);
+  };
 
   return (
     <DashboardLayout>
@@ -132,7 +163,7 @@ export default function AdminLeadReports() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Busca */}
               <div className="space-y-2">
                 <Label htmlFor="search">Buscar</Label>
@@ -215,6 +246,26 @@ export default function AdminLeadReports() {
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              {/* Status de visualização */}
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={filters.viewedStatus}
+                  onValueChange={(value) => handleFilterChange('viewedStatus', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {viewedStatusOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -359,18 +410,37 @@ export default function AdminLeadReports() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {report.evidence_file_url && (
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
+                           <TableCell className="text-center">
+                             <div className="flex items-center justify-center gap-1">
+                               {!report.viewed_at && (
+                                 <Badge variant="destructive" className="text-xs">
+                                   Novo
+                                 </Badge>
+                               )}
+                               {report.evidence_file_url && (
+                                 <Button 
+                                   variant="ghost" 
+                                   size="sm" 
+                                   className="h-8 w-8 p-0"
+                                   onClick={() => handleViewEvidence(report.evidence_file_url!)}
+                                   title="Ver evidência"
+                                 >
+                                   <Eye className="h-4 w-4" />
+                                 </Button>
+                               )}
+                               {report.conversation_link && (
+                                 <Button 
+                                   variant="ghost" 
+                                   size="sm" 
+                                   className="h-8 w-8 p-0"
+                                   onClick={() => window.open(report.conversation_link, '_blank')}
+                                   title="Ver conversa"
+                                 >
+                                   <Download className="h-4 w-4" />
+                                 </Button>
+                               )}
+                             </div>
+                           </TableCell>
                         </TableRow>
                       );
                     })}
@@ -381,6 +451,16 @@ export default function AdminLeadReports() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Evidence Modal */}
+      {evidenceModalUrl && (
+        <EvidenceViewerModal
+          isOpen={!!evidenceModalUrl}
+          onClose={() => setEvidenceModalUrl(null)}
+          imageUrl={evidenceModalUrl}
+          fileName="evidencia.jpg"
+        />
+      )}
     </DashboardLayout>
   );
 }

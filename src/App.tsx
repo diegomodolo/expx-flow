@@ -39,6 +39,7 @@ import GeradorCriativos from "./pages/GeradorCriativos";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
+import AdminLeadReports from "./pages/AdminLeadReports";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -181,6 +182,11 @@ const App = () => {
                  <Route path="/relatorios/alertas-criticos" element={
                    <ProtectedRoute>
                      <RelatorioAlertasCriticos />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/leads-desqualificados" element={
+                   <ProtectedRoute>
+                     <AdminLeadReports />
                    </ProtectedRoute>
                  } />
                  <Route path="/gerador-campanhas" element={
