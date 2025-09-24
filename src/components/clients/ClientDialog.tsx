@@ -55,7 +55,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         ad_account_id: client.ad_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
-        team_id: client.team_id || ""
+        team_id: client.team_id || "none"
       };
     }
     return {
@@ -76,7 +76,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       ad_account_id: "",
       website_url: "",
       inactive_reason: "",
-      team_id: ""
+      team_id: "none"
     };
   });
   const [loading, setLoading] = useState(false);
@@ -120,7 +120,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         ad_account_id: client.ad_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
-        team_id: client.team_id || ""
+        team_id: client.team_id || "none"
       });
       setLocalClient(client);
     }
@@ -157,6 +157,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       // Combinar formData com dados do localClient (incluindo briefing)
       const submitData = {
         ...formData,
+        team_id: formData.team_id === 'none' ? null : formData.team_id,
         ai_briefing: localClient?.ai_briefing,
         briefing_generated_at: localClient?.briefing_generated_at,
       };
@@ -185,7 +186,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         ad_account_id: "",
         website_url: "",
         inactive_reason: "",
-        team_id: ""
+        team_id: "none"
       });
     } catch (error) {
       toast({
@@ -436,7 +437,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                       <SelectValue placeholder="Selecione a squad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma squad</SelectItem>
+                      <SelectItem value="none">Nenhuma squad</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
                           <div className="flex items-center gap-2">
