@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Client, ClientStatus } from "@/hooks/useClients";
 import { useClients } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
+import { useTeams } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
@@ -93,7 +94,8 @@ const Clientes = () => {
   const [filters, setFilters] = useState({
     sector: "all",
     budgetRange: "all",
-    campaignRange: "all"
+    campaignRange: "all",
+    squad: "all"
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -102,6 +104,7 @@ const Clientes = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients } = useClients();
   const { sectors, fetchSectors } = useSectors();
+  const { teams } = useTeams();
   const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
   const { toast } = useToast();
   
@@ -165,8 +168,15 @@ const Clientes = () => {
         default: return true;
       }
     })();
+
+    const matchesSquad = filters.squad === "all" || (() => {
+      if (filters.squad === "none") {
+        return !client.team_id;
+      }
+      return client.team_id === filters.squad;
+    })();
     
-    return matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns;
+    return matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns && matchesSquad;
   }).sort((a, b) => {
     let aValue: any = a[sortField];
     let bValue: any = b[sortField];
@@ -208,7 +218,7 @@ const Clientes = () => {
   // Reset da página quando os filtros mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, filters.sector, filters.budgetRange, filters.campaignRange]);
+  }, [searchTerm, statusFilter, filters.sector, filters.budgetRange, filters.campaignRange, filters.squad]);
 
   
   const exportToCSV = () => {
@@ -514,7 +524,7 @@ const Clientes = () => {
               <Card>
                 <CardContent className="p-3 sm:p-4">
                   <h3 className="text-lg font-semibold mb-4">Filtros Avançados</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="sector-filter">Setor</Label>
                       <Select 
@@ -529,6 +539,33 @@ const Clientes = () => {
                           {sectors.map((sector) => (
                             <SelectItem key={sector.id} value={sector.name}>
                               {sector.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="squad-filter">Squad</Label>
+                      <Select 
+                        value={filters.squad} 
+                        onValueChange={(value) => setFilters({ ...filters, squad: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todas as squads" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas as squads</SelectItem>
+                          <SelectItem value="none">Sem squad</SelectItem>
+                          {teams.map((team) => (
+                            <SelectItem key={team.id} value={team.id}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: team.color }}
+                                />
+                                {team.name}
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -579,7 +616,7 @@ const Clientes = () => {
                       variant="outline" 
                       className="w-full sm:w-auto"
                       onClick={() => {
-                        setFilters({ sector: "all", budgetRange: "all", campaignRange: "all" });
+                        setFilters({ sector: "all", budgetRange: "all", campaignRange: "all", squad: "all" });
                         toast({
                           title: "Filtros limpos",
                           description: "Todos os filtros foram removidos.",
