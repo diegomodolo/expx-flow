@@ -15,6 +15,7 @@ import { Client, ClientStatus } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useClients } from "@/hooks/useClients";
+import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Plus, Check, ChevronsUpDown } from "lucide-react";
 import { ClientBriefingTab } from "./ClientBriefingTab";
@@ -32,6 +33,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const { sectors, createSector } = useSectors();
   const { adAccounts } = useFacebookIntegration();
   const { clients } = useClients();
+  const { teams } = useTeams();
   const { toast } = useToast();
   const [formData, setFormData] = useState(() => {
     if (client) {
@@ -52,7 +54,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
         website_url: client.website_url || "",
-        inactive_reason: client.inactive_reason || ""
+        inactive_reason: client.inactive_reason || "",
+        team_id: client.team_id || ""
       };
     }
     return {
@@ -72,7 +75,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       notes: "",
       ad_account_id: "",
       website_url: "",
-      inactive_reason: ""
+      inactive_reason: "",
+      team_id: ""
     };
   });
   const [loading, setLoading] = useState(false);
@@ -115,7 +119,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
         website_url: client.website_url || "",
-        inactive_reason: client.inactive_reason || ""
+        inactive_reason: client.inactive_reason || "",
+        team_id: client.team_id || ""
       });
       setLocalClient(client);
     }
@@ -179,7 +184,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         notes: "",
         ad_account_id: "",
         website_url: "",
-        inactive_reason: ""
+        inactive_reason: "",
+        team_id: ""
       });
     } catch (error) {
       toast({
@@ -401,7 +407,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 4: Status, Budget, Product - 3 columns */}
+            {/* Row 4: Status, Squad, Budget - 3 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -419,6 +425,47 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="team">Squad</Label>
+                  <Select
+                    value={formData.team_id}
+                    onValueChange={(value) => setFormData({ ...formData, team_id: value })}
+                    disabled={readOnly}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a squad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nenhuma squad</SelectItem>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: team.color }}
+                            />
+                            {team.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
+                  <Input
+                    id="monthly_budget"
+                    type="number"
+                    step="0.01"
+                    value={formData.monthly_budget}
+                    onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
+                    placeholder="0.00"
+                    disabled={readOnly}
+                  />
+                </div>
+            </div>
+
                 {/* Motivo de Inatividade - aparece apenas quando status é "inativo" */}
                 {formData.status === 'inativo' && (
                   <div className="space-y-2">
@@ -432,19 +479,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                       rows={3}
                     />
                   </div>
-                )}
-              <div className="space-y-2">
-                <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
-                <Input
-                  id="monthly_budget"
-                  type="number"
-                  step="0.01"
-                  value={formData.monthly_budget}
-                  onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  disabled={readOnly}
-                />
-              </div>
+                 )}
+
+            {/* Row 5: Product Name */}
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="product_name">Nome do Produto</Label>
                 <Input

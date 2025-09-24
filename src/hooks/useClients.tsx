@@ -55,6 +55,7 @@ export interface Client {
   website_url?: string;
   ai_briefing?: string;
   briefing_generated_at?: string;
+  team_id?: string;
   facebook_ad_accounts?: {
     id: string;
     account_name: string;
@@ -65,6 +66,11 @@ export interface Client {
     last_balance_check?: string;
     is_prepaid: boolean;
     funding_source_details?: any;
+  };
+  team?: {
+    id: string;
+    name: string;
+    color: string;
   };
   inactive_reason?: string;
 }
@@ -422,6 +428,11 @@ export function useClients() {
             last_balance_check,
             is_prepaid,
             funding_source_details
+          ),
+          team:teams!team_id (
+            id,
+            name,
+            color
           )
         `)
         .eq("company_id", activeCompany.company_id)

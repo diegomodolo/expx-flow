@@ -677,6 +677,7 @@ export type Database = {
           sector: string
           status: Database["public"]["Enums"]["client_status"]
           target_audience: string | null
+          team_id: string | null
           updated_at: string
           user_id: string
           voice_tone: string | null
@@ -708,6 +709,7 @@ export type Database = {
           sector: string
           status?: Database["public"]["Enums"]["client_status"]
           target_audience?: string | null
+          team_id?: string | null
           updated_at?: string
           user_id: string
           voice_tone?: string | null
@@ -739,6 +741,7 @@ export type Database = {
           sector?: string
           status?: Database["public"]["Enums"]["client_status"]
           target_audience?: string | null
+          team_id?: string | null
           updated_at?: string
           user_id?: string
           voice_tone?: string | null
@@ -757,6 +760,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
