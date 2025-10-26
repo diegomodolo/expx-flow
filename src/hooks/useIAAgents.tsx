@@ -293,11 +293,40 @@ export function useIAAgents() {
 
   // Carregar agente
   const loadAgent = async (agentId: string) => {
-    const agent = agents.find(a => a.id === agentId);
-    if (agent) {
-      setCurrentAgent(agent);
-      await fetchConversations(agentId);
+    // Primeiro tenta encontrar no array já carregado
+    let agent = agents.find(a => a.id === agentId);
+    
+    // Se não encontrar, busca direto do banco
+    if (!agent) {
+      try {
+        const { data, error } = await supabase
+          .from('ia_agents')
+          .select('*')
+          .eq('id', agentId)
+          .single();
+        
+        if (error) throw error;
+        agent = data;
+        
+        // Atualiza a lista local também
+        setAgents(prev => {
+          const exists = prev.find(a => a.id === agentId);
+          if (exists) return prev;
+          return [data, ...prev];
+        });
+      } catch (error) {
+        console.error('Error loading agent:', error);
+        toast({
+          title: "Erro ao carregar agente",
+          description: "Não foi possível carregar o agente.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
+    
+    setCurrentAgent(agent);
+    await fetchConversations(agentId);
   };
 
   // Carregar conversa

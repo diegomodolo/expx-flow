@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -9,6 +9,11 @@ import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
 export default function AgentesIA() {
   const { agents } = useIAAgents();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // Log para debug - verificar se a lista está atualizando
+  useEffect(() => {
+    console.log('Agentes atualizados:', agents.length);
+  }, [agents]);
 
   return (
     <DashboardLayout>

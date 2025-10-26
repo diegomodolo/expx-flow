@@ -34,6 +34,9 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
 
     const result = await createAgent(formData);
     if (result) {
+      // Aguarda um pouco para garantir que a lista foi atualizada
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       onOpenChange(false);
       setFormData({
         agent_name: "",
