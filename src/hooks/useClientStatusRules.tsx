@@ -157,14 +157,14 @@ export const useClientStatusRules = () => {
   const reorderRules = async (newOrder: { id: string; rule_order: number }[]) => {
     try {
       // Update all rules with new order
-      const updates = newOrder.map(({ id, rule_order }) =>
-        supabase
+      for (const { id, rule_order } of newOrder) {
+        const { error: updateError } = await supabase
           .from("client_status_rules")
           .update({ rule_order })
-          .eq("id", id)
-      );
+          .eq("id", id);
 
-      await Promise.all(updates);
+        if (updateError) throw updateError;
+      }
 
       toast({
         title: "Ordem atualizada",
