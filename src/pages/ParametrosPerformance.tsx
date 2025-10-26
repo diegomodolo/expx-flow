@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, RotateCcw } from "lucide-react";
 import { useClientStatusRules } from "@/hooks/useClientStatusRules";
@@ -107,45 +106,59 @@ const ParametrosPerformance = () => {
   const nextOrder = rules.length > 0 ? Math.max(...rules.map(r => r.rule_order)) + 1 : 1;
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Parâmetros de Performance</h1>
-            <p className="text-muted-foreground mt-1">
-              Configure os critérios para classificar automaticamente o status dos clientes
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setRestoreDialogOpen(true)}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Restaurar Padrão
-            </Button>
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Regra
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Parâmetros de Performance</h1>
+          <p className="text-muted-foreground mt-1">
+            Configure os critérios para classificar automaticamente o status dos clientes
+          </p>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setRestoreDialogOpen(true)}>
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Restaurar Padrão
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Regra
+          </Button>
+        </div>
+      </div>
 
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">
             Carregando regras...
           </div>
         ) : rules.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
-              Nenhuma regra configurada. Crie sua primeira regra ou restaure as regras padrão.
-            </p>
-            <div className="flex gap-2 justify-center">
-              <Button variant="outline" onClick={() => setRestoreDialogOpen(true)}>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Restaurar Padrão
-              </Button>
-              <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Primeira Regra
-              </Button>
+          <div className="text-center py-12 border-2 border-dashed border-muted-foreground/20 rounded-lg bg-muted/5">
+            <div className="max-w-md mx-auto">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Nenhuma regra configurada
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Para começar a usar a classificação automática de clientes, você precisa criar regras de status. 
+                Recomendamos restaurar as regras padrão baseadas nas melhores práticas.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button 
+                  size="lg"
+                  onClick={() => setRestoreDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  Restaurar Regras Padrão
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={handleCreate}
+                  className="gap-2"
+                >
+                  <Plus className="h-5 w-5" />
+                  Criar Regra Manualmente
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
@@ -220,8 +233,7 @@ const ParametrosPerformance = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 };
 
