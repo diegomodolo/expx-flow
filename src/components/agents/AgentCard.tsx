@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useIAAgents } from "@/hooks/useIAAgents";
+import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,6 +21,7 @@ interface AgentCardProps {
 export function AgentCard({ agent }: AgentCardProps) {
   const navigate = useNavigate();
   const { deleteAgent, duplicateAgent } = useIAAgents();
+  const { hasPermission } = useEmployeePermissions();
 
   const handleAccess = () => {
     navigate(`/ia/agents/${agent.id}`);
@@ -63,33 +65,37 @@ export function AgentCard({ agent }: AgentCardProps) {
           <Button onClick={handleAccess} className="flex-1">
             Acessar
           </Button>
-          <Button variant="outline" size="icon" onClick={handleEdit}>
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleDuplicate}>
-            <Copy className="w-4 h-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="outline" size="icon">
-                <Trash2 className="w-4 h-4 text-destructive" />
+          {hasPermission('editar-agentes') && (
+            <>
+              <Button variant="outline" size="icon" onClick={handleEdit}>
+                <Edit className="w-4 h-4" />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Todas as conversas associadas a este agente também serão excluídas.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <Button variant="outline" size="icon" onClick={handleDuplicate}>
+                <Copy className="w-4 h-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="outline" size="icon">
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Todas as conversas associadas a este agente também serão excluídas.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

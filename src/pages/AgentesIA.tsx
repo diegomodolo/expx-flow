@@ -31,10 +31,12 @@ export default function AgentesIA() {
               Crie e gerencie seus assistentes de IA personalizados
             </p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Criar Novo Agente
-          </Button>
+          {hasPermission('editar-agentes') && (
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Novo Agente
+            </Button>
+          )}
         </div>
 
         {/* Grid de Cards */}
@@ -45,10 +47,12 @@ export default function AgentesIA() {
             <p className="text-muted-foreground mb-4">
               Crie seu primeiro agente de IA para começar
             </p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Primeiro Agente
-            </Button>
+            {hasPermission('editar-agentes') && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Primeiro Agente
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -32,7 +32,7 @@ import {
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: Home, permission: "dashboard" as MenuItemType },
   { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
-  { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "ia" as MenuItemType },
+  { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
   { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
   { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
   { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
