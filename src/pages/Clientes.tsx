@@ -102,7 +102,8 @@ const Clientes = () => {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('status');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients } = useClients();
+  const [recalculating, setRecalculating] = useState(false);
+  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients, recalculateAllStatus } = useClients();
   const { sectors, fetchSectors } = useSectors();
   const { teams } = useTeams();
   const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
@@ -123,6 +124,35 @@ const Clientes = () => {
       title: "Filtros aplicados",
       description: `${filteredAndSortedClients.length} clientes encontrados.`,
     });
+  };
+
+  const handleRecalculateStatus = async () => {
+    setRecalculating(true);
+    
+    try {
+      const result = await recalculateAllStatus();
+      
+      if (result.success) {
+        toast({
+          title: "Status recalculados",
+          description: `${result.count} clientes tiveram seus status atualizados com base nas regras configuradas.`,
+        });
+      } else {
+        toast({
+          title: "Erro ao recalcular",
+          description: "Não foi possível recalcular os status. Tente novamente.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao recalcular os status.",
+        variant: "destructive",
+      });
+    } finally {
+      setRecalculating(false);
+    }
   };
 
   const handleSort = (field: SortField) => {
@@ -445,15 +475,39 @@ const Clientes = () => {
                         <Download className="w-4 h-4" />
                         <span className="hidden sm:inline">Exportar</span>
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex items-center space-x-2" 
-                        onClick={() => setSyncDialogOpen(true)}
-                        disabled={syncing}
-                      >
-                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                        <span className="hidden sm:inline">Sincronizar</span>
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="flex items-center space-x-2" 
+                            onClick={() => setSyncDialogOpen(true)}
+                            disabled={syncing}
+                          >
+                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Sincronizar</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Busca dados novos do Facebook (campanhas, métricas)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="flex items-center space-x-2" 
+                            onClick={handleRecalculateStatus}
+                            disabled={loading || recalculating}
+                          >
+                            <RefreshCw className={`w-4 h-4 ${recalculating ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Reaplicar Status</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Recalcula os status usando as regras</p>
+                          <p>configuradas em Parâmetros de Performance</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
 

@@ -763,6 +763,32 @@ export function useClients() {
     }
   };
 
+  const recalculateAllStatus = async () => {
+    if (!user || !activeCompany) return { success: false, count: 0 };
+    
+    try {
+      setLoading(true);
+      
+      // Buscar todos os clientes
+      const { data: clientsData, error } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("company_id", activeCompany.company_id);
+      
+      if (error) throw error;
+      
+      // Recalcular status de todos os clientes
+      await fetchClients();
+      
+      return { success: true, count: clientsData?.length || 0 };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao recalcular status");
+      return { success: false, count: 0 };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
@@ -782,6 +808,7 @@ export function useClients() {
     loading,
     error,
     fetchClients,
+    recalculateAllStatus,
     createClient,
     updateClient,
     deleteClient,
