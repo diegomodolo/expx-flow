@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Plus, Bot, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +22,6 @@ export default function AgentesIA() {
       (agent.description && agent.description.toLowerCase().includes(searchLower))
     );
   });
-
-  // Log para debug - verificar se a lista está atualizando
-  useEffect(() => {
-    console.log('Agentes atualizados:', agents.length);
-  }, [agents]);
 
   return (
     <DashboardLayout>

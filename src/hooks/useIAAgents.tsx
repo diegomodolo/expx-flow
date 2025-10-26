@@ -102,7 +102,7 @@ export function useIAAgents() {
 
       if (error) throw error;
 
-      // Adiciona o novo agente diretamente ao estado antes de buscar todos
+      // Adiciona o novo agente ao início da lista imediatamente
       setAgents(prev => [data, ...prev]);
 
       toast({
@@ -408,7 +408,9 @@ export function useIAAgents() {
   };
 
   useEffect(() => {
-    fetchAgents();
+    if (activeCompany) {
+      fetchAgents();
+    }
   }, [activeCompany]);
 
   return {
