@@ -75,13 +75,233 @@ export interface Client {
   inactive_reason?: string;
 }
 
+// Helper function to get all client metrics for rule evaluation
+const getClientMetrics = async (
+  clientId: string,
+  companyId: string
+): Promise<Record<string, number | boolean | null>> => {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // Fetch campaigns data
+  const { data: campaigns } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("client_id", clientId)
+    .eq("company_id", companyId);
+
+  // Fetch ads data for quality rankings
+  const { data: ads } = await supabase
+    .from("ads")
+    .select("quality_ranking, engagement_rate_ranking, conversion_rate_ranking, status")
+    .eq("client_id", clientId)
+    .eq("company_id", companyId);
+
+  // Fetch last optimization
+  const { data: lastOptimization } = await supabase
+    .from("optimization_history")
+    .select("performed_at")
+    .eq("client_id", clientId)
+    .eq("company_id", companyId)
+    .order("performed_at", { ascending: false })
+    .limit(1);
+
+  const { data: lastChange } = await supabase
+    .from("change_audit_log")
+    .select("created_at")
+    .eq("client_id", clientId)
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (!campaigns) {
+    return {
+      current_week_leads: 0,
+      previous_week_leads: 0,
+      leads_last_7_days: 0,
+      leads_last_30_days: 0,
+      average_cpl: 0,
+      average_ctr: 0,
+      average_cpa: 0,
+      current_week_cpa: 0,
+      current_week_spend: 0,
+      active_campaigns_count: 0,
+      recent_campaigns_count: 0,
+      days_since_last_optimization: 999,
+      lead_drop_percentage: 0,
+      has_funding_issues: false,
+      has_quality_issues: false,
+      has_reproved_ads: false,
+      account_balance: 0,
+      account_status: 0,
+      days_without_changes: 999,
+    };
+  }
+
+  // Calculate metrics
+  const activeCampaigns = campaigns.filter(c => 
+    c.is_active && c.status === 'active' && new Date(c.updated_at) >= sevenDaysAgo
+  );
+
+  const recentCampaigns = campaigns.filter(c => 
+    new Date(c.updated_at) >= thirtyDaysAgo
+  );
+
+  const currentWeekLeads = campaigns
+    .filter(c => new Date(c.updated_at) >= sevenDaysAgo)
+    .reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+  const previousWeekLeads = campaigns
+    .filter(c => new Date(c.updated_at) >= fourteenDaysAgo && new Date(c.updated_at) < sevenDaysAgo)
+    .reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+  const leads30Days = campaigns
+    .filter(c => new Date(c.updated_at) >= thirtyDaysAgo)
+    .reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+  const totalCTR = activeCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0);
+  const averageCTR = activeCampaigns.length > 0 ? totalCTR / activeCampaigns.length : 0;
+
+  const currentWeekSpend = campaigns
+    .filter(c => new Date(c.updated_at) >= sevenDaysAgo)
+    .reduce((sum, c) => sum + (c.spend || 0), 0);
+  
+  const currentWeekCPA = currentWeekLeads > 0 ? currentWeekSpend / currentWeekLeads : 0;
+
+  const lastOptimizationDate = lastOptimization?.[0]?.performed_at 
+    ? new Date(lastOptimization[0].performed_at)
+    : lastChange?.[0]?.created_at 
+    ? new Date(lastChange[0].created_at)
+    : null;
+
+  const daysSinceLastOptimization = lastOptimizationDate 
+    ? Math.floor((now.getTime() - lastOptimizationDate.getTime()) / (24 * 60 * 60 * 1000))
+    : 999;
+
+  const hasQualityIssues = ads?.some(ad => 
+    ad.quality_ranking === 'BELOW_AVERAGE' || 
+    ad.engagement_rate_ranking === 'BELOW_AVERAGE' ||
+    ad.conversion_rate_ranking === 'BELOW_AVERAGE' ||
+    ad.status === 'disapproved'
+  ) || false;
+
+  const hasReprovedAds = ads?.some(ad => ad.status === 'disapproved') || false;
+
+  const leadDropPercentage = previousWeekLeads > 0 
+    ? ((previousWeekLeads - currentWeekLeads) / previousWeekLeads) * 100 
+    : 0;
+
+  return {
+    current_week_leads: currentWeekLeads,
+    previous_week_leads: previousWeekLeads,
+    leads_last_7_days: currentWeekLeads,
+    leads_last_30_days: leads30Days,
+    average_cpl: 0, // Not calculated in original
+    average_ctr: averageCTR,
+    average_cpa: 0, // Not calculated in original
+    current_week_cpa: currentWeekCPA,
+    current_week_spend: currentWeekSpend,
+    active_campaigns_count: activeCampaigns.length,
+    recent_campaigns_count: recentCampaigns.length,
+    days_since_last_optimization: daysSinceLastOptimization,
+    lead_drop_percentage: leadDropPercentage,
+    has_funding_issues: false, // Checked separately
+    has_quality_issues: hasQualityIssues,
+    has_reproved_ads: hasReprovedAds,
+    account_balance: 0, // Checked separately
+    account_status: 1, // Checked separately
+    days_without_changes: daysSinceLastOptimization,
+  };
+};
+
+// Helper function to evaluate a single rule against metrics
+const evaluateRule = (
+  rule: any,
+  metrics: Record<string, any>
+): boolean => {
+  const { conditions } = rule.conditions;
+  const logic = rule.conditions.logic;
+  
+  const results = conditions.map((condition: any) => {
+    const value = metrics[condition.field];
+    
+    switch (condition.operator) {
+      case '<': return Number(value) < Number(condition.value);
+      case '>': return Number(value) > Number(condition.value);
+      case '<=': return Number(value) <= Number(condition.value);
+      case '>=': return Number(value) >= Number(condition.value);
+      case '=': 
+        if (condition.type === 'boolean') {
+          return Boolean(value) === Boolean(condition.value);
+        }
+        return value === condition.value;
+      case '!=': return value !== condition.value;
+      default: return false;
+    }
+  });
+  
+  return logic === 'AND' 
+    ? results.every(r => r === true)
+    : results.some(r => r === true);
+};
+
+// Helper function to generate status explanation
+const generateExplanation = (
+  status: ClientStatus,
+  metrics: Record<string, any>,
+  ruleName?: string
+): string => {
+  const statusEmojis = {
+    sem_fundos: "💳",
+    inativo: "⚫",
+    emergencial: "🚨",
+    atencao: "⚠️",
+    excelente: "✅"
+  };
+
+  const emoji = statusEmojis[status] || "ℹ️";
+
+  switch (status) {
+    case "sem_fundos":
+      return `${emoji} Conta sem fundos suficientes para rodar anúncios!\n\nAção necessária: Adicionar saldo à conta do Facebook Ads.`;
+    
+    case "inativo":
+      return `${emoji} Cliente inativo há mais de 30 dias!\n\nProblemas identificados:\n• Sem campanhas ativas\n• Nenhum lead gerado\n• Sem otimizações recentes`;
+    
+    case "emergencial":
+      const problems = [];
+      if (metrics.current_week_leads < 7) problems.push(`• Poucos leads esta semana (${metrics.current_week_leads})`);
+      if (metrics.active_campaigns_count === 0) problems.push("• Sem campanhas ativas");
+      if (metrics.has_reproved_ads) problems.push("• Anúncios reprovados");
+      if (metrics.days_since_last_optimization > 30) problems.push("• Sem otimização há mais de 30 dias");
+      
+      return `${emoji} Situação crítica! Este cliente precisa de atenção urgente.\n\nProblemas identificados:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${metrics.average_ctr?.toFixed(2)}%\n• Leads esta semana: ${metrics.current_week_leads}\n• Campanhas ativas: ${metrics.active_campaigns_count}`;
+    
+    case "atencao":
+      const attentionPoints = [];
+      if (metrics.lead_drop_percentage >= 30) attentionPoints.push(`• Queda de ${metrics.lead_drop_percentage.toFixed(1)}% nos leads`);
+      if (metrics.has_quality_issues) attentionPoints.push("• Alertas de qualidade nos anúncios");
+      if (metrics.days_since_last_optimization >= 8) attentionPoints.push("• Otimização não recente");
+      
+      return `${emoji} Cliente requer monitoramento.\n\nPontos de atenção:\n${attentionPoints.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${metrics.average_ctr?.toFixed(2)}%\n• Leads esta semana: ${metrics.current_week_leads}`;
+    
+    case "excelente":
+      return `${emoji} Performance excelente! Cliente em ótimo estado.\n\nPontos positivos:\n• Campanhas performando bem\n• Bom volume de leads\n• Métricas consistentes\n\nMétricas atuais:\n• CTR médio: ${metrics.average_ctr?.toFixed(2)}%\n• Leads esta semana: ${metrics.current_week_leads}\n• CPA: R$ ${metrics.current_week_cpa?.toFixed(2)}`;
+    
+    default:
+      return `${emoji} Performance dentro da média.`;
+  }
+};
+
 // Function to calculate automatic status based on campaign metrics (exported for reuse)
 export const calculateClientStatus = async (
   clientId: string, 
   companyId?: string
 ): Promise<{ status: ClientStatus; explanation: string }> => {
   try {
-    // First, check if client is manually set to inactive - if so, don't recalculate
+    // PRIORITY CHECK 1: Manual inactive status
     const { data: clientData } = await supabase
       .from("clients")
       .select(`
@@ -100,20 +320,17 @@ export const calculateClientStatus = async (
 
     // Client is inactive if status is 'red' AND has an inactive_reason
     if (clientData?.status === "red" && clientData?.inactive_reason) {
-      // Check if inactive_reason indicates funding issues
       const fundingKeywords = ['sem fundos', 'saldo', 'funding', 'balance', 'gastos', 'campanhas ativas sem gastos'];
       const isFundingIssue = fundingKeywords.some(keyword => 
         clientData.inactive_reason.toLowerCase().includes(keyword.toLowerCase())
       );
       
       if (isFundingIssue) {
-        console.log("Client has funding issues based on inactive_reason:", clientData.inactive_reason);
         return { 
           status: "sem_fundos", 
           explanation: clientData.inactive_reason 
         };
       } else {
-        console.log("Client is inactive, skipping status calculation");
         return { 
           status: "inativo", 
           explanation: "Cliente marcado como inativo manualmente" 
@@ -121,10 +338,9 @@ export const calculateClientStatus = async (
       }
     }
 
-    // PRIORITY CHECK: Funding issues (sem fundos)
+    // PRIORITY CHECK 2: Funding issues (sem fundos)
     const adAccount = clientData?.facebook_ad_accounts?.[0];
     if (adAccount) {
-      console.log("Checking funding status:", adAccount);
       const hasFundingIssues = 
         adAccount.account_status !== 1 || 
         adAccount.balance <= 0 || 
@@ -139,6 +355,36 @@ export const calculateClientStatus = async (
       }
     }
 
+    // Get all client metrics
+    const metrics = await getClientMetrics(clientId, companyId || '');
+
+    // Fetch custom rules for this company
+    const { data: rules } = await supabase
+      .from("client_status_rules")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("is_active", true)
+      .order("rule_order", { ascending: true });
+
+    // If custom rules exist, use them
+    if (rules && rules.length > 0) {
+      for (const rule of rules) {
+        if (evaluateRule(rule, metrics)) {
+          return {
+            status: rule.status_output as ClientStatus,
+            explanation: generateExplanation(rule.status_output as ClientStatus, metrics, rule.rule_name)
+          };
+        }
+      }
+      
+      // Fallback if no rule matched
+      return {
+        status: "atencao",
+        explanation: generateExplanation("atencao", metrics)
+      };
+    }
+
+    // FALLBACK: Use hardcoded logic if no custom rules exist
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -327,10 +573,6 @@ export const calculateClientStatus = async (
     }
 
     // Excelente status - múltiplos critérios alternativos:
-    // Opção A: Alto volume (>=30) + CPA bom (<=25)
-    // Opção B: Volume médio (>=20) + CPA excelente (<=15) 
-    // Opção C: Volume muito alto (>=100) + CPA aceitável (<=35)
-    // Opção D: CTR alto + otimização recente
     const hasHighVolumeGoodCPA = currentWeekLeads >= 30 && currentWeekCPA <= GOOD_CPA_THRESHOLD && currentWeekCPA > 0;
     const hasMediumVolumeExcellentCPA = currentWeekLeads >= 20 && currentWeekCPA <= 15 && currentWeekCPA > 0;
     const hasVeryHighVolumeAcceptableCPA = currentWeekLeads >= 100 && currentWeekCPA <= 35 && currentWeekCPA > 0;

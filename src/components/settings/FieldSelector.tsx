@@ -27,6 +27,18 @@ const fieldOptions: FieldOption[] = [
     description: "Total de leads gerados nos últimos 30 dias",
   },
   {
+    value: "current_week_leads",
+    label: "Leads semana atual",
+    type: "number",
+    description: "Leads gerados na semana atual (últimos 7 dias)",
+  },
+  {
+    value: "previous_week_leads",
+    label: "Leads semana anterior",
+    type: "number",
+    description: "Leads gerados na semana anterior (7-14 dias atrás)",
+  },
+  {
     value: "average_cpl",
     label: "CPL médio",
     type: "number",
@@ -45,10 +57,28 @@ const fieldOptions: FieldOption[] = [
     description: "Custo por aquisição médio",
   },
   {
+    value: "current_week_cpa",
+    label: "CPA semana atual",
+    type: "number",
+    description: "CPA da semana atual",
+  },
+  {
+    value: "current_week_spend",
+    label: "Gasto semana atual",
+    type: "number",
+    description: "Valor gasto na semana atual",
+  },
+  {
     value: "active_campaigns_count",
     label: "Campanhas ativas",
     type: "number",
     description: "Quantidade de campanhas ativas",
+  },
+  {
+    value: "recent_campaigns_count",
+    label: "Campanhas recentes (30 dias)",
+    type: "number",
+    description: "Campanhas ativas nos últimos 30 dias",
   },
   {
     value: "days_since_last_optimization",
@@ -69,10 +99,28 @@ const fieldOptions: FieldOption[] = [
     description: "Se a conta tem problemas de financiamento",
   },
   {
+    value: "has_quality_issues",
+    label: "Tem problemas de qualidade",
+    type: "boolean",
+    description: "Se há problemas de qualidade nos anúncios",
+  },
+  {
+    value: "has_reproved_ads",
+    label: "Tem anúncios reprovados",
+    type: "boolean",
+    description: "Se há anúncios com status reprovado",
+  },
+  {
     value: "account_balance",
     label: "Saldo da conta",
     type: "number",
     description: "Saldo atual da conta de anúncios",
+  },
+  {
+    value: "account_status",
+    label: "Status da conta",
+    type: "number",
+    description: "Status da conta (1 = ativa, 0 = inativa)",
   },
   {
     value: "days_without_changes",

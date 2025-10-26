@@ -236,7 +236,37 @@ export const useClientStatusRules = () => {
             logic: "OR" as const,
             conditions: [
               { field: "leads_last_7_days", operator: "<" as const, value: 7, type: "number" as const },
+          { field: "active_campaigns_count", operator: "=" as const, value: 0, type: "number" as const },
+            ],
+          },
+          is_active: true,
+          is_default: true,
+        },
+        {
+          company_id: activeCompany.company_id,
+          rule_name: "Emergencial - Poucos Leads",
+          rule_order: 3,
+          status_output: "emergencial" as const,
+          conditions: {
+            logic: "AND" as const,
+            conditions: [
+              { field: "current_week_leads", operator: "<" as const, value: 7, type: "number" as const },
+            ],
+          },
+          is_active: true,
+          is_default: true,
+        },
+        {
+          company_id: activeCompany.company_id,
+          rule_name: "Emergencial - Múltiplos Critérios",
+          rule_order: 4,
+          status_output: "emergencial" as const,
+          conditions: {
+            logic: "OR" as const,
+            conditions: [
               { field: "active_campaigns_count", operator: "=" as const, value: 0, type: "number" as const },
+              { field: "has_reproved_ads", operator: "=" as const, value: true, type: "boolean" as const },
+              { field: "days_since_last_optimization", operator: ">" as const, value: 30, type: "number" as const },
             ],
           },
           is_active: true,
@@ -245,13 +275,14 @@ export const useClientStatusRules = () => {
         {
           company_id: activeCompany.company_id,
           rule_name: "Atenção",
-          rule_order: 4,
+          rule_order: 5,
           status_output: "atencao" as const,
           conditions: {
             logic: "OR" as const,
             conditions: [
               { field: "lead_drop_percentage", operator: ">=" as const, value: 30, type: "number" as const },
-              { field: "days_since_last_optimization", operator: ">" as const, value: 7, type: "number" as const },
+              { field: "has_quality_issues", operator: "=" as const, value: true, type: "boolean" as const },
+              { field: "days_since_last_optimization", operator: ">=" as const, value: 8, type: "number" as const },
             ],
           },
           is_active: true,
@@ -259,14 +290,62 @@ export const useClientStatusRules = () => {
         },
         {
           company_id: activeCompany.company_id,
-          rule_name: "Excelente",
-          rule_order: 5,
+          rule_name: "Excelente - Alto Volume",
+          rule_order: 6,
           status_output: "excelente" as const,
           conditions: {
             logic: "AND" as const,
             conditions: [
-              { field: "leads_last_7_days", operator: ">=" as const, value: 30, type: "number" as const },
+              { field: "current_week_leads", operator: ">=" as const, value: 30, type: "number" as const },
+              { field: "current_week_cpa", operator: "<=" as const, value: 25, type: "number" as const },
+              { field: "current_week_cpa", operator: ">" as const, value: 0, type: "number" as const },
+            ],
+          },
+          is_active: true,
+          is_default: true,
+        },
+        {
+          company_id: activeCompany.company_id,
+          rule_name: "Excelente - Volume Médio CPA Excelente",
+          rule_order: 7,
+          status_output: "excelente" as const,
+          conditions: {
+            logic: "AND" as const,
+            conditions: [
+              { field: "current_week_leads", operator: ">=" as const, value: 20, type: "number" as const },
+              { field: "current_week_cpa", operator: "<=" as const, value: 15, type: "number" as const },
+              { field: "current_week_cpa", operator: ">" as const, value: 0, type: "number" as const },
+            ],
+          },
+          is_active: true,
+          is_default: true,
+        },
+        {
+          company_id: activeCompany.company_id,
+          rule_name: "Excelente - Volume Muito Alto",
+          rule_order: 8,
+          status_output: "excelente" as const,
+          conditions: {
+            logic: "AND" as const,
+            conditions: [
+              { field: "current_week_leads", operator: ">=" as const, value: 100, type: "number" as const },
+              { field: "current_week_cpa", operator: "<=" as const, value: 35, type: "number" as const },
+              { field: "current_week_cpa", operator: ">" as const, value: 0, type: "number" as const },
+            ],
+          },
+          is_active: true,
+          is_default: true,
+        },
+        {
+          company_id: activeCompany.company_id,
+          rule_name: "Excelente - Alto CTR",
+          rule_order: 9,
+          status_output: "excelente" as const,
+          conditions: {
+            logic: "AND" as const,
+            conditions: [
               { field: "average_ctr", operator: ">" as const, value: 1.5, type: "number" as const },
+              { field: "days_since_last_optimization", operator: "<" as const, value: 7, type: "number" as const },
             ],
           },
           is_active: true,
