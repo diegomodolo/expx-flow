@@ -7,10 +7,12 @@ import { useIAAgents } from "@/hooks/useIAAgents";
 import { ChatMessages } from "@/components/ai-chat/ChatMessages";
 import { ChatInput } from "@/components/ai-chat/ChatInput";
 import { AgentConversationsSidebar } from "@/components/agents/AgentConversationsSidebar";
+import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 
 export default function AgentChat() {
   const { agentId } = useParams();
   const navigate = useNavigate();
+  const { hasPermission } = useEmployeePermissions();
   const {
     currentAgent,
     conversations,
@@ -73,10 +75,12 @@ export default function AgentChat() {
               )}
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/ia/agents/${agentId}/edit`)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Editar Agente
-          </Button>
+          {hasPermission('editar-agentes') && (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/ia/agents/${agentId}/edit`)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Editar Agente
+            </Button>
+          )}
         </div>
 
         {/* Chat Area */}

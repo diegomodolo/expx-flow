@@ -15,7 +15,9 @@ export type MenuItemType =
   | 'gerador-conteudo'
   | 'gerador-criativos'
   | 'ia'
-  | 'configuracoes';
+  | 'configuracoes'
+  | 'agentes-ia'
+  | 'editar-agentes';
 
 export interface EmployeePermission {
   id: string;
@@ -126,7 +128,7 @@ export function useEmployeePermissions() {
 
       // Se for proprietário, não precisa verificar permissões específicas
       if (userIsOwner) {
-        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'ia', 'configuracoes'];
+        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'ia', 'configuracoes', 'agentes-ia', 'editar-agentes'];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
         return;

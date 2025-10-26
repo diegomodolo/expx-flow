@@ -5,10 +5,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
+import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 
 export default function AgentesIA() {
   const { agents } = useIAAgents();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { hasPermission } = useEmployeePermissions();
 
   // Log para debug - verificar se a lista está atualizando
   useEffect(() => {
