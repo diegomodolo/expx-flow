@@ -40,6 +40,7 @@ export function useIAAgents() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const isFetchingRef = useRef(false);
+  const lastCompanyIdRef = useRef<string | null>(null);
   
   const { user } = useAuth();
   const { activeCompany } = useCompany();
@@ -419,8 +420,15 @@ export function useIAAgents() {
   };
 
   useEffect(() => {
-    console.log('[useIAAgents] useEffect disparado. Company ID:', activeCompany?.company_id);
-    if (activeCompany?.company_id) {
+    const currentCompanyId = activeCompany?.company_id;
+    
+    console.log('[useIAAgents] useEffect disparado. Company ID:', currentCompanyId);
+    console.log('[useIAAgents] Last Company ID:', lastCompanyIdRef.current);
+    
+    // Só busca se o company_id realmente mudou
+    if (currentCompanyId && currentCompanyId !== lastCompanyIdRef.current) {
+      console.log('[useIAAgents] Company ID mudou, buscando agentes...');
+      lastCompanyIdRef.current = currentCompanyId;
       fetchAgents();
     }
   }, [activeCompany?.company_id]);
