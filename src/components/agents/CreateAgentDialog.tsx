@@ -46,10 +46,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
       ...formData,
       client_id: formData.client_id === "none" ? null : formData.client_id
     });
+    
     if (result) {
-      // Aguarda um pouco para garantir que a lista foi atualizada
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       onOpenChange(false);
       setFormData({
         agent_name: "",

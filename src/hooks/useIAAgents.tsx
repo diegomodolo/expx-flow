@@ -102,7 +102,9 @@ export function useIAAgents() {
 
       if (error) throw error;
 
-      await fetchAgents();
+      // Adiciona o novo agente diretamente ao estado antes de buscar todos
+      setAgents(prev => [data, ...prev]);
+
       toast({
         title: "Agente criado",
         description: "Agente criado com sucesso!",
