@@ -67,6 +67,7 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
             Tamanho total: {formatFileSize(totalSize)}
           </div>
           <Button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             size="sm"
@@ -120,7 +121,7 @@ export function KnowledgeDocumentsManager({ agentId }: KnowledgeDocumentsManager
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="flex-shrink-0">
+                    <Button type="button" variant="ghost" size="icon" className="flex-shrink-0">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </AlertDialogTrigger>
