@@ -36,6 +36,9 @@ import RelatorioAlertasCriticos from "./pages/reports/RelatorioAlertasCriticos";
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
+import AgentesIA from "./pages/AgentesIA";
+import AgentChat from "./pages/AgentChat";
+import AgentEdit from "./pages/AgentEdit";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
@@ -72,6 +75,21 @@ const App = () => {
                <Route path="/ia" element={
                  <ProtectedRoute>
                    <IAChat />
+                 </ProtectedRoute>
+               } />
+               <Route path="/ia/agents" element={
+                 <ProtectedRoute>
+                   <AgentesIA />
+                 </ProtectedRoute>
+               } />
+               <Route path="/ia/agents/:agentId" element={
+                 <ProtectedRoute>
+                   <AgentChat />
+                 </ProtectedRoute>
+               } />
+               <Route path="/ia/agents/:agentId/edit" element={
+                 <ProtectedRoute>
+                   <AgentEdit />
                  </ProtectedRoute>
                } />
                 <Route path="/clientes" element={

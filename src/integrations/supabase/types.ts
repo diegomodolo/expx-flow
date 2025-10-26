@@ -1473,6 +1473,130 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_agent_conversations: {
+        Row: {
+          agent_id: string
+          company_id: string
+          created_at: string | null
+          id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_conversations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_agent_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agent_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_agents: {
+        Row: {
+          additional_instructions: string | null
+          agent_name: string
+          company_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          model: string | null
+          prompt_base: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          additional_instructions?: string | null
+          agent_name: string
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          model?: string | null
+          prompt_base: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          additional_instructions?: string | null
+          agent_name?: string
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          model?: string | null
+          prompt_base?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_disqualification_reports: {
         Row: {
           additional_notes: string | null
