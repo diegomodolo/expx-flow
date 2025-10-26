@@ -82,6 +82,11 @@ const App = () => {
                    <AgentesIA />
                  </ProtectedRoute>
                } />
+               <Route path="/ia/agents/new" element={
+                 <ProtectedRoute>
+                   <AgentEdit />
+                 </ProtectedRoute>
+               } />
                <Route path="/ia/agents/:agentId" element={
                  <ProtectedRoute>
                    <AgentChat />

@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { Plus, Bot, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { AgentCard } from "@/components/agents/AgentCard";
-import { CreateAgentDialog } from "@/components/agents/CreateAgentDialog";
 import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 
 export default function AgentesIA() {
   const { agents } = useIAAgents();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const { hasPermission } = useEmployeePermissions();
 
@@ -38,7 +38,7 @@ export default function AgentesIA() {
             </p>
           </div>
           {hasPermission('editar-agentes') && (
-            <Button onClick={() => setCreateDialogOpen(true)}>
+            <Button onClick={() => navigate('/ia/agents/new')}>
               <Plus className="w-4 h-4 mr-2" />
               Criar Novo Agente
             </Button>
@@ -70,7 +70,7 @@ export default function AgentesIA() {
               Crie seu primeiro agente de IA para começar
             </p>
             {hasPermission('editar-agentes') && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
+              <Button onClick={() => navigate('/ia/agents/new')}>
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Primeiro Agente
               </Button>
@@ -91,12 +91,6 @@ export default function AgentesIA() {
             ))}
           </div>
         )}
-
-        {/* Dialog de Criação */}
-        <CreateAgentDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-        />
       </div>
     </DashboardLayout>
   );

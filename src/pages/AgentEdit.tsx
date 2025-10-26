@@ -23,8 +23,10 @@ import {
 export default function AgentEdit() {
   const { agentId } = useParams();
   const navigate = useNavigate();
-  const { currentAgent, loadAgent, updateAgent } = useIAAgents();
+  const { currentAgent, loadAgent, updateAgent, createAgent } = useIAAgents();
   const { clients } = useClients();
+  const isCreating = !agentId;
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     agent_name: "",
     description: "",
@@ -41,7 +43,7 @@ export default function AgentEdit() {
   }, [agentId]);
 
   useEffect(() => {
-    if (currentAgent) {
+    if (currentAgent && agentId) {
       setFormData({
         agent_name: currentAgent.agent_name,
         description: currentAgent.description || "",
@@ -50,7 +52,7 @@ export default function AgentEdit() {
         client_id: currentAgent.client_id || "none"
       });
     }
-  }, [currentAgent]);
+  }, [currentAgent, agentId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,16 +62,29 @@ export default function AgentEdit() {
       return;
     }
 
-    if (agentId) {
-      await updateAgent(agentId, {
-        ...formData,
-        client_id: formData.client_id === "none" ? null : formData.client_id
-      });
-      navigate(`/ia/agents/${agentId}`);
+    setLoading(true);
+    try {
+      if (isCreating) {
+        const result = await createAgent({
+          ...formData,
+          client_id: formData.client_id === "none" ? null : formData.client_id
+        });
+        if (result) {
+          navigate(`/ia/agents/${result.id}`);
+        }
+      } else {
+        await updateAgent(agentId, {
+          ...formData,
+          client_id: formData.client_id === "none" ? null : formData.client_id
+        });
+        navigate(`/ia/agents/${agentId}`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!currentAgent) {
+  if (!isCreating && !currentAgent) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
@@ -83,10 +98,12 @@ export default function AgentEdit() {
     <DashboardLayout>
       <div className="p-6 max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/ia/agents/${agentId}`)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/ia/agents')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Editar Agente</h1>
+          <h1 className="text-2xl font-bold">
+            {isCreating ? 'Criar Novo Agente' : 'Editar Agente'}
+          </h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -96,6 +113,7 @@ export default function AgentEdit() {
               id="agent_name"
               value={formData.agent_name}
               onChange={(e) => setFormData({ ...formData, agent_name: e.target.value })}
+              placeholder="Ex: Assistente de Marketing"
               required
             />
           </div>
@@ -106,6 +124,7 @@ export default function AgentEdit() {
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Breve descrição do agente (opcional)"
             />
           </div>
 
@@ -142,6 +161,7 @@ export default function AgentEdit() {
                   setShowWarning(false);
                 }
               }}
+              placeholder="Descreva como o agente deve se comportar, seu tom de voz, especialidades..."
               className="min-h-[200px]"
               required
             />
@@ -156,30 +176,35 @@ export default function AgentEdit() {
               id="additional_instructions"
               value={formData.additional_instructions}
               onChange={(e) => setFormData({ ...formData, additional_instructions: e.target.value })}
+              placeholder="Contexto adicional, regras específicas... (opcional)"
               className="min-h-[150px]"
             />
           </div>
 
           <Separator />
 
-          {agentId && <KnowledgeDocumentsManager agentId={agentId} />}
+          {!isCreating && agentId && <KnowledgeDocumentsManager agentId={agentId} />}
 
           {showWarning && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                O prompt deve ter no mínimo 50 caracteres.
+                O prompt deve ter no mínimo 50 caracteres. Seja mais específico sobre como o agente deve se comportar.
               </AlertDescription>
             </Alert>
           )}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => navigate(`/ia/agents/${agentId}`)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => navigate(isCreating ? '/ia/agents' : `/ia/agents/${agentId}`)}
+            >
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={loading}>
               <Save className="w-4 h-4 mr-2" />
-              Salvar Alterações
+              {loading ? 'Salvando...' : isCreating ? 'Criar Agente' : 'Salvar Alterações'}
             </Button>
           </div>
         </form>

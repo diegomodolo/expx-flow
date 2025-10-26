@@ -50,7 +50,6 @@ export function useIAAgents() {
   const fetchAgents = async () => {
     if (!activeCompany || isFetchingRef.current) return;
 
-    console.log('[useIAAgents] Iniciando fetchAgents...');
     isFetchingRef.current = true;
     try {
       const { data, error } = await supabase
@@ -60,7 +59,6 @@ export function useIAAgents() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('[useIAAgents] Agents buscados:', data?.length);
       setAgents(data || []);
     } catch (error) {
       console.error('Error fetching agents:', error);
@@ -96,7 +94,6 @@ export function useIAAgents() {
     }
 
     try {
-      console.log('[useIAAgents] Criando novo agente...');
       const { data, error } = await supabase
         .from('ia_agents')
         .insert({
@@ -110,12 +107,8 @@ export function useIAAgents() {
 
       if (error) throw error;
 
-      console.log('[useIAAgents] Agente criado, adicionando ao estado. Agentes atuais:', agents.length);
       // Adiciona o novo agente ao início da lista imediatamente
-      setAgents(prev => {
-        console.log('[useIAAgents] Estado anterior:', prev.length, 'Novo estado:', prev.length + 1);
-        return [data, ...prev];
-      });
+      setAgents(prev => [data, ...prev]);
 
       toast({
         title: "Agente criado",
@@ -422,12 +415,8 @@ export function useIAAgents() {
   useEffect(() => {
     const currentCompanyId = activeCompany?.company_id;
     
-    console.log('[useIAAgents] useEffect disparado. Company ID:', currentCompanyId);
-    console.log('[useIAAgents] Last Company ID:', lastCompanyIdRef.current);
-    
     // Só busca se o company_id realmente mudou
     if (currentCompanyId && currentCompanyId !== lastCompanyIdRef.current) {
-      console.log('[useIAAgents] Company ID mudou, buscando agentes...');
       lastCompanyIdRef.current = currentCompanyId;
       fetchAgents();
     }
