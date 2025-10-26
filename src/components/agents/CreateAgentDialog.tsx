@@ -29,7 +29,7 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
     description: "",
     prompt_base: "",
     additional_instructions: "",
-    client_id: ""
+    client_id: "none"
   });
   const [showWarning, setShowWarning] = useState(false);
 
@@ -44,7 +44,7 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
 
     const result = await createAgent({
       ...formData,
-      client_id: formData.client_id || null
+      client_id: formData.client_id === "none" ? null : formData.client_id
     });
     if (result) {
       // Aguarda um pouco para garantir que a lista foi atualizada
@@ -56,7 +56,7 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
         description: "",
         prompt_base: "",
         additional_instructions: "",
-        client_id: ""
+        client_id: "none"
       });
       setShowWarning(false);
     }
@@ -101,7 +101,7 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum cliente específico</SelectItem>
+                <SelectItem value="none">Nenhum cliente específico</SelectItem>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}

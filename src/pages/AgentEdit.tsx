@@ -30,7 +30,7 @@ export default function AgentEdit() {
     description: "",
     prompt_base: "",
     additional_instructions: "",
-    client_id: ""
+    client_id: "none"
   });
   const [showWarning, setShowWarning] = useState(false);
 
@@ -47,7 +47,7 @@ export default function AgentEdit() {
         description: currentAgent.description || "",
         prompt_base: currentAgent.prompt_base,
         additional_instructions: currentAgent.additional_instructions || "",
-        client_id: currentAgent.client_id || ""
+        client_id: currentAgent.client_id || "none"
       });
     }
   }, [currentAgent]);
@@ -63,7 +63,7 @@ export default function AgentEdit() {
     if (agentId) {
       await updateAgent(agentId, {
         ...formData,
-        client_id: formData.client_id || null
+        client_id: formData.client_id === "none" ? null : formData.client_id
       });
       navigate(`/ia/agents/${agentId}`);
     }
@@ -116,7 +116,7 @@ export default function AgentEdit() {
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum cliente específico</SelectItem>
+                <SelectItem value="none">Nenhum cliente específico</SelectItem>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
