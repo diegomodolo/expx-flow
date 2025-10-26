@@ -2411,6 +2411,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_default_client_status_rules: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
       create_performance_snapshot: {
         Args: { _entity_id: string; _entity_type: string; _period?: string }
         Returns: undefined
