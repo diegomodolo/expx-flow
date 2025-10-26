@@ -14,14 +14,16 @@ export default function AgentesIA() {
   const [searchTerm, setSearchTerm] = useState("");
   const { hasPermission } = useEmployeePermissions();
 
-  // Filtrar agentes baseado no termo de busca
-  const filteredAgents = agents.filter((agent) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      agent.agent_name.toLowerCase().includes(searchLower) ||
-      (agent.description && agent.description.toLowerCase().includes(searchLower))
-    );
-  });
+  // Filtrar e ordenar agentes
+  const filteredAgents = agents
+    .filter((agent) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        agent.agent_name.toLowerCase().includes(searchLower) ||
+        (agent.description && agent.description.toLowerCase().includes(searchLower))
+      );
+    })
+    .sort((a, b) => a.agent_name.localeCompare(b.agent_name));
 
   return (
     <DashboardLayout>
