@@ -1,0 +1,228 @@
+import { useState } from "react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Plus, RotateCcw } from "lucide-react";
+import { useClientStatusRules } from "@/hooks/useClientStatusRules";
+import { RuleCard } from "@/components/settings/RuleCard";
+import { RuleEditorModal } from "@/components/settings/RuleEditorModal";
+import { ClientStatusRule } from "@/hooks/useClientStatusRules";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const ParametrosPerformance = () => {
+  const {
+    rules,
+    loading,
+    createRule,
+    updateRule,
+    deleteRule,
+    reorderRules,
+    restoreDefaults,
+  } = useClientStatusRules();
+
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<ClientStatusRule | null>(null);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
+
+  const handleEdit = (rule: ClientStatusRule) => {
+    setSelectedRule(rule);
+    setEditorOpen(true);
+  };
+
+  const handleCreate = () => {
+    setSelectedRule(null);
+    setEditorOpen(true);
+  };
+
+  const handleSave = async (ruleData: Partial<ClientStatusRule>) => {
+    if (selectedRule) {
+      await updateRule(selectedRule.id, ruleData);
+    } else {
+      await createRule(ruleData as any);
+    }
+    setEditorOpen(false);
+    setSelectedRule(null);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setRuleToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (ruleToDelete) {
+      await deleteRule(ruleToDelete);
+      setDeleteDialogOpen(false);
+      setRuleToDelete(null);
+    }
+  };
+
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    
+    const newOrder = [...rules];
+    const temp = newOrder[index];
+    newOrder[index] = newOrder[index - 1];
+    newOrder[index - 1] = temp;
+
+    await reorderRules(
+      newOrder.map((rule, idx) => ({
+        id: rule.id,
+        rule_order: idx + 1,
+      }))
+    );
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === rules.length - 1) return;
+    
+    const newOrder = [...rules];
+    const temp = newOrder[index];
+    newOrder[index] = newOrder[index + 1];
+    newOrder[index + 1] = temp;
+
+    await reorderRules(
+      newOrder.map((rule, idx) => ({
+        id: rule.id,
+        rule_order: idx + 1,
+      }))
+    );
+  };
+
+  const handleRestoreDefaults = async () => {
+    await restoreDefaults();
+    setRestoreDialogOpen(false);
+  };
+
+  const nextOrder = rules.length > 0 ? Math.max(...rules.map(r => r.rule_order)) + 1 : 1;
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Parâmetros de Performance</h1>
+            <p className="text-muted-foreground mt-1">
+              Configure os critérios para classificar automaticamente o status dos clientes
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setRestoreDialogOpen(true)}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restaurar Padrão
+            </Button>
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Regra
+            </Button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Carregando regras...
+          </div>
+        ) : rules.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              Nenhuma regra configurada. Crie sua primeira regra ou restaure as regras padrão.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={() => setRestoreDialogOpen(true)}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restaurar Padrão
+              </Button>
+              <Button onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Regra
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>Como funciona:</strong> As regras são avaliadas de cima para baixo. 
+                A primeira regra que atender às condições determina o status do cliente.
+                Use as setas para reordenar as regras conforme necessário.
+              </p>
+            </div>
+
+            {rules.map((rule, index) => (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                index={index}
+                totalRules={rules.length}
+                onEdit={handleEdit}
+                onDelete={handleDeleteClick}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+              />
+            ))}
+          </div>
+        )}
+
+        <RuleEditorModal
+          open={editorOpen}
+          onClose={() => {
+            setEditorOpen(false);
+            setSelectedRule(null);
+          }}
+          rule={selectedRule}
+          onSave={handleSave}
+          nextOrder={nextOrder}
+        />
+
+        <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restaurar Regras Padrão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Isso irá deletar todas as regras personalizadas e restaurar as regras padrão do sistema.
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRestoreDefaults}>
+                Restaurar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Regra</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir esta regra? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRuleToDelete(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm}>
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default ParametrosPerformance;

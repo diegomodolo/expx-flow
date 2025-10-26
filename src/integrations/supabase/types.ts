@@ -650,6 +650,53 @@ export type Database = {
           },
         ]
       }
+      client_status_rules: {
+        Row: {
+          company_id: string
+          conditions: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          rule_name: string
+          rule_order: number
+          status_output: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          rule_name: string
+          rule_order: number
+          status_output: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          rule_name?: string
+          rule_order?: number
+          status_output?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_status_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           active_campaigns: number
