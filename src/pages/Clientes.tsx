@@ -103,7 +103,7 @@ const Clientes = () => {
   const [sortField, setSortField] = useState<SortField>('status');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [recalculating, setRecalculating] = useState(false);
-  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients, recalculateAllStatus } = useClients();
+  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients, recalculateAllStatus, recalculatingProgress } = useClients();
   const { sectors, fetchSectors } = useSectors();
   const { teams } = useTeams();
   const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
@@ -1110,6 +1110,14 @@ const Clientes = () => {
         <SyncProgressModal
           open={syncing}
           progress={progress}
+        />
+
+        <SyncProgressModal
+          open={recalculating}
+          progress={recalculatingProgress}
+          title="Reaplicando status"
+          description="Aguarde enquanto aplicamos os status das contas..."
+          actionLabel="Aplicando status"
         />
       </div>
       </TooltipProvider>

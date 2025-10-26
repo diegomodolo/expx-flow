@@ -393,6 +393,11 @@ export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recalculatingProgress, setRecalculatingProgress] = useState<{
+    current: number;
+    total: number;
+    clientName: string;
+  }>({ current: 0, total: 0, clientName: '' });
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const { hasPermission, isOwner, permissionsLoading, currentUserPermissions } = useEmployeePermissions();
@@ -530,25 +535,59 @@ export function useClients() {
     if (!user || !activeCompany) return { success: false, count: 0 };
     
     try {
-      setLoading(true);
-      
-      // Buscar todos os clientes
+      // Buscar todos os clientes com seus nomes
       const { data: clientsData, error } = await supabase
         .from("clients")
-        .select("id")
+        .select("id, name")
         .eq("company_id", activeCompany.company_id);
       
       if (error) throw error;
-      
-      // Recalcular status de todos os clientes
+      if (!clientsData || clientsData.length === 0) return { success: false, count: 0 };
+
+      // Initialize progress
+      setRecalculatingProgress({ current: 0, total: clientsData.length, clientName: '' });
+
+      // Calculate new statuses for all clients
+      let successCount = 0;
+      for (let i = 0; i < clientsData.length; i++) {
+        const client = clientsData[i];
+        
+        // Update progress
+        setRecalculatingProgress({
+          current: i + 1,
+          total: clientsData.length,
+          clientName: client.name
+        });
+
+        try {
+          const { status } = await calculateClientStatus(client.id, activeCompany.company_id);
+          
+          // Update the client status
+          const { error: updateError } = await supabase
+            .from("clients")
+            .update({ status: statusMapping.database[status] })
+            .eq("id", client.id);
+
+          if (!updateError) {
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Error recalculating status for client ${client.id}:`, err);
+        }
+      }
+
+      // Refresh the clients list
       await fetchClients();
-      
-      return { success: true, count: clientsData?.length || 0 };
+
+      // Reset progress
+      setRecalculatingProgress({ current: 0, total: 0, clientName: '' });
+
+      return { success: true, count: successCount };
     } catch (err) {
+      console.error("Error recalculating all statuses:", err);
+      setRecalculatingProgress({ current: 0, total: 0, clientName: '' });
       setError(err instanceof Error ? err.message : "Erro ao recalcular status");
       return { success: false, count: 0 };
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -572,6 +611,7 @@ export function useClients() {
     error,
     fetchClients,
     recalculateAllStatus,
+    recalculatingProgress,
     createClient,
     updateClient,
     deleteClient,

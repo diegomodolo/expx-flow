@@ -9,9 +9,18 @@ interface SyncProgressModalProps {
     total: number;
     clientName: string;
   };
+  title?: string;
+  description?: string;
+  actionLabel?: string;
 }
 
-export const SyncProgressModal = ({ open, progress }: SyncProgressModalProps) => {
+export const SyncProgressModal = ({ 
+  open, 
+  progress,
+  title = "Sincronizando clientes",
+  description = "Aguarde enquanto sincronizamos os dados dos clientes...",
+  actionLabel = "Sincronizando"
+}: SyncProgressModalProps) => {
   const progressPercentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
   return (
@@ -20,10 +29,10 @@ export const SyncProgressModal = ({ open, progress }: SyncProgressModalProps) =>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Sincronizando clientes
+            {title}
           </DialogTitle>
           <DialogDescription>
-            Aguarde enquanto sincronizamos os dados dos clientes...
+            {description}
           </DialogDescription>
         </DialogHeader>
         
@@ -40,7 +49,7 @@ export const SyncProgressModal = ({ open, progress }: SyncProgressModalProps) =>
           
           {progress.clientName && (
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Sincronizando:</p>
+              <p className="text-sm text-muted-foreground">{actionLabel}:</p>
               <p className="font-medium">{progress.clientName}</p>
             </div>
           )}
