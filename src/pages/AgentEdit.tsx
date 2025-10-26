@@ -25,7 +25,7 @@ export default function AgentEdit() {
   const navigate = useNavigate();
   const { currentAgent, loadAgent, updateAgent, createAgent } = useIAAgents();
   const { clients } = useClients();
-  const isCreating = !agentId;
+  const [localAgentId, setLocalAgentId] = useState<string | null>(agentId || null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     agent_name: "",
@@ -36,14 +36,35 @@ export default function AgentEdit() {
   });
   const [showWarning, setShowWarning] = useState(false);
 
+  // Se estiver criando, cria um agente draft automaticamente
   useEffect(() => {
-    if (agentId) {
-      loadAgent(agentId);
-    }
-  }, [agentId]);
+    const createDraftAgent = async () => {
+      if (!agentId && !localAgentId) {
+        const result = await createAgent({
+          agent_name: "Novo Agente (Rascunho)",
+          prompt_base: "Você é um assistente prestativo. Aguardando configuração completa.",
+          description: "",
+          additional_instructions: ""
+        });
+        
+        if (result) {
+          setLocalAgentId(result.id);
+        }
+      }
+    };
+
+    createDraftAgent();
+  }, []);
 
   useEffect(() => {
-    if (currentAgent && agentId) {
+    const idToLoad = agentId || localAgentId;
+    if (idToLoad) {
+      loadAgent(idToLoad);
+    }
+  }, [agentId, localAgentId]);
+
+  useEffect(() => {
+    if (currentAgent) {
       setFormData({
         agent_name: currentAgent.agent_name,
         description: currentAgent.description || "",
@@ -52,7 +73,7 @@ export default function AgentEdit() {
         client_id: currentAgent.client_id || "none"
       });
     }
-  }, [currentAgent, agentId]);
+  }, [currentAgent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,31 +85,28 @@ export default function AgentEdit() {
 
     setLoading(true);
     try {
-      if (isCreating) {
-        const result = await createAgent({
+      const idToUpdate = agentId || localAgentId;
+      if (idToUpdate) {
+        await updateAgent(idToUpdate, {
           ...formData,
           client_id: formData.client_id === "none" ? null : formData.client_id
         });
-        if (result) {
-          navigate(`/ia/agents/${result.id}`);
-        }
-      } else {
-        await updateAgent(agentId, {
-          ...formData,
-          client_id: formData.client_id === "none" ? null : formData.client_id
-        });
-        navigate(`/ia/agents/${agentId}`);
+        navigate(`/ia/agents/${idToUpdate}`);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isCreating && !currentAgent) {
+  const currentId = agentId || localAgentId;
+
+  if (!currentId || !currentAgent) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
-          <p className="text-muted-foreground">Carregando agente...</p>
+          <p className="text-muted-foreground">
+            {!currentId ? 'Inicializando agente...' : 'Carregando agente...'}
+          </p>
         </div>
       </DashboardLayout>
     );
@@ -102,7 +120,7 @@ export default function AgentEdit() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-2xl font-bold">
-            {isCreating ? 'Criar Novo Agente' : 'Editar Agente'}
+            {!agentId ? 'Criar Novo Agente' : 'Editar Agente'}
           </h1>
         </div>
 
@@ -183,7 +201,7 @@ export default function AgentEdit() {
 
           <Separator />
 
-          {!isCreating && agentId && <KnowledgeDocumentsManager agentId={agentId} />}
+          <KnowledgeDocumentsManager agentId={currentId} />
 
           {showWarning && (
             <Alert variant="destructive">
@@ -198,13 +216,13 @@ export default function AgentEdit() {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => navigate(isCreating ? '/ia/agents' : `/ia/agents/${agentId}`)}
+              onClick={() => navigate('/ia/agents')}
             >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
               <Save className="w-4 h-4 mr-2" />
-              {loading ? 'Salvando...' : isCreating ? 'Criar Agente' : 'Salvar Alterações'}
+              {loading ? 'Salvando...' : !agentId ? 'Criar Agente' : 'Salvar Alterações'}
             </Button>
           </div>
         </form>
