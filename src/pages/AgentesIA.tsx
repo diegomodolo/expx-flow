@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Bot } from "lucide-react";
+import { Plus, Bot, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { AgentCard } from "@/components/agents/AgentCard";
@@ -10,7 +11,17 @@ import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 export default function AgentesIA() {
   const { agents } = useIAAgents();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const { hasPermission } = useEmployeePermissions();
+
+  // Filtrar agentes baseado no termo de busca
+  const filteredAgents = agents.filter((agent) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      agent.agent_name.toLowerCase().includes(searchLower) ||
+      (agent.description && agent.description.toLowerCase().includes(searchLower))
+    );
+  });
 
   // Log para debug - verificar se a lista está atualizando
   useEffect(() => {
@@ -39,6 +50,22 @@ export default function AgentesIA() {
           )}
         </div>
 
+        {/* Campo de Busca */}
+        {agents.length > 0 && (
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar agentes por nome ou descrição..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Grid de Cards */}
         {agents.length === 0 ? (
           <div className="text-center py-12">
@@ -54,9 +81,17 @@ export default function AgentesIA() {
               </Button>
             )}
           </div>
+        ) : filteredAgents.length === 0 ? (
+          <div className="text-center py-12">
+            <Search className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum agente encontrado</h3>
+            <p className="text-muted-foreground">
+              Tente ajustar os termos da sua busca
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {agents.map((agent) => (
+            {filteredAgents.map((agent) => (
               <AgentCard key={agent.id} agent={agent} />
             ))}
           </div>
