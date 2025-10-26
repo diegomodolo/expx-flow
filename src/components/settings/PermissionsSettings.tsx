@@ -23,6 +23,8 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string }[] = 
   { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Ferramenta de criação de conteúdo com IA' },
   { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Ferramenta de criação de criativos visuais com IA' },
   { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial' },
+  { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA' },
+  { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes de IA' },
   { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema' },
 ];
 
