@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -39,6 +39,7 @@ export function useIAAgents() {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const isFetchingRef = useRef(false);
   
   const { user } = useAuth();
   const { activeCompany } = useCompany();
@@ -46,8 +47,9 @@ export function useIAAgents() {
 
   // Buscar todos os agentes
   const fetchAgents = async () => {
-    if (!activeCompany) return;
+    if (!activeCompany || isFetchingRef.current) return;
 
+    isFetchingRef.current = true;
     try {
       const { data, error } = await supabase
         .from('ia_agents')
@@ -64,6 +66,8 @@ export function useIAAgents() {
         description: "Não foi possível carregar os agentes.",
         variant: "destructive",
       });
+    } finally {
+      isFetchingRef.current = false;
     }
   };
 
@@ -408,10 +412,10 @@ export function useIAAgents() {
   };
 
   useEffect(() => {
-    if (activeCompany) {
+    if (activeCompany?.company_id) {
       fetchAgents();
     }
-  }, [activeCompany]);
+  }, [activeCompany?.company_id]);
 
   return {
     agents,
