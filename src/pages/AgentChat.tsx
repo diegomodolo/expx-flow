@@ -20,6 +20,7 @@ export default function AgentChat() {
     loadAgent,
     createConversation,
     loadConversation,
+    renameConversation,
     deleteConversation,
     sendMessage
   } = useIAAgents();
@@ -86,6 +87,7 @@ export default function AgentChat() {
             currentConversation={currentConversation}
             onConversationSelect={loadConversation}
             onConversationDelete={deleteConversation}
+            onConversationRename={renameConversation}
             onNewConversation={handleNewConversation}
           />
 

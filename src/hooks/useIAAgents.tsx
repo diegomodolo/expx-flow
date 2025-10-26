@@ -338,6 +338,40 @@ export function useIAAgents() {
     }
   };
 
+  // Renomear conversa
+  const renameConversation = async (conversationId: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('ia_agent_conversations')
+        .update({ title: newTitle })
+        .eq('id', conversationId);
+
+      if (error) throw error;
+
+      // Atualiza o estado local
+      setConversations(prev => 
+        prev.map(c => c.id === conversationId ? { ...c, title: newTitle } : c)
+      );
+      
+      // Atualiza a conversa atual se for a mesma
+      if (currentConversation?.id === conversationId) {
+        setCurrentConversation(prev => prev ? { ...prev, title: newTitle } : null);
+      }
+
+      toast({
+        title: "Conversa renomeada",
+        description: "O título da conversa foi atualizado.",
+      });
+    } catch (error) {
+      console.error('Error renaming conversation:', error);
+      toast({
+        title: "Erro ao renomear conversa",
+        description: "Não foi possível renomear a conversa.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Excluir conversa
   const deleteConversation = async (conversationId: string) => {
     try {
@@ -387,6 +421,7 @@ export function useIAAgents() {
     loadAgent,
     createConversation,
     loadConversation,
+    renameConversation,
     deleteConversation,
     sendMessage
   };
