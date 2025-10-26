@@ -85,6 +85,22 @@ const getClientMetrics = async (
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+  // Fetch client data including funding and manual status
+  const { data: clientData } = await supabase
+    .from("clients")
+    .select(`
+      status,
+      inactive_reason,
+      facebook_ad_accounts!ad_account_id (
+        balance,
+        account_status,
+        has_funding_issues,
+        disable_reason
+      )
+    `)
+    .eq("id", clientId)
+    .maybeSingle();
+
   // Fetch campaigns data
   const { data: campaigns } = await supabase
     .from("campaigns")
@@ -116,6 +132,20 @@ const getClientMetrics = async (
     .order("created_at", { ascending: false })
     .limit(1);
 
+  // Extract funding information
+  const adAccount = clientData?.facebook_ad_accounts?.[0];
+  const hasFundingIssues = adAccount ? (
+    adAccount.account_status !== 1 || 
+    adAccount.balance <= 0 || 
+    adAccount.has_funding_issues ||
+    (adAccount.disable_reason && adAccount.disable_reason.toLowerCase().includes('funding'))
+  ) : false;
+  const accountBalance = adAccount?.balance || 0;
+  const accountStatus = adAccount?.account_status || 0;
+
+  // Extract manual status
+  const manualInactiveStatus = clientData?.status === "red" && !!clientData?.inactive_reason;
+
   if (!campaigns) {
     return {
       current_week_leads: 0,
@@ -131,12 +161,13 @@ const getClientMetrics = async (
       recent_campaigns_count: 0,
       days_since_last_optimization: 999,
       lead_drop_percentage: 0,
-      has_funding_issues: false,
+      has_funding_issues: hasFundingIssues,
       has_quality_issues: false,
       has_reproved_ads: false,
-      account_balance: 0,
-      account_status: 0,
+      account_balance: accountBalance,
+      account_status: accountStatus,
       days_without_changes: 999,
+      manual_inactive_status: manualInactiveStatus,
     };
   }
 
@@ -183,8 +214,7 @@ const getClientMetrics = async (
   const hasQualityIssues = ads?.some(ad => 
     ad.quality_ranking === 'BELOW_AVERAGE' || 
     ad.engagement_rate_ranking === 'BELOW_AVERAGE' ||
-    ad.conversion_rate_ranking === 'BELOW_AVERAGE' ||
-    ad.status === 'disapproved'
+    ad.conversion_rate_ranking === 'BELOW_AVERAGE'
   ) || false;
 
   const hasReprovedAds = ads?.some(ad => ad.status === 'disapproved') || false;
@@ -198,21 +228,22 @@ const getClientMetrics = async (
     previous_week_leads: previousWeekLeads,
     leads_last_7_days: currentWeekLeads,
     leads_last_30_days: leads30Days,
-    average_cpl: 0, // Not calculated in original
+    average_cpl: 0,
     average_ctr: averageCTR,
-    average_cpa: 0, // Not calculated in original
+    average_cpa: 0,
     current_week_cpa: currentWeekCPA,
     current_week_spend: currentWeekSpend,
     active_campaigns_count: activeCampaigns.length,
     recent_campaigns_count: recentCampaigns.length,
     days_since_last_optimization: daysSinceLastOptimization,
     lead_drop_percentage: leadDropPercentage,
-    has_funding_issues: false, // Checked separately
+    has_funding_issues: hasFundingIssues,
     has_quality_issues: hasQualityIssues,
     has_reproved_ads: hasReprovedAds,
-    account_balance: 0, // Checked separately
-    account_status: 1, // Checked separately
+    account_balance: accountBalance,
+    account_status: accountStatus,
     days_without_changes: daysSinceLastOptimization,
+    manual_inactive_status: manualInactiveStatus,
   };
 };
 
@@ -262,37 +293,56 @@ const generateExplanation = (
   };
 
   const emoji = statusEmojis[status] || "ℹ️";
+  const baseExplanations = {
+    sem_fundos: "Conta sem fundos suficientes para rodar anúncios",
+    inativo: "Cliente inativo há mais de 30 dias",
+    emergencial: "Situação crítica! Cliente precisa de atenção urgente",
+    atencao: "Cliente requer monitoramento",
+    excelente: "Performance excelente! Cliente em ótimo estado"
+  };
 
-  switch (status) {
-    case "sem_fundos":
-      return `${emoji} Conta sem fundos suficientes para rodar anúncios!\n\nAção necessária: Adicionar saldo à conta do Facebook Ads.`;
-    
-    case "inativo":
-      return `${emoji} Cliente inativo há mais de 30 dias!\n\nProblemas identificados:\n• Sem campanhas ativas\n• Nenhum lead gerado\n• Sem otimizações recentes`;
-    
-    case "emergencial":
-      const problems = [];
-      if (metrics.current_week_leads < 7) problems.push(`• Poucos leads esta semana (${metrics.current_week_leads})`);
-      if (metrics.active_campaigns_count === 0) problems.push("• Sem campanhas ativas");
-      if (metrics.has_reproved_ads) problems.push("• Anúncios reprovados");
-      if (metrics.days_since_last_optimization > 30) problems.push("• Sem otimização há mais de 30 dias");
-      
-      return `${emoji} Situação crítica! Este cliente precisa de atenção urgente.\n\nProblemas identificados:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${metrics.average_ctr?.toFixed(2)}%\n• Leads esta semana: ${metrics.current_week_leads}\n• Campanhas ativas: ${metrics.active_campaigns_count}`;
-    
-    case "atencao":
-      const attentionPoints = [];
-      if (metrics.lead_drop_percentage >= 30) attentionPoints.push(`• Queda de ${metrics.lead_drop_percentage.toFixed(1)}% nos leads`);
-      if (metrics.has_quality_issues) attentionPoints.push("• Alertas de qualidade nos anúncios");
-      if (metrics.days_since_last_optimization >= 8) attentionPoints.push("• Otimização não recente");
-      
-      return `${emoji} Cliente requer monitoramento.\n\nPontos de atenção:\n${attentionPoints.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${metrics.average_ctr?.toFixed(2)}%\n• Leads esta semana: ${metrics.current_week_leads}`;
-    
-    case "excelente":
-      return `${emoji} Performance excelente! Cliente em ótimo estado.\n\nPontos positivos:\n• Campanhas performando bem\n• Bom volume de leads\n• Métricas consistentes\n\nMétricas atuais:\n• CTR médio: ${metrics.average_ctr?.toFixed(2)}%\n• Leads esta semana: ${metrics.current_week_leads}\n• CPA: R$ ${metrics.current_week_cpa?.toFixed(2)}`;
-    
-    default:
-      return `${emoji} Performance dentro da média.`;
+  let explanation = `${emoji} ${baseExplanations[status] || "Status calculado baseado em regras customizadas"}`;
+  
+  if (ruleName) {
+    explanation += `\n\nRegra aplicada: ${ruleName}`;
   }
+  
+  // Add relevant metrics
+  explanation += `\n\nMétricas principais:`;
+  if (metrics.current_week_leads !== undefined) {
+    explanation += `\n• Leads esta semana: ${metrics.current_week_leads}`;
+  }
+  if (metrics.previous_week_leads !== undefined) {
+    explanation += `\n• Leads semana anterior: ${metrics.previous_week_leads}`;
+  }
+  if (metrics.average_ctr !== undefined) {
+    explanation += `\n• CTR médio: ${metrics.average_ctr.toFixed(2)}%`;
+  }
+  if (metrics.current_week_cpa !== undefined && metrics.current_week_cpa > 0) {
+    explanation += `\n• CPA esta semana: R$ ${metrics.current_week_cpa.toFixed(2)}`;
+  }
+  if (metrics.active_campaigns_count !== undefined) {
+    explanation += `\n• Campanhas ativas: ${metrics.active_campaigns_count}`;
+  }
+  if (metrics.days_since_last_optimization !== undefined && metrics.days_since_last_optimization < 999) {
+    explanation += `\n• Última otimização: há ${metrics.days_since_last_optimization} dias`;
+  }
+  
+  // Special flags
+  if (metrics.has_funding_issues) {
+    explanation += `\n\n⚠️ Problema de fundos detectado`;
+  }
+  if (metrics.has_reproved_ads) {
+    explanation += `\n⚠️ Anúncios reprovados detectados`;
+  }
+  if (metrics.has_quality_issues) {
+    explanation += `\n⚠️ Problemas de qualidade detectados`;
+  }
+  if (metrics.manual_inactive_status) {
+    explanation += `\n⚠️ Cliente marcado como inativo manualmente`;
+  }
+
+  return explanation;
 };
 
 // Function to calculate automatic status based on campaign metrics (exported for reuse)
@@ -301,61 +351,7 @@ export const calculateClientStatus = async (
   companyId?: string
 ): Promise<{ status: ClientStatus; explanation: string }> => {
   try {
-    // PRIORITY CHECK 1: Manual inactive status
-    const { data: clientData } = await supabase
-      .from("clients")
-      .select(`
-        status, 
-        inactive_reason,
-        facebook_ad_accounts!ad_account_id (
-          balance,
-          account_status,
-          has_funding_issues,
-          disable_reason,
-          last_balance_check
-        )
-      `)
-      .eq("id", clientId)
-      .maybeSingle();
-
-    // Client is inactive if status is 'red' AND has an inactive_reason
-    if (clientData?.status === "red" && clientData?.inactive_reason) {
-      const fundingKeywords = ['sem fundos', 'saldo', 'funding', 'balance', 'gastos', 'campanhas ativas sem gastos'];
-      const isFundingIssue = fundingKeywords.some(keyword => 
-        clientData.inactive_reason.toLowerCase().includes(keyword.toLowerCase())
-      );
-      
-      if (isFundingIssue) {
-        return { 
-          status: "sem_fundos", 
-          explanation: clientData.inactive_reason 
-        };
-      } else {
-        return { 
-          status: "inativo", 
-          explanation: "Cliente marcado como inativo manualmente" 
-        };
-      }
-    }
-
-    // PRIORITY CHECK 2: Funding issues (sem fundos)
-    const adAccount = clientData?.facebook_ad_accounts?.[0];
-    if (adAccount) {
-      const hasFundingIssues = 
-        adAccount.account_status !== 1 || 
-        adAccount.balance <= 0 || 
-        adAccount.has_funding_issues ||
-        (adAccount.disable_reason && adAccount.disable_reason.toLowerCase().includes('funding'));
-      
-      if (hasFundingIssues) {
-        return {
-          status: "sem_fundos",
-          explanation: `💳 Conta sem fundos suficientes para rodar anúncios!\n\nProblemas identificados:\n• Saldo atual: ${adAccount.balance}\n• Status da conta: ${adAccount.account_status === 1 ? 'Ativa' : 'Inativa'}\n• Problemas de financiamento: ${adAccount.has_funding_issues ? 'Sim' : 'Não'}\n• Última verificação: ${adAccount.last_balance_check ? new Date(adAccount.last_balance_check).toLocaleDateString() : 'N/A'}\n\nAção necessária: Adicionar saldo à conta do Facebook Ads para reativar as campanhas.`
-        };
-      }
-    }
-
-    // Get all client metrics
+    // Get all client metrics (now includes ALL metrics including funding and manual status)
     const metrics = await getClientMetrics(clientId, companyId || '');
 
     // Fetch custom rules for this company
@@ -366,7 +362,7 @@ export const calculateClientStatus = async (
       .eq("is_active", true)
       .order("rule_order", { ascending: true });
 
-    // If custom rules exist, use them
+    // Apply rules in order
     if (rules && rules.length > 0) {
       for (const rule of rules) {
         if (evaluateRule(rule, metrics)) {
@@ -376,245 +372,12 @@ export const calculateClientStatus = async (
           };
         }
       }
-      
-      // Fallback if no rule matched
-      return {
-        status: "atencao",
-        explanation: generateExplanation("atencao", metrics)
-      };
     }
-
-    // FALLBACK: Use hardcoded logic if no custom rules exist
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    // Fetch campaigns data
-    const { data: campaigns } = await supabase
-      .from("campaigns")
-      .select("*")
-      .eq("client_id", clientId)
-      .eq("company_id", companyId);
-
-    // Fetch ads data for quality rankings
-    const { data: ads } = await supabase
-      .from("ads")
-      .select("quality_ranking, engagement_rate_ranking, conversion_rate_ranking, status")
-      .eq("client_id", clientId)
-      .eq("company_id", companyId);
-
-    // Fetch last optimization
-    const { data: lastOptimization } = await supabase
-      .from("optimization_history")
-      .select("performed_at")
-      .eq("client_id", clientId)
-      .eq("company_id", companyId)
-      .order("performed_at", { ascending: false })
-      .limit(1);
-
-    const { data: lastChange } = await supabase
-      .from("change_audit_log")
-      .select("created_at")
-      .eq("client_id", clientId)
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (!campaigns || campaigns.length === 0) {
-      return {
-        status: "inativo",
-        explanation: "Cliente sem campanhas ativas há mais de 30 dias. Nenhuma ação ou otimização foi feita recentemente."
-      };
-    }
-
-    // Check active campaigns in last 7 days
-    const activeCampaigns = campaigns.filter(c => 
-      c.is_active && c.status === 'active' && new Date(c.updated_at) >= sevenDaysAgo
-    );
-
-    // Check campaigns active in last 30 days
-    const recentCampaigns = campaigns.filter(c => 
-      new Date(c.updated_at) >= thirtyDaysAgo
-    );
-
-    // Calculate current week vs previous week leads
-    const currentWeekLeads = campaigns
-      .filter(c => new Date(c.updated_at) >= sevenDaysAgo)
-      .reduce((sum, c) => sum + (c.conversions || 0), 0);
-
-    const previousWeekLeads = campaigns
-      .filter(c => new Date(c.updated_at) >= fourteenDaysAgo && new Date(c.updated_at) < sevenDaysAgo)
-      .reduce((sum, c) => sum + (c.conversions || 0), 0);
-
-    // Calculate average CTR
-    const totalCTR = activeCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0);
-    const averageCTR = activeCampaigns.length > 0 ? totalCTR / activeCampaigns.length : 0;
-
-    // Calculate spend and CPA for current week
-    const currentWeekSpend = campaigns
-      .filter(c => new Date(c.updated_at) >= sevenDaysAgo)
-      .reduce((sum, c) => sum + (c.spend || 0), 0);
     
-    const currentWeekCPA = currentWeekLeads > 0 ? currentWeekSpend / currentWeekLeads : 0;
-
-    // Check last optimization date
-    const lastOptimizationDate = lastOptimization?.[0]?.performed_at 
-      ? new Date(lastOptimization[0].performed_at)
-      : lastChange?.[0]?.created_at 
-      ? new Date(lastChange[0].created_at)
-      : null;
-
-    const daysSinceLastOptimization = lastOptimizationDate 
-      ? Math.floor((now.getTime() - lastOptimizationDate.getTime()) / (24 * 60 * 60 * 1000))
-      : 999;
-
-    // Check for quality issues
-    const hasQualityIssues = ads?.some(ad => 
-      ad.quality_ranking === 'BELOW_AVERAGE' || 
-      ad.engagement_rate_ranking === 'BELOW_AVERAGE' ||
-      ad.conversion_rate_ranking === 'BELOW_AVERAGE' ||
-      ad.status === 'disapproved'
-    ) || false;
-
-    const hasReprovedAds = ads?.some(ad => ad.status === 'disapproved') || false;
-
-    // Calculate lead drop percentage
-    const leadDropPercentage = previousWeekLeads > 0 
-      ? ((previousWeekLeads - currentWeekLeads) / previousWeekLeads) * 100 
-      : 0;
-
-    // Apply status rules - FIX: Zero leads should always be emergencial
-    if (recentCampaigns.length === 0 || (currentWeekLeads === 0 && previousWeekLeads === 0 && daysSinceLastOptimization > 30)) {
-      return {
-        status: "inativo",
-        explanation: `⚫ Cliente inativo há mais de 30 dias!\n\nProblemas identificados:\n• Sem campanhas ativas\n• Nenhum lead gerado\n• Sem otimizações recentes\n\nMétricas atuais:\n• Campanhas ativas: 0\n• Leads esta semana: ${currentWeekLeads}\n• Última otimização: há ${daysSinceLastOptimization} dias`
-      };
-    }
-
-    // FIX: Low leads should ALWAYS be emergencial
-    if (currentWeekLeads < 7) {
-      const problems = [];
-      if (currentWeekLeads < 7) problems.push(`• Poucos leads gerados esta semana (${currentWeekLeads})`);
-      if (averageCTR < 0.8) problems.push("• CTR muito baixo");
-      if (hasReprovedAds) problems.push("• Anúncios reprovados");
-      if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há muito tempo");
-
-      return {
-        status: "emergencial",
-        explanation: `🚨 Situação crítica! Este cliente precisa de atenção urgente.\n\nProblemas identificados:\n${problems.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
-      };
-    }
-
-    // Check if lead volume compensates for low CTR
-    const hasGoodLeadVolume = currentWeekLeads >= GOOD_LEADS_THRESHOLD;
-
-    // Emergencial status - adjust CTR condition based on lead volume
-    if (activeCampaigns.length === 0 || (averageCTR < 0.8 && !hasGoodLeadVolume) || hasReprovedAds || daysSinceLastOptimization > 30 || currentWeekLeads < 7) {
-      const problems = [];
-      if (activeCampaigns.length === 0) problems.push("• Sem campanhas ativas recentes");
-      if (currentWeekLeads < 7) problems.push(`• Poucos leads gerados esta semana (${currentWeekLeads})`);
-      if (averageCTR < 0.8 && !hasGoodLeadVolume) problems.push("• CTR muito baixo");
-      if (hasReprovedAds) problems.push("• Anúncios reprovados");
-      if (daysSinceLastOptimization > 30) problems.push("• Sem otimização há mais de 30 dias");
-
-      // Add positive note if CTR is low but leads are good
-      const positiveNotes = [];
-      if (averageCTR < 0.8 && hasGoodLeadVolume) {
-        positiveNotes.push("• Volume de leads compensando CTR baixo");
-      }
-
-      const explanationParts = [
-        "🚨 Situação crítica! Este cliente precisa de atenção urgente.",
-        `\nProblemas identificados:\n${problems.join('\n')}`
-      ];
-
-      if (positiveNotes.length > 0) {
-        explanationParts.push(`\nPontos positivos:\n${positiveNotes.join('\n')}`);
-      }
-
-      explanationParts.push(`\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`);
-
-      return {
-        status: "emergencial",
-        explanation: explanationParts.join('')
-      };
-    }
-
-    // Atenção status - adjust CTR condition based on lead volume
-    if (leadDropPercentage >= 30 || (averageCTR >= 0.8 && averageCTR <= 1.5 && !hasGoodLeadVolume) || hasQualityIssues || (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30)) {
-      const problems = [];
-      if (leadDropPercentage >= 30) problems.push(`• Queda de ${leadDropPercentage.toFixed(1)}% nos leads`);
-      if (averageCTR >= 0.8 && averageCTR <= 1.5 && !hasGoodLeadVolume) problems.push("• CTR na média, pode melhorar");
-      if (hasQualityIssues) problems.push("• Alertas de qualidade nos anúncios");
-      if (daysSinceLastOptimization >= 8 && daysSinceLastOptimization <= 30) problems.push("• Otimização não recente");
-
-      // Add positive note if CTR is average but leads are good
-      const positiveNotes = [];
-      if (averageCTR >= 0.8 && averageCTR <= 1.5 && hasGoodLeadVolume) {
-        positiveNotes.push("• Volume de leads compensando CTR na média");
-      }
-
-      const explanationParts = [
-        "⚠️ Cliente requer monitoramento.",
-        `\nPontos de atenção:\n${problems.join('\n')}`
-      ];
-
-      if (positiveNotes.length > 0) {
-        explanationParts.push(`\nPontos positivos:\n${positiveNotes.join('\n')}`);
-      }
-
-      explanationParts.push(`\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: ${leadDropPercentage > 0 ? '-' : '+'}${Math.abs(leadDropPercentage).toFixed(1)}%\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`);
-
-      return {
-        status: "atencao",
-        explanation: explanationParts.join('')
-      };
-    }
-
-    // Excelente status - múltiplos critérios alternativos:
-    const hasHighVolumeGoodCPA = currentWeekLeads >= 30 && currentWeekCPA <= GOOD_CPA_THRESHOLD && currentWeekCPA > 0;
-    const hasMediumVolumeExcellentCPA = currentWeekLeads >= 20 && currentWeekCPA <= 15 && currentWeekCPA > 0;
-    const hasVeryHighVolumeAcceptableCPA = currentWeekLeads >= 100 && currentWeekCPA <= 35 && currentWeekCPA > 0;
-    const hasHighCTRAndOptimization = averageCTR > 1.5 && daysSinceLastOptimization < 7;
-    
-    if (activeCampaigns.length > 0 && currentWeekLeads > 0 && (currentWeekLeads >= previousWeekLeads) && 
-        (hasHighVolumeGoodCPA || hasMediumVolumeExcellentCPA || hasVeryHighVolumeAcceptableCPA || hasHighCTRAndOptimization) && !hasQualityIssues) {
-      
-      const positivePoints = [];
-      positivePoints.push("• Campanhas ativas e performando bem");
-      
-      if (hasHighVolumeGoodCPA || hasMediumVolumeExcellentCPA || hasVeryHighVolumeAcceptableCPA) {
-        if (hasVeryHighVolumeAcceptableCPA) {
-          positivePoints.push("• Volume muito alto de leads");
-        } else if (hasMediumVolumeExcellentCPA) {
-          positivePoints.push("• Volume bom com CPA excelente");
-        } else {
-          positivePoints.push("• Volume alto com CPA bom");
-        }
-        positivePoints.push(`• CPA eficiente: R$ ${currentWeekCPA.toFixed(2)}`);
-      }
-      
-      if (hasHighCTRAndOptimization) {
-        positivePoints.push("• CTR acima da média");
-        positivePoints.push("• Otimizações recentes");
-      }
-      
-      positivePoints.push("• Leads sendo gerados consistentemente");
-      positivePoints.push("• Sem problemas de qualidade");
-
-      const cpaText = currentWeekCPA > 0 ? `\n• CPA: R$ ${currentWeekCPA.toFixed(2)}` : '';
-      
-      return {
-        status: "excelente",
-        explanation: `✅ Performance excelente! Cliente em ótimo estado.\n\nPontos positivos:\n${positivePoints.join('\n')}\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Variação: +${((currentWeekLeads - previousWeekLeads) / Math.max(previousWeekLeads, 1) * 100).toFixed(1)}%${cpaText}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
-      };
-    }
-
-    // Default to "atencao" if none of the other conditions are met
+    // Fallback if no rule matched
     return {
       status: "atencao",
-      explanation: `⚠️ Cliente requer monitoramento.\n\nSituação:\n• Performance dentro da média\n• Pode ser otimizada\n\nMétricas atuais:\n• CTR médio: ${averageCTR.toFixed(2)}%\n• Leads esta semana: ${currentWeekLeads}\n• Leads semana anterior: ${previousWeekLeads}\n• Campanhas ativas: ${activeCampaigns.length}\n• Última otimização: há ${daysSinceLastOptimization} dias`
+      explanation: generateExplanation("atencao", metrics, "Nenhuma regra correspondente")
     };
 
   } catch (error) {

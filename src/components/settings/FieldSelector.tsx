@@ -128,6 +128,12 @@ const fieldOptions: FieldOption[] = [
     type: "number",
     description: "Dias desde a última alteração em campanhas",
   },
+  {
+    value: "manual_inactive_status",
+    label: "Inativo Manual",
+    type: "boolean",
+    description: "Cliente marcado como inativo manualmente",
+  },
 ];
 
 interface FieldSelectorProps {
