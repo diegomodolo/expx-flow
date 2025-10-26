@@ -7,6 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useIAAgents } from "@/hooks/useIAAgents";
+import { useClients } from "@/hooks/useClients";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CreateAgentDialogProps {
   open: boolean;
@@ -15,11 +23,13 @@ interface CreateAgentDialogProps {
 
 export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps) {
   const { createAgent } = useIAAgents();
+  const { clients } = useClients();
   const [formData, setFormData] = useState({
     agent_name: "",
     description: "",
     prompt_base: "",
-    additional_instructions: ""
+    additional_instructions: "",
+    client_id: ""
   });
   const [showWarning, setShowWarning] = useState(false);
 
@@ -32,7 +42,10 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
       return;
     }
 
-    const result = await createAgent(formData);
+    const result = await createAgent({
+      ...formData,
+      client_id: formData.client_id || null
+    });
     if (result) {
       // Aguarda um pouco para garantir que a lista foi atualizada
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -42,7 +55,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
         agent_name: "",
         description: "",
         prompt_base: "",
-        additional_instructions: ""
+        additional_instructions: "",
+        client_id: ""
       });
       setShowWarning(false);
     }
@@ -78,6 +92,26 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Breve descrição do agente (opcional)"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="client_id">Cliente Associado (Opcional)</Label>
+            <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum cliente específico</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground mt-1">
+              Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
+            </p>
           </div>
 
           <div>

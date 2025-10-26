@@ -36,6 +36,78 @@ serve(async (req) => {
       throw new Error('Agente não encontrado');
     }
 
+    // Buscar documentos de conhecimento
+    const { data: knowledgeDocs } = await supabaseClient
+      .from('ia_agent_knowledge_documents')
+      .select('content_text, file_name')
+      .eq('agent_id', agentId);
+
+    const knowledgeContext = knowledgeDocs
+      ?.filter(doc => doc.content_text)
+      .map(doc => `[Documento: ${doc.file_name}]\n${doc.content_text}`)
+      .join('\n\n---\n\n');
+
+    // Buscar dados do cliente se houver associação
+    let clientContext = '';
+    
+    if (agent.client_id) {
+      const { data: client } = await supabaseClient
+        .from('clients')
+        .select(`
+          *,
+          facebook_ad_accounts!ad_account_id (
+            account_name, balance, account_status
+          )
+        `)
+        .eq('id', agent.client_id)
+        .single();
+
+      if (client) {
+        // Buscar campanhas ativas do cliente
+        const { data: campaigns } = await supabaseClient
+          .from('campaigns')
+          .select('*')
+          .eq('client_id', agent.client_id)
+          .eq('status', 'active')
+          .order('spend', { ascending: false })
+          .limit(10);
+
+        clientContext = `
+[INFORMAÇÕES DO CLIENTE ASSOCIADO]
+
+Nome: ${client.name}
+Empresa: ${client.company || 'Não informado'}
+Setor: ${client.sector || 'Não informado'}
+Website: ${client.website_url || 'Não informado'}
+
+[BRIEFING]
+Público-alvo: ${client.target_audience || 'Não definido'}
+Produto/Serviço: ${client.product_name || 'Não definido'}
+Tom de voz: ${client.voice_tone || 'Não definido'}
+Objetivos: ${client.objectives || 'Não definido'}
+
+${client.ai_briefing ? `\n[BRIEFING DETALHADO]\n${client.ai_briefing}\n` : ''}
+
+[CAMPANHAS ATIVAS]
+Total de campanhas ativas: ${campaigns?.length || 0}
+${campaigns?.map(c => `
+- ${c.name}
+  Gasto: R$ ${c.spend?.toFixed(2) || 0}
+  CPC: R$ ${c.cpc?.toFixed(2) || 0}
+  CTR: ${c.ctr?.toFixed(2) || 0}%
+  Conversões: ${c.conversions || 0}
+  CPA: R$ ${c.cpa?.toFixed(2) || 0}
+`).join('\n') || 'Nenhuma campanha ativa'}
+
+[STATUS DA CONTA]
+Status: ${client.status || 'Não definido'}
+Budget Mensal: R$ ${client.monthly_budget || 'Não definido'}
+Leads Gerados: ${client.leads_generated || 0}
+Última Sincronização: ${client.last_sync_at ? new Date(client.last_sync_at).toLocaleString('pt-BR') : 'Nunca'}
+`;
+      }
+    }
+
     // Salvar mensagem do usuário
     const { error: userMsgError } = await supabaseClient
       .from('ia_agent_messages')
@@ -54,11 +126,27 @@ serve(async (req) => {
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
+    // Construir prompt enriquecido com contexto
+    const systemPrompt = `${agent.prompt_base}
+
+${agent.additional_instructions || ''}
+
+${knowledgeContext ? `\n\n[BIBLIOTECA DE CONHECIMENTO]\n${knowledgeContext}\n` : ''}
+
+${clientContext ? `\n\n${clientContext}\n` : ''}
+
+INSTRUÇÕES IMPORTANTES:
+- Use as informações da biblioteca de conhecimento quando relevante
+${agent.client_id ? '- Use os dados do cliente para contextualizar suas respostas' : ''}
+${agent.client_id ? '- Mencione métricas específicas quando pertinente' : ''}
+- Seja preciso e baseie suas respostas nos dados fornecidos
+`;
+
     // Construir array de mensagens para a API
     const messages = [
       {
         role: 'system',
-        content: `${agent.prompt_base}\n\n${agent.additional_instructions || ''}`
+        content: systemPrompt
       },
       ...(previousMessages || []).map(msg => ({
         role: msg.role,

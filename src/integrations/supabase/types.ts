@@ -1518,6 +1518,63 @@ export type Database = {
           },
         ]
       }
+      ia_agent_knowledge_documents: {
+        Row: {
+          agent_id: string
+          company_id: string
+          content_text: string | null
+          created_at: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          storage_path: string
+          updated_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          agent_id: string
+          company_id: string
+          content_text?: string | null
+          created_at?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          storage_path: string
+          updated_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          agent_id?: string
+          company_id?: string
+          content_text?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path?: string
+          updated_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_agent_knowledge_documents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ia_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_agent_knowledge_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_agent_messages: {
         Row: {
           content: string
@@ -1554,6 +1611,7 @@ export type Database = {
         Row: {
           additional_instructions: string | null
           agent_name: string
+          client_id: string | null
           company_id: string
           created_at: string | null
           description: string | null
@@ -1566,6 +1624,7 @@ export type Database = {
         Insert: {
           additional_instructions?: string | null
           agent_name: string
+          client_id?: string | null
           company_id: string
           created_at?: string | null
           description?: string | null
@@ -1578,6 +1637,7 @@ export type Database = {
         Update: {
           additional_instructions?: string | null
           agent_name?: string
+          client_id?: string | null
           company_id?: string
           created_at?: string | null
           description?: string | null
@@ -1588,6 +1648,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ia_agents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ia_agents_company_id_fkey"
             columns: ["company_id"]

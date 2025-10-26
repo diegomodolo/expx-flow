@@ -9,16 +9,28 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useIAAgents } from "@/hooks/useIAAgents";
+import { useClients } from "@/hooks/useClients";
+import { Separator } from "@/components/ui/separator";
+import { KnowledgeDocumentsManager } from "@/components/agents/KnowledgeDocumentsManager";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AgentEdit() {
   const { agentId } = useParams();
   const navigate = useNavigate();
   const { currentAgent, loadAgent, updateAgent } = useIAAgents();
+  const { clients } = useClients();
   const [formData, setFormData] = useState({
     agent_name: "",
     description: "",
     prompt_base: "",
-    additional_instructions: ""
+    additional_instructions: "",
+    client_id: ""
   });
   const [showWarning, setShowWarning] = useState(false);
 
@@ -34,7 +46,8 @@ export default function AgentEdit() {
         agent_name: currentAgent.agent_name,
         description: currentAgent.description || "",
         prompt_base: currentAgent.prompt_base,
-        additional_instructions: currentAgent.additional_instructions || ""
+        additional_instructions: currentAgent.additional_instructions || "",
+        client_id: currentAgent.client_id || ""
       });
     }
   }, [currentAgent]);
@@ -48,7 +61,10 @@ export default function AgentEdit() {
     }
 
     if (agentId) {
-      await updateAgent(agentId, formData);
+      await updateAgent(agentId, {
+        ...formData,
+        client_id: formData.client_id || null
+      });
       navigate(`/ia/agents/${agentId}`);
     }
   };
@@ -94,6 +110,28 @@ export default function AgentEdit() {
           </div>
 
           <div>
+            <Label htmlFor="client_id">Cliente Associado (Opcional)</Label>
+            <Select value={formData.client_id} onValueChange={(value) => setFormData({ ...formData, client_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum cliente específico</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground mt-1">
+              Quando associado, o agente terá acesso automático ao briefing, campanhas e métricas deste cliente.
+            </p>
+          </div>
+
+          <Separator />
+
+          <div>
             <Label htmlFor="prompt_base">Prompt Base do Agente *</Label>
             <Textarea
               id="prompt_base"
@@ -121,6 +159,10 @@ export default function AgentEdit() {
               className="min-h-[150px]"
             />
           </div>
+
+          <Separator />
+
+          {agentId && <KnowledgeDocumentsManager agentId={agentId} />}
 
           {showWarning && (
             <Alert variant="destructive">

@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Calendar, Edit, Copy, Trash2 } from "lucide-react";
+import { Bot, Calendar, Edit, Copy, Trash2, Users, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -14,6 +16,7 @@ interface AgentCardProps {
     id: string;
     agent_name: string;
     description: string | null;
+    client_id: string | null;
     created_at: string;
   };
 }
@@ -22,6 +25,32 @@ export function AgentCard({ agent }: AgentCardProps) {
   const navigate = useNavigate();
   const { deleteAgent, duplicateAgent } = useIAAgents();
   const { hasPermission } = useEmployeePermissions();
+  const [clientName, setClientName] = useState<string | null>(null);
+  const [docsCount, setDocsCount] = useState(0);
+
+  useEffect(() => {
+    const fetchClientName = async () => {
+      if (agent.client_id) {
+        const { data } = await supabase
+          .from('clients')
+          .select('name')
+          .eq('id', agent.client_id)
+          .single();
+        if (data) setClientName(data.name);
+      }
+    };
+
+    const fetchDocsCount = async () => {
+      const { count } = await supabase
+        .from('ia_agent_knowledge_documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('agent_id', agent.id);
+      setDocsCount(count || 0);
+    };
+
+    fetchClientName();
+    fetchDocsCount();
+  }, [agent.client_id, agent.id]);
 
   const handleAccess = () => {
     navigate(`/ia/agents/${agent.id}`);
@@ -54,6 +83,20 @@ export function AgentCard({ agent }: AgentCardProps) {
         {agent.description && (
           <CardDescription className="line-clamp-2">{agent.description}</CardDescription>
         )}
+        <div className="flex gap-2 mt-3">
+          {clientName && (
+            <Badge variant="secondary" className="text-xs">
+              <Users className="w-3 h-3 mr-1" />
+              {clientName}
+            </Badge>
+          )}
+          {docsCount > 0 && (
+            <Badge variant="outline" className="text-xs">
+              <FileText className="w-3 h-3 mr-1" />
+              {docsCount} {docsCount === 1 ? 'documento' : 'documentos'}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">

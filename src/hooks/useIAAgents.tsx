@@ -11,6 +11,7 @@ interface Agent {
   prompt_base: string;
   additional_instructions: string | null;
   model: string;
+  client_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +74,7 @@ export function useIAAgents() {
     prompt_base: string;
     additional_instructions?: string;
     model?: string;
+    client_id?: string | null;
   }) => {
     if (!user || !activeCompany) return null;
 
