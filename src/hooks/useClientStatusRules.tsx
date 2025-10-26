@@ -156,7 +156,17 @@ export const useClientStatusRules = () => {
 
   const reorderRules = async (newOrder: { id: string; rule_order: number }[]) => {
     try {
-      // Update all rules with new order
+      // Primeiro, mover todas para valores temporários negativos para evitar conflito de constraint
+      for (let i = 0; i < newOrder.length; i++) {
+        const { error: tempError } = await supabase
+          .from("client_status_rules")
+          .update({ rule_order: -(i + 1000) })
+          .eq("id", newOrder[i].id);
+
+        if (tempError) throw tempError;
+      }
+
+      // Agora aplicar a ordem final
       for (const { id, rule_order } of newOrder) {
         const { error: updateError } = await supabase
           .from("client_status_rules")
