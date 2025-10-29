@@ -116,7 +116,12 @@ Deno.serve(async (req) => {
       const adAccountsData = { data: allAdAccounts };
 
       // Save integration to database
-      const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000))
+      // Facebook long-lived tokens geralmente duram 60 dias, mas nem sempre retornam expires_in
+      const expiresInSeconds = tokenData.expires_in || (60 * 24 * 60 * 60); // 60 dias como padrão
+      const expiresAt = new Date(Date.now() + (expiresInSeconds * 1000));
+      
+      console.log('Token will expire at:', expiresAt.toISOString(), 
+                  tokenData.expires_in ? '(from Facebook)' : '(default 60 days)');
       
       const { data: integration, error: integrationError } = await supabase
         .from('facebook_integrations')
