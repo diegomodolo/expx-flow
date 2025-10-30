@@ -204,11 +204,14 @@ export function useIAAgents() {
 
   // Buscar conversas de um agente
   const fetchConversations = async (agentId: string) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('ia_agent_conversations')
         .select('*')
         .eq('agent_id', agentId)
+        .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
