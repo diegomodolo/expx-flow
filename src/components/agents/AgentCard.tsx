@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Calendar, Edit, Copy, Trash2, Users, FileText } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bot, Edit, Copy, Trash2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface AgentCardProps {
   agent: {
@@ -19,14 +16,23 @@ interface AgentCardProps {
     client_id: string | null;
     created_at: string;
   };
+  index: number;
 }
 
-export function AgentCard({ agent }: AgentCardProps) {
+const gradients = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+];
+
+export function AgentCard({ agent, index }: AgentCardProps) {
   const navigate = useNavigate();
   const { deleteAgent, duplicateAgent } = useIAAgents();
   const { hasPermission } = useEmployeePermissions();
   const [clientName, setClientName] = useState<string | null>(null);
-  const [docsCount, setDocsCount] = useState(0);
 
   useEffect(() => {
     const fetchClientName = async () => {
@@ -40,107 +46,100 @@ export function AgentCard({ agent }: AgentCardProps) {
       }
     };
 
-    const fetchDocsCount = async () => {
-      const { count } = await supabase
-        .from('ia_agent_knowledge_documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('agent_id', agent.id);
-      setDocsCount(count || 0);
-    };
-
     fetchClientName();
-    fetchDocsCount();
-  }, [agent.client_id, agent.id]);
+  }, [agent.client_id]);
 
   const handleAccess = () => {
     navigate(`/ia/agents/${agent.id}`);
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleEdit = () => {
     navigate(`/ia/agents/${agent.id}/edit`);
   };
 
-  const handleDuplicate = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDuplicate = async () => {
     await duplicateAgent(agent.id);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = async () => {
     await deleteAgent(agent.id);
   };
 
-  return (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">{agent.agent_name}</CardTitle>
-          </div>
-        </div>
-        {agent.description && (
-          <CardDescription className="line-clamp-2">{agent.description}</CardDescription>
-        )}
-        <div className="flex gap-2 mt-3">
-          {clientName && (
-            <Badge variant="secondary" className="text-xs">
-              <Users className="w-3 h-3 mr-1" />
-              {clientName}
-            </Badge>
-          )}
-          {docsCount > 0 && (
-            <Badge variant="outline" className="text-xs">
-              <FileText className="w-3 h-3 mr-1" />
-              {docsCount} {docsCount === 1 ? 'documento' : 'documentos'}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-          <Calendar className="w-4 h-4" />
-          Criado em {format(new Date(agent.created_at), "dd/MM/yyyy", { locale: ptBR })}
-        </div>
+  const gradient = gradients[index % gradients.length];
 
-        <div className="flex gap-2">
-          <Button onClick={handleAccess} className="flex-1">
-            Acessar
-          </Button>
-          {hasPermission('editar-agentes') && (
-            <>
-              <Button variant="outline" size="icon" onClick={handleEdit}>
-                <Edit className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleDuplicate}>
-                <Copy className="w-4 h-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button variant="outline" size="icon">
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Todas as conversas associadas a este agente também serão excluídas.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Excluir
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+  return (
+    <div 
+      onClick={handleAccess}
+      className="flex items-start gap-4 p-6 rounded-lg bg-card hover:bg-accent/50 transition-all cursor-pointer group border border-border/50"
+    >
+      {/* Número */}
+      <div className="text-4xl font-bold text-muted-foreground/30 min-w-[2rem]">
+        {index + 1}
+      </div>
+
+      {/* Ícone do Agente */}
+      <div 
+        className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ background: gradient }}
+      >
+        <Bot className="w-8 h-8 text-white" />
+      </div>
+
+      {/* Conteúdo */}
+      <div className="flex-1 min-w-0">
+        <h3 className="text-lg font-semibold mb-1 truncate group-hover:text-primary transition-colors">
+          {agent.agent_name}
+        </h3>
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+          {agent.description || "Sem descrição"}
+        </p>
+        <p className="text-xs text-muted-foreground/70">
+          {clientName ? `Cliente: ${clientName}` : "Sem cliente associado"}
+        </p>
+      </div>
+
+      {/* Menu de Ações */}
+      {hasPermission('editar-agentes') && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(); }}>
+              <Edit className="w-4 h-4 mr-2" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicate(); }}>
+              <Copy className="w-4 h-4 mr-2" />
+              Duplicar
+            </DropdownMenuItem>
+            <AlertDialog>
+              <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                  <span className="text-destructive">Excluir</span>
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir agente?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Todas as conversas associadas a este agente também serão excluídas.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   );
 }

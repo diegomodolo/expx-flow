@@ -87,9 +87,9 @@ export default function AgentesIA() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAgents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredAgents.map((agent, index) => (
+              <AgentCard key={agent.id} agent={agent} index={index} />
             ))}
           </div>
         )}
