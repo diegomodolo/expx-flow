@@ -43,12 +43,29 @@ export function FunnelEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
+  // Handle opening edit modal
+  const handleOpenEditModal = useCallback((nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (node) setEditingNode(node);
+  }, [nodes]);
+
   // Load funnel data
   useEffect(() => {
     if (funnelId) {
       fetchFunnelById(funnelId).then((funnel) => {
         setFunnelName(funnel.name);
-        setNodes(funnel.flow_data.nodes || []);
+        // Add onEdit function to all loaded nodes
+        const nodesWithEdit = (funnel.flow_data.nodes || []).map((node: Node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            onEdit: (id: string) => {
+              const foundNode = nodes.find((n) => n.id === id);
+              if (foundNode) setEditingNode(foundNode);
+            },
+          } as CustomNodeData,
+        }));
+        setNodes(nodesWithEdit);
         setEdges(funnel.flow_data.edges || []);
       });
     }
@@ -109,16 +126,13 @@ export function FunnelEditor() {
           color: block.color,
           category: block.category,
           icon: block.icon || undefined,
-          onEdit: (id: string) => {
-            const node = nodes.find((n) => n.id === id);
-            if (node) setEditingNode(node);
-          },
+          onEdit: handleOpenEditModal,
         } as CustomNodeData,
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [nodes, setNodes]
+    [handleOpenEditModal, setNodes]
   );
 
   const onDragStart = (event: React.DragEvent, blockType: BlockType) => {
