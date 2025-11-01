@@ -43,10 +43,8 @@ export function FunnelEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Stable reference to the edit function
-  const handleNodeEditRef = useRef<(nodeId: string) => void>();
-  
-  handleNodeEditRef.current = (nodeId: string) => {
+  // Function to open edit modal
+  const handleNodeEdit = useCallback((nodeId: string) => {
     setNodes((currentNodes) => {
       const node = currentNodes.find((n) => n.id === nodeId);
       if (node) {
@@ -54,11 +52,7 @@ export function FunnelEditor() {
       }
       return currentNodes;
     });
-  };
-
-  const handleNodeEdit = useCallback((nodeId: string) => {
-    handleNodeEditRef.current?.(nodeId);
-  }, []);
+  }, [setNodes]);
 
   // Function to save edited node data
   const handleSaveNodeEdit = useCallback((id: string, label: string, description: string) => {
@@ -85,6 +79,7 @@ export function FunnelEditor() {
     if (funnelId) {
       fetchFunnelById(funnelId).then((funnel) => {
         setFunnelName(funnel.name);
+        // Load nodes with updated onEdit callback
         const loadedNodes = (funnel.flow_data.nodes || []).map(node => ({
           ...node,
           data: {
@@ -96,7 +91,7 @@ export function FunnelEditor() {
         setEdges(funnel.flow_data.edges || []);
       });
     }
-  }, [funnelId, fetchFunnelById, setNodes, setEdges, handleNodeEdit]);
+  }, [funnelId, fetchFunnelById, setNodes, setEdges]);
 
   // Auto-save with debounce
   useEffect(() => {
