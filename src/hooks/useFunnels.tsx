@@ -98,10 +98,26 @@ export function useFunnels(clientId?: string) {
       name: string;
       description?: string;
     }) => {
-      if (!activeCompany?.id) throw new Error("No active company");
+      if (!activeCompany?.id) {
+        throw new Error("Nenhuma empresa ativa selecionada");
+      }
 
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.user) throw new Error("Not authenticated");
+      if (!session.session?.user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      // Verificar se o usuário é membro da empresa
+      const { data: membership, error: membershipError } = await supabase
+        .from("company_members")
+        .select("id")
+        .eq("company_id", activeCompany.id)
+        .eq("user_id", session.session.user.id)
+        .single();
+
+      if (membershipError || !membership) {
+        throw new Error("Você não tem permissão para criar funis nesta empresa");
+      }
 
       const { data: newFunnel, error } = await supabase
         .from("acquisition_funnels")
@@ -116,7 +132,11 @@ export function useFunnels(clientId?: string) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating funnel:", error);
+        throw new Error(error.message || "Erro ao criar funil");
+      }
+      
       return {
         ...newFunnel,
         flow_data: newFunnel.flow_data as unknown as FunnelFlowData
