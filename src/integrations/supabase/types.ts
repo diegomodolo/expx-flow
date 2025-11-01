@@ -23,7 +23,10 @@ export type Database = {
           flow_data: Json
           id: string
           is_active: boolean | null
+          is_public: boolean | null
           name: string
+          public_shared_at: string | null
+          public_token: string | null
           updated_at: string | null
           user_id: string
         }
@@ -35,7 +38,10 @@ export type Database = {
           flow_data?: Json
           id?: string
           is_active?: boolean | null
+          is_public?: boolean | null
           name: string
+          public_shared_at?: string | null
+          public_token?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -47,7 +53,10 @@ export type Database = {
           flow_data?: Json
           id?: string
           is_active?: boolean | null
+          is_public?: boolean | null
           name?: string
+          public_shared_at?: string | null
+          public_token?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -2708,6 +2717,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_funnel_public_token: { Args: never; Returns: string }
       get_user_company_ids: {
         Args: { _user_id: string }
         Returns: {
