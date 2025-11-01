@@ -12,6 +12,8 @@ import {
   useEdgesState,
   NodeTypes,
   Panel,
+  useReactFlow,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { CustomNode, CustomNodeData } from "./CustomNode";
@@ -28,11 +30,12 @@ const nodeTypes: NodeTypes = {
   custom: CustomNode,
 };
 
-export function FunnelEditor() {
+function FunnelEditorContent() {
   const navigate = useNavigate();
   const { clientId, funnelId } = useParams();
   const { toast } = useToast();
   const { blockTypes = [], loadingBlockTypes, updateFunnel, fetchFunnelById } = useFunnels(clientId);
+  const { screenToFlowPosition } = useReactFlow();
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -111,13 +114,12 @@ export function FunnelEditor() {
       if (!blockData) return;
 
       const block: BlockType = JSON.parse(blockData);
-      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
-      if (!reactFlowBounds) return;
 
-      const position = {
-        x: event.clientX - reactFlowBounds.left - 100,
-        y: event.clientY - reactFlowBounds.top - 50,
-      };
+      // Usar screenToFlowPosition para obter a posição exata considerando zoom e pan
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
       const newNode: Node = {
         id: `${block.name}-${Date.now()}`,
@@ -135,7 +137,7 @@ export function FunnelEditor() {
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [handleOpenEditModal, setNodes]
+    [handleOpenEditModal, setNodes, screenToFlowPosition]
   );
 
   const onDragStart = (event: React.DragEvent, blockType: BlockType) => {
@@ -258,5 +260,13 @@ export function FunnelEditor() {
         onSave={handleEditNode}
       />
     </div>
+  );
+}
+
+export function FunnelEditor() {
+  return (
+    <ReactFlowProvider>
+      <FunnelEditorContent />
+    </ReactFlowProvider>
   );
 }
