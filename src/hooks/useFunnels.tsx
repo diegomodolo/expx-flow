@@ -107,18 +107,6 @@ export function useFunnels(clientId?: string) {
         throw new Error("Usuário não autenticado");
       }
 
-      // Verificar se o usuário é membro da empresa
-      const { data: membership, error: membershipError } = await supabase
-        .from("company_members")
-        .select("id")
-        .eq("company_id", activeCompany.id)
-        .eq("user_id", session.session.user.id)
-        .single();
-
-      if (membershipError || !membership) {
-        throw new Error("Você não tem permissão para criar funis nesta empresa");
-      }
-
       const { data: newFunnel, error } = await supabase
         .from("acquisition_funnels")
         .insert({
@@ -134,7 +122,7 @@ export function useFunnels(clientId?: string) {
 
       if (error) {
         console.error("Error creating funnel:", error);
-        throw new Error(error.message || "Erro ao criar funil");
+        throw error;
       }
       
       return {
