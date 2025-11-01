@@ -2737,6 +2737,7 @@ export type Database = {
         | "gerador-criativos"
         | "agentes-ia"
         | "editar-agentes"
+        | "editor-funil"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
@@ -2884,6 +2885,7 @@ export const Constants = {
         "gerador-criativos",
         "agentes-ia",
         "editar-agentes",
+        "editor-funil",
       ],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],

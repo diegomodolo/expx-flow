@@ -174,7 +174,7 @@ export function useEmployeePermissions() {
         .from('employee_permissions')
         .select('is_enabled')
         .eq('employee_id', employeeId)
-        .eq('menu_item', menuItem)
+        .eq('menu_item', menuItem as any)
         .single();
 
       console.log('Current permission:', currentPerm);
@@ -186,9 +186,9 @@ export function useEmployeePermissions() {
           .insert({
             employee_id: employeeId,
             company_id: activeCompany?.company_id,
-            menu_item: menuItem,
+            menu_item: menuItem as any,
             is_enabled: true
-          });
+          } as any);
 
         if (insertError) {
           console.error('Error inserting permission:', insertError);
@@ -226,7 +226,7 @@ export function useEmployeePermissions() {
             updated_at: new Date().toISOString()
           })
           .eq('employee_id', employeeId)
-          .eq('menu_item', menuItem);
+          .eq('menu_item', menuItem as any);
 
         if (error) {
           console.error('Error updating permission:', error);
