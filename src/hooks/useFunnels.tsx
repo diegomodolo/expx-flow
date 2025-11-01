@@ -107,6 +107,30 @@ export function useFunnels(clientId?: string) {
         throw new Error("Usuário não autenticado");
       }
 
+      // Debug: Log the values being inserted
+      console.log("Creating funnel with:", {
+        company_id: activeCompany.id,
+        user_id: session.session.user.id,
+        client_id: data.client_id,
+        name: data.name,
+      });
+
+      // Check if user is a member of the company
+      const { data: membership, error: membershipError } = await supabase
+        .from("company_members")
+        .select("id, role")
+        .eq("company_id", activeCompany.id)
+        .eq("user_id", session.session.user.id)
+        .single();
+
+      console.log("Company membership check:", { membership, membershipError });
+
+      if (membershipError || !membership) {
+        throw new Error(
+          "Você não é membro desta empresa. Por favor, verifique se você está selecionando a empresa correta."
+        );
+      }
+
       const { data: newFunnel, error } = await supabase
         .from("acquisition_funnels")
         .insert({
@@ -122,7 +146,11 @@ export function useFunnels(clientId?: string) {
 
       if (error) {
         console.error("Error creating funnel:", error);
-        throw error;
+        throw new Error(
+          error.message === "new row violates row-level security policy for table \"acquisition_funnels\""
+            ? "Sem permissão para criar funis nesta empresa"
+            : error.message
+        );
       }
       
       return {
