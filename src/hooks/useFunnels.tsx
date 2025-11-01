@@ -31,9 +31,6 @@ export interface Funnel {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  public_token?: string | null;
-  is_public?: boolean;
-  public_shared_at?: string | null;
 }
 
 export function useFunnels(clientId?: string) {
@@ -209,142 +206,6 @@ export function useFunnels(clientId?: string) {
     },
   });
 
-  // Generate public sharing link
-  const generatePublicLink = useMutation({
-    mutationFn: async (funnelId: string) => {
-      // Generate new token
-      const { data: tokenData, error: tokenError } = await supabase
-        .rpc('generate_funnel_public_token');
-
-      if (tokenError) throw tokenError;
-
-      // Update funnel with token and make it public
-      const { data, error } = await supabase
-        .from("acquisition_funnels")
-        .update({
-          public_token: tokenData,
-          is_public: true,
-          public_shared_at: new Date().toISOString(),
-        })
-        .eq("id", funnelId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["funnels"] });
-      toast({
-        title: "Link público gerado!",
-        description: "O link foi copiado para a área de transferência.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao gerar link",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Revoke public access
-  const revokePublicAccess = useMutation({
-    mutationFn: async (funnelId: string) => {
-      const { error } = await supabase
-        .from("acquisition_funnels")
-        .update({
-          is_public: false,
-        })
-        .eq("id", funnelId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["funnels"] });
-      toast({
-        title: "Acesso público revogado",
-        description: "O link público não funciona mais.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao revogar acesso",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Generate public sharing link
-  const generatePublicLink = useMutation({
-    mutationFn: async (funnelId: string) => {
-      // Generate new token
-      const { data: tokenData, error: tokenError } = await supabase
-        .rpc('generate_funnel_public_token');
-
-      if (tokenError) throw tokenError;
-
-      // Update funnel with token and make it public
-      const { data, error } = await supabase
-        .from("acquisition_funnels")
-        .update({
-          public_token: tokenData,
-          is_public: true,
-          public_shared_at: new Date().toISOString(),
-        })
-        .eq("id", funnelId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["funnels"] });
-      toast({
-        title: "Link público gerado!",
-        description: "O link foi copiado para a área de transferência.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao gerar link",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Revoke public access
-  const revokePublicAccess = useMutation({
-    mutationFn: async (funnelId: string) => {
-      const { error } = await supabase
-        .from("acquisition_funnels")
-        .update({
-          is_public: false,
-        })
-        .eq("id", funnelId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["funnels"] });
-      toast({
-        title: "Acesso público revogado",
-        description: "O link público não funciona mais.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao revogar acesso",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   return {
     funnels,
     loadingFunnels,
@@ -357,9 +218,5 @@ export function useFunnels(clientId?: string) {
     isUpdating: updateFunnel.isPending,
     deleteFunnel: deleteFunnel.mutate,
     isDeleting: deleteFunnel.isPending,
-    generatePublicLink: generatePublicLink.mutate,
-    isGeneratingLink: generatePublicLink.isPending,
-    revokePublicAccess: revokePublicAccess.mutate,
-    isRevokingAccess: revokePublicAccess.isPending,
   };
 }
