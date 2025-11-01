@@ -40,15 +40,15 @@ export function useFunnels(clientId?: string) {
 
   // Fetch funnels for a client
   const { data: funnels, isLoading: loadingFunnels } = useQuery({
-    queryKey: ["funnels", clientId, activeCompany?.id],
+    queryKey: ["funnels", clientId, activeCompany?.company_id],
     queryFn: async () => {
-      if (!clientId || !activeCompany?.id) return [];
+      if (!clientId || !activeCompany?.company_id) return [];
 
       const { data, error } = await supabase
         .from("acquisition_funnels")
         .select("*")
         .eq("client_id", clientId)
-        .eq("company_id", activeCompany.id)
+        .eq("company_id", activeCompany.company_id)
         .eq("is_active", true)
         .order("updated_at", { ascending: false });
 
@@ -58,7 +58,7 @@ export function useFunnels(clientId?: string) {
         flow_data: item.flow_data as unknown as FunnelFlowData
       })) as Funnel[];
     },
-    enabled: !!clientId && !!activeCompany?.id,
+    enabled: !!clientId && !!activeCompany?.company_id,
   });
 
   // Fetch single funnel by ID
@@ -98,7 +98,7 @@ export function useFunnels(clientId?: string) {
       name: string;
       description?: string;
     }) => {
-      if (!activeCompany?.id) {
+      if (!activeCompany?.company_id) {
         throw new Error("Nenhuma empresa ativa selecionada");
       }
 
@@ -107,34 +107,10 @@ export function useFunnels(clientId?: string) {
         throw new Error("Usuário não autenticado");
       }
 
-      // Debug: Log the values being inserted
-      console.log("Creating funnel with:", {
-        company_id: activeCompany.id,
-        user_id: session.session.user.id,
-        client_id: data.client_id,
-        name: data.name,
-      });
-
-      // Check if user is a member of the company
-      const { data: membership, error: membershipError } = await supabase
-        .from("company_members")
-        .select("id, role")
-        .eq("company_id", activeCompany.id)
-        .eq("user_id", session.session.user.id)
-        .single();
-
-      console.log("Company membership check:", { membership, membershipError });
-
-      if (membershipError || !membership) {
-        throw new Error(
-          "Você não é membro desta empresa. Por favor, verifique se você está selecionando a empresa correta."
-        );
-      }
-
       const { data: newFunnel, error } = await supabase
         .from("acquisition_funnels")
         .insert({
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
           user_id: session.session.user.id,
           client_id: data.client_id,
           name: data.name,
@@ -144,14 +120,7 @@ export function useFunnels(clientId?: string) {
         .select()
         .single();
 
-      if (error) {
-        console.error("Error creating funnel:", error);
-        throw new Error(
-          error.message === "new row violates row-level security policy for table \"acquisition_funnels\""
-            ? "Sem permissão para criar funis nesta empresa"
-            : error.message
-        );
-      }
+      if (error) throw error;
       
       return {
         ...newFunnel,
