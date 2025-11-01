@@ -42,12 +42,18 @@ export function FunnelEditor() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const nodesRef = useRef<Node[]>([]);
+
+  // Update ref whenever nodes change
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
 
   // Handle opening edit modal
   const handleOpenEditModal = useCallback((nodeId: string) => {
-    const node = nodes.find((n) => n.id === nodeId);
+    const node = nodesRef.current.find((n) => n.id === nodeId);
     if (node) setEditingNode(node);
-  }, [nodes]);
+  }, []);
 
   // Load funnel data
   useEffect(() => {
@@ -59,17 +65,14 @@ export function FunnelEditor() {
           ...node,
           data: {
             ...node.data,
-            onEdit: (id: string) => {
-              const foundNode = nodes.find((n) => n.id === id);
-              if (foundNode) setEditingNode(foundNode);
-            },
+            onEdit: handleOpenEditModal,
           } as CustomNodeData,
         }));
         setNodes(nodesWithEdit);
         setEdges(funnel.flow_data.edges || []);
       });
     }
-  }, [funnelId]);
+  }, [funnelId, handleOpenEditModal]);
 
   // Auto-save with debounce
   useEffect(() => {
