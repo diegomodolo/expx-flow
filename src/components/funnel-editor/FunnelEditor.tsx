@@ -66,7 +66,6 @@ function FunnelEditorContent() {
   const [isExporting, setIsExporting] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [publicLink, setPublicLink] = useState<string | null>(null);
-  const [currentFunnelData, setCurrentFunnelData] = useState<any>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const nodesRef = useRef<Node[]>([]);
@@ -87,7 +86,6 @@ function FunnelEditorContent() {
     if (funnelId) {
       fetchFunnelById(funnelId).then((funnel) => {
         setFunnelName(funnel.name);
-        setCurrentFunnelData(funnel);
         
         // Set public link if exists
         if (funnel.is_public && funnel.public_token) {
@@ -95,7 +93,7 @@ function FunnelEditorContent() {
         }
         
         // Add onEdit function to all loaded nodes
-        const nodesWithEdit = (funnel.flow_data.nodes || []).map((node: Node) => ({
+        const nodesWithEdit = (funnel.flow_data.nodes || []).map((node) => ({
           ...node,
           data: {
             ...node.data,

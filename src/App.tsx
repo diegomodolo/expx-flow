@@ -41,7 +41,6 @@ import AgentChat from "./pages/AgentChat";
 import AgentEdit from "./pages/AgentEdit";
 import EditorFunil from "./pages/EditorFunil";
 import { FunnelEditor } from "./components/funnel-editor/FunnelEditor";
-import FunnelPublicView from "./pages/FunnelPublicView";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
@@ -68,7 +67,6 @@ const App = () => {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
-              <Route path="/funil-publico/:token" element={<FunnelPublicView />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={
