@@ -108,6 +108,7 @@ export function FunnelEditor() {
           description: block.default_description || undefined,
           color: block.color,
           category: block.category,
+          icon: block.icon || undefined,
           onEdit: (id: string) => {
             const node = nodes.find((n) => n.id === id);
             if (node) setEditingNode(node);
