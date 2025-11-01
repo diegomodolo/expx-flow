@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import type { BlockType } from "@/hooks/useFunnels";
 import { 
   Facebook, 
-  Search, 
+  Search as SearchIcon, 
   Youtube, 
   Mail, 
   BookOpen, 
@@ -16,12 +18,43 @@ import {
   Target,
   TrendingUp,
   CheckCircle,
+  Podcast,
+  Image,
+  ListChecks,
+  Brain,
+  GraduationCap,
+  UsersRound,
+  Bell,
+  Mic,
+  FileBadge2,
+  ClipboardList,
+  Bot,
+  MessageCircle,
+  BarChart2,
+  Calendar,
+  Presentation,
+  PlayCircle,
+  FileCheck,
+  Phone,
+  CreditCard,
+  Rocket,
+  Star,
+  LayoutDashboard,
+  Gift,
+  Repeat,
+  Plug,
+  Database,
+  BotMessageSquare,
+  BarChart3,
+  CalendarDays,
+  Cast,
+  QrCode,
   type LucideIcon
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
   facebook: Facebook,
-  google: Search,
+  google: SearchIcon,
   youtube: Youtube,
   mail: Mail,
   'book-open': BookOpen,
@@ -34,6 +67,37 @@ const iconMap: Record<string, LucideIcon> = {
   target: Target,
   'trending-up': TrendingUp,
   'check-circle': CheckCircle,
+  podcast: Podcast,
+  image: Image,
+  'list-checks': ListChecks,
+  brain: Brain,
+  'graduation-cap': GraduationCap,
+  'users-round': UsersRound,
+  bell: Bell,
+  mic: Mic,
+  'file-badge': FileBadge2,
+  'clipboard-list': ClipboardList,
+  bot: Bot,
+  'message-circle': MessageCircle,
+  'chart-bar': BarChart2,
+  calendar: Calendar,
+  presentation: Presentation,
+  'play-circle': PlayCircle,
+  'file-check': FileCheck,
+  phone: Phone,
+  'credit-card': CreditCard,
+  rocket: Rocket,
+  star: Star,
+  'layout-dashboard': LayoutDashboard,
+  gift: Gift,
+  repeat: Repeat,
+  plug: Plug,
+  database: Database,
+  'bot-message-square': BotMessageSquare,
+  'bar-chart-3': BarChart3,
+  'calendar-days': CalendarDays,
+  cast: Cast,
+  'qr-code': QrCode,
 };
 
 interface BlockLibraryProps {
@@ -42,34 +106,55 @@ interface BlockLibraryProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  descoberta: "Descoberta/Atenção",
-  nutricao: "Nutrição/Educação",
-  qualificacao: "Qualificação/Diagnóstico",
-  proposta: "Proposta/Avanço",
+  descoberta: "🧭 Descoberta/Atenção",
+  nutricao: "📚 Nutrição/Educação",
+  qualificacao: "🧩 Qualificação/Diagnóstico",
+  proposta: "💰 Proposta/Avanço",
+  "pos-venda": "🔁 Pós-Venda/Retenção",
+  automacao: "⚙️ Automação/Suporte",
+  eventos: "🌐 Mídias e Eventos",
 };
 
 export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
-  const categories = ["descoberta", "nutricao", "qualificacao", "proposta"];
+  const [searchTerm, setSearchTerm] = useState("");
+  const categories = ["descoberta", "nutricao", "qualificacao", "proposta", "pos-venda", "automacao", "eventos"];
+
+  // Filtrar blocos com base no termo de pesquisa
+  const filteredBlockTypes = blockTypes.filter((block) =>
+    block.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    block.default_description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="w-64 border-r bg-card h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-sm">Biblioteca de Blocos</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Arraste para o canvas
-        </p>
+      <div className="p-4 border-b space-y-3">
+        <div>
+          <h3 className="font-semibold text-sm">Biblioteca de Blocos</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Arraste para o canvas
+          </p>
+        </div>
+        <div className="relative">
+          <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar blocos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 h-9"
+          />
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {categories.map((category) => {
-            const blocks = blockTypes.filter((bt) => bt.category === category);
+            const blocks = filteredBlockTypes.filter((bt) => bt.category === category);
             if (blocks.length === 0) return null;
 
             return (
               <div key={category}>
-                <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-                  {categoryLabels[category]}
+                <h4 className="text-xs font-medium text-muted-foreground mb-2 tracking-wide">
+                  {categoryLabels[category] || category}
                 </h4>
                 <div className="space-y-2">
                   {blocks.map((block) => {
@@ -103,10 +188,15 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
                     );
                   })}
                 </div>
-                {category !== "proposta" && <Separator className="mt-4" />}
+                {category !== "eventos" && <Separator className="mt-4" />}
               </div>
             );
           })}
+          {filteredBlockTypes.length === 0 && (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Nenhum bloco encontrado
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>
