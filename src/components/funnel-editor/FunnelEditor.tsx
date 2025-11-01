@@ -43,16 +43,55 @@ export function FunnelEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
+  // Function to open edit modal
+  const handleNodeEdit = useCallback((nodeId: string) => {
+    setNodes((currentNodes) => {
+      const node = currentNodes.find((n) => n.id === nodeId);
+      if (node) {
+        setEditingNode(node);
+      }
+      return currentNodes;
+    });
+  }, [setNodes]);
+
+  // Function to save edited node data
+  const handleSaveNodeEdit = useCallback((id: string, label: string, description: string) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === id) {
+          return { 
+            ...node, 
+            data: { 
+              ...(node.data as CustomNodeData), 
+              label, 
+              description,
+            } as CustomNodeData 
+          };
+        }
+        return node;
+      })
+    );
+    setEditingNode(null);
+  }, [setNodes]);
+
   // Load funnel data
   useEffect(() => {
     if (funnelId) {
       fetchFunnelById(funnelId).then((funnel) => {
         setFunnelName(funnel.name);
-        setNodes(funnel.flow_data.nodes || []);
+        // Load nodes with updated onEdit callback
+        const loadedNodes = (funnel.flow_data.nodes || []).map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            onEdit: handleNodeEdit,
+          } as CustomNodeData,
+        }));
+        setNodes(loadedNodes);
         setEdges(funnel.flow_data.edges || []);
       });
     }
-  }, [funnelId]);
+  }, [funnelId, fetchFunnelById, setNodes, setEdges]);
 
   // Auto-save with debounce
   useEffect(() => {
@@ -109,31 +148,18 @@ export function FunnelEditor() {
           color: block.color,
           category: block.category,
           icon: block.icon || undefined,
-          onEdit: (id: string) => {
-            const node = nodes.find((n) => n.id === id);
-            if (node) setEditingNode(node);
-          },
+          onEdit: handleNodeEdit,
         } as CustomNodeData,
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [nodes, setNodes]
+    [handleNodeEdit, setNodes]
   );
 
   const onDragStart = (event: React.DragEvent, blockType: BlockType) => {
     event.dataTransfer.setData("application/reactflow", JSON.stringify(blockType));
     event.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleEditNode = (id: string, label: string, description: string) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === id
-          ? { ...node, data: { ...(node.data as CustomNodeData), label, description } as CustomNodeData }
-          : node
-      )
-    );
   };
 
   const handleSave = async () => {
@@ -238,7 +264,7 @@ export function FunnelEditor() {
         isOpen={!!editingNode}
         onClose={() => setEditingNode(null)}
         node={editingNode}
-        onSave={handleEditNode}
+        onSave={handleSaveNodeEdit}
       />
     </div>
   );
