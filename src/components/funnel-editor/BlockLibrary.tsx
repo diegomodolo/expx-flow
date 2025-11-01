@@ -1,6 +1,40 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { BlockType } from "@/hooks/useFunnels";
+import { 
+  Facebook, 
+  Search, 
+  Youtube, 
+  Mail, 
+  BookOpen, 
+  Newspaper, 
+  Video,
+  Megaphone,
+  FileText,
+  MessageSquare,
+  Users,
+  Target,
+  TrendingUp,
+  CheckCircle,
+  type LucideIcon
+} from "lucide-react";
+
+const iconMap: Record<string, LucideIcon> = {
+  facebook: Facebook,
+  google: Search,
+  youtube: Youtube,
+  mail: Mail,
+  'book-open': BookOpen,
+  newspaper: Newspaper,
+  video: Video,
+  megaphone: Megaphone,
+  'file-text': FileText,
+  'message-square': MessageSquare,
+  users: Users,
+  target: Target,
+  'trending-up': TrendingUp,
+  'check-circle': CheckCircle,
+};
 
 interface BlockLibraryProps {
   blockTypes: BlockType[];
@@ -38,25 +72,36 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
                   {categoryLabels[category]}
                 </h4>
                 <div className="space-y-2">
-                  {blocks.map((block) => (
-                    <div
-                      key={block.id}
-                      draggable
-                      onDragStart={(e) => onDragStart(e, block)}
-                      className="px-3 py-2 rounded-md border bg-background cursor-grab active:cursor-grabbing hover:border-primary hover:bg-accent transition-colors"
-                      style={{
-                        borderLeftWidth: "3px",
-                        borderLeftColor: block.color,
-                      }}
-                    >
-                      <div className="text-sm font-medium">{block.display_name}</div>
-                      {block.default_description && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {block.default_description}
+                  {blocks.map((block) => {
+                    const IconComponent = block.icon ? iconMap[block.icon] : null;
+                    return (
+                      <div
+                        key={block.id}
+                        draggable
+                        onDragStart={(e) => onDragStart(e, block)}
+                        className="px-3 py-2 rounded-md border bg-background cursor-grab active:cursor-grabbing hover:border-primary hover:bg-accent transition-colors"
+                        style={{
+                          borderLeftWidth: "3px",
+                          borderLeftColor: block.color,
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          {IconComponent && (
+                            <IconComponent 
+                              className="h-4 w-4 shrink-0" 
+                              style={{ color: block.color }}
+                            />
+                          )}
+                          <div className="text-sm font-medium">{block.display_name}</div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {block.default_description && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {block.default_description}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 {category !== "proposta" && <Separator className="mt-4" />}
               </div>
