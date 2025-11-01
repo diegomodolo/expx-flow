@@ -17,7 +17,8 @@ export type MenuItemType =
   | 'ia'
   | 'configuracoes'
   | 'agentes-ia'
-  | 'editar-agentes';
+  | 'editar-agentes'
+  | 'editor-funil';
 
 export interface EmployeePermission {
   id: string;

@@ -39,6 +39,8 @@ import GeradorCriativos from "./pages/GeradorCriativos";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
 import AgentEdit from "./pages/AgentEdit";
+import EditorFunil from "./pages/EditorFunil";
+import { FunnelEditor } from "./components/funnel-editor/FunnelEditor";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
@@ -231,17 +233,27 @@ const App = () => {
                   <ProtectedRoute>
                     <GeradorCampanhas />
                   </ProtectedRoute>
+                 } />
+                 <Route path="/editor-funil" element={
+                  <ProtectedRoute>
+                    <EditorFunil />
+                  </ProtectedRoute>
                 } />
-               <Route path="/configuracoes/*" element={
-                 <ProtectedRoute>
-                   <Configuracoes />
-                 </ProtectedRoute>
-               } />
-               <Route path="/perfil/*" element={
-                 <ProtectedRoute>
-                   <Perfil />
-                 </ProtectedRoute>
-               } />
+                 <Route path="/editor-funil/:clientId/:funnelId" element={
+                  <ProtectedRoute>
+                    <FunnelEditor />
+                  </ProtectedRoute>
+                } />
+                <Route path="/configuracoes/*" element={
+                  <ProtectedRoute>
+                    <Configuracoes />
+                  </ProtectedRoute>
+                } />
+                <Route path="/perfil/*" element={
+                  <ProtectedRoute>
+                    <Perfil />
+                  </ProtectedRoute>
+                } />
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />

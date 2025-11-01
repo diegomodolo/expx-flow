@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      acquisition_funnels: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          description: string | null
+          flow_data: Json
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          flow_data?: Json
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          flow_data?: Json
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acquisition_funnels_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acquisition_funnels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_sets: {
         Row: {
           bid_strategy: string | null
@@ -1425,6 +1479,39 @@ export type Database = {
           id?: string
           is_active?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      funnel_block_types: {
+        Row: {
+          category: string
+          color: string | null
+          created_at: string | null
+          default_description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          color?: string | null
+          created_at?: string | null
+          default_description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          color?: string | null
+          created_at?: string | null
+          default_description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
