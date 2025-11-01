@@ -20,11 +20,22 @@ import { CustomNode, CustomNodeData } from "./CustomNode";
 import { BlockLibrary } from "./BlockLibrary";
 import { NodeEditModal } from "./NodeEditModal";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Maximize2, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Maximize2, Loader2, Share2, Download, Link2, X } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFunnels } from "@/hooks/useFunnels";
 import { useToast } from "@/hooks/use-toast";
 import type { BlockType } from "@/hooks/useFunnels";
+import { useState, useRef } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
@@ -34,7 +45,16 @@ function FunnelEditorContent() {
   const navigate = useNavigate();
   const { clientId, funnelId } = useParams();
   const { toast } = useToast();
-  const { blockTypes = [], loadingBlockTypes, updateFunnel, fetchFunnelById } = useFunnels(clientId);
+  const { 
+    blockTypes = [], 
+    loadingBlockTypes, 
+    updateFunnel, 
+    fetchFunnelById,
+    generatePublicLink,
+    isGeneratingLink,
+    revokePublicAccess,
+    isRevokingAccess,
+  } = useFunnels(clientId);
   const { screenToFlowPosition } = useReactFlow();
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -43,6 +63,10 @@ function FunnelEditorContent() {
   const [funnelName, setFunnelName] = useState("Funil sem título");
   const [isSaving, setIsSaving] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [publicLink, setPublicLink] = useState<string | null>(null);
+  const [currentFunnelData, setCurrentFunnelData] = useState<any>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const nodesRef = useRef<Node[]>([]);
@@ -63,6 +87,13 @@ function FunnelEditorContent() {
     if (funnelId) {
       fetchFunnelById(funnelId).then((funnel) => {
         setFunnelName(funnel.name);
+        setCurrentFunnelData(funnel);
+        
+        // Set public link if exists
+        if (funnel.is_public && funnel.public_token) {
+          setPublicLink(`${window.location.origin}/funil-publico/${funnel.public_token}`);
+        }
+        
         // Add onEdit function to all loaded nodes
         const nodesWithEdit = (funnel.flow_data.nodes || []).map((node: Node) => ({
           ...node,
@@ -183,6 +214,82 @@ function FunnelEditorContent() {
     }
   };
 
+  const handleExportToPDF = async () => {
+    if (!reactFlowWrapper.current) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(reactFlowWrapper.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`${funnelName}.pdf`);
+      
+      toast({
+        title: "PDF exportado!",
+        description: "O funil foi exportado com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao exportar",
+        description: "Não foi possível exportar o funil para PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleGeneratePublicLink = async () => {
+    if (!funnelId) return;
+    
+    try {
+      await generatePublicLink(funnelId);
+      const funnel = await fetchFunnelById(funnelId);
+      if (funnel.public_token) {
+        const link = `${window.location.origin}/funil-publico/${funnel.public_token}`;
+        setPublicLink(link);
+        setShareDialogOpen(true);
+        
+        // Copy to clipboard
+        await navigator.clipboard.writeText(link);
+      }
+    } catch (error) {
+      console.error("Error generating link:", error);
+    }
+  };
+
+  const handleRevokeAccess = async () => {
+    if (!funnelId) return;
+    
+    try {
+      await revokePublicAccess(funnelId);
+      setPublicLink(null);
+      setShareDialogOpen(false);
+    } catch (error) {
+      console.error("Error revoking access:", error);
+    }
+  };
+
+  const copyLinkToClipboard = async () => {
+    if (publicLink) {
+      await navigator.clipboard.writeText(publicLink);
+      toast({
+        title: "Link copiado!",
+        description: "O link foi copiado para a área de transferência.",
+      });
+    }
+  };
+
   if (loadingBlockTypes) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -207,6 +314,34 @@ function FunnelEditorContent() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportToPDF}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Exportar PDF
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => publicLink ? setShareDialogOpen(true) : handleGeneratePublicLink()}
+            disabled={isGeneratingLink}
+          >
+            {isGeneratingLink ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : publicLink ? (
+              <Link2 className="h-4 w-4 mr-2" />
+            ) : (
+              <Share2 className="h-4 w-4 mr-2" />
+            )}
+            {publicLink ? "Ver Link" : "Compartilhar"}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -259,6 +394,42 @@ function FunnelEditorContent() {
         node={editingNode}
         onSave={handleEditNode}
       />
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compartilhar Funil</DialogTitle>
+            <DialogDescription>
+              Qualquer pessoa com este link poderá visualizar o funil (somente leitura).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={publicLink || ""}
+                readOnly
+                className="flex-1"
+              />
+              <Button onClick={copyLinkToClipboard} size="sm">
+                Copiar
+              </Button>
+            </div>
+            <Button 
+              variant="destructive" 
+              onClick={handleRevokeAccess}
+              disabled={isRevokingAccess}
+              className="w-full"
+            >
+              {isRevokingAccess ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <X className="h-4 w-4 mr-2" />
+              )}
+              Revogar Acesso Público
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
