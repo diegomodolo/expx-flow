@@ -23,7 +23,7 @@ export default function AgentesIA() {
   const [showFilters, setShowFilters] = useState(false);
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [openClientCombo, setOpenClientCombo] = useState(false);
-  const { clients } = useClients();
+  const { clients = [] } = useClients();
 
   // Filtrar e ordenar agentes
   const filteredAgents = agents
@@ -205,7 +205,7 @@ export default function AgentesIA() {
                             />
                             Sem cliente
                           </CommandItem>
-                          {clients
+                          {Array.isArray(clients) && clients
                             .sort((a, b) => a.name.localeCompare(b.name))
                             .map((client) => (
                               <CommandItem
