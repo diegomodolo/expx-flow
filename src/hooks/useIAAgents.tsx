@@ -14,6 +14,11 @@ interface Agent {
   client_id: string | null;
   created_at: string;
   updated_at: string;
+  client?: {
+    id: string;
+    name: string;
+    company: string;
+  } | null;
 }
 
 interface Conversation {
@@ -54,7 +59,10 @@ export function useIAAgents() {
     try {
       const { data, error } = await supabase
         .from('ia_agents')
-        .select('*')
+        .select(`
+          *,
+          client:clients(id, name, company)
+        `)
         .eq('company_id', activeCompany.company_id)
         .order('created_at', { ascending: false });
 

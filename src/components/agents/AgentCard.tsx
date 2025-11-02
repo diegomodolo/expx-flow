@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Edit, Copy, Trash2, MoreVertical } from "lucide-react";
+import { Bot, Edit, Copy, Trash2, MoreVertical, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useIAAgents } from "@/hooks/useIAAgents";
 import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
-import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface AgentCardProps {
   agent: {
@@ -15,6 +15,11 @@ interface AgentCardProps {
     description: string | null;
     client_id: string | null;
     created_at: string;
+    client?: {
+      id: string;
+      name: string;
+      company: string;
+    } | null;
   };
   index: number;
 }
@@ -32,22 +37,6 @@ export function AgentCard({ agent, index }: AgentCardProps) {
   const navigate = useNavigate();
   const { deleteAgent, duplicateAgent } = useIAAgents();
   const { hasPermission } = useEmployeePermissions();
-  const [clientName, setClientName] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchClientName = async () => {
-      if (agent.client_id) {
-        const { data } = await supabase
-          .from('clients')
-          .select('name')
-          .eq('id', agent.client_id)
-          .single();
-        if (data) setClientName(data.name);
-      }
-    };
-
-    fetchClientName();
-  }, [agent.client_id]);
 
   const handleAccess = () => {
     navigate(`/ia/agents/${agent.id}`);
@@ -93,9 +82,16 @@ export function AgentCard({ agent, index }: AgentCardProps) {
         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
           {agent.description || "Sem descrição"}
         </p>
-        <p className="text-xs text-muted-foreground/70">
-          {clientName ? `Cliente: ${clientName}` : "Sem cliente associado"}
-        </p>
+        {agent.client ? (
+          <Badge variant="secondary" className="text-xs gap-1">
+            <User className="w-3 h-3" />
+            {agent.client.name}
+          </Badge>
+        ) : (
+          <p className="text-xs text-muted-foreground/70">
+            Sem cliente associado
+          </p>
+        )}
       </div>
 
       {/* Menu de Ações */}
