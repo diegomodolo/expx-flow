@@ -7,14 +7,12 @@ import {
   UsersRound,
   CheckSquare,
   BarChart3,
-  BookOpen,
   Settings,
   UserCheck,
   Brain,
-  Sparkles,
-  Palette,
   Bot,
   GitBranch,
+  Wand2,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -41,9 +39,7 @@ const items = [
   { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
   { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
-  { title: "Gerador de Campanhas", url: "/gerador-campanhas", icon: BookOpen, permission: "gerador-campanhas" as MenuItemType },
-  { title: "Gerador de Conteúdo", url: "/gerador-conteudo", icon: Sparkles, permission: "gerador-conteudo" as MenuItemType },
-  { title: "Gerador de Criativos", url: "/gerador-criativos", icon: Palette, permission: "gerador-criativos" as MenuItemType },
+  { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
   { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
 ];
 

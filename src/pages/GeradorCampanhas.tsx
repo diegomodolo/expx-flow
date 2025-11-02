@@ -11,7 +11,7 @@ import { EditableCampaignReport } from "@/components/campaign-generator/Editable
 import { CampaignsList } from "@/components/campaign-generator/CampaignsList";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home } from "lucide-react";
 import { useGeneratedCampaigns } from "@/hooks/useGeneratedCampaigns";
 import type { Client } from "@/hooks/useClients";
 
@@ -183,14 +183,27 @@ const GeradorCampanhas = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Button
-              variant="outline"
-              onClick={handleBackToList}
-              className="flex items-center gap-2 mb-4"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar para Lista
-            </Button>
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/geradores')}
+                className="flex items-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                Geradores
+              </Button>
+              <span className="text-muted-foreground">/</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBackToList}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Lista
+              </Button>
+            </div>
             <h1 className="text-2xl font-bold text-foreground">Gerador de Campanhas Inteligente</h1>
           </div>
           <div className="text-sm text-muted-foreground">

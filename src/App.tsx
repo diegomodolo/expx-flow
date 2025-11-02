@@ -36,6 +36,7 @@ import RelatorioAlertasCriticos from "./pages/reports/RelatorioAlertasCriticos";
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
+import Geradores from "./pages/Geradores";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
 import AgentEdit from "./pages/AgentEdit";
@@ -214,11 +215,44 @@ const App = () => {
                      <AdminLeadReports />
                    </ProtectedRoute>
                  } />
+                 {/* Nova página de Geradores */}
+                 <Route path="/geradores" element={
+                  <ProtectedRoute>
+                    <Geradores />
+                  </ProtectedRoute>
+                } />
+                 {/* Novas rotas dos geradores */}
+                 <Route path="/geradores/campanhas" element={
+                  <ProtectedRoute>
+                    <GeradorCampanhas />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/campanhas/:id" element={
+                  <ProtectedRoute>
+                    <GeradorCampanhas />
+                  </ProtectedRoute>
+                 } />
+                 <Route path="/geradores/conteudo" element={
+                  <ProtectedRoute>
+                    <GeradorConteudo />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/criativos" element={
+                  <ProtectedRoute>
+                    <GeradorCriativos />
+                  </ProtectedRoute>
+                } />
+                 {/* Rotas antigas - redirects para compatibilidade */}
                  <Route path="/gerador-campanhas" element={
                   <ProtectedRoute>
                     <GeradorCampanhas />
                   </ProtectedRoute>
                 } />
+                 <Route path="/gerador-campanhas/:id" element={
+                  <ProtectedRoute>
+                    <GeradorCampanhas />
+                  </ProtectedRoute>
+                 } />
                  <Route path="/gerador-conteudo" element={
                   <ProtectedRoute>
                     <GeradorConteudo />
@@ -229,11 +263,6 @@ const App = () => {
                     <GeradorCriativos />
                   </ProtectedRoute>
                 } />
-                <Route path="/gerador-campanhas/:id" element={
-                  <ProtectedRoute>
-                    <GeradorCampanhas />
-                  </ProtectedRoute>
-                 } />
                  <Route path="/editor-funil" element={
                   <ProtectedRoute>
                     <EditorFunil />

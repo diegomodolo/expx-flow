@@ -1,41 +1,55 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Palette, Sparkles, History, Settings } from "lucide-react";
+import { Palette, Sparkles, History, Settings, Home } from "lucide-react";
 import { CreativeGenerator } from "@/components/creative-generator/CreativeGenerator";
 import { CreativeHistory } from "@/components/creative-generator/CreativeHistory";
 import { IdeogramPromptConfigModal } from "@/components/creative-generator/IdeogramPromptConfigModal";
 
 export default function GeradorCriativos() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("generate");
   const [showPromptConfig, setShowPromptConfig] = useState(false);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Palette className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Gerador de Criativos com IA</h1>
-              <p className="text-muted-foreground">
-                Crie criativos visuais profissionais com inteligência artificial
-              </p>
-            </div>
-          </div>
-          
+        <div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => setShowPromptConfig(true)}
-            className="flex items-center gap-2"
+            onClick={() => navigate('/geradores')}
+            className="flex items-center gap-2 mb-4"
           >
-            <Settings className="w-4 h-4" />
-            Configurar Prompt
+            <Home className="w-4 h-4" />
+            Voltar para Geradores
           </Button>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Palette className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Gerador de Criativos com IA</h1>
+                <p className="text-muted-foreground">
+                  Crie criativos visuais profissionais com inteligência artificial
+                </p>
+              </div>
+            </div>
+          
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPromptConfig(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Configurar Prompt
+            </Button>
+          </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
