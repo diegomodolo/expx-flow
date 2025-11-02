@@ -17,6 +17,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { CustomNode, CustomNodeData } from "./CustomNode";
+import { GroupNode } from "./GroupNode";
 import { BlockLibrary } from "./BlockLibrary";
 import { NodeEditModal } from "./NodeEditModal";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import type { BlockType } from "@/hooks/useFunnels";
 
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
+  group: GroupNode,
 };
 
 function FunnelEditorContent() {
@@ -124,6 +126,75 @@ function FunnelEditorContent() {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      // Ignorar se for o próprio grupo sendo arrastado
+      if (node.type === "group") return;
+
+      // Procurar por grupos no canvas
+      const groupNodes = nodes.filter((n) => n.type === "group");
+      
+      groupNodes.forEach((groupNode) => {
+        if (!groupNode.width || !groupNode.height) return;
+
+        const groupRect = {
+          x: groupNode.position.x,
+          y: groupNode.position.y,
+          width: groupNode.width,
+          height: groupNode.height,
+        };
+
+        // Verificar se o nó está dentro do grupo
+        // Calcular posição absoluta considerando parent
+        let absoluteX = node.position.x;
+        let absoluteY = node.position.y;
+        
+        // Se o node já tem um parent, precisamos calcular a posição absoluta
+        if (node.parentId) {
+          const parentNode = nodes.find(n => n.id === node.parentId);
+          if (parentNode) {
+            absoluteX += parentNode.position.x;
+            absoluteY += parentNode.position.y;
+          }
+        }
+        
+        const nodeRect = {
+          x: absoluteX,
+          y: absoluteY,
+          width: node.width || 200,
+          height: node.height || 100,
+        };
+
+        const isInside =
+          nodeRect.x >= groupRect.x &&
+          nodeRect.y >= groupRect.y &&
+          nodeRect.x + nodeRect.width <= groupRect.x + groupRect.width &&
+          nodeRect.y + nodeRect.height <= groupRect.y + groupRect.height;
+
+        if (isInside && !node.parentId) {
+          // Vincular o nó ao grupo
+          setNodes((nds) =>
+            nds.map((n) => {
+              if (n.id === node.id) {
+                return {
+                  ...n,
+                  parentId: groupNode.id,
+                  extent: "parent" as const,
+                  position: {
+                    x: nodeRect.x - groupRect.x,
+                    y: nodeRect.y - groupRect.y,
+                  },
+                };
+              }
+              return n;
+            })
+          );
+        }
+      });
+    },
+    [nodes, setNodes]
+  );
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -139,9 +210,12 @@ function FunnelEditorContent() {
         y: event.clientY,
       });
 
+      // Verificar se é um bloco de container
+      const isContainer = block.category === "containers";
+
       const newNode: Node = {
         id: `${block.name}-${Date.now()}`,
-        type: "custom",
+        type: isContainer ? "group" : "custom",
         position,
         data: {
           label: block.display_name,
@@ -151,6 +225,13 @@ function FunnelEditorContent() {
           icon: block.icon || undefined,
           onEdit: handleOpenEditModal,
         } as CustomNodeData,
+        // Propriedades específicas para grupos
+        ...(isContainer && {
+          style: { 
+            width: 400, 
+            height: 300,
+          },
+        }),
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -307,19 +388,20 @@ function FunnelEditorContent() {
         <BlockLibrary blockTypes={blockTypes} onDragStart={onDragStart} />
         
         <div ref={reactFlowWrapper} className="flex-1 bg-muted/20">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            nodeTypes={nodeTypes}
-            fitView
-            minZoom={0.2}
-            maxZoom={2}
-          >
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onNodeDragStop={onNodeDragStop}
+          nodeTypes={nodeTypes}
+          fitView
+          minZoom={0.2}
+          maxZoom={2}
+        >
             <Background />
             <Controls />
             <MiniMap

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Package } from "lucide-react";
 import type { Node } from "@xyflow/react";
 import type { CustomNodeData } from "./CustomNode";
 
@@ -49,6 +50,17 @@ export function NodeEditModal({ isOpen, onClose, node, onSave }: NodeEditModalPr
             Personalize o nome e a descrição deste bloco no funil.
           </DialogDescription>
         </DialogHeader>
+
+        {node?.type === "group" && (
+          <div className="mb-2 p-3 bg-primary/10 border border-primary/20 rounded-md">
+            <div className="flex items-center gap-2 text-primary">
+              <Package className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                Editando Container/Grupo
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>

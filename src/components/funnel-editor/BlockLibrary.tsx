@@ -49,6 +49,8 @@ import {
   CalendarDays,
   Cast,
   QrCode,
+  Package,
+  Layers,
   type LucideIcon
 } from "lucide-react";
 
@@ -98,6 +100,8 @@ const iconMap: Record<string, LucideIcon> = {
   'calendar-days': CalendarDays,
   cast: Cast,
   'qr-code': QrCode,
+  'package': Package,
+  'layers': Layers,
 };
 
 interface BlockLibraryProps {
@@ -106,6 +110,7 @@ interface BlockLibraryProps {
 }
 
 const categoryLabels: Record<string, string> = {
+  containers: "📦 Containers/Agrupadores",
   descoberta: "🧭 Descoberta/Atenção",
   nutricao: "📚 Nutrição/Educação",
   qualificacao: "🧩 Qualificação/Diagnóstico",
@@ -117,13 +122,41 @@ const categoryLabels: Record<string, string> = {
 
 export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const categories = ["descoberta", "nutricao", "qualificacao", "proposta", "pos-venda", "automacao", "eventos"];
 
   // Filtrar blocos com base no termo de pesquisa
-  const filteredBlockTypes = blockTypes.filter((block) =>
+  const filteredBlocks = blockTypes.filter((block) =>
     block.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     block.default_description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Agrupar blocos por categoria
+  const groupedBlocks = filteredBlocks.reduce((acc, block) => {
+    if (!acc[block.category]) {
+      acc[block.category] = [];
+    }
+    acc[block.category].push(block);
+    return acc;
+  }, {} as Record<string, BlockType[]>);
+
+  // Ordenar categorias com containers primeiro
+  const categoryOrder = [
+    "containers",
+    "descoberta",
+    "nutricao",
+    "qualificacao",
+    "proposta",
+    "pos-venda",
+    "automacao",
+    "eventos",
+  ];
+  
+  const categories = Object.keys(groupedBlocks).sort((a, b) => {
+    const indexA = categoryOrder.indexOf(a);
+    const indexB = categoryOrder.indexOf(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
 
   return (
     <div className="w-64 border-r bg-card h-full flex flex-col">
@@ -148,7 +181,7 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {categories.map((category) => {
-            const blocks = filteredBlockTypes.filter((bt) => bt.category === category);
+            const blocks = groupedBlocks[category];
             if (blocks.length === 0) return null;
 
             return (
@@ -192,7 +225,7 @@ export function BlockLibrary({ blockTypes, onDragStart }: BlockLibraryProps) {
               </div>
             );
           })}
-          {filteredBlockTypes.length === 0 && (
+          {filteredBlocks.length === 0 && (
             <div className="text-center py-8 text-sm text-muted-foreground">
               Nenhum bloco encontrado
             </div>
