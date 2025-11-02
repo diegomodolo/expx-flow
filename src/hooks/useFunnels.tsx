@@ -31,6 +31,10 @@ export interface Funnel {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  client?: {
+    id: string;
+    name: string;
+  };
 }
 
 export function useFunnels(clientId?: string) {
@@ -38,7 +42,32 @@ export function useFunnels(clientId?: string) {
   const queryClient = useQueryClient();
   const { activeCompany } = useCompany();
 
-  // Fetch funnels for a client
+  // Fetch ALL funnels for the company
+  const { data: allFunnels, isLoading: loadingAllFunnels } = useQuery({
+    queryKey: ["all-funnels", activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return [];
+      
+      const { data, error } = await supabase
+        .from("acquisition_funnels")
+        .select(`
+          *,
+          client:clients(id, name)
+        `)
+        .eq("company_id", activeCompany.company_id)
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false });
+      
+      if (error) throw error;
+      return (data || []).map(item => ({
+        ...item,
+        flow_data: item.flow_data as unknown as FunnelFlowData
+      })) as Funnel[];
+    },
+    enabled: !!activeCompany?.company_id,
+  });
+
+  // Fetch funnels for a client (mantido para compatibilidade)
   const { data: funnels, isLoading: loadingFunnels } = useQuery({
     queryKey: ["funnels", clientId, activeCompany?.company_id],
     queryFn: async () => {
@@ -207,6 +236,8 @@ export function useFunnels(clientId?: string) {
   });
 
   return {
+    allFunnels,
+    loadingAllFunnels,
     funnels,
     loadingFunnels,
     blockTypes,
