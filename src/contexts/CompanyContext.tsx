@@ -34,7 +34,7 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
       // Default to first company if no saved preference
       setActiveCompanyState(companies[0]);
     }
-  }, [companies.length]); // Changed from [companies, activeCompany] to [companies.length]
+  }, [companies]); // Fixed: Use companies array as dependency to respect manual selections
 
   const setActiveCompany = (company: CompanyMember | null) => {
     setActiveCompanyState(company);

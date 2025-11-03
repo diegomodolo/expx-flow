@@ -15,6 +15,7 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string }[] = 
   { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral' },
   { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes' },
   { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias' },
+  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão' },
   { key: 'squad', label: 'Squad', description: 'Gestão de equipes' },
   { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas' },
   { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários' },
