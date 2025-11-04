@@ -782,6 +782,7 @@ export type Database = {
           name: string
           notes: string | null
           objectives: string | null
+          offline_event_set_id: string | null
           preferred_platforms: string[] | null
           product_name: string | null
           sector: string
@@ -814,6 +815,7 @@ export type Database = {
           name: string
           notes?: string | null
           objectives?: string | null
+          offline_event_set_id?: string | null
           preferred_platforms?: string[] | null
           product_name?: string | null
           sector: string
@@ -846,6 +848,7 @@ export type Database = {
           name?: string
           notes?: string | null
           objectives?: string | null
+          offline_event_set_id?: string | null
           preferred_platforms?: string[] | null
           product_name?: string | null
           sector?: string
@@ -1840,6 +1843,86 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      offline_conversions: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          currency: string | null
+          custom_data: Json | null
+          error_message: string | null
+          event_name: string
+          event_time: number
+          id: string
+          meta_response: Json | null
+          offline_event_set_id: string
+          sent_at: string | null
+          status: string
+          user_city_hash: string | null
+          user_country_hash: string | null
+          user_email_hash: string | null
+          user_first_name_hash: string | null
+          user_last_name_hash: string | null
+          user_phone_hash: string | null
+          user_state_hash: string | null
+          user_zip_hash: string | null
+          value: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          currency?: string | null
+          custom_data?: Json | null
+          error_message?: string | null
+          event_name?: string
+          event_time: number
+          id?: string
+          meta_response?: Json | null
+          offline_event_set_id: string
+          sent_at?: string | null
+          status?: string
+          user_city_hash?: string | null
+          user_country_hash?: string | null
+          user_email_hash?: string | null
+          user_first_name_hash?: string | null
+          user_last_name_hash?: string | null
+          user_phone_hash?: string | null
+          user_state_hash?: string | null
+          user_zip_hash?: string | null
+          value?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          currency?: string | null
+          custom_data?: Json | null
+          error_message?: string | null
+          event_name?: string
+          event_time?: number
+          id?: string
+          meta_response?: Json | null
+          offline_event_set_id?: string
+          sent_at?: string | null
+          status?: string
+          user_city_hash?: string | null
+          user_country_hash?: string | null
+          user_email_hash?: string | null
+          user_first_name_hash?: string | null
+          user_last_name_hash?: string | null
+          user_phone_hash?: string | null
+          user_state_hash?: string | null
+          user_zip_hash?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_conversions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       optimization_history: {
         Row: {

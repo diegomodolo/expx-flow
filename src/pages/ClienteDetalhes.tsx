@@ -62,6 +62,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientNotes } from "@/hooks/useClientNotes";
 import { LeadDisqualificationTab } from "@/components/clients/LeadDisqualificationTab";
+import { OfflineConversionsTab } from "@/components/clients/OfflineConversionsTab";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -1366,8 +1367,9 @@ const [savingNote, setSavingNote] = useState(false);
                    <TabsTrigger value="weekly-report">📊 Relatório Semanal</TabsTrigger>
                    <TabsTrigger value="period-comparison">📈 Comparação de Períodos</TabsTrigger>
                    <TabsTrigger value="contact">Contato & Dados</TabsTrigger>
-                <TabsTrigger value="notes">Anotações</TabsTrigger>
+                 <TabsTrigger value="notes">Anotações</TabsTrigger>
                 <TabsTrigger value="leads-desqualificados">Leads Desqualificados</TabsTrigger>
+                <TabsTrigger value="offline-conversions">Conversões Offline</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
               </TabsList>
             </div>
@@ -2703,6 +2705,10 @@ const [savingNote, setSavingNote] = useState(false);
                   </div>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="offline-conversions" className="p-4 sm:p-6">
+              <OfflineConversionsTab clientId={id || ""} />
             </TabsContent>
           </Tabs>
         </Card>

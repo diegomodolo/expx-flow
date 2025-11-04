@@ -79,3 +79,6 @@ verify_jwt = false
 
 [functions.ia-agent-chat]
 verify_jwt = true
+
+[functions.send-offline-conversion]
+verify_jwt = true
