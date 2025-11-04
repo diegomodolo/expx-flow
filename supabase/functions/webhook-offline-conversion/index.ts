@@ -175,8 +175,13 @@ Deno.serve(async (req) => {
     // Country must be normalized to 2-letter ISO code in lowercase, THEN hashed
     if (userData?.country) {
       const normalizedCountry = userData.country.toLowerCase().substring(0, 2);
+      console.log('[Webhook] Country before hash:', normalizedCountry);
       hashedUserData.country = await sha256Hash(normalizedCountry);
+      console.log('[Webhook] Country after hash:', hashedUserData.country);
     }
+
+    console.log('[Webhook] Hashed user data keys:', Object.keys(hashedUserData));
+    console.log('[Webhook] Country field present:', !!hashedUserData.country);
 
     // Prepare payload for Meta
     const finalEventTime = eventTime || Math.floor(Date.now() / 1000);
@@ -197,6 +202,7 @@ Deno.serve(async (req) => {
     };
 
     console.log('[Webhook] Sending conversion to Meta for event set:', client.offline_event_set_id);
+    console.log('[Webhook] Payload user_data:', JSON.stringify(payload.data[0].user_data, null, 2));
 
     // Send to Meta
     const metaUrl = `https://graph.facebook.com/v18.0/${client.offline_event_set_id}/events`;
