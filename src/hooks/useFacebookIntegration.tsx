@@ -227,6 +227,47 @@ export const useFacebookIntegration = () => {
     }
   };
 
+  const checkScopes = async (companyId: string) => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('check-facebook-scopes', {
+        body: { companyId },
+      });
+
+      if (error) {
+        console.error('Error checking scopes:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao verificar permissões",
+          description: error.message || "Não foi possível verificar as permissões do Facebook.",
+        });
+        return null;
+      }
+
+      if (!data.success) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao verificar permissões",
+          description: data.error || "Não foi possível verificar as permissões do Facebook.",
+        });
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error checking scopes:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao verificar permissões",
+        description: "Não foi possível verificar as permissões do Facebook.",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Auto-load integration when active company changes
   useEffect(() => {
     if (activeCompany?.company_id) {
@@ -246,5 +287,6 @@ export const useFacebookIntegration = () => {
     loadIntegration,
     disconnectFacebook,
     refreshAdAccounts,
+    checkScopes,
   };
 };

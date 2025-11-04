@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw } from "lucide-react";
+import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield } from "lucide-react";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const FacebookIntegrationSettings = () => {
   const { activeCompany } = useCompany();
@@ -18,8 +20,26 @@ export const FacebookIntegrationSettings = () => {
     loadIntegration, 
     connectFacebook, 
     disconnectFacebook,
-    refreshAdAccounts 
+    refreshAdAccounts,
+    checkScopes
   } = useFacebookIntegration();
+
+  const [showScopesModal, setShowScopesModal] = useState(false);
+  const [scopesData, setScopesData] = useState<any>(null);
+  const [checkingScopes, setCheckingScopes] = useState(false);
+
+  const handleCheckScopes = async () => {
+    if (!activeCompany?.company_id) return;
+    
+    setCheckingScopes(true);
+    const data = await checkScopes(activeCompany.company_id);
+    setCheckingScopes(false);
+    
+    if (data) {
+      setScopesData(data);
+      setShowScopesModal(true);
+    }
+  };
 
   useEffect(() => {
     if (activeCompany?.company_id) {
@@ -89,26 +109,40 @@ export const FacebookIntegrationSettings = () => {
               )}
             </div>
             
-            {isConnected ? (
-              <Button
-                variant="outline"
-                onClick={disconnectFacebook}
-                disabled={loading}
-                className="flex items-center gap-2"
-              >
-                <Unlink className="h-4 w-4" />
-                Desconectar
-              </Button>
-            ) : (
-              <Button
-                onClick={connectFacebook}
-                disabled={loading || !activeCompany}
-                className="flex items-center gap-2"
-              >
-                <Facebook className="h-4 w-4" />
-                Conectar ao Facebook Ads
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {isConnected && (
+                <Button
+                  variant="outline"
+                  onClick={handleCheckScopes}
+                  disabled={loading || checkingScopes}
+                  className="flex items-center gap-2"
+                >
+                  <Shield className={`h-4 w-4 ${checkingScopes ? 'animate-pulse' : ''}`} />
+                  Verificar Permissões
+                </Button>
+              )}
+              
+              {isConnected ? (
+                <Button
+                  variant="outline"
+                  onClick={disconnectFacebook}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  <Unlink className="h-4 w-4" />
+                  Desconectar
+                </Button>
+              ) : (
+                <Button
+                  onClick={connectFacebook}
+                  disabled={loading || !activeCompany}
+                  className="flex items-center gap-2"
+                >
+                  <Facebook className="h-4 w-4" />
+                  Conectar ao Facebook Ads
+                </Button>
+              )}
+            </div>
           </div>
 
           {isExpired && (
@@ -216,6 +250,137 @@ export const FacebookIntegrationSettings = () => {
           </Card>
         </>
       )}
+
+      {/* Modal de Verificação de Escopos */}
+      <Dialog open={showScopesModal} onOpenChange={setShowScopesModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Permissões do Token Facebook
+            </DialogTitle>
+            <DialogDescription>
+              Informações detalhadas sobre as permissões concedidas ao token de acesso
+            </DialogDescription>
+          </DialogHeader>
+
+          {scopesData && (
+            <div className="space-y-4">
+              {/* Alerta se faltar ads_management */}
+              {!scopesData.permissions.ads_management && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Permissão "ads_management" ausente!</strong>
+                    <br />
+                    Esta permissão é necessária para enviar conversões offline ao Facebook.
+                    <br />
+                    <strong>Solução:</strong> Desconecte e reconecte a integração para obter esta permissão.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Informações do Token */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Informações do Token</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Status:</span>
+                    <Badge variant={scopesData.tokenInfo.isValid ? "default" : "destructive"}>
+                      {scopesData.tokenInfo.isValid ? "Válido" : "Inválido"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Expira em:</span>
+                    <span>
+                      {format(new Date(scopesData.tokenInfo.expiresAt), "dd/MM/yyyy 'às' HH:mm", {
+                        locale: ptBR,
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">App ID:</span>
+                    <span className="font-mono">{scopesData.tokenInfo.appId}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">User ID:</span>
+                    <span className="font-mono">{scopesData.tokenInfo.userId}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Permissões Críticas */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Permissões Críticas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">ads_management</span>
+                    {scopesData.permissions.ads_management ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Concedida
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Ausente
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">ads_read</span>
+                    {scopesData.permissions.ads_read ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Concedida
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Ausente
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">business_management</span>
+                    {scopesData.permissions.business_management ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Concedida
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Ausente
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Todas as Permissões */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Todas as Permissões ({scopesData.scopes.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {scopesData.scopes.map((scope: string) => (
+                      <Badge key={scope} variant="outline" className="text-xs font-mono">
+                        {scope}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
