@@ -1844,6 +1844,54 @@ export type Database = {
         }
         Relationships: []
       }
+      offline_conversion_webhook_tokens: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_conversion_webhook_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offline_conversion_webhook_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offline_conversions: {
         Row: {
           client_id: string
@@ -1857,6 +1905,7 @@ export type Database = {
           meta_response: Json | null
           offline_event_set_id: string
           sent_at: string | null
+          source: string | null
           status: string
           user_city_hash: string | null
           user_country_hash: string | null
@@ -1880,6 +1929,7 @@ export type Database = {
           meta_response?: Json | null
           offline_event_set_id: string
           sent_at?: string | null
+          source?: string | null
           status?: string
           user_city_hash?: string | null
           user_country_hash?: string | null
@@ -1903,6 +1953,7 @@ export type Database = {
           meta_response?: Json | null
           offline_event_set_id?: string
           sent_at?: string | null
+          source?: string | null
           status?: string
           user_city_hash?: string | null
           user_country_hash?: string | null

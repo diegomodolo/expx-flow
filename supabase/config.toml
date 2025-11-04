@@ -85,3 +85,6 @@ verify_jwt = true
 
 [functions.check-facebook-scopes]
 verify_jwt = true
+
+[functions.webhook-offline-conversion]
+verify_jwt = false

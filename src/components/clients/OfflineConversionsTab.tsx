@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfigureOfflineEventSetDialog } from "./ConfigureOfflineEventSetDialog";
+import { WebhookIntegrationCard } from "./WebhookIntegrationCard";
 
 interface OfflineConversionsTabProps {
   clientId: string;
@@ -76,6 +77,8 @@ export const OfflineConversionsTab = ({ clientId }: OfflineConversionsTabProps) 
 
   return (
     <div className="space-y-6">
+      <WebhookIntegrationCard clientId={clientId} />
+      
       {/* Info Card */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
