@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
     // 6. Salvar log no banco de dados
     const conversionRecord = {
       client_id: clientId,
+      company_id: client.company_id,
       offline_event_set_id: client.offline_event_set_id,
       event_name: eventName,
       event_time: finalEventTime,
@@ -190,6 +191,7 @@ Deno.serve(async (req) => {
       meta_response: metaData,
       error_message: metaResponse.ok ? null : (metaData.error?.message || 'Unknown error'),
       sent_at: metaResponse.ok ? new Date().toISOString() : null,
+      source: 'manual',
     };
 
     const { data: savedConversion, error: saveError } = await supabase

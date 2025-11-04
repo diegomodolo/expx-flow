@@ -148,40 +148,51 @@ Deno.serve(async (req) => {
     }
 
     // Hash user data
-    const hashedEmail = await sha256Hash(userData.email);
-    const hashedPhone = await sha256Hash(userData.phone);
-    const hashedFirstName = await sha256Hash(userData.firstName);
-    const hashedLastName = await sha256Hash(userData.lastName);
-    const hashedCity = await sha256Hash(userData.city);
-    const hashedState = await sha256Hash(userData.state);
-    const hashedZip = await sha256Hash(userData.zip);
-    const hashedCountry = await sha256Hash(userData.country);
+    const hashedUserData: any = {};
+    
+    if (userData?.email) {
+      hashedUserData.em = await sha256Hash(userData.email);
+    }
+    if (userData?.phone) {
+      const cleanPhone = userData.phone.replace(/\D/g, '');
+      hashedUserData.ph = await sha256Hash(cleanPhone);
+    }
+    if (userData?.firstName) {
+      hashedUserData.fn = await sha256Hash(userData.firstName);
+    }
+    if (userData?.lastName) {
+      hashedUserData.ln = await sha256Hash(userData.lastName);
+    }
+    if (userData?.city) {
+      hashedUserData.ct = await sha256Hash(userData.city);
+    }
+    if (userData?.state) {
+      hashedUserData.st = await sha256Hash(userData.state);
+    }
+    if (userData?.zip) {
+      hashedUserData.zp = await sha256Hash(userData.zip);
+    }
+    if (userData?.country) {
+      hashedUserData.country = userData.country.toLowerCase();
+    }
 
     // Prepare payload for Meta
+    const finalEventTime = eventTime || Math.floor(Date.now() / 1000);
+    
     const payload = {
       data: [
         {
           event_name: eventName,
-          event_time: eventTime || Math.floor(Date.now() / 1000),
-          user_data: {
-            em: hashedEmail,
-            ph: hashedPhone,
-            fn: hashedFirstName,
-            ln: hashedLastName,
-            ct: hashedCity,
-            st: hashedState,
-            zp: hashedZip,
-            country: hashedCountry,
+          event_time: finalEventTime,
+          user_data: hashedUserData,
+          custom_data: {
+            value: value || 0,
+            currency: currency || 'BRL',
+            ...customData,
           },
-          custom_data: customData || {},
         },
       ],
     };
-
-    if (value !== undefined && value !== null) {
-      payload.data[0].custom_data.value = value;
-      payload.data[0].custom_data.currency = currency || 'BRL';
-    }
 
     console.log('[Webhook] Sending conversion to Meta for event set:', client.offline_event_set_id);
 
@@ -203,20 +214,31 @@ Deno.serve(async (req) => {
 
     console.log('[Webhook] Meta API response:', metaData);
 
-    // Log conversion in database
+    // Log conversion in database with individual hashed fields
+    const validToken = tokenData as any;
     const { error: logError } = await supabase
       .from('offline_conversions')
       .insert({
         client_id: client.id,
         company_id: client.company_id,
+        offline_event_set_id: client.offline_event_set_id,
         event_name: eventName,
-        event_time: new Date((eventTime || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+        event_time: finalEventTime,
         value: value || null,
         currency: currency || 'BRL',
-        user_data: userData,
-        custom_data: customData || {},
+        user_email_hash: hashedUserData.em || null,
+        user_phone_hash: hashedUserData.ph || null,
+        user_first_name_hash: hashedUserData.fn || null,
+        user_last_name_hash: hashedUserData.ln || null,
+        user_city_hash: hashedUserData.ct || null,
+        user_state_hash: hashedUserData.st || null,
+        user_zip_hash: hashedUserData.zp || null,
+        user_country_hash: hashedUserData.country || null,
+        custom_data: customData || null,
         status: metaSuccess ? 'sent' : 'error',
         meta_response: metaData,
+        error_message: metaSuccess ? null : (metaData.error?.message || 'Unknown error'),
+        sent_at: metaSuccess ? new Date().toISOString() : null,
         source: 'webhook',
       });
 

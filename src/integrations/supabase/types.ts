@@ -1895,6 +1895,7 @@ export type Database = {
       offline_conversions: {
         Row: {
           client_id: string
+          company_id: string | null
           created_at: string | null
           currency: string | null
           custom_data: Json | null
@@ -1919,6 +1920,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          company_id?: string | null
           created_at?: string | null
           currency?: string | null
           custom_data?: Json | null
@@ -1943,6 +1945,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          company_id?: string | null
           created_at?: string | null
           currency?: string | null
           custom_data?: Json | null
@@ -1971,6 +1974,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offline_conversions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

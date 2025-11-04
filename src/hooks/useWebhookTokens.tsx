@@ -160,6 +160,11 @@ export const useWebhookTokens = (clientId: string) => {
       return data;
     },
     onSuccess: (data) => {
+      // Invalidar query de conversões para atualizar a lista
+      queryClient.invalidateQueries({ 
+        queryKey: ['offline-conversions', clientId] 
+      });
+      
       toast({
         title: "Teste realizado com sucesso!",
         description: `Conversão de teste enviada ao Meta. ${data.eventsReceived || 0} evento(s) recebido(s).`,
