@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Hash user data
+    // Hash user data (country should NOT be hashed, only lowercase 2-letter ISO code)
     const hashedUserData: any = {};
     
     if (userData?.email) {
@@ -172,8 +172,9 @@ Deno.serve(async (req) => {
     if (userData?.zip) {
       hashedUserData.zp = await sha256Hash(userData.zip);
     }
+    // Country must be 2-letter ISO code in lowercase, NOT hashed
     if (userData?.country) {
-      hashedUserData.country = userData.country.toLowerCase();
+      hashedUserData.country = userData.country.toLowerCase().substring(0, 2);
     }
 
     // Prepare payload for Meta

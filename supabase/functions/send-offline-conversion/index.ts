@@ -104,6 +104,7 @@ Deno.serve(async (req) => {
     }
 
     // 3. Hash dos dados do usuário (user_data)
+    // IMPORTANTE: country deve ser código ISO de 2 letras lowercase, NÃO hasheado
     const hashedUserData: any = {};
     
     if (userData?.email) {
@@ -129,8 +130,9 @@ Deno.serve(async (req) => {
     if (userData?.zip) {
       hashedUserData.zp = await sha256Hash(userData.zip);
     }
+    // Country deve ser código ISO de 2 letras lowercase, NÃO hasheado
     if (userData?.country) {
-      hashedUserData.country = userData.country.toLowerCase(); // Não hashear country
+      hashedUserData.country = userData.country.toLowerCase().substring(0, 2);
     }
 
     console.log('User data hashed successfully');
