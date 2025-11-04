@@ -56,7 +56,7 @@ export const useFacebookIntegration = () => {
     const params = new URLSearchParams({
       client_id: facebookAppId,
       redirect_uri: redirectUri,
-      scope: 'email,public_profile,ads_read,business_management',
+      scope: 'email,public_profile,ads_read,ads_management,business_management',
       response_type: 'code',
       state: activeCompany.company_id, // Pass company ID as state
     });
