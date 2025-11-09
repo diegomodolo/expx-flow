@@ -48,6 +48,7 @@ export interface CRMLead {
   status: 'open' | 'qualified' | 'unqualified' | 'won' | 'lost';
   disqualification_reason: string | null;
   external_id: string | null;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -81,6 +82,7 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
         .from('crm_leads')
         .select('*')
         .eq('workspace_id', workspaceId)
+        .eq('is_archived', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -319,6 +321,78 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
     },
   });
 
+  const removeFromBoardMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { data, error } = await supabase
+        .from('crm_leads')
+        .update({ is_archived: true })
+        .eq('id', leadId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await supabase.from('crm_lead_activities').insert({
+        lead_id: data.id,
+        activity_type: 'archived',
+        notes: 'Lead removido do quadro',
+        is_manual: false,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
+      toast({
+        title: "Lead removido do quadro!",
+        description: "O lead foi arquivado mas continua disponível na lista.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao remover lead",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const restoreToBoardMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { data, error } = await supabase
+        .from('crm_leads')
+        .update({ is_archived: false })
+        .eq('id', leadId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await supabase.from('crm_lead_activities').insert({
+        lead_id: data.id,
+        activity_type: 'restored',
+        notes: 'Lead restaurado ao quadro',
+        is_manual: false,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
+      toast({
+        title: "Lead restaurado!",
+        description: "O lead foi adicionado de volta ao quadro.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao restaurar lead",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     leads,
     stages,
@@ -330,5 +404,9 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
     movingLeadIds,
     updateLead: updateLeadMutation.mutateAsync,
     isUpdatingLead: updateLeadMutation.isPending,
+    removeFromBoard: removeFromBoardMutation.mutateAsync,
+    isRemovingFromBoard: removeFromBoardMutation.isPending,
+    restoreToBoard: restoreToBoardMutation.mutateAsync,
+    isRestoringToBoard: restoreToBoardMutation.isPending,
   };
 };

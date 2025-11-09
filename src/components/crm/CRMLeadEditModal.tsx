@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { CRMLead, CRMStage, useCRMLeads } from "@/hooks/useCRMLeads";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, Calendar, Mail, Phone, Building2, Globe, 
   Facebook as FacebookIcon, Instagram as InstagramIcon, MapPin,
-  TrendingUp, Target, Hash, Save, X, Link as LinkIcon, ExternalLink
+  TrendingUp, Target, Hash, Save, X, Link as LinkIcon, ExternalLink, Archive
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -50,10 +51,11 @@ const statusConfig = {
 };
 
 export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, boardId }: CRMLeadEditModalProps) {
-  const { updateLead, isUpdatingLead } = useCRMLeads(workspaceId, boardId);
+  const { updateLead, isUpdatingLead, removeFromBoard, isRemovingFromBoard } = useCRMLeads(workspaceId, boardId);
   const { data: linkedLeads = [] } = useCRMLeadLinks(lead?.id || '');
   const { boards } = useCRMBoards({ workspaceId });
   const [isEditing, setIsEditing] = useState(false);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -178,62 +180,81 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
     setIsEditing(false);
   };
 
+  const handleRemoveFromBoard = async () => {
+    await removeFromBoard(lead.id);
+    setShowRemoveDialog(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-[95vw] max-h-[95vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              {isEditing ? (
-                <Input
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="text-2xl font-bold h-auto py-1 px-2"
-                />
-              ) : (
-                <DialogTitle className="text-2xl">{lead.full_name}</DialogTitle>
-              )}
-              <div className="flex items-center gap-2 mt-2">
-                {lead.external_id && (
-                  <Badge variant="outline" className="text-xs">
-                    <Hash className="w-3 h-3 mr-1" />
-                    {lead.external_id}
-                  </Badge>
-                )}
-                {linkedLeads.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    <LinkIcon className="w-3 h-3 mr-1" />
-                    Vinculado a {linkedLeads.length} {linkedLeads.length === 1 ? 'quadro' : 'quadros'}
-                  </Badge>
-                )}
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-7xl w-[95vw] max-h-[95vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
                 {isEditing ? (
-                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as CRMLead['status'] })}>
-                    <SelectTrigger className="w-40 h-7">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusConfig).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          {config.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    className="text-2xl font-bold h-auto py-1 px-2"
+                  />
                 ) : (
-                  <Badge variant={statusConfig[lead.status].variant}>
-                    {statusConfig[lead.status].label}
-                  </Badge>
+                  <DialogTitle className="text-2xl">{lead.full_name}</DialogTitle>
+                )}
+                <div className="flex items-center gap-2 mt-2">
+                  {lead.external_id && (
+                    <Badge variant="outline" className="text-xs">
+                      <Hash className="w-3 h-3 mr-1" />
+                      {lead.external_id}
+                    </Badge>
+                  )}
+                  {linkedLeads.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      <LinkIcon className="w-3 h-3 mr-1" />
+                      Vinculado a {linkedLeads.length} {linkedLeads.length === 1 ? 'quadro' : 'quadros'}
+                    </Badge>
+                  )}
+                  {isEditing ? (
+                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as CRMLead['status'] })}>
+                      <SelectTrigger className="w-40 h-7">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(statusConfig).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            {config.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge variant={statusConfig[lead.status].variant}>
+                      {statusConfig[lead.status].label}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {!isEditing && !lead.is_archived && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setShowRemoveDialog(true)}
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    Remover do Quadro
+                  </Button>
+                )}
+                {!isEditing && (
+                  <Button size="sm" onClick={() => setIsEditing(true)}>
+                    Editar
+                  </Button>
                 )}
               </div>
             </div>
-            
-            {!isEditing && (
-              <Button size="sm" onClick={() => setIsEditing(true)}>
-                Editar
-              </Button>
-            )}
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-8 shrink-0">
@@ -678,5 +699,33 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
         )}
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remover lead do quadro?</AlertDialogTitle>
+          <AlertDialogDescription>
+            O lead será removido do quadro mas continuará na lista de leads. 
+            Você pode restaurá-lo depois se necessário.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleRemoveFromBoard}
+            disabled={isRemovingFromBoard}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isRemovingFromBoard ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Archive className="w-4 h-4 mr-2" />
+            )}
+            Remover
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

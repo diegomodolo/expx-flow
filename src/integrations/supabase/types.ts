@@ -1547,6 +1547,7 @@ export type Database = {
           full_name: string
           id: string
           instagram: string | null
+          is_archived: boolean
           notes: string | null
           phone: string | null
           quantity: number | null
@@ -1578,6 +1579,7 @@ export type Database = {
           full_name: string
           id?: string
           instagram?: string | null
+          is_archived?: boolean
           notes?: string | null
           phone?: string | null
           quantity?: number | null
@@ -1609,6 +1611,7 @@ export type Database = {
           full_name?: string
           id?: string
           instagram?: string | null
+          is_archived?: boolean
           notes?: string | null
           phone?: string | null
           quantity?: number | null
