@@ -157,6 +157,7 @@ serve(async (req) => {
       event_sent: !!conversionId,
       conversion_id: conversionId,
       notes: toStage.event_mapping ? `Evento ${toStage.event_mapping} enviado ao Meta` : null,
+      is_manual: false,
     });
 
     if (activityError) {

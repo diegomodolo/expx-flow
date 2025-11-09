@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CRMTagManager } from "./CRMTagManager";
 import { CRMAttachmentUploader } from "./CRMAttachmentUploader";
+import { CRMLeadActivityTimeline } from "./CRMLeadActivityTimeline";
 
 interface CRMLeadEditModalProps {
   lead: CRMLead | null;
@@ -117,6 +118,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
 
     await updateLead({
       leadId: lead.id,
+      originalLead: lead,
       updates: {
         full_name: formData.full_name.trim(),
         email: formData.email || null,
@@ -173,7 +175,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -222,17 +224,18 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="overview" className="w-full flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-7 shrink-0">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="contact">Contato</TabsTrigger>
             <TabsTrigger value="tracking">Rastreamento</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="attachments">Anexos</TabsTrigger>
+            <TabsTrigger value="history">Histórico</TabsTrigger>
             <TabsTrigger value="notes">Observações</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4 mt-4">
+          <TabsContent value="overview" className="space-y-4 mt-4 overflow-y-auto flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="flex items-center gap-2 mb-2">
@@ -366,7 +369,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
             </div>
           </TabsContent>
 
-          <TabsContent value="contact" className="space-y-4 mt-4">
+          <TabsContent value="contact" className="space-y-4 mt-4 overflow-y-auto flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="flex items-center gap-2 mb-2">
@@ -512,7 +515,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
             </div>
           </TabsContent>
 
-          <TabsContent value="tracking" className="space-y-4 mt-4">
+          <TabsContent value="tracking" className="space-y-4 mt-4 overflow-y-auto flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="utm_source">UTM Source</Label>
@@ -559,11 +562,15 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
             <CRMTagManager workspaceId={workspaceId} leadId={lead.id} />
           </TabsContent>
 
-          <TabsContent value="attachments" className="mt-4">
+          <TabsContent value="attachments" className="mt-4 overflow-y-auto flex-1">
             <CRMAttachmentUploader leadId={lead.id} />
           </TabsContent>
 
-          <TabsContent value="notes" className="space-y-4 mt-4">
+          <TabsContent value="history" className="mt-4 flex-1 overflow-hidden">
+            <CRMLeadActivityTimeline leadId={lead.id} leadName={lead.full_name} />
+          </TabsContent>
+
+          <TabsContent value="notes" className="space-y-4 mt-4 overflow-y-auto flex-1">
             <div>
               <Label htmlFor="notes">Observações</Label>
               {isEditing ? (

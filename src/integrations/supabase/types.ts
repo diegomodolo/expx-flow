@@ -1338,6 +1338,7 @@ export type Database = {
           event_sent: boolean | null
           from_stage_id: string | null
           id: string
+          is_manual: boolean | null
           lead_id: string
           notes: string | null
           to_stage_id: string | null
@@ -1350,6 +1351,7 @@ export type Database = {
           event_sent?: boolean | null
           from_stage_id?: string | null
           id?: string
+          is_manual?: boolean | null
           lead_id: string
           notes?: string | null
           to_stage_id?: string | null
@@ -1362,6 +1364,7 @@ export type Database = {
           event_sent?: boolean | null
           from_stage_id?: string | null
           id?: string
+          is_manual?: boolean | null
           lead_id?: string
           notes?: string | null
           to_stage_id?: string | null

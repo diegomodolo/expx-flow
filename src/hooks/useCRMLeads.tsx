@@ -126,7 +126,15 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Registrar atividade de criação
+      await supabase.from('crm_lead_activities').insert({
+        lead_id: data.id,
+        activity_type: 'created',
+        notes: 'Lead criado no sistema',
+        is_manual: false,
+      });
+
       queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
       toast({
         title: "Lead criado!",
@@ -188,7 +196,7 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
   });
 
   const updateLeadMutation = useMutation({
-    mutationFn: async ({ leadId, updates }: { leadId: string; updates: Partial<CRMLead> }) => {
+    mutationFn: async ({ leadId, updates, originalLead }: { leadId: string; updates: Partial<CRMLead>; originalLead?: CRMLead }) => {
       const { data, error } = await supabase
         .from('crm_leads')
         .update(updates)
@@ -197,10 +205,51 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
         .single();
 
       if (error) throw error;
-      return data;
+      return { data, updates, originalLead };
     },
-    onSuccess: () => {
+    onSuccess: async ({ data, updates, originalLead }) => {
+      // Registrar atividades baseadas nas mudanças
+      const activities = [];
+
+      if (originalLead && updates.status && updates.status !== originalLead.status) {
+        activities.push({
+          lead_id: data.id,
+          activity_type: 'status_change',
+          notes: `Status alterado de ${originalLead.status} para ${updates.status}`,
+          is_manual: false,
+        });
+      }
+
+      if (originalLead && updates.temperature && updates.temperature !== originalLead.temperature) {
+        activities.push({
+          lead_id: data.id,
+          activity_type: 'temperature_change',
+          notes: `Temperatura alterada de ${originalLead.temperature || 'não definida'} para ${updates.temperature}`,
+          is_manual: false,
+        });
+      }
+
+      // Se houver outras mudanças significativas (não status/temperatura), registrar como updated
+      const significantChanges = Object.keys(updates).filter(
+        key => key !== 'status' && key !== 'temperature' && key !== 'updated_at'
+      );
+
+      if (significantChanges.length > 0 && (!originalLead || activities.length === 0)) {
+        activities.push({
+          lead_id: data.id,
+          activity_type: 'updated',
+          notes: `Lead atualizado: ${significantChanges.join(', ')}`,
+          is_manual: false,
+        });
+      }
+
+      // Inserir todas as atividades
+      if (activities.length > 0) {
+        await supabase.from('crm_lead_activities').insert(activities);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
       toast({
         title: "Lead atualizado!",
       });
