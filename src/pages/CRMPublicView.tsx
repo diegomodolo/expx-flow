@@ -8,6 +8,7 @@ import { Plus, Search, Upload, Filter, Loader2 } from "lucide-react";
 import { CRMKanbanBoard } from "@/components/crm/CRMKanbanBoard";
 import { CRMLeadDetailsModal } from "@/components/crm/CRMLeadDetailsModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
+import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { useToast } from "@/hooks/use-toast";
 
 interface Workspace {
@@ -25,6 +26,7 @@ export default function CRMPublicView() {
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
   const [clientName, setClientName] = useState('');
+  const [currentView, setCurrentView] = useState<string>('leads');
 
   const { leads, stages, isLoading, moveLead } = useCRMLeads(workspace?.id || '');
 
@@ -109,51 +111,87 @@ export default function CRMPublicView() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-muted/30">
-      {/* Header */}
-      <header className="h-20 flex-shrink-0 bg-card border-b border-border">
-        <div className="container mx-auto px-8 h-full flex items-center justify-between">
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar leads..."
-              className="pl-10 bg-muted/50 border-transparent"
-            />
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => setNewLeadDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Lead
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="flex h-screen bg-muted/30">
+      {/* Sidebar */}
+      <CRMSidebar activeView={currentView} onViewChange={setCurrentView} />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="px-8 py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">Leads - {clientName}</h1>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtrar
-              </Button>
-              <Button variant="default" size="sm">
-                <Upload className="w-4 h-4 mr-2" />
-                Exportar
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="h-20 flex-shrink-0 bg-card border-b border-border">
+          <div className="px-8 h-full flex items-center justify-between">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar leads..."
+                className="pl-10 bg-muted/50 border-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={() => setNewLeadDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Lead
               </Button>
             </div>
           </div>
-          
-          <CRMKanbanBoard
-            stages={stages}
-            leads={leads}
-            onMoveCard={handleMoveCard}
-            onCardClick={setSelectedLead}
-          />
-        </div>
-      </main>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto">
+          {currentView === 'leads' && (
+            <div className="px-8 py-8">
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold">Leads - {clientName}</h1>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filtrar
+                  </Button>
+                  <Button variant="default" size="sm">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Exportar
+                  </Button>
+                </div>
+              </div>
+              
+              <CRMKanbanBoard
+                stages={stages}
+                leads={leads}
+                onMoveCard={handleMoveCard}
+                onCardClick={setSelectedLead}
+              />
+            </div>
+          )}
+
+          {currentView === 'dashboard' && (
+            <div className="px-8 py-8">
+              <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+              <p className="text-muted-foreground">Dashboard em desenvolvimento...</p>
+            </div>
+          )}
+
+          {currentView === 'contacts' && (
+            <div className="px-8 py-8">
+              <h1 className="text-3xl font-bold mb-6">Contatos</h1>
+              <p className="text-muted-foreground">Contatos em desenvolvimento...</p>
+            </div>
+          )}
+
+          {currentView === 'reports' && (
+            <div className="px-8 py-8">
+              <h1 className="text-3xl font-bold mb-6">Relatórios</h1>
+              <p className="text-muted-foreground">Relatórios em desenvolvimento...</p>
+            </div>
+          )}
+
+          {currentView === 'settings' && (
+            <div className="px-8 py-8">
+              <h1 className="text-3xl font-bold mb-6">Configurações</h1>
+              <p className="text-muted-foreground">Configurações em desenvolvimento...</p>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Modals */}
       <CRMLeadDetailsModal
