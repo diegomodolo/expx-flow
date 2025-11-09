@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +72,7 @@ export interface CRMStage {
 export const useCRMLeads = (workspaceId: string, boardId: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [movingLeadIds, setMovingLeadIds] = useState<Set<string>>(new Set());
 
   const { data: leads = [], isLoading: isLoadingLeads } = useQuery({
     queryKey: ['crm-leads', workspaceId],
@@ -174,8 +176,42 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
 
       return data;
     },
-    onSuccess: (data) => {
+    onMutate: async ({ leadId, toStageId }) => {
+      // Marcar como "em movimento"
+      setMovingLeadIds(prev => new Set(prev).add(leadId));
+      
+      // Cancelar queries em andamento para evitar race conditions
+      await queryClient.cancelQueries({ queryKey: ['crm-leads', workspaceId] });
+      
+      // Snapshot do estado atual para rollback
+      const previousLeads = queryClient.getQueryData<CRMLead[]>(['crm-leads', workspaceId]);
+      
+      // Atualizar cache IMEDIATAMENTE (UI atualiza instantaneamente)
+      queryClient.setQueryData<CRMLead[]>(
+        ['crm-leads', workspaceId],
+        (old) => {
+          if (!old) return old;
+          return old.map(lead => 
+            lead.id === leadId 
+              ? { ...lead, stage_id: toStageId, updated_at: new Date().toISOString() }
+              : lead
+          );
+        }
+      );
+      
+      return { previousLeads, leadId };
+    },
+    onSuccess: (data, variables) => {
+      // Remover marcador de "em movimento"
+      setMovingLeadIds(prev => {
+        const next = new Set(prev);
+        next.delete(variables.leadId);
+        return next;
+      });
+      
+      // Refetch em background para sincronizar com servidor
       queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
       
       if (data.eventSent) {
         toast({
@@ -189,12 +225,29 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
         });
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // Remover marcador de "em movimento"
+      setMovingLeadIds(prev => {
+        const next = new Set(prev);
+        next.delete(variables.leadId);
+        return next;
+      });
+      
+      // Restaurar estado anterior (rollback)
+      if (context?.previousLeads) {
+        queryClient.setQueryData(['crm-leads', workspaceId], context.previousLeads);
+      }
+      
       toast({
         title: "Erro ao mover lead",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Garantir sincronização ao final
+      queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
     },
   });
 
@@ -274,6 +327,7 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
     isCreatingLead: createLeadMutation.isPending,
     moveLead: moveLeadMutation.mutateAsync,
     isMovingLead: moveLeadMutation.isPending,
+    movingLeadIds,
     updateLead: updateLeadMutation.mutateAsync,
     isUpdatingLead: updateLeadMutation.isPending,
   };

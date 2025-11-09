@@ -46,7 +46,7 @@ export default function CRMPublicView() {
   });
 
   // Hook para leads e stages com boardId
-  const { leads, stages, isLoading, moveLead, createLead, updateLead } = useCRMLeads(
+  const { leads, stages, isLoading, moveLead, createLead, updateLead, movingLeadIds } = useCRMLeads(
     workspace?.id || '', 
     selectedBoardId
   );
@@ -242,6 +242,7 @@ export default function CRMPublicView() {
                 onEditStage={handleEditStage}
                 onDeleteStage={handleDeleteStage}
                 onReorderStages={handleReorderStages}
+                movingLeadIds={movingLeadIds}
               />
             </div>
           )}

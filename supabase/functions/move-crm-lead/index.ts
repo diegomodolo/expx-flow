@@ -134,34 +134,37 @@ serve(async (req) => {
       console.log('[move-crm-lead] Auto-updating lead status to:', toStage.target_status);
     }
 
-    // Atualizar lead
-    const { error: updateError } = await supabase
-      .from('crm_leads')
-      .update(leadUpdates)
-      .eq('id', leadId);
+    // Executar operações em paralelo para melhor performance
+    const [updateResult, activityResult] = await Promise.all([
+      // Atualizar lead
+      supabase
+        .from('crm_leads')
+        .update(leadUpdates)
+        .eq('id', leadId),
+      
+      // Registrar atividade
+      supabase.from('crm_lead_activities').insert({
+        lead_id: leadId,
+        activity_type: 'stage_change',
+        from_stage_id: fromStageId,
+        to_stage_id: toStageId,
+        event_sent: !!conversionId,
+        conversion_id: conversionId,
+        notes: toStage.event_mapping ? `Evento ${toStage.event_mapping} enviado ao Meta` : null,
+        is_manual: false,
+      }),
+    ]);
 
-    if (updateError) {
-      console.error('[move-crm-lead] Error updating lead:', updateError);
+    if (updateResult.error) {
+      console.error('[move-crm-lead] Error updating lead:', updateResult.error);
       return new Response(JSON.stringify({ error: 'Failed to update lead' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Registrar atividade
-    const { error: activityError } = await supabase.from('crm_lead_activities').insert({
-      lead_id: leadId,
-      activity_type: 'stage_change',
-      from_stage_id: fromStageId,
-      to_stage_id: toStageId,
-      event_sent: !!conversionId,
-      conversion_id: conversionId,
-      notes: toStage.event_mapping ? `Evento ${toStage.event_mapping} enviado ao Meta` : null,
-      is_manual: false,
-    });
-
-    if (activityError) {
-      console.error('[move-crm-lead] Error creating activity:', activityError);
+    if (activityResult.error) {
+      console.error('[move-crm-lead] Error creating activity:', activityResult.error);
     }
 
     // === WORKFLOW: Verificar se deve duplicar lead ===
@@ -241,21 +244,21 @@ serve(async (req) => {
               console.error('[move-crm-lead] Error creating lead link:', linkError);
             }
             
-            // Registrar atividade no lead original
-            await supabase.from('crm_lead_activities').insert({
-              lead_id: leadId,
-              activity_type: 'workflow_duplicate',
-              notes: `Lead duplicado para ${targetStage.board.name} → ${targetStage.name}`,
-              is_manual: false,
-            });
-            
-            // Registrar atividade no lead novo
-            await supabase.from('crm_lead_activities').insert({
-              lead_id: newLead.id,
-              activity_type: 'workflow_created',
-              notes: `Criado automaticamente por workflow vindo de ${toStage.name}`,
-              is_manual: false,
-            });
+            // Registrar atividades em paralelo
+            await Promise.all([
+              supabase.from('crm_lead_activities').insert({
+                lead_id: leadId,
+                activity_type: 'workflow_duplicate',
+                notes: `Lead duplicado para ${targetStage.board.name} → ${targetStage.name}`,
+                is_manual: false,
+              }),
+              supabase.from('crm_lead_activities').insert({
+                lead_id: newLead.id,
+                activity_type: 'workflow_created',
+                notes: `Criado automaticamente por workflow vindo de ${toStage.name}`,
+                is_manual: false,
+              }),
+            ]);
             
             console.log('[move-crm-lead] Workflow completed successfully');
           }

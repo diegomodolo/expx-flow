@@ -20,6 +20,7 @@ interface CRMKanbanBoardProps {
   onDeleteStage?: (stageId: string) => void;
   onReorderStages?: (reorderedStages: CRMStage[]) => void;
   onCreateStage?: () => void;
+  movingLeadIds?: Set<string>;
 }
 
 const getStatusConfig = (status: string) => {
@@ -48,6 +49,7 @@ export function CRMKanbanBoard({
   onDeleteStage,
   onReorderStages,
   onCreateStage,
+  movingLeadIds = new Set(),
 }: CRMKanbanBoardProps) {
   const [draggedLead, setDraggedLead] = useState<CRMLead | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
@@ -176,8 +178,9 @@ export function CRMKanbanBoard({
                           <Card
                             key={lead.id}
                             className={cn(
-                              "cursor-move hover:shadow-lg transition-all bg-card border border-border",
-                              draggedLead?.id === lead.id && "opacity-50"
+                              "cursor-move hover:shadow-lg transition-all bg-card border border-border relative",
+                              draggedLead?.id === lead.id && "opacity-50",
+                              movingLeadIds.has(lead.id) && "animate-pulse ring-2 ring-primary/30"
                             )}
                             draggable
                             onDragStart={() => setDraggedLead(lead)}
@@ -185,6 +188,12 @@ export function CRMKanbanBoard({
                             onClick={() => onCardClick(lead)}
                           >
                             <CardContent className="p-4 space-y-3">
+                              {/* Indicador de processamento */}
+                              {movingLeadIds.has(lead.id) && (
+                                <div className="absolute top-2 right-2">
+                                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                                </div>
+                              )}
                               {/* Header do Card */}
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
