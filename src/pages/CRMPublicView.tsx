@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Search, Upload, Filter, Loader2 } from "lucide-react";
 import { CRMKanbanBoard } from "@/components/crm/CRMKanbanBoard";
 import { CRMLeadDetailsModal } from "@/components/crm/CRMLeadDetailsModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
@@ -108,39 +109,50 @@ export default function CRMPublicView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-muted/30">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 lg:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Mini CRM - {clientName}</h1>
-              <p className="text-sm text-muted-foreground">
-                Gerencie seus leads e acompanhe a jornada de conversão
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Users className="w-4 h-4 mr-2" />
-                Usuários
-              </Button>
-              <Button size="sm" onClick={() => setNewLeadDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Lead
-              </Button>
-            </div>
+      <header className="h-20 flex-shrink-0 bg-card border-b border-border">
+        <div className="container mx-auto px-8 h-full flex items-center justify-between">
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar leads..."
+              className="pl-10 bg-muted/50 border-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => setNewLeadDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Lead
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 lg:px-6 py-6">
-        <CRMKanbanBoard
-          stages={stages}
-          leads={leads}
-          onMoveCard={handleMoveCard}
-          onCardClick={setSelectedLead}
-        />
+      <main className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-8 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Leads - {clientName}</h1>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm">
+                <Filter className="w-4 h-4 mr-2" />
+                Filtrar
+              </Button>
+              <Button variant="default" size="sm">
+                <Upload className="w-4 h-4 mr-2" />
+                Exportar
+              </Button>
+            </div>
+          </div>
+          
+          <CRMKanbanBoard
+            stages={stages}
+            leads={leads}
+            onMoveCard={handleMoveCard}
+            onCardClick={setSelectedLead}
+          />
+        </div>
       </main>
 
       {/* Modals */}
