@@ -139,11 +139,11 @@ export default function CRMPublicView() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
-          {currentView === 'dashboard' && (
-            <div className="px-8 py-8">
-              <CRMDashboard />
-            </div>
-          )}
+        {currentView === 'dashboard' && (
+          <div className="px-8 py-8">
+            <CRMDashboard workspaceId={workspace.id} />
+          </div>
+        )}
 
           {currentView === 'leads' && (
             <div className="px-8 py-8">
