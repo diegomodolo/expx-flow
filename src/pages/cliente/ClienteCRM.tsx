@@ -25,8 +25,11 @@ export function ClienteCRM() {
   const { client } = useClientContext();
   const { toast } = useToast();
   const { workspace, isLoading, generateWorkspace, isGenerating, toggleActive, isTogglingActive } = useCRMWorkspace(client.id);
-  const { leads = [], stages = [] } = useCRMLeads(workspace?.id || '');
   const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
+  
+  // Para ClienteCRM, vamos buscar todos os leads independente do board (passando vazio)
+  // Isso garante que as estatísticas mostrem todos os leads do workspace
+  const { leads = [], stages = [] } = useCRMLeads(workspace?.id || '', '');
 
   const handleGenerateCRM = async () => {
     await generateWorkspace();

@@ -1,19 +1,21 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
-import { useCRMStages } from "@/hooks/useCRMStages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Upload, Loader2 } from "lucide-react";
 import { CRMKanbanBoard } from "@/components/crm/CRMKanbanBoard";
+import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { CRMLeadDetailsModal } from "@/components/crm/CRMLeadDetailsModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
-import { CRMSidebar } from "@/components/crm/CRMSidebar";
-import { CRMDashboard } from "@/components/crm/CRMDashboard";
-import { EditStageModal } from "@/components/crm/EditStageModal";
 import { CreateStageDialog } from "@/components/crm/CreateStageDialog";
-import { useToast } from "@/hooks/use-toast";
+import { EditStageModal } from "@/components/crm/EditStageModal";
+import { BoardSelector } from "@/components/crm/BoardSelector";
+import { CreateBoardDialog } from "@/components/crm/CreateBoardDialog";
+import { CRMDashboard } from "@/components/crm/CRMDashboard";
+import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
+import { useCRMStages } from "@/hooks/useCRMStages";
+import { useCRMBoards } from "@/hooks/useCRMBoards";
 
 interface Workspace {
   id: string;
@@ -23,69 +25,69 @@ interface Workspace {
 }
 
 export default function CRMPublicView() {
-  const { token } = useParams<{ token: string }>();
-  const { toast } = useToast();
+  const { token } = useParams();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
-  const [editStageModalOpen, setEditStageModalOpen] = useState(false);
   const [createStageDialogOpen, setCreateStageDialogOpen] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<CRMStage | null>(null);
-  const [clientName, setClientName] = useState('');
-  const [currentView, setCurrentView] = useState<string>('leads');
+  const [createBoardDialogOpen, setCreateBoardDialogOpen] = useState(false);
+  const [editStageModalOpen, setEditStageModalOpen] = useState(false);
+  const [stageToEdit, setStageToEdit] = useState<CRMStage | null>(null);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'leads' | 'contacts' | 'reports' | 'settings'>('leads');
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('');
 
-  const { leads, stages, isLoading, moveLead } = useCRMLeads(workspace?.id || '');
-  const { 
-    updateStage, 
-    reorderStages, 
-    deleteStage, 
-    createStage,
-  } = useCRMStages({ workspaceId: workspace?.id || '' });
+  // Hook para boards
+  const { boards, createBoard, isLoading: isLoadingBoards } = useCRMBoards({ 
+    workspaceId: workspace?.id || '' 
+  });
+
+  // Hook para leads e stages com boardId
+  const { leads, stages, isLoading, moveLead, createLead, updateLead } = useCRMLeads(
+    workspace?.id || '', 
+    selectedBoardId
+  );
+  
+  // Hook para stages com boardId
+  const { updateStage, reorderStages, createStage, deleteStage } = useCRMStages({ 
+    workspaceId: workspace?.id || '',
+    boardId: selectedBoardId
+  });
 
   useEffect(() => {
-    const loadWorkspace = async () => {
+    const fetchWorkspace = async () => {
       if (!token) {
         setLoading(false);
         return;
       }
 
-      try {
-        // Buscar workspace pelo token
-        const { data: workspaceData, error } = await supabase
-          .from('crm_workspaces')
-          .select('*, clients(name)')
-          .eq('access_token', token)
-          .eq('is_active', true)
-          .single();
+      const { data, error } = await supabase
+        .from('crm_workspaces')
+        .select('*')
+        .eq('access_token', token)
+        .eq('is_active', true)
+        .single();
 
-        if (error || !workspaceData) {
-          console.error('Workspace not found:', error);
-          toast({
-            title: "CRM não encontrado",
-            description: "Este link de acesso é inválido ou o CRM foi desativado.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        setWorkspace(workspaceData);
-        setClientName((workspaceData as any).clients?.name || 'Cliente');
-      } catch (error) {
-        console.error('Error loading workspace:', error);
-        toast({
-          title: "Erro ao carregar CRM",
-          description: "Não foi possível carregar o CRM. Tente novamente.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+      if (error || !data) {
+        console.error('Error fetching workspace:', error);
+        setWorkspace(null);
+      } else {
+        setWorkspace(data);
       }
+      
+      setLoading(false);
     };
 
-    loadWorkspace();
-  }, [token, toast]);
+    fetchWorkspace();
+  }, [token]);
+
+  // Selecionar board padrão quando boards carregarem
+  useEffect(() => {
+    if (boards && boards.length > 0 && !selectedBoardId) {
+      const defaultBoard = boards.find(b => b.is_default) || boards[0];
+      setSelectedBoardId(defaultBoard.id);
+    }
+  }, [boards, selectedBoardId]);
 
   const handleMoveCard = async (leadId: string, toStageId: string, fromStageId: string) => {
     if (!workspace) return;
@@ -103,7 +105,7 @@ export default function CRMPublicView() {
   };
 
   const handleEditStage = (stage: CRMStage) => {
-    setSelectedStage(stage);
+    setStageToEdit(stage);
     setEditStageModalOpen(true);
   };
 
@@ -123,7 +125,7 @@ export default function CRMPublicView() {
     try {
       await deleteStage(stageId);
     } catch (error) {
-      // Error já é tratado no hook
+      // Error already handled in hook
     }
   };
 
@@ -134,16 +136,18 @@ export default function CRMPublicView() {
     auto_status_change: boolean;
     target_status: string | null;
   }) => {
-    try {
-      await createStage(stageData);
-    } catch (error) {
-      // Error já é tratado no hook
-    }
+    await createStage(stageData);
   };
 
-  if (loading || isLoading) {
+  const handleCreateBoard = async (boardData: { name: string; description?: string }) => {
+    const newBoardId = await createBoard(boardData);
+    setSelectedBoardId(newBoardId);
+    setCreateBoardDialogOpen(false);
+  };
+
+  if (loading || isLoadingBoards) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -151,7 +155,7 @@ export default function CRMPublicView() {
 
   if (!workspace) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-destructive">CRM não encontrado</h1>
           <p className="text-muted-foreground">
@@ -164,12 +168,12 @@ export default function CRMPublicView() {
 
   return (
     <div className="flex h-screen bg-muted/30">
-      {/* Sidebar */}
-      <CRMSidebar activeView={currentView} onViewChange={setCurrentView} />
+      <CRMSidebar 
+        activeView={currentView} 
+        onViewChange={(view) => setCurrentView(view as typeof currentView)} 
+      />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="h-20 flex-shrink-0 bg-card border-b border-border">
           <div className="px-8 h-full flex items-center justify-between">
             <div className="relative w-full max-w-xs">
@@ -188,18 +192,22 @@ export default function CRMPublicView() {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
-        {currentView === 'dashboard' && (
-          <div className="px-8 py-8">
-            <CRMDashboard workspaceId={workspace.id} />
-          </div>
-        )}
+          {currentView === 'dashboard' && (
+            <div className="px-8 py-8">
+              <CRMDashboard workspaceId={workspace.id} />
+            </div>
+          )}
 
           {currentView === 'leads' && (
             <div className="px-8 py-8">
               <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">Quadros - {clientName}</h1>
+                <BoardSelector
+                  boards={boards}
+                  selectedBoardId={selectedBoardId}
+                  onBoardChange={setSelectedBoardId}
+                  onCreateBoard={() => setCreateBoardDialogOpen(true)}
+                />
                 <div className="flex items-center gap-3">
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-2" />
@@ -219,7 +227,7 @@ export default function CRMPublicView() {
                   </Button>
                 </div>
               </div>
-              
+
               <CRMKanbanBoard
                 stages={stages}
                 leads={leads}
@@ -255,7 +263,6 @@ export default function CRMPublicView() {
         </main>
       </div>
 
-      {/* Modals */}
       <CRMLeadDetailsModal
         lead={selectedLead}
         stages={stages}
@@ -268,15 +275,16 @@ export default function CRMPublicView() {
         onClose={() => setNewLeadDialogOpen(false)}
         stages={stages}
         workspaceId={workspace.id}
+        boardId={selectedBoardId}
       />
 
       <EditStageModal
         isOpen={editStageModalOpen}
         onClose={() => {
           setEditStageModalOpen(false);
-          setSelectedStage(null);
+          setStageToEdit(null);
         }}
-        stage={selectedStage}
+        stage={stageToEdit}
         onSave={handleSaveStage}
       />
 
@@ -284,6 +292,12 @@ export default function CRMPublicView() {
         isOpen={createStageDialogOpen}
         onClose={() => setCreateStageDialogOpen(false)}
         onCreate={handleCreateStage}
+      />
+
+      <CreateBoardDialog
+        isOpen={createBoardDialogOpen}
+        onClose={() => setCreateBoardDialogOpen(false)}
+        onCreate={handleCreateBoard}
       />
     </div>
   );

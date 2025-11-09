@@ -23,6 +23,7 @@ export interface CRMLead {
 export interface CRMStage {
   id: string;
   workspace_id: string;
+  board_id: string;
   name: string;
   event_mapping: string | null;
   order_index: number;
@@ -32,7 +33,7 @@ export interface CRMStage {
   created_at: string;
 }
 
-export const useCRMLeads = (workspaceId: string) => {
+export const useCRMLeads = (workspaceId: string, boardId: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -52,13 +53,19 @@ export const useCRMLeads = (workspaceId: string) => {
   });
 
   const { data: stages = [], isLoading: isLoadingStages } = useQuery({
-    queryKey: ['crm-stages', workspaceId],
+    queryKey: ['crm-stages', workspaceId, boardId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('crm_stages')
         .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('order_index', { ascending: true });
+        .eq('workspace_id', workspaceId);
+      
+      // Só filtra por board se boardId for fornecido
+      if (boardId) {
+        query = query.eq('board_id', boardId);
+      }
+      
+      const { data, error } = await query.order('order_index', { ascending: true });
 
       if (error) throw error;
       return data as CRMStage[];

@@ -5,9 +5,10 @@ import { CRMStage } from "./useCRMLeads";
 
 interface UseCRMStagesProps {
   workspaceId: string;
+  boardId: string;
 }
 
-export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
+export const useCRMStages = ({ workspaceId, boardId }: UseCRMStagesProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -30,7 +31,7 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId, boardId] });
       toast({
         title: "Coluna atualizada!",
         description: "As alterações foram salvas com sucesso.",
@@ -81,7 +82,7 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
       console.log('[useCRMStages] All stages reordered successfully');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId, boardId] });
       toast({
         title: "Ordem atualizada!",
         description: "As colunas foram reorganizadas.",
@@ -98,11 +99,12 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
 
   const createStageMutation = useMutation({
     mutationFn: async (stageData: Partial<CRMStage> & { color?: string }) => {
-      // Buscar o maior order_index atual
+      // Buscar o maior order_index atual para este board
       const { data: maxOrderStage } = await supabase
         .from('crm_stages')
         .select('order_index')
         .eq('workspace_id', workspaceId)
+        .eq('board_id', boardId)
         .order('order_index', { ascending: false })
         .limit(1)
         .single();
@@ -113,6 +115,7 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
         .from('crm_stages')
         .insert({
           workspace_id: workspaceId,
+          board_id: boardId,
           name: stageData.name!,
           color: stageData.color || '#3b82f6',
           event_mapping: stageData.event_mapping || null,
@@ -127,7 +130,7 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId, boardId] });
       toast({
         title: "Coluna criada!",
         description: "A nova coluna foi adicionada ao quadro.",
@@ -176,7 +179,7 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId, boardId] });
       toast({
         title: "Coluna deletada!",
         description: "A coluna foi removida do quadro.",

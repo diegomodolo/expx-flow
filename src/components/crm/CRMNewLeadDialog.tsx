@@ -26,10 +26,11 @@ interface CRMNewLeadDialogProps {
   onClose: () => void;
   stages: CRMStage[];
   workspaceId: string;
+  boardId: string;
 }
 
-export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId }: CRMNewLeadDialogProps) {
-  const { createLead, isCreatingLead } = useCRMLeads(workspaceId);
+export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId }: CRMNewLeadDialogProps) {
+  const { createLead, isCreatingLead } = useCRMLeads(workspaceId, boardId);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',

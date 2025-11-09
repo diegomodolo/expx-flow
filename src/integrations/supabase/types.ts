@@ -1288,6 +1288,47 @@ export type Database = {
           },
         ]
       }
+      crm_boards: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          order_index: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          order_index: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          order_index?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_boards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_lead_activities: {
         Row: {
           activity_type: string
@@ -1442,6 +1483,7 @@ export type Database = {
       crm_stages: {
         Row: {
           auto_status_change: boolean | null
+          board_id: string
           color: string | null
           created_at: string | null
           event_mapping: string | null
@@ -1453,6 +1495,7 @@ export type Database = {
         }
         Insert: {
           auto_status_change?: boolean | null
+          board_id: string
           color?: string | null
           created_at?: string | null
           event_mapping?: string | null
@@ -1464,6 +1507,7 @@ export type Database = {
         }
         Update: {
           auto_status_change?: boolean | null
+          board_id?: string
           color?: string | null
           created_at?: string | null
           event_mapping?: string | null
@@ -1474,6 +1518,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_stages_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "crm_boards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_stages_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -3182,6 +3233,10 @@ export type Database = {
           _days_before?: number
         }
         Returns: undefined
+      }
+      create_default_board: {
+        Args: { p_board_name: string; p_workspace_id: string }
+        Returns: string
       }
       create_default_client_status_rules: {
         Args: { p_company_id: string }
