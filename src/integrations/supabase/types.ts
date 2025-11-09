@@ -1917,6 +1917,7 @@ export type Database = {
           user_state_hash: string | null
           user_zip_hash: string | null
           value: number | null
+          webhook_payload: Json | null
         }
         Insert: {
           client_id: string
@@ -1942,6 +1943,7 @@ export type Database = {
           user_state_hash?: string | null
           user_zip_hash?: string | null
           value?: number | null
+          webhook_payload?: Json | null
         }
         Update: {
           client_id?: string
@@ -1967,6 +1969,7 @@ export type Database = {
           user_state_hash?: string | null
           user_zip_hash?: string | null
           value?: number | null
+          webhook_payload?: Json | null
         }
         Relationships: [
           {

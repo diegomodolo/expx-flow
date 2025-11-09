@@ -48,6 +48,17 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { eventName, eventTime, value, currency, userData, customData } = body;
 
+    // Salvar payload original para referência
+    const originalPayload = {
+      eventName,
+      eventTime,
+      value,
+      currency,
+      userData, // dados não hasheados
+      customData,
+      receivedAt: new Date().toISOString(),
+    };
+
     console.log('[Webhook] Event received:', eventName);
 
     // Validate required fields
@@ -222,7 +233,7 @@ Deno.serve(async (req) => {
 
     console.log('[Webhook] Meta API response:', metaData);
 
-    // Log conversion in database with individual hashed fields
+    // Log conversion in database with individual hashed fields and original payload
     const validToken = tokenData as any;
     const { error: logError } = await supabase
       .from('offline_conversions')
@@ -243,6 +254,7 @@ Deno.serve(async (req) => {
         user_zip_hash: hashedUserData.zp || null,
         user_country_hash: hashedUserData.country || null,
         custom_data: customData || null,
+        webhook_payload: originalPayload,
         status: metaSuccess ? 'sent' : 'error',
         meta_response: metaData,
         error_message: metaSuccess ? null : (metaData.error?.message || 'Unknown error'),

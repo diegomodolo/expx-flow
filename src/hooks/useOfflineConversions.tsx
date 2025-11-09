@@ -13,9 +13,11 @@ export interface OfflineConversion {
   currency: string;
   status: 'pending' | 'sent' | 'error';
   meta_response: any;
+  webhook_payload?: any;
   error_message: string | null;
   created_at: string;
   sent_at: string | null;
+  source?: 'webhook' | 'manual';
 }
 
 export interface SendConversionParams {

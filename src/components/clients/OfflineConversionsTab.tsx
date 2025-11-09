@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOfflineConversions } from "@/hooks/useOfflineConversions";
-import { Loader2, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, ExternalLink, FileJson } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfigureOfflineEventSetDialog } from "./ConfigureOfflineEventSetDialog";
 import { WebhookIntegrationCard } from "./WebhookIntegrationCard";
+import { ConversionDetailsModal } from "./ConversionDetailsModal";
+import type { OfflineConversion } from "@/hooks/useOfflineConversions";
 
 interface OfflineConversionsTabProps {
   clientId: string;
@@ -23,6 +25,8 @@ export const OfflineConversionsTab = ({ clientId }: OfflineConversionsTabProps) 
   const [lastName, setLastName] = useState('');
   const [value, setValue] = useState('');
   const [productName, setProductName] = useState('');
+  const [selectedConversion, setSelectedConversion] = useState<OfflineConversion | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const { conversions, isLoading, sendConversion, isSending } = useOfflineConversions(clientId);
 
@@ -202,7 +206,8 @@ export const OfflineConversionsTab = ({ clientId }: OfflineConversionsTabProps) 
                     <TableHead>Evento</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Resposta</TableHead>
+                    <TableHead>Fonte</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -217,15 +222,22 @@ export const OfflineConversionsTab = ({ clientId }: OfflineConversionsTabProps) 
                       </TableCell>
                       <TableCell>{getStatusBadge(conversion.status)}</TableCell>
                       <TableCell>
-                        {conversion.status === 'error' ? (
-                          <span className="text-sm text-destructive">{conversion.error_message}</span>
-                        ) : conversion.meta_response ? (
-                          <span className="text-sm text-muted-foreground">
-                            {JSON.stringify(conversion.meta_response).substring(0, 50)}...
-                          </span>
-                        ) : (
-                          '-'
-                        )}
+                        <Badge variant="outline" className="text-xs">
+                          {conversion.source === 'webhook' ? '🔗 Webhook' : '✋ Manual'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedConversion(conversion);
+                            setIsDetailsModalOpen(true);
+                          }}
+                        >
+                          <FileJson className="w-4 h-4 mr-2" />
+                          Ver JSONs
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -235,6 +247,17 @@ export const OfflineConversionsTab = ({ clientId }: OfflineConversionsTabProps) 
           )}
         </CardContent>
       </Card>
+
+      {selectedConversion && (
+        <ConversionDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setSelectedConversion(null);
+          }}
+          conversion={selectedConversion}
+        />
+      )}
     </div>
   );
 };

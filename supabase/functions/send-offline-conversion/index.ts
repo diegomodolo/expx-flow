@@ -172,7 +172,18 @@ Deno.serve(async (req) => {
     const metaData = await metaResponse.json();
     console.log('Meta API response:', JSON.stringify(metaData, null, 2));
 
-    // 6. Salvar log no banco de dados
+    // 6. Salvar payload original e log no banco de dados
+    const manualPayload = {
+      eventName,
+      eventTime: finalEventTime,
+      value,
+      currency,
+      userData, // dados originais não hasheados
+      customData,
+      source: 'manual',
+      sentAt: new Date().toISOString(),
+    };
+
     const conversionRecord = {
       client_id: clientId,
       company_id: client.company_id,
@@ -190,6 +201,7 @@ Deno.serve(async (req) => {
       user_zip_hash: hashedUserData.zp || null,
       user_country_hash: hashedUserData.country || null,
       custom_data: customData || null,
+      webhook_payload: manualPayload,
       status: metaResponse.ok ? 'sent' : 'error',
       meta_response: metaData,
       error_message: metaResponse.ok ? null : (metaData.error?.message || 'Unknown error'),
