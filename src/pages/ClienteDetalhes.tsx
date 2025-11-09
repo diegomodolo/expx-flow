@@ -63,6 +63,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClientNotes } from "@/hooks/useClientNotes";
 import { LeadDisqualificationTab } from "@/components/clients/LeadDisqualificationTab";
 import { OfflineConversionsTab } from "@/components/clients/OfflineConversionsTab";
+import { useOfflineConversions } from "@/hooks/useOfflineConversions";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
@@ -111,6 +112,7 @@ const [isGeneratingCompetitiveAnalysis, setIsGeneratingCompetitiveAnalysis] = us
 // Hook para anotações
 const { notes, profilesByUserId, loading: notesLoading, addNote, deleteNote } = useClientNotes(id || "");
 const { user } = useAuth();
+const { conversions } = useOfflineConversions(id || "");
 
 // Estado para modal de nova anotação
 const [openNoteDialog, setOpenNoteDialog] = useState(false);
@@ -124,6 +126,48 @@ const [savingNote, setSavingNote] = useState(false);
   const finishedCampaigns = client?.campaigns?.filter(c => c.status === 'finished').length || 0;
   const totalLeadsGenerated = client?.leads_generated || 0;
   const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
+
+  // Calculate sync period in days
+  const syncPeriodDays = useMemo(() => {
+    if (!client?.last_sync_period) return 30;
+    
+    const periodMap: Record<string, number> = {
+      'last_7d': 7,
+      'last_14d': 14,
+      'last_30d': 30,
+      'last_90d': 90,
+      'this_month': 30,
+      'last_month': 30,
+    };
+    
+    return periodMap[client.last_sync_period] || 30;
+  }, [client?.last_sync_period]);
+
+  // Filter conversions by synced period
+  const conversionsInPeriod = useMemo(() => {
+    if (!conversions || conversions.length === 0) return [];
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - syncPeriodDays);
+    
+    return conversions.filter(conversion => {
+      const conversionDate = new Date(conversion.created_at);
+      return conversionDate >= cutoffDate;
+    });
+  }, [conversions, syncPeriodDays]);
+
+  // Calculate total sales
+  const totalSales = useMemo(() => {
+    return conversionsInPeriod.reduce((total, conversion) => {
+      return total + (conversion.value || 0);
+    }, 0);
+  }, [conversionsInPeriod]);
+
+  // Calculate ROI
+  const roi = useMemo(() => {
+    if (totalInvested === 0) return 0;
+    return ((totalSales - totalInvested) / totalInvested) * 100;
+  }, [totalSales, totalInvested]);
 
   // Alertas removidos - agora são gerados apenas na página de tarefas quando solicitado
   const dangerAlerts: any[] = [];
@@ -1059,9 +1103,9 @@ const [savingNote, setSavingNote] = useState(false);
           />
         )}
 
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {/* Funnel Completeness Score Card */}
+          {/* Performance Metrics - First Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            {/* Funnel Completeness Score Card */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -1136,47 +1180,109 @@ const [savingNote, setSavingNote] = useState(false);
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Valor Total Investido</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    R$ {totalInvested.toFixed(2)}
-                  </p>
-                  <div className="flex items-center space-x-1 mt-1">
-                    <TrendingUp className="w-3 h-3 text-blue-500" />
-                    <span className="text-xs text-blue-500">este período</span>
-                  </div>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">CPL Médio</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    R$ {client.avg_cpl.toFixed(2)}
-                  </p>
-                  <div className="flex items-center space-x-1 mt-1">
-                    <TrendingDown className="w-3 h-3 text-green-500" />
-                    <span className="text-xs text-green-500">vs mês anterior</span>
-                  </div>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
         </div>
+
+          {/* Financial Metrics - Second Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {/* CPL Médio Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">CPL Médio</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      R$ {client.avg_cpl.toFixed(2)}
+                    </p>
+                    <div className="flex items-center space-x-1 mt-1">
+                      <TrendingDown className="w-3 h-3 text-green-500" />
+                      <span className="text-xs text-green-500">vs mês anterior</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Valor Total Investido Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Valor Total Investido</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      R$ {totalInvested.toFixed(2)}
+                    </p>
+                    <div className="flex items-center space-x-1 mt-1">
+                      <TrendingUp className="w-3 h-3 text-blue-500" />
+                      <span className="text-xs text-blue-500">{syncPeriodDays} dias</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Total de Vendas Realizadas Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total em Vendas Realizadas</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      R$ {totalSales.toFixed(2)}
+                    </p>
+                    <div className="flex items-center space-x-1 mt-1">
+                      <TrendingUp className="w-3 h-3 text-green-500" />
+                      <span className="text-xs text-green-500">{conversionsInPeriod.length} conversões</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ROI Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">ROI</p>
+                    <p className={`text-2xl font-bold ${
+                      roi >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {roi >= 0 ? '+' : ''}{roi.toFixed(1)}%
+                    </p>
+                    <div className="flex items-center space-x-1 mt-1">
+                      {roi >= 0 ? (
+                        <>
+                          <TrendingUp className="w-3 h-3 text-green-500" />
+                          <span className="text-xs text-green-500">positivo</span>
+                        </>
+                      ) : (
+                        <>
+                          <TrendingDown className="w-3 h-3 text-red-500" />
+                          <span className="text-xs text-red-500">negativo</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                    roi >= 0 ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    <TrendingUp className={`w-6 h-6 ${
+                      roi >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
         {/* Performance Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
