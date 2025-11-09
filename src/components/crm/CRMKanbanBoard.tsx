@@ -45,12 +45,12 @@ export function CRMKanbanBoard({ stages, leads, onMoveCard, onCardClick }: CRMKa
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="flex gap-6 overflow-x-auto pb-4">
       {stages.map(stage => {
         const stageLeads = leads.filter(l => l.stage_id === stage.id);
         
         return (
-          <div key={stage.id} className="space-y-4">
+          <div key={stage.id} className="space-y-4 flex-shrink-0 w-80">
             {/* Header da Coluna */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

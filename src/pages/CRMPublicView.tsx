@@ -131,7 +131,7 @@ export default function CRMPublicView() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-8 py-8">
+        <div className="px-8 py-8">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">Leads - {clientName}</h1>
             <div className="flex items-center gap-3">
