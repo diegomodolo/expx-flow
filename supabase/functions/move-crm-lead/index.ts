@@ -180,7 +180,7 @@ serve(async (req) => {
             name,
             board_id,
             workspace_id,
-            board:crm_boards!inner(
+            board:crm_boards!crm_stages_board_id_fkey(
               id,
               name
             )
