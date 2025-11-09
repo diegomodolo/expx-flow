@@ -11,13 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, Calendar, Mail, Phone, Building2, Globe, 
   Facebook as FacebookIcon, Instagram as InstagramIcon, MapPin,
-  TrendingUp, Target, Hash, Save, X
+  TrendingUp, Target, Hash, Save, X, Link as LinkIcon, ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CRMTagManager } from "./CRMTagManager";
 import { CRMAttachmentUploader } from "./CRMAttachmentUploader";
 import { CRMLeadActivityTimeline } from "./CRMLeadActivityTimeline";
+import { useCRMLeadLinks } from "@/hooks/useCRMLeadLinks";
+import { useCRMBoards } from "@/hooks/useCRMBoards";
 
 interface CRMLeadEditModalProps {
   lead: CRMLead | null;
@@ -49,6 +51,8 @@ const statusConfig = {
 
 export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, boardId }: CRMLeadEditModalProps) {
   const { updateLead, isUpdatingLead } = useCRMLeads(workspaceId, boardId);
+  const { data: linkedLeads = [] } = useCRMLeadLinks(lead?.id || '');
+  const { boards } = useCRMBoards({ workspaceId });
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -104,6 +108,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
   if (!lead) return null;
 
   const currentStage = stages.find(s => s.id === lead.stage_id);
+  const currentBoard = boards.find(b => b.id === boardId);
 
   const handleSave = async () => {
     if (!formData.full_name.trim()) {
@@ -195,6 +200,12 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
                     {lead.external_id}
                   </Badge>
                 )}
+                {linkedLeads.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    <LinkIcon className="w-3 h-3 mr-1" />
+                    Vinculado a {linkedLeads.length} {linkedLeads.length === 1 ? 'quadro' : 'quadros'}
+                  </Badge>
+                )}
                 {isEditing ? (
                   <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as CRMLead['status'] })}>
                     <SelectTrigger className="w-40 h-7">
@@ -225,7 +236,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-7 shrink-0">
+          <TabsList className="grid w-full grid-cols-8 shrink-0">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="contact">Contato</TabsTrigger>
             <TabsTrigger value="tracking">Rastreamento</TabsTrigger>
@@ -233,6 +244,9 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
             <TabsTrigger value="attachments">Anexos</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
             <TabsTrigger value="notes">Observações</TabsTrigger>
+            <TabsTrigger value="links">
+              Vínculos {linkedLeads.length > 0 && `(${linkedLeads.length})`}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 mt-4 overflow-y-auto flex-1">
@@ -588,6 +602,58 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
                   ) : (
                     <p className="text-sm text-muted-foreground">Nenhuma observação</p>
                   )}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="links" className="space-y-4 mt-4 overflow-y-auto flex-1">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Este lead existe em:</h3>
+                <div className="space-y-3">
+                  {/* Lead atual */}
+                  <div className="p-4 border-2 border-primary rounded-lg bg-primary/5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-base">{currentBoard?.name || 'Quadro atual'}</p>
+                        <p className="text-sm text-muted-foreground">{currentStage?.name || 'Sem coluna'}</p>
+                      </div>
+                      <Badge className="bg-primary">Atual</Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Leads vinculados */}
+                  {linkedLeads.map((linkedLead) => (
+                    <div 
+                      key={linkedLead.id} 
+                      className="p-4 border rounded-lg hover:bg-accent transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-base">{linkedLead.board_name}</p>
+                          <p className="text-sm text-muted-foreground">{linkedLead.stage_name}</p>
+                        </div>
+                        <Badge variant="outline" className="ml-2">
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Vinculado
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Criado em {format(new Date(linkedLead.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {linkedLeads.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <LinkIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">Este lead não está vinculado a outros quadros</p>
+                  <p className="text-sm mt-1">
+                    Configure um workflow para duplicar leads automaticamente
+                  </p>
                 </div>
               )}
             </div>

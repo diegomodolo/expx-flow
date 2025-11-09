@@ -164,6 +164,108 @@ serve(async (req) => {
       console.error('[move-crm-lead] Error creating activity:', activityError);
     }
 
+    // === WORKFLOW: Verificar se deve duplicar lead ===
+    if (toStage.workflow_enabled && toStage.workflow_target_stage_id) {
+      console.log('[move-crm-lead] Workflow enabled, duplicating lead...');
+      
+      try {
+        // Buscar stage de destino com info do board
+        const { data: targetStage, error: targetStageError } = await supabase
+          .from('crm_stages')
+          .select(`
+            id,
+            name,
+            board_id,
+            workspace_id,
+            board:crm_boards!inner(
+              id,
+              name
+            )
+          `)
+          .eq('id', toStage.workflow_target_stage_id)
+          .single();
+        
+        if (targetStageError || !targetStage) {
+          console.error('[move-crm-lead] Target stage not found:', targetStageError);
+        } else {
+          // Criar cópia do lead
+          const leadCopy = {
+            workspace_id: targetStage.workspace_id,
+            stage_id: targetStage.id,
+            full_name: lead.full_name,
+            email: lead.email,
+            phone: lead.phone,
+            company_name: lead.company_name,
+            status: lead.status,
+            temperature: lead.temperature,
+            value: lead.value,
+            external_id: `${lead.external_id || lead.id}_copy_${Date.now()}`,
+            facebook: lead.facebook,
+            instagram: lead.instagram,
+            website: lead.website,
+            city: lead.city,
+            state: lead.state,
+            utm_source: lead.utm_source,
+            utm_media: lead.utm_media,
+            utm_campaign: lead.utm_campaign,
+            start_date: lead.start_date,
+            expected_close_date: lead.expected_close_date,
+            quantity: lead.quantity,
+            notes: lead.notes,
+            responsible_id: lead.responsible_id,
+            workflow_id: lead.workflow_id,
+          };
+          
+          const { data: newLead, error: createError } = await supabase
+            .from('crm_leads')
+            .insert(leadCopy)
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('[move-crm-lead] Error creating lead copy:', createError);
+          } else {
+            console.log('[move-crm-lead] Lead duplicated successfully:', newLead.id);
+            
+            // Criar vínculo entre leads (garantir ordem)
+            const [leadA, leadB] = [leadId, newLead.id].sort();
+            const { error: linkError } = await supabase
+              .from('crm_lead_links')
+              .insert({
+                lead_a_id: leadA,
+                lead_b_id: leadB,
+                created_by: null,
+              });
+            
+            if (linkError) {
+              console.error('[move-crm-lead] Error creating lead link:', linkError);
+            }
+            
+            // Registrar atividade no lead original
+            await supabase.from('crm_lead_activities').insert({
+              lead_id: leadId,
+              activity_type: 'workflow_duplicate',
+              notes: `Lead duplicado para ${targetStage.board.name} → ${targetStage.name}`,
+              is_manual: false,
+            });
+            
+            // Registrar atividade no lead novo
+            await supabase.from('crm_lead_activities').insert({
+              lead_id: newLead.id,
+              activity_type: 'workflow_created',
+              notes: `Criado automaticamente por workflow vindo de ${toStage.name}`,
+              is_manual: false,
+            });
+            
+            console.log('[move-crm-lead] Workflow completed successfully');
+          }
+        }
+      } catch (workflowError) {
+        console.error('[move-crm-lead] Workflow error:', workflowError);
+        // Não falhar a movimentação principal se o workflow falhar
+      }
+    }
+
     console.log('[move-crm-lead] Lead moved successfully');
 
     return new Response(JSON.stringify({ 

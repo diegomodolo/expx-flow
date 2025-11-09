@@ -49,6 +49,18 @@ const activityTypeConfig = {
     icon: '🌡️',
     bgColor: 'bg-pink-500/20'
   },
+  workflow_duplicate: { 
+    label: 'Lead duplicado', 
+    color: '#a855f7', 
+    icon: '🔗',
+    bgColor: 'bg-purple-500/20'
+  },
+  workflow_created: { 
+    label: 'Criado por workflow', 
+    color: '#a855f7', 
+    icon: '⚡',
+    bgColor: 'bg-purple-500/20'
+  },
   won: { 
     label: 'Lead ganho', 
     color: '#059669', 

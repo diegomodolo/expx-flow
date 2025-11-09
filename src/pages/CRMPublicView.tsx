@@ -330,6 +330,7 @@ export default function CRMPublicView() {
         }}
         stage={stageToEdit}
         onSave={handleSaveStage}
+        workspaceId={workspace.id}
       />
 
       <CreateStageDialog

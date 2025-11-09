@@ -5,7 +5,18 @@ import { useToast } from "@/hooks/use-toast";
 export interface CRMLeadActivity {
   id: string;
   lead_id: string;
-  activity_type: 'created' | 'stage_change' | 'status_change' | 'manual_note' | 'updated' | 'won' | 'lost' | 'unqualified' | 'temperature_change';
+  activity_type: 
+    | 'created' 
+    | 'stage_change' 
+    | 'status_change' 
+    | 'manual_note' 
+    | 'updated' 
+    | 'temperature_change'
+    | 'workflow_duplicate'
+    | 'workflow_created'
+    | 'won' 
+    | 'lost' 
+    | 'unqualified';
   from_stage_id: string | null;
   to_stage_id: string | null;
   notes: string | null;

@@ -1458,6 +1458,45 @@ export type Database = {
           },
         ]
       }
+      crm_lead_links: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          lead_a_id: string
+          lead_b_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_a_id: string
+          lead_b_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_a_id?: string
+          lead_b_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_links_lead_a_id_fkey"
+            columns: ["lead_a_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_links_lead_b_id_fkey"
+            columns: ["lead_b_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_lead_tags: {
         Row: {
           created_at: string | null
@@ -1630,6 +1669,9 @@ export type Database = {
           name: string
           order_index: number
           target_status: string | null
+          workflow_enabled: boolean | null
+          workflow_target_board_id: string | null
+          workflow_target_stage_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -1642,6 +1684,9 @@ export type Database = {
           name: string
           order_index: number
           target_status?: string | null
+          workflow_enabled?: boolean | null
+          workflow_target_board_id?: string | null
+          workflow_target_stage_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -1654,6 +1699,9 @@ export type Database = {
           name?: string
           order_index?: number
           target_status?: string | null
+          workflow_enabled?: boolean | null
+          workflow_target_board_id?: string | null
+          workflow_target_stage_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -1662,6 +1710,20 @@ export type Database = {
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "crm_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_stages_workflow_target_board_id_fkey"
+            columns: ["workflow_target_board_id"]
+            isOneToOne: false
+            referencedRelation: "crm_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_stages_workflow_target_stage_id_fkey"
+            columns: ["workflow_target_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
             referencedColumns: ["id"]
           },
           {
