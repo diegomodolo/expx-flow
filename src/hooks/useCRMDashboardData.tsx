@@ -40,21 +40,26 @@ export interface RecentLead {
   created_at: string;
 }
 
-export function useCRMDashboardData(workspaceId: string) {
+export function useCRMDashboardData(workspaceId: string, filterStartDate?: Date, filterEndDate?: Date) {
   return useQuery({
-    queryKey: ["crm-dashboard", workspaceId],
+    queryKey: ["crm-dashboard", workspaceId, filterStartDate?.toISOString(), filterEndDate?.toISOString()],
     queryFn: async () => {
-      const now = new Date();
+      const now = filterEndDate || new Date();
       const currentMonthStart = startOfMonth(now);
       const lastMonthStart = startOfMonth(subMonths(now, 1));
       const lastMonthEnd = subDays(currentMonthStart, 1);
-      const thirtyDaysAgo = subDays(now, 30);
+      
+      // Usar as datas de filtro se fornecidas, caso contrário usar últimos 30 dias
+      const filterStart = filterStartDate || subDays(now, 30);
+      const filterEnd = filterEndDate || now;
 
       // Buscar todos os leads do workspace
       const { data: allLeads, error: leadsError } = await supabase
         .from("crm_leads")
         .select("*, crm_stages(name, color, order_index)")
-        .eq("workspace_id", workspaceId);
+        .eq("workspace_id", workspaceId)
+        .gte("created_at", filterStart.toISOString())
+        .lte("created_at", filterEnd.toISOString());
 
       if (leadsError) throw leadsError;
 
@@ -69,67 +74,69 @@ export function useCRMDashboardData(workspaceId: string) {
 
       const lastStage = stages[stages.length - 1];
 
-      // Separar leads por período
-      const currentMonthLeads = allLeads?.filter(
-        (lead) => new Date(lead.created_at) >= currentMonthStart
-      ) || [];
+      // Separar leads por período (filtrado)
+      const filteredLeads = allLeads || [];
+      
+      // Calcular período de comparação (mesmo tamanho do filtro, mas anterior)
+      const filterDuration = filterEnd.getTime() - filterStart.getTime();
+      const comparisonEnd = new Date(filterStart.getTime() - 1);
+      const comparisonStart = new Date(comparisonEnd.getTime() - filterDuration);
 
-      const lastMonthLeads = allLeads?.filter((lead) => {
-        const createdAt = new Date(lead.created_at);
-        return createdAt >= lastMonthStart && createdAt <= lastMonthEnd;
-      }) || [];
+      // Buscar leads do período de comparação
+      const { data: comparisonLeads } = await supabase
+        .from("crm_leads")
+        .select("*, crm_stages(name, color, order_index)")
+        .eq("workspace_id", workspaceId)
+        .gte("created_at", comparisonStart.toISOString())
+        .lte("created_at", comparisonEnd.toISOString());
 
       // Calcular métricas
-      const totalLeads = allLeads?.length || 0;
-      const totalLeadsChange = lastMonthLeads.length > 0
-        ? ((currentMonthLeads.length - lastMonthLeads.length) / lastMonthLeads.length) * 100
+      const totalLeads = filteredLeads.length;
+      const comparisonTotalLeads = comparisonLeads?.length || 0;
+      const totalLeadsChange = comparisonTotalLeads > 0
+        ? ((totalLeads - comparisonTotalLeads) / comparisonTotalLeads) * 100
         : 0;
 
-      // Receita (soma do value dos leads do mês atual)
-      const revenue = currentMonthLeads.reduce(
+      // Receita (soma do value dos leads do período filtrado)
+      const revenue = filteredLeads.reduce(
         (sum, lead) => sum + (typeof lead.value === 'number' ? lead.value : parseFloat(String(lead.value || 0))),
         0
       );
 
-      const lastMonthRevenue = lastMonthLeads.reduce(
+      const comparisonRevenue = (comparisonLeads || []).reduce(
         (sum, lead) => sum + (typeof lead.value === 'number' ? lead.value : parseFloat(String(lead.value || 0))),
         0
       );
 
-      const revenueChange = lastMonthRevenue > 0
-        ? ((revenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      const revenueChange = comparisonRevenue > 0
+        ? ((revenue - comparisonRevenue) / comparisonRevenue) * 100
         : 0;
 
       // Taxa de conversão (leads no último estágio / total de leads)
-      const leadsInLastStage = allLeads?.filter(
+      const leadsInLastStage = filteredLeads.filter(
         (lead) => lead.stage_id === lastStage?.id
-      ).length || 0;
+      ).length;
 
       const conversionRate = totalLeads > 0 ? (leadsInLastStage / totalLeads) * 100 : 0;
 
-      const lastMonthTotal = lastMonthLeads.length;
-      const lastMonthInLastStage = lastMonthLeads.filter(
+      const comparisonInLastStage = (comparisonLeads || []).filter(
         (lead) => lead.stage_id === lastStage?.id
       ).length;
-      const lastMonthConversionRate = lastMonthTotal > 0
-        ? (lastMonthInLastStage / lastMonthTotal) * 100
+      const comparisonConversionRate = comparisonTotalLeads > 0
+        ? (comparisonInLastStage / comparisonTotalLeads) * 100
         : 0;
 
-      const conversionRateChange = lastMonthConversionRate > 0
-        ? conversionRate - lastMonthConversionRate
+      const conversionRateChange = comparisonConversionRate > 0
+        ? conversionRate - comparisonConversionRate
         : 0;
 
-      // Negócios fechados (leads no último estágio criados no mês atual)
-      const closedDeals = currentMonthLeads.filter(
-        (lead) => lead.stage_id === lastStage?.id
-      ).length;
+      // Negócios fechados (leads no último estágio no período filtrado)
+      const closedDeals = leadsInLastStage;
 
-      const closedDealsLastMonth = lastMonthLeads.filter(
-        (lead) => lead.stage_id === lastStage?.id
-      ).length;
+      const closedDealsComparison = comparisonInLastStage;
 
-      const closedDealsChange = closedDealsLastMonth > 0
-        ? closedDeals - closedDealsLastMonth
+      const closedDealsChange = closedDealsComparison > 0
+        ? closedDeals - closedDealsComparison
         : closedDeals;
 
       // Leads por estágio
@@ -143,7 +150,7 @@ export function useCRMDashboardData(workspaceId: string) {
         });
       });
 
-      allLeads?.forEach((lead) => {
+      filteredLeads.forEach((lead) => {
         if (lead.stage_id && leadsByStageMap.has(lead.stage_id)) {
           const stage = leadsByStageMap.get(lead.stage_id)!;
           stage.count++;
@@ -152,22 +159,20 @@ export function useCRMDashboardData(workspaceId: string) {
 
       const leadsByStage: LeadsByStage[] = Array.from(leadsByStageMap.values());
 
-      // Leads ao longo do tempo (últimos 30 dias)
-      const leadsInLast30Days = allLeads?.filter(
-        (lead) => new Date(lead.created_at) >= thirtyDaysAgo
-      ) || [];
-
+      // Leads ao longo do tempo (período filtrado)
       const leadsOverTimeMap = new Map<string, number>();
       
-      // Inicializar todos os dias dos últimos 30 dias com 0
-      for (let i = 0; i < 30; i++) {
-        const date = subDays(now, 29 - i);
+      // Inicializar todos os dias do período filtrado com 0
+      const daysDiff = Math.ceil((filterEnd.getTime() - filterStart.getTime()) / (1000 * 60 * 60 * 24));
+      for (let i = 0; i <= daysDiff; i++) {
+        const date = new Date(filterStart);
+        date.setDate(date.getDate() + i);
         const dateKey = date.toISOString().split("T")[0];
         leadsOverTimeMap.set(dateKey, 0);
       }
 
       // Contar leads por dia
-      leadsInLast30Days.forEach((lead) => {
+      filteredLeads.forEach((lead) => {
         const dateKey = new Date(lead.created_at).toISOString().split("T")[0];
         if (leadsOverTimeMap.has(dateKey)) {
           leadsOverTimeMap.set(dateKey, leadsOverTimeMap.get(dateKey)! + 1);
@@ -181,32 +186,38 @@ export function useCRMDashboardData(workspaceId: string) {
         })
       );
 
-      // Buscar atividades recentes
-      const { data: activities, error: activitiesError } = await supabase
-        .from("crm_lead_activities")
-        .select("*, crm_leads(full_name)")
-        .in(
-          "lead_id",
-          allLeads?.map((l) => l.id) || []
-        )
-        .order("created_at", { ascending: false })
-        .limit(4);
+      // Buscar atividades recentes (do período filtrado)
+      let activities = [];
+      if (filteredLeads.length > 0) {
+        const { data: activitiesData, error: activitiesError } = await supabase
+          .from("crm_lead_activities")
+          .select("*, crm_leads(full_name)")
+          .in(
+            "lead_id",
+            filteredLeads.map((l) => l.id)
+          )
+          .order("created_at", { ascending: false })
+          .limit(4);
 
-      if (activitiesError) throw activitiesError;
+        if (activitiesError) throw activitiesError;
+        activities = activitiesData || [];
+      }
 
-      const formattedActivities: Activity[] = activities?.map((activity) => ({
+      const formattedActivities: Activity[] = activities.map((activity) => ({
         id: activity.id,
         type: activity.activity_type,
         description: `${activity.activity_type} - ${(activity as any).crm_leads?.full_name || "Lead"}`,
         created_at: activity.created_at || "",
         lead_name: (activity as any).crm_leads?.full_name || "Lead",
-      })) || [];
+      }));
 
-      // Leads recentes
+      // Leads recentes (do período filtrado)
       const { data: recentLeads, error: recentLeadsError } = await supabase
         .from("crm_leads")
         .select("id, full_name, email, created_at")
         .eq("workspace_id", workspaceId)
+        .gte("created_at", filterStart.toISOString())
+        .lte("created_at", filterEnd.toISOString())
         .order("created_at", { ascending: false })
         .limit(4);
 
