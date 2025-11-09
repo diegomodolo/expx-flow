@@ -5,7 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Função para fazer hash SHA-256
 async function sha256Hash(input: string | null | undefined): Promise<string | null> {
   if (!input || input.trim() === '') return null;
   
@@ -19,7 +18,6 @@ async function sha256Hash(input: string | null | undefined): Promise<string | nu
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -44,24 +42,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse request body
     const body = await req.json();
-    const { eventName, eventTime, value, currency, userData, customData } = body;
+    const { 
+      leadId, 
+      eventName, 
+      eventTime, 
+      value, 
+      currency, 
+      actionSource = 'crm',
+      userData, 
+      customData 
+    } = body;
 
-    // Salvar payload original para referência
     const originalPayload = {
+      leadId,
       eventName,
       eventTime,
       value,
       currency,
-      userData, // dados não hasheados
+      actionSource,
+      userData,
       customData,
       receivedAt: new Date().toISOString(),
     };
 
     console.log('[Webhook] Event received:', eventName);
 
-    // Validate required fields
     if (!eventName) {
       return new Response(
         JSON.stringify({ success: false, error: 'eventName is required' }),
@@ -76,13 +82,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase with service role key
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Validate token and get client info
     const { data: tokenData, error: tokenError } = await supabase
       .from('offline_conversion_webhook_tokens')
       .select(`
@@ -120,7 +124,6 @@ Deno.serve(async (req) => {
 
     console.log('[Webhook] Token validated for client:', client.name);
 
-    // Check if client has offline_event_set_id configured
     if (!client.offline_event_set_id) {
       console.error('[Webhook] Client does not have offline_event_set_id configured');
       return new Response(
@@ -132,7 +135,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get Facebook integration
     const { data: integration, error: integrationError } = await supabase
       .from('facebook_integrations')
       .select('*')
@@ -148,7 +150,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if token is expired
     const expiresAt = new Date(integration.expires_at);
     if (expiresAt < new Date()) {
       console.error('[Webhook] Facebook integration token expired');
@@ -158,7 +159,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Hash user data - ALL fields including country must be hashed per Meta documentation
     const hashedUserData: any = {};
     
     if (userData?.email) {
@@ -183,39 +183,53 @@ Deno.serve(async (req) => {
     if (userData?.zip) {
       hashedUserData.zp = await sha256Hash(userData.zip);
     }
-    // Country must be normalized to 2-letter ISO code in lowercase, THEN hashed
     if (userData?.country) {
       const normalizedCountry = userData.country.toLowerCase().substring(0, 2);
       console.log('[Webhook] Country before hash:', normalizedCountry);
       hashedUserData.country = await sha256Hash(normalizedCountry);
       console.log('[Webhook] Country after hash:', hashedUserData.country);
     }
+    // Facebook cookies (fbc, fbp) should NOT be hashed
+    if (userData?.fbc) {
+      hashedUserData.fbc = userData.fbc;
+    }
+    if (userData?.fbp) {
+      hashedUserData.fbp = userData.fbp;
+    }
 
     console.log('[Webhook] Hashed user data keys:', Object.keys(hashedUserData));
-    console.log('[Webhook] Country field present:', !!hashedUserData.country);
 
-    // Prepare payload for Meta
     const finalEventTime = eventTime || Math.floor(Date.now() / 1000);
+    
+    // Generate unique event_id for deduplication
+    const eventId = leadId 
+      ? `lead_${leadId}_${eventName}_${finalEventTime}`
+      : `webhook_${client.id}_${eventName}_${finalEventTime}`;
+    
+    // Prepare custom_data with lead_id
+    const finalCustomData = {
+      value: value || 0,
+      currency: currency || 'BRL',
+      ...(leadId && { lead_id: leadId }),
+      ...customData,
+    };
     
     const payload = {
       data: [
         {
           event_name: eventName,
           event_time: finalEventTime,
+          event_id: eventId,
+          action_source: actionSource,
           user_data: hashedUserData,
-          custom_data: {
-            value: value || 0,
-            currency: currency || 'BRL',
-            ...customData,
-          },
+          custom_data: finalCustomData,
         },
       ],
     };
 
     console.log('[Webhook] Sending conversion to Meta for event set:', client.offline_event_set_id);
-    console.log('[Webhook] Payload user_data:', JSON.stringify(payload.data[0].user_data, null, 2));
+    console.log('[Webhook] Payload:', JSON.stringify(payload, null, 2));
 
-    // Send to Meta
     const metaUrl = `https://graph.facebook.com/v18.0/${client.offline_event_set_id}/events`;
     const metaResponse = await fetch(metaUrl, {
       method: 'POST',
@@ -233,7 +247,6 @@ Deno.serve(async (req) => {
 
     console.log('[Webhook] Meta API response:', metaData);
 
-    // Log conversion in database with individual hashed fields and original payload
     const validToken = tokenData as any;
     const { error: logError } = await supabase
       .from('offline_conversions')
@@ -253,7 +266,7 @@ Deno.serve(async (req) => {
         user_state_hash: hashedUserData.st || null,
         user_zip_hash: hashedUserData.zp || null,
         user_country_hash: hashedUserData.country || null,
-        custom_data: customData || null,
+        custom_data: finalCustomData,
         webhook_payload: originalPayload,
         status: metaSuccess ? 'sent' : 'error',
         meta_response: metaData,
@@ -266,7 +279,6 @@ Deno.serve(async (req) => {
       console.error('[Webhook] Error logging conversion:', logError);
     }
 
-    // Update last_used_at for token
     await supabase
       .from('offline_conversion_webhook_tokens')
       .update({ last_used_at: new Date().toISOString() })
@@ -290,6 +302,7 @@ Deno.serve(async (req) => {
         success: true, 
         message: 'Conversion sent successfully to Meta',
         eventsReceived: metaData.events_received,
+        eventId,
         client: client.name
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

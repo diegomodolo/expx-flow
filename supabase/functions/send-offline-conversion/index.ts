@@ -6,13 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Função auxiliar para hash SHA-256
 async function sha256Hash(input: string | null | undefined): Promise<string | null> {
   if (!input || input.trim() === '') return null;
   
-  // Normalizar: minúsculas + trim
   const normalized = input.toLowerCase().trim();
-  
   const encoder = new TextEncoder();
   const data = encoder.encode(normalized);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -35,12 +32,14 @@ Deno.serve(async (req) => {
 
     const {
       clientId,
+      leadId,
       eventName = 'Purchase',
-      eventTime, // Unix timestamp em segundos, ou será gerado
+      eventTime,
       value,
       currency = 'BRL',
-      userData, // { email, phone, firstName, lastName, city, state, zip, country }
-      customData, // Dados adicionais opcionais
+      actionSource = 'crm',
+      userData,
+      customData,
     } = await req.json();
 
     console.log('Received offline conversion request for client:', clientId);
@@ -52,7 +51,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Buscar cliente e Offline Event Set ID
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('id, name, company_id, offline_event_set_id')
@@ -78,7 +76,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Buscar integração ativa do Facebook
     const { data: integration, error: integrationError } = await supabase
       .from('facebook_integrations')
       .select('*')
@@ -94,7 +91,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verificar se token expirou
     if (new Date(integration.expires_at) < new Date()) {
       console.error('Facebook integration token expired');
       return new Response(
@@ -103,15 +99,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Hash dos dados do usuário (user_data)
-    // TODOS os campos devem ser hasheados, incluindo country (conforme documentação oficial do Meta)
     const hashedUserData: any = {};
     
     if (userData?.email) {
       hashedUserData.em = await sha256Hash(userData.email);
     }
     if (userData?.phone) {
-      // Remover caracteres não numéricos antes de hashear
       const cleanPhone = userData.phone.replace(/\D/g, '');
       hashedUserData.ph = await sha256Hash(cleanPhone);
     }
@@ -130,35 +123,50 @@ Deno.serve(async (req) => {
     if (userData?.zip) {
       hashedUserData.zp = await sha256Hash(userData.zip);
     }
-    // Country deve ser normalizado para código ISO de 2 letras lowercase, DEPOIS hasheado
     if (userData?.country) {
       const normalizedCountry = userData.country.toLowerCase().substring(0, 2);
       hashedUserData.country = await sha256Hash(normalizedCountry);
     }
+    // Facebook cookies (fbc, fbp) should NOT be hashed
+    if (userData?.fbc) {
+      hashedUserData.fbc = userData.fbc;
+    }
+    if (userData?.fbp) {
+      hashedUserData.fbp = userData.fbp;
+    }
 
     console.log('User data hashed successfully');
 
-    // 4. Preparar payload para o Meta
     const finalEventTime = eventTime || Math.floor(Date.now() / 1000);
+    
+    // Generate unique event_id for deduplication
+    const eventId = leadId 
+      ? `lead_${leadId}_${eventName}_${finalEventTime}`
+      : `event_${clientId}_${eventName}_${finalEventTime}`;
+    
+    // Prepare custom_data with lead_id
+    const finalCustomData = {
+      value: value || 0,
+      currency: currency,
+      ...(leadId && { lead_id: leadId }),
+      ...customData,
+    };
     
     const metaPayload = {
       data: [
         {
           event_name: eventName,
           event_time: finalEventTime,
+          event_id: eventId,
+          action_source: actionSource,
           user_data: hashedUserData,
-          custom_data: {
-            value: value || 0,
-            currency: currency,
-            ...customData,
-          },
+          custom_data: finalCustomData,
         },
       ],
     };
 
     console.log('Prepared payload for Meta:', JSON.stringify(metaPayload, null, 2));
 
-    // 5. Enviar para o Meta Graph API
     const metaUrl = `https://graph.facebook.com/v19.0/${client.offline_event_set_id}/events?access_token=${integration.access_token}`;
     
     const metaResponse = await fetch(metaUrl, {
@@ -172,14 +180,16 @@ Deno.serve(async (req) => {
     const metaData = await metaResponse.json();
     console.log('Meta API response:', JSON.stringify(metaData, null, 2));
 
-    // 6. Salvar payload original e log no banco de dados
     const manualPayload = {
+      leadId,
       eventName,
       eventTime: finalEventTime,
+      eventId,
+      actionSource,
       value,
       currency,
-      userData, // dados originais não hasheados
-      customData,
+      userData,
+      customData: finalCustomData,
       source: 'manual',
       sentAt: new Date().toISOString(),
     };
@@ -200,7 +210,7 @@ Deno.serve(async (req) => {
       user_state_hash: hashedUserData.st || null,
       user_zip_hash: hashedUserData.zp || null,
       user_country_hash: hashedUserData.country || null,
-      custom_data: customData || null,
+      custom_data: finalCustomData,
       webhook_payload: manualPayload,
       status: metaResponse.ok ? 'sent' : 'error',
       meta_response: metaData,
@@ -219,7 +229,6 @@ Deno.serve(async (req) => {
       console.error('Error saving conversion log:', saveError);
     }
 
-    // 7. Retornar resposta
     if (!metaResponse.ok) {
       return new Response(
         JSON.stringify({
@@ -239,6 +248,7 @@ Deno.serve(async (req) => {
         success: true,
         message: 'Offline conversion sent successfully',
         conversionId: savedConversion?.id,
+        eventId,
         metaResponse: metaData,
       }),
       {

@@ -18,14 +18,17 @@ export interface OfflineConversion {
   created_at: string;
   sent_at: string | null;
   source?: 'webhook' | 'manual';
+  custom_data?: any;
 }
 
 export interface SendConversionParams {
   clientId: string;
+  leadId?: string;
   eventName?: string;
   eventTime?: number;
   value?: number;
   currency?: string;
+  actionSource?: 'crm' | 'system_generated' | 'website' | 'app' | 'phone_call';
   userData: {
     email?: string;
     phone?: string;
@@ -35,10 +38,17 @@ export interface SendConversionParams {
     state?: string;
     zip?: string;
     country?: string;
+    fbc?: string;
+    fbp?: string;
   };
   customData?: {
     content_name?: string;
     content_type?: string;
+    lead_id?: string;
+    pipeline_stage?: string;
+    crm_source?: string;
+    disqualification_reason?: string;
+    segment?: string;
     [key: string]: any;
   };
 }
@@ -117,6 +127,23 @@ export const useOfflineConversions = (clientId: string) => {
     },
   });
 
+  // Get timeline for specific lead
+  const getLeadTimeline = async (leadId: string) => {
+    const { data, error } = await supabase
+      .from('offline_conversions')
+      .select('*')
+      .eq('client_id', clientId)
+      .or(`custom_data->lead_id.eq.${leadId}`)
+      .order('event_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching lead timeline:', error);
+      return [];
+    }
+
+    return data as OfflineConversion[];
+  };
+
   return {
     conversions: conversions || [],
     isLoading,
@@ -124,5 +151,6 @@ export const useOfflineConversions = (clientId: string) => {
     refetch,
     sendConversion: sendConversionMutation.mutateAsync,
     isSending: sendConversionMutation.isPending,
+    getLeadTimeline,
   };
 };
