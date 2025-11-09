@@ -6,12 +6,44 @@ export interface CRMLead {
   id: string;
   workspace_id: string;
   stage_id: string;
+  
+  // Dados básicos
   full_name: string;
   email: string | null;
   phone: string | null;
   company_name: string | null;
-  notes: string | null;
+  
+  // Redes sociais e web
+  facebook: string | null;
+  instagram: string | null;
+  website: string | null;
+  
+  // Localização
+  city: string | null;
+  state: string | null;
+  
+  // UTM (rastreamento)
+  utm_source: string | null;
+  utm_media: string | null;
+  utm_campaign: string | null;
+  
+  // Lead scoring
+  temperature: 'cold' | 'warm' | 'hot' | null;
+  
+  // Gestão de vendas
+  start_date: string | null;
+  expected_close_date: string | null;
+  quantity: number;
   value: number | null;
+  
+  // Responsabilidade
+  responsible_id: string | null;
+  
+  // Workflow
+  workflow_id: string | null;
+  
+  // Metadados originais
+  notes: string | null;
   status: 'open' | 'qualified' | 'unqualified' | 'won' | 'lost';
   disqualification_reason: string | null;
   external_id: string | null;

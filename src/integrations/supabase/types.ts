@@ -1404,62 +1404,198 @@ export type Database = {
           },
         ]
       }
+      crm_lead_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          is_private: boolean | null
+          lead_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          is_private?: boolean | null
+          lead_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          is_private?: boolean | null
+          lead_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_attachments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "crm_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_lead_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_tags_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_leads: {
         Row: {
+          city: string | null
           company_name: string | null
           created_at: string | null
           created_by: string | null
           disqualification_reason: string | null
           email: string | null
+          expected_close_date: string | null
           external_id: string | null
+          facebook: string | null
           full_name: string
           id: string
+          instagram: string | null
           notes: string | null
           phone: string | null
+          quantity: number | null
+          responsible_id: string | null
           stage_id: string
+          start_date: string | null
+          state: string | null
           status: string | null
+          temperature: string | null
           updated_at: string | null
+          utm_campaign: string | null
+          utm_media: string | null
+          utm_source: string | null
           value: number | null
+          website: string | null
+          workflow_id: string | null
           workspace_id: string
         }
         Insert: {
+          city?: string | null
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
           disqualification_reason?: string | null
           email?: string | null
+          expected_close_date?: string | null
           external_id?: string | null
+          facebook?: string | null
           full_name: string
           id?: string
+          instagram?: string | null
           notes?: string | null
           phone?: string | null
+          quantity?: number | null
+          responsible_id?: string | null
           stage_id: string
+          start_date?: string | null
+          state?: string | null
           status?: string | null
+          temperature?: string | null
           updated_at?: string | null
+          utm_campaign?: string | null
+          utm_media?: string | null
+          utm_source?: string | null
           value?: number | null
+          website?: string | null
+          workflow_id?: string | null
           workspace_id: string
         }
         Update: {
+          city?: string | null
           company_name?: string | null
           created_at?: string | null
           created_by?: string | null
           disqualification_reason?: string | null
           email?: string | null
+          expected_close_date?: string | null
           external_id?: string | null
+          facebook?: string | null
           full_name?: string
           id?: string
+          instagram?: string | null
           notes?: string | null
           phone?: string | null
+          quantity?: number | null
+          responsible_id?: string | null
           stage_id?: string
+          start_date?: string | null
+          state?: string | null
           status?: string | null
+          temperature?: string | null
           updated_at?: string | null
+          utm_campaign?: string | null
+          utm_media?: string | null
+          utm_source?: string | null
           value?: number | null
+          website?: string | null
+          workflow_id?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "crm_leads_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "crm_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_responsible_id_fkey"
+            columns: ["responsible_id"]
             isOneToOne: false
             referencedRelation: "crm_users"
             referencedColumns: ["id"]
@@ -1527,6 +1663,38 @@ export type Database = {
           },
           {
             foreignKeyName: "crm_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tags: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tags_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "crm_workspaces"

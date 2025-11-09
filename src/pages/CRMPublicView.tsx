@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Filter, Upload, Loader2 } from "lucide-react";
 import { CRMKanbanBoard } from "@/components/crm/CRMKanbanBoard";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
-import { CRMLeadDetailsModal } from "@/components/crm/CRMLeadDetailsModal";
+import { CRMLeadEditModal } from "@/components/crm/CRMLeadEditModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CreateStageDialog } from "@/components/crm/CreateStageDialog";
 import { EditStageModal } from "@/components/crm/EditStageModal";
@@ -31,6 +31,7 @@ export default function CRMPublicView() {
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
+  const [leadEditModalOpen, setLeadEditModalOpen] = useState(false);
   const [createStageDialogOpen, setCreateStageDialogOpen] = useState(false);
   const [createBoardDialogOpen, setCreateBoardDialogOpen] = useState(false);
   const [editStageModalOpen, setEditStageModalOpen] = useState(false);
@@ -295,11 +296,16 @@ export default function CRMPublicView() {
         </main>
       </div>
 
-      <CRMLeadDetailsModal
+      <CRMLeadEditModal
         lead={selectedLead}
         stages={stages}
-        isOpen={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
+        isOpen={leadEditModalOpen}
+        onClose={() => {
+          setLeadEditModalOpen(false);
+          setSelectedLead(null);
+        }}
+        workspaceId={workspace.id}
+        boardId={selectedBoardId || ''}
       />
 
       <CRMNewLeadDialog
