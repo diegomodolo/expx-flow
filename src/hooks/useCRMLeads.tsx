@@ -214,6 +214,7 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
       // Refetch em background para sincronizar com servidor
       queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-links'] });
       
       if (data.eventSent) {
         toast({
@@ -250,6 +251,7 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
       // Garantir sincronização ao final
       queryClient.invalidateQueries({ queryKey: ['crm-leads', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['crm-lead-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-lead-links'] });
     },
   });
 
