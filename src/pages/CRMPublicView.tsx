@@ -127,9 +127,15 @@ export default function CRMPublicView() {
     }
   };
 
-  const handleCreateStage = async (name: string, color?: string) => {
+  const handleCreateStage = async (stageData: {
+    name: string;
+    color: string;
+    event_mapping: string | null;
+    auto_status_change: boolean;
+    target_status: string | null;
+  }) => {
     try {
-      await createStage({ name, color });
+      await createStage(stageData);
     } catch (error) {
       // Error já é tratado no hook
     }
