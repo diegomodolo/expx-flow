@@ -13,6 +13,7 @@ import { EditStageModal } from "@/components/crm/EditStageModal";
 import { BoardSelector } from "@/components/crm/BoardSelector";
 import { CreateBoardDialog } from "@/components/crm/CreateBoardDialog";
 import { CRMDashboard } from "@/components/crm/CRMDashboard";
+import { CRMLeadsTable } from "@/components/crm/CRMLeadsTable";
 import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
 import { useCRMStages } from "@/hooks/useCRMStages";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
@@ -36,6 +37,7 @@ export default function CRMPublicView() {
   const [stageToEdit, setStageToEdit] = useState<CRMStage | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'leads' | 'contacts' | 'reports' | 'settings'>('leads');
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
+  const [leadsSearchTerm, setLeadsSearchTerm] = useState('');
 
   // Hook para boards
   const { boards, createBoard, isLoading: isLoadingBoards } = useCRMBoards({ 
@@ -240,12 +242,42 @@ export default function CRMPublicView() {
             </div>
           )}
 
-          {currentView === 'contacts' && (
-            <div className="px-8 py-8">
-              <h1 className="text-3xl font-bold mb-6">Contatos</h1>
-              <p className="text-muted-foreground">Contatos em desenvolvimento...</p>
+        {currentView === 'contacts' && (
+          <div className="px-8 py-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Leads</h1>
+                <p className="text-muted-foreground">
+                  {leads.length} {leads.length === 1 ? 'lead cadastrado' : 'leads cadastrados'}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="relative w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, email, telefone ou empresa..."
+                    value={leadsSearchTerm}
+                    onChange={(e) => setLeadsSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Button onClick={() => setNewLeadDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Lead
+                </Button>
+              </div>
             </div>
-          )}
+
+            <CRMLeadsTable
+              leads={leads}
+              stages={stages}
+              onLeadClick={setSelectedLead}
+              searchTerm={leadsSearchTerm}
+            />
+          </div>
+        )}
 
           {currentView === 'reports' && (
             <div className="px-8 py-8">
