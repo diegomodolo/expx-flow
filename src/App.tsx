@@ -46,6 +46,7 @@ import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
 import AdminLeadReports from "./pages/AdminLeadReports";
+import CRMPublicView from "./pages/CRMPublicView";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -68,6 +69,7 @@ const App = () => {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
+              <Route path="/crm/:token" element={<CRMPublicView />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={
