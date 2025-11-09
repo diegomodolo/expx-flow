@@ -73,18 +73,38 @@ serve(async (req) => {
       });
     }
 
-    // Gerar token único usando a função do banco
-    const { data: tokenData, error: tokenError } = await supabase.rpc('generate_crm_access_token');
+    // Gerar token único diretamente no código
+    let accessToken: string;
+    let tokenExists = true;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    if (tokenError) {
-      console.error('[create-crm-workspace] Error generating token:', tokenError);
-      return new Response(JSON.stringify({ error: 'Failed to generate token' }), {
+    while (tokenExists && attempts < maxAttempts) {
+      // Gerar token aleatório de 32 caracteres
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      accessToken = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+
+      // Verificar se o token já existe
+      const { data: existing } = await supabase
+        .from('crm_workspaces')
+        .select('id')
+        .eq('access_token', accessToken)
+        .single();
+
+      tokenExists = !!existing;
+      attempts++;
+    }
+
+    if (tokenExists) {
+      console.error('[create-crm-workspace] Failed to generate unique token after max attempts');
+      return new Response(JSON.stringify({ error: 'Failed to generate unique token' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const accessToken = tokenData;
+    console.log('[create-crm-workspace] Generated token successfully');
 
     // Criar workspace
     const { data: workspace, error: workspaceError } = await supabase
