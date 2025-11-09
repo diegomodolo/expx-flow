@@ -18,6 +18,7 @@ import {
   UserX,
   DollarSign,
   Clock,
+  Kanban,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -113,6 +114,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/conversoes`,
       icon: DollarSign,
       description: "Rastrear conversões offline"
+    },
+    {
+      title: "CRM",
+      href: `/clientes/${clientId}/crm`,
+      icon: Kanban,
+      description: "Gerenciar leads no mini CRM"
     },
     {
       title: "Histórico",
