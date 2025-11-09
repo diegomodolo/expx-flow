@@ -9,7 +9,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
-  { title: "Leads", icon: Users, view: "leads" },
+  { title: "Quadros", icon: Users, view: "leads" },
   { title: "Contatos", icon: Contact, view: "contacts" },
   { title: "Relatórios", icon: FileText, view: "reports" },
   { title: "Configurações", icon: Settings, view: "settings" },

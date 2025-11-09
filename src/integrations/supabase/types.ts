@@ -1376,6 +1376,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           stage_id: string
+          status: string | null
           updated_at: string | null
           value: number | null
           workspace_id: string
@@ -1392,6 +1393,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           stage_id: string
+          status?: string | null
           updated_at?: string | null
           value?: number | null
           workspace_id: string
@@ -1408,6 +1410,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           stage_id?: string
+          status?: string | null
           updated_at?: string | null
           value?: number | null
           workspace_id?: string
@@ -1438,30 +1441,36 @@ export type Database = {
       }
       crm_stages: {
         Row: {
+          auto_status_change: boolean | null
           color: string | null
           created_at: string | null
           event_mapping: string | null
           id: string
           name: string
           order_index: number
+          target_status: string | null
           workspace_id: string
         }
         Insert: {
+          auto_status_change?: boolean | null
           color?: string | null
           created_at?: string | null
           event_mapping?: string | null
           id?: string
           name: string
           order_index: number
+          target_status?: string | null
           workspace_id: string
         }
         Update: {
+          auto_status_change?: boolean | null
           color?: string | null
           created_at?: string | null
           event_mapping?: string | null
           id?: string
           name?: string
           order_index?: number
+          target_status?: string | null
           workspace_id?: string
         }
         Relationships: [

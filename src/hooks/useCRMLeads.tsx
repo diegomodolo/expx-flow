@@ -12,6 +12,7 @@ export interface CRMLead {
   company_name: string | null;
   notes: string | null;
   value: number | null;
+  status: 'open' | 'qualified' | 'unqualified' | 'won' | 'lost';
   disqualification_reason: string | null;
   external_id: string | null;
   created_at: string;
@@ -26,6 +27,8 @@ export interface CRMStage {
   event_mapping: string | null;
   order_index: number;
   color: string;
+  auto_status_change: boolean;
+  target_status: string | null;
   created_at: string;
 }
 

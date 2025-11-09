@@ -122,13 +122,22 @@ serve(async (req) => {
       }
     }
 
+    // Preparar updates do lead
+    const leadUpdates: any = {
+      stage_id: toStageId,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Se a stage tem status configurado, atualizar o lead
+    if (toStage.auto_status_change && toStage.target_status) {
+      leadUpdates.status = toStage.target_status;
+      console.log('[move-crm-lead] Auto-updating lead status to:', toStage.target_status);
+    }
+
     // Atualizar lead
     const { error: updateError } = await supabase
       .from('crm_leads')
-      .update({ 
-        stage_id: toStageId, 
-        updated_at: new Date().toISOString() 
-      })
+      .update(leadUpdates)
       .eq('id', leadId);
 
     if (updateError) {

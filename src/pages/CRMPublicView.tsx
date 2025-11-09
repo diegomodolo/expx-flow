@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
+import { useCRMStages } from "@/hooks/useCRMStages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Upload, Filter, Loader2 } from "lucide-react";
@@ -10,6 +11,8 @@ import { CRMLeadDetailsModal } from "@/components/crm/CRMLeadDetailsModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { CRMDashboard } from "@/components/crm/CRMDashboard";
+import { EditStageModal } from "@/components/crm/EditStageModal";
+import { CreateStageDialog } from "@/components/crm/CreateStageDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Workspace {
@@ -26,10 +29,19 @@ export default function CRMPublicView() {
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
+  const [editStageModalOpen, setEditStageModalOpen] = useState(false);
+  const [createStageDialogOpen, setCreateStageDialogOpen] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<CRMStage | null>(null);
   const [clientName, setClientName] = useState('');
   const [currentView, setCurrentView] = useState<string>('leads');
 
   const { leads, stages, isLoading, moveLead } = useCRMLeads(workspace?.id || '');
+  const { 
+    updateStage, 
+    reorderStages, 
+    deleteStage, 
+    createStage,
+  } = useCRMStages({ workspaceId: workspace?.id || '' });
 
   useEffect(() => {
     const loadWorkspace = async () => {
@@ -87,6 +99,39 @@ export default function CRMPublicView() {
       });
     } catch (error) {
       console.error('Error moving lead:', error);
+    }
+  };
+
+  const handleEditStage = (stage: CRMStage) => {
+    setSelectedStage(stage);
+    setEditStageModalOpen(true);
+  };
+
+  const handleSaveStage = async (stageId: string, updates: Partial<CRMStage>) => {
+    await updateStage({ stageId, updates });
+  };
+
+  const handleReorderStages = async (reorderedStages: CRMStage[]) => {
+    await reorderStages(reorderedStages);
+  };
+
+  const handleDeleteStage = async (stageId: string) => {
+    if (!confirm('Tem certeza que deseja deletar esta coluna? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+    
+    try {
+      await deleteStage(stageId);
+    } catch (error) {
+      // Error já é tratado no hook
+    }
+  };
+
+  const handleCreateStage = async (name: string, color?: string) => {
+    try {
+      await createStage({ name, color });
+    } catch (error) {
+      // Error já é tratado no hook
     }
   };
 
@@ -148,7 +193,7 @@ export default function CRMPublicView() {
           {currentView === 'leads' && (
             <div className="px-8 py-8">
               <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">Leads - {clientName}</h1>
+                <h1 className="text-3xl font-bold">Quadros - {clientName}</h1>
                 <div className="flex items-center gap-3">
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-2" />
@@ -166,6 +211,10 @@ export default function CRMPublicView() {
                 leads={leads}
                 onMoveCard={handleMoveCard}
                 onCardClick={setSelectedLead}
+                onEditStage={handleEditStage}
+                onDeleteStage={handleDeleteStage}
+                onReorderStages={handleReorderStages}
+                onCreateStage={() => setCreateStageDialogOpen(true)}
               />
             </div>
           )}
@@ -206,6 +255,22 @@ export default function CRMPublicView() {
         onClose={() => setNewLeadDialogOpen(false)}
         stages={stages}
         workspaceId={workspace.id}
+      />
+
+      <EditStageModal
+        isOpen={editStageModalOpen}
+        onClose={() => {
+          setEditStageModalOpen(false);
+          setSelectedStage(null);
+        }}
+        stage={selectedStage}
+        onSave={handleSaveStage}
+      />
+
+      <CreateStageDialog
+        isOpen={createStageDialogOpen}
+        onClose={() => setCreateStageDialogOpen(false)}
+        onCreate={handleCreateStage}
       />
     </div>
   );
