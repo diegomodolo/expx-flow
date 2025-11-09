@@ -1,29 +1,14 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Phone, Users, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { useCRMDashboardData, formatRelativeTime, formatCurrency, getInitials } from "@/hooks/useCRMDashboardData";
+import { useCRMWorkspaceGoals } from "@/hooks/useCRMWorkspaceGoals";
+import { StatCardWithGoal } from "./StatCardWithGoal";
+import { GoalsConfigModal } from "./GoalsConfigModal";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-interface StatCardProps {
-  title: string;
-  value: string;
-  change: string;
-  isPositive?: boolean;
-}
-function StatCard({
-  title,
-  value,
-  change,
-  isPositive = true
-}: StatCardProps) {
-  return <Card className="p-6 space-y-2">
-      <p className="text-sm font-medium text-muted-foreground">{title}</p>
-      <p className="text-3xl font-bold tracking-tight">{value}</p>
-      <p className={`text-sm font-medium ${isPositive ? 'text-success' : 'text-destructive'}`}>
-        {change}
-      </p>
-    </Card>;
-}
+
 interface CRMDashboardProps {
   workspaceId: string;
 }
@@ -54,10 +39,14 @@ function getActivityColor(type: string) {
 export function CRMDashboard({
   workspaceId
 }: CRMDashboardProps) {
+  const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+  
   const {
     data,
     isLoading
   } = useCRMDashboardData(workspaceId);
+
+  const { calculateGoalsProgress } = useCRMWorkspaceGoals(workspaceId);
   if (isLoading) {
     return <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -75,6 +64,14 @@ export function CRMDashboard({
     activities,
     recentLeads
   } = data;
+
+  // Calcular progresso das metas
+  const goalsProgress = calculateGoalsProgress({
+    totalLeads: metrics.totalLeads,
+    revenue: metrics.revenue,
+    conversionRate: metrics.conversionRate,
+    closedDeals: metrics.closedDeals
+  });
   return <div className="space-y-8">
       {/* Page Heading */}
       <div className="flex flex-wrap justify-between gap-4 items-center">
@@ -89,17 +86,66 @@ export function CRMDashboard({
             Últimos 30 dias
             <ChevronDown className="w-4 h-4" />
           </Button>
-          <Button>Personalizar Painel</Button>
+          <Button onClick={() => setIsGoalsModalOpen(true)}>
+            Personalizar Painel
+          </Button>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total de Leads" value={metrics.totalLeads.toString()} change={`${metrics.totalLeadsChange > 0 ? "+" : ""}${metrics.totalLeadsChange}% vs. mês anterior`} isPositive={metrics.totalLeadsChange >= 0} />
-        <StatCard title="Receita do Mês" value={formatCurrency(metrics.revenue)} change={`${metrics.revenueChange > 0 ? "+" : ""}${metrics.revenueChange}% vs. mês anterior`} isPositive={metrics.revenueChange >= 0} />
-        <StatCard title="Taxa de Conversão" value={`${metrics.conversionRate}%`} change={`${metrics.conversionRateChange > 0 ? "+" : ""}${metrics.conversionRateChange}% vs. mês anterior`} isPositive={metrics.conversionRateChange >= 0} />
-        <StatCard title="Negócios Fechados" value={metrics.closedDeals.toString()} change={`${metrics.closedDealsChange > 0 ? "+" : ""}${metrics.closedDealsChange} vs. mês anterior`} isPositive={metrics.closedDealsChange >= 0} />
+        <StatCardWithGoal
+          title="Total de Leads"
+          value={metrics.totalLeads}
+          target={goalsProgress.leads.target}
+          change={`${metrics.totalLeadsChange > 0 ? "+" : ""}${metrics.totalLeadsChange}% vs. mês anterior`}
+          isPositive={metrics.totalLeadsChange >= 0}
+          goalStatus={goalsProgress.leads.status}
+          percentage={goalsProgress.leads.percentage}
+        />
+        <StatCardWithGoal
+          title="Receita do Mês"
+          value={metrics.revenue}
+          target={goalsProgress.revenue.target}
+          change={`${metrics.revenueChange > 0 ? "+" : ""}${metrics.revenueChange}% vs. mês anterior`}
+          isPositive={metrics.revenueChange >= 0}
+          goalStatus={goalsProgress.revenue.status}
+          percentage={goalsProgress.revenue.percentage}
+          formatValue={formatCurrency}
+        />
+        <StatCardWithGoal
+          title="Taxa de Conversão"
+          value={metrics.conversionRate}
+          target={goalsProgress.conversion.target}
+          change={`${metrics.conversionRateChange > 0 ? "+" : ""}${metrics.conversionRateChange}% vs. mês anterior`}
+          isPositive={metrics.conversionRateChange >= 0}
+          goalStatus={goalsProgress.conversion.status}
+          percentage={goalsProgress.conversion.percentage}
+          formatValue={(val) => `${val.toFixed(1)}%`}
+        />
+        <StatCardWithGoal
+          title="Negócios Fechados"
+          value={metrics.closedDeals}
+          target={goalsProgress.closedDeals.target}
+          change={`${metrics.closedDealsChange > 0 ? "+" : ""}${metrics.closedDealsChange} vs. mês anterior`}
+          isPositive={metrics.closedDealsChange >= 0}
+          goalStatus={goalsProgress.closedDeals.status}
+          percentage={goalsProgress.closedDeals.percentage}
+        />
       </div>
+
+      {/* Goals Config Modal */}
+      <GoalsConfigModal
+        open={isGoalsModalOpen}
+        onOpenChange={setIsGoalsModalOpen}
+        workspaceId={workspaceId}
+        currentMetrics={{
+          totalLeads: metrics.totalLeads,
+          revenue: metrics.revenue,
+          conversionRate: metrics.conversionRate,
+          closedDeals: metrics.closedDeals
+        }}
+      />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

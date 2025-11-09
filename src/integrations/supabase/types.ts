@@ -1512,6 +1512,66 @@ export type Database = {
           },
         ]
       }
+      crm_workspace_goals: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          month: number
+          target_closed_deals: number | null
+          target_conversion_rate: number | null
+          target_leads: number | null
+          target_revenue: number | null
+          updated_at: string | null
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month: number
+          target_closed_deals?: number | null
+          target_conversion_rate?: number | null
+          target_leads?: number | null
+          target_revenue?: number | null
+          updated_at?: string | null
+          workspace_id: string
+          year: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month?: number
+          target_closed_deals?: number | null
+          target_conversion_rate?: number | null
+          target_leads?: number | null
+          target_revenue?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_workspace_goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_workspace_goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_workspaces: {
         Row: {
           access_token: string
