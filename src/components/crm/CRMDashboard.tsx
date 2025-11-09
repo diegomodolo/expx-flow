@@ -1,54 +1,32 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Phone, 
-  Users, 
-  CheckCircle2,
-  ChevronDown,
-  Loader2
-} from "lucide-react";
-import {
-  useCRMDashboardData,
-  formatRelativeTime,
-  formatCurrency,
-  getInitials,
-} from "@/hooks/useCRMDashboardData";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
+import { Phone, Users, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
+import { useCRMDashboardData, formatRelativeTime, formatCurrency, getInitials } from "@/hooks/useCRMDashboardData";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 interface StatCardProps {
   title: string;
   value: string;
   change: string;
   isPositive?: boolean;
 }
-
-function StatCard({ title, value, change, isPositive = true }: StatCardProps) {
-  return (
-    <Card className="p-6 space-y-2">
+function StatCard({
+  title,
+  value,
+  change,
+  isPositive = true
+}: StatCardProps) {
+  return <Card className="p-6 space-y-2">
       <p className="text-sm font-medium text-muted-foreground">{title}</p>
       <p className="text-3xl font-bold tracking-tight">{value}</p>
       <p className={`text-sm font-medium ${isPositive ? 'text-success' : 'text-destructive'}`}>
         {change}
       </p>
-    </Card>
-  );
+    </Card>;
 }
-
 interface CRMDashboardProps {
   workspaceId: string;
 }
-
 function getActivityIcon(type: string) {
   switch (type) {
     case "stage_change":
@@ -61,7 +39,6 @@ function getActivityIcon(type: string) {
       return CheckCircle2;
   }
 }
-
 function getActivityColor(type: string) {
   switch (type) {
     case "stage_change":
@@ -74,29 +51,31 @@ function getActivityColor(type: string) {
       return "bg-primary/20 text-primary";
   }
 }
-
-export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
-  const { data, isLoading } = useCRMDashboardData(workspaceId);
-
+export function CRMDashboard({
+  workspaceId
+}: CRMDashboardProps) {
+  const {
+    data,
+    isLoading
+  } = useCRMDashboardData(workspaceId);
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
+    return <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
   if (!data) {
-    return (
-      <div className="flex items-center justify-center h-96">
+    return <div className="flex items-center justify-center h-96">
         <p className="text-muted-foreground">Nenhum dado disponível</p>
-      </div>
-    );
+      </div>;
   }
-
-  const { metrics, leadsByStage, leadsOverTime, activities, recentLeads } = data;
-  return (
-    <div className="space-y-8">
+  const {
+    metrics,
+    leadsByStage,
+    leadsOverTime,
+    activities,
+    recentLeads
+  } = data;
+  return <div className="space-y-8">
       {/* Page Heading */}
       <div className="flex flex-wrap justify-between gap-4 items-center">
         <div className="space-y-2">
@@ -116,30 +95,10 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total de Leads"
-          value={metrics.totalLeads.toString()}
-          change={`${metrics.totalLeadsChange > 0 ? "+" : ""}${metrics.totalLeadsChange}% vs. mês anterior`}
-          isPositive={metrics.totalLeadsChange >= 0}
-        />
-        <StatCard
-          title="Receita do Mês"
-          value={formatCurrency(metrics.revenue)}
-          change={`${metrics.revenueChange > 0 ? "+" : ""}${metrics.revenueChange}% vs. mês anterior`}
-          isPositive={metrics.revenueChange >= 0}
-        />
-        <StatCard
-          title="Taxa de Conversão"
-          value={`${metrics.conversionRate}%`}
-          change={`${metrics.conversionRateChange > 0 ? "+" : ""}${metrics.conversionRateChange}% vs. mês anterior`}
-          isPositive={metrics.conversionRateChange >= 0}
-        />
-        <StatCard
-          title="Negócios Fechados"
-          value={metrics.closedDeals.toString()}
-          change={`${metrics.closedDealsChange > 0 ? "+" : ""}${metrics.closedDealsChange} vs. mês anterior`}
-          isPositive={metrics.closedDealsChange >= 0}
-        />
+        <StatCard title="Total de Leads" value={metrics.totalLeads.toString()} change={`${metrics.totalLeadsChange > 0 ? "+" : ""}${metrics.totalLeadsChange}% vs. mês anterior`} isPositive={metrics.totalLeadsChange >= 0} />
+        <StatCard title="Receita do Mês" value={formatCurrency(metrics.revenue)} change={`${metrics.revenueChange > 0 ? "+" : ""}${metrics.revenueChange}% vs. mês anterior`} isPositive={metrics.revenueChange >= 0} />
+        <StatCard title="Taxa de Conversão" value={`${metrics.conversionRate}%`} change={`${metrics.conversionRateChange > 0 ? "+" : ""}${metrics.conversionRateChange}% vs. mês anterior`} isPositive={metrics.conversionRateChange >= 0} />
+        <StatCard title="Negócios Fechados" value={metrics.closedDeals.toString()} change={`${metrics.closedDealsChange > 0 ? "+" : ""}${metrics.closedDealsChange} vs. mês anterior`} isPositive={metrics.closedDealsChange >= 0} />
       </div>
 
       {/* Main Grid */}
@@ -153,23 +112,23 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={leadsByStage}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <YAxis 
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "0.5rem",
-                  }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                />
+                <XAxis dataKey="name" tick={{
+                fill: "hsl(var(--muted-foreground))"
+              }} tickLine={{
+                stroke: "hsl(var(--border))"
+              }} />
+                <YAxis tick={{
+                fill: "hsl(var(--muted-foreground))"
+              }} tickLine={{
+                stroke: "hsl(var(--border))"
+              }} />
+                <Tooltip contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem"
+              }} labelStyle={{
+                color: "hsl(var(--foreground))"
+              }} />
                 <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -179,19 +138,18 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
         {/* Próximas Atividades */}
         <Card className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold">Próximas Atividades</h3>
+            <h3 className="text-lg font-bold">Últimas Atividades
+
+          </h3>
             <a href="#" className="text-sm font-medium text-primary hover:underline">
               Ver mais
             </a>
           </div>
           <div className="space-y-4">
-            {activities.length > 0 ? (
-              activities.map((activity) => {
-                const Icon = getActivityIcon(activity.type);
-                const colorClasses = getActivityColor(activity.type);
-
-                return (
-                  <div key={activity.id} className="flex items-start gap-4">
+            {activities.length > 0 ? activities.map(activity => {
+            const Icon = getActivityIcon(activity.type);
+            const colorClasses = getActivityColor(activity.type);
+            return <div key={activity.id} className="flex items-start gap-4">
                     <div className={`p-2 rounded-full ${colorClasses}`}>
                       <Icon className="w-5 h-5" />
                     </div>
@@ -201,14 +159,10 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
                         {formatRelativeTime(activity.created_at)}
                       </p>
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
+                  </div>;
+          }) : <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhuma atividade recente
-              </p>
-            )}
+              </p>}
           </div>
         </Card>
 
@@ -221,31 +175,29 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={leadsOverTime}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <YAxis 
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "0.5rem",
-                  }}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
+                <XAxis dataKey="date" tick={{
+                fill: "hsl(var(--muted-foreground))"
+              }} tickLine={{
+                stroke: "hsl(var(--border))"
+              }} />
+                <YAxis tick={{
+                fill: "hsl(var(--muted-foreground))"
+              }} tickLine={{
+                stroke: "hsl(var(--border))"
+              }} />
+                <Tooltip contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem"
+              }} labelStyle={{
+                color: "hsl(var(--foreground))"
+              }} />
+                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={{
+                fill: "hsl(var(--primary))",
+                r: 4
+              }} activeDot={{
+                r: 6
+              }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -260,9 +212,7 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
             </a>
           </div>
           <div className="space-y-4">
-            {recentLeads.length > 0 ? (
-              recentLeads.map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between">
+            {recentLeads.length > 0 ? recentLeads.map(lead => <div key={lead.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarFallback>{getInitials(lead.full_name)}</AvatarFallback>
@@ -277,16 +227,11 @@ export function CRMDashboard({ workspaceId }: CRMDashboardProps) {
                   <p className="text-sm text-muted-foreground">
                     {formatRelativeTime(lead.created_at)}
                   </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
+                </div>) : <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhum lead recente
-              </p>
-            )}
+              </p>}
           </div>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }
