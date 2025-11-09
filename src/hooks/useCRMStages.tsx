@@ -49,22 +49,31 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
     mutationFn: async (stages: CRMStage[]) => {
       console.log('[useCRMStages] Reordering stages:', stages);
       
-      const updates = stages.map((stage, index) => ({
-        id: stage.id,
-        order_index: index + 1,
-      }));
+      // Estratégia: primeiro colocar todos em valores temporários negativos
+      // para evitar conflito com a constraint unique, depois atualizar para os valores finais
       
-      console.log('[useCRMStages] Updates to apply:', updates);
-      
-      // Executar atualizações em série para evitar conflitos
-      for (const { id, order_index } of updates) {
+      // Passo 1: Atualizar para valores temporários negativos
+      for (let i = 0; i < stages.length; i++) {
         const { error } = await supabase
           .from('crm_stages')
-          .update({ order_index })
-          .eq('id', id);
+          .update({ order_index: -(i + 1) })
+          .eq('id', stages[i].id);
         
         if (error) {
-          console.error('[useCRMStages] Error updating stage:', id, error);
+          console.error('[useCRMStages] Error in temp update:', error);
+          throw new Error(`Falha ao reordenar colunas: ${error.message}`);
+        }
+      }
+      
+      // Passo 2: Atualizar para valores finais corretos
+      for (let i = 0; i < stages.length; i++) {
+        const { error } = await supabase
+          .from('crm_stages')
+          .update({ order_index: i + 1 })
+          .eq('id', stages[i].id);
+        
+        if (error) {
+          console.error('[useCRMStages] Error in final update:', error);
           throw new Error(`Falha ao reordenar colunas: ${error.message}`);
         }
       }
