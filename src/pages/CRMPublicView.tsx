@@ -235,7 +235,10 @@ export default function CRMPublicView() {
                 stages={stages}
                 leads={leads}
                 onMoveCard={handleMoveCard}
-                onCardClick={setSelectedLead}
+                onCardClick={(lead) => {
+                  setSelectedLead(lead);
+                  setLeadEditModalOpen(true);
+                }}
                 onEditStage={handleEditStage}
                 onDeleteStage={handleDeleteStage}
                 onReorderStages={handleReorderStages}
@@ -274,7 +277,10 @@ export default function CRMPublicView() {
             <CRMLeadsTable
               leads={leads}
               stages={stages}
-              onLeadClick={setSelectedLead}
+              onLeadClick={(lead) => {
+                setSelectedLead(lead);
+                setLeadEditModalOpen(true);
+              }}
               searchTerm={leadsSearchTerm}
             />
           </div>
