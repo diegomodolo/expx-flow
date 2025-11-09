@@ -263,20 +263,6 @@ export function CRMKanbanBoard({
               );
             })}
             {provided.placeholder}
-            
-            {/* Botão Nova Coluna */}
-            {onCreateStage && (
-              <div className="space-y-4 flex-shrink-0 w-80">
-                <Button 
-                  variant="outline" 
-                  className="w-full h-[400px] border-dashed border-2 hover:border-primary hover:bg-primary/5"
-                  onClick={onCreateStage}
-                >
-                  <Plus className="w-6 h-6 mr-2" />
-                  Nova Coluna
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </Droppable>

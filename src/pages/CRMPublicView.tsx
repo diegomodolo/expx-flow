@@ -205,6 +205,14 @@ export default function CRMPublicView() {
                     <Filter className="w-4 h-4 mr-2" />
                     Filtrar
                   </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCreateStageDialogOpen(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Coluna
+                  </Button>
                   <Button variant="default" size="sm">
                     <Upload className="w-4 h-4 mr-2" />
                     Exportar
@@ -220,7 +228,6 @@ export default function CRMPublicView() {
                 onEditStage={handleEditStage}
                 onDeleteStage={handleDeleteStage}
                 onReorderStages={handleReorderStages}
-                onCreateStage={() => setCreateStageDialogOpen(true)}
               />
             </div>
           )}
