@@ -47,24 +47,29 @@ export const useCRMStages = ({ workspaceId }: UseCRMStagesProps) => {
 
   const reorderStagesMutation = useMutation({
     mutationFn: async (stages: CRMStage[]) => {
+      console.log('[useCRMStages] Reordering stages:', stages);
+      
       const updates = stages.map((stage, index) => ({
         id: stage.id,
         order_index: index + 1,
       }));
       
-      const promises = updates.map(({ id, order_index }) =>
-        supabase
+      console.log('[useCRMStages] Updates to apply:', updates);
+      
+      // Executar atualizações em série para evitar conflitos
+      for (const { id, order_index } of updates) {
+        const { error } = await supabase
           .from('crm_stages')
           .update({ order_index })
-          .eq('id', id)
-      );
-      
-      const results = await Promise.all(promises);
-      
-      const errors = results.filter(r => r.error);
-      if (errors.length > 0) {
-        throw new Error('Falha ao reordenar colunas');
+          .eq('id', id);
+        
+        if (error) {
+          console.error('[useCRMStages] Error updating stage:', id, error);
+          throw new Error(`Falha ao reordenar colunas: ${error.message}`);
+        }
       }
+      
+      console.log('[useCRMStages] All stages reordered successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-stages', workspaceId] });
