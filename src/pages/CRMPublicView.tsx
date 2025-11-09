@@ -9,6 +9,7 @@ import { CRMKanbanBoard } from "@/components/crm/CRMKanbanBoard";
 import { CRMLeadDetailsModal } from "@/components/crm/CRMLeadDetailsModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
+import { CRMDashboard } from "@/components/crm/CRMDashboard";
 import { useToast } from "@/hooks/use-toast";
 
 interface Workspace {
@@ -138,6 +139,12 @@ export default function CRMPublicView() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
+          {currentView === 'dashboard' && (
+            <div className="px-8 py-8">
+              <CRMDashboard />
+            </div>
+          )}
+
           {currentView === 'leads' && (
             <div className="px-8 py-8">
               <div className="flex items-center justify-between mb-6">
@@ -160,13 +167,6 @@ export default function CRMPublicView() {
                 onMoveCard={handleMoveCard}
                 onCardClick={setSelectedLead}
               />
-            </div>
-          )}
-
-          {currentView === 'dashboard' && (
-            <div className="px-8 py-8">
-              <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-              <p className="text-muted-foreground">Dashboard em desenvolvimento...</p>
             </div>
           )}
 
