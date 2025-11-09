@@ -1288,6 +1288,275 @@ export type Database = {
           },
         ]
       }
+      crm_lead_activities: {
+        Row: {
+          activity_type: string
+          conversion_id: string | null
+          created_at: string | null
+          created_by: string | null
+          event_sent: boolean | null
+          from_stage_id: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          conversion_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          event_sent?: boolean | null
+          from_stage_id?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          conversion_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          event_sent?: boolean | null
+          from_stage_id?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_lead_activities_conversion_id_fkey"
+            columns: ["conversion_id"]
+            isOneToOne: false
+            referencedRelation: "offline_conversions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "crm_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_activities_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_lead_activities_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          created_by: string | null
+          disqualification_reason: string | null
+          email: string | null
+          external_id: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          stage_id: string
+          updated_at: string | null
+          value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          disqualification_reason?: string | null
+          email?: string | null
+          external_id?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          stage_id: string
+          updated_at?: string | null
+          value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          disqualification_reason?: string | null
+          email?: string | null
+          external_id?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          stage_id?: string
+          updated_at?: string | null
+          value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "crm_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_stages: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          event_mapping: string | null
+          id: string
+          name: string
+          order_index: number
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          event_mapping?: string | null
+          id?: string
+          name: string
+          order_index: number
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          event_mapping?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_users: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          password_hash: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          password_hash: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          password_hash?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_users_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_workspaces: {
+        Row: {
+          access_token: string
+          client_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          access_token: string
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          access_token?: string
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_workspaces_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_workspaces_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_permissions: {
         Row: {
           company_id: string
@@ -2864,6 +3133,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_crm_access_token: { Args: never; Returns: string }
       generate_funnel_public_token: { Args: never; Returns: string }
       get_user_company_ids: {
         Args: { _user_id: string }
