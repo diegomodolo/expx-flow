@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       eventTime,
       value,
       currency = 'BRL',
-      actionSource = 'crm',
+      actionSource = 'system_generated', // Valor válido para conversões vindas do CRM
       userData,
       customData,
     } = await req.json();
