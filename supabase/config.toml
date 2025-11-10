@@ -88,3 +88,6 @@ verify_jwt = true
 
 [functions.webhook-offline-conversion]
 verify_jwt = false
+
+[functions.crm-auth]
+verify_jwt = false

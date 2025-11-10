@@ -47,10 +47,12 @@ import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
 import AdminLeadReports from "./pages/AdminLeadReports";
 import CRMPublicView from "./pages/CRMPublicView";
+import CRMLogin from "./pages/CRMLogin";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
+import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -63,12 +65,14 @@ const App = () => {
         <Sonner />
         <AuthProvider>
           <CompanyProvider>
-            <Routes>
+            <CRMAuthProvider>
+              <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
+              <Route path="/crm/:token/login" element={<CRMLogin />} />
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
               
                {/* Protected routes */}
@@ -289,6 +293,7 @@ const App = () => {
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </CRMAuthProvider>
           </CompanyProvider>
         </AuthProvider>
       </BrowserRouter>

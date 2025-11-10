@@ -1784,6 +1784,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           password_hash: string
+          role: string | null
           workspace_id: string
         }
         Insert: {
@@ -1793,6 +1794,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           password_hash: string
+          role?: string | null
           workspace_id: string
         }
         Update: {
@@ -1802,6 +1804,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           password_hash?: string
+          role?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -1883,6 +1886,10 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean | null
+          login_primary_color: string | null
+          login_subtitle: string | null
+          login_title: string | null
+          logo_url: string | null
         }
         Insert: {
           access_token: string
@@ -1892,6 +1899,10 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean | null
+          login_primary_color?: string | null
+          login_subtitle?: string | null
+          login_title?: string | null
+          logo_url?: string | null
         }
         Update: {
           access_token?: string
@@ -1901,6 +1912,10 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean | null
+          login_primary_color?: string | null
+          login_subtitle?: string | null
+          login_title?: string | null
+          logo_url?: string | null
         }
         Relationships: [
           {

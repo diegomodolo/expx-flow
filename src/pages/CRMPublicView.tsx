@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCRMAuth } from "@/contexts/CRMAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Filter, Upload, Loader2 } from "lucide-react";
@@ -32,6 +33,8 @@ interface Workspace {
 
 export default function CRMPublicView() {
   const { token } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated, checkAuth } = useCRMAuth();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
@@ -99,6 +102,19 @@ export default function CRMPublicView() {
 
     fetchWorkspace();
   }, [token]);
+
+  // Verificar autenticação
+  useEffect(() => {
+    if (!token) return;
+    
+    // Se não estiver carregando e não estiver autenticado, redirecionar para login
+    if (!loading && workspace && !isAuthenticated) {
+      const hasValidSession = checkAuth(workspace.id);
+      if (!hasValidSession) {
+        navigate(`/crm/${token}/login`);
+      }
+    }
+  }, [token, loading, workspace, isAuthenticated, checkAuth, navigate]);
 
   // Selecionar board padrão quando boards carregarem
   useEffect(() => {
