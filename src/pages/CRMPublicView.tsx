@@ -370,8 +370,8 @@ export default function CRMPublicView() {
             </div>
           )}
 
-          {currentView === 'settings' && (
-            <ClienteCRMSettings workspaceId={workspace.id} workspaceToken={token || ''} />
+          {currentView === 'settings' && token && (
+            <ClienteCRMSettings workspaceId={workspace.id} workspaceToken={token} />
           )}
         </main>
       </div>

@@ -69,7 +69,7 @@ const App = () => {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
-              <Route path="/crm/:token" element={<CRMPublicView />} />
+              <Route path="/crm/:token/*" element={<CRMPublicView />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={

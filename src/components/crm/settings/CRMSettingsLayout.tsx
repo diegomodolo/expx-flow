@@ -57,10 +57,12 @@ export function CRMSettingsLayout({ children, workspaceToken }: CRMSettingsLayou
               const Icon = item.icon;
               const isActive = currentPath === item.path;
 
+              const settingsPath = `/crm/${workspaceToken}/settings/${item.path}`;
+              
               return (
                 <button
                   key={item.path}
-                  onClick={() => navigate(`/crm/${workspaceToken}/settings/${item.path}`)}
+                  onClick={() => navigate(settingsPath)}
                   className={cn(
                     "w-full flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors",
                     isActive
