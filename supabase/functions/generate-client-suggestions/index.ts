@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -81,20 +81,24 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(20); // Reduced from 50 to 20 for performance
 
-    // Generate comprehensive suggestions
+    // Generate rule-based suggestions (fast and reliable)
     const suggestions = await generateComprehensiveSuggestions(
       clientData,
       campaigns,
       historicalData || []
     );
 
-    // If we have less than 5 suggestions, add AI-generated ones
+    // Try to add AI suggestions only if we have time and less than 5 suggestions
     if (suggestions.length < 5) {
-      const aiSuggestions = await generateAISuggestions(clientData, campaigns);
-      suggestions.push(...aiSuggestions);
+      try {
+        const aiSuggestions = await generateAISuggestions(clientData, campaigns);
+        suggestions.push(...aiSuggestions);
+      } catch (error) {
+        console.log('Skipping AI suggestions due to error:', error);
+      }
     }
 
-    // Ensure we always have at least 5 suggestions
+    // Fill with fallback suggestions if needed
     while (suggestions.length < 5) {
       suggestions.push(...generateFallbackSuggestions(clientData, campaigns, suggestions.length));
     }
@@ -307,67 +311,77 @@ async function generateAISuggestions(
   clientData: ClientData,
   campaigns: CampaignData[]
 ): Promise<Suggestion[]> {
-  if (!openAIApiKey) {
-    console.log('OpenAI API key not found, skipping AI suggestions');
+  if (!lovableApiKey) {
+    console.log('Lovable API key not found, skipping AI suggestions');
     return [];
   }
 
   try {
-    // Limit campaigns to top 10 by spend to reduce processing time
+    // Limit campaigns to top 5 by spend for even faster processing
     const topCampaigns = campaigns
       .sort((a, b) => (b.spend || 0) - (a.spend || 0))
-      .slice(0, 10);
+      .slice(0, 5);
 
     const activeCampaigns = topCampaigns.filter(c => c.status === 'active');
     const totalSpend = topCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
     const totalConversions = topCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
-    const avgCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
 
-    const prompt = `Como especialista em marketing digital, analise os dados do cliente e gere 2 sugestões específicas e acionáveis:
+    const prompt = `Analise e gere 2 sugestões de otimização:
 
-Cliente: ${clientData.name}
-Setor: ${clientData.sector}
-Produto: ${clientData.product_name}
-Orçamento mensal: R$ ${clientData.monthly_budget}
-
+Cliente: ${clientData.name} (${clientData.sector})
+Budget: R$ ${clientData.monthly_budget}
 Campanhas ativas: ${activeCampaigns.length}
-Total investido: R$ ${totalSpend.toFixed(2)}
-Total de conversões: ${totalConversions}
-CPA médio: R$ ${avgCPA.toFixed(2)}
+Investido: R$ ${totalSpend.toFixed(0)}
+Conversões: ${totalConversions}
 
-Responda APENAS com JSON puro (sem markdown), no formato:
-{
-  "suggestions": [
-    {
-      "title": "título",
-      "description": "descrição",
-      "action": "ação",
-      "category": "categoria",
-      "estimatedImpact": "impacto estimado"
-    }
-  ]
-}`;
+JSON:`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Using mini for better performance
+        model: 'google/gemini-2.5-flash-lite', // Fastest model
         messages: [
-          { 
-            role: 'system', 
-            content: 'Você é um especialista em marketing digital. Responda SEMPRE com JSON puro, sem markdown ou código.' 
-          },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 800, // Reduced for faster processing
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "generate_suggestions",
+              description: "Generate marketing optimization suggestions",
+              parameters: {
+                type: "object",
+                properties: {
+                  suggestions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { type: "string" },
+                        action: { type: "string" },
+                        category: { type: "string" },
+                        estimatedImpact: { type: "string" }
+                      },
+                      required: ["title", "description", "action", "category", "estimatedImpact"],
+                      additionalProperties: false
+                    }
+                  }
+                },
+                required: ["suggestions"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "generate_suggestions" } }
       }),
       signal: controller.signal,
     });
@@ -375,16 +389,19 @@ Responda APENAS com JSON puro (sem markdown), no formato:
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Lovable AI error:', response.status, errorText);
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     const data = await response.json();
-    let content = data.choices[0].message.content.trim();
+    const toolCall = data.choices[0]?.message?.tool_calls?.[0];
     
-    // Strip markdown code blocks if present
-    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
-    const aiResponse = JSON.parse(content);
+    if (!toolCall) {
+      throw new Error('No tool call in response');
+    }
+
+    const aiResponse = JSON.parse(toolCall.function.arguments);
 
     return aiResponse.suggestions.map((suggestion: any, index: number) => ({
       id: `ai-suggestion-${index}`,
