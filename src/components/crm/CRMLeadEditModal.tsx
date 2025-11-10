@@ -180,13 +180,6 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
                   <Archive className="w-4 h-4" />
                 </Button>
               )}
-              <Button 
-                size="sm"
-                variant="ghost"
-                onClick={onClose}
-              >
-                <X className="w-4 h-4" />
-              </Button>
             </div>
           </div>
 
