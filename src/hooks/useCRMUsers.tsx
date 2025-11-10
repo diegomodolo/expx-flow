@@ -1,7 +1,39 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import bcrypt from "bcryptjs";
+
+// Função para hash de senha usando Web Crypto API (mesma lógica do backend)
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    data,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  );
+  
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    256
+  );
+  
+  const hashArray = new Uint8Array(derivedBits);
+  const combined = new Uint8Array(salt.length + hashArray.length);
+  combined.set(salt);
+  combined.set(hashArray, salt.length);
+  
+  return btoa(String.fromCharCode(...combined));
+}
 
 export interface CRMUser {
   id: string;
@@ -52,9 +84,8 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
     mutationFn: async (userData: CreateUserData) => {
       if (!workspaceId) throw new Error("Workspace ID is required");
 
-      // Hash password with bcrypt
-      const saltRounds = 10;
-      const passwordHash = await bcrypt.hash(userData.password, saltRounds);
+      // Hash password with Web Crypto API
+      const passwordHash = await hashPassword(userData.password);
 
       const { data, error } = await supabase
         .from('crm_users')
@@ -155,9 +186,8 @@ export const useCRMUsers = (workspaceId: string | undefined) => {
   // Reset password
   const resetPassword = useMutation({
     mutationFn: async ({ id, newPassword }: { id: string; newPassword: string }) => {
-      // Hash new password
-      const saltRounds = 10;
-      const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+      // Hash new password with Web Crypto API
+      const passwordHash = await hashPassword(newPassword);
 
       const { data, error } = await supabase
         .from('crm_users')

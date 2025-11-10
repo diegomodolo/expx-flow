@@ -1,6 +1,82 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+
+// Função para hash de senha usando Web Crypto API (compatível com Deno Edge Runtime)
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    data,
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  );
+  
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    256
+  );
+  
+  const hashArray = new Uint8Array(derivedBits);
+  const combined = new Uint8Array(salt.length + hashArray.length);
+  combined.set(salt);
+  combined.set(hashArray, salt.length);
+  
+  return btoa(String.fromCharCode(...combined));
+}
+
+// Função para verificar senha
+async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    
+    const combined = Uint8Array.from(atob(storedHash), c => c.charCodeAt(0));
+    const salt = combined.slice(0, 16);
+    const storedHashArray = combined.slice(16);
+    
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      data,
+      { name: "PBKDF2" },
+      false,
+      ["deriveBits"]
+    );
+    
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: 100000,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      256
+    );
+    
+    const hashArray = new Uint8Array(derivedBits);
+    
+    if (hashArray.length !== storedHashArray.length) return false;
+    
+    for (let i = 0; i < hashArray.length; i++) {
+      if (hashArray[i] !== storedHashArray[i]) return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[crm-auth] Error verifying password:', error);
+    return false;
+  }
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -56,7 +132,7 @@ serve(async (req) => {
       }
 
       // Verificar senha
-      const passwordMatch = await bcrypt.compare(password, user.password_hash);
+      const passwordMatch = await verifyPassword(password, user.password_hash);
 
       if (!passwordMatch) {
         return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
@@ -88,7 +164,7 @@ serve(async (req) => {
       const { fullName } = await req.json();
 
       // Hash da senha
-      const passwordHash = await bcrypt.hash(password);
+      const passwordHash = await hashPassword(password);
 
       // Criar usuário
       const { data: newUser, error: createError } = await supabase
