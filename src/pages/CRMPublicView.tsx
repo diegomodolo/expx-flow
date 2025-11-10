@@ -17,6 +17,7 @@ import { CRMLeadsTable } from "@/components/crm/CRMLeadsTable";
 import { CRMReports } from "@/components/crm/CRMReports";
 import { LeadFiltersDialog, LeadFilters } from "@/components/crm/LeadFiltersDialog";
 import { EditBoardDialog } from "@/components/crm/EditBoardDialog";
+import { ClienteCRMSettings } from "@/pages/cliente/ClienteCRMSettings";
 import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
 import { useCRMStages } from "@/hooks/useCRMStages";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
@@ -370,10 +371,7 @@ export default function CRMPublicView() {
           )}
 
           {currentView === 'settings' && (
-            <div className="px-8 py-8">
-              <h1 className="text-3xl font-bold mb-6">Configurações</h1>
-              <p className="text-muted-foreground">Configurações em desenvolvimento...</p>
-            </div>
+            <ClienteCRMSettings workspaceId={workspace.id} workspaceToken={token || ''} />
           )}
         </main>
       </div>
