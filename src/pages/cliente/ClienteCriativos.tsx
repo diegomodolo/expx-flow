@@ -37,6 +37,18 @@ import { useAdSets } from "@/hooks/useAdSets";
 import { useClientContext } from "./ClienteContext";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
 
+// Função para determinar a prioridade do tipo de criativo
+const getCreativeTypePriority = (creativeType?: string): number => {
+  if (!creativeType) return 999; // Sem tipo vai pro final
+  
+  const type = creativeType.toUpperCase();
+  
+  if (type.includes('IMAGE')) return 1;
+  if (type.includes('VIDEO')) return 2;
+  // TEXT, CAROUSEL e outros tipos ficam por último
+  return 3;
+};
+
 export function ClienteCriativos() {
   const { client, selectedCampaignId, setSelectedCampaignId, selectedAdSetId, setSelectedAdSetId } = useClientContext();
   const { ads, loading, refetch } = useAds(client.id);
@@ -79,6 +91,15 @@ export function ClienteCriativos() {
     
     // Ordenação
     filtered = [...filtered].sort((a, b) => {
+      // 1. PRIMEIRA ORDENAÇÃO: Por tipo de criativo (prioridade)
+      const priorityA = getCreativeTypePriority(a.creative_type);
+      const priorityB = getCreativeTypePriority(b.creative_type);
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB; // Sempre ascendente (menor prioridade = primeiro)
+      }
+      
+      // 2. SEGUNDA ORDENAÇÃO: Por métrica selecionada (dentro do mesmo tipo)
       const aVal = a[sortBy] || 0;
       const bVal = b[sortBy] || 0;
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
