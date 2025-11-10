@@ -14,6 +14,7 @@ import { BoardSelector } from "@/components/crm/BoardSelector";
 import { CreateBoardDialog } from "@/components/crm/CreateBoardDialog";
 import { CRMDashboard } from "@/components/crm/CRMDashboard";
 import { CRMLeadsTable } from "@/components/crm/CRMLeadsTable";
+import { CRMReports } from "@/components/crm/CRMReports";
 import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
 import { useCRMStages } from "@/hooks/useCRMStages";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
@@ -289,8 +290,7 @@ export default function CRMPublicView() {
 
           {currentView === 'reports' && (
             <div className="px-8 py-8">
-              <h1 className="text-3xl font-bold mb-6">Relatórios</h1>
-              <p className="text-muted-foreground">Relatórios em desenvolvimento...</p>
+              <CRMReports workspaceId={workspace.id} />
             </div>
           )}
 
