@@ -64,14 +64,13 @@ export function LeadFiltersDialog({
           <div className="space-y-2">
             <Label>Status</Label>
             <Select 
-              value={localFilters.status || ''} 
-              onValueChange={(value) => setLocalFilters({ ...localFilters, status: value || undefined })}
+              value={localFilters.status} 
+              onValueChange={(value) => setLocalFilters({ ...localFilters, status: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
                 <SelectItem value="open">Aberto</SelectItem>
                 <SelectItem value="qualified">Qualificado</SelectItem>
                 <SelectItem value="unqualified">Não Qualificado</SelectItem>
@@ -84,14 +83,13 @@ export function LeadFiltersDialog({
           <div className="space-y-2">
             <Label>Temperatura</Label>
             <Select 
-              value={localFilters.temperature || ''} 
-              onValueChange={(value) => setLocalFilters({ ...localFilters, temperature: value || undefined })}
+              value={localFilters.temperature} 
+              onValueChange={(value) => setLocalFilters({ ...localFilters, temperature: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todas as temperaturas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as temperaturas</SelectItem>
                 <SelectItem value="cold">Frio</SelectItem>
                 <SelectItem value="warm">Morno</SelectItem>
                 <SelectItem value="hot">Quente</SelectItem>
@@ -102,14 +100,13 @@ export function LeadFiltersDialog({
           <div className="space-y-2">
             <Label>Coluna</Label>
             <Select 
-              value={localFilters.stageId || ''} 
-              onValueChange={(value) => setLocalFilters({ ...localFilters, stageId: value || undefined })}
+              value={localFilters.stageId} 
+              onValueChange={(value) => setLocalFilters({ ...localFilters, stageId: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todas as colunas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as colunas</SelectItem>
                 {stages.map((stage) => (
                   <SelectItem key={stage.id} value={stage.id}>
                     {stage.name}
