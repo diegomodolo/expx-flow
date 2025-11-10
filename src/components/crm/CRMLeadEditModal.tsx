@@ -176,6 +176,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
                   size="sm" 
                   variant="outline"
                   onClick={() => setShowRemoveDialog(true)}
+                  className="mr-4"
                 >
                   <Archive className="w-4 h-4" />
                 </Button>
