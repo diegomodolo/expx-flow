@@ -3,6 +3,7 @@ import { useClientContext } from "./ClienteContext";
 import { useCRMWorkspace } from "@/hooks/useCRMWorkspace";
 import { useCRMLeads } from "@/hooks/useCRMLeads";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CRMUsersManager } from "@/components/clients/CRMUsersManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -239,6 +240,10 @@ export function ClienteCRM() {
           )}
         </CardContent>
       </Card>
+
+      {workspace && (
+        <CRMUsersManager workspaceId={workspace.id} />
+      )}
     </div>
   );
 }
