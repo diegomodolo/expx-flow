@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mapeamento de temperatura PT -> EN
+const temperatureMap: Record<string, string> = {
+  'frio': 'cold',
+  'morno': 'warm',
+  'quente': 'hot',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -136,8 +143,10 @@ serve(async (req) => {
 
     // Se a stage tem temperatura configurada, atualizar o lead
     if (toStage.auto_temperature_change && toStage.target_temperature) {
-      leadUpdates.temperature = toStage.target_temperature;
-      console.log('[move-crm-lead] Auto-updating lead temperature to:', toStage.target_temperature);
+      // Converter temperatura de português para inglês
+      const temperatureEN = temperatureMap[toStage.target_temperature] || toStage.target_temperature;
+      leadUpdates.temperature = temperatureEN;
+      console.log('[move-crm-lead] Auto-updating lead temperature to:', temperatureEN, '(from:', toStage.target_temperature + ')');
     }
 
     // Preparar atividades a serem registradas
