@@ -73,13 +73,13 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // Get historical data for better analysis
+    // Get only recent historical data to reduce processing time
     const { data: historicalData } = await supabase
       .from('campaigns')
       .select('*')
       .eq('client_id', clientData.id)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(20); // Reduced from 50 to 20 for performance
 
     // Generate comprehensive suggestions
     const suggestions = await generateComprehensiveSuggestions(
@@ -313,26 +313,29 @@ async function generateAISuggestions(
   }
 
   try {
-    const prompt = `Como especialista em marketing digital, analise os dados do cliente e campanhas abaixo e gere 3 sugestões específicas e acionáveis:
+    // Limit campaigns to top 10 by spend to reduce processing time
+    const topCampaigns = campaigns
+      .sort((a, b) => (b.spend || 0) - (a.spend || 0))
+      .slice(0, 10);
+
+    const activeCampaigns = topCampaigns.filter(c => c.status === 'active');
+    const totalSpend = topCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
+    const totalConversions = topCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
+    const avgCPA = totalConversions > 0 ? totalSpend / totalConversions : 0;
+
+    const prompt = `Como especialista em marketing digital, analise os dados do cliente e gere 2 sugestões específicas e acionáveis:
 
 Cliente: ${clientData.name}
 Setor: ${clientData.sector}
 Produto: ${clientData.product_name}
 Orçamento mensal: R$ ${clientData.monthly_budget}
-Objetivo: ${clientData.objectives}
 
-Campanhas ativas: ${campaigns.filter(c => c.status === 'active').length}
-Total investido: R$ ${campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)}
-Total de conversões: ${campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0)}
+Campanhas ativas: ${activeCampaigns.length}
+Total investido: R$ ${totalSpend.toFixed(2)}
+Total de conversões: ${totalConversions}
+CPA médio: R$ ${avgCPA.toFixed(2)}
 
-Para cada sugestão, forneça:
-1. Título conciso
-2. Descrição específica do problema/oportunidade
-3. Ação recomendada
-4. Impacto estimado
-5. Categoria (ex: "Segmentação", "Criativos", "Orçamento")
-
-Responda em JSON no formato:
+Responda APENAS com JSON puro (sem markdown), no formato:
 {
   "suggestions": [
     {
@@ -345,6 +348,9 @@ Responda em JSON no formato:
   ]
 }`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -352,18 +358,33 @@ Responda em JSON no formato:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini', // Using mini for better performance
         messages: [
-          { role: 'system', content: 'Você é um especialista em marketing digital e otimização de campanhas.' },
+          { 
+            role: 'system', 
+            content: 'Você é um especialista em marketing digital. Responda SEMPRE com JSON puro, sem markdown ou código.' 
+          },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 1500,
+        max_tokens: 800, // Reduced for faster processing
       }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
     const data = await response.json();
-    const aiResponse = JSON.parse(data.choices[0].message.content);
+    let content = data.choices[0].message.content.trim();
+    
+    // Strip markdown code blocks if present
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const aiResponse = JSON.parse(content);
 
     return aiResponse.suggestions.map((suggestion: any, index: number) => ({
       id: `ai-suggestion-${index}`,
@@ -388,6 +409,7 @@ Responda em JSON no formato:
 
   } catch (error) {
     console.error('Error generating AI suggestions:', error);
+    // Return empty array on timeout or error to use fallback suggestions
     return [];
   }
 }
