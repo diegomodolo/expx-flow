@@ -18,6 +18,8 @@ interface CreateStageDialogProps {
     event_mapping: string | null;
     auto_status_change: boolean;
     target_status: string | null;
+    auto_temperature_change?: boolean;
+    target_temperature?: 'quente' | 'morno' | 'frio' | null;
   }) => Promise<void>;
 }
 
@@ -46,6 +48,8 @@ export function CreateStageDialog({ isOpen, onClose, onCreate }: CreateStageDial
   const [eventMapping, setEventMapping] = useState<string | null>(null);
   const [autoStatusChange, setAutoStatusChange] = useState(false);
   const [targetStatus, setTargetStatus] = useState<string | null>(null);
+  const [autoTemperatureChange, setAutoTemperatureChange] = useState(false);
+  const [targetTemperature, setTargetTemperature] = useState<'quente' | 'morno' | 'frio' | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreate = async () => {
@@ -59,12 +63,16 @@ export function CreateStageDialog({ isOpen, onClose, onCreate }: CreateStageDial
         event_mapping: eventMapping,
         auto_status_change: autoStatusChange,
         target_status: autoStatusChange ? targetStatus : null,
+        auto_temperature_change: autoTemperatureChange,
+        target_temperature: autoTemperatureChange ? targetTemperature : null,
       });
       setName("");
       setColor("#3b82f6");
       setEventMapping(null);
       setAutoStatusChange(false);
       setTargetStatus(null);
+      setAutoTemperatureChange(false);
+      setTargetTemperature(null);
       onClose();
     } catch (error) {
       console.error("Error creating stage:", error);
@@ -79,6 +87,8 @@ export function CreateStageDialog({ isOpen, onClose, onCreate }: CreateStageDial
     setEventMapping(null);
     setAutoStatusChange(false);
     setTargetStatus(null);
+    setAutoTemperatureChange(false);
+    setTargetTemperature(null);
     onClose();
   };
 
@@ -182,6 +192,57 @@ export function CreateStageDialog({ isOpen, onClose, onCreate }: CreateStageDial
                         {status.label}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Auto-mudança de Temperatura */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="auto-temperature">Alterar Temperatura do Lead Automaticamente</Label>
+                <p className="text-sm text-muted-foreground">
+                  A temperatura do lead será atualizada ao entrar nesta coluna
+                </p>
+              </div>
+              <Switch
+                id="auto-temperature"
+                checked={autoTemperatureChange}
+                onCheckedChange={setAutoTemperatureChange}
+              />
+            </div>
+
+            {autoTemperatureChange && (
+              <div className="space-y-2 pl-4 border-l-2">
+                <Label htmlFor="target-temperature">Temperatura para o Lead</Label>
+                <Select
+                  value={targetTemperature || "quente"}
+                  onValueChange={(value) => setTargetTemperature(value as 'quente' | 'morno' | 'frio')}
+                >
+                  <SelectTrigger id="target-temperature">
+                    <SelectValue placeholder="Selecione uma temperatura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quente">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        Quente 🔥
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="morno">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-orange-500" />
+                        Morno 🌡️
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="frio">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-blue-500" />
+                        Frio ❄️
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

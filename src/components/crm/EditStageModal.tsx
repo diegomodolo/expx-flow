@@ -52,6 +52,8 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
   const [workflowTargetStageId, setWorkflowTargetStageId] = useState<string | null>(null);
   const [targetBoardStages, setTargetBoardStages] = useState<CRMStage[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [autoTemperatureChange, setAutoTemperatureChange] = useState(false);
+  const [targetTemperature, setTargetTemperature] = useState<'quente' | 'morno' | 'frio' | null>(null);
 
   const { boards } = useCRMBoards({ workspaceId });
 
@@ -65,6 +67,8 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
       setWorkflowEnabled(stage.workflow_enabled || false);
       setWorkflowTargetBoardId(stage.workflow_target_board_id || null);
       setWorkflowTargetStageId(stage.workflow_target_stage_id || null);
+      setAutoTemperatureChange(stage.auto_temperature_change || false);
+      setTargetTemperature(stage.target_temperature || null);
     }
   }, [stage]);
 
@@ -117,6 +121,8 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
         event_mapping: eventMapping,
         auto_status_change: autoStatusChange,
         target_status: autoStatusChange ? targetStatus : null,
+        auto_temperature_change: autoTemperatureChange,
+        target_temperature: autoTemperatureChange ? targetTemperature : null,
         workflow_enabled: workflowEnabled,
         workflow_target_board_id: workflowEnabled ? workflowTargetBoardId : null,
         workflow_target_stage_id: workflowEnabled ? workflowTargetStageId : null,
@@ -223,6 +229,57 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
                         {status.label}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Auto-mudança de Temperatura */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="auto-temperature">Alterar Temperatura do Lead Automaticamente</Label>
+                <p className="text-sm text-muted-foreground">
+                  A temperatura do lead será atualizada ao entrar nesta coluna
+                </p>
+              </div>
+              <Switch
+                id="auto-temperature"
+                checked={autoTemperatureChange}
+                onCheckedChange={setAutoTemperatureChange}
+              />
+            </div>
+
+            {autoTemperatureChange && (
+              <div className="space-y-2 pl-4 border-l-2">
+                <Label htmlFor="target-temperature">Temperatura para o Lead</Label>
+                <Select
+                  value={targetTemperature || "quente"}
+                  onValueChange={(value) => setTargetTemperature(value as 'quente' | 'morno' | 'frio')}
+                >
+                  <SelectTrigger id="target-temperature">
+                    <SelectValue placeholder="Selecione uma temperatura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quente">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        Quente 🔥
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="morno">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-orange-500" />
+                        Morno 🌡️
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="frio">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-blue-500" />
+                        Frio ❄️
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

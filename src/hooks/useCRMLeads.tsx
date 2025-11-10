@@ -64,6 +64,8 @@ export interface CRMStage {
   color: string;
   auto_status_change: boolean;
   target_status: string | null;
+  auto_temperature_change?: boolean;
+  target_temperature?: 'quente' | 'morno' | 'frio' | null;
   workflow_enabled?: boolean;
   workflow_target_board_id?: string | null;
   workflow_target_stage_id?: string | null;

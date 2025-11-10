@@ -1664,6 +1664,7 @@ export type Database = {
       crm_stages: {
         Row: {
           auto_status_change: boolean | null
+          auto_temperature_change: boolean | null
           board_id: string
           color: string | null
           created_at: string | null
@@ -1672,6 +1673,7 @@ export type Database = {
           name: string
           order_index: number
           target_status: string | null
+          target_temperature: string | null
           workflow_enabled: boolean | null
           workflow_target_board_id: string | null
           workflow_target_stage_id: string | null
@@ -1679,6 +1681,7 @@ export type Database = {
         }
         Insert: {
           auto_status_change?: boolean | null
+          auto_temperature_change?: boolean | null
           board_id: string
           color?: string | null
           created_at?: string | null
@@ -1687,6 +1690,7 @@ export type Database = {
           name: string
           order_index: number
           target_status?: string | null
+          target_temperature?: string | null
           workflow_enabled?: boolean | null
           workflow_target_board_id?: string | null
           workflow_target_stage_id?: string | null
@@ -1694,6 +1698,7 @@ export type Database = {
         }
         Update: {
           auto_status_change?: boolean | null
+          auto_temperature_change?: boolean | null
           board_id?: string
           color?: string | null
           created_at?: string | null
@@ -1702,6 +1707,7 @@ export type Database = {
           name?: string
           order_index?: number
           target_status?: string | null
+          target_temperature?: string | null
           workflow_enabled?: boolean | null
           workflow_target_board_id?: string | null
           workflow_target_stage_id?: string | null

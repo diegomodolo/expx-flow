@@ -118,7 +118,7 @@ export function CRMKanbanBoard({
                     >
                       {/* Header da Coluna */}
                       <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <div {...provided.dragHandleProps} className="cursor-move">
                             <GripVertical className="w-4 h-4 text-muted-foreground" />
                           </div>
@@ -133,6 +133,36 @@ export function CRMKanbanBoard({
                           >
                             {stageLeads.length}
                           </Badge>
+                          
+                          {/* Indicadores de Automação */}
+                          <div className="flex items-center gap-1">
+                            {stage.auto_status_change && (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0" title="Status automático ativo">
+                                📋
+                              </Badge>
+                            )}
+                            {stage.auto_temperature_change && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs px-1.5 py-0" 
+                                title={`Temperatura automática: ${stage.target_temperature}`}
+                              >
+                                {stage.target_temperature === 'quente' && '🔥'}
+                                {stage.target_temperature === 'morno' && '🌡️'}
+                                {stage.target_temperature === 'frio' && '❄️'}
+                              </Badge>
+                            )}
+                            {stage.event_mapping && (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0" title="Evento Meta ativo">
+                                📤
+                              </Badge>
+                            )}
+                            {stage.workflow_enabled && (
+                              <Badge variant="outline" className="text-xs px-1.5 py-0" title="Workflow de duplicação ativo">
+                                🔄
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         
                         {(onEditStage || onDeleteStage) && (

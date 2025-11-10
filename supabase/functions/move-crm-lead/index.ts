@@ -134,16 +134,15 @@ serve(async (req) => {
       console.log('[move-crm-lead] Auto-updating lead status to:', toStage.target_status);
     }
 
-    // Executar operações em paralelo para melhor performance
-    const [updateResult, activityResult] = await Promise.all([
-      // Atualizar lead
-      supabase
-        .from('crm_leads')
-        .update(leadUpdates)
-        .eq('id', leadId),
-      
-      // Registrar atividade
-      supabase.from('crm_lead_activities').insert({
+    // Se a stage tem temperatura configurada, atualizar o lead
+    if (toStage.auto_temperature_change && toStage.target_temperature) {
+      leadUpdates.temperature = toStage.target_temperature;
+      console.log('[move-crm-lead] Auto-updating lead temperature to:', toStage.target_temperature);
+    }
+
+    // Preparar atividades a serem registradas
+    const activities = [
+      {
         lead_id: leadId,
         activity_type: 'stage_change',
         from_stage_id: fromStageId,
@@ -152,7 +151,33 @@ serve(async (req) => {
         conversion_id: conversionId,
         notes: toStage.event_mapping ? `Evento ${toStage.event_mapping} enviado ao Meta` : null,
         is_manual: false,
-      }),
+      }
+    ];
+
+    // Adicionar atividade de mudança de temperatura se aplicável
+    if (toStage.auto_temperature_change && toStage.target_temperature) {
+      activities.push({
+        lead_id: leadId,
+        activity_type: 'temperature_change',
+        from_stage_id: null,
+        to_stage_id: null,
+        event_sent: false,
+        conversion_id: null,
+        notes: `Temperatura alterada automaticamente para ${toStage.target_temperature}`,
+        is_manual: false,
+      });
+    }
+
+    // Executar operações em paralelo para melhor performance
+    const [updateResult, activityResult] = await Promise.all([
+      // Atualizar lead
+      supabase
+        .from('crm_leads')
+        .update(leadUpdates)
+        .eq('id', leadId),
+      
+      // Registrar atividades
+      supabase.from('crm_lead_activities').insert(activities),
     ]);
 
     if (updateResult.error) {
