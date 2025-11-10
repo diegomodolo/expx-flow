@@ -15,6 +15,8 @@ export interface LinkedLead {
 export const useCRMLeadLinks = (leadId: string) => {
   return useQuery({
     queryKey: ['crm-lead-links', leadId],
+    refetchOnMount: 'always', // Sempre buscar dados frescos ao montar
+    refetchOnWindowFocus: true, // Refetch ao focar na janela
     queryFn: async () => {
       if (!leadId) return [];
 
