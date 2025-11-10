@@ -7,7 +7,7 @@ import { useCRMDashboardData, formatRelativeTime, formatCurrency, getInitials } 
 import { useCRMWorkspaceGoals } from "@/hooks/useCRMWorkspaceGoals";
 import { StatCardWithGoal } from "./StatCardWithGoal";
 import { GoalsConfigModal } from "./GoalsConfigModal";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -157,6 +157,7 @@ export function CRMDashboard({
   const {
     metrics,
     leadsByStage,
+    leadsByStatus,
     leadsOverTime,
     activities,
     recentLeads
@@ -341,14 +342,14 @@ export function CRMDashboard({
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Leads por Estágio */}
+        {/* Leads por Status */}
         <Card className="lg:col-span-2 p-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold">Leads por Estágio</h3>
+            <h3 className="text-lg font-bold">Leads por Status</h3>
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={leadsByStage}>
+              <BarChart data={leadsByStatus}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="name" tick={{
                 fill: "hsl(var(--muted-foreground))"
@@ -367,7 +368,11 @@ export function CRMDashboard({
               }} labelStyle={{
                 color: "hsl(var(--foreground))"
               }} />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                  {leadsByStatus?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

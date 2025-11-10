@@ -20,6 +20,12 @@ export interface LeadsByStage {
   color: string;
 }
 
+export interface LeadsByStatus {
+  name: string;
+  count: number;
+  color: string;
+}
+
 export interface LeadsOverTime {
   date: string;
   count: number;
@@ -159,6 +165,44 @@ export function useCRMDashboardData(workspaceId: string, filterStartDate?: Date,
 
       const leadsByStage: LeadsByStage[] = Array.from(leadsByStageMap.values());
 
+      // Leads por status
+      const statusLabels: Record<string, string> = {
+        open: 'Aberto',
+        qualified: 'Qualificado',
+        unqualified: 'Não Qualificado',
+        won: 'Ganho',
+        lost: 'Perdido'
+      };
+
+      const statusColors: Record<string, string> = {
+        open: '#3b82f6',
+        qualified: '#10b981',
+        unqualified: '#f59e0b',
+        won: '#22c55e',
+        lost: '#ef4444'
+      };
+
+      const leadsByStatusMap = new Map<string, { name: string; count: number; color: string }>();
+      
+      // Inicializar todos os status
+      Object.keys(statusLabels).forEach((status) => {
+        leadsByStatusMap.set(status, {
+          name: statusLabels[status],
+          count: 0,
+          color: statusColors[status],
+        });
+      });
+
+      // Contar leads por status
+      filteredLeads.forEach((lead) => {
+        if (lead.status && leadsByStatusMap.has(lead.status)) {
+          const statusData = leadsByStatusMap.get(lead.status)!;
+          statusData.count++;
+        }
+      });
+
+      const leadsByStatus: LeadsByStatus[] = Array.from(leadsByStatusMap.values());
+
       // Leads ao longo do tempo (período filtrado)
       const leadsOverTimeMap = new Map<string, number>();
       
@@ -237,6 +281,7 @@ export function useCRMDashboardData(workspaceId: string, filterStartDate?: Date,
       return {
         metrics,
         leadsByStage,
+        leadsByStatus,
         leadsOverTime,
         activities: formattedActivities,
         recentLeads: recentLeads || [],
