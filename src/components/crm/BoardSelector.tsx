@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, LayoutGrid } from "lucide-react";
+import { Plus, LayoutGrid, Settings } from "lucide-react";
 import { CRMBoard } from "@/hooks/useCRMBoards";
 
 interface BoardSelectorProps {
@@ -8,13 +8,15 @@ interface BoardSelectorProps {
   selectedBoardId: string;
   onBoardChange: (boardId: string) => void;
   onCreateBoard: () => void;
+  onEditBoard: () => void;
 }
 
 export function BoardSelector({ 
   boards, 
   selectedBoardId, 
   onBoardChange, 
-  onCreateBoard 
+  onCreateBoard,
+  onEditBoard
 }: BoardSelectorProps) {
   return (
     <div className="flex items-center gap-3">
@@ -34,6 +36,15 @@ export function BoardSelector({
           ))}
         </SelectContent>
       </Select>
+      
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={onEditBoard}
+        title="Configurações do quadro"
+      >
+        <Settings className="w-4 h-4" />
+      </Button>
       
       <Button 
         variant="outline" 

@@ -15,9 +15,12 @@ import { CreateBoardDialog } from "@/components/crm/CreateBoardDialog";
 import { CRMDashboard } from "@/components/crm/CRMDashboard";
 import { CRMLeadsTable } from "@/components/crm/CRMLeadsTable";
 import { CRMReports } from "@/components/crm/CRMReports";
+import { LeadFiltersDialog, LeadFilters } from "@/components/crm/LeadFiltersDialog";
+import { EditBoardDialog } from "@/components/crm/EditBoardDialog";
 import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
 import { useCRMStages } from "@/hooks/useCRMStages";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
+import { Badge } from "@/components/ui/badge";
 
 interface Workspace {
   id: string;
@@ -40,9 +43,20 @@ export default function CRMPublicView() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leads' | 'contacts' | 'reports' | 'settings'>('leads');
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const [leadsSearchTerm, setLeadsSearchTerm] = useState('');
+  const [leadFilters, setLeadFilters] = useState<LeadFilters>({});
+  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
+  const [editBoardDialogOpen, setEditBoardDialogOpen] = useState(false);
 
   // Hook para boards
-  const { boards, createBoard, isLoading: isLoadingBoards } = useCRMBoards({ 
+  const { 
+    boards, 
+    createBoard, 
+    updateBoard, 
+    deleteBoard, 
+    isLoading: isLoadingBoards,
+    isUpdatingBoard,
+    isDeletingBoard
+  } = useCRMBoards({ 
     workspaceId: workspace?.id || '' 
   });
 
@@ -149,6 +163,57 @@ export default function CRMPublicView() {
     setCreateBoardDialogOpen(false);
   };
 
+  const handleUpdateBoard = async (boardId: string, updates: { name?: string; description?: string | null }) => {
+    await updateBoard({ boardId, updates });
+  };
+
+  const handleDeleteBoard = async (boardId: string) => {
+    await deleteBoard(boardId);
+    // Selecionar board padrão após deletar
+    const defaultBoard = boards.find(b => b.is_default);
+    if (defaultBoard) {
+      setSelectedBoardId(defaultBoard.id);
+    }
+  };
+
+  const filterLeads = (leadsToFilter: CRMLead[]) => {
+    let filtered = [...leadsToFilter];
+
+    if (leadFilters.status) {
+      filtered = filtered.filter(lead => lead.status === leadFilters.status);
+    }
+
+    if (leadFilters.temperature) {
+      filtered = filtered.filter(lead => lead.temperature === leadFilters.temperature);
+    }
+
+    if (leadFilters.stageId) {
+      filtered = filtered.filter(lead => lead.stage_id === leadFilters.stageId);
+    }
+
+    if (leadFilters.minValue !== undefined) {
+      filtered = filtered.filter(lead => (lead.value || 0) >= leadFilters.minValue!);
+    }
+
+    if (leadFilters.maxValue !== undefined) {
+      filtered = filtered.filter(lead => (lead.value || 0) <= leadFilters.maxValue!);
+    }
+
+    if (leadFilters.dateFrom) {
+      filtered = filtered.filter(lead => new Date(lead.created_at) >= new Date(leadFilters.dateFrom!));
+    }
+
+    if (leadFilters.dateTo) {
+      filtered = filtered.filter(lead => new Date(lead.created_at) <= new Date(leadFilters.dateTo!));
+    }
+
+    return filtered;
+  };
+
+  const filteredLeads = filterLeads(leads);
+  const activeFiltersCount = Object.values(leadFilters).filter(v => v !== undefined && v !== '').length;
+  const selectedBoard = boards.find(b => b.id === selectedBoardId) || null;
+
   if (loading || isLoadingBoards) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -211,11 +276,21 @@ export default function CRMPublicView() {
                   selectedBoardId={selectedBoardId}
                   onBoardChange={setSelectedBoardId}
                   onCreateBoard={() => setCreateBoardDialogOpen(true)}
+                  onEditBoard={() => setEditBoardDialogOpen(true)}
                 />
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant={activeFiltersCount > 0 ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => setFiltersDialogOpen(true)}
+                  >
                     <Filter className="w-4 h-4 mr-2" />
                     Filtrar
+                    {activeFiltersCount > 0 && (
+                      <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                        {activeFiltersCount}
+                      </Badge>
+                    )}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -234,7 +309,7 @@ export default function CRMPublicView() {
 
               <CRMKanbanBoard
                 stages={stages}
-                leads={leads}
+                leads={filteredLeads}
                 onMoveCard={handleMoveCard}
                 onCardClick={(lead) => {
                   setSelectedLead(lead);
@@ -344,6 +419,24 @@ export default function CRMPublicView() {
         isOpen={createBoardDialogOpen}
         onClose={() => setCreateBoardDialogOpen(false)}
         onCreate={handleCreateBoard}
+      />
+
+      <EditBoardDialog
+        isOpen={editBoardDialogOpen}
+        onClose={() => setEditBoardDialogOpen(false)}
+        board={selectedBoard}
+        onUpdate={handleUpdateBoard}
+        onDelete={handleDeleteBoard}
+        isUpdating={isUpdatingBoard}
+        isDeleting={isDeletingBoard}
+      />
+
+      <LeadFiltersDialog
+        isOpen={filtersDialogOpen}
+        onClose={() => setFiltersDialogOpen(false)}
+        stages={stages}
+        filters={leadFilters}
+        onApplyFilters={setLeadFilters}
       />
     </div>
   );

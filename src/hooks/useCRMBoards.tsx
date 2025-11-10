@@ -62,6 +62,40 @@ export const useCRMBoards = ({ workspaceId }: UseCRMBoardsProps) => {
     },
   });
 
+  const updateBoardMutation = useMutation({
+    mutationFn: async ({ 
+      boardId, 
+      updates 
+    }: { 
+      boardId: string; 
+      updates: { name?: string; description?: string | null } 
+    }) => {
+      const { data, error } = await supabase
+        .from('crm_boards')
+        .update(updates)
+        .eq('id', boardId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-boards', workspaceId] });
+      toast({
+        title: "Quadro atualizado!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar quadro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteBoardMutation = useMutation({
     mutationFn: async (boardId: string) => {
       // Verificar se é o board padrão
@@ -103,6 +137,8 @@ export const useCRMBoards = ({ workspaceId }: UseCRMBoardsProps) => {
     isLoading,
     createBoard: createBoardMutation.mutateAsync,
     isCreatingBoard: createBoardMutation.isPending,
+    updateBoard: updateBoardMutation.mutateAsync,
+    isUpdatingBoard: updateBoardMutation.isPending,
     deleteBoard: deleteBoardMutation.mutateAsync,
     isDeletingBoard: deleteBoardMutation.isPending,
   };
