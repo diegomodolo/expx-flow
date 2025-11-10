@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { CRMLeadActivity, useCRMLeadActivities } from "@/hooks/useCRMLeadActivities";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, User, Clock } from "lucide-react";
+import { Loader2, Clock } from "lucide-react";
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -171,59 +168,10 @@ const ActivityItem = ({ activity, leadName }: { activity: CRMLeadActivity; leadN
 };
 
 export function CRMLeadActivityTimeline({ leadId, leadName }: CRMLeadActivityTimelineProps) {
-  const { activities, isLoading, addManualActivity, isAddingActivity } = useCRMLeadActivities(leadId);
-  const [noteInput, setNoteInput] = useState('');
-
-  const handleAddNote = async () => {
-    if (!noteInput.trim() || isAddingActivity) return;
-    
-    try {
-      await addManualActivity({ leadId, notes: noteInput });
-      setNoteInput('');
-    } catch (error) {
-      // Error already handled by mutation
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleAddNote();
-    }
-  };
+  const { activities, isLoading } = useCRMLeadActivities(leadId);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Input para nova nota */}
-      <div className="mb-4 pb-4 border-b">
-        <div className="flex gap-2">
-          <Input
-            value={noteInput}
-            onChange={(e) => setNoteInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Adicionar nota ao histórico... (Enter para enviar)"
-            maxLength={1000}
-            disabled={isAddingActivity}
-          />
-          <Button 
-            onClick={handleAddNote}
-            disabled={!noteInput.trim() || isAddingActivity}
-            size="icon"
-          >
-            {isAddingActivity ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
-        </div>
-        {noteInput.length > 900 && (
-          <p className="text-xs text-muted-foreground mt-1">
-            {noteInput.length}/1000 caracteres
-          </p>
-        )}
-      </div>
-
       {/* Timeline */}
       <div className="flex-1 overflow-y-auto pr-2">
         {isLoading ? (
@@ -233,7 +181,7 @@ export function CRMLeadActivityTimeline({ leadId, leadName }: CRMLeadActivityTim
         ) : activities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>Nenhuma atividade registrada ainda.</p>
-            <p className="text-sm mt-1">Adicione uma nota para começar!</p>
+            <p className="text-sm mt-1">Adicione uma nota acima para começar!</p>
           </div>
         ) : (
           <div className="space-y-0">

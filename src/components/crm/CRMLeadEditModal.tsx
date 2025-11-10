@@ -23,6 +23,7 @@ import { CRMAttachmentUploader } from "./CRMAttachmentUploader";
 import { CRMLeadActivityTimeline } from "./CRMLeadActivityTimeline";
 import { useCRMLeadLinks } from "@/hooks/useCRMLeadLinks";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
+import { useCRMLeadActivities } from "@/hooks/useCRMLeadActivities";
 import { cn } from "@/lib/utils";
 
 interface CRMLeadEditModalProps {
@@ -57,6 +58,7 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
   const { updateLead, isUpdatingLead, removeFromBoard, isRemovingFromBoard } = useCRMLeads(workspaceId, boardId);
   const { data: linkedLeads = [] } = useCRMLeadLinks(lead?.id || '');
   const { boards } = useCRMBoards({ workspaceId });
+  const { addManualActivity, isAddingActivity } = useCRMLeadActivities(lead?.id || '');
   const [activeTab, setActiveTab] = useState<'activity' | 'notes' | 'details' | 'tracking'>('activity');
   const [isEditingField, setIsEditingField] = useState<string | null>(null);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
@@ -129,16 +131,21 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
   };
 
   const handleQuickNoteSubmit = async () => {
-    if (!quickNote.trim()) return;
+    if (!quickNote.trim() || !lead) return;
     
-    await updateLead({
-      leadId: lead.id,
-      originalLead: lead,
-      updates: {
-        notes: lead.notes ? `${lead.notes}\n\n${quickNote}` : quickNote,
-      },
-    });
-    setQuickNote('');
+    try {
+      await addManualActivity({ leadId: lead.id, notes: quickNote });
+      setQuickNote('');
+    } catch (error) {
+      // Error already handled by mutation
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleQuickNoteSubmit();
+    }
   };
 
   const handleRemoveFromBoard = async () => {
@@ -290,7 +297,8 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
                         <Textarea
                           value={quickNote}
                           onChange={(e) => setQuickNote(e.target.value)}
-                          placeholder="Adicionar uma nota rápida..."
+                          onKeyDown={handleKeyPress}
+                          placeholder="Adicionar uma nota rápida... (Enter para enviar, Shift+Enter para quebra de linha)"
                           rows={3}
                           className="resize-none"
                         />
@@ -314,9 +322,9 @@ export function CRMLeadEditModal({ lead, stages, isOpen, onClose, workspaceId, b
                           <Button
                             size="sm"
                             onClick={handleQuickNoteSubmit}
-                            disabled={!quickNote.trim() || isUpdatingLead}
+                            disabled={!quickNote.trim() || isAddingActivity}
                           >
-                            {isUpdatingLead ? (
+                            {isAddingActivity ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <>
