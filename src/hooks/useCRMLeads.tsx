@@ -3,6 +3,30 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Gera um external_id para o lead baseado em prioridades:
+ * 1. Email (se disponível)
+ * 2. Telefone (se email não disponível)
+ * 3. ID aleatório (se nenhum dos dois disponível)
+ */
+const generateLeadExternalId = (email?: string | null, phone?: string | null): string => {
+  // Prioridade 1: Email
+  if (email && email.trim()) {
+    return email.trim().toLowerCase();
+  }
+  
+  // Prioridade 2: Telefone (limpar caracteres especiais)
+  if (phone && phone.trim()) {
+    const cleanPhone = phone.trim().replace(/\D/g, ''); // Remove tudo exceto dígitos
+    if (cleanPhone) {
+      return cleanPhone;
+    }
+  }
+  
+  // Prioridade 3: ID aleatório
+  return `crm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export interface CRMLead {
   id: string;
   workspace_id: string;
@@ -127,7 +151,7 @@ export const useCRMLeads = (workspaceId: string, boardId: string) => {
           company_name: leadData.company_name || null,
           notes: leadData.notes || null,
           value: leadData.value || null,
-          external_id: `crm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          external_id: generateLeadExternalId(leadData.email, leadData.phone),
         })
         .select()
         .single();
