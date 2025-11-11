@@ -7,6 +7,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AutomationRule } from "@/hooks/useAutomationRules";
+import { ConditionEditor, ConditionsGroup } from "./ConditionEditor";
+import { Separator } from "@/components/ui/separator";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+
+const templateFormSchema = z.object({
+  rule_name: z.string().trim().min(3, "Nome deve ter no mínimo 3 caracteres").max(100, "Nome muito longo"),
+  rule_description: z.string().trim().max(500, "Descrição muito longa").optional(),
+  rule_order: z.number().int().min(1, "Prioridade deve ser maior que 0").max(100, "Prioridade muito alta"),
+  time_window_days: z.number().int().min(1, "Mínimo 1 dia").max(90, "Máximo 90 dias"),
+  action_type: z.string().min(1, "Selecione uma ação"),
+  is_active: z.boolean(),
+});
 
 interface TemplateEditorDialogProps {
   open: boolean;
@@ -17,6 +30,7 @@ interface TemplateEditorDialogProps {
 
 export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: TemplateEditorDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     rule_name: template?.rule_name || "",
     rule_description: template?.rule_description || "",
@@ -26,23 +40,52 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     is_active: template?.is_active ?? true,
   });
 
+  const [conditions, setConditions] = useState<ConditionsGroup>(
+    template?.conditions as ConditionsGroup || {
+      logic: "AND",
+      conditions: [
+        {
+          field: "cpa",
+          operator: ">",
+          value: 100,
+          type: "number",
+        }
+      ]
+    }
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar formulário básico
+    try {
+      templateFormSchema.parse(formData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro de validação",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Validar condições
+    if (conditions.conditions.length === 0) {
+      toast({
+        title: "Erro de validação",
+        description: "Adicione pelo menos uma condição",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     
     const templateData = {
       ...formData,
-      conditions: {
-        logic: "AND" as const,
-        conditions: [
-          {
-            field: "cpa",
-            operator: ">" as const,
-            value: 100,
-            type: "number" as const,
-          }
-        ]
-      },
+      conditions,
       action_config: {},
       budget_safety_limits: {
         max_daily_budget_increase_percent: 20,
@@ -137,6 +180,19 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
               </SelectContent>
             </Select>
           </div>
+
+          <Separator className="my-6" />
+
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Condições de Acionamento</h3>
+            <p className="text-sm text-muted-foreground">
+              Defina as condições que devem ser atendidas para acionar esta automação
+            </p>
+          </div>
+
+          <ConditionEditor value={conditions} onChange={setConditions} />
+
+          <Separator className="my-6" />
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
