@@ -33,53 +33,51 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    rule_name: template?.rule_name || "",
-    rule_description: template?.rule_description || "",
-    rule_order: template?.rule_order || 1,
-    time_window_days: template?.time_window_days || 7,
-    action_type: template?.action_type || "notify_only",
-    is_active: template?.is_active ?? true,
+    rule_name: "",
+    rule_description: "",
+    rule_order: 1,
+    time_window_days: 7,
+    action_type: "notify_only",
+    is_active: true,
   });
 
-  const [conditions, setConditions] = useState<ConditionsGroup>(
-    template?.conditions as ConditionsGroup || {
-      logic: "AND",
-      conditions: [
-        {
-          field: "cpa",
-          operator: ">",
-          value: 100,
-          type: "number",
-        }
-      ]
-    }
-  );
+  const [conditions, setConditions] = useState<ConditionsGroup>({
+    logic: "AND",
+    conditions: [
+      {
+        field: "cpa",
+        operator: ">",
+        value: 100,
+        type: "number",
+      }
+    ]
+  });
 
-  const [safetyLimits, setSafetyLimits] = useState<SafetyLimits>(
-    template ? {
-      budget_safety_limits: template.budget_safety_limits as any || {
-        max_daily_budget_increase_percent: 20,
-        max_daily_budget_decrease_percent: 30,
-      },
-      execution_limits: template.execution_limits as any || {
-        max_executions_per_day: 3,
-        cooldown_hours: 4,
-      },
-    } : {
-      budget_safety_limits: {
-        max_daily_budget_increase_percent: 20,
-        max_daily_budget_decrease_percent: 30,
-      },
-      execution_limits: {
-        max_executions_per_day: 3,
-        cooldown_hours: 4,
-      },
-    }
-  );
+  const [safetyLimits, setSafetyLimits] = useState<SafetyLimits>({
+    budget_safety_limits: {
+      max_daily_budget_increase_percent: 20,
+      max_daily_budget_decrease_percent: 30,
+    },
+    execution_limits: {
+      max_executions_per_day: 3,
+      cooldown_hours: 4,
+    },
+  });
 
-  // Reset safety limits when template changes
+  // Load template data when it changes
   useEffect(() => {
     if (template) {
+      setFormData({
+        rule_name: template.rule_name,
+        rule_description: template.rule_description || "",
+        rule_order: template.rule_order,
+        time_window_days: template.time_window_days,
+        action_type: template.action_type,
+        is_active: template.is_active,
+      });
+      
+      setConditions(template.conditions as ConditionsGroup);
+      
       setSafetyLimits({
         budget_safety_limits: template.budget_safety_limits as any || {
           max_daily_budget_increase_percent: 20,
@@ -90,8 +88,41 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           cooldown_hours: 4,
         },
       });
+    } else {
+      // Reset to defaults
+      setFormData({
+        rule_name: "",
+        rule_description: "",
+        rule_order: 1,
+        time_window_days: 7,
+        action_type: "notify_only",
+        is_active: true,
+      });
+      
+      setConditions({
+        logic: "AND",
+        conditions: [
+          {
+            field: "cpa",
+            operator: ">",
+            value: 100,
+            type: "number",
+          }
+        ]
+      });
+      
+      setSafetyLimits({
+        budget_safety_limits: {
+          max_daily_budget_increase_percent: 20,
+          max_daily_budget_decrease_percent: 30,
+        },
+        execution_limits: {
+          max_executions_per_day: 3,
+          cooldown_hours: 4,
+        },
+      });
     }
-  }, [template]);
+  }, [template, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

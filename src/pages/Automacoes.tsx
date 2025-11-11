@@ -17,7 +17,7 @@ import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDia
 const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const { templates, loading: templatesLoading, createTemplate } = useAutomationRules();
+  const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
   const { logs, rollbackAction } = useAutomationLogs(null, 50);
 
@@ -31,6 +31,25 @@ const Automacoes = () => {
       duplicate_for_ab_test: 'Teste A/B',
     };
     return labels[actionType] || actionType;
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setEditingTemplate(template);
+    setEditorOpen(true);
+  };
+
+  const handleSaveTemplate = async (data: any) => {
+    if (editingTemplate) {
+      await updateRule(editingTemplate.id, data);
+    } else {
+      await createTemplate(data);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (confirm("Tem certeza que deseja deletar este template?")) {
+      await deleteRule(templateId);
+    }
   };
 
   return (
@@ -122,11 +141,14 @@ const Automacoes = () => {
                                   <Download className="mr-2 h-4 w-4" />
                                   Importar para Cliente
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
                                   <Edit className="mr-2 h-4 w-4" />
                                   Editar Template
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteTemplate(template.id)}
+                                >
                                   <Trash className="mr-2 h-4 w-4" />
                                   Deletar
                                 </DropdownMenuItem>
@@ -298,9 +320,12 @@ const Automacoes = () => {
 
         <TemplateEditorDialog
           open={editorOpen}
-          onOpenChange={setEditorOpen}
+          onOpenChange={(open) => {
+            setEditorOpen(open);
+            if (!open) setEditingTemplate(null);
+          }}
           template={editingTemplate}
-          onSave={createTemplate}
+          onSave={handleSaveTemplate}
         />
       </div>
     </DashboardLayout>
