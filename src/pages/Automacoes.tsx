@@ -12,9 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Download, Edit, Trash, Check, X, RotateCcw } from "lucide-react";
+import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDialog";
 
 const Automacoes = () => {
-  const { templates, loading: templatesLoading } = useAutomationRules();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const { templates, loading: templatesLoading, createTemplate } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
   const { logs, rollbackAction } = useAutomationLogs(null, 50);
 
@@ -69,7 +72,10 @@ const Automacoes = () => {
                       Crie templates de automação para aplicar em vários clientes
                     </CardDescription>
                   </div>
-                  <Button>
+                  <Button onClick={() => {
+                    setEditingTemplate(null);
+                    setEditorOpen(true);
+                  }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Novo Template
                   </Button>
@@ -289,6 +295,13 @@ const Automacoes = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <TemplateEditorDialog
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          template={editingTemplate}
+          onSave={createTemplate}
+        />
       </div>
     </DashboardLayout>
   );
