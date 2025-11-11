@@ -48,6 +48,7 @@ import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
 import AdminLeadReports from "./pages/AdminLeadReports";
 import CRMPublicView from "./pages/CRMPublicView";
 import CRMLogin from "./pages/CRMLogin";
+import Automacoes from "./pages/Automacoes";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -277,6 +278,11 @@ const App = () => {
                  <Route path="/editor-funil/:clientId/:funnelId" element={
                   <ProtectedRoute>
                     <FunnelEditor />
+                  </ProtectedRoute>
+                } />
+                <Route path="/automacoes" element={
+                  <ProtectedRoute>
+                    <Automacoes />
                   </ProtectedRoute>
                 } />
                 <Route path="/configuracoes/*" element={

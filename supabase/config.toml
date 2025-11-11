@@ -1,5 +1,14 @@
 project_id = "ejwpfztkspbvmuwwiwmk"
 
+[functions.execute-campaign-automations]
+verify_jwt = false
+
+[functions.rollback-automation-action]
+verify_jwt = true
+
+[functions.execute-automation-recommendation]
+verify_jwt = true
+
 [api]
 enabled = true
 port = 54321
