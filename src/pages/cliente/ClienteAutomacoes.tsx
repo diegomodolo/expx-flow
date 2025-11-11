@@ -47,7 +47,7 @@ export default function ClienteAutomacoes() {
   const { id: clientId } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { client } = useClientDetails(clientId || "");
-  const { rules, loading: rulesLoading, updateRule, deleteRule } = useAutomationRules(clientId);
+  const { rules, loading: rulesLoading, updateRule, deleteRule, fetchRules } = useAutomationRules(clientId);
   const { logs, loading: logsLoading, fetchLogs, rollbackAction } = useAutomationLogs(clientId);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -160,6 +160,11 @@ export default function ClienteAutomacoes() {
       default:
         return null;
     }
+  };
+
+  const handleImported = async () => {
+    await fetchRules();
+    await fetchLogs();
   };
 
   return (
@@ -370,7 +375,7 @@ export default function ClienteAutomacoes() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         clientId={clientId || ""}
-        onImported={fetchLogs}
+        onImported={handleImported}
       />
 
       {/* Delete Confirmation Dialog */}
