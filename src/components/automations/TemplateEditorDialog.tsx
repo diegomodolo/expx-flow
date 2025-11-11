@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { AutomationRule } from "@/hooks/useAutomationRules";
 import { ConditionEditor, ConditionsGroup } from "./ConditionEditor";
+import { SafetyLimitsEditor, SafetyLimits, safetyLimitsSchema } from "./SafetyLimitsEditor";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +55,44 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     }
   );
 
+  const [safetyLimits, setSafetyLimits] = useState<SafetyLimits>(
+    template ? {
+      budget_safety_limits: template.budget_safety_limits as any || {
+        max_daily_budget_increase_percent: 20,
+        max_daily_budget_decrease_percent: 30,
+      },
+      execution_limits: template.execution_limits as any || {
+        max_executions_per_day: 3,
+        cooldown_hours: 4,
+      },
+    } : {
+      budget_safety_limits: {
+        max_daily_budget_increase_percent: 20,
+        max_daily_budget_decrease_percent: 30,
+      },
+      execution_limits: {
+        max_executions_per_day: 3,
+        cooldown_hours: 4,
+      },
+    }
+  );
+
+  // Reset safety limits when template changes
+  useEffect(() => {
+    if (template) {
+      setSafetyLimits({
+        budget_safety_limits: template.budget_safety_limits as any || {
+          max_daily_budget_increase_percent: 20,
+          max_daily_budget_decrease_percent: 30,
+        },
+        execution_limits: template.execution_limits as any || {
+          max_executions_per_day: 3,
+          cooldown_hours: 4,
+        },
+      });
+    }
+  }, [template]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -64,6 +103,20 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       if (error instanceof z.ZodError) {
         toast({
           title: "Erro de validação",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Validar limites de segurança
+    try {
+      safetyLimitsSchema.parse(safetyLimits);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro nos limites de segurança",
           description: error.errors[0].message,
           variant: "destructive",
         });
@@ -87,14 +140,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       ...formData,
       conditions,
       action_config: {},
-      budget_safety_limits: {
-        max_daily_budget_increase_percent: 20,
-        max_daily_budget_decrease_percent: 30,
-      },
-      execution_limits: {
-        max_executions_per_day: 3,
-        cooldown_hours: 4,
-      },
+      budget_safety_limits: safetyLimits.budget_safety_limits,
+      execution_limits: safetyLimits.execution_limits,
       scope_filters: {},
       campaign_objectives: null,
     };
@@ -191,6 +238,14 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           </div>
 
           <ConditionEditor value={conditions} onChange={setConditions} />
+
+          <Separator className="my-6" />
+
+          <SafetyLimitsEditor 
+            value={safetyLimits} 
+            onChange={setSafetyLimits}
+            actionType={formData.action_type}
+          />
 
           <Separator className="my-6" />
 
