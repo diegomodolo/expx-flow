@@ -364,6 +364,375 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_ab_tests: {
+        Row: {
+          client_id: string
+          company_id: string
+          control_campaign_id: string | null
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          performance_summary: Json | null
+          rule_id: string | null
+          scheduled_end_at: string | null
+          started_at: string | null
+          status: string
+          test_name: string
+          test_type: string
+          variant_campaign_id: string | null
+          variation_config: Json
+          winner: string | null
+          winner_determined_at: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          control_campaign_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          performance_summary?: Json | null
+          rule_id?: string | null
+          scheduled_end_at?: string | null
+          started_at?: string | null
+          status?: string
+          test_name: string
+          test_type: string
+          variant_campaign_id?: string | null
+          variation_config: Json
+          winner?: string | null
+          winner_determined_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          control_campaign_id?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          performance_summary?: Json | null
+          rule_id?: string | null
+          scheduled_end_at?: string | null
+          started_at?: string | null
+          status?: string
+          test_name?: string
+          test_type?: string
+          variant_campaign_id?: string | null
+          variation_config?: Json
+          winner?: string | null
+          winner_determined_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ab_tests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_ab_tests_control_campaign_id_fkey"
+            columns: ["control_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_ab_tests_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_ab_tests_variant_campaign_id_fkey"
+            columns: ["variant_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_automation_logs: {
+        Row: {
+          action_result: string
+          action_type: string
+          campaign_id: string | null
+          client_id: string | null
+          company_id: string
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          metadata: Json | null
+          new_budget: number | null
+          new_name: string | null
+          new_status: string | null
+          old_budget: number | null
+          old_name: string | null
+          old_status: string | null
+          rolled_back: boolean | null
+          rolled_back_at: string | null
+          rolled_back_by: string | null
+          rule_id: string
+        }
+        Insert: {
+          action_result: string
+          action_type: string
+          campaign_id?: string | null
+          client_id?: string | null
+          company_id: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_budget?: number | null
+          new_name?: string | null
+          new_status?: string | null
+          old_budget?: number | null
+          old_name?: string | null
+          old_status?: string | null
+          rolled_back?: boolean | null
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          rule_id: string
+        }
+        Update: {
+          action_result?: string
+          action_type?: string
+          campaign_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_budget?: number | null
+          new_name?: string | null
+          new_status?: string | null
+          old_budget?: number | null
+          old_name?: string | null
+          old_status?: string | null
+          rolled_back?: boolean | null
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          rule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_automation_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_automation_recommendations: {
+        Row: {
+          action_config: Json | null
+          campaign_data: Json | null
+          campaign_id: string | null
+          client_id: string | null
+          company_id: string
+          conditions_met: Json | null
+          created_at: string | null
+          executed_at: string | null
+          execution_log_id: string | null
+          expires_at: string | null
+          id: string
+          reason: string
+          recommended_action: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rule_id: string
+          status: string
+        }
+        Insert: {
+          action_config?: Json | null
+          campaign_data?: Json | null
+          campaign_id?: string | null
+          client_id?: string | null
+          company_id: string
+          conditions_met?: Json | null
+          created_at?: string | null
+          executed_at?: string | null
+          execution_log_id?: string | null
+          expires_at?: string | null
+          id?: string
+          reason: string
+          recommended_action: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_id: string
+          status?: string
+        }
+        Update: {
+          action_config?: Json | null
+          campaign_data?: Json | null
+          campaign_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          conditions_met?: Json | null
+          created_at?: string | null
+          executed_at?: string | null
+          execution_log_id?: string | null
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          recommended_action?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_automation_recommendations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_recommendations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_recommendations_execution_log_id_fkey"
+            columns: ["execution_log_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_recommendations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_automation_rules: {
+        Row: {
+          action_config: Json | null
+          action_type: string
+          budget_safety_limits: Json | null
+          campaign_objectives: string[] | null
+          client_id: string | null
+          company_id: string
+          conditions: Json
+          created_at: string | null
+          created_by: string | null
+          execution_count: number | null
+          execution_limits: Json | null
+          id: string
+          imported_at: string | null
+          is_active: boolean | null
+          is_template: boolean | null
+          last_execution_at: string | null
+          rule_description: string | null
+          rule_name: string
+          rule_order: number
+          scope_filters: Json | null
+          template_id: string | null
+          time_window_days: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type: string
+          budget_safety_limits?: Json | null
+          campaign_objectives?: string[] | null
+          client_id?: string | null
+          company_id: string
+          conditions?: Json
+          created_at?: string | null
+          created_by?: string | null
+          execution_count?: number | null
+          execution_limits?: Json | null
+          id?: string
+          imported_at?: string | null
+          is_active?: boolean | null
+          is_template?: boolean | null
+          last_execution_at?: string | null
+          rule_description?: string | null
+          rule_name: string
+          rule_order?: number
+          scope_filters?: Json | null
+          template_id?: string | null
+          time_window_days?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string
+          budget_safety_limits?: Json | null
+          campaign_objectives?: string[] | null
+          client_id?: string | null
+          company_id?: string
+          conditions?: Json
+          created_at?: string | null
+          created_by?: string | null
+          execution_count?: number | null
+          execution_limits?: Json | null
+          id?: string
+          imported_at?: string | null
+          is_active?: boolean | null
+          is_template?: boolean | null
+          last_execution_at?: string | null
+          rule_description?: string | null
+          rule_name?: string
+          rule_order?: number
+          scope_filters?: Json | null
+          template_id?: string | null
+          time_window_days?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_automation_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           average_ticket: number | null
