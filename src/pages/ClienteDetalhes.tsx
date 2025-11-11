@@ -19,6 +19,7 @@ import { ClienteLeadsDesqualificados } from "./cliente/ClienteLeadsDesqualificad
 import { ClienteConversoes } from "./cliente/ClienteConversoes";
 import { ClienteHistorico } from "./cliente/ClienteHistorico";
 import { ClienteCRM } from "./cliente/ClienteCRM";
+import ClienteAutomacoes from "./cliente/ClienteAutomacoes";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
@@ -234,6 +235,7 @@ const ClienteDetalhes = () => {
             <Route path="conversoes" element={<ClienteConversoes />} />
             <Route path="historico" element={<ClienteHistorico />} />
             <Route path="crm" element={<ClienteCRM />} />
+            <Route path="automacoes" element={<ClienteAutomacoes />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </ClientDetailsLayout>

@@ -19,6 +19,7 @@ import {
   DollarSign,
   Clock,
   Kanban,
+  Zap,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -120,6 +121,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/crm`,
       icon: Kanban,
       description: "Gerenciar leads no mini CRM"
+    },
+    {
+      title: "Automações",
+      href: `/clientes/${clientId}/automacoes`,
+      icon: Zap,
+      description: "Gerenciar automações"
     },
     {
       title: "Histórico",

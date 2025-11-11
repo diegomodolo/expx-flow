@@ -442,6 +442,7 @@ serve(async (req) => {
   }
 
   try {
+    const { client_id } = await req.json().catch(() => ({}));
     const url = new URL(req.url);
     const mode = url.searchParams.get('mode');
     const ruleId = url.searchParams.get('rule_id');
@@ -451,7 +452,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    console.log('🤖 [SHEGrowth] Starting campaign automation...');
+    if (client_id) {
+      console.log(`🤖 [SHEGrowth] Starting campaign automation for client: ${client_id}...`);
+    } else {
+      console.log('🤖 [SHEGrowth] Starting campaign automation...');
+    }
 
     // Buscar regras ativas
     let rulesQuery = supabase
@@ -462,6 +467,10 @@ serve(async (req) => {
     
     if (ruleId) {
       rulesQuery = rulesQuery.eq('id', ruleId);
+    }
+    
+    if (client_id) {
+      rulesQuery = rulesQuery.eq('client_id', client_id);
     }
     
     const { data: rules, error: rulesError } = await rulesQuery
@@ -614,9 +623,16 @@ serve(async (req) => {
       );
     }
 
+    const message = client_id 
+      ? `Automation execution completed for client ${client_id}`
+      : 'Automation execution completed';
+
     return new Response(
       JSON.stringify({
         success: true,
+        message,
+        client_id: client_id || null,
+        processed: totalAnalyzed,
         analyzed: totalAnalyzed,
         actioned: totalActioned,
         errors: totalErrors,
