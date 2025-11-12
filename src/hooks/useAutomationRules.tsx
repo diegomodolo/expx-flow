@@ -100,6 +100,46 @@ export const useAutomationRules = (clientId?: string | null) => {
     fetchRules();
   }, [user?.id, activeCompany?.company_id, clientId]);
 
+  // Auto-fix entity_type baseado em action_type
+  useEffect(() => {
+    const autoFixEntityTypes = async () => {
+      if (!rules.length || !activeCompany?.company_id) return;
+
+      const rulesToFix = rules.filter(rule => {
+        const isAdAction = ['pause_ad', 'activate_ad', 'duplicate_ad'].includes(rule.action_type);
+        const isAdsetAction = ['pause_adset', 'activate_adset', 'duplicate_adset'].includes(rule.action_type);
+        const isCampaignAction = ['pause_campaign', 'activate_campaign', 'adjust_budget', 'duplicate_campaign'].includes(rule.action_type);
+
+        if (isAdAction && rule.entity_type !== 'ad') return true;
+        if (isAdsetAction && rule.entity_type !== 'adset') return true;
+        if (isCampaignAction && rule.entity_type !== 'campaign' && rule.entity_type !== null) return true;
+        return false;
+      });
+
+      for (const rule of rulesToFix) {
+        let correctEntityType = 'campaign';
+        if (['pause_ad', 'activate_ad', 'duplicate_ad'].includes(rule.action_type)) {
+          correctEntityType = 'ad';
+        } else if (['pause_adset', 'activate_adset', 'duplicate_adset'].includes(rule.action_type)) {
+          correctEntityType = 'adset';
+        }
+
+        console.log(`🔧 Auto-fixing entity_type for rule "${rule.rule_name}": ${rule.entity_type} → ${correctEntityType}`);
+        
+        await supabase
+          .from('campaign_automation_rules')
+          .update({ entity_type: correctEntityType })
+          .eq('id', rule.id);
+      }
+
+      if (rulesToFix.length > 0) {
+        await fetchRules();
+      }
+    };
+
+    autoFixEntityTypes();
+  }, [rules.length]);
+
   const createTemplate = async (templateData: Omit<AutomationRule, "id" | "created_at" | "updated_at" | "company_id" | "is_template" | "client_id" | "template_id" | "imported_at" | "execution_count" | "last_execution_at">) => {
     if (!activeCompany?.company_id) return null;
 
@@ -209,6 +249,7 @@ export const useAutomationRules = (clientId?: string | null) => {
         budget_safety_limits: template.budget_safety_limits,
         execution_limits: template.execution_limits,
         scope_filters: template.scope_filters,
+        entity_type: template.entity_type,
         is_active: true,
         execution_count: 0,
       })

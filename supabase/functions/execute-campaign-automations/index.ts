@@ -874,6 +874,25 @@ serve(async (req) => {
 
     console.log(`📊 Rules: ${campaignRules.length} campaigns, ${adsetRules.length} ad sets, ${adRules.length} ads`);
 
+    // Validar compatibilidade entity_type x action_type
+    for (const rule of rules) {
+      const isAdAction = ['pause_ad', 'activate_ad', 'duplicate_ad'].includes(rule.action_type);
+      const isAdsetAction = ['pause_adset', 'activate_adset', 'duplicate_adset'].includes(rule.action_type);
+      const isCampaignAction = ['pause_campaign', 'activate_campaign', 'adjust_budget', 'duplicate_campaign'].includes(rule.action_type);
+      
+      if (isAdAction && rule.entity_type !== 'ad') {
+        console.warn(`⚠️ Rule ${rule.rule_name}: action_type=${rule.action_type} but entity_type=${rule.entity_type}`);
+      }
+      if (isAdsetAction && rule.entity_type !== 'adset') {
+        console.warn(`⚠️ Rule ${rule.rule_name}: action_type=${rule.action_type} but entity_type=${rule.entity_type}`);
+      }
+      if (isCampaignAction && (!rule.entity_type || rule.entity_type === 'campaign')) {
+        // OK - campaign actions on campaign entities
+      } else if (isCampaignAction && rule.entity_type !== 'campaign') {
+        console.warn(`⚠️ Rule ${rule.rule_name}: action_type=${rule.action_type} but entity_type=${rule.entity_type}`);
+      }
+    }
+
     // ========== PROCESSAR CAMPANHAS ==========
     for (const rule of campaignRules) {
       try {
