@@ -949,7 +949,7 @@ serve(async (req) => {
                 console.log(`🚀 Campanha duplicada: ${result.newName}`);
               }
 
-              await supabase.from('campaign_automation_logs').insert({
+              const logData: any = {
                 rule_id: rule.id,
                 company_id: rule.company_id,
                 client_id: campaign.client_id,
@@ -964,7 +964,23 @@ serve(async (req) => {
                 old_status: result.oldStatus,
                 new_status: result.newStatus,
                 metadata: { campaign, result },
-              });
+              };
+
+              // Recovery trigger configuration
+              if (rule.action_config?.enable_recovery_trigger && 
+                  ['pause_campaign', 'pause_adset', 'pause_ad'].includes(rule.action_type)) {
+                const recoveryDays = rule.action_config.recovery_trigger_days || 3;
+                const scheduledDate = new Date();
+                scheduledDate.setDate(scheduledDate.getDate() + recoveryDays);
+                
+                logData.recovery_trigger_enabled = true;
+                logData.recovery_trigger_days = recoveryDays;
+                logData.recovery_scheduled_for = scheduledDate.toISOString();
+                
+                console.log(`🔄 Recovery scheduled for ${scheduledDate.toISOString()} (${recoveryDays} days)`);
+              }
+
+              await supabase.from('campaign_automation_logs').insert(logData);
 
               totalActioned++;
             } catch (actionError: any) {
@@ -1044,7 +1060,7 @@ serve(async (req) => {
                 result = await duplicateAdSetSafely(adset, integration, rule, evaluation.description, prefix);
               }
 
-              await supabase.from('campaign_automation_logs').insert({
+              const logData: any = {
                 rule_id: rule.id,
                 company_id: rule.company_id,
                 client_id: adset.client_id,
@@ -1056,7 +1072,23 @@ serve(async (req) => {
                 old_name: result.oldName,
                 new_name: result.newName,
                 metadata: { adset, result },
-              });
+              };
+
+              // Recovery trigger configuration
+              if (rule.action_config?.enable_recovery_trigger && 
+                  rule.action_type === 'pause_adset') {
+                const recoveryDays = rule.action_config.recovery_trigger_days || 3;
+                const scheduledDate = new Date();
+                scheduledDate.setDate(scheduledDate.getDate() + recoveryDays);
+                
+                logData.recovery_trigger_enabled = true;
+                logData.recovery_trigger_days = recoveryDays;
+                logData.recovery_scheduled_for = scheduledDate.toISOString();
+                
+                console.log(`🔄 Recovery scheduled for ${scheduledDate.toISOString()} (${recoveryDays} days)`);
+              }
+
+              await supabase.from('campaign_automation_logs').insert(logData);
 
               totalActioned++;
             } catch (actionError: any) {
@@ -1137,7 +1169,7 @@ serve(async (req) => {
                 result = await duplicateAdSafely(ad, integration, rule, evaluation.description, prefix);
               }
 
-              await supabase.from('campaign_automation_logs').insert({
+              const logData: any = {
                 rule_id: rule.id,
                 company_id: rule.company_id,
                 client_id: ad.client_id,
@@ -1150,7 +1182,23 @@ serve(async (req) => {
                 old_name: result.oldName,
                 new_name: result.newName,
                 metadata: { ad, result },
-              });
+              };
+
+              // Recovery trigger configuration
+              if (rule.action_config?.enable_recovery_trigger && 
+                  rule.action_type === 'pause_ad') {
+                const recoveryDays = rule.action_config.recovery_trigger_days || 3;
+                const scheduledDate = new Date();
+                scheduledDate.setDate(scheduledDate.getDate() + recoveryDays);
+                
+                logData.recovery_trigger_enabled = true;
+                logData.recovery_trigger_days = recoveryDays;
+                logData.recovery_scheduled_for = scheduledDate.toISOString();
+                
+                console.log(`🔄 Recovery scheduled for ${scheduledDate.toISOString()} (${recoveryDays} days)`);
+              }
+
+              await supabase.from('campaign_automation_logs').insert(logData);
 
               totalActioned++;
             } catch (actionError: any) {

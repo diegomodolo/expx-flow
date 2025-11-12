@@ -17,6 +17,9 @@ import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDia
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
@@ -25,8 +28,9 @@ const Automacoes = () => {
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
-  const { logs, rollbackAction } = useAutomationLogs(null, 50);
+  const { logs, rollbackAction, fetchLogs } = useAutomationLogs(null, 50);
   const { settings, loading: settingsLoading, updateSettings } = useAutomationSettings();
+  const { toast } = useToast();
 
   const getActionLabel = (actionType: string) => {
     const labels: Record<string, string> = {
@@ -345,6 +349,7 @@ const Automacoes = () => {
                       <TableHead>Campanha</TableHead>
                       <TableHead>Ação</TableHead>
                       <TableHead>Renomeação</TableHead>
+                      <TableHead>Recovery</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
@@ -369,6 +374,21 @@ const Automacoes = () => {
                                 {log.new_name.substring(0, 30)}...
                               </div>
                             </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {log.recovery_trigger_enabled && (
+                            <Badge variant={log.recovery_executed ? "outline" : "secondary"} className="text-xs">
+                              {log.recovery_executed ? (
+                                <>
+                                  🔄 {log.recovery_executed_at && format(new Date(log.recovery_executed_at), 'dd/MM HH:mm')}
+                                </>
+                              ) : (
+                                <>
+                                  ⏱️ {log.recovery_scheduled_for && format(new Date(log.recovery_scheduled_for), 'dd/MM HH:mm')}
+                                </>
+                              )}
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell>
@@ -414,6 +434,38 @@ const Automacoes = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                      <div>
+                        <h4 className="font-medium mb-1">Recovery Triggers</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Processar gatilhos de reativação pendentes manualmente
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const { error } = await supabase.functions.invoke('process-recovery-triggers');
+                            if (error) throw error;
+                            toast({
+                              title: "Recovery triggers processados!",
+                              description: "As reativações pendentes foram processadas com sucesso.",
+                            });
+                            fetchLogs();
+                          } catch (error: any) {
+                            toast({
+                              title: "Erro ao processar recovery triggers",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        🔄 Processar Recoveries
+                      </Button>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="prefix">Prefixo do Nome da Campanha</Label>
                       <Input 

@@ -438,6 +438,97 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
             actionType={formData.action_type}
           />
 
+          {/* Recovery Trigger Configuration */}
+          {(formData.action_type === 'pause_campaign' || 
+            formData.action_type === 'pause_adset' || 
+            formData.action_type === 'pause_ad') && (
+            <>
+              <Separator className="my-6" />
+              
+              <div className="rounded-lg border p-4 space-y-3 bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="enable_recovery">Reativar Automaticamente</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-sm">
+                            Quando ativado, a entidade pausada será automaticamente reativada 
+                            após o número de dias especificado. Útil para "pausas temporárias" 
+                            que permitem que a campanha descanse e depois volte a rodar.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Reativar automaticamente após pausar
+                    </p>
+                  </div>
+                  <Switch
+                    id="enable_recovery"
+                    checked={formData.action_config?.enable_recovery_trigger || false}
+                    onCheckedChange={(checked) => setFormData({ 
+                      ...formData, 
+                      action_config: { 
+                        ...formData.action_config, 
+                        enable_recovery_trigger: checked,
+                        recovery_trigger_days: checked ? (formData.action_config?.recovery_trigger_days || 3) : undefined
+                      } 
+                    })}
+                  />
+                </div>
+
+                {formData.action_config?.enable_recovery_trigger && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="recovery_days">Reativar após (dias)</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-sm">
+                            Número de dias que a entidade ficará pausada antes de ser reativada 
+                            automaticamente. Por exemplo, com 3 dias, uma campanha pausada hoje 
+                            será reativada automaticamente daqui a 3 dias.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="recovery_days"
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={formData.action_config?.recovery_trigger_days || 3}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          action_config: { 
+                            ...formData.action_config, 
+                            recovery_trigger_days: parseInt(e.target.value) || 3
+                          } 
+                        })}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">dias</span>
+                    </div>
+                    <div className="rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 mt-3">
+                      <p className="text-xs text-blue-900 dark:text-blue-100">
+                        🔄 <strong>Exemplo:</strong> Campanha com CPA alto será pausada. 
+                        Após {formData.action_config?.recovery_trigger_days || 3} dias, 
+                        será reativada automaticamente para uma nova tentativa com dados frescos.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           <Separator className="my-6" />
 
           <div className="flex items-center justify-between rounded-lg border p-4">

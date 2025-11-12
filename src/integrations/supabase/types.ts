@@ -505,6 +505,12 @@ export type Database = {
           old_budget: number | null
           old_name: string | null
           old_status: string | null
+          recovery_executed: boolean | null
+          recovery_executed_at: string | null
+          recovery_log_id: string | null
+          recovery_scheduled_for: string | null
+          recovery_trigger_days: number | null
+          recovery_trigger_enabled: boolean | null
           rolled_back: boolean | null
           rolled_back_at: string | null
           rolled_back_by: string | null
@@ -529,6 +535,12 @@ export type Database = {
           old_budget?: number | null
           old_name?: string | null
           old_status?: string | null
+          recovery_executed?: boolean | null
+          recovery_executed_at?: string | null
+          recovery_log_id?: string | null
+          recovery_scheduled_for?: string | null
+          recovery_trigger_days?: number | null
+          recovery_trigger_enabled?: boolean | null
           rolled_back?: boolean | null
           rolled_back_at?: string | null
           rolled_back_by?: string | null
@@ -553,6 +565,12 @@ export type Database = {
           old_budget?: number | null
           old_name?: string | null
           old_status?: string | null
+          recovery_executed?: boolean | null
+          recovery_executed_at?: string | null
+          recovery_log_id?: string | null
+          recovery_scheduled_for?: string | null
+          recovery_trigger_days?: number | null
+          recovery_trigger_enabled?: boolean | null
           rolled_back?: boolean | null
           rolled_back_at?: string | null
           rolled_back_by?: string | null
@@ -585,6 +603,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_logs_recovery_log_id_fkey"
+            columns: ["recovery_log_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_logs"
             referencedColumns: ["id"]
           },
           {
