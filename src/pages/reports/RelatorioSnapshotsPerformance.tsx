@@ -5,39 +5,82 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { usePerformanceSnapshots } from "@/hooks/usePerformanceSnapshots";
 import { useClients } from "@/hooks/useClients";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { format, subDays } from "date-fns";
-import { Loader2, TrendingUp, TrendingDown, DollarSign, Target, MousePointer, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ptBR } from "date-fns/locale";
+import { Loader2, TrendingUp, TrendingDown, DollarSign, Target, MousePointer, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 export default function RelatorioSnapshotsPerformance() {
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("30");
   const [entityType, setEntityType] = useState<string>("all");
   const [compareEnabled, setCompareEnabled] = useState<boolean>(false);
+  const [useCustomDates, setUseCustomDates] = useState<boolean>(false);
+  
+  // Datas customizadas - período atual
+  const [currentDateRange, setCurrentDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+  
+  // Datas customizadas - período anterior
+  const [previousDateRange, setPreviousDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 61),
+    to: subDays(new Date(), 31),
+  });
 
   const { clients } = useClients();
   
-  const days = parseInt(dateRange);
-  const currentEndDate = format(new Date(), "yyyy-MM-dd");
-  const currentStartDate = format(subDays(new Date(), days), "yyyy-MM-dd");
-  
-  const previousEndDate = format(subDays(new Date(), days + 1), "yyyy-MM-dd");
-  const previousStartDate = format(subDays(new Date(), days * 2 + 1), "yyyy-MM-dd");
+  // Calcular datas baseado no modo (pré-definido ou customizado)
+  const getCurrentDates = () => {
+    if (useCustomDates && currentDateRange?.from && currentDateRange?.to) {
+      return {
+        startDate: format(currentDateRange.from, "yyyy-MM-dd"),
+        endDate: format(currentDateRange.to, "yyyy-MM-dd"),
+      };
+    }
+    const days = parseInt(dateRange);
+    return {
+      startDate: format(subDays(new Date(), days), "yyyy-MM-dd"),
+      endDate: format(new Date(), "yyyy-MM-dd"),
+    };
+  };
+
+  const getPreviousDates = () => {
+    if (useCustomDates && previousDateRange?.from && previousDateRange?.to) {
+      return {
+        startDate: format(previousDateRange.from, "yyyy-MM-dd"),
+        endDate: format(previousDateRange.to, "yyyy-MM-dd"),
+      };
+    }
+    const days = parseInt(dateRange);
+    return {
+      startDate: format(subDays(new Date(), days * 2 + 1), "yyyy-MM-dd"),
+      endDate: format(subDays(new Date(), days + 1), "yyyy-MM-dd"),
+    };
+  };
+
+  const currentDates = getCurrentDates();
+  const previousDates = getPreviousDates();
 
   const { data: currentSnapshots, isLoading: currentLoading } = usePerformanceSnapshots({
     clientId: selectedClient !== "all" ? selectedClient : undefined,
-    startDate: currentStartDate,
-    endDate: currentEndDate,
+    startDate: currentDates.startDate,
+    endDate: currentDates.endDate,
     entityType: entityType !== "all" ? entityType as any : undefined,
   });
 
   const { data: previousSnapshots, isLoading: previousLoading } = usePerformanceSnapshots({
     clientId: selectedClient !== "all" ? selectedClient : undefined,
-    startDate: previousStartDate,
-    endDate: previousEndDate,
+    startDate: previousDates.startDate,
+    endDate: previousDates.endDate,
     entityType: entityType !== "all" ? entityType as any : undefined,
   });
 
@@ -166,7 +209,7 @@ export default function RelatorioSnapshotsPerformance() {
                   Comparar com período anterior
                 </Label>
               </div>
-              {compareEnabled && (
+              {compareEnabled && !useCustomDates && (
                 <div className="text-sm text-muted-foreground">
                   Comparando últimos {dateRange} dias vs {dateRange} dias anteriores
                 </div>
@@ -174,54 +217,159 @@ export default function RelatorioSnapshotsPerformance() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Cliente</label>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Clientes</SelectItem>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Cliente</label>
+                <Select value={selectedClient} onValueChange={setSelectedClient}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Clientes</SelectItem>
+                    {clients?.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">Período</label>
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">Últimos 7 dias</SelectItem>
-                  <SelectItem value="14">Últimos 14 dias</SelectItem>
-                  <SelectItem value="30">Últimos 30 dias</SelectItem>
-                  <SelectItem value="60">Últimos 60 dias</SelectItem>
-                  <SelectItem value="90">Últimos 90 dias</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tipo de Período</label>
+                <Select 
+                  value={useCustomDates ? "custom" : "predefined"} 
+                  onValueChange={(value) => setUseCustomDates(value === "custom")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="predefined">Pré-definido</SelectItem>
+                    <SelectItem value="custom">Customizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">Tipo de Entidade</label>
-              <Select value={entityType} onValueChange={setEntityType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="campaign">Campanhas</SelectItem>
-                  <SelectItem value="ad_set">Conjuntos de Anúncios</SelectItem>
-                  <SelectItem value="ad">Anúncios</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tipo de Entidade</label>
+                <Select value={entityType} onValueChange={setEntityType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="campaign">Campanhas</SelectItem>
+                    <SelectItem value="ad_set">Conjuntos de Anúncios</SelectItem>
+                    <SelectItem value="ad">Anúncios</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+
+            {/* Seleção de período - Pré-definido ou Customizado */}
+            {!useCustomDates ? (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Período</label>
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Últimos 7 dias</SelectItem>
+                    <SelectItem value="14">Últimos 14 dias</SelectItem>
+                    <SelectItem value="30">Últimos 30 dias</SelectItem>
+                    <SelectItem value="60">Últimos 60 dias</SelectItem>
+                    <SelectItem value="90">Últimos 90 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Período Atual</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !currentDateRange && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {currentDateRange?.from ? (
+                          currentDateRange.to ? (
+                            <>
+                              {format(currentDateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                              {format(currentDateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                            </>
+                          ) : (
+                            format(currentDateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                          )
+                        ) : (
+                          <span>Selecione o período</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={currentDateRange?.from}
+                        selected={currentDateRange}
+                        onSelect={setCurrentDateRange}
+                        numberOfMonths={2}
+                        locale={ptBR}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {compareEnabled && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Período de Comparação</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !previousDateRange && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {previousDateRange?.from ? (
+                            previousDateRange.to ? (
+                              <>
+                                {format(previousDateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                                {format(previousDateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                              </>
+                            ) : (
+                              format(previousDateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                            )
+                          ) : (
+                            <span>Selecione o período</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          initialFocus
+                          mode="range"
+                          defaultMonth={previousDateRange?.from}
+                          selected={previousDateRange}
+                          onSelect={setPreviousDateRange}
+                          numberOfMonths={2}
+                          locale={ptBR}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Card>
 
