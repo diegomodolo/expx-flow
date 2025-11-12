@@ -254,7 +254,7 @@ serve(async (req) => {
 
     // Check account balance and funding status
     console.log('Checking account balance for:', accountId)
-    const balanceUrl = `https://graph.facebook.com/v20.0/act_${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details&access_token=${accessToken}`
+    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details&access_token=${accessToken}`
     console.log('Balance API URL (without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
     
     try {
