@@ -106,7 +106,10 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
   };
 
   const clearLogs = async () => {
+    console.log("clearLogs called", { clientId, companyId: activeCompany?.company_id });
+    
     if (!clientId || !activeCompany?.company_id) {
+      console.error("Missing clientId or companyId", { clientId, companyId: activeCompany?.company_id });
       toast({
         title: "Erro",
         description: "Cliente ou empresa não identificados.",
@@ -116,17 +119,27 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
     }
 
     try {
-      const { error } = await supabase
+      console.log("Deleting logs for", { clientId, companyId: activeCompany.company_id });
+      
+      const { data, error, count } = await supabase
         .from("campaign_automation_logs")
         .delete()
         .eq("client_id", clientId)
-        .eq("company_id", activeCompany.company_id);
+        .eq("company_id", activeCompany.company_id)
+        .select();
 
-      if (error) throw error;
+      console.log("Delete result", { data, error, count });
 
+      if (error) {
+        console.error("Delete error:", error);
+        throw error;
+      }
+
+      const deletedCount = data?.length || 0;
+      
       toast({
         title: "Logs limpos",
-        description: "Todos os logs de automação foram removidos.",
+        description: `${deletedCount} logs de automação foram removidos.`,
       });
 
       await fetchLogs();
@@ -135,7 +148,7 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
       console.error("Error clearing logs:", error);
       toast({
         title: "Erro ao limpar logs",
-        description: error.message,
+        description: error.message || "Erro desconhecido ao limpar logs",
         variant: "destructive",
       });
       return false;
