@@ -498,6 +498,11 @@ serve(async (req) => {
           campaignQuery = campaignQuery.eq('client_id', rule.client_id);
         }
 
+        // Filtrar por objetivos de campanha se especificado
+        if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+          campaignQuery = campaignQuery.in('objective', rule.campaign_objectives);
+        }
+
         const { data: campaigns } = await campaignQuery;
 
         // Buscar integração

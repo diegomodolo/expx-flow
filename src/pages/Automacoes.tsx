@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Download, Edit, Trash, Check, X, RotateCcw } from "lucide-react";
 import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDialog";
+import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 
 const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
@@ -168,6 +169,20 @@ const Automacoes = () => {
                               <span className="font-medium">Execuções:</span> {template.execution_count}x
                             </div>
                           </div>
+                          {template.campaign_objectives && template.campaign_objectives.length > 0 && (
+                            <div className="mt-3 pt-3 border-t">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">
+                                Aplica-se apenas aos objetivos:
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {template.campaign_objectives.map((obj: string) => (
+                                  <Badge key={obj} variant="outline" className="text-xs">
+                                    {translateObjective(obj)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}

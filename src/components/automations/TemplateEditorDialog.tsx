@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { AutomationRule } from "@/hooks/useAutomationRules";
 import { ConditionEditor, ConditionsGroup } from "./ConditionEditor";
 import { SafetyLimitsEditor, SafetyLimits, safetyLimitsSchema } from "./SafetyLimitsEditor";
+import { CampaignObjectiveSelector } from "./CampaignObjectiveSelector";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -64,6 +65,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     },
   });
 
+  const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
+
   // Load template data when it changes
   useEffect(() => {
     if (template) {
@@ -88,6 +91,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           cooldown_hours: 4,
         },
       });
+
+      setSelectedObjectives(template.campaign_objectives || []);
     } else {
       // Reset to defaults
       setFormData({
@@ -121,6 +126,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           cooldown_hours: 4,
         },
       });
+
+      setSelectedObjectives([]);
     }
   }, [template, open]);
 
@@ -174,7 +181,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       budget_safety_limits: safetyLimits.budget_safety_limits,
       execution_limits: safetyLimits.execution_limits,
       scope_filters: {},
-      campaign_objectives: null,
+      campaign_objectives: selectedObjectives.length > 0 ? selectedObjectives : null,
     };
 
     await onSave(templateData);
@@ -258,6 +265,13 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
               </SelectContent>
             </Select>
           </div>
+
+          <Separator className="my-6" />
+
+          <CampaignObjectiveSelector
+            value={selectedObjectives}
+            onChange={setSelectedObjectives}
+          />
 
           <Separator className="my-6" />
 

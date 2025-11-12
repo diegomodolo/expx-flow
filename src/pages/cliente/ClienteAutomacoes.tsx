@@ -9,6 +9,7 @@ import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationLogs } from "@/hooks/useAutomationLogs";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutomationTemplateDialog";
+import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 import { 
   Play, 
   Plus, 
@@ -247,6 +248,20 @@ export default function ClienteAutomacoes() {
                             })}
                           </span>
                         </div>
+                        {rule.campaign_objectives && rule.campaign_objectives.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <div className="text-xs font-medium text-muted-foreground mb-2">
+                              Aplica-se apenas aos objetivos:
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {rule.campaign_objectives.map(obj => (
+                                <Badge key={obj} variant="outline" className="text-xs">
+                                  {translateObjective(obj)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 ml-4">
                         <Switch
