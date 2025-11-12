@@ -50,14 +50,14 @@ async function calculateClientStatus(
 
     // Default status
     return {
-      status: 'stable',
-      explanation: '✅ Cliente estável. Todas as métricas dentro do esperado.',
+      status: 'atencao',
+      explanation: '⚠️ Cliente requer atenção. Necessita análise das métricas.',
     };
   } catch (error) {
     console.error('Error calculating status for client:', clientId, error);
     return {
-      status: 'stable',
-      explanation: 'Status calculado com sucesso',
+      status: 'atencao',
+      explanation: '⚠️ Erro ao calcular status. Requer análise manual.',
     };
   }
 }
@@ -182,19 +182,19 @@ function evaluateRule(rule: any, metrics: ClientMetrics): boolean {
 
 function generateExplanation(status: string, metrics: ClientMetrics): string {
   const emoji = {
-    excellent: '🌟',
-    good: '😊',
-    stable: '✅',
-    attention: '⚠️',
-    critical: '🚨',
+    excelente: '🌟',
+    atencao: '⚠️',
+    emergencial: '🚨',
+    sem_fundos: '💳',
+    inativo: '⚫',
   }[status] || '📊';
 
   const base = {
-    excellent: 'Cliente com performance excepcional',
-    good: 'Cliente com boa performance',
-    stable: 'Cliente estável',
-    attention: 'Cliente requer atenção',
-    critical: 'Cliente em situação crítica',
+    excelente: 'Cliente com performance excepcional',
+    atencao: 'Cliente requer atenção',
+    emergencial: 'Cliente em situação crítica',
+    sem_fundos: 'Conta sem fundos suficientes',
+    inativo: 'Cliente inativo',
   }[status] || 'Status calculado';
 
   const details = [];

@@ -84,6 +84,14 @@ const getStatusExplanation = (client: Client): string => {
   return (client as any).statusExplanation || "Status calculado automaticamente baseado nas métricas de campanhas.";
 };
 
+// Função para obter a configuração do status com fallback
+const getStatusConfig = (status: ClientStatus | undefined) => {
+  if (!status || !statusConfig[status]) {
+    return statusConfig.atencao; // Fallback padrão
+  }
+  return statusConfig[status];
+};
+
 const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -258,7 +266,7 @@ const Clientes = () => {
       client.email,
       client.company,
       client.sector,
-      statusConfig[client.status].label,
+      getStatusConfig(client.status).label,
       client.active_campaigns,
       `R$ ${client.avg_cpl.toFixed(2)}`,
       client.leads_generated,
@@ -772,16 +780,16 @@ const Clientes = () => {
                            </th>
                          </tr>
                        </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {paginatedClients.map((client) => (
-                          <tr key={client.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-3 py-3">
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-2 h-2 rounded-full ${statusConfig[client.status].dotColor}`}></div>
-                                <Avatar className="w-8 h-8 flex-shrink-0">
-                                  <AvatarImage src={client.avatar} alt={client.name} />
-                                  <AvatarFallback className="text-xs">{client.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
+                       <tbody className="bg-white divide-y divide-gray-200">
+                         {paginatedClients.map((client) => (
+                           <tr key={client.id} className="hover:bg-gray-50 transition-colors">
+                             <td className="px-3 py-3">
+                               <div className="flex items-center space-x-3">
+                                 <div className={`w-2 h-2 rounded-full ${getStatusConfig(client.status).dotColor}`}></div>
+                                 <Avatar className="w-8 h-8 flex-shrink-0">
+                                   <AvatarImage src={client.avatar} alt={client.name} />
+                                   <AvatarFallback className="text-xs">{client.name.charAt(0)}</AvatarFallback>
+                                 </Avatar>
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-medium text-gray-900 truncate" title={client.name}>{client.name}</div>
                                   <div className="text-xs text-gray-500 truncate md:hidden">{client.company}</div>
@@ -798,9 +806,9 @@ const Clientes = () => {
                                 <TooltipTrigger asChild>
                                   <Badge 
                                     variant="outline" 
-                                    className={`${statusConfig[client.status].color} text-xs cursor-help`}
+                                    className={`${getStatusConfig(client.status).color} text-xs cursor-help`}
                                   >
-                                    {statusConfig[client.status].label}
+                                    {getStatusConfig(client.status).label}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent className="whitespace-pre-line max-w-xs bg-white shadow-lg border border-gray-200 rounded-md p-3 text-sm z-50">
@@ -891,7 +899,7 @@ const Clientes = () => {
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className={`w-3 h-3 rounded-full ${statusConfig[client.status].dotColor} flex-shrink-0`}></div>
+                        <div className={`w-3 h-3 rounded-full ${getStatusConfig(client.status).dotColor} flex-shrink-0`}></div>
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage src={client.avatar} alt={client.name} />
                           <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
@@ -946,9 +954,9 @@ const Clientes = () => {
                         <TooltipTrigger asChild>
                           <Badge 
                             variant="outline" 
-                            className={`${statusConfig[client.status].color} cursor-help`}
+                            className={`${getStatusConfig(client.status).color} cursor-help`}
                           >
-                            {statusConfig[client.status].label}
+                            {getStatusConfig(client.status).label}
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent className="whitespace-pre-line max-w-xs bg-white shadow-lg border border-gray-200 rounded-md p-3 text-sm z-50">
