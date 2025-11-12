@@ -52,7 +52,7 @@ export default function ClienteAutomacoes() {
   const { toast } = useToast();
   const { client } = useClientDetails(clientId || "");
   const { rules, loading: rulesLoading, updateRule, updateRuleConditions, deleteRule, fetchRules } = useAutomationRules(clientId);
-  const { logs, loading: logsLoading, fetchLogs, rollbackAction } = useAutomationLogs(clientId);
+  const { logs, loading: logsLoading, fetchLogs, rollbackAction, clearLogs } = useAutomationLogs(clientId);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -60,6 +60,8 @@ export default function ClienteAutomacoes() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [ruleToEdit, setRuleToEdit] = useState<any>(null);
   const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
+  const [clearLogsDialogOpen, setClearLogsDialogOpen] = useState(false);
+  const [clearingLogs, setClearingLogs] = useState(false);
 
   const filteredLogs = logs.filter(log => 
     logEntityFilter === 'all' || log.entity_type === logEntityFilter
@@ -135,6 +137,18 @@ export default function ClienteAutomacoes() {
       await rollbackAction(logId);
     } catch (error) {
       // Error handled in hook
+    }
+  };
+
+  const handleClearLogs = async () => {
+    setClearingLogs(true);
+    try {
+      const success = await clearLogs();
+      if (success) {
+        setClearLogsDialogOpen(false);
+      }
+    } finally {
+      setClearingLogs(false);
     }
   };
 
@@ -393,10 +407,25 @@ export default function ClienteAutomacoes() {
       {/* Execution Logs */}
       <Card>
         <CardHeader>
-          <CardTitle>Logs de Execução</CardTitle>
-          <CardDescription>
-            Histórico das últimas 50 execuções de automações
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Logs de Execução</CardTitle>
+              <CardDescription>
+                Histórico das últimas 50 execuções de automações
+              </CardDescription>
+            </div>
+            {logs.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setClearLogsDialogOpen(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Limpar Logs
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {logsLoading ? (
@@ -620,6 +649,39 @@ export default function ClienteAutomacoes() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteRule}>
               Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Logs Confirmation Dialog */}
+      <AlertDialog open={clearLogsDialogOpen} onOpenChange={setClearLogsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar todos os logs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá remover permanentemente todos os {logs.length} logs de execução de automações deste cliente.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearingLogs}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearLogs}
+              disabled={clearingLogs}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearingLogs ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Limpando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Limpar Logs
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

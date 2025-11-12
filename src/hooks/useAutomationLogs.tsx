@@ -105,10 +105,48 @@ export const useAutomationLogs = (clientId?: string | null, limit?: number) => {
     }
   };
 
+  const clearLogs = async () => {
+    if (!clientId || !activeCompany?.company_id) {
+      toast({
+        title: "Erro",
+        description: "Cliente ou empresa não identificados.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("campaign_automation_logs")
+        .delete()
+        .eq("client_id", clientId)
+        .eq("company_id", activeCompany.company_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Logs limpos",
+        description: "Todos os logs de automação foram removidos.",
+      });
+
+      await fetchLogs();
+      return true;
+    } catch (error: any) {
+      console.error("Error clearing logs:", error);
+      toast({
+        title: "Erro ao limpar logs",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     logs,
     loading,
     fetchLogs,
     rollbackAction,
+    clearLogs,
   };
 };
