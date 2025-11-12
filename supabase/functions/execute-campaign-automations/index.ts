@@ -250,6 +250,9 @@ function buildNewName(
     case 'decrease_budget':
       suffix = `Budget Reduzido`;
       break;
+    case 'duplicate_campaign':
+      suffix = `Cópia Auto (${conditionsDescription})`;
+      break;
     default:
       suffix = conditionsDescription;
   }
@@ -435,6 +438,109 @@ async function adjustBudgetSafely(
   };
 }
 
+async function duplicateCampaignSafely(
+  campaign: any,
+  integration: any,
+  rule: AutomationRule,
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
+) {
+  // Validar facebook_id
+  if (!campaign.facebook_id) {
+    throw new Error(`Campaign ${campaign.name} is missing facebook_id`);
+  }
+
+  // Validar objetivo
+  if (rule.campaign_objectives && campaign.objective) {
+    if (!rule.campaign_objectives.includes(campaign.objective)) {
+      throw new Error(`Campaign objective ${campaign.objective} not allowed`);
+    }
+  }
+
+  // Buscar dados completos da campanha via API do Facebook
+  const getCampaignUrl = `https://graph.facebook.com/v20.0/${campaign.facebook_id}?fields=name,objective,status,daily_budget,bid_strategy,special_ad_categories&access_token=${integration.access_token}`;
+  const getCampaignResponse = await fetch(getCampaignUrl);
+  
+  if (!getCampaignResponse.ok) {
+    throw new Error(`Failed to fetch campaign data: ${await getCampaignResponse.text()}`);
+  }
+  
+  const campaignData = await getCampaignResponse.json();
+
+  // Criar nome para a cópia
+  const newName = buildNewName(
+    campaign.name, 
+    'duplicate_campaign',
+    conditionsDesc,
+    prefix
+  );
+
+  // Duplicar campanha via API do Facebook
+  const adAccountId = campaign.clients?.ad_account_id;
+  if (!adAccountId) {
+    throw new Error('Ad account ID not found');
+  }
+
+  const duplicateUrl = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns`;
+  const duplicateResponse = await fetch(duplicateUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: newName,
+      objective: campaignData.objective,
+      status: 'ACTIVE',
+      daily_budget: campaignData.daily_budget,
+      bid_strategy: campaignData.bid_strategy,
+      special_ad_categories: campaignData.special_ad_categories,
+      access_token: integration.access_token,
+    }),
+  });
+
+  if (!duplicateResponse.ok) {
+    throw new Error(`Facebook API error: ${await duplicateResponse.text()}`);
+  }
+
+  const duplicateResult = await duplicateResponse.json();
+  const newCampaignId = duplicateResult.id;
+
+  console.log(`✅ Campaign duplicated: ${newName} (${newCampaignId}) - Status: ACTIVE`);
+
+  // Copiar ad sets da campanha original
+  const getAdSetsUrl = `https://graph.facebook.com/v20.0/${campaign.facebook_id}/adsets?fields=id&access_token=${integration.access_token}`;
+  const adSetsResponse = await fetch(getAdSetsUrl);
+  const adSetsData = await adSetsResponse.json();
+
+  if (adSetsData.data && adSetsData.data.length > 0) {
+    for (const adSet of adSetsData.data) {
+      // Copiar cada ad set para a nova campanha
+      const copyAdSetUrl = `https://graph.facebook.com/v20.0/${adSet.id}/copies`;
+      const copyResponse = await fetch(copyAdSetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaign_id: newCampaignId,
+          status_option: 'ACTIVE',
+          deep_copy: true,
+          access_token: integration.access_token,
+        }),
+      });
+      
+      if (copyResponse.ok) {
+        console.log(`✅ Ad set ${adSet.id} copied with status ACTIVE`);
+      }
+    }
+  }
+
+  return {
+    oldName: campaign.name,
+    newName,
+    originalCampaignId: campaign.facebook_id,
+    duplicatedCampaignId: newCampaignId,
+    newStatus: 'ACTIVE',
+    result: duplicateResult,
+  };
+}
+
 async function createRecommendation(
   supabase: any,
   rule: AutomationRule,
@@ -602,6 +708,9 @@ serve(async (req) => {
                 result = await activateCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
               } else if (['increase_budget', 'decrease_budget'].includes(rule.action_type)) {
                 result = await adjustBudgetSafely(supabase, campaign, integration, rule, evaluation.description, campaignPrefix);
+              } else if (rule.action_type === 'duplicate_campaign') {
+                result = await duplicateCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
+                console.log(`🚀 Campanha duplicada automaticamente: ${result.newName} - ATIVA`);
               } else {
                 throw new Error(`Action ${rule.action_type} not implemented`);
               }
@@ -620,7 +729,12 @@ serve(async (req) => {
                 new_budget: result.newBudget,
                 old_status: result.oldStatus,
                 new_status: result.newStatus,
-                metadata: { campaign, result },
+                metadata: { 
+                  campaign, 
+                  result,
+                  originalCampaignId: result.originalCampaignId,
+                  duplicatedCampaignId: result.duplicatedCampaignId,
+                },
               });
 
               totalActioned++;

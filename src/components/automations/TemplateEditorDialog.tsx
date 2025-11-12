@@ -300,7 +300,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                 <SelectItem value="activate_campaign">▶️ Ativar Campanha</SelectItem>
                 <SelectItem value="increase_budget">📈 Aumentar Orçamento</SelectItem>
                 <SelectItem value="decrease_budget">📉 Reduzir Orçamento</SelectItem>
-                <SelectItem value="duplicate_for_ab_test">🔬 Teste A/B</SelectItem>
+                <SelectItem value="duplicate_campaign">📋 Duplicar Campanha</SelectItem>
               </SelectContent>
             </Select>
           </div>
