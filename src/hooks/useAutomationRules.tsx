@@ -256,6 +256,32 @@ export const useAutomationRules = (clientId?: string | null) => {
     await fetchRules();
   };
 
+  const updateRuleConditions = async (ruleId: string, newConditions: any) => {
+    const { error } = await supabase
+      .from("campaign_automation_rules")
+      .update({ 
+        conditions: newConditions,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", ruleId);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar condições.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+
+    toast({
+      title: "Condições atualizadas",
+      description: "Os valores foram atualizados com sucesso.",
+    });
+
+    await fetchRules();
+  };
+
   const deleteRule = async (id: string) => {
     const { error } = await supabase
       .from("campaign_automation_rules")
@@ -314,6 +340,7 @@ export const useAutomationRules = (clientId?: string | null) => {
     importTemplateToClient,
     importConfiguredTemplate,
     updateRule,
+    updateRuleConditions,
     deleteRule,
     simulateRule,
   };

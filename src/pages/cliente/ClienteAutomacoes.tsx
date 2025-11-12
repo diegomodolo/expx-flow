@@ -9,6 +9,7 @@ import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationLogs } from "@/hooks/useAutomationLogs";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutomationTemplateDialog";
+import { EditAutomationValuesDialog } from "@/components/clients/EditAutomationValuesDialog";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 import { 
   Play, 
@@ -20,7 +21,8 @@ import {
   Loader2,
   AlertCircle,
   Undo2,
-  Zap
+  Zap,
+  Pencil
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,12 +50,14 @@ export default function ClienteAutomacoes() {
   const { id: clientId } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { client } = useClientDetails(clientId || "");
-  const { rules, loading: rulesLoading, updateRule, deleteRule, fetchRules } = useAutomationRules(clientId);
+  const { rules, loading: rulesLoading, updateRule, updateRuleConditions, deleteRule, fetchRules } = useAutomationRules(clientId);
   const { logs, loading: logsLoading, fetchLogs, rollbackAction } = useAutomationLogs(clientId);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [ruleToEdit, setRuleToEdit] = useState<any>(null);
 
   const handleToggleRule = async (ruleId: string, currentStatus: boolean) => {
     try {
@@ -168,6 +172,62 @@ export default function ClienteAutomacoes() {
     await fetchLogs();
   };
 
+  const handleSaveConditions = async (ruleId: string, updatedConditions: any) => {
+    try {
+      await updateRuleConditions(ruleId, updatedConditions);
+      setEditDialogOpen(false);
+      setRuleToEdit(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getFieldLabel = (field: string): string => {
+    const labels: Record<string, string> = {
+      cpa: "CPA",
+      ctr: "CTR",
+      conversions: "Conversões",
+      spend: "Gasto",
+      impressions: "Impressões",
+      clicks: "Cliques",
+      frequency: "Frequência",
+      reach: "Alcance",
+      cost_per_click: "CPC",
+      roas: "ROAS",
+    };
+    return labels[field] || field;
+  };
+
+  const getOperatorLabel = (operator: string): string => {
+    const labels: Record<string, string> = {
+      ">": "maior que",
+      "<": "menor que",
+      ">=": "maior ou igual a",
+      "<=": "menor ou igual a",
+      "=": "igual a",
+      "!=": "diferente de",
+    };
+    return labels[operator] || operator;
+  };
+
+  const formatConditionValue = (field: string, value: number | boolean): string => {
+    if (typeof value === "boolean") return value ? "Sim" : "Não";
+    
+    if (["cpa", "spend", "cost_per_click"].includes(field)) {
+      return `R$ ${value.toFixed(2)}`;
+    }
+    
+    if (["ctr"].includes(field)) {
+      return `${value}%`;
+    }
+    
+    return value.toString();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -262,8 +322,44 @@ export default function ClienteAutomacoes() {
                             </div>
                           </div>
                         )}
+                        {rule.conditions?.conditions && rule.conditions.conditions.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <div className="text-xs font-medium text-muted-foreground mb-2">
+                              Condições configuradas:
+                            </div>
+                            <div className="space-y-1">
+                              {rule.conditions.conditions.map((condition: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2 text-sm">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {getFieldLabel(condition.field)}
+                                  </Badge>
+                                  <span className="text-muted-foreground">
+                                    {getOperatorLabel(condition.operator)}
+                                  </span>
+                                  <span className="font-medium">
+                                    {formatConditionValue(condition.field, condition.value)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-2">
+                              Lógica: <strong>{rule.conditions.logic === "AND" ? "Todas" : "Qualquer uma"}</strong> das condições
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setRuleToEdit(rule);
+                            setEditDialogOpen(true);
+                          }}
+                          title="Editar valores"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Switch
                           checked={rule.is_active}
                           onCheckedChange={() => handleToggleRule(rule.id, rule.is_active)}
@@ -391,6 +487,14 @@ export default function ClienteAutomacoes() {
         onOpenChange={setImportDialogOpen}
         clientId={clientId || ""}
         onImported={handleImported}
+      />
+
+      {/* Edit Values Dialog */}
+      <EditAutomationValuesDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        rule={ruleToEdit}
+        onSave={handleSaveConditions}
       />
 
       {/* Delete Confirmation Dialog */}
