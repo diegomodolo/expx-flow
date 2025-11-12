@@ -699,7 +699,7 @@ async function duplicateAdSetSafely(
 
 // ============ FUNÇÕES PARA ADS ============
 
-async function fetchAds(supabase: any, companyId: string, clientId?: string) {
+async function fetchAds(supabase: any, companyId: string, clientId?: string, campaignObjectives?: string[]) {
   try {
     // 1. Buscar campaigns da empresa/cliente
     let campaignsQuery = supabase
@@ -710,6 +710,10 @@ async function fetchAds(supabase: any, companyId: string, clientId?: string) {
 
     if (clientId) {
       campaignsQuery = campaignsQuery.eq('client_id', clientId);
+    }
+
+    if (campaignObjectives && campaignObjectives.length > 0) {
+      campaignsQuery = campaignsQuery.in('objective', campaignObjectives);
     }
 
     const { data: campaigns, error: campaignsError } = await campaignsQuery;
@@ -1294,7 +1298,7 @@ serve(async (req) => {
     // ========== PROCESSAR ADS ==========
     for (const rule of adRules) {
       try {
-        const ads = await fetchAds(supabase, rule.company_id, rule.client_id || undefined);
+        const ads = await fetchAds(supabase, rule.company_id, rule.client_id || undefined, rule.campaign_objectives);
 
         const { data: integration } = await supabase
           .from('facebook_integrations')
