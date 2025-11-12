@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, Settings } from "lucide-react";
 import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationRecommendations } from "@/hooks/useAutomationRecommendations";
 import { useAutomationLogs } from "@/hooks/useAutomationLogs";
+import { useAutomationSettings } from "@/hooks/useAutomationSettings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,13 +15,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical, Download, Edit, Trash, Check, X, RotateCcw } from "lucide-react";
 import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDialog";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [prefixInput, setPrefixInput] = useState("");
   const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
   const { logs, rollbackAction } = useAutomationLogs(null, 50);
+  const { settings, loading: settingsLoading, updateSettings } = useAutomationSettings();
 
   const getActionLabel = (actionType: string) => {
     const labels: Record<string, string> = {
@@ -53,6 +58,19 @@ const Automacoes = () => {
     }
   };
 
+  const handleSaveSettings = async () => {
+    const trimmedPrefix = prefixInput.trim();
+    if (!trimmedPrefix) return;
+    await updateSettings({ campaign_name_prefix: trimmedPrefix });
+  };
+
+  // Initialize prefix input when settings load
+  useEffect(() => {
+    if (settings?.campaign_name_prefix) {
+      setPrefixInput(settings.campaign_name_prefix);
+    }
+  }, [settings]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -78,6 +96,10 @@ const Automacoes = () => {
             </TabsTrigger>
             <TabsTrigger value="logs">
               📊 Histórico ({logs.length})
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="mr-2 h-4 w-4" />
+              Configurações
             </TabsTrigger>
           </TabsList>
 
@@ -333,6 +355,50 @@ const Automacoes = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ABA CONFIGURAÇÕES */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações de Automação</CardTitle>
+                <CardDescription>
+                  Configure o comportamento global das automações
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {settingsLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando configurações...
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="prefix">Prefixo do Nome da Campanha</Label>
+                      <Input 
+                        id="prefix"
+                        value={prefixInput}
+                        onChange={(e) => setPrefixInput(e.target.value)}
+                        placeholder="SHEGrowth"
+                        maxLength={50}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Este prefixo será adicionado ao nome das campanhas quando as automações fizerem alterações.
+                      </p>
+                      <div className="mt-2 p-3 bg-muted rounded-md">
+                        <p className="text-xs font-medium mb-1">Preview:</p>
+                        <code className="text-xs bg-background px-2 py-1 rounded">
+                          [{prefixInput || 'SHEGrowth'}] Campanha Teste - Pausada (CPA Alto)
+                        </code>
+                      </div>
+                    </div>
+                    <Button onClick={handleSaveSettings} disabled={!prefixInput.trim()}>
+                      Salvar Configurações
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

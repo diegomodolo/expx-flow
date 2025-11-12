@@ -224,9 +224,13 @@ function detectCreativeFatigue(campaign: any, actionConfig: any): boolean {
 function buildNewName(
   originalName: string,
   actionType: string,
-  conditionsDescription: string
+  conditionsDescription: string,
+  prefix: string = 'SHEGrowth'
 ): string {
-  let baseName = originalName.replace(/^\[SHEGrowth\]\s*/i, '').trim();
+  // Remove qualquer prefixo existente (padrão genérico entre colchetes)
+  let baseName = originalName.replace(/^\[.*?\]\s*/i, '').trim();
+  
+  // Remove sufixos antigos depois de " - "
   const dashIndex = baseName.indexOf(' - ');
   if (dashIndex > 0) {
     baseName = baseName.substring(0, dashIndex).trim();
@@ -250,14 +254,15 @@ function buildNewName(
       suffix = conditionsDescription;
   }
   
-  return `[SHEGrowth] ${baseName} - ${suffix}`;
+  return `[${prefix}] ${baseName} - ${suffix}`;
 }
 
 async function pauseCampaignSafely(
   campaign: any,
   integration: any,
   rule: AutomationRule,
-  conditionsDesc: string
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
 ) {
   // Validar que facebook_id existe
   if (!campaign.facebook_id) {
@@ -271,7 +276,7 @@ async function pauseCampaignSafely(
     }
   }
   
-  const newName = buildNewName(campaign.name, 'pause_campaign', conditionsDesc);
+  const newName = buildNewName(campaign.name, 'pause_campaign', conditionsDesc, prefix);
   
   const url = `https://graph.facebook.com/v20.0/${campaign.facebook_id}`;
   const response = await fetch(url, {
@@ -301,7 +306,8 @@ async function activateCampaignSafely(
   campaign: any,
   integration: any,
   rule: AutomationRule,
-  conditionsDesc: string
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
 ) {
   // Validar que facebook_id existe
   if (!campaign.facebook_id) {
@@ -314,7 +320,7 @@ async function activateCampaignSafely(
     }
   }
   
-  const newName = buildNewName(campaign.name, 'activate_campaign', conditionsDesc);
+  const newName = buildNewName(campaign.name, 'activate_campaign', conditionsDesc, prefix);
   
   const url = `https://graph.facebook.com/v20.0/${campaign.facebook_id}`;
   const response = await fetch(url, {
@@ -345,7 +351,8 @@ async function adjustBudgetSafely(
   campaign: any,
   integration: any,
   rule: AutomationRule,
-  conditionsDesc: string
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
 ) {
   // Validar que facebook_id existe
   if (!campaign.facebook_id) {
@@ -399,7 +406,8 @@ async function adjustBudgetSafely(
   const newName = buildNewName(
     campaign.name, 
     rule.action_type,
-    `${percentChange > 0 ? '+' : ''}${percentChange.toFixed(0)}%`
+    `${percentChange > 0 ? '+' : ''}${percentChange.toFixed(0)}%`,
+    prefix
   );
   
   // Atualizar budget
@@ -495,6 +503,22 @@ serve(async (req) => {
 
     console.log(`📋 Found ${rules.length} active rules`);
 
+    // Buscar configurações de automação por empresa (para o prefixo)
+    const companySettings = new Map<string, string>();
+    const uniqueCompanyIds = [...new Set(rules.map(r => r.company_id))];
+    
+    for (const companyId of uniqueCompanyIds) {
+      const { data: settings } = await supabase
+        .from('automation_settings')
+        .select('campaign_name_prefix')
+        .eq('company_id', companyId)
+        .single();
+      
+      const prefix = settings?.campaign_name_prefix || 'SHEGrowth';
+      companySettings.set(companyId, prefix);
+      console.log(`⚙️ Company ${companyId} using prefix: [${prefix}]`);
+    }
+
     let totalAnalyzed = 0;
     let totalActioned = 0;
     let totalErrors = 0;
@@ -566,15 +590,18 @@ serve(async (req) => {
             try {
               let result;
               
+              // Obter prefixo configurado para a empresa
+              const campaignPrefix = companySettings.get(rule.company_id) || 'SHEGrowth';
+              
               // Executar ação
               if (rule.action_type === 'notify_only') {
                 result = await createRecommendation(supabase, rule, campaign, evaluation.description);
               } else if (rule.action_type === 'pause_campaign') {
-                result = await pauseCampaignSafely(campaign, integration, rule, evaluation.description);
+                result = await pauseCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
               } else if (rule.action_type === 'activate_campaign') {
-                result = await activateCampaignSafely(campaign, integration, rule, evaluation.description);
+                result = await activateCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
               } else if (['increase_budget', 'decrease_budget'].includes(rule.action_type)) {
-                result = await adjustBudgetSafely(supabase, campaign, integration, rule, evaluation.description);
+                result = await adjustBudgetSafely(supabase, campaign, integration, rule, evaluation.description, campaignPrefix);
               } else {
                 throw new Error(`Action ${rule.action_type} not implemented`);
               }

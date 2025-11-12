@@ -364,6 +364,38 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_settings: {
+        Row: {
+          campaign_name_prefix: string
+          company_id: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_name_prefix?: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_name_prefix?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_ab_tests: {
         Row: {
           client_id: string
