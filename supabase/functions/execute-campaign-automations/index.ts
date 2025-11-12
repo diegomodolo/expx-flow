@@ -259,6 +259,11 @@ async function pauseCampaignSafely(
   rule: AutomationRule,
   conditionsDesc: string
 ) {
+  // Validar que facebook_id existe
+  if (!campaign.facebook_id) {
+    throw new Error(`Campaign ${campaign.name} (ID: ${campaign.id}) is missing facebook_id. Please resync campaigns.`);
+  }
+
   // Validar objetivo
   if (rule.campaign_objectives && campaign.objective) {
     if (!rule.campaign_objectives.includes(campaign.objective)) {
@@ -298,6 +303,11 @@ async function activateCampaignSafely(
   rule: AutomationRule,
   conditionsDesc: string
 ) {
+  // Validar que facebook_id existe
+  if (!campaign.facebook_id) {
+    throw new Error(`Campaign ${campaign.name} (ID: ${campaign.id}) is missing facebook_id. Please resync campaigns.`);
+  }
+
   if (rule.campaign_objectives && campaign.objective) {
     if (!rule.campaign_objectives.includes(campaign.objective)) {
       throw new Error(`Campaign objective ${campaign.objective} not allowed for this rule`);
@@ -337,6 +347,11 @@ async function adjustBudgetSafely(
   rule: AutomationRule,
   conditionsDesc: string
 ) {
+  // Validar que facebook_id existe
+  if (!campaign.facebook_id) {
+    throw new Error(`Campaign ${campaign.name} (ID: ${campaign.id}) is missing facebook_id. Please resync campaigns.`);
+  }
+
   const limits = rule.budget_safety_limits;
   const percentChange = rule.action_type === 'increase_budget' 
     ? (rule.action_config.budget_change_percent || 20)

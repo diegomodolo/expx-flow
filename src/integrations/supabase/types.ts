@@ -746,6 +746,7 @@ export type Database = {
           created_at: string
           ctr: number
           engagement_rate_ranking: string | null
+          facebook_id: string | null
           frequency: number | null
           id: string
           impressions: number | null
@@ -773,6 +774,7 @@ export type Database = {
           created_at?: string
           ctr?: number
           engagement_rate_ranking?: string | null
+          facebook_id?: string | null
           frequency?: number | null
           id?: string
           impressions?: number | null
@@ -800,6 +802,7 @@ export type Database = {
           created_at?: string
           ctr?: number
           engagement_rate_ranking?: string | null
+          facebook_id?: string | null
           frequency?: number | null
           id?: string
           impressions?: number | null
