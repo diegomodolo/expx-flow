@@ -11,9 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAutomationRules } from "@/hooks/useAutomationRules";
+import { useAutomationRules, AutomationRule } from "@/hooks/useAutomationRules";
 import { Loader2, Search, CheckCircle2, Zap } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ConfigureAutomationDialog } from "./ConfigureAutomationDialog";
 
 interface ImportAutomationTemplateDialogProps {
   open: boolean;
@@ -29,9 +30,11 @@ export function ImportAutomationTemplateDialog({
   onImported,
 }: ImportAutomationTemplateDialogProps) {
   const { toast } = useToast();
-  const { templates, rules, loading, importTemplateToClient } = useAutomationRules();
+  const { templates, rules, loading, importTemplateToClient, importConfiguredTemplate } = useAutomationRules();
   const [importing, setImporting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [configureDialogOpen, setConfigureDialogOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<AutomationRule | null>(null);
 
   const importedTemplateIds = rules.map((rule) => rule.template_id).filter(Boolean);
 
@@ -42,21 +45,40 @@ export function ImportAutomationTemplateDialog({
   const handleImport = async (templateId: string) => {
     setImporting(templateId);
     try {
-      await importTemplateToClient(templateId, clientId);
+      const template = await importTemplateToClient(templateId, clientId);
+      if (template) {
+        setSelectedTemplate(template as unknown as AutomationRule);
+        setConfigureDialogOpen(true);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar template",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  const handleConfirmConfiguration = async (configuredConditions: any) => {
+    if (!selectedTemplate) return;
+
+    try {
+      await importConfiguredTemplate(selectedTemplate.id, clientId, configuredConditions);
       toast({
         title: "Template importado",
         description: "A automação foi importada e ativada com sucesso.",
       });
       onImported?.();
       onOpenChange(false);
+      setConfigureDialogOpen(false);
     } catch (error: any) {
       toast({
         title: "Erro ao importar",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setImporting(null);
     }
   };
 
@@ -90,8 +112,9 @@ export function ImportAutomationTemplateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Importar Template de Automação</DialogTitle>
           <DialogDescription>
@@ -185,5 +208,15 @@ export function ImportAutomationTemplateDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {selectedTemplate && (
+      <ConfigureAutomationDialog
+        open={configureDialogOpen}
+        onOpenChange={setConfigureDialogOpen}
+        template={selectedTemplate}
+        onConfirm={handleConfirmConfiguration}
+      />
+    )}
+    </>
   );
 }

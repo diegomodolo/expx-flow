@@ -150,6 +150,45 @@ export const useAutomationRules = (clientId?: string | null) => {
       return null;
     }
 
+    return template;
+  };
+
+  const importConfiguredTemplate = async (
+    templateId: string,
+    targetClientId: string,
+    configuredConditions: any
+  ) => {
+    if (!activeCompany?.company_id) return null;
+
+    const { data: template, error: fetchError } = await supabase
+      .from("campaign_automation_rules")
+      .select("*")
+      .eq("id", templateId)
+      .single();
+
+    if (fetchError || !template) {
+      toast({
+        title: "Erro",
+        description: "Template não encontrado.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Validate that all conditions have operator and value
+    const allConfigured = configuredConditions.conditions.every(
+      (c: any) => c.operator !== null && c.value !== null
+    );
+
+    if (!allConfigured) {
+      toast({
+        title: "Erro de validação",
+        description: "Todas as condições devem ser configuradas",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     const { data: newRule, error: insertError } = await supabase
       .from("campaign_automation_rules")
       .insert({
@@ -163,7 +202,7 @@ export const useAutomationRules = (clientId?: string | null) => {
         rule_order: template.rule_order,
         campaign_objectives: template.campaign_objectives,
         time_window_days: template.time_window_days,
-        conditions: template.conditions,
+        conditions: configuredConditions,
         action_type: template.action_type,
         action_config: template.action_config,
         budget_safety_limits: template.budget_safety_limits,
@@ -273,6 +312,7 @@ export const useAutomationRules = (clientId?: string | null) => {
     fetchTemplates,
     createTemplate,
     importTemplateToClient,
+    importConfiguredTemplate,
     updateRule,
     deleteRule,
     simulateRule,

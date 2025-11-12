@@ -176,7 +176,15 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     
     const templateData = {
       ...formData,
-      conditions,
+      conditions: {
+        logic: conditions.logic,
+        conditions: conditions.conditions.map(c => ({
+          field: c.field,
+          operator: null,
+          value: null,
+          type: c.type,
+        }))
+      },
       action_config: {},
       budget_safety_limits: safetyLimits.budget_safety_limits,
       execution_limits: safetyLimits.execution_limits,
@@ -282,7 +290,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
             </p>
           </div>
 
-          <ConditionEditor value={conditions} onChange={setConditions} />
+          <ConditionEditor value={conditions} onChange={setConditions} isTemplate={true} />
 
           <Separator className="my-6" />
 

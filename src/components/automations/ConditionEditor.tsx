@@ -10,8 +10,8 @@ import { z } from "zod";
 
 const conditionSchema = z.object({
   field: z.string().min(1, "Campo obrigatório"),
-  operator: z.enum(["<", ">", "=", "!=", ">=", "<="]),
-  value: z.number().min(0, "Valor deve ser positivo"),
+  operator: z.enum(["<", ">", "=", "!=", ">=", "<="]).nullable(),
+  value: z.number().nullable(),
   type: z.enum(["number", "boolean"]),
 });
 
@@ -26,6 +26,7 @@ export type ConditionsGroup = z.infer<typeof conditionsGroupSchema>;
 interface ConditionEditorProps {
   value: ConditionsGroup;
   onChange: (value: ConditionsGroup) => void;
+  isTemplate?: boolean;
 }
 
 const FIELD_OPTIONS = [
@@ -50,7 +51,7 @@ const OPERATOR_LABELS = {
   "<=": "menor ou igual a",
 } as const;
 
-export const ConditionEditor = ({ value, onChange }: ConditionEditorProps) => {
+export const ConditionEditor = ({ value, onChange, isTemplate = false }: ConditionEditorProps) => {
   const [errors, setErrors] = useState<Record<number, string>>({});
 
   const validateCondition = (condition: ConditionType, index: number): boolean => {
@@ -71,8 +72,8 @@ export const ConditionEditor = ({ value, onChange }: ConditionEditorProps) => {
   const addCondition = () => {
     const newCondition: ConditionType = {
       field: "cpa",
-      operator: ">",
-      value: 0,
+      operator: isTemplate ? null : ">",
+      value: isTemplate ? null : 0,
       type: "number",
     };
     
@@ -185,38 +186,50 @@ export const ConditionEditor = ({ value, onChange }: ConditionEditorProps) => {
 
                   <div className="space-y-1">
                     <Label className="text-xs">Operador</Label>
-                    <Select
-                      value={condition.operator}
-                      onValueChange={(operator) => 
-                        updateCondition(index, { operator: operator as ConditionType["operator"] })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isTemplate ? (
+                      <div className="h-10 px-3 py-2 border rounded-md bg-muted text-muted-foreground text-sm flex items-center">
+                        A configurar
+                      </div>
+                    ) : (
+                      <Select
+                        value={condition.operator || undefined}
+                        onValueChange={(operator) => 
+                          updateCondition(index, { operator: operator as ConditionType["operator"] })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-xs">Valor</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={condition.value}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        updateCondition(index, { value });
-                      }}
-                      onBlur={() => validateCondition(condition, index)}
-                    />
+                    {isTemplate ? (
+                      <div className="h-10 px-3 py-2 border rounded-md bg-muted text-muted-foreground text-sm flex items-center">
+                        A configurar
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={condition.value ?? 0}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          updateCondition(index, { value });
+                        }}
+                        onBlur={() => validateCondition(condition, index)}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -235,10 +248,17 @@ export const ConditionEditor = ({ value, onChange }: ConditionEditorProps) => {
                 <p className="text-xs text-destructive mt-2">{errors[index]}</p>
               )}
               
-              <p className="text-xs text-muted-foreground mt-2">
-                Se {FIELD_OPTIONS.find(f => f.value === condition.field)?.label.toLowerCase()} for{" "}
-                {OPERATOR_LABELS[condition.operator]} {condition.value}
-              </p>
+              {!isTemplate && condition.operator && condition.value !== null && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Se {FIELD_OPTIONS.find(f => f.value === condition.field)?.label.toLowerCase()} for{" "}
+                  {OPERATOR_LABELS[condition.operator]} {condition.value}
+                </p>
+              )}
+              {isTemplate && (
+                <p className="text-xs text-warning mt-2">
+                  ⚙️ Operador e valor serão configurados na importação
+                </p>
+              )}
             </CardContent>
           </Card>
         ))}

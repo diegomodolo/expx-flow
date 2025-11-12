@@ -169,6 +169,11 @@ const Automacoes = () => {
                               <span className="font-medium">Execuções:</span> {template.execution_count}x
                             </div>
                           </div>
+                          <div className="mt-3 pt-3 border-t">
+                            <Badge variant="secondary" className="gap-1">
+                              ⚙️ Valores configuráveis na importação
+                            </Badge>
+                          </div>
                           {template.campaign_objectives && template.campaign_objectives.length > 0 && (
                             <div className="mt-3 pt-3 border-t">
                               <div className="text-xs font-medium text-muted-foreground mb-2">
