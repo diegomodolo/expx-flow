@@ -864,6 +864,7 @@ serve(async (req) => {
     let totalAnalyzed = 0;
     let totalActioned = 0;
     let totalErrors = 0;
+    let totalSkipped = 0;
     const simulationResults: any[] = [];
 
     // Agrupar regras por entity_type
@@ -997,6 +998,30 @@ serve(async (req) => {
               });
               totalErrors++;
             }
+          } else {
+            // 🆕 Registrar verificação sem ação
+            console.log(`⏭️ Campaign ${campaign.name}: Conditions not met (${evaluation.description})`);
+            await supabase.from('campaign_automation_logs').insert({
+              rule_id: rule.id,
+              company_id: rule.company_id,
+              client_id: campaign.client_id,
+              campaign_id: campaign.id,
+              entity_type: 'campaign',
+              action_type: rule.action_type,
+              action_result: 'skipped',
+              metadata: {
+                reason: 'Condições não atendidas',
+                conditions_checked: evaluation.description,
+                campaign_metrics: {
+                  cpa: campaign.cpa,
+                  ctr: campaign.ctr,
+                  conversions: campaign.conversions,
+                  frequency: campaign.frequency,
+                  spend: campaign.spend,
+                },
+              },
+            });
+            totalSkipped++;
           }
         }
 
@@ -1106,6 +1131,31 @@ serve(async (req) => {
               });
               totalErrors++;
             }
+          } else {
+            // 🆕 Registrar verificação sem ação
+            console.log(`⏭️ Ad Set ${adset.name}: Conditions not met (${evaluation.description})`);
+            await supabase.from('campaign_automation_logs').insert({
+              rule_id: rule.id,
+              company_id: rule.company_id,
+              client_id: adset.client_id,
+              campaign_id: adset.campaign_id,
+              adset_id: adset.id,
+              entity_type: 'adset',
+              action_type: rule.action_type,
+              action_result: 'skipped',
+              metadata: {
+                reason: 'Condições não atendidas',
+                conditions_checked: evaluation.description,
+                adset_metrics: {
+                  cpa: adset.cpa,
+                  ctr: adset.ctr,
+                  conversions: adset.conversions,
+                  frequency: adset.frequency,
+                  spend: adset.spend,
+                },
+              },
+            });
+            totalSkipped++;
           }
         }
 
@@ -1217,6 +1267,32 @@ serve(async (req) => {
               });
               totalErrors++;
             }
+          } else {
+            // 🆕 Registrar verificação sem ação
+            console.log(`⏭️ Ad ${ad.name}: Conditions not met (${evaluation.description})`);
+            await supabase.from('campaign_automation_logs').insert({
+              rule_id: rule.id,
+              company_id: rule.company_id,
+              client_id: ad.client_id,
+              campaign_id: ad.campaign_id,
+              adset_id: ad.ad_set_id,
+              ad_id: ad.id,
+              entity_type: 'ad',
+              action_type: rule.action_type,
+              action_result: 'skipped',
+              metadata: {
+                reason: 'Condições não atendidas',
+                conditions_checked: evaluation.description,
+                ad_metrics: {
+                  cpa: ad.cpa,
+                  ctr: ad.ctr,
+                  conversions: ad.conversions,
+                  frequency: ad.frequency,
+                  spend: ad.spend,
+                },
+              },
+            });
+            totalSkipped++;
           }
         }
 
@@ -1234,7 +1310,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`✨ Complete! Analyzed: ${totalAnalyzed}, Actioned: ${totalActioned}, Errors: ${totalErrors}`);
+    console.log(`✨ Complete! Analyzed: ${totalAnalyzed}, Actioned: ${totalActioned}, Skipped: ${totalSkipped}, Errors: ${totalErrors}`);
 
     if (mode === 'simulation') {
       return new Response(
@@ -1258,6 +1334,7 @@ serve(async (req) => {
         processed: totalAnalyzed,
         analyzed: totalAnalyzed,
         actioned: totalActioned,
+        skipped: totalSkipped,
         errors: totalErrors,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -411,6 +411,7 @@ export default function ClienteAutomacoes() {
                     <TableHead>Campanha</TableHead>
                     <TableHead>Ação</TableHead>
                     <TableHead>Alterações</TableHead>
+                    <TableHead>Detalhes</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -421,7 +422,18 @@ export default function ClienteAutomacoes() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getResultIcon(log.action_result)}
-                          <span className="text-xs capitalize">{log.action_result}</span>
+                          <Badge 
+                            variant={
+                              log.action_result === 'success' ? 'default' : 
+                              log.action_result === 'error' ? 'destructive' : 
+                              'outline'
+                            }
+                            className={log.action_result === 'skipped' ? 'text-muted-foreground' : ''}
+                          >
+                            {log.action_result === 'success' && 'Sucesso'}
+                            {log.action_result === 'error' && 'Erro'}
+                            {log.action_result === 'skipped' && 'Sem Ação'}
+                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -448,6 +460,23 @@ export default function ClienteAutomacoes() {
                           </span>
                         )}
                         {!log.old_status && !log.old_budget && !log.old_name && "-"}
+                      </TableCell>
+                      <TableCell className="text-xs max-w-[200px]">
+                        {log.action_result === 'skipped' && log.metadata?.reason && (
+                          <div className="text-muted-foreground">
+                            <div className="font-medium">{log.metadata.reason}</div>
+                            {log.metadata.conditions_checked && (
+                              <div className="text-xs mt-1 text-muted-foreground/70">
+                                {log.metadata.conditions_checked}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {log.action_result === 'error' && log.error_message && (
+                          <div className="text-destructive text-xs">
+                            {log.error_message}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">
                         {formatDistanceToNow(new Date(log.executed_at), {

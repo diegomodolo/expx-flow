@@ -351,6 +351,7 @@ const Automacoes = () => {
                       <TableHead>Renomeação</TableHead>
                       <TableHead>Recovery</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Detalhes</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -392,11 +393,37 @@ const Automacoes = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={log.action_result === 'success' ? 'default' : 'destructive'}>
-                            {log.action_result === 'success' ? 'Sucesso' : 'Erro'}
+                          <Badge 
+                            variant={
+                              log.action_result === 'success' ? 'default' : 
+                              log.action_result === 'error' ? 'destructive' : 
+                              'outline'
+                            }
+                            className={log.action_result === 'skipped' ? 'text-muted-foreground' : ''}
+                          >
+                            {log.action_result === 'success' && '✅ Sucesso'}
+                            {log.action_result === 'error' && '❌ Erro'}
+                            {log.action_result === 'skipped' && '⏭️ Sem Ação'}
                           </Badge>
                           {log.rolled_back && (
                             <Badge variant="secondary" className="ml-2">Revertido</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs max-w-[200px]">
+                          {log.action_result === 'skipped' && log.metadata?.reason && (
+                            <div className="text-muted-foreground">
+                              <div className="font-medium">{log.metadata.reason}</div>
+                              {log.metadata.conditions_checked && (
+                                <div className="text-xs mt-1 text-muted-foreground/70">
+                                  {log.metadata.conditions_checked}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {log.action_result === 'error' && log.error_message && (
+                            <div className="text-destructive text-xs">
+                              {log.error_message}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
