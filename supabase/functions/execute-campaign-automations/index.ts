@@ -467,6 +467,13 @@ async function duplicateCampaignSafely(
   
   const campaignData = await getCampaignResponse.json();
 
+  // Calcular novo budget baseado na porcentagem configurada
+  const budgetPercent = rule.action_config?.duplicate_budget_percent || 50;
+  const originalBudget = parseFloat(campaignData.daily_budget || '0');
+  const newBudget = Math.round(originalBudget * (budgetPercent / 100));
+  
+  console.log(`💰 Budget adjustment: ${originalBudget / 100} → ${newBudget / 100} (${budgetPercent}%)`);
+
   // Criar nome para a cópia
   const newName = buildNewName(
     campaign.name, 
@@ -489,7 +496,7 @@ async function duplicateCampaignSafely(
       name: newName,
       objective: campaignData.objective,
       status: 'ACTIVE',
-      daily_budget: campaignData.daily_budget,
+      daily_budget: newBudget,
       bid_strategy: campaignData.bid_strategy,
       special_ad_categories: campaignData.special_ad_categories,
       access_token: integration.access_token,
@@ -536,6 +543,9 @@ async function duplicateCampaignSafely(
     newName,
     originalCampaignId: campaign.facebook_id,
     duplicatedCampaignId: newCampaignId,
+    oldBudget: originalBudget / 100,
+    newBudget: newBudget / 100,
+    budgetPercent,
     newStatus: 'ACTIVE',
     result: duplicateResult,
   };

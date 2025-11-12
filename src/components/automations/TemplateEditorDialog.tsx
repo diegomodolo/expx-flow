@@ -42,6 +42,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     time_window_days: 7,
     action_type: "notify_only",
     is_active: true,
+    action_config: {} as any,
   });
 
   const [conditions, setConditions] = useState<ConditionsGroup>({
@@ -79,6 +80,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         time_window_days: template.time_window_days,
         action_type: template.action_type,
         is_active: template.is_active,
+        action_config: template.action_config || {},
       });
       
       setConditions(template.conditions as ConditionsGroup);
@@ -104,6 +106,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         time_window_days: 7,
         action_type: "notify_only",
         is_active: true,
+        action_config: {},
       });
       
       setConditions({
@@ -304,6 +307,49 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
               </SelectContent>
             </Select>
           </div>
+
+          {formData.action_type === 'duplicate_campaign' && (
+            <div className="rounded-lg border p-4 space-y-3 bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="duplicate_budget_percent">Budget da Campanha Duplicada (%)</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">
+                      Define qual porcentagem do budget original será aplicada à campanha duplicada.
+                      Por exemplo, com 50%, se a campanha original tem budget de R$ 100/dia, 
+                      a duplicada terá R$ 50/dia. Use valores menores para testes mais controlados.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="duplicate_budget_percent"
+                  type="number"
+                  min="10"
+                  max="200"
+                  value={formData.action_config?.duplicate_budget_percent || 50}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    action_config: { 
+                      ...formData.action_config, 
+                      duplicate_budget_percent: parseInt(e.target.value) || 50 
+                    } 
+                  })}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">
+                  % do budget original
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                💡 Recomendado: 30-70% para testes controlados, 100% para scaling
+              </p>
+            </div>
+          )}
 
           <Separator className="my-6" />
 
