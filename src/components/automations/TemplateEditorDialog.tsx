@@ -34,6 +34,7 @@ interface TemplateEditorDialogProps {
 
 export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: TemplateEditorDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     rule_name: "",
@@ -80,6 +81,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     });
     
     if (template) {
+      setIsLoadingTemplate(true);
       console.log('✅ Loading template data:', {
         rule_name: template.rule_name,
         entity_type: template.entity_type,
@@ -88,7 +90,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         time_window_days: template.time_window_days,
       });
       
-      setFormData({
+      const newFormData = {
         rule_name: template.rule_name,
         rule_description: template.rule_description || "",
         rule_order: template.rule_order,
@@ -97,7 +99,10 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         is_active: template.is_active,
         action_config: template.action_config || {},
         entity_type: (template.entity_type || "campaign") as "campaign" | "adset" | "ad",
-      });
+      };
+      
+      console.log('📝 Setting form data:', newFormData);
+      setFormData(newFormData);
       
       setConditions(template.conditions as ConditionsGroup);
       
@@ -113,7 +118,14 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       });
 
       setSelectedObjectives(template.campaign_objectives || []);
+      
+      // Delay to ensure state is updated before rendering
+      setTimeout(() => {
+        setIsLoadingTemplate(false);
+        console.log('✅ Template loading complete');
+      }, 0);
     } else {
+      setIsLoadingTemplate(false);
       // Reset to defaults
       setFormData({
         rule_name: "",
@@ -266,7 +278,12 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {isLoadingTemplate ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Carregando dados do template...</div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="rule_name">Nome da Regra *</Label>
             <Input
@@ -568,6 +585,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
     </TooltipProvider>
