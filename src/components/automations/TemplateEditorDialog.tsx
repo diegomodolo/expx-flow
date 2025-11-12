@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 import { AutomationRule } from "@/hooks/useAutomationRules";
 import { ConditionEditor, ConditionsGroup } from "./ConditionEditor";
 import { SafetyLimitsEditor, SafetyLimits, safetyLimitsSchema } from "./SafetyLimitsEditor";
@@ -198,7 +200,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <TooltipProvider>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{template ? "Editar Template" : "Novo Template de Automação"}</DialogTitle>
@@ -232,7 +235,21 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="time_window_days">Janela de Tempo (dias)</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="time_window_days">Janela de Tempo (dias)</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">
+                      Define o período histórico em dias usado para calcular as métricas. 
+                      Por exemplo, com 7 dias, o sistema calcula a média dos últimos 7 dias 
+                      para evitar decisões baseadas em flutuações de um único dia.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="time_window_days"
                 type="number"
@@ -243,7 +260,21 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="rule_order">Prioridade</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="rule_order">Prioridade</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">
+                      Define a ordem de execução das regras. Números menores têm maior prioridade. 
+                      Por exemplo, uma regra com prioridade 1 será executada antes de uma com 
+                      prioridade 5. Use para garantir que regras críticas sejam verificadas primeiro.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="rule_order"
                 type="number"
@@ -327,5 +358,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         </form>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 };
