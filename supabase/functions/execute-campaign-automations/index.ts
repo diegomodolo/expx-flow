@@ -706,7 +706,7 @@ async function fetchAds(supabase: any, companyId: string, clientId?: string) {
       .from('campaigns')
       .select('id, name, objective, status, company_id, client_id')
       .eq('company_id', companyId)
-      .eq('status', 'ACTIVE');
+      .eq('status', 'active');
 
     if (clientId) {
       campaignsQuery = campaignsQuery.eq('client_id', clientId);
@@ -730,7 +730,7 @@ async function fetchAds(supabase: any, companyId: string, clientId?: string) {
       .from('ad_sets')
       .select('id, name, campaign_id, status, daily_budget, targeting')
       .in('campaign_id', campaignIds)
-      .eq('status', 'ACTIVE');
+      .eq('status', 'active');
 
     if (adSetsError) {
       console.error('Error fetching ad_sets for ads:', adSetsError);
