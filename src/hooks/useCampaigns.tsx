@@ -32,7 +32,7 @@ export interface Campaign {
   };
 }
 
-export function useCampaigns() {
+export function useCampaigns(clientId?: string) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,13 +43,21 @@ export function useCampaigns() {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Construir query base
+      let query = supabase
         .from("campaigns")
         .select(`
           *,
           client:clients(name, avatar)
-        `)
-        .order("created_at", { ascending: false });
+        `);
+      
+      // Aplicar filtro de cliente se fornecido
+      if (clientId) {
+        query = query.eq("client_id", clientId);
+      }
+      
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       setCampaigns(data || []);
@@ -165,7 +173,7 @@ export function useCampaigns() {
 
   useEffect(() => {
     fetchCampaigns();
-  }, [user]);
+  }, [user, clientId]);
 
   return {
     campaigns,

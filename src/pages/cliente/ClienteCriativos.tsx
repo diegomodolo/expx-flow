@@ -52,7 +52,7 @@ const getCreativeTypePriority = (creativeType?: string): number => {
 export function ClienteCriativos() {
   const { client, selectedCampaignId, setSelectedCampaignId, selectedAdSetId, setSelectedAdSetId } = useClientContext();
   const { ads, loading, refetch } = useAds(client.id);
-  const { campaigns } = useCampaigns();
+  const { campaigns } = useCampaigns(client.id);
   const { adSets } = useAdSets(client.id);
   
   const [selectedAd, setSelectedAd] = useState<any>(null);
