@@ -33,6 +33,7 @@ import RelatorioTarefasPlanner from "./pages/reports/RelatorioTarefasPlanner";
 import RelatorioProdutividadeSquads from "./pages/reports/RelatorioProdutividadeSquads";
 import RelatorioRHColaboradores from "./pages/reports/RelatorioRHColaboradores";
 import RelatorioAlertasCriticos from "./pages/reports/RelatorioAlertasCriticos";
+import RelatorioSnapshotsPerformance from "./pages/reports/RelatorioSnapshotsPerformance";
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
@@ -215,6 +216,11 @@ const App = () => {
                  <Route path="/relatorios/alertas-criticos" element={
                    <ProtectedRoute>
                      <RelatorioAlertasCriticos />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/relatorios/snapshots-performance" element={
+                   <ProtectedRoute>
+                     <RelatorioSnapshotsPerformance />
                    </ProtectedRoute>
                  } />
                  <Route path="/leads-desqualificados" element={

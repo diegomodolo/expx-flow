@@ -169,6 +169,15 @@ const Relatorios = () => {
       href: "/leads-desqualificados",
       iconColor: "#FFFFFF",
       iconBg: "hsl(350, 89%, 60%)"
+    },
+    {
+      title: "Snapshots de Performance",
+      description: "Histórico de métricas diárias coletadas do Facebook Ads",
+      icon: Activity,
+      category: "operacional",
+      href: "/relatorios/snapshots-performance",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(160, 84%, 39%)"
     }
   ];
 
