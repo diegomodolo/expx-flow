@@ -604,7 +604,24 @@ serve(async (req) => {
 
     while (pageUrl) {
       console.log('Fetching campaigns page:', pageUrl.replace(accessToken, '[REDACTED]'))
-      const response = await fetch(pageUrl)
+      
+      let response;
+      try {
+        response = await fetch(pageUrl)
+      } catch (fetchError) {
+        console.error('Network error fetching campaigns:', fetchError)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Network error connecting to Facebook: ${fetchError.message}` 
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+      
       console.log('Facebook API response status:', response.status)
 
       if (!response.ok) {
@@ -1325,17 +1342,17 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('=== ERROR in sync-facebook-campaigns ===')
-    console.error('Error type:', error.constructor.name)
-    console.error('Error message:', error.message)
-    console.error('Error stack:', error.stack)
+    console.error('Error type:', error?.constructor?.name || 'Unknown')
+    console.error('Error message:', error?.message || String(error))
+    console.error('Error stack:', error?.stack || 'No stack trace')
     console.error('=====================================')
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Internal server error'
+        error: error?.message || error?.toString() || 'Internal server error'
       }),
       { 
         status: 500, 
