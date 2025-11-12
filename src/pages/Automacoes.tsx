@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Download, Edit, Trash, Check, X, RotateCcw } from "lucide-react";
+import { MoreVertical, Download, Edit, Trash, Check, X, RotateCcw, ArrowRight } from "lucide-react";
 import { TemplateEditorDialog } from "@/components/automations/TemplateEditorDialog";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ const Automacoes = () => {
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [prefixInput, setPrefixInput] = useState("");
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
+  const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
   const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
   const { logs, rollbackAction, fetchLogs } = useAutomationLogs(null, 50);
@@ -55,6 +56,10 @@ const Automacoes = () => {
 
   const filteredTemplates = templates.filter(t => 
     entityTypeFilter === 'all' || t.entity_type === entityTypeFilter || (!t.entity_type && entityTypeFilter === 'campaign')
+  );
+
+  const filteredLogs = logs.filter(log => 
+    logEntityFilter === 'all' || log.entity_type === logEntityFilter
   );
 
   const handleEditTemplate = (template: any) => {
@@ -340,13 +345,45 @@ const Automacoes = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Filtros por Tipo de Entidade */}
+                <div className="flex gap-2 mb-4">
+                  <Button 
+                    variant={logEntityFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setLogEntityFilter('all')}
+                  >
+                    Todos ({logs.length})
+                  </Button>
+                  <Button 
+                    variant={logEntityFilter === 'campaign' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setLogEntityFilter('campaign')}
+                  >
+                    📊 Campanhas ({logs.filter(l => l.entity_type === 'campaign').length})
+                  </Button>
+                  <Button 
+                    variant={logEntityFilter === 'adset' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setLogEntityFilter('adset')}
+                  >
+                    📁 Conjuntos ({logs.filter(l => l.entity_type === 'adset').length})
+                  </Button>
+                  <Button 
+                    variant={logEntityFilter === 'ad' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setLogEntityFilter('ad')}
+                  >
+                    🎨 Criativos ({logs.filter(l => l.entity_type === 'ad').length})
+                  </Button>
+                </div>
+
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Regra</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead>Campanha</TableHead>
+                      <TableHead className="max-w-[300px]">Entidade Afetada</TableHead>
                       <TableHead>Ação</TableHead>
                       <TableHead>Renomeação</TableHead>
                       <TableHead>Recovery</TableHead>
@@ -356,14 +393,56 @@ const Automacoes = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {logs.map((log: any) => (
+                    {filteredLogs.map((log: any) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-sm">
                           {new Date(log.executed_at).toLocaleString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-sm">{log.rule?.rule_name}</TableCell>
                         <TableCell className="text-sm">{log.client?.name}</TableCell>
-                        <TableCell className="text-sm">{log.campaign?.name}</TableCell>
+                        <TableCell className="max-w-[300px]">
+                          {log.entity_type === 'campaign' && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">📊</span>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-sm">{log.campaign?.name}</span>
+                                <Badge variant="outline" className="text-xs w-fit mt-1">Campanha</Badge>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {log.entity_type === 'adset' && (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">📁</span>
+                                <span className="font-medium text-sm">{log.adset?.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
+                                <ArrowRight className="h-3 w-3" />
+                                <span>{log.campaign?.name}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Conjunto de Anúncios</Badge>
+                            </div>
+                          )}
+                          
+                          {log.entity_type === 'ad' && (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">🎨</span>
+                                <span className="font-medium text-sm truncate max-w-[250px]">{log.ad?.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="truncate max-w-[200px]">{log.adset?.name || 'Conjunto não disponível'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 ml-12 text-xs text-muted-foreground">
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="truncate max-w-[200px]">{log.campaign?.name}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Criativo</Badge>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm">{getActionLabel(log.action_type)}</TableCell>
                         <TableCell className="text-xs">
                           {log.old_name && log.new_name && (

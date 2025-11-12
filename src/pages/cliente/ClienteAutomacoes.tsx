@@ -22,7 +22,8 @@ import {
   AlertCircle,
   Undo2,
   Zap,
-  Pencil
+  Pencil,
+  ArrowRight
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,6 +59,11 @@ export default function ClienteAutomacoes() {
   const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [ruleToEdit, setRuleToEdit] = useState<any>(null);
+  const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
+
+  const filteredLogs = logs.filter(log => 
+    logEntityFilter === 'all' || log.entity_type === logEntityFilter
+  );
 
   const handleToggleRule = async (ruleId: string, currentStatus: boolean) => {
     try {
@@ -402,13 +408,46 @@ export default function ClienteAutomacoes() {
               Nenhuma execução registrada ainda.
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
+            <>
+              {/* Filtros por Tipo de Entidade */}
+              <div className="flex gap-2 mb-4">
+                <Button 
+                  variant={logEntityFilter === 'all' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setLogEntityFilter('all')}
+                >
+                  Todos ({logs.length})
+                </Button>
+                <Button 
+                  variant={logEntityFilter === 'campaign' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setLogEntityFilter('campaign')}
+                >
+                  📊 Campanhas ({logs.filter(l => l.entity_type === 'campaign').length})
+                </Button>
+                <Button 
+                  variant={logEntityFilter === 'adset' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setLogEntityFilter('adset')}
+                >
+                  📁 Conjuntos ({logs.filter(l => l.entity_type === 'adset').length})
+                </Button>
+                <Button 
+                  variant={logEntityFilter === 'ad' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setLogEntityFilter('ad')}
+                >
+                  🎨 Criativos ({logs.filter(l => l.entity_type === 'ad').length})
+                </Button>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Status</TableHead>
                     <TableHead>Regra</TableHead>
-                    <TableHead>Campanha</TableHead>
+                    <TableHead className="max-w-[300px]">Entidade Afetada</TableHead>
                     <TableHead>Ação</TableHead>
                     <TableHead>Alterações</TableHead>
                     <TableHead>Detalhes</TableHead>
@@ -417,7 +456,7 @@ export default function ClienteAutomacoes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => (
+                  {filteredLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -439,8 +478,48 @@ export default function ClienteAutomacoes() {
                       <TableCell className="font-medium">
                         {log.rule?.rule_name || "Regra removida"}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {log.campaign?.name || "-"}
+                      <TableCell className="max-w-[300px]">
+                        {log.entity_type === 'campaign' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">📊</span>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">{log.campaign?.name}</span>
+                              <Badge variant="outline" className="text-xs w-fit mt-1">Campanha</Badge>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {log.entity_type === 'adset' && (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">📁</span>
+                              <span className="font-medium text-sm">{log.adset?.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
+                              <ArrowRight className="h-3 w-3" />
+                              <span>{log.campaign?.name}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Conjunto de Anúncios</Badge>
+                          </div>
+                        )}
+                        
+                        {log.entity_type === 'ad' && (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">🎨</span>
+                              <span className="font-medium text-sm truncate max-w-[250px]">{log.ad?.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
+                              <ArrowRight className="h-3 w-3" />
+                              <span className="truncate max-w-[200px]">{log.adset?.name || 'Conjunto não disponível'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 ml-12 text-xs text-muted-foreground">
+                              <ArrowRight className="h-3 w-3" />
+                              <span className="truncate max-w-[200px]">{log.campaign?.name}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Criativo</Badge>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getActionTypeBadge(log.action_type)} className="text-xs">
@@ -506,6 +585,7 @@ export default function ClienteAutomacoes() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
