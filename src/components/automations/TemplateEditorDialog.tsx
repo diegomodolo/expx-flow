@@ -43,6 +43,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     action_type: "notify_only",
     is_active: true,
     action_config: {} as any,
+    entity_type: "campaign" as "campaign" | "adset" | "ad",
   });
 
   const [conditions, setConditions] = useState<ConditionsGroup>({
@@ -81,6 +82,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         action_type: template.action_type,
         is_active: template.is_active,
         action_config: template.action_config || {},
+        entity_type: (template.entity_type || "campaign") as "campaign" | "adset" | "ad",
       });
       
       setConditions(template.conditions as ConditionsGroup);
@@ -107,6 +109,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         action_type: "notify_only",
         is_active: true,
         action_config: {},
+        entity_type: "campaign",
       });
       
       setConditions({
@@ -190,7 +193,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           type: c.type,
         }))
       },
-      action_config: {},
+      action_config: formData.action_config,
       budget_safety_limits: safetyLimits.budget_safety_limits,
       execution_limits: safetyLimits.execution_limits,
       scope_filters: {},
@@ -200,6 +203,42 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     await onSave(templateData);
     setLoading(false);
     onOpenChange(false);
+  };
+
+  // Helpers for dynamic fields based on entity type
+  const getAvailableActions = (entityType: string) => {
+    if (entityType === "campaign") {
+      return [
+        { value: "pause_campaign", label: "⏸️ Pausar Campanha" },
+        { value: "activate_campaign", label: "▶️ Ativar Campanha" },
+        { value: "increase_budget", label: "📈 Aumentar Orçamento" },
+        { value: "decrease_budget", label: "📉 Reduzir Orçamento" },
+        { value: "duplicate_campaign", label: "📋 Duplicar Campanha" },
+        { value: "notify_only", label: "🔔 Apenas Notificar" },
+      ];
+    }
+
+    if (entityType === "adset") {
+      return [
+        { value: "pause_adset", label: "⏸️ Pausar Conjunto" },
+        { value: "activate_adset", label: "▶️ Ativar Conjunto" },
+        { value: "increase_adset_budget", label: "📈 Aumentar Orçamento" },
+        { value: "decrease_adset_budget", label: "📉 Reduzir Orçamento" },
+        { value: "duplicate_adset", label: "📋 Duplicar Conjunto" },
+        { value: "notify_only", label: "🔔 Apenas Notificar" },
+      ];
+    }
+
+    if (entityType === "ad") {
+      return [
+        { value: "pause_ad", label: "⏸️ Pausar Criativo" },
+        { value: "activate_ad", label: "▶️ Ativar Criativo" },
+        { value: "duplicate_ad", label: "📋 Duplicar Criativo" },
+        { value: "notify_only", label: "🔔 Apenas Notificar" },
+      ];
+    }
+
+    return [];
   };
 
   return (
@@ -289,6 +328,29 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="entity_type">Tipo de Entidade</Label>
+            <Select 
+              value={formData.entity_type} 
+              onValueChange={(value) => {
+                setFormData({ 
+                  ...formData, 
+                  entity_type: value as "campaign" | "adset" | "ad",
+                  action_type: "notify_only"
+                });
+              }}
+            >
+              <SelectTrigger id="entity_type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="campaign">📊 Campanha</SelectItem>
+                <SelectItem value="adset">🎯 Conjunto de Anúncios</SelectItem>
+                <SelectItem value="ad">🎨 Criativo (Ad)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="action_type">Tipo de Ação</Label>
             <Select
               value={formData.action_type}
@@ -298,17 +360,16 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="notify_only">🔔 Apenas Notificar</SelectItem>
-                <SelectItem value="pause_campaign">⏸️ Pausar Campanha</SelectItem>
-                <SelectItem value="activate_campaign">▶️ Ativar Campanha</SelectItem>
-                <SelectItem value="increase_budget">📈 Aumentar Orçamento</SelectItem>
-                <SelectItem value="decrease_budget">📉 Reduzir Orçamento</SelectItem>
-                <SelectItem value="duplicate_campaign">📋 Duplicar Campanha</SelectItem>
+                {getAvailableActions(formData.entity_type).map(action => (
+                  <SelectItem key={action.value} value={action.value}>
+                    {action.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {formData.action_type === 'duplicate_campaign' && (
+          {(formData.action_type === 'duplicate_campaign' || formData.action_type === 'duplicate_adset' || formData.action_type === 'duplicate_ad') && (
             <div className="rounded-lg border p-4 space-y-3 bg-muted/50">
               <div className="flex items-center gap-2">
                 <Label htmlFor="duplicate_budget_percent">Budget da Campanha Duplicada (%)</Label>

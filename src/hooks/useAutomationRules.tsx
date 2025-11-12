@@ -15,6 +15,7 @@ export interface AutomationRule {
   rule_description: string | null;
   rule_order: number;
   campaign_objectives: string[] | null;
+  entity_type?: string;
   time_window_days: number;
   conditions: {
     logic: "AND" | "OR";

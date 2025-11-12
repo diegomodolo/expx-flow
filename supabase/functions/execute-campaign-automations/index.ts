@@ -239,18 +239,26 @@ function buildNewName(
   let suffix = '';
   switch (actionType) {
     case 'pause_campaign':
+    case 'pause_adset':
+    case 'pause_ad':
       suffix = `Pausada (${conditionsDescription})`;
       break;
     case 'activate_campaign':
+    case 'activate_adset':
+    case 'activate_ad':
       suffix = `Ativada (${conditionsDescription})`;
       break;
     case 'increase_budget':
+    case 'increase_adset_budget':
       suffix = `Budget Aumentado`;
       break;
     case 'decrease_budget':
+    case 'decrease_adset_budget':
       suffix = `Budget Reduzido`;
       break;
     case 'duplicate_campaign':
+    case 'duplicate_adset':
+    case 'duplicate_ad':
       suffix = `Cópia Auto (${conditionsDescription})`;
       break;
     default:
@@ -573,6 +581,224 @@ async function createRecommendation(
   return { recommended: true };
 }
 
+// ============ FUNÇÕES PARA AD SETS ============
+
+async function fetchAdSets(supabase: any, companyId: string, clientId?: string) {
+  let query = supabase
+    .from('ad_sets')
+    .select(`
+      *,
+      campaigns!inner(id, name, client_id, objective),
+      clients!inner(id, name, ad_account_id)
+    `)
+    .eq('company_id', companyId)
+    .eq('is_active', true);
+
+  if (clientId) {
+    query = query.eq('client_id', clientId);
+  }
+
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error fetching ad sets:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function pauseAdSetSafely(
+  adSet: any,
+  integration: any,
+  rule: AutomationRule,
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
+) {
+  if (!adSet.facebook_id) {
+    throw new Error(`Ad Set ${adSet.name} is missing facebook_id`);
+  }
+
+  const newName = buildNewName(adSet.name, 'pause_adset', conditionsDesc, prefix);
+  
+  const url = `https://graph.facebook.com/v20.0/${adSet.facebook_id}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: newName,
+      status: 'PAUSED',
+      access_token: integration.access_token,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Facebook API error: ${await response.text()}`);
+  }
+
+  return {
+    oldName: adSet.name,
+    newName,
+    oldStatus: adSet.status,
+    newStatus: 'PAUSED',
+  };
+}
+
+async function duplicateAdSetSafely(
+  adSet: any,
+  integration: any,
+  rule: AutomationRule,
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
+) {
+  if (!adSet.facebook_id) {
+    throw new Error(`Ad Set ${adSet.name} is missing facebook_id`);
+  }
+
+  const budgetPercent = rule.action_config?.duplicate_budget_percent || 50;
+  const newName = buildNewName(adSet.name, 'duplicate_adset', conditionsDesc, prefix);
+
+  const copyUrl = `https://graph.facebook.com/v20.0/${adSet.facebook_id}/copies`;
+  const response = await fetch(copyUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: newName,
+      status_option: 'ACTIVE',
+      deep_copy: true,
+      access_token: integration.access_token,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Facebook API error: ${await response.text()}`);
+  }
+
+  const result = await response.json();
+
+  if (budgetPercent !== 100 && adSet.daily_budget) {
+    const newBudget = Math.round(parseFloat(adSet.daily_budget) * (budgetPercent / 100) * 100);
+    await fetch(`https://graph.facebook.com/v20.0/${result.copied_adset_id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        daily_budget: newBudget,
+        access_token: integration.access_token,
+      }),
+    });
+  }
+
+  return {
+    oldName: adSet.name,
+    newName,
+    originalAdSetId: adSet.facebook_id,
+    duplicatedAdSetId: result.copied_adset_id,
+    budgetPercent,
+  };
+}
+
+// ============ FUNÇÕES PARA ADS ============
+
+async function fetchAds(supabase: any, companyId: string, clientId?: string) {
+  let query = supabase
+    .from('ads')
+    .select(`
+      *,
+      ad_sets!inner(id, name, campaign_id),
+      campaigns!inner(id, name, client_id, objective),
+      clients!inner(id, name, ad_account_id)
+    `)
+    .eq('company_id', companyId)
+    .eq('is_active', true);
+
+  if (clientId) {
+    query = query.eq('client_id', clientId);
+  }
+
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error fetching ads:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+async function pauseAdSafely(
+  ad: any,
+  integration: any,
+  rule: AutomationRule,
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
+) {
+  if (!ad.facebook_id) {
+    throw new Error(`Ad ${ad.name} is missing facebook_id`);
+  }
+
+  const newName = buildNewName(ad.name, 'pause_ad', conditionsDesc, prefix);
+  
+  const url = `https://graph.facebook.com/v20.0/${ad.facebook_id}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: newName,
+      status: 'PAUSED',
+      access_token: integration.access_token,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Facebook API error: ${await response.text()}`);
+  }
+
+  return {
+    oldName: ad.name,
+    newName,
+    oldStatus: ad.status,
+    newStatus: 'PAUSED',
+  };
+}
+
+async function duplicateAdSafely(
+  ad: any,
+  integration: any,
+  rule: AutomationRule,
+  conditionsDesc: string,
+  prefix: string = 'SHEGrowth'
+) {
+  if (!ad.facebook_id) {
+    throw new Error(`Ad ${ad.name} is missing facebook_id`);
+  }
+
+  const newName = buildNewName(ad.name, 'duplicate_ad', conditionsDesc, prefix);
+
+  const copyUrl = `https://graph.facebook.com/v20.0/${ad.facebook_id}/copies`;
+  const response = await fetch(copyUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: newName,
+      status_option: 'ACTIVE',
+      access_token: integration.access_token,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Facebook API error: ${await response.text()}`);
+  }
+
+  const result = await response.json();
+
+  return {
+    oldName: ad.name,
+    newName,
+    originalAdId: ad.facebook_id,
+    duplicatedAdId: result.copied_ad_id,
+  };
+}
+
 // ============ SERVIDOR PRINCIPAL ============
 
 serve(async (req) => {
@@ -640,9 +866,16 @@ serve(async (req) => {
     let totalErrors = 0;
     const simulationResults: any[] = [];
 
-    for (const rule of rules) {
+    // Agrupar regras por entity_type
+    const campaignRules = rules.filter(r => !r.entity_type || r.entity_type === 'campaign');
+    const adsetRules = rules.filter(r => r.entity_type === 'adset');
+    const adRules = rules.filter(r => r.entity_type === 'ad');
+
+    console.log(`📊 Rules: ${campaignRules.length} campaigns, ${adsetRules.length} ad sets, ${adRules.length} ads`);
+
+    // ========== PROCESSAR CAMPANHAS ==========
+    for (const rule of campaignRules) {
       try {
-        // Buscar campanhas
         let campaignQuery = supabase
           .from('campaigns')
           .select('*, clients!inner(*)')
@@ -653,14 +886,12 @@ serve(async (req) => {
           campaignQuery = campaignQuery.eq('client_id', rule.client_id);
         }
 
-        // Filtrar por objetivos de campanha se especificado
         if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
           campaignQuery = campaignQuery.in('objective', rule.campaign_objectives);
         }
 
         const { data: campaigns } = await campaignQuery;
 
-        // Buscar integração
         const { data: integration } = await supabase
           .from('facebook_integrations')
           .select('*')
@@ -676,7 +907,6 @@ serve(async (req) => {
         for (const campaign of campaigns || []) {
           totalAnalyzed++;
 
-          // Validações
           if (!validateCampaignDataIntegrity(campaign)) continue;
           if (!matchesScopeFilters(campaign, rule.scope_filters)) continue;
 
@@ -686,16 +916,15 @@ serve(async (req) => {
             continue;
           }
 
-          // Avaliar condições
           const evaluation = await evaluateConditionsWithTimeWindow(supabase, campaign, rule);
           
           if (evaluation.met) {
-            console.log(`✅ ${campaign.name}: ${evaluation.description}`);
+            console.log(`✅ Campaign ${campaign.name}: ${evaluation.description}`);
 
-            // Modo simulação
             if (mode === 'simulation') {
               simulationResults.push({
-                campaign_name: campaign.name,
+                entity_type: 'campaign',
+                entity_name: campaign.name,
                 rule_name: rule.rule_name,
                 action: rule.action_type,
                 reason: evaluation.description,
@@ -705,32 +934,27 @@ serve(async (req) => {
 
             try {
               let result;
+              const prefix = companySettings.get(rule.company_id) || 'SHEGrowth';
               
-              // Obter prefixo configurado para a empresa
-              const campaignPrefix = companySettings.get(rule.company_id) || 'SHEGrowth';
-              
-              // Executar ação
               if (rule.action_type === 'notify_only') {
                 result = await createRecommendation(supabase, rule, campaign, evaluation.description);
               } else if (rule.action_type === 'pause_campaign') {
-                result = await pauseCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
+                result = await pauseCampaignSafely(campaign, integration, rule, evaluation.description, prefix);
               } else if (rule.action_type === 'activate_campaign') {
-                result = await activateCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
+                result = await activateCampaignSafely(campaign, integration, rule, evaluation.description, prefix);
               } else if (['increase_budget', 'decrease_budget'].includes(rule.action_type)) {
-                result = await adjustBudgetSafely(supabase, campaign, integration, rule, evaluation.description, campaignPrefix);
+                result = await adjustBudgetSafely(supabase, campaign, integration, rule, evaluation.description, prefix);
               } else if (rule.action_type === 'duplicate_campaign') {
-                result = await duplicateCampaignSafely(campaign, integration, rule, evaluation.description, campaignPrefix);
-                console.log(`🚀 Campanha duplicada automaticamente: ${result.newName} - ATIVA`);
-              } else {
-                throw new Error(`Action ${rule.action_type} not implemented`);
+                result = await duplicateCampaignSafely(campaign, integration, rule, evaluation.description, prefix);
+                console.log(`🚀 Campanha duplicada: ${result.newName}`);
               }
 
-              // Log de sucesso
               await supabase.from('campaign_automation_logs').insert({
                 rule_id: rule.id,
                 company_id: rule.company_id,
                 client_id: campaign.client_id,
                 campaign_id: campaign.id,
+                entity_type: 'campaign',
                 action_type: rule.action_type,
                 action_result: 'success',
                 old_name: result.oldName,
@@ -739,35 +963,27 @@ serve(async (req) => {
                 new_budget: result.newBudget,
                 old_status: result.oldStatus,
                 new_status: result.newStatus,
-                metadata: { 
-                  campaign, 
-                  result,
-                  originalCampaignId: result.originalCampaignId,
-                  duplicatedCampaignId: result.duplicatedCampaignId,
-                },
+                metadata: { campaign, result },
               });
 
               totalActioned++;
             } catch (actionError: any) {
-              console.error(`❌ Error executing action:`, actionError);
-
+              console.error(`❌ Error:`, actionError);
               await supabase.from('campaign_automation_logs').insert({
                 rule_id: rule.id,
                 company_id: rule.company_id,
                 client_id: campaign.client_id,
                 campaign_id: campaign.id,
+                entity_type: 'campaign',
                 action_type: rule.action_type,
                 action_result: 'error',
                 error_message: actionError.message,
-                metadata: { campaign },
               });
-
               totalErrors++;
             }
           }
         }
 
-        // Atualizar última execução
         await supabase
           .from('campaign_automation_rules')
           .update({
@@ -777,7 +993,195 @@ serve(async (req) => {
           .eq('id', rule.id);
 
       } catch (ruleError: any) {
-        console.error(`Error processing rule ${rule.id}:`, ruleError);
+        console.error(`Error processing campaign rule ${rule.id}:`, ruleError);
+        totalErrors++;
+      }
+    }
+
+    // ========== PROCESSAR AD SETS ==========
+    for (const rule of adsetRules) {
+      try {
+        const adsets = await fetchAdSets(supabase, rule.company_id, rule.client_id || undefined);
+
+        const { data: integration } = await supabase
+          .from('facebook_integrations')
+          .select('*')
+          .eq('company_id', rule.company_id)
+          .eq('is_active', true)
+          .single();
+
+        if (!integration) continue;
+
+        for (const adset of adsets) {
+          totalAnalyzed++;
+
+          const limitCheck = await checkExecutionLimits(supabase, rule, adset);
+          if (!limitCheck.allowed) continue;
+
+          const evaluation = await evaluateConditionsWithTimeWindow(supabase, adset, rule);
+          
+          if (evaluation.met) {
+            console.log(`✅ Ad Set ${adset.name}: ${evaluation.description}`);
+
+            if (mode === 'simulation') {
+              simulationResults.push({
+                entity_type: 'adset',
+                entity_name: adset.name,
+                rule_name: rule.rule_name,
+                action: rule.action_type,
+                reason: evaluation.description,
+              });
+              continue;
+            }
+
+            try {
+              let result;
+              const prefix = companySettings.get(rule.company_id) || 'SHEGrowth';
+              
+              if (rule.action_type === 'pause_adset') {
+                result = await pauseAdSetSafely(adset, integration, rule, evaluation.description, prefix);
+              } else if (rule.action_type === 'duplicate_adset') {
+                result = await duplicateAdSetSafely(adset, integration, rule, evaluation.description, prefix);
+              }
+
+              await supabase.from('campaign_automation_logs').insert({
+                rule_id: rule.id,
+                company_id: rule.company_id,
+                client_id: adset.client_id,
+                campaign_id: adset.campaign_id,
+                adset_id: adset.id,
+                entity_type: 'adset',
+                action_type: rule.action_type,
+                action_result: 'success',
+                old_name: result.oldName,
+                new_name: result.newName,
+                metadata: { adset, result },
+              });
+
+              totalActioned++;
+            } catch (actionError: any) {
+              console.error(`❌ Error:`, actionError);
+              await supabase.from('campaign_automation_logs').insert({
+                rule_id: rule.id,
+                company_id: rule.company_id,
+                client_id: adset.client_id,
+                campaign_id: adset.campaign_id,
+                adset_id: adset.id,
+                entity_type: 'adset',
+                action_type: rule.action_type,
+                action_result: 'error',
+                error_message: actionError.message,
+              });
+              totalErrors++;
+            }
+          }
+        }
+
+        await supabase
+          .from('campaign_automation_rules')
+          .update({
+            last_execution_at: new Date().toISOString(),
+            execution_count: rule.execution_count + 1,
+          })
+          .eq('id', rule.id);
+
+      } catch (ruleError: any) {
+        console.error(`Error processing adset rule ${rule.id}:`, ruleError);
+        totalErrors++;
+      }
+    }
+
+    // ========== PROCESSAR ADS ==========
+    for (const rule of adRules) {
+      try {
+        const ads = await fetchAds(supabase, rule.company_id, rule.client_id || undefined);
+
+        const { data: integration } = await supabase
+          .from('facebook_integrations')
+          .select('*')
+          .eq('company_id', rule.company_id)
+          .eq('is_active', true)
+          .single();
+
+        if (!integration) continue;
+
+        for (const ad of ads) {
+          totalAnalyzed++;
+
+          const limitCheck = await checkExecutionLimits(supabase, rule, ad);
+          if (!limitCheck.allowed) continue;
+
+          const evaluation = await evaluateConditionsWithTimeWindow(supabase, ad, rule);
+          
+          if (evaluation.met) {
+            console.log(`✅ Ad ${ad.name}: ${evaluation.description}`);
+
+            if (mode === 'simulation') {
+              simulationResults.push({
+                entity_type: 'ad',
+                entity_name: ad.name,
+                rule_name: rule.rule_name,
+                action: rule.action_type,
+                reason: evaluation.description,
+              });
+              continue;
+            }
+
+            try {
+              let result;
+              const prefix = companySettings.get(rule.company_id) || 'SHEGrowth';
+              
+              if (rule.action_type === 'pause_ad') {
+                result = await pauseAdSafely(ad, integration, rule, evaluation.description, prefix);
+              } else if (rule.action_type === 'duplicate_ad') {
+                result = await duplicateAdSafely(ad, integration, rule, evaluation.description, prefix);
+              }
+
+              await supabase.from('campaign_automation_logs').insert({
+                rule_id: rule.id,
+                company_id: rule.company_id,
+                client_id: ad.client_id,
+                campaign_id: ad.campaign_id,
+                adset_id: ad.ad_set_id,
+                ad_id: ad.id,
+                entity_type: 'ad',
+                action_type: rule.action_type,
+                action_result: 'success',
+                old_name: result.oldName,
+                new_name: result.newName,
+                metadata: { ad, result },
+              });
+
+              totalActioned++;
+            } catch (actionError: any) {
+              console.error(`❌ Error:`, actionError);
+              await supabase.from('campaign_automation_logs').insert({
+                rule_id: rule.id,
+                company_id: rule.company_id,
+                client_id: ad.client_id,
+                campaign_id: ad.campaign_id,
+                adset_id: ad.ad_set_id,
+                ad_id: ad.id,
+                entity_type: 'ad',
+                action_type: rule.action_type,
+                action_result: 'error',
+                error_message: actionError.message,
+              });
+              totalErrors++;
+            }
+          }
+        }
+
+        await supabase
+          .from('campaign_automation_rules')
+          .update({
+            last_execution_at: new Date().toISOString(),
+            execution_count: rule.execution_count + 1,
+          })
+          .eq('id', rule.id);
+
+      } catch (ruleError: any) {
+        console.error(`Error processing ad rule ${rule.id}:`, ruleError);
         totalErrors++;
       }
     }

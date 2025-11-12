@@ -22,6 +22,7 @@ const Automacoes = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [prefixInput, setPrefixInput] = useState("");
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
   const { logs, rollbackAction } = useAutomationLogs(null, 50);
@@ -33,11 +34,24 @@ const Automacoes = () => {
       activate_campaign: 'Ativar Campanha',
       increase_budget: 'Aumentar Orçamento',
       decrease_budget: 'Reduzir Orçamento',
+      duplicate_campaign: 'Duplicar Campanha',
+      pause_adset: 'Pausar Ad Set',
+      activate_adset: 'Ativar Ad Set',
+      increase_adset_budget: 'Aumentar Orçamento Ad Set',
+      decrease_adset_budget: 'Reduzir Orçamento Ad Set',
+      duplicate_adset: 'Duplicar Ad Set',
+      pause_ad: 'Pausar Criativo',
+      activate_ad: 'Ativar Criativo',
+      duplicate_ad: 'Duplicar Criativo',
       notify_only: 'Apenas Notificar',
       duplicate_for_ab_test: 'Teste A/B',
     };
     return labels[actionType] || actionType;
   };
+
+  const filteredTemplates = templates.filter(t => 
+    entityTypeFilter === 'all' || t.entity_type === entityTypeFilter || (!t.entity_type && entityTypeFilter === 'campaign')
+  );
 
   const handleEditTemplate = (template: any) => {
     setEditingTemplate(template);
@@ -124,27 +138,52 @@ const Automacoes = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Tabs value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
+                    <TabsList>
+                      <TabsTrigger value="all">Todas ({templates.length})</TabsTrigger>
+                      <TabsTrigger value="campaign">
+                        📊 Campanhas ({templates.filter(t => t.entity_type === 'campaign' || !t.entity_type).length})
+                      </TabsTrigger>
+                      <TabsTrigger value="adset">
+                        🎯 Ad Sets ({templates.filter(t => t.entity_type === 'adset').length})
+                      </TabsTrigger>
+                      <TabsTrigger value="ad">
+                        🎨 Criativos ({templates.filter(t => t.entity_type === 'ad').length})
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
                 {templatesLoading ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Carregando templates...
                   </div>
-                ) : templates.length === 0 ? (
+                ) : filteredTemplates.length === 0 ? (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Nenhum template criado</AlertTitle>
+                    <AlertTitle>Nenhum template encontrado</AlertTitle>
                     <AlertDescription>
-                      Crie seu primeiro template de automação para começar.
+                      {entityTypeFilter === 'all' 
+                        ? 'Crie seu primeiro template de automação para começar.'
+                        : `Nenhum template para ${entityTypeFilter === 'campaign' ? 'campanhas' : entityTypeFilter === 'adset' ? 'ad sets' : 'criativos'}.`
+                      }
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <div className="space-y-4">
-                    {templates.map((template) => (
+                    {filteredTemplates.map((template) => (
                       <Card key={template.id}>
                         <CardHeader>
                           <div className="flex items-start justify-between">
                             <div>
                               <CardTitle className="text-lg flex items-center gap-2">
                                 {template.rule_name}
+                                <Badge variant="outline">
+                                  {template.entity_type === 'adset' && '🎯 Ad Set'}
+                                  {template.entity_type === 'ad' && '🎨 Criativo'}
+                                  {(!template.entity_type || template.entity_type === 'campaign') && '📊 Campanha'}
+                                </Badge>
                                 <Badge variant={template.is_active ? "default" : "secondary"}>
                                   {template.is_active ? "Ativo" : "Inativo"}
                                 </Badge>

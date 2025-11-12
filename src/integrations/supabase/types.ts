@@ -489,9 +489,12 @@ export type Database = {
         Row: {
           action_result: string
           action_type: string
+          ad_id: string | null
+          adset_id: string | null
           campaign_id: string | null
           client_id: string | null
           company_id: string
+          entity_type: string
           error_message: string | null
           executed_at: string | null
           id: string
@@ -510,9 +513,12 @@ export type Database = {
         Insert: {
           action_result: string
           action_type: string
+          ad_id?: string | null
+          adset_id?: string | null
           campaign_id?: string | null
           client_id?: string | null
           company_id: string
+          entity_type?: string
           error_message?: string | null
           executed_at?: string | null
           id?: string
@@ -531,9 +537,12 @@ export type Database = {
         Update: {
           action_result?: string
           action_type?: string
+          ad_id?: string | null
+          adset_id?: string | null
           campaign_id?: string | null
           client_id?: string | null
           company_id?: string
+          entity_type?: string
           error_message?: string | null
           executed_at?: string | null
           id?: string
@@ -550,6 +559,20 @@ export type Database = {
           rule_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "campaign_automation_logs_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_automation_logs_adset_id_fkey"
+            columns: ["adset_id"]
+            isOneToOne: false
+            referencedRelation: "ad_sets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaign_automation_logs_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -676,6 +699,7 @@ export type Database = {
           conditions: Json
           created_at: string | null
           created_by: string | null
+          entity_type: string
           execution_count: number | null
           execution_limits: Json | null
           id: string
@@ -701,6 +725,7 @@ export type Database = {
           conditions?: Json
           created_at?: string | null
           created_by?: string | null
+          entity_type?: string
           execution_count?: number | null
           execution_limits?: Json | null
           id?: string
@@ -726,6 +751,7 @@ export type Database = {
           conditions?: Json
           created_at?: string | null
           created_by?: string | null
+          entity_type?: string
           execution_count?: number | null
           execution_limits?: Json | null
           id?: string
