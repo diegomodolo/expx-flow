@@ -62,15 +62,16 @@ serve(async (req) => {
         id,
         name,
         company_id,
-        facebook_ad_accounts!inner (
-          ad_account_id,
-          facebook_integrations!inner (
+        ad_account_id,
+        facebook_ad_accounts!clients_ad_account_id_fkey (
+          account_id,
+          facebook_integrations (
             access_token,
             is_active
           )
         )
       `)
-      .eq('facebook_ad_accounts.facebook_integrations.is_active', true);
+      .not('ad_account_id', 'is', null);
 
     if (clientsError) throw clientsError;
 
@@ -82,18 +83,24 @@ serve(async (req) => {
         console.log(`\n🔄 Processing client: ${client.name}`);
         
         // Acessar dados do JOIN
-        const fbAccount = client.facebook_ad_accounts[0];
+        const fbAccount = client.facebook_ad_accounts;
         if (!fbAccount || !fbAccount.facebook_integrations) {
           console.log(`  ⚠️ No Facebook integration found for client ${client.name}`);
           continue;
         }
         
-        const fbAccountId = fbAccount.ad_account_id.replace('act_', '');
+        // Verificar se a integração está ativa
+        if (!fbAccount.facebook_integrations.is_active) {
+          console.log(`  ⚠️ Facebook integration is inactive for client ${client.name}`);
+          continue;
+        }
+        
+        const fbAccountId = fbAccount.account_id.replace('act_', '');
         const accessToken = fbAccount.facebook_integrations.access_token;
 
-        // Helper para fazer requisição ao Facebook API
-        const fetchFacebookData = async (endpoint: string, fields: string) => {
-          const url = `https://graph.facebook.com/v18.0/act_${fbAccountId}/${endpoint}?fields=${fields}&time_range={since:'${executionDate}',until:'${executionDate}'}&access_token=${accessToken}`;
+        // Helper para fazer requisição ao Facebook API Insights
+        const fetchFacebookInsights = async (endpoint: string, level: string) => {
+          const url = `https://graph.facebook.com/v18.0/act_${fbAccountId}/insights?level=${level}&time_range={since:'${executionDate}',until:'${executionDate}'}&fields=campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,reach,frequency,actions&access_token=${accessToken}`;
           
           const response = await fetch(url);
           
@@ -111,33 +118,32 @@ serve(async (req) => {
 
         // 1. BUSCAR E PROCESSAR CAMPANHAS
         try {
-          const campaignFields = 'id,name,status,objective,spend,impressions,clicks,reach,frequency,actions';
-          const campaigns = await fetchFacebookData('campaigns', campaignFields);
+          const campaignInsights = await fetchFacebookInsights('insights', 'campaign');
           
-          console.log(`  📊 Found ${campaigns.length} campaigns`);
+          console.log(`  📊 Found ${campaignInsights.length} campaigns with data`);
 
-          for (const fbCampaign of campaigns) {
+          for (const insight of campaignInsights) {
             try {
-              // Buscar campanha no banco
+              // Buscar campanha no banco pelo facebook_id
               const { data: dbCampaign } = await supabase
                 .from('campaigns')
                 .select('id')
-                .eq('facebook_id', fbCampaign.id)
+                .eq('facebook_id', insight.campaign_id)
                 .single();
 
               if (!dbCampaign) continue;
 
               // Calcular métricas
-              const spend = parseFloat(fbCampaign.spend || '0');
-              const impressions = parseInt(fbCampaign.impressions || '0');
-              const clicks = parseInt(fbCampaign.clicks || '0');
-              const reach = parseInt(fbCampaign.reach || '0');
-              const frequency = parseFloat(fbCampaign.frequency || '0');
+              const spend = parseFloat(insight.spend || '0');
+              const impressions = parseInt(insight.impressions || '0');
+              const clicks = parseInt(insight.clicks || '0');
+              const reach = parseInt(insight.reach || '0');
+              const frequency = parseFloat(insight.frequency || '0');
               
               // Extrair conversões (leads)
               let conversions = 0;
-              if (fbCampaign.actions) {
-                const leadAction = fbCampaign.actions.find((a: any) => 
+              if (insight.actions) {
+                const leadAction = insight.actions.find((a: any) => 
                   a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead'
                 );
                 conversions = leadAction ? parseInt(leadAction.value) : 0;
@@ -154,7 +160,7 @@ serve(async (req) => {
                   company_id: client.company_id,
                   entity_type: 'campaign',
                   entity_id: dbCampaign.id,
-                  entity_name: fbCampaign.name,
+                  entity_name: insight.campaign_name,
                   campaign_id: dbCampaign.id,
                   client_id: client.id,
                   spend,
@@ -172,7 +178,7 @@ serve(async (req) => {
 
               if (insertError) {
                 console.error(`    ⚠️ Error saving campaign snapshot: ${insertError.message}`);
-                stats.errors.push(`Campaign ${fbCampaign.name}: ${insertError.message}`);
+                stats.errors.push(`Campaign ${insight.campaign_name}: ${insertError.message}`);
               } else {
                 stats.snapshotsCreated++;
                 stats.campaignsProcessed++;
@@ -180,12 +186,12 @@ serve(async (req) => {
 
               await delay(100); // Pequeno delay entre inserções
             } catch (err) {
-              console.error(`    ❌ Error processing campaign ${fbCampaign.id}:`, err);
-              stats.errors.push(`Campaign ${fbCampaign.id}: ${err.message}`);
+              console.error(`    ❌ Error processing campaign ${insight.campaign_id}:`, err);
+              stats.errors.push(`Campaign ${insight.campaign_id}: ${err.message}`);
             }
           }
         } catch (err) {
-          console.error(`  ❌ Error fetching campaigns:`, err);
+          console.error(`  ❌ Error fetching campaign insights:`, err);
           stats.errors.push(`Client ${client.name} campaigns: ${err.message}`);
         }
 
@@ -193,30 +199,29 @@ serve(async (req) => {
 
         // 2. BUSCAR E PROCESSAR AD SETS
         try {
-          const adsetFields = 'id,name,status,campaign_id,daily_budget,lifetime_budget,spend,impressions,clicks,reach,frequency,actions';
-          const adsets = await fetchFacebookData('adsets', adsetFields);
+          const adsetInsights = await fetchFacebookInsights('insights', 'adset');
           
-          console.log(`  📊 Found ${adsets.length} ad sets`);
+          console.log(`  📊 Found ${adsetInsights.length} ad sets with data`);
 
-          for (const fbAdSet of adsets) {
+          for (const insight of adsetInsights) {
             try {
               const { data: dbAdSet } = await supabase
                 .from('ad_sets')
                 .select('id, campaign_id')
-                .eq('facebook_id', fbAdSet.id)
+                .eq('facebook_id', insight.adset_id)
                 .single();
 
               if (!dbAdSet) continue;
 
-              const spend = parseFloat(fbAdSet.spend || '0');
-              const impressions = parseInt(fbAdSet.impressions || '0');
-              const clicks = parseInt(fbAdSet.clicks || '0');
-              const reach = parseInt(fbAdSet.reach || '0');
-              const frequency = parseFloat(fbAdSet.frequency || '0');
+              const spend = parseFloat(insight.spend || '0');
+              const impressions = parseInt(insight.impressions || '0');
+              const clicks = parseInt(insight.clicks || '0');
+              const reach = parseInt(insight.reach || '0');
+              const frequency = parseFloat(insight.frequency || '0');
               
               let conversions = 0;
-              if (fbAdSet.actions) {
-                const leadAction = fbAdSet.actions.find((a: any) => 
+              if (insight.actions) {
+                const leadAction = insight.actions.find((a: any) => 
                   a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead'
                 );
                 conversions = leadAction ? parseInt(leadAction.value) : 0;
@@ -232,7 +237,7 @@ serve(async (req) => {
                   company_id: client.company_id,
                   entity_type: 'ad_set',
                   entity_id: dbAdSet.id,
-                  entity_name: fbAdSet.name,
+                  entity_name: insight.adset_name,
                   campaign_id: dbAdSet.campaign_id,
                   client_id: client.id,
                   spend,
@@ -250,7 +255,7 @@ serve(async (req) => {
 
               if (insertError) {
                 console.error(`    ⚠️ Error saving ad set snapshot: ${insertError.message}`);
-                stats.errors.push(`AdSet ${fbAdSet.name}: ${insertError.message}`);
+                stats.errors.push(`AdSet ${insight.adset_name}: ${insertError.message}`);
               } else {
                 stats.snapshotsCreated++;
                 stats.adsetsProcessed++;
@@ -258,12 +263,12 @@ serve(async (req) => {
 
               await delay(100);
             } catch (err) {
-              console.error(`    ❌ Error processing ad set ${fbAdSet.id}:`, err);
-              stats.errors.push(`AdSet ${fbAdSet.id}: ${err.message}`);
+              console.error(`    ❌ Error processing ad set ${insight.adset_id}:`, err);
+              stats.errors.push(`AdSet ${insight.adset_id}: ${err.message}`);
             }
           }
         } catch (err) {
-          console.error(`  ❌ Error fetching ad sets:`, err);
+          console.error(`  ❌ Error fetching ad set insights:`, err);
           stats.errors.push(`Client ${client.name} ad sets: ${err.message}`);
         }
 
@@ -271,30 +276,29 @@ serve(async (req) => {
 
         // 3. BUSCAR E PROCESSAR ADS
         try {
-          const adsFields = 'id,name,status,adset_id,creative{title,body},spend,impressions,clicks,reach,frequency,actions';
-          const ads = await fetchFacebookData('ads', adsFields);
+          const adsInsights = await fetchFacebookInsights('insights', 'ad');
           
-          console.log(`  📊 Found ${ads.length} ads`);
+          console.log(`  📊 Found ${adsInsights.length} ads with data`);
 
-          for (const fbAd of ads) {
+          for (const insight of adsInsights) {
             try {
               const { data: dbAd } = await supabase
                 .from('ads')
                 .select('id, campaign_id, ad_set_id')
-                .eq('facebook_id', fbAd.id)
+                .eq('facebook_id', insight.ad_id)
                 .single();
 
               if (!dbAd) continue;
 
-              const spend = parseFloat(fbAd.spend || '0');
-              const impressions = parseInt(fbAd.impressions || '0');
-              const clicks = parseInt(fbAd.clicks || '0');
-              const reach = parseInt(fbAd.reach || '0');
-              const frequency = parseFloat(fbAd.frequency || '0');
+              const spend = parseFloat(insight.spend || '0');
+              const impressions = parseInt(insight.impressions || '0');
+              const clicks = parseInt(insight.clicks || '0');
+              const reach = parseInt(insight.reach || '0');
+              const frequency = parseFloat(insight.frequency || '0');
               
               let conversions = 0;
-              if (fbAd.actions) {
-                const leadAction = fbAd.actions.find((a: any) => 
+              if (insight.actions) {
+                const leadAction = insight.actions.find((a: any) => 
                   a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead'
                 );
                 conversions = leadAction ? parseInt(leadAction.value) : 0;
@@ -310,7 +314,7 @@ serve(async (req) => {
                   company_id: client.company_id,
                   entity_type: 'ad',
                   entity_id: dbAd.id,
-                  entity_name: fbAd.name,
+                  entity_name: insight.ad_name,
                   campaign_id: dbAd.campaign_id,
                   client_id: client.id,
                   spend,
@@ -328,7 +332,7 @@ serve(async (req) => {
 
               if (insertError) {
                 console.error(`    ⚠️ Error saving ad snapshot: ${insertError.message}`);
-                stats.errors.push(`Ad ${fbAd.name}: ${insertError.message}`);
+                stats.errors.push(`Ad ${insight.ad_name}: ${insertError.message}`);
               } else {
                 stats.snapshotsCreated++;
                 stats.adsProcessed++;
@@ -336,12 +340,12 @@ serve(async (req) => {
 
               await delay(100);
             } catch (err) {
-              console.error(`    ❌ Error processing ad ${fbAd.id}:`, err);
-              stats.errors.push(`Ad ${fbAd.id}: ${err.message}`);
+              console.error(`    ❌ Error processing ad ${insight.ad_id}:`, err);
+              stats.errors.push(`Ad ${insight.ad_id}: ${err.message}`);
             }
           }
         } catch (err) {
-          console.error(`  ❌ Error fetching ads:`, err);
+          console.error(`  ❌ Error fetching ad insights:`, err);
           stats.errors.push(`Client ${client.name} ads: ${err.message}`);
         }
 
