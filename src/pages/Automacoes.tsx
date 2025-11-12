@@ -602,6 +602,7 @@ const Automacoes = () => {
         </Tabs>
 
         <TemplateEditorDialog
+          key={editingTemplate?.id || 'new'}
           open={editorOpen}
           onOpenChange={(open) => {
             setEditorOpen(open);
