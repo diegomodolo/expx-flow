@@ -700,29 +700,107 @@ async function duplicateAdSetSafely(
 // ============ FUNÇÕES PARA ADS ============
 
 async function fetchAds(supabase: any, companyId: string, clientId?: string) {
-  let query = supabase
-    .from('ads')
-    .select(`
-      *,
-      ad_sets!inner(id, name, campaign_id),
-      campaigns!inner(id, name, client_id, objective),
-      clients!inner(id, name, ad_account_id)
-    `)
-    .eq('company_id', companyId)
-    .eq('is_active', true);
+  try {
+    // 1. Buscar campaigns da empresa/cliente
+    let campaignsQuery = supabase
+      .from('campaigns')
+      .select('id, name, objective, status, company_id, client_id, ad_account_id')
+      .eq('company_id', companyId);
 
-  if (clientId) {
-    query = query.eq('client_id', clientId);
-  }
+    if (clientId) {
+      campaignsQuery = campaignsQuery.eq('client_id', clientId);
+    }
 
-  const { data, error } = await query;
-  
-  if (error) {
-    console.error('Error fetching ads:', error);
+    const { data: campaigns, error: campaignsError } = await campaignsQuery;
+    if (campaignsError) {
+      console.error('Error fetching campaigns for ads:', campaignsError);
+      return [];
+    }
+    if (!campaigns || campaigns.length === 0) {
+      console.log('No campaigns found for ads');
+      return [];
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+    const campaignsMap = new Map(campaigns.map(c => [c.id, c]));
+
+    // 2. Buscar ad_sets dessas campaigns
+    const { data: adSets, error: adSetsError } = await supabase
+      .from('ad_sets')
+      .select('id, name, campaign_id, status, daily_budget, targeting')
+      .in('campaign_id', campaignIds);
+
+    if (adSetsError) {
+      console.error('Error fetching ad_sets for ads:', adSetsError);
+      return [];
+    }
+    if (!adSets || adSets.length === 0) {
+      console.log('No ad_sets found for ads');
+      return [];
+    }
+
+    const adSetIds = adSets.map(a => a.id);
+    const adSetsMap = new Map(adSets.map(a => [a.id, a]));
+
+    // 3. Buscar ads ativos desses ad_sets
+    const { data: ads, error: adsError } = await supabase
+      .from('ads')
+      .select('*')
+      .in('ad_set_id', adSetIds)
+      .eq('is_active', true);
+
+    if (adsError) {
+      console.error('Error fetching ads:', adsError);
+      return [];
+    }
+    if (!ads || ads.length === 0) {
+      console.log('No active ads found');
+      return [];
+    }
+
+    // 4. Buscar clients para enriquecer os dados
+    const clientIds = [...new Set(campaigns.map(c => c.client_id).filter(Boolean))];
+    const { data: clients } = await supabase
+      .from('clients')
+      .select('id, name, ad_account_id')
+      .in('id', clientIds);
+
+    const clientsMap = new Map((clients || []).map(c => [c.id, c]));
+
+    // 5. Combinar dados manualmente (replicando estrutura de join)
+    const enrichedAds = ads.map(ad => {
+      const adSet = adSetsMap.get(ad.ad_set_id);
+      const campaign = adSet ? campaignsMap.get(adSet.campaign_id) : null;
+      const client = campaign ? clientsMap.get(campaign.client_id) : null;
+
+      return {
+        ...ad,
+        ad_sets: adSet ? {
+          id: adSet.id,
+          name: adSet.name,
+          campaign_id: adSet.campaign_id,
+        } : null,
+        campaigns: campaign ? {
+          id: campaign.id,
+          name: campaign.name,
+          client_id: campaign.client_id,
+          objective: campaign.objective,
+        } : null,
+        clients: client ? {
+          id: client.id,
+          name: client.name,
+          ad_account_id: client.ad_account_id,
+        } : null,
+      };
+    });
+
+    console.log(`✅ Fetched ${enrichedAds.length} ads with manual joins (from ${adSets.length} ad sets, ${campaigns.length} campaigns)`);
+    return enrichedAds;
+
+  } catch (error) {
+    console.error('Unexpected error in fetchAds:', error);
     return [];
   }
-
-  return data || [];
 }
 
 async function pauseAdSafely(
