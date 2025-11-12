@@ -1172,6 +1172,7 @@ export type Database = {
           avatar: string | null
           avg_cpl: number
           briefing_generated_at: string | null
+          calculated_status: string | null
           campaign_type: string | null
           company: string
           company_id: string | null
@@ -1191,6 +1192,8 @@ export type Database = {
           product_name: string | null
           sector: string
           status: Database["public"]["Enums"]["client_status"]
+          status_calculated_at: string | null
+          status_explanation: string | null
           target_audience: string | null
           team_id: string | null
           updated_at: string
@@ -1205,6 +1208,7 @@ export type Database = {
           avatar?: string | null
           avg_cpl?: number
           briefing_generated_at?: string | null
+          calculated_status?: string | null
           campaign_type?: string | null
           company: string
           company_id?: string | null
@@ -1224,6 +1228,8 @@ export type Database = {
           product_name?: string | null
           sector: string
           status?: Database["public"]["Enums"]["client_status"]
+          status_calculated_at?: string | null
+          status_explanation?: string | null
           target_audience?: string | null
           team_id?: string | null
           updated_at?: string
@@ -1238,6 +1244,7 @@ export type Database = {
           avatar?: string | null
           avg_cpl?: number
           briefing_generated_at?: string | null
+          calculated_status?: string | null
           campaign_type?: string | null
           company?: string
           company_id?: string | null
@@ -1257,6 +1264,8 @@ export type Database = {
           product_name?: string | null
           sector?: string
           status?: Database["public"]["Enums"]["client_status"]
+          status_calculated_at?: string | null
+          status_explanation?: string | null
           target_audience?: string | null
           team_id?: string | null
           updated_at?: string

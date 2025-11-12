@@ -450,14 +450,29 @@ export function useClients() {
 
       if (error) throw error;
       
-      // Calculate automatic status for each client and map from database format
+      // Use cached status from database, fallback to calculating if not available
       const clientsWithStatus = await Promise.all((data || []).map(async (client) => {
-        const { status, explanation } = await calculateClientStatus(client.id, activeCompany.company_id);
-        return {
-          ...client,
-          status, // This is already ClientStatus from calculateClientStatus
-          statusExplanation: explanation
-        };
+        // If status was calculated and is recent (less than 24h old), use cached version
+        const statusAge = client.status_calculated_at 
+          ? Date.now() - new Date(client.status_calculated_at).getTime()
+          : Infinity;
+        const isStatusFresh = statusAge < 24 * 60 * 60 * 1000; // 24 hours
+
+        if (client.calculated_status && isStatusFresh) {
+          return {
+            ...client,
+            status: client.calculated_status as ClientStatus,
+            statusExplanation: client.status_explanation || ''
+          };
+        } else {
+          // Fallback: calculate on-the-fly if no cached status or stale
+          const { status, explanation } = await calculateClientStatus(client.id, activeCompany.company_id);
+          return {
+            ...client,
+            status,
+            statusExplanation: explanation
+          };
+        }
       }));
       
       setClients(clientsWithStatus);
@@ -535,54 +550,26 @@ export function useClients() {
     if (!user || !activeCompany) return { success: false, count: 0 };
     
     try {
-      // Buscar todos os clientes com seus nomes
-      const { data: clientsData, error } = await supabase
-        .from("clients")
-        .select("id, name")
-        .eq("company_id", activeCompany.company_id);
-      
-      if (error) throw error;
-      if (!clientsData || clientsData.length === 0) return { success: false, count: 0 };
-
       // Initialize progress
-      setRecalculatingProgress({ current: 0, total: clientsData.length, clientName: '' });
+      setRecalculatingProgress({ current: 1, total: 1, clientName: 'Processando...' });
 
-      // Calculate new statuses for all clients
-      let successCount = 0;
-      for (let i = 0; i < clientsData.length; i++) {
-        const client = clientsData[i];
-        
-        // Update progress
-        setRecalculatingProgress({
-          current: i + 1,
-          total: clientsData.length,
-          clientName: client.name
-        });
+      // Call edge function to recalculate all statuses in background
+      const { data, error } = await supabase.functions.invoke('recalculate-client-statuses', {
+        body: { companyId: activeCompany.company_id }
+      });
 
-        try {
-          const { status } = await calculateClientStatus(client.id, activeCompany.company_id);
-          
-          // Update the client status
-          const { error: updateError } = await supabase
-            .from("clients")
-            .update({ status: statusMapping.database[status] })
-            .eq("id", client.id);
+      if (error) throw error;
 
-          if (!updateError) {
-            successCount++;
-          }
-        } catch (err) {
-          console.error(`Error recalculating status for client ${client.id}:`, err);
-        }
-      }
-
-      // Refresh the clients list
+      // Refresh the clients list to show updated statuses
       await fetchClients();
 
       // Reset progress
       setRecalculatingProgress({ current: 0, total: 0, clientName: '' });
 
-      return { success: true, count: successCount };
+      return { 
+        success: data?.success || true, 
+        count: data?.successCount || 0 
+      };
     } catch (err) {
       console.error("Error recalculating all statuses:", err);
       setRecalculatingProgress({ current: 0, total: 0, clientName: '' });
