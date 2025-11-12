@@ -704,7 +704,7 @@ async function fetchAds(supabase: any, companyId: string, clientId?: string) {
     // 1. Buscar campaigns da empresa/cliente
     let campaignsQuery = supabase
       .from('campaigns')
-      .select('id, name, objective, status, company_id, client_id, ad_account_id')
+      .select('id, name, objective, status, company_id, client_id')
       .eq('company_id', companyId);
 
     if (clientId) {
