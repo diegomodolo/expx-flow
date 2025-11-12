@@ -911,6 +911,14 @@ serve(async (req) => {
           if (!validateCampaignDataIntegrity(campaign)) continue;
           if (!matchesScopeFilters(campaign, rule.scope_filters)) continue;
 
+          // 🆕 Verificação explícita de objetivo da regra
+          if (rule.campaign_objectives?.length > 0 && campaign.objective) {
+            if (!rule.campaign_objectives.includes(campaign.objective)) {
+              console.log(`⏭️ Campaign ${campaign.name}: Objective ${campaign.objective} not in rule targets`);
+              continue; // Não registra log, apenas pula
+            }
+          }
+
           const limitCheck = await checkExecutionLimits(supabase, rule, campaign);
           if (!limitCheck.allowed) {
             console.log(`⏭️ ${campaign.name}: ${limitCheck.reason}`);
@@ -1056,6 +1064,17 @@ serve(async (req) => {
         for (const adset of adsets) {
           totalAnalyzed++;
 
+          if (!validateCampaignDataIntegrity(adset)) continue;
+          if (!matchesScopeFilters(adset, rule.scope_filters)) continue;
+
+          // 🆕 Verificação explícita de objetivo da regra
+          if (rule.campaign_objectives?.length > 0 && adset.campaign_objective) {
+            if (!rule.campaign_objectives.includes(adset.campaign_objective)) {
+              console.log(`⏭️ Ad Set ${adset.name}: Campaign objective not in rule targets`);
+              continue; // Não registra log, apenas pula
+            }
+          }
+
           const limitCheck = await checkExecutionLimits(supabase, rule, adset);
           if (!limitCheck.allowed) continue;
 
@@ -1189,6 +1208,17 @@ serve(async (req) => {
 
         for (const ad of ads) {
           totalAnalyzed++;
+
+          if (!validateCampaignDataIntegrity(ad)) continue;
+          if (!matchesScopeFilters(ad, rule.scope_filters)) continue;
+
+          // 🆕 Verificação explícita de objetivo da regra
+          if (rule.campaign_objectives?.length > 0 && ad.campaign_objective) {
+            if (!rule.campaign_objectives.includes(ad.campaign_objective)) {
+              console.log(`⏭️ Ad ${ad.name}: Campaign objective not in rule targets`);
+              continue; // Não registra log, apenas pula
+            }
+          }
 
           const limitCheck = await checkExecutionLimits(supabase, rule, ad);
           if (!limitCheck.allowed) continue;
