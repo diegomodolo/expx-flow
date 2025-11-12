@@ -141,13 +141,25 @@ async function checkExecutionLimits(
 
 async function evaluateConditionsWithTimeWindow(
   supabase: any,
-  campaign: any,
+  entity: any,
   rule: AutomationRule
 ): Promise<{ met: boolean; description: string }> {
   const windowDays = rule.time_window_days || 1;
   
+  // Determinar tipo de entidade baseado nos campos presentes
+  let entityType = 'campaign';
+  let entityId = entity.id;
+  
+  if (entity.ad_set_id && !entity.campaign_id) {
+    // É um ad
+    entityType = 'ad';
+  } else if (entity.campaign_id && !entity.ad_set_id) {
+    // É um ad_set
+    entityType = 'ad_set';
+  }
+  
   // Se janela > 1 dia, buscar métricas históricas
-  let metrics = campaign;
+  let metrics = entity;
   
   if (windowDays > 1) {
     const startDate = new Date();
@@ -156,20 +168,35 @@ async function evaluateConditionsWithTimeWindow(
     const { data: snapshots } = await supabase
       .from('performance_snapshots')
       .select('*')
-      .eq('entity_type', 'campaign')
-      .eq('entity_id', campaign.id)
+      .eq('entity_type', entityType)
+      .eq('entity_id', entityId)
+      .eq('snapshot_period', 'daily')
       .gte('snapshot_date', startDate.toISOString().split('T')[0])
       .order('snapshot_date', { ascending: false });
     
     if (snapshots && snapshots.length > 0) {
-      // Calcular médias
+      // Calcular agregações corretas (somas para totais, depois médias/cálculos)
+      const totalSpend = snapshots.reduce((sum: number, s: any) => sum + (s.spend || 0), 0);
+      const totalConversions = snapshots.reduce((sum: number, s: any) => sum + (s.conversions || 0), 0);
+      const totalClicks = snapshots.reduce((sum: number, s: any) => sum + (s.clicks || 0), 0);
+      const totalImpressions = snapshots.reduce((sum: number, s: any) => sum + (s.impressions || 0), 0);
+      const avgFrequency = snapshots.reduce((sum: number, s: any) => sum + (s.frequency || 0), 0) / snapshots.length;
+      
       metrics = {
-        ...campaign,
-        cpa: snapshots.reduce((sum: number, s: any) => sum + (s.cpa || 0), 0) / snapshots.length,
-        ctr: snapshots.reduce((sum: number, s: any) => sum + (s.ctr || 0), 0) / snapshots.length,
-        frequency: snapshots.reduce((sum: number, s: any) => sum + (s.frequency || 0), 0) / snapshots.length,
-        conversions: snapshots.reduce((sum: number, s: any) => sum + (s.conversions || 0), 0),
+        ...entity,
+        spend: totalSpend,
+        conversions: totalConversions,
+        clicks: totalClicks,
+        impressions: totalImpressions,
+        cpa: totalConversions > 0 ? totalSpend / totalConversions : totalSpend,
+        ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+        cpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
+        frequency: avgFrequency,
       };
+      
+      console.log(`📊 Using ${snapshots.length} days of snapshot data for ${entityType} ${entity.name}`);
+    } else {
+      console.log(`⚠️ No snapshots found for ${entityType} ${entity.name}, using current data`);
     }
   }
   

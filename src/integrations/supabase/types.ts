@@ -3678,6 +3678,54 @@ export type Database = {
           },
         ]
       }
+      snapshot_execution_log: {
+        Row: {
+          ads_processed: number | null
+          adsets_processed: number | null
+          campaigns_processed: number | null
+          clients_processed: number | null
+          created_at: string
+          error_messages: string[] | null
+          errors_count: number | null
+          execution_date: string
+          finished_at: string | null
+          id: string
+          snapshots_created: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          ads_processed?: number | null
+          adsets_processed?: number | null
+          campaigns_processed?: number | null
+          clients_processed?: number | null
+          created_at?: string
+          error_messages?: string[] | null
+          errors_count?: number | null
+          execution_date: string
+          finished_at?: string | null
+          id?: string
+          snapshots_created?: number | null
+          started_at?: string
+          status: string
+        }
+        Update: {
+          ads_processed?: number | null
+          adsets_processed?: number | null
+          campaigns_processed?: number | null
+          clients_processed?: number | null
+          created_at?: string
+          error_messages?: string[] | null
+          errors_count?: number | null
+          execution_date?: string
+          finished_at?: string | null
+          id?: string
+          snapshots_created?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           ai_estimated_minutes: number | null
