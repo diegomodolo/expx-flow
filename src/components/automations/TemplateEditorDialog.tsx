@@ -73,7 +73,21 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
   // Load template data when it changes
   useEffect(() => {
+    console.log('🔄 TemplateEditorDialog useEffect triggered', { 
+      hasTemplate: !!template, 
+      templateId: template?.id,
+      template
+    });
+    
     if (template) {
+      console.log('✅ Loading template data:', {
+        rule_name: template.rule_name,
+        entity_type: template.entity_type,
+        action_type: template.action_type,
+        rule_order: template.rule_order,
+        time_window_days: template.time_window_days,
+      });
+      
       setFormData({
         rule_name: template.rule_name,
         rule_description: template.rule_description || "",
@@ -137,7 +151,7 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
 
       setSelectedObjectives([]);
     }
-  }, [template, open]);
+  }, [template]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
