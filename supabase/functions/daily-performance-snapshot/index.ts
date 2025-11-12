@@ -55,12 +55,22 @@ serve(async (req) => {
       errors: [] as string[]
     };
 
-    // Buscar todos os clientes ativos com ad_account_id
+    // Buscar todos os clientes ativos com integração do Facebook
     const { data: clients, error: clientsError } = await supabase
       .from('clients')
-      .select('id, name, company_id, ad_account_id, access_token')
-      .not('ad_account_id', 'is', null)
-      .not('access_token', 'is', null);
+      .select(`
+        id,
+        name,
+        company_id,
+        facebook_ad_accounts!inner (
+          ad_account_id,
+          facebook_integrations!inner (
+            access_token,
+            is_active
+          )
+        )
+      `)
+      .eq('facebook_ad_accounts.facebook_integrations.is_active', true);
 
     if (clientsError) throw clientsError;
 
@@ -71,8 +81,15 @@ serve(async (req) => {
       try {
         console.log(`\n🔄 Processing client: ${client.name}`);
         
-        const fbAccountId = client.ad_account_id.replace('act_', '');
-        const accessToken = client.access_token;
+        // Acessar dados do JOIN
+        const fbAccount = client.facebook_ad_accounts[0];
+        if (!fbAccount || !fbAccount.facebook_integrations) {
+          console.log(`  ⚠️ No Facebook integration found for client ${client.name}`);
+          continue;
+        }
+        
+        const fbAccountId = fbAccount.ad_account_id.replace('act_', '');
+        const accessToken = fbAccount.facebook_integrations.access_token;
 
         // Helper para fazer requisição ao Facebook API
         const fetchFacebookData = async (endpoint: string, fields: string) => {
