@@ -102,6 +102,16 @@ Deno.serve(async (req) => {
     const accessToken = integration.access_token;
     companyId = integration.company_id;
 
+    // Buscar configurações de automação para obter o prefixo
+    const { data: automationSettings } = await supabase
+      .from('automation_settings')
+      .select('campaign_name_prefix')
+      .eq('company_id', companyId)
+      .single();
+
+    const namePrefix = automationSettings?.campaign_name_prefix || 'SHEGrowth';
+    console.log(`📝 Nome prefixo: ${namePrefix}`);
+
     // Buscar Ad Account do cliente
     const { data: clientData, error: clientError } = await supabase
       .from('clients')
@@ -808,9 +818,12 @@ async function processEntityWithRule(
 
       const actionResult = await executeAction(
         entity.facebook_id,
+        entity.name,
         rule.action_type,
         rule.action_config,
         rule.entity_type,
+        rule.rule_name,
+        namePrefix,
         accessToken
       );
 
@@ -825,7 +838,7 @@ async function processEntityWithRule(
           facebook_id: entity.facebook_id,
           status: 'actioned',
           rule_name: rule.rule_name,
-          message: `✓ ${getActionDescription(rule.action_type)} (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`
+          message: `✓ ${getActionDescription(rule.action_type)} e renomeado (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`
         });
 
         await supabase.from('campaign_automation_logs').insert({
@@ -911,12 +924,66 @@ function evaluateConditions(conditions: any, metrics: any): boolean {
   }
 }
 
+// Gerar nome da entidade com prefixo e sufixo
+function generateEntityName(
+  currentName: string,
+  namePrefix: string,
+  actionType: string,
+  ruleName: string,
+  budgetChange?: number
+): string {
+  // Remove prefixo existente e sufixos antigos
+  const cleanName = currentName
+    .replace(new RegExp(`^\\[${namePrefix}\\]\\s*`, 'i'), '')
+    .replace(/\s*-\s*(Pausad[oa]|Ativad[oa]|Budget\s+[\w\s%+-]+).*$/i, '');
+  
+  // Gerar sufixo baseado na ação
+  let suffix = '';
+  switch (actionType) {
+    case 'pause':
+    case 'pause_campaign':
+    case 'pause_adset':
+    case 'pause_ad':
+      suffix = `Pausado (${ruleName})`;
+      break;
+    
+    case 'activate':
+    case 'activate_campaign':
+    case 'activate_adset':
+    case 'activate_ad':
+      suffix = `Ativado (${ruleName})`;
+      break;
+    
+    case 'increase_budget':
+      const increasePercent = budgetChange || 0;
+      suffix = `Budget +${increasePercent.toFixed(0)}% (${ruleName})`;
+      break;
+    
+    case 'decrease_budget':
+      const decreasePercent = budgetChange || 0;
+      suffix = `Budget -${decreasePercent.toFixed(0)}% (${ruleName})`;
+      break;
+    
+    case 'adjust_budget':
+      suffix = `Budget Ajustado (${ruleName})`;
+      break;
+    
+    default:
+      suffix = ruleName;
+  }
+  
+  return `[${namePrefix}] ${cleanName} - ${suffix}`;
+}
+
 // Executar ação no Facebook
 async function executeAction(
   facebookId: string,
+  currentName: string,
   actionType: string,
   actionConfig: any,
   entityType: string,
+  ruleName: string,
+  namePrefix: string,
   accessToken: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -929,7 +996,10 @@ async function executeAction(
       case 'pause_adset':
       case 'pause_ad':
         url = `https://graph.facebook.com/v20.0/${facebookId}`;
-        body = { status: 'PAUSED' };
+        body = { 
+          status: 'PAUSED',
+          name: generateEntityName(currentName, namePrefix, actionType, ruleName)
+        };
         break;
       
       case 'activate':
@@ -937,7 +1007,10 @@ async function executeAction(
       case 'activate_adset':
       case 'activate_ad':
         url = `https://graph.facebook.com/v20.0/${facebookId}`;
-        body = { status: 'ACTIVE' };
+        body = { 
+          status: 'ACTIVE',
+          name: generateEntityName(currentName, namePrefix, actionType, ruleName)
+        };
         break;
       
       case 'adjust_budget':
@@ -950,6 +1023,8 @@ async function executeAction(
         
         // Calcular novo budget
         let newBudget = actionConfig.new_budget;
+        let percentChange = 0;
+        
         if (actionType === 'increase_budget' && actionConfig.increase_percentage) {
           // Buscar budget atual primeiro
           const currentResponse = await fetch(
@@ -957,18 +1032,21 @@ async function executeAction(
           );
           const currentData = await currentResponse.json();
           const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
-          newBudget = currentBudget * (1 + actionConfig.increase_percentage / 100);
+          percentChange = actionConfig.increase_percentage;
+          newBudget = currentBudget * (1 + percentChange / 100);
         } else if (actionType === 'decrease_budget' && actionConfig.decrease_percentage) {
           const currentResponse = await fetch(
             `https://graph.facebook.com/v20.0/${facebookId}?fields=daily_budget,lifetime_budget&access_token=${accessToken}`
           );
           const currentData = await currentResponse.json();
           const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
-          newBudget = currentBudget * (1 - actionConfig.decrease_percentage / 100);
+          percentChange = actionConfig.decrease_percentage;
+          newBudget = currentBudget * (1 - percentChange / 100);
         }
         
         body = {
           daily_budget: newBudget ? Math.round(newBudget * 100) : undefined,
+          name: generateEntityName(currentName, namePrefix, actionType, ruleName, percentChange)
         };
         break;
       
@@ -997,7 +1075,7 @@ async function executeAction(
       return { success: false, error: data.error.message };
     }
 
-    console.log(`✅ Action executed successfully`);
+    console.log(`✅ Action executed successfully. New name: ${body.name || 'unchanged'}`);
     return { success: true };
   } catch (error: any) {
     console.error('❌ Error executing action:', error);
