@@ -542,6 +542,7 @@ Deno.serve(async (req) => {
         totalActioned,
         totalSkipped,
         totalErrors,
+        rulesEvaluatedCount: totalProcessed + totalSkipped,
         total_actioned: totalActioned // Para compatibilidade com scheduled-automation-execution
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
