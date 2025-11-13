@@ -185,57 +185,45 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Operador</Label>
-                    {isTemplate ? (
-                      <div className="h-10 px-3 py-2 border rounded-md bg-muted text-muted-foreground text-sm flex items-center">
-                        A configurar
-                      </div>
-                    ) : (
-                      <Select
-                        value={condition.operator || undefined}
-                        onValueChange={(operator) => 
-                          updateCondition(index, { operator: operator as ConditionType["operator"] })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <Label className="text-xs">Operador{isTemplate && " (Padrão)"}</Label>
+                    <Select
+                      value={condition.operator || undefined}
+                      onValueChange={(operator) => 
+                        updateCondition(index, { operator: operator as ConditionType["operator"] })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Valor</Label>
-                    {isTemplate ? (
-                      <div className="h-10 px-3 py-2 border rounded-md bg-muted text-muted-foreground text-sm flex items-center">
-                        A configurar
+                    <Label className="text-xs">Valor{isTemplate && " (Padrão)"}</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={condition.value ?? 0}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0;
+                        updateCondition(index, { value });
+                      }}
+                      onBlur={() => validateCondition(condition, index)}
+                    />
+                    {isTemplate && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        💡 Este valor será usado como padrão quando a regra for importada
                       </div>
-                     ) : (
-                       <Input
-                         type="number"
-                         min="0"
-                         step="0.01"
-                         value={condition.value ?? 0}
-                         onChange={(e) => {
-                           const value = parseFloat(e.target.value) || 0;
-                           updateCondition(index, { value });
-                         }}
-                         onBlur={() => validateCondition(condition, index)}
-                       />
-                     )}
-                   </div>
-                   {isTemplate && (
-                     <div className="text-xs text-muted-foreground mt-1">
-                       💡 Este valor será usado como padrão quando a regra for importada
-                     </div>
-                   )}
+                    )}
+                  </div>
                  </div>
 
                 <Button
