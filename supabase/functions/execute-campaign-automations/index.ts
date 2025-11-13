@@ -19,7 +19,30 @@ interface AutomationRule {
   time_window_days: number;
   scope_filters?: any;
   safety_limits?: any;
+  campaign_objectives?: string[];
   is_active: boolean;
+}
+
+interface FacebookCampaign {
+  id: string;
+  name: string;
+  status: string;
+  objective: string;
+  effective_status: string;
+}
+
+interface FacebookAdSet {
+  id: string;
+  name: string;
+  status: string;
+  effective_status: string;
+}
+
+interface FacebookAd {
+  id: string;
+  name: string;
+  status: string;
+  effective_status: string;
 }
 
 serve(async (req) => {
@@ -67,6 +90,26 @@ serve(async (req) => {
     }
 
     const accessToken = integration.access_token;
+    const companyId = integration.company_id;
+
+    // Buscar Ad Account do cliente
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select(`
+        id,
+        name,
+        facebook_ad_accounts!inner(account_id)
+      `)
+      .eq('id', client_id)
+      .single();
+
+    if (clientError || !clientData || !clientData.facebook_ad_accounts) {
+      throw new Error('Cliente ou conta de anúncios não encontrada');
+    }
+
+    const adAccountId = clientData.facebook_ad_accounts.account_id;
+    console.log(`📱 Ad Account: ${adAccountId}`);
+
     let totalProcessed = 0;
     let totalActioned = 0;
     let totalSkipped = 0;
@@ -79,157 +122,178 @@ serve(async (req) => {
       ad: (rules as AutomationRule[]).filter(r => r.entity_type === 'ad')
     };
 
-    // ========== PROCESSAR CAMPANHAS ==========
-    if (rulesByType.campaign.length > 0) {
-      console.log(`\n🎯 Processing ${rulesByType.campaign.length} campaign rules`);
-      
-      const { data: campaigns } = await supabase
-        .from('campaigns')
-        .select('id, name, facebook_id, client_id, campaign_id')
-        .eq('client_id', client_id)
-        .eq('is_active', true)
-        .not('facebook_id', 'is', null);
+    // ========== BUSCAR CAMPANHAS ATIVAS DO FACEBOOK ==========
+    console.log('\n🚀 Buscando campanhas ativas do Facebook...');
+    const campaigns = await fetchActiveCampaignsFromFacebook(adAccountId, accessToken);
+    console.log(`📦 Encontradas ${campaigns.length} campanhas ativas no Facebook`);
 
-      console.log(`📦 Found ${campaigns?.length || 0} active campaigns`);
+    // ========== PROCESSAR EM CASCATA ==========
+    for (const campaign of campaigns) {
+      console.log(`\n📢 Processando campanha: ${campaign.name} (${campaign.objective})`);
 
-      for (const entity of campaigns || []) {
-        // Determinar maior time_window entre as regras
+      // 1️⃣ APLICAR REGRAS DE CAMPANHA
+      if (rulesByType.campaign.length > 0) {
         const maxTimeWindow = Math.max(...rulesByType.campaign.map(r => r.time_window_days));
-        
-        // Buscar métricas UMA VEZ
-        const metrics = await fetchFacebookMetrics(entity, maxTimeWindow, accessToken, execution_id, supabase, rulesByType.campaign[0].company_id);
-        
-        if (!metrics) {
-          totalSkipped++;
-          continue;
+        const metrics = await fetchFacebookMetrics(
+          campaign.id,
+          maxTimeWindow,
+          accessToken,
+          execution_id,
+          supabase,
+          companyId
+        );
+
+        if (metrics) {
+          totalProcessed++;
+
+          for (const rule of rulesByType.campaign) {
+            // Verificar se o objetivo da campanha está nas campaign_objectives da regra
+            if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+              if (!rule.campaign_objectives.includes(campaign.objective)) {
+                console.log(`  ⏭️  Regra "${rule.rule_name}" não se aplica ao objetivo ${campaign.objective}`);
+                continue;
+              }
+            }
+
+            const result = await processEntityWithRule(
+              {
+                id: campaign.id,
+                name: campaign.name,
+                facebook_id: campaign.id,
+                client_id,
+                campaign_id: campaign.id,
+                objective: campaign.objective
+              },
+              rule,
+              metrics,
+              execution_id,
+              accessToken,
+              supabase
+            );
+
+            if (result === 'actioned') totalActioned++;
+            else if (result === 'skipped') totalSkipped++;
+            else if (result === 'error') totalErrors++;
+          }
         }
-
-        totalProcessed++;
-
-        // Aplicar TODAS as regras de campanha
-        for (const rule of rulesByType.campaign) {
-          const result = await processEntityWithRule(
-            entity,
-            rule,
-            metrics,
-            execution_id,
-            accessToken,
-            supabase
-          );
-          
-          if (result === 'actioned') totalActioned++;
-          else if (result === 'skipped') totalSkipped++;
-          else if (result === 'error') totalErrors++;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
-    }
 
-    // ========== PROCESSAR AD SETS ==========
-    if (rulesByType.adset.length > 0) {
-      console.log(`\n🎯 Processing ${rulesByType.adset.length} adset rules`);
-      
-      const { data: adsets } = await supabase
-        .from('ad_sets')
-        .select(`
-          id, 
-          name, 
-          facebook_id, 
-          client_id, 
-          campaign_id,
-          campaigns!inner(id, is_active)
-        `)
-        .eq('client_id', client_id)
-        .eq('is_active', true)
-        .eq('campaigns.is_active', true)
-        .not('facebook_id', 'is', null);
+      // 2️⃣ BUSCAR E PROCESSAR AD SETS DESTA CAMPANHA
+      if (rulesByType.adset.length > 0) {
+        console.log(`  🔍 Buscando ad sets ativos da campanha...`);
+        const adsets = await fetchActiveAdSetsFromFacebook(campaign.id, accessToken);
+        console.log(`  📦 Encontrados ${adsets.length} ad sets ativos`);
 
-      console.log(`📦 Found ${adsets?.length || 0} active ad sets from active campaigns`);
+        for (const adset of adsets) {
+          console.log(`    💼 Processando ad set: ${adset.name}`);
 
-      for (const entity of adsets || []) {
-        const maxTimeWindow = Math.max(...rulesByType.adset.map(r => r.time_window_days));
-        
-        const metrics = await fetchFacebookMetrics(entity, maxTimeWindow, accessToken, execution_id, supabase, rulesByType.adset[0].company_id);
-        
-        if (!metrics) {
-          totalSkipped++;
-          continue;
-        }
-
-        totalProcessed++;
-
-        for (const rule of rulesByType.adset) {
-          const result = await processEntityWithRule(
-            entity,
-            rule,
-            metrics,
-            execution_id,
+          const maxTimeWindow = Math.max(...rulesByType.adset.map(r => r.time_window_days));
+          const metrics = await fetchFacebookMetrics(
+            adset.id,
+            maxTimeWindow,
             accessToken,
-            supabase
-          );
-          
-          if (result === 'actioned') totalActioned++;
-          else if (result === 'skipped') totalSkipped++;
-          else if (result === 'error') totalErrors++;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-
-    // ========== PROCESSAR ADS ==========
-    if (rulesByType.ad.length > 0) {
-      console.log(`\n🎯 Processing ${rulesByType.ad.length} ad rules`);
-      
-      const { data: ads } = await supabase
-        .from('ads')
-        .select(`
-          id, 
-          name, 
-          facebook_id, 
-          client_id, 
-          campaign_id, 
-          ad_set_id,
-          ad_sets!inner(id, is_active, campaign_id, campaigns!inner(id, is_active))
-        `)
-        .eq('client_id', client_id)
-        .eq('is_active', true)
-        .eq('ad_sets.is_active', true)
-        .eq('ad_sets.campaigns.is_active', true)
-        .not('facebook_id', 'is', null);
-
-      console.log(`📦 Found ${ads?.length || 0} active ads from active ad sets in active campaigns`);
-
-      for (const entity of ads || []) {
-        const maxTimeWindow = Math.max(...rulesByType.ad.map(r => r.time_window_days));
-        
-        const metrics = await fetchFacebookMetrics(entity, maxTimeWindow, accessToken, execution_id, supabase, rulesByType.ad[0].company_id);
-        
-        if (!metrics) {
-          totalSkipped++;
-          continue;
-        }
-
-        totalProcessed++;
-
-        for (const rule of rulesByType.ad) {
-          const result = await processEntityWithRule(
-            entity,
-            rule,
-            metrics,
             execution_id,
-            accessToken,
-            supabase
+            supabase,
+            companyId
           );
-          
-          if (result === 'actioned') totalActioned++;
-          else if (result === 'skipped') totalSkipped++;
-          else if (result === 'error') totalErrors++;
-        }
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+          if (metrics) {
+            totalProcessed++;
+
+            for (const rule of rulesByType.adset) {
+              // Verificar campaign_objectives
+              if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+                if (!rule.campaign_objectives.includes(campaign.objective)) {
+                  continue;
+                }
+              }
+
+              const result = await processEntityWithRule(
+                {
+                  id: adset.id,
+                  name: adset.name,
+                  facebook_id: adset.id,
+                  client_id,
+                  campaign_id: campaign.id,
+                  ad_set_id: adset.id,
+                  objective: campaign.objective
+                },
+                rule,
+                metrics,
+                execution_id,
+                accessToken,
+                supabase
+              );
+
+              if (result === 'actioned') totalActioned++;
+              else if (result === 'skipped') totalSkipped++;
+              else if (result === 'error') totalErrors++;
+            }
+          }
+
+          // 3️⃣ BUSCAR E PROCESSAR ADS DESTE AD SET
+          if (rulesByType.ad.length > 0) {
+            console.log(`      🔍 Buscando ads ativos do ad set...`);
+            const ads = await fetchActiveAdsFromFacebook(adset.id, accessToken);
+            console.log(`      📦 Encontrados ${ads.length} ads ativos`);
+
+            for (const ad of ads) {
+              console.log(`        🎨 Processando ad: ${ad.name}`);
+
+              const maxTimeWindow = Math.max(...rulesByType.ad.map(r => r.time_window_days));
+              const metrics = await fetchFacebookMetrics(
+                ad.id,
+                maxTimeWindow,
+                accessToken,
+                execution_id,
+                supabase,
+                companyId
+              );
+
+              if (metrics) {
+                totalProcessed++;
+
+                for (const rule of rulesByType.ad) {
+                  // Verificar campaign_objectives
+                  if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+                    if (!rule.campaign_objectives.includes(campaign.objective)) {
+                      continue;
+                    }
+                  }
+
+                  const result = await processEntityWithRule(
+                    {
+                      id: ad.id,
+                      name: ad.name,
+                      facebook_id: ad.id,
+                      client_id,
+                      campaign_id: campaign.id,
+                      ad_set_id: adset.id,
+                      objective: campaign.objective
+                    },
+                    rule,
+                    metrics,
+                    execution_id,
+                    accessToken,
+                    supabase
+                  );
+
+                  if (result === 'actioned') totalActioned++;
+                  else if (result === 'skipped') totalSkipped++;
+                  else if (result === 'error') totalErrors++;
+                }
+              }
+
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
       }
+
+      // Pequeno delay entre campanhas
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     console.log('\n✨ Automation execution completed:', { 
@@ -264,9 +328,87 @@ serve(async (req) => {
 
 // ============ FUNÇÕES AUXILIARES ============
 
+// Buscar campanhas ativas do Facebook
+async function fetchActiveCampaignsFromFacebook(
+  adAccountId: string,
+  accessToken: string
+): Promise<FacebookCampaign[]> {
+  try {
+    const url = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?` +
+      `fields=id,name,status,objective,effective_status&` +
+      `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
+      `access_token=${accessToken}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('❌ Facebook API error:', data.error);
+      return [];
+    }
+
+    return data.data || [];
+  } catch (error: any) {
+    console.error('❌ Error fetching campaigns from Facebook:', error);
+    return [];
+  }
+}
+
+// Buscar ad sets ativos do Facebook
+async function fetchActiveAdSetsFromFacebook(
+  campaignId: string,
+  accessToken: string
+): Promise<FacebookAdSet[]> {
+  try {
+    const url = `https://graph.facebook.com/v20.0/${campaignId}/adsets?` +
+      `fields=id,name,status,effective_status&` +
+      `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
+      `access_token=${accessToken}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('❌ Facebook API error:', data.error);
+      return [];
+    }
+
+    return data.data || [];
+  } catch (error: any) {
+    console.error('❌ Error fetching ad sets from Facebook:', error);
+    return [];
+  }
+}
+
+// Buscar ads ativos do Facebook
+async function fetchActiveAdsFromFacebook(
+  adSetId: string,
+  accessToken: string
+): Promise<FacebookAd[]> {
+  try {
+    const url = `https://graph.facebook.com/v20.0/${adSetId}/ads?` +
+      `fields=id,name,status,effective_status&` +
+      `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
+      `access_token=${accessToken}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('❌ Facebook API error:', data.error);
+      return [];
+    }
+
+    return data.data || [];
+  } catch (error: any) {
+    console.error('❌ Error fetching ads from Facebook:', error);
+    return [];
+  }
+}
+
 // Buscar métricas do Facebook
 async function fetchFacebookMetrics(
-  entity: any,
+  facebookId: string,
   timeWindowDays: number,
   accessToken: string,
   executionId: string,
@@ -280,9 +422,7 @@ async function fetchFacebookMetrics(
   const sinceStr = startDate.toISOString().split('T')[0];
   const untilStr = endDate.toISOString().split('T')[0];
 
-  console.log(`📊 Fetching metrics for ${entity.name} (${sinceStr} to ${untilStr})`);
-
-  const insightsUrl = `https://graph.facebook.com/v20.0/${entity.facebook_id}/insights?` +
+  const insightsUrl = `https://graph.facebook.com/v20.0/${facebookId}/insights?` +
     `fields=impressions,clicks,spend,actions,frequency,reach,ctr,cpc,cost_per_action_type&` +
     `time_range={"since":"${sinceStr}","until":"${untilStr}"}&` +
     `access_token=${accessToken}`;
@@ -297,7 +437,7 @@ async function fetchFacebookMetrics(
     }
 
     if (!insightsData.data || insightsData.data.length === 0) {
-      console.log(`⏭️  No insights data for ${entity.name}`);
+      console.log(`⏭️  No insights data`);
       return null;
     }
 
@@ -323,7 +463,7 @@ async function fetchFacebookMetrics(
     const cpc = clicks > 0 ? spend / clicks : 0;
     const cpa = conversions > 0 ? spend / conversions : 0;
 
-    console.log(`📈 Metrics: CPA=${cpa.toFixed(2)}, CTR=${ctr.toFixed(2)}%, Conversions=${conversions}`);
+    console.log(`      📈 CPA=${cpa.toFixed(2)}, CTR=${ctr.toFixed(2)}%, Conv=${conversions}`);
 
     return {
       impressions,
@@ -337,7 +477,7 @@ async function fetchFacebookMetrics(
       cpa
     };
   } catch (error: any) {
-    console.error(`❌ Error fetching metrics for ${entity.name}:`, error);
+    console.error(`❌ Error fetching metrics:`, error);
     return null;
   }
 }
