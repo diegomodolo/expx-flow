@@ -65,18 +65,6 @@ Deno.serve(async (req) => {
 
     console.log('🚀 Starting automation execution:', { client_id, execution_id: executionId });
 
-    // Log inicial de progresso
-    await supabase.from('automation_execution_progress').insert({
-      execution_id: executionId,
-      company_id: null, // Será preenchido depois
-      client_id: client_id,
-      entity_type: 'campaign',
-      entity_name: 'Sistema',
-      status: 'processing',
-      rule_name: 'Inicialização',
-      message: '🚀 Iniciando execução das automações...'
-    });
-
     // Buscar regras ativas
     const { data: rules, error: rulesError } = await supabase
       .from('campaign_automation_rules')
