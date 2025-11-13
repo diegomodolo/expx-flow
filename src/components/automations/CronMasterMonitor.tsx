@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,34 @@ interface CronMasterMonitorProps {
 export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMasterMonitorProps) => {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
   const { logs, loading, latestExecution, isRunning, stats, refetch } = useAutomationExecutionLogs(clientId, 50, periodFilter);
+
+  // Force refresh on mount
+  useEffect(() => {
+    console.log('🔄 CronMasterMonitor mounted, forcing refresh...');
+    refetch();
+  }, [refetch]);
+
+  // Manual debug button handler
+  const handleDebugQuery = async () => {
+    console.log('=== MANUAL DEBUG QUERY ===');
+    try {
+      const { data: directData, error: directError } = await supabase
+        .from('automation_execution_logs' as any)
+        .select('*')
+        .limit(10);
+      
+      console.log('✅ Direct Query Result:', directData);
+      console.log('❌ Direct Query Error:', directError);
+      console.log('📊 Total rows returned:', directData?.length || 0);
+      
+      if (directData && directData.length > 0) {
+        console.log('📋 First log sample:', directData[0]);
+      }
+    } catch (error) {
+      console.error('💥 Exception in debug query:', error);
+    }
+    console.log('=== END MANUAL DEBUG ===');
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -67,6 +96,10 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
   if (loading) {
     return (
       <div className="space-y-4">
+        <div className="flex items-center justify-center p-8 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-lg">Carregando logs de execução...</span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
             <Card key={i}>
@@ -110,6 +143,15 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
+          </Button>
+
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={handleDebugQuery}
+          >
+            <Activity className="h-4 w-4 mr-2" />
+            Debug
           </Button>
         </div>
       </div>
@@ -184,16 +226,21 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {logs.length === 0 ? (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Nenhum Log Encontrado</AlertTitle>
-              <AlertDescription>
-                Ainda não há execuções registradas para este {clientId ? 'cliente' : 'sistema'}. 
-                As execuções automáticas aparecerão aqui quando forem processadas pelo Cron Master.
-              </AlertDescription>
-            </Alert>
-          ) : (
+      {logs.length === 0 ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Nenhum Log Encontrado</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>Ainda não há execuções registradas para este {clientId ? 'cliente' : 'sistema'}.</p>
+            <p className="text-xs">
+              ℹ️ Verifique o console do navegador (F12) para informações detalhadas sobre possíveis erros.
+            </p>
+            <p className="text-xs">
+              🔍 Use o botão "Debug" acima para executar uma consulta manual e verificar a conexão com o banco de dados.
+            </p>
+          </AlertDescription>
+        </Alert>
+      ) : (
             <div className="space-y-2">
               {logs.map((log) => (
                 <div
