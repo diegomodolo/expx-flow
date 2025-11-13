@@ -206,6 +206,20 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       return;
     }
 
+    // Validar que todas as condições tenham valores default
+    const hasInvalidConditions = conditions.conditions.some(
+      cond => cond.value === null || cond.value === undefined
+    );
+
+    if (hasInvalidConditions) {
+      toast({
+        title: "❌ Erro de validação",
+        description: "Todas as condições devem ter um valor padrão configurado",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     
     const templateData = {
