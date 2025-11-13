@@ -522,6 +522,11 @@ export default function ClienteAutomacoes() {
                   })}
                 </div>
               )}
+
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-3 text-sm text-blue-800 dark:text-blue-200 mt-2">
+                <AlertCircle className="h-4 w-4 inline mr-2" />
+                <strong>Importante:</strong> Os cron jobs precisam ser configurados manualmente no Supabase Dashboard para executar as automações nos horários programados.
+              </div>
             </>
           )}
 

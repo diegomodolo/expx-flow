@@ -106,52 +106,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Create new cron jobs if enabled
-      let newCronJobIds: string[] = [];
+      // Calculate next execution time
       let nextExecutionAt: string | null = null;
-
+      
       if (is_enabled && times && times.length > 0) {
-        const functionUrl = `${supabaseUrl}/functions/v1/scheduled-automation-execution`;
-        const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
-        for (let i = 0; i < times.length; i++) {
-          const time = times[i];
-          const [hour, minute] = time.split(':');
-          const jobName = `automation-client-${client_id}-${i}`;
-
-          // Create cron job using SQL
-          const cronExpression = `${minute} ${hour} * * *`;
-          const cronSql = `
-            SELECT cron.schedule(
-              '${jobName}',
-              '${cronExpression}',
-              $$
-              SELECT net.http_post(
-                url := '${functionUrl}',
-                headers := '{"Content-Type": "application/json", "Authorization": "Bearer ${anonKey}"}'::jsonb,
-                body := '{"client_id": "${client_id}"}'::jsonb
-              ) as request_id;
-              $$
-            );
-          `;
-
-          try {
-            const { error: cronError } = await supabase.rpc('execute_sql', { 
-              query: cronSql 
-            });
-            
-            if (cronError) {
-              console.error('Cron creation error:', cronError);
-            } else {
-              newCronJobIds.push(jobName);
-              console.log(`✅ Created cron job: ${jobName} at ${time}`);
-            }
-          } catch (error) {
-            console.error(`Failed to create cron job ${jobName}:`, error);
-          }
-        }
-
-        // Calculate next execution time
         const now = new Date();
         const currentTime = now.getHours() * 60 + now.getMinutes();
         
@@ -168,7 +126,7 @@ Deno.serve(async (req) => {
         }
 
         // If no time found today, use first time tomorrow
-        if (!nextExecutionAt && times.length > 0) {
+        if (!nextExecutionAt) {
           const [hour, minute] = times[0].split(':').map(Number);
           const next = new Date(now);
           next.setDate(next.getDate() + 1);
@@ -177,14 +135,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Upsert schedule
+      // Upsert schedule (sem criar cron jobs por enquanto - eles precisam ser configurados manualmente)
       const scheduleData = {
         client_id,
         company_id,
         is_enabled,
         executions_per_day,
         scheduled_times: times || [],
-        cron_job_ids: newCronJobIds,
+        cron_job_ids: [], // Será preenchido quando os cron jobs forem configurados manualmente
         next_execution_at: nextExecutionAt,
         updated_at: new Date().toISOString(),
       };
@@ -199,11 +157,19 @@ Deno.serve(async (req) => {
         throw upsertError;
       }
 
+      console.log(`✅ Schedule ${is_enabled ? 'enabled' : 'disabled'} for client ${client_id}`);
+      console.log(`📅 Executions per day: ${executions_per_day}`);
+      console.log(`⏰ Scheduled times:`, times);
+      console.log(`⚠️ IMPORTANT: Configure cron jobs manually in Supabase Dashboard`);
+      console.log(`Use the following times for cron jobs: ${times?.join(', ')}`);
+
       return new Response(
         JSON.stringify({ 
           success: true, 
           schedule,
-          cron_jobs_created: newCronJobIds.length 
+          message: is_enabled 
+            ? `Schedule enabled with ${executions_per_day} executions per day. Configure cron jobs manually in Supabase Dashboard.`
+            : 'Schedule disabled'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

@@ -99,11 +99,12 @@ export const useAutomationSchedule = (clientId?: string) => {
   };
 
   const toggleSchedule = async (enabled: boolean) => {
-    if (!schedule) return;
+    // Se não existe schedule, criar um novo com configuração padrão
+    const executionsPerDay = schedule?.executions_per_day || 2;
 
     return createOrUpdateSchedule({
       is_enabled: enabled,
-      executions_per_day: schedule.executions_per_day,
+      executions_per_day: executionsPerDay,
     });
   };
 
