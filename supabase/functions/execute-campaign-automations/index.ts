@@ -314,7 +314,7 @@ serve(async (req) => {
               },
               rule,
               metrics,
-              execution_id,
+              executionId,
               accessToken,
               supabase
             );
@@ -403,7 +403,7 @@ serve(async (req) => {
                 },
                 rule,
                 metrics,
-                execution_id,
+                executionId,
                 accessToken,
                 supabase
               );
@@ -491,7 +491,7 @@ serve(async (req) => {
                     },
                     rule,
                     metrics,
-                    execution_id,
+                    executionId,
                     accessToken,
                     supabase
                   );
