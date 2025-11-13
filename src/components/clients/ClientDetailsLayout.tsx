@@ -47,7 +47,7 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
         .in('status', ['pending', 'processing'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setActiveSyncJobId(data.id);
