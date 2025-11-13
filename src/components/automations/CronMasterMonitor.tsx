@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useAutomationExecutionLogs, PeriodFilter } from "@/hooks/useAutomationExecutionLogs";
+import { useClients } from "@/hooks/useClients";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,12 +20,20 @@ interface CronMasterMonitorProps {
 export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMasterMonitorProps) => {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
   const { logs, loading, latestExecution, isRunning, stats, refetch } = useAutomationExecutionLogs(clientId, 50, periodFilter);
+  const { clients } = useClients();
 
   // Force refresh on mount
   useEffect(() => {
     console.log('🔄 CronMasterMonitor mounted, forcing refresh...');
     refetch();
   }, [refetch]);
+
+  // Helper to get client name from ID
+  const getClientName = (clientId: string | null) => {
+    if (!clientId) return 'N/A';
+    const client = clients?.find(c => c.id === clientId);
+    return client?.name || `Cliente ${clientId.substring(0, 8)}`;
+  };
 
   // Manual debug button handler
   const handleDebugQuery = async () => {
@@ -257,7 +266,7 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
                         {getStatusLabel(log.status)}
                       </Badge>
                       {showClientColumn && log.client_id && (
-                        <span className="text-sm text-muted-foreground">Cliente: {log.client_id.substring(0, 8)}</span>
+                        <span className="text-sm font-medium">{getClientName(log.client_id)}</span>
                       )}
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(log.started_at), {
