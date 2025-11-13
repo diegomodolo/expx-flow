@@ -74,7 +74,7 @@ export default function ClienteAutomacoes() {
     const [hours, minutes] = utcTime.split(':').map(Number);
     const utcDate = new Date();
     utcDate.setUTCHours(hours, minutes, 0, 0);
-    
+
     // Formatar para timezone local (BRT)
     return utcDate.toLocaleTimeString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
@@ -86,18 +86,15 @@ export default function ClienteAutomacoes() {
 
   // Função para gerar preview de horários no timezone local
   const getLocalTimePreview = (executions: number): string[] => {
-    const intervalMinutes = (24 * 60) / executions;
+    const intervalMinutes = 24 * 60 / executions;
     const times: string[] = [];
-    
     for (let i = 0; i < executions; i++) {
       const utcMinutes = i * intervalMinutes;
       const hours = Math.floor(utcMinutes / 60);
       const minutes = utcMinutes % 60;
-      
       const utcTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
       times.push(convertUTCToLocal(utcTime));
     }
-    
     return times;
   };
 
@@ -201,10 +198,8 @@ export default function ClienteAutomacoes() {
     if (days === 30) return "Últimos 30 dias";
     if (days === 60) return "Últimos 60 dias";
     if (days === 90) return "Últimos 90 dias";
-    
     return `Últimos ${days} dias`;
   };
-
   const getActionTypeLabel = (actionType: string) => {
     const labels: Record<string, string> = {
       pause_campaign: "Pausar Campanha",
@@ -526,155 +521,7 @@ export default function ClienteAutomacoes() {
       </Card>
 
       {/* Execution Logs */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Logs de Execução</CardTitle>
-              <CardDescription>
-                Histórico das últimas 50 execuções de automações
-              </CardDescription>
-            </div>
-            {logs.length > 0 && <Button variant="outline" size="sm" onClick={() => setClearLogsDialogOpen(true)} className="text-destructive hover:text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Limpar Logs
-              </Button>}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {logsLoading ? <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div> : logs.length === 0 ? <div className="text-center py-8 text-muted-foreground">
-              Nenhuma execução registrada ainda.
-            </div> : <>
-              {/* Filtros por Tipo de Entidade */}
-              <div className="flex gap-2 mb-4">
-                <Button variant={logEntityFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setLogEntityFilter('all')}>
-                  Todos ({logs.length})
-                </Button>
-                <Button variant={logEntityFilter === 'campaign' ? 'default' : 'outline'} size="sm" onClick={() => setLogEntityFilter('campaign')}>
-                  📊 Campanhas ({logs.filter(l => l.entity_type === 'campaign').length})
-                </Button>
-                <Button variant={logEntityFilter === 'adset' ? 'default' : 'outline'} size="sm" onClick={() => setLogEntityFilter('adset')}>
-                  📁 Conjuntos ({logs.filter(l => l.entity_type === 'adset').length})
-                </Button>
-                <Button variant={logEntityFilter === 'ad' ? 'default' : 'outline'} size="sm" onClick={() => setLogEntityFilter('ad')}>
-                  🎨 Criativos ({logs.filter(l => l.entity_type === 'ad').length})
-                </Button>
-              </div>
-
-              <div className="rounded-md border">
-                <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Regra</TableHead>
-                    <TableHead className="max-w-[300px]">Entidade Afetada</TableHead>
-                    <TableHead>Ação</TableHead>
-                    <TableHead>Alterações</TableHead>
-                    <TableHead>Detalhes</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLogs.map(log => <TableRow key={log.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getResultIcon(log.action_result)}
-                          <Badge variant={log.action_result === 'success' ? 'default' : log.action_result === 'error' ? 'destructive' : 'outline'} className={log.action_result === 'skipped' ? 'text-muted-foreground' : ''}>
-                            {log.action_result === 'success' && 'Sucesso'}
-                            {log.action_result === 'error' && 'Erro'}
-                            {log.action_result === 'skipped' && 'Sem Ação'}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {log.rule?.rule_name || "Regra removida"}
-                      </TableCell>
-                      <TableCell className="max-w-[300px]">
-                        {log.entity_type === 'campaign' && <div className="flex items-center gap-2">
-                            <span className="text-lg">📊</span>
-                            <div className="flex flex-col">
-                              <span className="font-medium text-sm">{log.campaign?.name}</span>
-                              <Badge variant="outline" className="text-xs w-fit mt-1">Campanha</Badge>
-                            </div>
-                          </div>}
-                        
-                        {log.entity_type === 'adset' && <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">📁</span>
-                              <span className="font-medium text-sm">{log.adset?.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
-                              <ArrowRight className="h-3 w-3" />
-                              <span>{log.campaign?.name}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Conjunto de Anúncios</Badge>
-                          </div>}
-                        
-                        {log.entity_type === 'ad' && <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">🎨</span>
-                              <span className="font-medium text-sm truncate max-w-[250px]">{log.ad?.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
-                              <ArrowRight className="h-3 w-3" />
-                              <span className="truncate max-w-[200px]">{log.adset?.name || 'Conjunto não disponível'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 ml-12 text-xs text-muted-foreground">
-                              <ArrowRight className="h-3 w-3" />
-                              <span className="truncate max-w-[200px]">{log.campaign?.name}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Criativo</Badge>
-                          </div>}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getActionTypeBadge(log.action_type)} className="text-xs">
-                          {getActionTypeLabel(log.action_type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {log.old_status && log.new_status && <span>{log.old_status} → {log.new_status}</span>}
-                        {log.old_budget && log.new_budget && <span>R$ {log.old_budget} → R$ {log.new_budget}</span>}
-                        {log.old_name && log.new_name && <span className="truncate max-w-[150px] block">
-                            {log.old_name} → {log.new_name}
-                          </span>}
-                        {!log.old_status && !log.old_budget && !log.old_name && "-"}
-                      </TableCell>
-                      <TableCell className="text-xs max-w-[200px]">
-                        {log.action_result === 'skipped' && log.metadata?.reason && <div className="text-muted-foreground">
-                            <div className="font-medium">{log.metadata.reason}</div>
-                            {log.metadata.conditions_checked && <div className="text-xs mt-1 text-muted-foreground/70">
-                                {log.metadata.conditions_checked}
-                              </div>}
-                          </div>}
-                        {log.action_result === 'error' && log.error_message && <div className="text-destructive text-xs">
-                            {log.error_message}
-                          </div>}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDistanceToNow(new Date(log.executed_at), {
-                      addSuffix: true,
-                      locale: ptBR
-                    })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {!log.rolled_back && log.action_result === "success" && <Button variant="ghost" size="sm" onClick={() => handleRollback(log.id)}>
-                            <Undo2 className="h-3 w-3 mr-1" />
-                            Reverter
-                          </Button>}
-                        {log.rolled_back && <Badge variant="outline" className="text-xs">
-                            Revertido
-                          </Badge>}
-                      </TableCell>
-                    </TableRow>)}
-                </TableBody>
-              </Table>
-            </div>
-            </>}
-        </CardContent>
-      </Card>
+      
 
       {/* Import Dialog */}
       <ImportAutomationTemplateDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} clientId={clientId || ""} onImported={handleImported} />
