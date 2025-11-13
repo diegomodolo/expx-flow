@@ -1,11 +1,11 @@
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+// Deno.serve is available natively in modern Deno
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   console.log('=== SCRAPE FUNCTION STARTED ===');
   console.log('Method:', req.method);
   
