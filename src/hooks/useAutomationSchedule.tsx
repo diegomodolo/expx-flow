@@ -61,7 +61,7 @@ export const useAutomationSchedule = (clientId?: string) => {
         {
           body: {
             client_id: clientId,
-            company_id: activeCompany.id,
+            company_id: activeCompany.company_id,
             is_enabled: config.is_enabled,
             executions_per_day: config.executions_per_day,
           }
