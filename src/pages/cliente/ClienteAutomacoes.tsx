@@ -327,8 +327,7 @@ export default function ClienteAutomacoes() {
                   Executar Agora
                 </>}
             </Button>
-            <Button onClick={() => setImportDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={() => setImportDialogOpen(true)}>Importar Automação<Plus className="mr-2 h-4 w-4" />
               Importar Template
             </Button>
           </div>
@@ -419,16 +418,16 @@ export default function ClienteAutomacoes() {
                           </div>
                           <div className="flex items-center gap-2 ml-4">
                             <Button variant="ghost" size="icon" onClick={() => {
-                          setRuleToEdit(rule);
-                          setEditDialogOpen(true);
-                        }}>
+                        setRuleToEdit(rule);
+                        setEditDialogOpen(true);
+                      }}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Switch checked={rule.is_active} onCheckedChange={() => handleToggleRule(rule.id, rule.is_active)} />
                             <Button variant="ghost" size="icon" onClick={() => {
-                          setRuleToDelete(rule.id);
-                          setDeleteDialogOpen(true);
-                        }}>
+                        setRuleToDelete(rule.id);
+                        setDeleteDialogOpen(true);
+                      }}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
