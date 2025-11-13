@@ -6,6 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper functions
+async function updateJobProgress(supabase: any, jobId: string, progress: any) {
+  await supabase.from('sync_jobs').update({ progress }).eq('id', jobId)
+}
+
+async function completeJob(supabase: any, jobId: string, success: boolean, errorMessage?: string) {
+  await supabase.from('sync_jobs').update({
+    status: success ? 'completed' : 'error',
+    error_message: errorMessage,
+    completed_at: new Date().toISOString()
+  }).eq('id', jobId)
+}
+
 Deno.serve(async (req) => {
   console.log('=== Sync Facebook Campaigns Function Started ===')
   console.log('Request method:', req.method)
@@ -1426,15 +1439,3 @@ async function processSync(
     )
   }
 })
-
-async function updateJobProgress(supabase: any, jobId: string, progress: any) {
-  await supabase.from('sync_jobs').update({ progress }).eq('id', jobId)
-}
-
-async function completeJob(supabase: any, jobId: string, success: boolean, errorMessage?: string) {
-  await supabase.from('sync_jobs').update({
-    status: success ? 'completed' : 'error',
-    error_message: errorMessage,
-    completed_at: new Date().toISOString()
-  }).eq('id', jobId)
-}
