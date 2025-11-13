@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useAutomationExecutionLogs, PeriodFilter } from "@/hooks/useAutomationExecutionLogs";
 import { useClients } from "@/hooks/useClients";
 import { formatDistanceToNow } from "date-fns";
@@ -20,6 +21,8 @@ export const CronMasterMonitor = ({
   showClientColumn = false
 }: CronMasterMonitorProps) => {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('day');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [clientSearch, setClientSearch] = useState<string>('');
   const {
     logs,
     loading,
@@ -106,6 +109,25 @@ export const CronMasterMonitor = ({
         return status;
     }
   };
+
+  // Filter logs based on status and client search
+  const filteredLogs = logs.filter(log => {
+    // Status filter
+    if (statusFilter !== 'all' && log.status !== statusFilter) {
+      return false;
+    }
+    
+    // Client search filter
+    if (clientSearch.trim() && showClientColumn && log.client_id) {
+      const clientName = getClientName(log.client_id).toLowerCase();
+      const searchTerm = clientSearch.toLowerCase();
+      if (!clientName.includes(searchTerm)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
   if (loading) {
     return <div className="space-y-4">
         <div className="flex items-center justify-center p-8 gap-3">
@@ -213,24 +235,101 @@ export const CronMasterMonitor = ({
         <CardHeader>
           <CardTitle>Histórico de Execuções</CardTitle>
           <CardDescription>
-            Últimas {logs.length} execuções do sistema de automação
+            {filteredLogs.length} de {logs.length} execuções
           </CardDescription>
         </CardHeader>
         <CardContent>
-      {logs.length === 0 ? <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Nenhum Log Encontrado</AlertTitle>
-          <AlertDescription className="space-y-2">
-            <p>Ainda não há execuções registradas para este {clientId ? 'cliente' : 'sistema'}.</p>
-            <p className="text-xs">
-              ℹ️ Verifique o console do navegador (F12) para informações detalhadas sobre possíveis erros.
-            </p>
-            <p className="text-xs">
-              🔍 Use o botão "Debug" acima para executar uma consulta manual e verificar a conexão com o banco de dados.
-            </p>
-          </AlertDescription>
-        </Alert> : <div className="space-y-2">
-              {logs.map(log => <div key={log.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+          {/* Filters */}
+          <div className="space-y-4 mb-6">
+            {/* Status Filter */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={statusFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('all')}
+              >
+                Todos ({logs.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'completed' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('completed')}
+                className="gap-2"
+              >
+                <CheckCircle className="h-3 w-3" />
+                Sucesso ({logs.filter(l => l.status === 'completed').length})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'failed' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('failed')}
+                className="gap-2"
+              >
+                <XCircle className="h-3 w-3" />
+                Erro ({logs.filter(l => l.status === 'failed').length})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'partial' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('partial')}
+                className="gap-2"
+              >
+                <AlertCircle className="h-3 w-3" />
+                Parcial ({logs.filter(l => l.status === 'partial').length})
+              </Button>
+              <Button
+                size="sm"
+                variant={statusFilter === 'running' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('running')}
+                className="gap-2"
+              >
+                <Loader2 className="h-3 w-3" />
+                Executando ({logs.filter(l => l.status === 'running').length})
+              </Button>
+            </div>
+
+            {/* Client Search */}
+            {showClientColumn && (
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por cliente..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
+          </div>
+
+          {filteredLogs.length === 0 ? (
+            logs.length === 0 ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Nenhum Log Encontrado</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>Ainda não há execuções registradas para este {clientId ? 'cliente' : 'sistema'}.</p>
+                  <p className="text-xs">
+                    ℹ️ Verifique o console do navegador (F12) para informações detalhadas sobre possíveis erros.
+                  </p>
+                  <p className="text-xs">
+                    🔍 Use o botão "Debug" acima para executar uma consulta manual e verificar a conexão com o banco de dados.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Nenhum resultado encontrado</AlertTitle>
+                <AlertDescription>
+                  Nenhuma execução corresponde aos filtros selecionados. Tente ajustar os filtros.
+                </AlertDescription>
+              </Alert>
+            )
+          ) : (
+            <div className="space-y-2">
+              {filteredLogs.map(log => (
+                <div key={log.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                   <div className="mt-1">
                     {getStatusIcon(log.status)}
                   </div>
@@ -240,30 +339,38 @@ export const CronMasterMonitor = ({
                       <Badge variant={getStatusVariant(log.status)}>
                         {getStatusLabel(log.status)}
                       </Badge>
-                      {showClientColumn && log.client_id && <span className="text-sm font-medium">{getClientName(log.client_id)}</span>}
+                      {showClientColumn && log.client_id && (
+                        <span className="text-sm font-medium">{getClientName(log.client_id)}</span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(log.started_at), {
-                    addSuffix: true,
-                    locale: ptBR
-                  })}
+                          addSuffix: true,
+                          locale: ptBR
+                        })}
                       </span>
                     </div>
                     
                     <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{log.actions_taken} ações executadas</span>
                       <span>{log.total_rules_evaluated} regras avaliadas</span>
-                      {log.duration_ms && <span className="flex items-center gap-1">
+                      {log.duration_ms && (
+                        <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {(log.duration_ms / 1000).toFixed(1)}s
-                        </span>}
+                        </span>
+                      )}
                     </div>
                     
-                    {log.error_message && <div className="mt-2 text-sm text-destructive">
+                    {log.error_message && (
+                      <div className="mt-2 text-sm text-destructive">
                         {log.error_message}
-                      </div>}
+                      </div>
+                    )}
                   </div>
-                </div>)}
-            </div>}
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>;
