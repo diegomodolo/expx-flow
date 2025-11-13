@@ -77,9 +77,11 @@ export function AutomationProgressModal({
     processing: actualUpdates.filter(u => u.status === 'processing').length
   };
   
-  // Se não há mais processando e há total, marcar como 100%
-  const isExecutionComplete = stats.processing === 0 && stats.total > 0;
-  const progress = isExecutionComplete ? 100 : (stats.total > 0 ? (stats.actioned + stats.skipped + stats.errors) / stats.total * 100 : 0);
+  // Se existe mensagem de conclusão, forçar 100%
+  // Caso contrário, calcular baseado nos itens finalizados
+  const progress = completionUpdate 
+    ? 100 
+    : (stats.total > 0 ? (stats.actioned + stats.skipped + stats.errors) / stats.total * 100 : 0);
   const getEntityIcon = (type: string) => {
     switch (type) {
       case 'campaign':
