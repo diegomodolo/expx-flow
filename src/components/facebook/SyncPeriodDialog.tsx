@@ -301,9 +301,9 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
               </Button>
               <Button 
                 onClick={handleConfirm}
-                disabled={syncing || (!syncCampaigns && !syncAdSets && !syncAds)}
+                disabled={isProcessing || (!syncCampaigns && !syncAdSets && !syncAds)}
               >
-                {syncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sincronizar
               </Button>
             </>

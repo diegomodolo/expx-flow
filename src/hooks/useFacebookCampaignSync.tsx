@@ -18,7 +18,6 @@ export const useFacebookCampaignSync = () => {
   ): Promise<string | null> => {
     if (!clientId) return null;
 
-    setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-facebook-campaigns', {
         body: { 
@@ -58,7 +57,6 @@ export const useFacebookCampaignSync = () => {
         description: error.message || "Não foi possível iniciar a sincronização.",
         variant: "destructive",
       });
-      setSyncing(false);
       return null;
     }
   };
