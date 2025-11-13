@@ -11,16 +11,26 @@ import { useClients } from "@/hooks/useClients";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-
 interface CronMasterMonitorProps {
   clientId?: string;
   showClientColumn?: boolean;
 }
-
-export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMasterMonitorProps) => {
+export const CronMasterMonitor = ({
+  clientId,
+  showClientColumn = false
+}: CronMasterMonitorProps) => {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
-  const { logs, loading, latestExecution, isRunning, stats, refetch } = useAutomationExecutionLogs(clientId, 50, periodFilter);
-  const { clients } = useClients();
+  const {
+    logs,
+    loading,
+    latestExecution,
+    isRunning,
+    stats,
+    refetch
+  } = useAutomationExecutionLogs(clientId, 50, periodFilter);
+  const {
+    clients
+  } = useClients();
 
   // Force refresh on mount
   useEffect(() => {
@@ -39,15 +49,13 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
   const handleDebugQuery = async () => {
     console.log('=== MANUAL DEBUG QUERY ===');
     try {
-      const { data: directData, error: directError } = await supabase
-        .from('automation_execution_logs' as any)
-        .select('*')
-        .limit(10);
-      
+      const {
+        data: directData,
+        error: directError
+      } = await supabase.from('automation_execution_logs' as any).select('*').limit(10);
       console.log('✅ Direct Query Result:', directData);
       console.log('❌ Direct Query Error:', directError);
       console.log('📊 Total rows returned:', directData?.length || 0);
-      
       if (directData && directData.length > 0) {
         console.log('📋 First log sample:', directData[0]);
       }
@@ -56,7 +64,6 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
     }
     console.log('=== END MANUAL DEBUG ===');
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'running':
@@ -71,7 +78,6 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
         return null;
     }
   };
-
   const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'running':
@@ -86,7 +92,6 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
         return "outline";
     }
   };
-
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'running':
@@ -101,32 +106,25 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
         return status;
     }
   };
-
   if (loading) {
-    return (
-      <div className="space-y-4">
+    return <div className="space-y-4">
         <div className="flex items-center justify-center p-8 gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="text-lg">Carregando logs de execução...</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i}>
+          {[1, 2, 3, 4].map(i => <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-8 w-16" />
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header with Filters and Refresh Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
@@ -135,7 +133,7 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
         </div>
         
         <div className="flex items-center gap-2">
-          <Tabs value={periodFilter} onValueChange={(value) => setPeriodFilter(value as PeriodFilter)}>
+          <Tabs value={periodFilter} onValueChange={value => setPeriodFilter(value as PeriodFilter)}>
             <TabsList>
               <TabsTrigger value="hour" className="text-xs">Última Hora</TabsTrigger>
               <TabsTrigger value="day" className="text-xs">Últimas 24h</TabsTrigger>
@@ -144,24 +142,12 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
             </TabsList>
           </Tabs>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => refetch()}
-            disabled={loading}
-          >
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
 
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={handleDebugQuery}
-          >
-            <Activity className="h-4 w-4 mr-2" />
-            Debug
-          </Button>
+          
         </div>
       </div>
 
@@ -175,17 +161,13 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isRunning ? (
-              <Badge variant="default" className="flex items-center gap-2 w-fit">
+            {isRunning ? <Badge variant="default" className="flex items-center gap-2 w-fit">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Executando
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+              </Badge> : <Badge variant="secondary" className="flex items-center gap-2 w-fit">
                 <CheckCircle className="h-3 w-3" />
                 Aguardando
-              </Badge>
-            )}
+              </Badge>}
           </CardContent>
         </Card>
 
@@ -195,7 +177,7 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
+              {stats.total > 0 ? Math.round(stats.completed / stats.total * 100) : 0}%
             </div>
             <p className="text-xs text-muted-foreground">
               {stats.completed} de {stats.total} execuções
@@ -235,8 +217,7 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
           </CardDescription>
         </CardHeader>
         <CardContent>
-      {logs.length === 0 ? (
-        <Alert variant="destructive">
+      {logs.length === 0 ? <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Nenhum Log Encontrado</AlertTitle>
           <AlertDescription className="space-y-2">
@@ -248,14 +229,8 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
               🔍 Use o botão "Debug" acima para executar uma consulta manual e verificar a conexão com o banco de dados.
             </p>
           </AlertDescription>
-        </Alert>
-      ) : (
-            <div className="space-y-2">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
+        </Alert> : <div className="space-y-2">
+              {logs.map(log => <div key={log.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                   <div className="mt-1">
                     {getStatusIcon(log.status)}
                   </div>
@@ -265,40 +240,31 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
                       <Badge variant={getStatusVariant(log.status)}>
                         {getStatusLabel(log.status)}
                       </Badge>
-                      {showClientColumn && log.client_id && (
-                        <span className="text-sm font-medium">{getClientName(log.client_id)}</span>
-                      )}
+                      {showClientColumn && log.client_id && <span className="text-sm font-medium">{getClientName(log.client_id)}</span>}
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(log.started_at), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
+                    addSuffix: true,
+                    locale: ptBR
+                  })}
                       </span>
                     </div>
                     
                     <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{log.actions_taken} ações executadas</span>
                       <span>{log.total_rules_evaluated} regras avaliadas</span>
-                      {log.duration_ms && (
-                        <span className="flex items-center gap-1">
+                      {log.duration_ms && <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {(log.duration_ms / 1000).toFixed(1)}s
-                        </span>
-                      )}
+                        </span>}
                     </div>
                     
-                    {log.error_message && (
-                      <div className="mt-2 text-sm text-destructive">
+                    {log.error_message && <div className="mt-2 text-sm text-destructive">
                         {log.error_message}
-                      </div>
-                    )}
+                      </div>}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                </div>)}
+            </div>}
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
