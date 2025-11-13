@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { useAutomationExecutionLogs } from "@/hooks/useAutomationExecutionLogs";
+import { useAutomationExecutionLogs, PeriodFilter } from "@/hooks/useAutomationExecutionLogs";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +16,8 @@ interface CronMasterMonitorProps {
 }
 
 export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMasterMonitorProps) => {
-  const { logs, loading, latestExecution, isRunning, stats, refetch } = useAutomationExecutionLogs(clientId, 20);
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
+  const { logs, loading, latestExecution, isRunning, stats, refetch } = useAutomationExecutionLogs(clientId, 50, periodFilter);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -82,21 +85,33 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
 
   return (
     <div className="space-y-6">
-      {/* Header with Refresh Button */}
-      <div className="flex justify-between items-center">
+      {/* Header with Filters and Refresh Button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-semibold">Status de Execuções</h3>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => refetch()}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        
+        <div className="flex items-center gap-2">
+          <Tabs value={periodFilter} onValueChange={(value) => setPeriodFilter(value as PeriodFilter)}>
+            <TabsList>
+              <TabsTrigger value="hour" className="text-xs">Última Hora</TabsTrigger>
+              <TabsTrigger value="day" className="text-xs">Últimas 24h</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs">Última Semana</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetch()}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Status Cards */}
