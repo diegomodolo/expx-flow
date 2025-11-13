@@ -1,123 +1,122 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useAutomationExecutionLogs, PeriodFilter } from "@/hooks/useAutomationExecutionLogs";
-import { useClients } from "@/hooks/useClients";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, XCircle, AlertCircle, Clock, RefreshCw, TrendingUp, Timer, Zap, Search, FileText, Activity } from "lucide-react";
+import { useAutomationExecutionLogs } from "@/hooks/useAutomationExecutionLogs";
+import { useState, useEffect } from "react";
+import { useClients } from "@/hooks/useClients";
+import { ExecutionDetailsModal } from "./ExecutionDetailsModal";
+import type { PeriodFilter } from "@/hooks/useAutomationExecutionLogs";
+
 interface CronMasterMonitorProps {
   clientId?: string;
   showClientColumn?: boolean;
 }
+
 export const CronMasterMonitor = ({
   clientId,
   showClientColumn = false
 }: CronMasterMonitorProps) => {
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('day');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [clientSearch, setClientSearch] = useState<string>('');
-  const {
-    logs,
-    loading,
-    latestExecution,
-    isRunning,
-    stats,
-    refetch
-  } = useAutomationExecutionLogs(clientId, 50, periodFilter);
-  const {
-    clients
-  } = useClients();
+  const [period, setPeriod] = useState<PeriodFilter>('day');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'failed' | 'partial' | 'running'>('all');
+  const [clientSearch, setClientSearch] = useState('');
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  // Force refresh on mount
+  const { logs, loading, latestExecution, isRunning, stats, refetch } = useAutomationExecutionLogs(
+    clientId,
+    50,
+    period
+  );
+  const { clients } = useClients();
+
   useEffect(() => {
-    console.log('🔄 CronMasterMonitor mounted, forcing refresh...');
     refetch();
   }, [refetch]);
 
-  // Helper to get client name from ID
   const getClientName = (clientId: string | null) => {
     if (!clientId) return 'N/A';
     const client = clients?.find(c => c.id === clientId);
     return client?.name || `Cliente ${clientId.substring(0, 8)}`;
   };
 
-  // Manual debug button handler
-  const handleDebugQuery = async () => {
-    console.log('=== MANUAL DEBUG QUERY ===');
-    try {
-      const {
-        data: directData,
-        error: directError
-      } = await supabase.from('automation_execution_logs' as any).select('*').limit(10);
-      console.log('✅ Direct Query Result:', directData);
-      console.log('❌ Direct Query Error:', directError);
-      console.log('📊 Total rows returned:', directData?.length || 0);
-      if (directData && directData.length > 0) {
-        console.log('📋 First log sample:', directData[0]);
-      }
-    } catch (error) {
-      console.error('💥 Exception in debug query:', error);
-    }
-    console.log('=== END MANUAL DEBUG ===');
-  };
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'running':
-        return <Loader2 className="h-4 w-4 animate-spin" />;
       case 'completed':
-        return <CheckCircle className="h-4 w-4" />;
+        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
       case 'failed':
-        return <XCircle className="h-4 w-4" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case 'partial':
-        return <AlertCircle className="h-4 w-4" />;
+        return <AlertCircle className="h-4 w-4 text-amber-500" />;
+      case 'running':
+        return <Clock className="h-4 w-4 text-primary animate-spin" />;
       default:
-        return null;
+        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
   };
-  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+
+  const getStatusVariant = (status: string): "default" | "destructive" | "secondary" | "outline" => {
     switch (status) {
-      case 'running':
-        return "default";
       case 'completed':
-        return "secondary";
+        return 'default';
       case 'failed':
-        return "destructive";
+        return 'destructive';
       case 'partial':
-        return "outline";
+        return 'secondary';
+      case 'running':
+        return 'outline';
       default:
-        return "outline";
+        return 'outline';
     }
   };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'running':
-        return "Executando";
       case 'completed':
-        return "Concluído";
+        return 'Concluído';
       case 'failed':
-        return "Falhou";
+        return 'Erro';
       case 'partial':
-        return "Parcial";
+        return 'Parcial';
+      case 'running':
+        return 'Executando';
       default:
         return status;
     }
   };
 
-  // Filter logs based on status and client search
+  const getStatusMessage = (log: any) => {
+    const actionsTaken = log.actions_taken || 0;
+    const details = log.execution_details || {};
+    
+    if (log.status === 'completed') {
+      if (actionsTaken > 0) {
+        return `${actionsTaken} ${actionsTaken === 1 ? 'ação executada' : 'ações executadas'}`;
+      }
+      return 'Nenhuma ação necessária - campanhas dentro dos critérios';
+    }
+    
+    if (log.status === 'partial') {
+      const errors = details.totalErrors || 0;
+      return `${actionsTaken} ${actionsTaken === 1 ? 'ação executada' : 'ações executadas'}, ${errors} ${errors === 1 ? 'erro' : 'erros'}`;
+    }
+    
+    if (log.status === 'failed') {
+      return log.error_message || 'Execução falhou completamente';
+    }
+    
+    return 'Executando...';
+  };
+
   const filteredLogs = logs.filter(log => {
-    // Status filter
     if (statusFilter !== 'all' && log.status !== statusFilter) {
       return false;
     }
     
-    // Client search filter
     if (clientSearch.trim() && showClientColumn && log.client_id) {
       const clientName = getClientName(log.client_id).toLowerCase();
       const searchTerm = clientSearch.toLowerCase();
@@ -128,170 +127,194 @@ export const CronMasterMonitor = ({
     
     return true;
   });
+
+  const statusCounts = {
+    all: logs.length,
+    completed: logs.filter(l => l.status === 'completed').length,
+    failed: logs.filter(l => l.status === 'failed').length,
+    partial: logs.filter(l => l.status === 'partial').length,
+    running: logs.filter(l => l.status === 'running').length,
+  };
+
   if (loading) {
-    return <div className="space-y-4">
+    return (
+      <div className="space-y-4">
         <div className="flex items-center justify-center p-8 gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Clock className="h-8 w-8 animate-spin text-primary" />
           <span className="text-lg">Carregando logs de execução...</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Card key={i}>
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-8 w-16" />
               </CardContent>
-            </Card>)}
+            </Card>
+          ))}
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="space-y-6">
-      {/* Header with Filters and Refresh Button */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Status de Execuções</h3>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Tabs value={periodFilter} onValueChange={value => setPeriodFilter(value as PeriodFilter)}>
-            <TabsList>
-              <TabsTrigger value="hour" className="text-xs">Última Hora</TabsTrigger>
-              <TabsTrigger value="day" className="text-xs">Últimas 24h</TabsTrigger>
-              <TabsTrigger value="week" className="text-xs">Última Semana</TabsTrigger>
-              <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
 
-          
-        </div>
-      </div>
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Status Atual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isRunning ? <Badge variant="default" className="flex items-center gap-2 w-fit">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Executando
-              </Badge> : <Badge variant="secondary" className="flex items-center gap-2 w-fit">
-                <CheckCircle className="h-3 w-3" />
-                Aguardando
-              </Badge>}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.total > 0 ? Math.round(stats.completed / stats.total * 100) : 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.completed} de {stats.total} execuções
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Tempo Médio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.avgDuration > 0 ? `${(stats.avgDuration / 1000).toFixed(1)}s` : '0s'}
-            </div>
-            <p className="text-xs text-muted-foreground">por execução</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Ações Totais</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalActions}</div>
-            <p className="text-xs text-muted-foreground">automações executadas</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Execution History */}
+  return (
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Execuções</CardTitle>
-          <CardDescription>
-            {filteredLogs.length} de {logs.length} execuções
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Monitor de Execuções
+              </CardTitle>
+              <CardDescription>
+                {filteredLogs.length === logs.length 
+                  ? `${logs.length} ${logs.length === 1 ? 'execução encontrada' : 'execuções encontradas'}`
+                  : `${filteredLogs.length} de ${logs.length} execuções`
+                }
+              </CardDescription>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Tabs value={period} onValueChange={(value) => setPeriod(value as PeriodFilter)}>
+                <TabsList>
+                  <TabsTrigger value="hour">Hora</TabsTrigger>
+                  <TabsTrigger value="day">Dia</TabsTrigger>
+                  <TabsTrigger value="week">Semana</TabsTrigger>
+                  <TabsTrigger value="all">Todos</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="space-y-6">
+          {/* Status Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Status Atual
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isRunning ? (
+                  <Badge variant="default" className="flex items-center gap-2 w-fit">
+                    <Clock className="h-3 w-3 animate-spin" />
+                    Executando
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Aguardando
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Taxa de Sucesso
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.completed} de {stats.total}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Timer className="h-4 w-4" />
+                  Tempo Médio
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats.avgDuration ? `${(stats.avgDuration / 1000).toFixed(1)}s` : 'N/A'}
+                </div>
+                <p className="text-xs text-muted-foreground">por execução</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Total de Ações
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalActions}</div>
+                <p className="text-xs text-muted-foreground">executadas</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Filters */}
-          <div className="space-y-4 mb-6">
-            {/* Status Filter */}
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
-                size="sm"
                 variant={statusFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setStatusFilter('all')}
               >
-                Todos ({logs.length})
+                Todos ({statusCounts.all})
               </Button>
               <Button
-                size="sm"
                 variant={statusFilter === 'completed' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setStatusFilter('completed')}
-                className="gap-2"
+                className={statusFilter !== 'completed' ? 'border-emerald-500 text-emerald-500 hover:bg-emerald-500/10' : ''}
               >
-                <CheckCircle className="h-3 w-3" />
-                Sucesso ({logs.filter(l => l.status === 'completed').length})
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Sucesso ({statusCounts.completed})
               </Button>
               <Button
+                variant={statusFilter === 'failed' ? 'destructive' : 'outline'}
                 size="sm"
-                variant={statusFilter === 'failed' ? 'default' : 'outline'}
                 onClick={() => setStatusFilter('failed')}
-                className="gap-2"
+                className={statusFilter !== 'failed' ? 'border-destructive text-destructive hover:bg-destructive/10' : ''}
               >
-                <XCircle className="h-3 w-3" />
-                Erro ({logs.filter(l => l.status === 'failed').length})
+                <XCircle className="h-3 w-3 mr-1" />
+                Erro ({statusCounts.failed})
               </Button>
               <Button
-                size="sm"
                 variant={statusFilter === 'partial' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setStatusFilter('partial')}
-                className="gap-2"
+                className={statusFilter !== 'partial' ? 'border-amber-500 text-amber-500 hover:bg-amber-500/10' : ''}
               >
-                <AlertCircle className="h-3 w-3" />
-                Parcial ({logs.filter(l => l.status === 'partial').length})
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Parcial ({statusCounts.partial})
               </Button>
               <Button
-                size="sm"
                 variant={statusFilter === 'running' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setStatusFilter('running')}
-                className="gap-2"
               >
-                <Loader2 className="h-3 w-3" />
-                Executando ({logs.filter(l => l.status === 'running').length})
+                <Clock className="h-3 w-3 mr-1" />
+                Executando ({statusCounts.running})
               </Button>
             </div>
 
-            {/* Client Search */}
             {showClientColumn && (
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por cliente..."
                   value={clientSearch}
@@ -302,76 +325,101 @@ export const CronMasterMonitor = ({
             )}
           </div>
 
-          {filteredLogs.length === 0 ? (
-            logs.length === 0 ? (
-              <Alert variant="destructive">
+          {/* Execution History */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Histórico de Execuções</h4>
+
+            {logs.length === 0 ? (
+              <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Nenhum Log Encontrado</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p>Ainda não há execuções registradas para este {clientId ? 'cliente' : 'sistema'}.</p>
-                  <p className="text-xs">
-                    ℹ️ Verifique o console do navegador (F12) para informações detalhadas sobre possíveis erros.
-                  </p>
-                  <p className="text-xs">
-                    🔍 Use o botão "Debug" acima para executar uma consulta manual e verificar a conexão com o banco de dados.
-                  </p>
+                <AlertDescription>
+                  Nenhum log de execução encontrado para o período selecionado.
+                </AlertDescription>
+              </Alert>
+            ) : filteredLogs.length === 0 ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Nenhuma execução encontrada com os filtros aplicados.
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Nenhum resultado encontrado</AlertTitle>
-                <AlertDescription>
-                  Nenhuma execução corresponde aos filtros selecionados. Tente ajustar os filtros.
-                </AlertDescription>
-              </Alert>
-            )
-          ) : (
-            <div className="space-y-2">
-              {filteredLogs.map(log => (
-                <div key={log.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="mt-1">
-                    {getStatusIcon(log.status)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getStatusVariant(log.status)}>
-                        {getStatusLabel(log.status)}
-                      </Badge>
-                      {showClientColumn && log.client_id && (
-                        <span className="text-sm font-medium">{getClientName(log.client_id)}</span>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(log.started_at), {
-                          addSuffix: true,
-                          locale: ptBR
-                        })}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{log.actions_taken} ações executadas</span>
-                      <span>{log.total_rules_evaluated} regras avaliadas</span>
-                      {log.duration_ms && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {(log.duration_ms / 1000).toFixed(1)}s
-                        </span>
-                      )}
-                    </div>
-                    
-                    {log.error_message && (
-                      <div className="mt-2 text-sm text-destructive">
-                        {log.error_message}
+              <div className="space-y-3">
+                {filteredLogs.map((log) => (
+                  <div key={log.execution_id} className="border-l-4 border-primary pl-4 py-3 hover:bg-muted/50 transition-colors rounded-r-lg">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {getStatusIcon(log.status)}
+                          <Badge variant={getStatusVariant(log.status)}>
+                            {getStatusLabel(log.status)}
+                          </Badge>
+                          {showClientColumn && (
+                            <span className="text-sm font-medium text-foreground">
+                              {getClientName(log.client_id)}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(log.started_at).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+
+                        <div className="text-sm space-y-1">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <span className="text-muted-foreground">
+                              {log.total_rules_evaluated || 0} regras avaliadas
+                            </span>
+                            <span className={log.actions_taken > 0 ? "text-primary font-medium" : "text-muted-foreground"}>
+                              {log.actions_taken || 0} {log.actions_taken === 1 ? 'ação' : 'ações'}
+                            </span>
+                            {log.duration_ms && (
+                              <span className="text-muted-foreground">
+                                {(log.duration_ms / 1000).toFixed(1)}s
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-muted-foreground">
+                            {getStatusMessage(log)}
+                          </div>
+
+                          {log.error_message && (
+                            <Alert variant="destructive" className="mt-2">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>{log.error_message}</AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
                       </div>
-                    )}
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedExecutionId(log.execution_id);
+                          setDetailsModalOpen(true);
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
-    </div>;
+
+      <ExecutionDetailsModal
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+        executionId={selectedExecutionId}
+        clientName={selectedExecutionId ? getClientName(
+          logs.find(l => l.execution_id === selectedExecutionId)?.client_id || null
+        ) : undefined}
+      />
+    </div>
+  );
 };

@@ -171,11 +171,13 @@ Deno.serve(async (req) => {
         await supabase
           .from('automation_execution_logs' as any)
           .update({
-            status: (execData?.actionsTaken || 0) > 0 ? 'completed' : 'partial',
+            status: execData?.totalErrors > 0 
+              ? (execData?.totalActioned > 0 ? 'partial' : 'failed')
+              : 'completed',
             completed_at: new Date().toISOString(),
             duration_ms: execDuration,
-            actions_taken: execData?.actionsTaken || 0,
-            total_rules_evaluated: execData?.rulesEvaluated || 0,
+            actions_taken: execData?.totalActioned || 0,
+            total_rules_evaluated: (execData?.totalProcessed || 0) + (execData?.totalSkipped || 0),
             execution_details: execData || {},
           })
           .eq('execution_id', executionId);
