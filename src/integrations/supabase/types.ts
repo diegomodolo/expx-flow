@@ -427,6 +427,48 @@ export type Database = {
           },
         ]
       }
+      automation_schedules: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          cron_job_ids: Json | null
+          executions_per_day: number
+          id: string
+          is_enabled: boolean | null
+          last_execution_at: string | null
+          next_execution_at: string | null
+          scheduled_times: string[]
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          cron_job_ids?: Json | null
+          executions_per_day?: number
+          id?: string
+          is_enabled?: boolean | null
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          scheduled_times?: string[]
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          cron_job_ids?: Json | null
+          executions_per_day?: number
+          id?: string
+          is_enabled?: boolean | null
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          scheduled_times?: string[]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       automation_settings: {
         Row: {
           campaign_name_prefix: string
@@ -4125,6 +4167,10 @@ export type Database = {
           _days_before?: number
         }
         Returns: undefined
+      }
+      calculate_schedule_times: {
+        Args: { executions: number }
+        Returns: string[]
       }
       create_default_board: {
         Args: { p_board_name: string; p_workspace_id: string }
