@@ -472,7 +472,8 @@ Deno.serve(async (req) => {
                     metrics,
                     executionId,
                     accessToken,
-                    supabase
+                    supabase,
+                    namePrefix
                   );
 
                   if (result === 'actioned') totalActioned++;
