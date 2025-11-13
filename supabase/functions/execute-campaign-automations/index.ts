@@ -170,8 +170,11 @@ serve(async (req) => {
         entity_name: 'Facebook API',
         status: 'processing',
         rule_name: 'Consulta',
-        message: `✅ Encontradas ${campaigns.length} campanhas ativas no Facebook`
+        message: `✅ Encontradas ${campaigns.length} campanhas ativas. Processando com delays para respeitar rate limit...`
       });
+      
+      // Delay após buscar campanhas
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (error: any) {
       console.error('❌ Error fetching campaigns:', error);
       
@@ -189,11 +192,31 @@ serve(async (req) => {
       
       throw error;
     }
+    
+    // Limitar processamento para evitar rate limit (máximo 3 campanhas por execução)
+    const maxCampaigns = 3;
+    if (campaigns.length > maxCampaigns) {
+      console.log(`⚠️  Limitando processamento a ${maxCampaigns} campanhas para respeitar rate limit`);
+      await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: companyId,
+        client_id: client_id,
+        entity_type: 'campaign',
+        entity_name: 'Sistema',
+        status: 'processing',
+        rule_name: 'Limitação',
+        message: `⚠️ Processando apenas ${maxCampaigns} de ${campaigns.length} campanhas para respeitar rate limit do Facebook`
+      });
+      campaigns = campaigns.slice(0, maxCampaigns);
+    }
 
     // ========== PROCESSAR EM CASCATA ==========
     for (const campaign of campaigns) {
       console.log(`\n📢 Processando campanha: ${campaign.name} (${campaign.objective})`);
 
+      // Delay antes de processar cada campanha
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // 1️⃣ APLICAR REGRAS DE CAMPANHA
       if (rulesByType.campaign.length > 0) {
         const maxTimeWindow = Math.max(...rulesByType.campaign.map(r => r.time_window_days));
@@ -210,6 +233,9 @@ serve(async (req) => {
           message: `📊 Consultando métricas em tempo real no Facebook (janela de ${maxTimeWindow} dias)...`
         });
         
+        // Delay antes de buscar métricas
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         const metrics = await fetchFacebookMetrics(
           campaign.id,
           maxTimeWindow,
@@ -218,6 +244,9 @@ serve(async (req) => {
           supabase,
           companyId
         );
+        
+        // Delay após buscar métricas
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
         if (metrics) {
           totalProcessed++;
@@ -271,21 +300,45 @@ serve(async (req) => {
       // 2️⃣ BUSCAR E PROCESSAR AD SETS DESTA CAMPANHA
       if (rulesByType.adset.length > 0) {
         console.log(`  🔍 Buscando ad sets ativos da campanha...`);
+        
+        // Delay antes de buscar ad sets
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
         const adsets = await fetchActiveAdSetsFromFacebook(campaign.id, accessToken);
         console.log(`  📦 Encontrados ${adsets.length} ad sets ativos`);
+        
+        // Delay após buscar ad sets
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Limitar ad sets para evitar rate limit (máximo 2 por campanha)
+        const maxAdSets = 2;
+        const processedAdSets = adsets.slice(0, maxAdSets);
+        if (adsets.length > maxAdSets) {
+          console.log(`  ⚠️  Processando apenas ${maxAdSets} de ${adsets.length} ad sets`);
+        }
 
-        for (const adset of adsets) {
+        for (const adset of processedAdSets) {
           console.log(`    💼 Processando ad set: ${adset.name}`);
+          
+          // Delay antes de processar cada ad set
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
           const maxTimeWindow = Math.max(...rulesByType.adset.map(r => r.time_window_days));
+          
+          // Delay antes de buscar métricas
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
           const metrics = await fetchFacebookMetrics(
             adset.id,
             maxTimeWindow,
             accessToken,
-            execution_id,
+            executionId,
             supabase,
             companyId
           );
+          
+          // Delay após buscar métricas
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
           if (metrics) {
             totalProcessed++;
@@ -335,21 +388,45 @@ serve(async (req) => {
           // 3️⃣ BUSCAR E PROCESSAR ADS DESTE AD SET
           if (rulesByType.ad.length > 0) {
             console.log(`      🔍 Buscando ads ativos do ad set...`);
+            
+            // Delay antes de buscar ads
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             const ads = await fetchActiveAdsFromFacebook(adset.id, accessToken);
             console.log(`      📦 Encontrados ${ads.length} ads ativos`);
+            
+            // Delay após buscar ads
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Limitar ads para evitar rate limit (máximo 3 por ad set)
+            const maxAds = 3;
+            const processedAds = ads.slice(0, maxAds);
+            if (ads.length > maxAds) {
+              console.log(`      ⚠️  Processando apenas ${maxAds} de ${ads.length} ads`);
+            }
 
-            for (const ad of ads) {
+            for (const ad of processedAds) {
               console.log(`        🎨 Processando ad: ${ad.name}`);
+              
+              // Delay antes de processar cada ad
+              await new Promise(resolve => setTimeout(resolve, 2000));
 
               const maxTimeWindow = Math.max(...rulesByType.ad.map(r => r.time_window_days));
+              
+              // Delay antes de buscar métricas
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
               const metrics = await fetchFacebookMetrics(
                 ad.id,
                 maxTimeWindow,
                 accessToken,
-                execution_id,
+                executionId,
                 supabase,
                 companyId
               );
+              
+              // Delay após buscar métricas
+              await new Promise(resolve => setTimeout(resolve, 1500));
 
               if (metrics) {
                 totalProcessed++;
@@ -396,18 +473,18 @@ serve(async (req) => {
                 }
               }
 
-              // Delay maior entre ads para respeitar rate limit
-              await new Promise(resolve => setTimeout(resolve, 500));
+              // Delay entre ads
+              await new Promise(resolve => setTimeout(resolve, 2000));
             }
           }
 
           // Delay entre ad sets
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
 
-      // Delay maior entre campanhas para respeitar rate limit
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Delay maior entre campanhas
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
     console.log('\n✨ Automation execution completed:', { 
@@ -472,8 +549,8 @@ serve(async (req) => {
 // Buscar campanhas ativas do Facebook
 async function fetchWithRetry(
   url: string,
-  maxRetries: number = 3,
-  initialDelay: number = 2000
+  maxRetries: number = 5,
+  initialDelay: number = 5000
 ): Promise<any> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -481,11 +558,16 @@ async function fetchWithRetry(
       const data = await response.json();
 
       if (data.error) {
-        // Se for rate limit, espera mais tempo e tenta novamente
-        if (data.error.code === 4 || data.error.message?.includes('rate limit') || data.error.message?.includes('User request limit')) {
+        // Se for rate limit, espera MUITO mais tempo e tenta novamente
+        if (data.error.code === 4 || 
+            data.error.code === 17 || 
+            data.error.message?.toLowerCase().includes('rate limit') || 
+            data.error.message?.toLowerCase().includes('user request limit') ||
+            data.error.message?.toLowerCase().includes('too many calls')) {
           if (attempt < maxRetries - 1) {
+            // Backoff exponencial com delays muito maiores (5s, 10s, 20s, 40s, 80s)
             const delay = initialDelay * Math.pow(2, attempt);
-            console.log(`⏳ Rate limit atingido, aguardando ${delay/1000}s antes de tentar novamente (tentativa ${attempt + 1}/${maxRetries})...`);
+            console.log(`⏳ Rate limit do Facebook atingido! Aguardando ${delay/1000}s antes de tentar novamente (tentativa ${attempt + 1}/${maxRetries})...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
