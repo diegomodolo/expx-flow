@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 export default function ClienteAutomacoes() {
   const {
@@ -68,6 +69,7 @@ export default function ClienteAutomacoes() {
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [executionId, setExecutionId] = useState<string>('');
   const [executionsPerDay, setExecutionsPerDay] = useState<number>(schedule?.executions_per_day || 2);
+  const [activeTab, setActiveTab] = useState<string>("automations");
 
   // Função para converter horário UTC para timezone local (BRT = UTC-3)
   const convertUTCToLocal = (utcTime: string): string => {
@@ -294,234 +296,261 @@ export default function ClienteAutomacoes() {
             Gerencie automações para {client?.name}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleExecuteAll} disabled={executing || rules.length === 0} variant="outline">
-            {executing ? <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Executando...
-              </> : <>
-                <Play className="mr-2 h-4 w-4" />
-                Executar Agora
-              </>}
-          </Button>
-          <Button onClick={() => setImportDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Importar Template
-          </Button>
-        </div>
       </div>
 
-      {/* Active Automations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Automações Ativas</CardTitle>
-          <CardDescription>
-            {rules.length} {rules.length === 1 ? "automação importada" : "automações importadas"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {rulesLoading ? <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div> : rules.length === 0 ? <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Zap className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                Nenhuma automação importada ainda.
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Clique em "Importar Template" para começar.
-              </p>
-            </div> : <div className="space-y-4">
-              {rules.map(rule => <Card key={rule.id} className="border-border/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold">{rule.rule_name}</h4>
-                          <Badge variant={getActionTypeBadge(rule.action_type)}>
-                            {getActionTypeLabel(rule.action_type)}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Importada {formatDistanceToNow(new Date(rule.created_at), {
-                        addSuffix: true,
-                        locale: ptBR
-                      })}
-                          </span>
-                        </div>
-                        {rule.campaign_objectives && rule.campaign_objectives.length > 0 && <div className="mt-3 pt-3 border-t">
-                            <div className="text-xs font-medium text-muted-foreground mb-2">
-                              Aplica-se apenas aos objetivos:
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {rule.campaign_objectives.map(obj => <Badge key={obj} variant="outline" className="text-xs">
-                                  {translateObjective(obj)}
-                                </Badge>)}
-                            </div>
-                          </div>}
-                        {rule.conditions?.conditions && rule.conditions.conditions.length > 0 && <div className="mt-3 pt-3 border-t">
-                            <div className="text-xs font-medium text-muted-foreground mb-2">
-                              Condições configuradas:
-                            </div>
-                            <div className="space-y-1">
-                              {rule.conditions.conditions.map((condition: any, idx: number) => <div key={idx} className="flex items-center gap-2 text-sm">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {getFieldLabel(condition.field)}
-                                  </Badge>
-                                  <span className="text-muted-foreground">
-                                    {getOperatorLabel(condition.operator)}
-                                  </span>
-                                  <span className="font-medium">
-                                    {formatConditionValue(condition.field, condition.value)}
-                                  </span>
-                                </div>)}
-                            </div>
-                            <div className="flex items-center gap-4 mt-2">
-                              <div className="text-xs text-muted-foreground">
-                                Lógica: <strong>{rule.conditions.logic === "AND" ? "Todas" : "Qualquer uma"}</strong> das condições
-                              </div>
-                              <div className="flex items-center gap-1 text-xs">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-muted-foreground">
-                                  Janela: <strong>{formatTimeWindow(rule.time_window_days)}</strong>
-                                </span>
-                              </div>
-                            </div>
-                          </div>}
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button variant="ghost" size="icon" onClick={() => {
-                    setRuleToEdit(rule);
-                    setEditDialogOpen(true);
-                  }} title="Editar valores">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Switch checked={rule.is_active} onCheckedChange={() => handleToggleRule(rule.id, rule.is_active)} />
-                        <Button variant="ghost" size="icon" onClick={() => {
-                    setRuleToDelete(rule.id);
-                    setDeleteDialogOpen(true);
-                  }}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>)}
-            </div>}
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="automations">
+            <Zap className="w-4 h-4 mr-2" />
+            Automações
+          </TabsTrigger>
+          <TabsTrigger value="schedule">
+            <Calendar className="w-4 h-4 mr-2" />
+            Agendamento
+          </TabsTrigger>
+          <TabsTrigger value="monitor">
+            <Clock className="w-4 h-4 mr-2" />
+            Monitor
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Scheduling Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <CardTitle>Agendamento Automático</CardTitle>
-              {schedule?.is_enabled && <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Sistema Ativo
-                </Badge>}
-            </div>
-          </div>
-          <CardDescription>
-            Configure execuções automáticas gerenciadas pelo Cron Master
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          
-          {schedule?.is_enabled}
-
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="schedule-enabled" className="text-base font-medium">
-                Ativar Execução Programada
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Configure e ative a execução automática das suas regras de automação
-              </p>
-            </div>
-            <Switch id="schedule-enabled" checked={schedule?.is_enabled || false} onCheckedChange={checked => toggleSchedule(checked)} disabled={scheduleLoading || rules.length === 0} />
+        {/* Tab 1: Automações */}
+        <TabsContent value="automations" className="space-y-4">
+          <div className="flex gap-2">
+            <Button onClick={handleExecuteAll} disabled={executing || rules.length === 0} variant="outline">
+              {executing ? <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Executando...
+                </> : <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Executar Agora
+                </>}
+            </Button>
+            <Button onClick={() => setImportDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Importar Template
+            </Button>
           </div>
 
-          {schedule?.is_enabled && <>
-              <div className="space-y-2">
-                <Label htmlFor="frequency">Frequência de Execução</Label>
-                <Select value={executionsPerDay.toString()} onValueChange={value => {
-              const executions = parseInt(value);
-              setExecutionsPerDay(executions);
-              createOrUpdateSchedule({
-                is_enabled: true,
-                executions_per_day: executions
-              });
-            }} disabled={scheduleLoading}>
-                  <SelectTrigger id="frequency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">
-                      1x por dia ({getLocalTimePreview(1)[0]})
-                    </SelectItem>
-                    <SelectItem value="2">
-                      2x por dia ({getLocalTimePreview(2).join(', ')})
-                    </SelectItem>
-                    <SelectItem value="3">
-                      3x por dia ({getLocalTimePreview(3).join(', ')})
-                    </SelectItem>
-                    <SelectItem value="4">
-                      4x por dia ({getLocalTimePreview(4).join(', ')})
-                    </SelectItem>
-                    <SelectItem value="6">6x por dia (a cada 4h)</SelectItem>
-                    <SelectItem value="8">8x por dia (a cada 3h)</SelectItem>
-                    <SelectItem value="12">12x por dia (a cada 2h)</SelectItem>
-                  </SelectContent>
-                </Select>
+          <Card>
+            <CardHeader>
+              <CardTitle>Automações Ativas</CardTitle>
+              <CardDescription>
+                {rules.length} {rules.length === 1 ? "automação importada" : "automações importadas"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {rulesLoading ? <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div> : rules.length === 0 ? <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Zap className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    Nenhuma automação importada ainda.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Clique em "Importar Template" para começar.
+                  </p>
+                </div> : <div className="space-y-4">
+                  {rules.map(rule => <Card key={rule.id} className="border-border/50">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold">{rule.rule_name}</h4>
+                              <Badge variant={getActionTypeBadge(rule.action_type)}>
+                                {getActionTypeLabel(rule.action_type)}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Importada {formatDistanceToNow(new Date(rule.created_at), {
+                            addSuffix: true,
+                            locale: ptBR
+                          })}
+                              </span>
+                            </div>
+                            {rule.campaign_objectives && rule.campaign_objectives.length > 0 && <div className="mt-3 pt-3 border-t">
+                                <div className="text-xs font-medium text-muted-foreground mb-2">
+                                  Aplica-se apenas aos objetivos:
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {rule.campaign_objectives.map(obj => <Badge key={obj} variant="outline" className="text-xs">
+                                      {translateObjective(obj)}
+                                    </Badge>)}
+                                </div>
+                              </div>}
+                            {rule.conditions?.conditions && rule.conditions.conditions.length > 0 && <div className="mt-3 pt-3 border-t">
+                                <div className="text-xs font-medium text-muted-foreground mb-2">
+                                  Condições configuradas:
+                                </div>
+                                <div className="space-y-1">
+                                  {rule.conditions.conditions.map((condition: any, idx: number) => <div key={idx} className="flex items-center gap-2 text-xs">
+                                      <Badge variant="secondary" className="font-mono">
+                                        {getFieldLabel(condition.field)}
+                                      </Badge>
+                                      <span className="text-muted-foreground">
+                                        {getOperatorLabel(condition.operator)}
+                                      </span>
+                                      <span className="font-semibold">
+                                        {formatConditionValue(condition.field, condition.value)}
+                                      </span>
+                                    </div>)}
+                                </div>
+                              </div>}
+                            {rule.action_config && <div className="mt-3 pt-3 border-t">
+                                <div className="text-xs font-medium text-muted-foreground mb-2">
+                                  Configuração da ação:
+                                </div>
+                                <div className="space-y-1 text-xs">
+                                  {rule.action_config.percentage && <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">Percentual:</span>
+                                      <span className="font-semibold">{rule.action_config.percentage}%</span>
+                                    </div>}
+                                  {rule.action_config.name_pattern && <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">Padrão do nome:</span>
+                                      <code className="bg-muted px-2 py-0.5 rounded text-xs">
+                                        {rule.action_config.name_pattern}
+                                      </code>
+                                    </div>}
+                                </div>
+                              </div>}
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <Button variant="ghost" size="icon" onClick={() => {
+                          setRuleToEdit(rule);
+                          setEditDialogOpen(true);
+                        }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Switch checked={rule.is_active} onCheckedChange={() => handleToggleRule(rule.id, rule.is_active)} />
+                            <Button variant="ghost" size="icon" onClick={() => {
+                          setRuleToDelete(rule.id);
+                          setDeleteDialogOpen(true);
+                        }}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>)}
+                </div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 2: Agendamento */}
+        <TabsContent value="schedule" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  <CardTitle>Agendamento Automático</CardTitle>
+                  {schedule?.is_enabled && <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Sistema Ativo
+                    </Badge>}
+                </div>
+              </div>
+              <CardDescription>
+                Configure execuções automáticas gerenciadas pelo Cron Master
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {schedule?.is_enabled}
+
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="schedule-enabled" className="text-base font-medium">
+                    Ativar Execução Programada
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Configure e ative a execução automática das suas regras de automação
+                  </p>
+                </div>
+                <Switch id="schedule-enabled" checked={schedule?.is_enabled || false} onCheckedChange={checked => toggleSchedule(checked)} disabled={scheduleLoading || rules.length === 0} />
               </div>
 
-              {schedule.scheduled_times && schedule.scheduled_times.length > 0 && <div className="rounded-lg bg-muted p-4 space-y-2">
-                  <p className="text-sm font-medium">
-                    Horários programados (horário local - BRT):
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {schedule.scheduled_times.map(time => <Badge key={time} variant="outline" className="gap-1">
-                        <Clock className="h-3 w-3" />
-                        {convertUTCToLocal(time)}
-                      </Badge>)}
+              {schedule?.is_enabled && <>
+                  <div className="space-y-2">
+                    <Label htmlFor="frequency">Frequência de Execução</Label>
+                    <Select value={executionsPerDay.toString()} onValueChange={value => {
+                  const executions = parseInt(value);
+                  setExecutionsPerDay(executions);
+                  createOrUpdateSchedule({
+                    is_enabled: true,
+                    executions_per_day: executions
+                  });
+                }} disabled={scheduleLoading}>
+                      <SelectTrigger id="frequency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">
+                          1x por dia ({getLocalTimePreview(1)[0]})
+                        </SelectItem>
+                        <SelectItem value="2">
+                          2x por dia ({getLocalTimePreview(2).join(', ')})
+                        </SelectItem>
+                        <SelectItem value="3">
+                          3x por dia ({getLocalTimePreview(3).join(', ')})
+                        </SelectItem>
+                        <SelectItem value="4">
+                          4x por dia ({getLocalTimePreview(4).join(', ')})
+                        </SelectItem>
+                        <SelectItem value="6">6x por dia (a cada 4h)</SelectItem>
+                        <SelectItem value="8">8x por dia (a cada 3h)</SelectItem>
+                        <SelectItem value="12">12x por dia (a cada 2h)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    * Horários convertidos automaticamente de UTC para BRT (UTC-3)
-                  </p>
+
+                  {schedule.scheduled_times && schedule.scheduled_times.length > 0 && <div className="rounded-lg bg-muted p-4 space-y-2">
+                      <p className="text-sm font-medium">
+                        Horários programados (horário local - BRT):
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {schedule.scheduled_times.map((time: string, idx: number) => <Badge key={idx} variant="secondary" className="font-mono">
+                            {convertUTCToLocal(time)}
+                          </Badge>)}
+                      </div>
+                    </div>}
+
+                  {schedule.last_execution_at && <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">Última execução:</span>{" "}
+                      {formatDistanceToNow(new Date(schedule.last_execution_at), {
+                  addSuffix: true,
+                  locale: ptBR
+                })}
+                    </div>}
+
+                  {schedule.next_execution_at && <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">Próxima execução:</span>{" "}
+                      {formatDistanceToNow(new Date(schedule.next_execution_at), {
+                  addSuffix: true,
+                  locale: ptBR
+                })}
+                    </div>}
+
+                  
+                </>}
+
+              {rules.length === 0 && <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+                  <AlertCircle className="h-4 w-4 inline mr-2" />
+                  Configure pelo menos uma automação antes de ativar o agendamento
                 </div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              {schedule.last_execution_at && <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">Última execução:</span>{" "}
-                  {formatDistanceToNow(new Date(schedule.last_execution_at), {
-              addSuffix: true,
-              locale: ptBR
-            })}
-                </div>}
-
-              {schedule.next_execution_at && <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">Próxima execução:</span>{" "}
-                  {formatDistanceToNow(new Date(schedule.next_execution_at), {
-              addSuffix: true,
-              locale: ptBR
-            })}
-                </div>}
-
-              
-            </>}
-
-          {rules.length === 0 && <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
-              <AlertCircle className="h-4 w-4 inline mr-2" />
-              Configure pelo menos uma automação antes de ativar o agendamento
-            </div>}
-        </CardContent>
-      </Card>
-
-      {/* Execution Logs */}
-      
+        {/* Tab 3: Monitor */}
+        <TabsContent value="monitor">
+          <CronMasterMonitor clientId={clientId} showClientColumn={false} />
+        </TabsContent>
+      </Tabs>
 
       {/* Import Dialog */}
       <ImportAutomationTemplateDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} clientId={clientId || ""} onImported={handleImported} />
@@ -572,19 +601,6 @@ export default function ClienteAutomacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Cron Master Monitor */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Monitor de Execuções Automáticas</CardTitle>
-          <CardDescription>
-            Acompanhe o status e histórico de execuções automáticas do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CronMasterMonitor clientId={clientId} />
-        </CardContent>
-      </Card>
 
       {/* Automation Progress Modal */}
       <AutomationProgressModal open={progressModalOpen} executionId={executionId} clientId={clientId || ''} onClose={() => setProgressModalOpen(false)} />
