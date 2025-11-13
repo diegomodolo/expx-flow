@@ -72,252 +72,162 @@ serve(async (req) => {
     let totalSkipped = 0;
     let totalErrors = 0;
 
-    // Processar cada regra
-    for (const rule of rules as AutomationRule[]) {
-      console.log(`\n⚙️  Processing rule: ${rule.rule_name} (${rule.entity_type})`);
+    // Agrupar regras por entity_type
+    const rulesByType: Record<string, AutomationRule[]> = {
+      campaign: (rules as AutomationRule[]).filter(r => r.entity_type === 'campaign'),
+      adset: (rules as AutomationRule[]).filter(r => r.entity_type === 'adset'),
+      ad: (rules as AutomationRule[]).filter(r => r.entity_type === 'ad')
+    };
 
-      // Buscar entidades do banco para obter facebook_ids
-      let entities: any[] = [];
+    // ========== PROCESSAR CAMPANHAS ==========
+    if (rulesByType.campaign.length > 0) {
+      console.log(`\n🎯 Processing ${rulesByType.campaign.length} campaign rules`);
       
-      if (rule.entity_type === 'campaign') {
-        const { data } = await supabase
-          .from('campaigns')
-          .select('id, name, facebook_id, client_id')
-          .eq('client_id', client_id)
-          .eq('is_active', true)
-          .not('facebook_id', 'is', null);
-        entities = data || [];
-      } else if (rule.entity_type === 'adset') {
-        const { data } = await supabase
-          .from('ad_sets')
-          .select(`
-            id, 
-            name, 
-            facebook_id, 
-            client_id, 
-            campaign_id,
-            campaigns!inner(id, is_active)
-          `)
-          .eq('client_id', client_id)
-          .eq('is_active', true)
-          .eq('campaigns.is_active', true)
-          .not('facebook_id', 'is', null);
-        entities = data || [];
-        console.log(`📦 Found ${entities.length} active ad sets from active campaigns`);
-      } else if (rule.entity_type === 'ad') {
-        const { data } = await supabase
-          .from('ads')
-          .select(`
-            id, 
-            name, 
-            facebook_id, 
-            client_id, 
-            campaign_id, 
-            ad_set_id,
-            ad_sets!inner(id, is_active, campaign_id, campaigns!inner(id, is_active))
-          `)
-          .eq('client_id', client_id)
-          .eq('is_active', true)
-          .eq('ad_sets.is_active', true)
-          .eq('ad_sets.campaigns.is_active', true)
-          .not('facebook_id', 'is', null);
-        entities = data || [];
-        console.log(`📦 Found ${entities.length} active ads from active ad sets in active campaigns`);
-      }
+      const { data: campaigns } = await supabase
+        .from('campaigns')
+        .select('id, name, facebook_id, client_id, campaign_id')
+        .eq('client_id', client_id)
+        .eq('is_active', true)
+        .not('facebook_id', 'is', null);
 
-      console.log(`📦 Found ${entities.length} entities to process`);
+      console.log(`📦 Found ${campaigns?.length || 0} active campaigns`);
 
-      // Processar cada entidade
-      for (const entity of entities) {
-        totalProcessed++;
-
-        // Log: iniciando processamento
-        await supabase.from('automation_execution_progress').insert({
-          execution_id,
-          company_id: rule.company_id,
-          client_id: entity.client_id,
-          entity_type: rule.entity_type,
-          entity_name: entity.name,
-          entity_id: entity.id,
-          facebook_id: entity.facebook_id,
-          status: 'processing',
-          rule_name: rule.rule_name,
-          message: `Consultando métricas em tempo real no Facebook (janela de ${rule.time_window_days} dias)...`
-        });
-
-        try {
-          // Buscar métricas em tempo real do Facebook
-          const startDate = new Date();
-          startDate.setDate(startDate.getDate() - rule.time_window_days);
-          const endDate = new Date();
-
-          const sinceStr = startDate.toISOString().split('T')[0];
-          const untilStr = endDate.toISOString().split('T')[0];
-
-          console.log(`📊 Fetching Facebook insights for ${entity.name} (${sinceStr} to ${untilStr})`);
-
-          const insightsUrl = `https://graph.facebook.com/v20.0/${entity.facebook_id}/insights?` +
-            `fields=impressions,clicks,spend,actions,frequency,reach,ctr,cpc,cost_per_action_type&` +
-            `time_range={"since":"${sinceStr}","until":"${untilStr}"}&` +
-            `access_token=${accessToken}`;
-
-          const insightsResponse = await fetch(insightsUrl);
-          const insightsData = await insightsResponse.json();
-
-          if (insightsData.error) {
-            console.error('❌ Facebook API error:', insightsData.error);
-            throw new Error(insightsData.error.message);
-          }
-
-          if (!insightsData.data || insightsData.data.length === 0) {
-            console.log(`⏭️  No insights data for ${entity.name}, skipping`);
-            await supabase.from('automation_execution_progress').insert({
-              execution_id,
-              company_id: rule.company_id,
-              client_id: entity.client_id,
-              entity_type: rule.entity_type,
-              entity_name: entity.name,
-              entity_id: entity.id,
-              facebook_id: entity.facebook_id,
-              status: 'skipped',
-              rule_name: rule.rule_name,
-              message: 'Sem dados de métricas no período configurado'
-            });
-            totalSkipped++;
-            continue;
-          }
-
-          const insights = insightsData.data[0];
-
-          // Calcular métricas
-          const impressions = parseFloat(insights.impressions || '0');
-          const clicks = parseFloat(insights.clicks || '0');
-          const spend = parseFloat(insights.spend || '0');
-          const reach = parseFloat(insights.reach || '0');
-          const frequency = parseFloat(insights.frequency || '0');
-          
-          // Extrair conversões
-          let conversions = 0;
-          if (insights.actions) {
-            const leadAction = insights.actions.find((a: any) => 
-              a.action_type === 'offsite_conversion.fb_pixel_lead' ||
-              a.action_type === 'lead' ||
-              a.action_type === 'onsite_conversion.post_save'
-            );
-            conversions = leadAction ? parseFloat(leadAction.value) : 0;
-          }
-
-          const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-          const cpc = clicks > 0 ? spend / clicks : 0;
-          const cpa = conversions > 0 ? spend / conversions : 0;
-
-          console.log(`📈 Metrics for ${entity.name}:`, { 
-            spend: spend.toFixed(2), 
-            impressions, 
-            clicks, 
-            conversions, 
-            ctr: ctr.toFixed(2), 
-            cpc: cpc.toFixed(2), 
-            cpa: cpa.toFixed(2) 
-          });
-
-          // Avaliar condições
-          const metricsMap: any = {
-            cpa,
-            ctr,
-            cpc,
-            spend,
-            conversions,
-            impressions,
-            clicks,
-            reach,
-            frequency
-          };
-
-          const conditionsMet = evaluateConditions(rule.conditions, metricsMap);
-
-          if (conditionsMet) {
-            console.log(`✅ Conditions met for ${entity.name}, executing action: ${rule.action_type}`);
-
-            // Executar ação no Facebook
-            const actionResult = await executeAction(
-              entity.facebook_id,
-              rule.action_type,
-              rule.action_config,
-              rule.entity_type,
-              accessToken
-            );
-
-            if (actionResult.success) {
-              await supabase.from('automation_execution_progress').insert({
-                execution_id,
-                company_id: rule.company_id,
-                client_id: entity.client_id,
-                entity_type: rule.entity_type,
-                entity_name: entity.name,
-                entity_id: entity.id,
-                facebook_id: entity.facebook_id,
-                status: 'actioned',
-                rule_name: rule.rule_name,
-                message: `✓ Ação executada: ${getActionDescription(rule.action_type)} (CPA: R$ ${cpa.toFixed(2)}, Conversões: ${conversions})`
-              });
-
-              // Log no banco
-              await supabase.from('campaign_automation_logs').insert({
-                rule_id: rule.id,
-                company_id: rule.company_id,
-                client_id: entity.client_id,
-                campaign_id: entity.campaign_id || null,
-                entity_type: rule.entity_type,
-                entity_id: entity.id,
-                action_taken: rule.action_type,
-                conditions_met: rule.conditions,
-                action_result: 'success',
-                details: `CPA: R$ ${cpa.toFixed(2)}, CTR: ${ctr.toFixed(2)}%, Conversões: ${conversions}, Spend: R$ ${spend.toFixed(2)}`,
-                campaign_data: { cpa, ctr, cpc, spend, conversions, impressions, clicks, reach, frequency }
-              });
-
-              totalActioned++;
-            } else {
-              throw new Error(actionResult.error || 'Erro ao executar ação');
-            }
-          } else {
-            console.log(`⏭️  Conditions not met for ${entity.name}, skipping`);
-            await supabase.from('automation_execution_progress').insert({
-              execution_id,
-              company_id: rule.company_id,
-              client_id: entity.client_id,
-              entity_type: rule.entity_type,
-              entity_name: entity.name,
-              entity_id: entity.id,
-              facebook_id: entity.facebook_id,
-              status: 'skipped',
-              rule_name: rule.rule_name,
-              message: `Condições não atendidas (CPA: R$ ${cpa.toFixed(2)}, CTR: ${ctr.toFixed(2)}%)`
-            });
-            totalSkipped++;
-          }
-
-        } catch (error: any) {
-          console.error(`❌ Error processing entity ${entity.name}:`, error);
-          
-          await supabase.from('automation_execution_progress').insert({
-            execution_id,
-            company_id: rule.company_id,
-            client_id: entity.client_id,
-            entity_type: rule.entity_type,
-            entity_name: entity.name,
-            entity_id: entity.id,
-            facebook_id: entity.facebook_id,
-            status: 'error',
-            rule_name: rule.rule_name,
-            message: `Erro: ${error.message}`
-          });
-
-          totalErrors++;
+      for (const entity of campaigns || []) {
+        // Determinar maior time_window entre as regras
+        const maxTimeWindow = Math.max(...rulesByType.campaign.map(r => r.time_window_days));
+        
+        // Buscar métricas UMA VEZ
+        const metrics = await fetchFacebookMetrics(entity, maxTimeWindow, accessToken, execution_id, supabase, rulesByType.campaign[0].company_id);
+        
+        if (!metrics) {
+          totalSkipped++;
+          continue;
         }
 
-        // Delay para evitar rate limiting do Facebook
+        totalProcessed++;
+
+        // Aplicar TODAS as regras de campanha
+        for (const rule of rulesByType.campaign) {
+          const result = await processEntityWithRule(
+            entity,
+            rule,
+            metrics,
+            execution_id,
+            accessToken,
+            supabase
+          );
+          
+          if (result === 'actioned') totalActioned++;
+          else if (result === 'skipped') totalSkipped++;
+          else if (result === 'error') totalErrors++;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    // ========== PROCESSAR AD SETS ==========
+    if (rulesByType.adset.length > 0) {
+      console.log(`\n🎯 Processing ${rulesByType.adset.length} adset rules`);
+      
+      const { data: adsets } = await supabase
+        .from('ad_sets')
+        .select(`
+          id, 
+          name, 
+          facebook_id, 
+          client_id, 
+          campaign_id,
+          campaigns!inner(id, is_active)
+        `)
+        .eq('client_id', client_id)
+        .eq('is_active', true)
+        .eq('campaigns.is_active', true)
+        .not('facebook_id', 'is', null);
+
+      console.log(`📦 Found ${adsets?.length || 0} active ad sets from active campaigns`);
+
+      for (const entity of adsets || []) {
+        const maxTimeWindow = Math.max(...rulesByType.adset.map(r => r.time_window_days));
+        
+        const metrics = await fetchFacebookMetrics(entity, maxTimeWindow, accessToken, execution_id, supabase, rulesByType.adset[0].company_id);
+        
+        if (!metrics) {
+          totalSkipped++;
+          continue;
+        }
+
+        totalProcessed++;
+
+        for (const rule of rulesByType.adset) {
+          const result = await processEntityWithRule(
+            entity,
+            rule,
+            metrics,
+            execution_id,
+            accessToken,
+            supabase
+          );
+          
+          if (result === 'actioned') totalActioned++;
+          else if (result === 'skipped') totalSkipped++;
+          else if (result === 'error') totalErrors++;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    // ========== PROCESSAR ADS ==========
+    if (rulesByType.ad.length > 0) {
+      console.log(`\n🎯 Processing ${rulesByType.ad.length} ad rules`);
+      
+      const { data: ads } = await supabase
+        .from('ads')
+        .select(`
+          id, 
+          name, 
+          facebook_id, 
+          client_id, 
+          campaign_id, 
+          ad_set_id,
+          ad_sets!inner(id, is_active, campaign_id, campaigns!inner(id, is_active))
+        `)
+        .eq('client_id', client_id)
+        .eq('is_active', true)
+        .eq('ad_sets.is_active', true)
+        .eq('ad_sets.campaigns.is_active', true)
+        .not('facebook_id', 'is', null);
+
+      console.log(`📦 Found ${ads?.length || 0} active ads from active ad sets in active campaigns`);
+
+      for (const entity of ads || []) {
+        const maxTimeWindow = Math.max(...rulesByType.ad.map(r => r.time_window_days));
+        
+        const metrics = await fetchFacebookMetrics(entity, maxTimeWindow, accessToken, execution_id, supabase, rulesByType.ad[0].company_id);
+        
+        if (!metrics) {
+          totalSkipped++;
+          continue;
+        }
+
+        totalProcessed++;
+
+        for (const rule of rulesByType.ad) {
+          const result = await processEntityWithRule(
+            entity,
+            rule,
+            metrics,
+            execution_id,
+            accessToken,
+            supabase
+          );
+          
+          if (result === 'actioned') totalActioned++;
+          else if (result === 'skipped') totalSkipped++;
+          else if (result === 'error') totalErrors++;
+        }
+
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
@@ -353,6 +263,177 @@ serve(async (req) => {
 });
 
 // ============ FUNÇÕES AUXILIARES ============
+
+// Buscar métricas do Facebook
+async function fetchFacebookMetrics(
+  entity: any,
+  timeWindowDays: number,
+  accessToken: string,
+  executionId: string,
+  supabase: any,
+  companyId: string
+): Promise<any | null> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - timeWindowDays);
+  const endDate = new Date();
+
+  const sinceStr = startDate.toISOString().split('T')[0];
+  const untilStr = endDate.toISOString().split('T')[0];
+
+  console.log(`📊 Fetching metrics for ${entity.name} (${sinceStr} to ${untilStr})`);
+
+  const insightsUrl = `https://graph.facebook.com/v20.0/${entity.facebook_id}/insights?` +
+    `fields=impressions,clicks,spend,actions,frequency,reach,ctr,cpc,cost_per_action_type&` +
+    `time_range={"since":"${sinceStr}","until":"${untilStr}"}&` +
+    `access_token=${accessToken}`;
+
+  try {
+    const insightsResponse = await fetch(insightsUrl);
+    const insightsData = await insightsResponse.json();
+
+    if (insightsData.error) {
+      console.error('❌ Facebook API error:', insightsData.error);
+      return null;
+    }
+
+    if (!insightsData.data || insightsData.data.length === 0) {
+      console.log(`⏭️  No insights data for ${entity.name}`);
+      return null;
+    }
+
+    const insights = insightsData.data[0];
+
+    const impressions = parseFloat(insights.impressions || '0');
+    const clicks = parseFloat(insights.clicks || '0');
+    const spend = parseFloat(insights.spend || '0');
+    const reach = parseFloat(insights.reach || '0');
+    const frequency = parseFloat(insights.frequency || '0');
+    
+    let conversions = 0;
+    if (insights.actions) {
+      const leadAction = insights.actions.find((a: any) => 
+        a.action_type === 'offsite_conversion.fb_pixel_lead' ||
+        a.action_type === 'lead' ||
+        a.action_type === 'onsite_conversion.post_save'
+      );
+      conversions = leadAction ? parseFloat(leadAction.value) : 0;
+    }
+
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const cpc = clicks > 0 ? spend / clicks : 0;
+    const cpa = conversions > 0 ? spend / conversions : 0;
+
+    console.log(`📈 Metrics: CPA=${cpa.toFixed(2)}, CTR=${ctr.toFixed(2)}%, Conversions=${conversions}`);
+
+    return {
+      impressions,
+      clicks,
+      spend,
+      conversions,
+      reach,
+      frequency,
+      ctr,
+      cpc,
+      cpa
+    };
+  } catch (error: any) {
+    console.error(`❌ Error fetching metrics for ${entity.name}:`, error);
+    return null;
+  }
+}
+
+// Processar entidade com regra
+async function processEntityWithRule(
+  entity: any,
+  rule: AutomationRule,
+  metrics: any,
+  executionId: string,
+  accessToken: string,
+  supabase: any
+): Promise<'skipped' | 'actioned' | 'error'> {
+  console.log(`\n⚙️  Applying rule: ${rule.rule_name} to ${entity.name}`);
+
+  try {
+    const conditionsMet = evaluateConditions(rule.conditions, metrics);
+
+    if (conditionsMet) {
+      console.log(`✅ Conditions met, executing action: ${rule.action_type}`);
+
+      const actionResult = await executeAction(
+        entity.facebook_id,
+        rule.action_type,
+        rule.action_config,
+        rule.entity_type,
+        accessToken
+      );
+
+      if (actionResult.success) {
+        await supabase.from('automation_execution_progress').insert({
+          execution_id: executionId,
+          company_id: rule.company_id,
+          client_id: entity.client_id,
+          entity_type: rule.entity_type,
+          entity_name: entity.name,
+          entity_id: entity.id,
+          facebook_id: entity.facebook_id,
+          status: 'actioned',
+          rule_name: rule.rule_name,
+          message: `✓ ${getActionDescription(rule.action_type)} (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`
+        });
+
+        await supabase.from('campaign_automation_logs').insert({
+          rule_id: rule.id,
+          company_id: rule.company_id,
+          client_id: entity.client_id,
+          campaign_id: entity.campaign_id || null,
+          entity_type: rule.entity_type,
+          entity_id: entity.id,
+          action_taken: rule.action_type,
+          conditions_met: rule.conditions,
+          action_result: 'success',
+          details: `CPA: R$ ${metrics.cpa.toFixed(2)}, CTR: ${metrics.ctr.toFixed(2)}%, Conversões: ${metrics.conversions}, Spend: R$ ${metrics.spend.toFixed(2)}`,
+          campaign_data: metrics
+        });
+
+        return 'actioned';
+      } else {
+        throw new Error(actionResult.error || 'Erro ao executar ação');
+      }
+    } else {
+      console.log(`⏭️  Conditions not met, skipping`);
+      await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: rule.company_id,
+        client_id: entity.client_id,
+        entity_type: rule.entity_type,
+        entity_name: entity.name,
+        entity_id: entity.id,
+        facebook_id: entity.facebook_id,
+        status: 'skipped',
+        rule_name: rule.rule_name,
+        message: `Condições não atendidas (CPA: R$ ${metrics.cpa.toFixed(2)}, CTR: ${metrics.ctr.toFixed(2)}%)`
+      });
+      return 'skipped';
+    }
+  } catch (error: any) {
+    console.error(`❌ Error processing ${entity.name} with rule ${rule.rule_name}:`, error);
+    
+    await supabase.from('automation_execution_progress').insert({
+      execution_id: executionId,
+      company_id: rule.company_id,
+      client_id: entity.client_id,
+      entity_type: rule.entity_type,
+      entity_name: entity.name,
+      entity_id: entity.id,
+      facebook_id: entity.facebook_id,
+      status: 'error',
+      rule_name: rule.rule_name,
+      message: `Erro: ${error.message}`
+    });
+
+    return 'error';
+  }
+}
 
 // Avaliar condições
 function evaluateConditions(conditions: any, metrics: any): boolean {
