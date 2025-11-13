@@ -22,20 +22,49 @@ export interface AutomationExecutionLog {
   };
 }
 
-export const useAutomationExecutionLogs = (clientId?: string | null, limit: number = 50) => {
+export type PeriodFilter = 'hour' | 'day' | 'week' | 'all';
+
+export const useAutomationExecutionLogs = (
+  clientId?: string | null, 
+  limit: number = 50,
+  periodFilter: PeriodFilter = 'all'
+) => {
   const { user } = useAuth();
   const { activeCompany } = useCompany();
 
   const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['automation-execution-logs', activeCompany?.company_id, clientId, limit],
+    queryKey: ['automation-execution-logs', activeCompany?.company_id, clientId, limit, periodFilter],
     queryFn: async () => {
       if (!user || !activeCompany?.company_id) return [];
 
       try {
-        console.log('Fetching execution logs for company:', activeCompany.company_id, 'client:', clientId);
+        console.log('Fetching execution logs for company:', activeCompany.company_id, 'client:', clientId, 'period:', periodFilter);
+        
+        // Calculate date filter based on period
+        let dateFilter: string | null = null;
+        const now = new Date();
+        
+        switch (periodFilter) {
+          case 'hour':
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+            dateFilter = oneHourAgo.toISOString();
+            break;
+          case 'day':
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            dateFilter = oneDayAgo.toISOString();
+            break;
+          case 'week':
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            dateFilter = oneWeekAgo.toISOString();
+            break;
+          case 'all':
+          default:
+            dateFilter = null;
+            break;
+        }
         
         const query = supabase
-          .from('automation_execution_logs')
+          .from('automation_execution_logs' as any)
           .select(`
             *,
             clients:client_id (
@@ -48,6 +77,10 @@ export const useAutomationExecutionLogs = (clientId?: string | null, limit: numb
 
         if (clientId) {
           query.eq('client_id', clientId);
+        }
+
+        if (dateFilter) {
+          query.gte('started_at', dateFilter);
         }
 
         const { data, error } = await query;
