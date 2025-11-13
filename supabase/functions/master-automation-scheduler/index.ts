@@ -136,7 +136,11 @@ Deno.serve(async (req) => {
         const { data: execData, error: execError } = await supabase.functions.invoke(
           'execute-campaign-automations',
           {
-            body: { client_id: schedule.client_id }
+            body: { 
+              client_id: schedule.client_id,
+              execution_id: executionId,
+              scheduled_execution: true
+            }
           }
         );
 

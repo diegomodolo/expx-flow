@@ -27,13 +27,20 @@ export function useAutomationExecutionProgress(executionId?: string | null) {
     queryFn: async () => {
       if (!executionId) return [];
 
+      console.log('Fetching execution progress for:', executionId);
+
       const { data, error } = await supabase
         .from('automation_execution_progress')
         .select('*')
         .eq('execution_id', executionId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching execution progress:', error);
+        throw error;
+      }
+      
+      console.log('Execution progress data:', data);
       return data as ExecutionProgress[];
     },
     enabled: !!executionId,
