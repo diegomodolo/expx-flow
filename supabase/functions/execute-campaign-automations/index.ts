@@ -50,15 +50,33 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let executionId: string | undefined;
+  let companyId: string | undefined;
+  let client_id: string | undefined;
+
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const body = await req.json();
+    client_id = body.client_id;
+    executionId = body.execution_id;
 
-    const { client_id, execution_id } = await req.json();
+    console.log('🚀 Starting automation execution:', { client_id, execution_id: executionId });
 
-    console.log('🚀 Starting automation execution:', { client_id, execution_id });
+    // Log inicial de progresso
+    await supabase.from('automation_execution_progress').insert({
+      execution_id: executionId,
+      company_id: null, // Será preenchido depois
+      client_id: client_id,
+      entity_type: 'campaign',
+      entity_name: 'Sistema',
+      status: 'processing',
+      rule_name: 'Inicialização',
+      message: '🚀 Iniciando execução das automações...'
+    });
 
     // Buscar regras ativas
     const { data: rules, error: rulesError } = await supabase
@@ -90,7 +108,7 @@ serve(async (req) => {
     }
 
     const accessToken = integration.access_token;
-    const companyId = integration.company_id;
+    companyId = integration.company_id;
 
     // Buscar Ad Account do cliente
     const { data: clientData, error: clientError } = await supabase
@@ -124,8 +142,53 @@ serve(async (req) => {
 
     // ========== BUSCAR CAMPANHAS ATIVAS DO FACEBOOK ==========
     console.log('\n🚀 Buscando campanhas ativas do Facebook...');
-    const campaigns = await fetchActiveCampaignsFromFacebook(adAccountId, accessToken);
-    console.log(`📦 Encontradas ${campaigns.length} campanhas ativas no Facebook`);
+    
+    // Log de consulta ao Facebook
+    await supabase.from('automation_execution_progress').insert({
+      execution_id: executionId,
+      company_id: companyId,
+      client_id: client_id,
+      entity_type: 'campaign',
+      entity_name: 'Facebook API',
+      status: 'processing',
+      rule_name: 'Consulta',
+      message: `📡 Consultando campanhas ativas no Facebook (Ad Account: ${adAccountId})...`
+    });
+    
+    let campaigns: FacebookCampaign[] = [];
+    
+    try {
+      campaigns = await fetchActiveCampaignsFromFacebook(adAccountId, accessToken);
+      console.log(`📦 Encontradas ${campaigns.length} campanhas ativas no Facebook`);
+      
+      // Log de sucesso da consulta
+      await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: companyId,
+        client_id: client_id,
+        entity_type: 'campaign',
+        entity_name: 'Facebook API',
+        status: 'processing',
+        rule_name: 'Consulta',
+        message: `✅ Encontradas ${campaigns.length} campanhas ativas no Facebook`
+      });
+    } catch (error: any) {
+      console.error('❌ Error fetching campaigns:', error);
+      
+      // Log de erro
+      await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: companyId,
+        client_id: client_id,
+        entity_type: 'campaign',
+        entity_name: 'Facebook API',
+        status: 'error',
+        rule_name: 'Consulta',
+        message: `❌ Erro ao consultar Facebook: ${error.message}`
+      });
+      
+      throw error;
+    }
 
     // ========== PROCESSAR EM CASCATA ==========
     for (const campaign of campaigns) {
@@ -134,11 +197,24 @@ serve(async (req) => {
       // 1️⃣ APLICAR REGRAS DE CAMPANHA
       if (rulesByType.campaign.length > 0) {
         const maxTimeWindow = Math.max(...rulesByType.campaign.map(r => r.time_window_days));
+        
+        // Log antes de buscar métricas
+        await supabase.from('automation_execution_progress').insert({
+          execution_id: executionId,
+          company_id: companyId,
+          client_id: client_id,
+          entity_type: 'campaign',
+          entity_name: campaign.name,
+          status: 'processing',
+          rule_name: 'Análise',
+          message: `📊 Consultando métricas em tempo real no Facebook (janela de ${maxTimeWindow} dias)...`
+        });
+        
         const metrics = await fetchFacebookMetrics(
           campaign.id,
           maxTimeWindow,
           accessToken,
-          execution_id,
+          executionId,
           supabase,
           companyId
         );
@@ -151,6 +227,20 @@ serve(async (req) => {
             if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
               if (!rule.campaign_objectives.includes(campaign.objective)) {
                 console.log(`  ⏭️  Regra "${rule.rule_name}" não se aplica ao objetivo ${campaign.objective}`);
+                
+                // Log de regra não aplicável
+                await supabase.from('automation_execution_progress').insert({
+                  execution_id: executionId,
+                  company_id: rule.company_id,
+                  client_id: client_id,
+                  entity_type: rule.entity_type,
+                  entity_name: campaign.name,
+                  status: 'skipped',
+                  rule_name: rule.rule_name,
+                  message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
+                });
+                
+                totalSkipped++;
                 continue;
               }
             }
@@ -204,6 +294,17 @@ serve(async (req) => {
               // Verificar campaign_objectives
               if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
                 if (!rule.campaign_objectives.includes(campaign.objective)) {
+                  await supabase.from('automation_execution_progress').insert({
+                    execution_id: executionId,
+                    company_id: rule.company_id,
+                    client_id: client_id,
+                    entity_type: rule.entity_type,
+                    entity_name: adset.name,
+                    status: 'skipped',
+                    rule_name: rule.rule_name,
+                    message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
+                  });
+                  totalSkipped++;
                   continue;
                 }
               }
@@ -257,6 +358,17 @@ serve(async (req) => {
                   // Verificar campaign_objectives
                   if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
                     if (!rule.campaign_objectives.includes(campaign.objective)) {
+                      await supabase.from('automation_execution_progress').insert({
+                        execution_id: executionId,
+                        company_id: rule.company_id,
+                        client_id: client_id,
+                        entity_type: rule.entity_type,
+                        entity_name: ad.name,
+                        status: 'skipped',
+                        rule_name: rule.rule_name,
+                        message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
+                      });
+                      totalSkipped++;
                       continue;
                     }
                   }
@@ -303,6 +415,18 @@ serve(async (req) => {
       totalErrors 
     });
 
+    // Log final de conclusão
+    await supabase.from('automation_execution_progress').insert({
+      execution_id: executionId,
+      company_id: companyId,
+      client_id: client_id,
+      entity_type: 'campaign',
+      entity_name: 'Sistema',
+      status: 'actioned',
+      rule_name: 'Conclusão',
+      message: `✨ Execução concluída! ${totalActioned} ações executadas, ${totalSkipped} ignoradas, ${totalErrors} erros`
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -316,6 +440,21 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('❌ Error in execute-campaign-automations:', error);
+    
+    // Inserir log de erro se temos as informações necessárias
+    if (executionId && companyId && client_id) {
+      await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: companyId,
+        client_id: client_id,
+        entity_type: 'campaign',
+        entity_name: 'Sistema',
+        status: 'error',
+        rule_name: 'Execução',
+        message: `❌ Erro: ${error.message}`
+      });
+    }
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -344,13 +483,13 @@ async function fetchActiveCampaignsFromFacebook(
 
     if (data.error) {
       console.error('❌ Facebook API error:', data.error);
-      return [];
+      throw new Error(`Facebook API Error: ${data.error.message}`);
     }
 
     return data.data || [];
   } catch (error: any) {
     console.error('❌ Error fetching campaigns from Facebook:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -370,13 +509,13 @@ async function fetchActiveAdSetsFromFacebook(
 
     if (data.error) {
       console.error('❌ Facebook API error:', data.error);
-      return [];
+      throw new Error(`Facebook API Error: ${data.error.message}`);
     }
 
     return data.data || [];
   } catch (error: any) {
     console.error('❌ Error fetching ad sets from Facebook:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -396,13 +535,13 @@ async function fetchActiveAdsFromFacebook(
 
     if (data.error) {
       console.error('❌ Facebook API error:', data.error);
-      return [];
+      throw new Error(`Facebook API Error: ${data.error.message}`);
     }
 
     return data.data || [];
   } catch (error: any) {
     console.error('❌ Error fetching ads from Facebook:', error);
-    return [];
+    throw error;
   }
 }
 
