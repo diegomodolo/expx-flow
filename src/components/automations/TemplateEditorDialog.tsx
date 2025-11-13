@@ -10,7 +10,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { HelpCircle } from "lucide-react";
 import { AutomationRule } from "@/hooks/useAutomationRules";
 import { ConditionEditor, ConditionsGroup } from "./ConditionEditor";
-import { SafetyLimitsEditor, SafetyLimits, safetyLimitsSchema } from "./SafetyLimitsEditor";
 import { CampaignObjectiveSelector } from "./CampaignObjectiveSelector";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
@@ -59,17 +58,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     ]
   });
 
-  const [safetyLimits, setSafetyLimits] = useState<SafetyLimits>({
-    budget_safety_limits: {
-      max_daily_budget_increase_percent: 20,
-      max_daily_budget_decrease_percent: 30,
-    },
-    execution_limits: {
-      max_executions_per_day: 3,
-      cooldown_hours: 4,
-    },
-  });
-
   const [selectedObjectives, setSelectedObjectives] = useState<string[]>([]);
 
   // Load template data when it changes
@@ -105,17 +93,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       setFormData(newFormData);
       
       setConditions(template.conditions as ConditionsGroup);
-      
-      setSafetyLimits({
-        budget_safety_limits: template.budget_safety_limits as any || {
-          max_daily_budget_increase_percent: 20,
-          max_daily_budget_decrease_percent: 30,
-        },
-        execution_limits: template.execution_limits as any || {
-          max_executions_per_day: 3,
-          cooldown_hours: 4,
-        },
-      });
 
       setSelectedObjectives(template.campaign_objectives || []);
       
@@ -149,17 +126,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           }
         ]
       });
-      
-      setSafetyLimits({
-        budget_safety_limits: {
-          max_daily_budget_increase_percent: 20,
-          max_daily_budget_decrease_percent: 30,
-        },
-        execution_limits: {
-          max_executions_per_day: 3,
-          cooldown_hours: 4,
-        },
-      });
 
       setSelectedObjectives([]);
     }
@@ -175,20 +141,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       if (error instanceof z.ZodError) {
         toast({
           title: "Erro de validação",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    // Validar limites de segurança
-    try {
-      safetyLimitsSchema.parse(safetyLimits);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Erro nos limites de segurança",
           description: error.errors[0].message,
           variant: "destructive",
         });
@@ -234,8 +186,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         }))
       },
       action_config: formData.action_config,
-      budget_safety_limits: safetyLimits.budget_safety_limits,
-      execution_limits: safetyLimits.execution_limits,
       scope_filters: {},
       campaign_objectives: selectedObjectives.length > 0 ? selectedObjectives : null,
     };
@@ -284,9 +234,9 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
   return (
     <TooltipProvider>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{template ? "Editar Template" : "Novo Template de Automação"}</DialogTitle>
+          <DialogTitle>{template ? "Editar Regra" : "Nova Regra de Automação"}</DialogTitle>
           <DialogDescription>
             Configure as regras de automação que serão aplicadas às campanhas
           </DialogDescription>
@@ -474,14 +424,6 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
           </div>
 
           <ConditionEditor value={conditions} onChange={setConditions} isTemplate={true} />
-
-          <Separator className="my-6" />
-
-          <SafetyLimitsEditor 
-            value={safetyLimits} 
-            onChange={setSafetyLimits}
-            actionType={formData.action_type}
-          />
 
           {/* Recovery Trigger Configuration */}
           {(formData.action_type === 'pause_campaign' || 
