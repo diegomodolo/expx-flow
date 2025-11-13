@@ -46,8 +46,9 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
   const [syncAdSets, setSyncAdSets] = useState<boolean>(true);
   const [syncAds, setSyncAds] = useState<boolean>(true);
   const [includeInactive, setIncludeInactive] = useState<boolean>(false);
+  const [internalJobId, setInternalJobId] = useState<string | null>(null);
   
-  const { job, progressPercentage, isComplete, isError, isProcessing } = useSyncJobStatus(jobId);
+  const { job, progressPercentage, isComplete, isError, isProcessing } = useSyncJobStatus(internalJobId || jobId);
 
   // Load last selected options from localStorage
   useEffect(() => {
@@ -77,12 +78,24 @@ export const SyncPeriodDialog: React.FC<SyncPeriodDialogProps> = ({
     
     // Save selected options to localStorage
     localStorage.setItem('lastSyncOptions', JSON.stringify(options));
-    await onConfirm(options);
+    
+    // Capture the returned jobId and keep modal open to show progress
+    const returnedJobId = await onConfirm(options);
+    if (returnedJobId) {
+      setInternalJobId(returnedJobId);
+    }
   };
 
   const handleContinueInBackground = () => {
     onOpenChange(false);
   };
+
+  // Reset internal jobId when modal closes
+  useEffect(() => {
+    if (!open) {
+      setInternalJobId(null);
+    }
+  }, [open]);
 
   // Auto-close when completed successfully
   useEffect(() => {
