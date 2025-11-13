@@ -396,16 +396,18 @@ serve(async (req) => {
                 }
               }
 
-              await new Promise(resolve => setTimeout(resolve, 50));
+              // Delay maior entre ads para respeitar rate limit
+              await new Promise(resolve => setTimeout(resolve, 500));
             }
           }
 
-          await new Promise(resolve => setTimeout(resolve, 50));
+          // Delay entre ad sets
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
-      // Pequeno delay entre campanhas
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Delay maior entre campanhas para respeitar rate limit
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log('\n✨ Automation execution completed:', { 
@@ -468,6 +470,40 @@ serve(async (req) => {
 // ============ FUNÇÕES AUXILIARES ============
 
 // Buscar campanhas ativas do Facebook
+async function fetchWithRetry(
+  url: string,
+  maxRetries: number = 3,
+  initialDelay: number = 2000
+): Promise<any> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.error) {
+        // Se for rate limit, espera mais tempo e tenta novamente
+        if (data.error.code === 4 || data.error.message?.includes('rate limit') || data.error.message?.includes('User request limit')) {
+          if (attempt < maxRetries - 1) {
+            const delay = initialDelay * Math.pow(2, attempt);
+            console.log(`⏳ Rate limit atingido, aguardando ${delay/1000}s antes de tentar novamente (tentativa ${attempt + 1}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+        throw new Error(`Facebook API Error: ${data.error.message}`);
+      }
+
+      return data;
+    } catch (error: any) {
+      if (attempt === maxRetries - 1) throw error;
+      
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`⏳ Erro na requisição, aguardando ${delay/1000}s antes de tentar novamente...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 async function fetchActiveCampaignsFromFacebook(
   adAccountId: string,
   accessToken: string
@@ -478,14 +514,7 @@ async function fetchActiveCampaignsFromFacebook(
       `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
       `access_token=${accessToken}`;
 
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.error) {
-      console.error('❌ Facebook API error:', data.error);
-      throw new Error(`Facebook API Error: ${data.error.message}`);
-    }
-
+    const data = await fetchWithRetry(url);
     return data.data || [];
   } catch (error: any) {
     console.error('❌ Error fetching campaigns from Facebook:', error);
@@ -504,14 +533,7 @@ async function fetchActiveAdSetsFromFacebook(
       `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
       `access_token=${accessToken}`;
 
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.error) {
-      console.error('❌ Facebook API error:', data.error);
-      throw new Error(`Facebook API Error: ${data.error.message}`);
-    }
-
+    const data = await fetchWithRetry(url);
     return data.data || [];
   } catch (error: any) {
     console.error('❌ Error fetching ad sets from Facebook:', error);
@@ -530,14 +552,7 @@ async function fetchActiveAdsFromFacebook(
       `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
       `access_token=${accessToken}`;
 
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.error) {
-      console.error('❌ Facebook API error:', data.error);
-      throw new Error(`Facebook API Error: ${data.error.message}`);
-    }
-
+    const data = await fetchWithRetry(url);
     return data.data || [];
   } catch (error: any) {
     console.error('❌ Error fetching ads from Facebook:', error);
@@ -567,11 +582,9 @@ async function fetchFacebookMetrics(
     `access_token=${accessToken}`;
 
   try {
-    const insightsResponse = await fetch(insightsUrl);
-    const insightsData = await insightsResponse.json();
+    const insightsData = await fetchWithRetry(insightsUrl);
 
-    if (insightsData.error) {
-      console.error('❌ Facebook API error:', insightsData.error);
+    if (!insightsData) {
       return null;
     }
 
