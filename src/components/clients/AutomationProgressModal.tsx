@@ -65,11 +65,12 @@ export function AutomationProgressModal({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [updates]);
-  // Filtrar apenas registro de conclusão
-  const actualUpdates = updates.filter(u => u.rule_name !== 'Conclusão');
+  // Filtrar logs internos e conclusão
+  const internalLogTypes = ['Consulta', 'Análise', 'Validação', 'Conclusão'];
+  const actualUpdates = updates.filter(u => !internalLogTypes.includes(u.rule_name));
   const completionUpdate = updates.find(u => u.rule_name === 'Conclusão');
   
-  // Calcular stats baseado em TODOS os logs (exceto conclusão)
+  // Calcular stats baseado apenas em logs reais (sem logs internos)
   const stats = {
     total: actualUpdates.length,
     actioned: actualUpdates.filter(u => u.status === 'actioned').length,

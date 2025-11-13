@@ -270,13 +270,13 @@ Deno.serve(async (req) => {
         
         // 3️⃣ ATUALIZAR o mesmo log
         if (metricsProgressLogId && metrics) {
-          await supabase
-            .from('automation_execution_progress')
-            .update({
-              status: 'actioned',
-              message: `✅ Métricas consultadas (CPA: R$ ${metrics.cpa.toFixed(2)}, Conv: ${metrics.conversions})`
-            })
-            .eq('id', metricsProgressLogId);
+        await supabase
+          .from('automation_execution_progress')
+          .update({
+            status: 'processing',
+            message: `✅ Métricas consultadas (CPA: R$ ${metrics.cpa.toFixed(2)}, Conv: ${metrics.conversions})`
+          })
+          .eq('id', metricsProgressLogId);
         } else if (metricsProgressLogId && !metrics) {
           await supabase
             .from('automation_execution_progress')
@@ -909,7 +909,19 @@ async function processEntityWithRule(
         facebook_id: entity.facebook_id,
         status: 'actioned',
         rule_name: rule.rule_name,
-        message: `✓ ${getActionDescription(rule.action_type)} e renomeado (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`
+        message: `✓ ${getActionDescription(rule.action_type)} (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`,
+        metadata: {
+          campaign_id: entity.campaign_id,
+          campaign_name: (entity as any).campaign_name,
+          adset_id: (entity as any).adset_id,
+          adset_name: (entity as any).adset_name,
+          metrics: {
+            cpa: metrics.cpa,
+            ctr: metrics.ctr,
+            conversions: metrics.conversions,
+            spend: metrics.spend
+          }
+        }
       });
 
       if (progressError) {
@@ -918,19 +930,6 @@ async function processEntityWithRule(
         console.log(`✅ Progress log inserted for ${entity.name}`);
       }
 
-        await supabase.from('campaign_automation_logs').insert({
-          rule_id: rule.id,
-          company_id: rule.company_id,
-          client_id: entity.client_id,
-          campaign_id: entity.campaign_id || null,
-          entity_type: rule.entity_type,
-          entity_id: entity.id,
-          action_taken: rule.action_type,
-          conditions_met: rule.conditions,
-          action_result: 'success',
-          details: `CPA: R$ ${metrics.cpa.toFixed(2)}, CTR: ${metrics.ctr.toFixed(2)}%, Conversões: ${metrics.conversions}, Spend: R$ ${metrics.spend.toFixed(2)}`,
-          campaign_data: metrics
-        });
 
         return 'actioned';
       } else {
