@@ -523,9 +523,34 @@ export default function ClienteAutomacoes() {
                 </div>
               )}
 
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-3 text-sm text-blue-800 dark:text-blue-200 mt-2">
-                <AlertCircle className="h-4 w-4 inline mr-2" />
-                <strong>Importante:</strong> Os cron jobs precisam ser configurados manualmente no Supabase Dashboard para executar as automações nos horários programados.
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-950 p-4 text-sm text-amber-900 dark:text-amber-200 mt-4 border border-amber-200 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-2">
+                    <p className="font-semibold">⚙️ Configuração Manual Necessária</p>
+                    <p>
+                      Para que as automações executem automaticamente nos horários programados, 
+                      você precisa configurar <strong>cron jobs</strong> no Supabase.
+                    </p>
+                    <p className="text-xs opacity-90">
+                      <strong>O que são cron jobs?</strong> São tarefas agendadas que chamam 
+                      automaticamente a função de automação nos horários definidos acima.
+                    </p>
+                    <div className="pt-2">
+                      <a 
+                        href="https://github.com/seu-repositorio/blob/main/supabase/CONFIGURE_AUTOMATION_CRON.md"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-900 hover:bg-amber-200 dark:hover:bg-amber-800 rounded-md font-medium transition-colors"
+                      >
+                        📖 Ver Guia de Configuração
+                      </a>
+                    </div>
+                    <p className="text-xs opacity-75 pt-2">
+                      ℹ️ Por questões de segurança, o Supabase exige que cron jobs sejam criados manualmente via SQL Editor.
+                    </p>
+                  </div>
+                </div>
               </div>
             </>
           )}
