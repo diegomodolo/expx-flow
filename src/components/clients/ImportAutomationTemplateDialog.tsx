@@ -32,7 +32,7 @@ export function ImportAutomationTemplateDialog({
   onImported,
 }: ImportAutomationTemplateDialogProps) {
   const { toast } = useToast();
-  const { templates, rules, loading, importTemplateToClient, importConfiguredTemplate } = useAutomationRules();
+  const { templates, rules, loading, importTemplateToClient, importConfiguredTemplate } = useAutomationRules(clientId);
   const { templates: templateGroups, loading: templateGroupsLoading, importTemplateToClient: importTemplateGroup } = useAutomationTemplates();
   const [importing, setImporting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");

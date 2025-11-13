@@ -39,7 +39,7 @@ export const useAutomationTemplates = () => {
       
       // Fetch templates with their associated rules
       const { data: templatesData, error: templatesError } = await supabase
-        .from("automation_rule_templates")
+        .from("automation_rule_templates" as any)
         .select(`
           *,
           automation_template_rules (
@@ -92,7 +92,7 @@ export const useAutomationTemplates = () => {
     try {
       // Create the template
       const { data: templateData, error: templateError } = await supabase
-        .from("automation_rule_templates")
+        .from("automation_rule_templates" as any)
         .insert({
           company_id: activeCompany.company_id,
           name,
@@ -107,13 +107,13 @@ export const useAutomationTemplates = () => {
 
       // Create the rule associations
       const ruleAssociations = ruleIds.map((ruleId, index) => ({
-        template_id: templateData.id,
+        template_id: (templateData as any).id,
         rule_id: ruleId,
         order_index: index,
       }));
 
       const { error: rulesError } = await supabase
-        .from("automation_template_rules")
+        .from("automation_template_rules" as any)
         .insert(ruleAssociations);
 
       if (rulesError) throw rulesError;
@@ -158,7 +158,7 @@ export const useAutomationTemplates = () => {
 
       if (Object.keys(templateUpdates).length > 0) {
         const { error: updateError } = await supabase
-          .from("automation_rule_templates")
+          .from("automation_rule_templates" as any)
           .update(templateUpdates)
           .eq("id", templateId);
 
@@ -169,7 +169,7 @@ export const useAutomationTemplates = () => {
       if (ruleIds !== undefined) {
         // Delete existing associations
         const { error: deleteError } = await supabase
-          .from("automation_template_rules")
+          .from("automation_template_rules" as any)
           .delete()
           .eq("template_id", templateId);
 
@@ -183,7 +183,7 @@ export const useAutomationTemplates = () => {
         }));
 
         const { error: insertError } = await supabase
-          .from("automation_template_rules")
+          .from("automation_template_rules" as any)
           .insert(ruleAssociations);
 
         if (insertError) throw insertError;
@@ -209,7 +209,7 @@ export const useAutomationTemplates = () => {
   const deleteTemplate = async (templateId: string) => {
     try {
       const { error } = await supabase
-        .from("automation_rule_templates")
+        .from("automation_rule_templates" as any)
         .delete()
         .eq("id", templateId);
 
@@ -236,7 +236,7 @@ export const useAutomationTemplates = () => {
     try {
       // Fetch template with all rules
       const { data: templateData, error: templateError } = await supabase
-        .from("automation_rule_templates")
+        .from("automation_rule_templates" as any)
         .select(`
           *,
           automation_template_rules (
@@ -249,7 +249,7 @@ export const useAutomationTemplates = () => {
       if (templateError) throw templateError;
 
       // Import each rule to the client
-      const ruleImportPromises = templateData.automation_template_rules.map(
+      const ruleImportPromises = (templateData as any).automation_template_rules.map(
         async (templateRule: any) => {
           const rule = templateRule.rule;
           
@@ -282,7 +282,7 @@ export const useAutomationTemplates = () => {
 
       toast({
         title: "Template importado",
-        description: `${templateData.automation_template_rules.length} regras foram importadas com sucesso.`,
+        description: `${(templateData as any).automation_template_rules.length} regras foram importadas com sucesso.`,
       });
 
       return templateData;
