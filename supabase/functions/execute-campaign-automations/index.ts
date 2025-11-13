@@ -832,18 +832,24 @@ async function processEntityWithRule(
       );
 
       if (actionResult.success) {
-        await supabase.from('automation_execution_progress').insert({
-          execution_id: executionId,
-          company_id: rule.company_id,
-          client_id: entity.client_id,
-          entity_type: rule.entity_type,
-          entity_name: entity.name,
-          entity_id: entity.id,
-          facebook_id: entity.facebook_id,
-          status: 'actioned',
-          rule_name: rule.rule_name,
-          message: `✓ ${getActionDescription(rule.action_type)} e renomeado (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`
-        });
+      const { error: progressError } = await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: rule.company_id,
+        client_id: entity.client_id,
+        entity_type: rule.entity_type,
+        entity_name: entity.name,
+        entity_id: entity.id,
+        facebook_id: entity.facebook_id,
+        status: 'actioned',
+        rule_name: rule.rule_name,
+        message: `✓ ${getActionDescription(rule.action_type)} e renomeado (CPA: R$ ${metrics.cpa.toFixed(2)}, Conversões: ${metrics.conversions})`
+      });
+
+      if (progressError) {
+        console.error('❌ Error inserting progress log:', progressError);
+      } else {
+        console.log(`✅ Progress log inserted for ${entity.name}`);
+      }
 
         await supabase.from('campaign_automation_logs').insert({
           rule_id: rule.id,

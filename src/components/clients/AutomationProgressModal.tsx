@@ -3,7 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, AlertCircle, TrendingUp, Package, Image } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, CheckCircle, XCircle, AlertCircle, TrendingUp, Package, Image, ChevronsUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 interface AutomationProgressModalProps {
   open: boolean;
@@ -65,16 +67,22 @@ export function AutomationProgressModal({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [updates]);
-  // Filtrar registro de conclusão dos stats
+  // Filtrar registro de conclusão e logs internos das estatísticas
   const actualUpdates = updates.filter(u => u.rule_name !== 'Conclusão');
   const completionUpdate = updates.find(u => u.rule_name === 'Conclusão');
   
+  // Filtrar logs internos (Análise, Consulta, Validação) para exibição de ações reais
+  const internalLogTypes = ['Análise', 'Consulta', 'Validação'];
+  const realActionUpdates = actualUpdates.filter(u => 
+    !internalLogTypes.includes(u.rule_name)
+  );
+  
   const stats = {
-    total: actualUpdates.length,
-    actioned: actualUpdates.filter(u => u.status === 'actioned').length,
-    skipped: actualUpdates.filter(u => u.status === 'skipped').length,
-    errors: actualUpdates.filter(u => u.status === 'error').length,
-    processing: actualUpdates.filter(u => u.status === 'processing').length
+    total: realActionUpdates.length,
+    actioned: realActionUpdates.filter(u => u.status === 'actioned').length,
+    skipped: realActionUpdates.filter(u => u.status === 'skipped').length,
+    errors: realActionUpdates.filter(u => u.status === 'error').length,
+    processing: realActionUpdates.filter(u => u.status === 'processing').length
   };
   
   // Se existe mensagem de conclusão, forçar 100%
@@ -161,10 +169,10 @@ export function AutomationProgressModal({
           {/* Updates List */}
           <ScrollArea className="h-[400px] border rounded-lg p-4" ref={scrollRef}>
             <div className="space-y-3">
-              {actualUpdates.length === 0 && !completionUpdate ? <div className="text-center text-muted-foreground py-8">
+              {realActionUpdates.length === 0 && !completionUpdate ? <div className="text-center text-muted-foreground py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
                   <p>Iniciando execução...</p>
-                </div> : actualUpdates.map(update => <div key={update.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                </div> : realActionUpdates.map(update => <div key={update.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                     <div className="flex-shrink-0 mt-0.5">
                       {getStatusIcon(update.status)}
                     </div>
@@ -186,6 +194,37 @@ export function AutomationProgressModal({
                   </div>)}
             </div>
           </ScrollArea>
+
+          {/* Detailed Logs Section (for debugging) */}
+          {actualUpdates.length > 0 && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full">
+                  <ChevronsUpDown className="h-4 w-4 mr-2" />
+                  Ver logs detalhados ({actualUpdates.length} registros)
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ScrollArea className="h-[200px] border rounded-lg p-2 mt-2">
+                  <div className="space-y-1">
+                    {actualUpdates.map(update => (
+                      <div key={update.id} className="text-xs p-2 border-b hover:bg-muted/50 rounded">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-[10px]">
+                            {update.entity_type}
+                          </Badge>
+                          <span className="font-mono font-semibold">{update.rule_name}</span>
+                          {getStatusBadge(update.status)}
+                        </div>
+                        <div className="text-muted-foreground">{update.message}</div>
+                        <div className="text-muted-foreground/70 truncate">{update.entity_name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {/* Complete Message */}
           {completionUpdate && <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
