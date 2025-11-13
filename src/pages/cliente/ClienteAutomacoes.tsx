@@ -277,7 +277,8 @@ export default function ClienteAutomacoes() {
     };
     return labels[operator] || operator;
   };
-  const formatConditionValue = (field: string, value: number | boolean): string => {
+  const formatConditionValue = (field: string, value: number | boolean | null): string => {
+    if (value === null || value === undefined) return "N/A";
     if (typeof value === "boolean") return value ? "Sim" : "Não";
     if (["cpa", "spend", "cost_per_click"].includes(field)) {
       return `R$ ${value.toFixed(2)}`;
