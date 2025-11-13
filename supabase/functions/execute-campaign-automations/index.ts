@@ -143,26 +143,10 @@ serve(async (req) => {
     // ========== BUSCAR CAMPANHAS ATIVAS DO FACEBOOK ==========
     console.log('\n🚀 Buscando campanhas ativas do Facebook...');
     
-    // Log de consulta ao Facebook
-    await supabase.from('automation_execution_progress').insert({
-      execution_id: executionId,
-      company_id: companyId,
-      client_id: client_id,
-      entity_type: 'campaign',
-      entity_name: 'Facebook API',
-      status: 'processing',
-      rule_name: 'Consulta',
-      message: `📡 Consultando campanhas ativas no Facebook (Ad Account: ${adAccountId})...`
-    });
-    
-    let campaigns: FacebookCampaign[] = [];
-    
-    try {
-      campaigns = await fetchActiveCampaignsFromFacebook(adAccountId, accessToken);
-      console.log(`📦 Encontradas ${campaigns.length} campanhas ativas no Facebook`);
-      
-      // Log de sucesso da consulta
-      await supabase.from('automation_execution_progress').insert({
+    // 1️⃣ INSERIR log inicial e GUARDAR o ID
+    const { data: campaignsProgressLog } = await supabase
+      .from('automation_execution_progress')
+      .insert({
         execution_id: executionId,
         company_id: companyId,
         client_id: client_id,
@@ -170,25 +154,45 @@ serve(async (req) => {
         entity_name: 'Facebook API',
         status: 'processing',
         rule_name: 'Consulta',
-        message: `✅ Encontradas ${campaigns.length} campanhas ativas. Processando com delays para respeitar rate limit...`
-      });
+        message: `📡 Consultando campanhas ativas no Facebook (Ad Account: ${adAccountId})...`
+      })
+      .select('id')
+      .single();
+    
+    const campaignsProgressLogId = campaignsProgressLog?.id;
+    let campaigns: FacebookCampaign[] = [];
+    
+    try {
+      // 2️⃣ Fazer a operação
+      campaigns = await fetchActiveCampaignsFromFacebook(adAccountId, accessToken);
+      console.log(`📦 Encontradas ${campaigns.length} campanhas ativas no Facebook`);
+      
+      // 3️⃣ ATUALIZAR o mesmo log (não inserir novo)
+      if (campaignsProgressLogId) {
+        await supabase
+          .from('automation_execution_progress')
+          .update({
+            status: 'actioned',
+            message: `✅ Encontradas ${campaigns.length} campanhas ativas. Processando com delays para respeitar rate limit...`
+          })
+          .eq('id', campaignsProgressLogId);
+      }
       
       // Delay após buscar campanhas
       await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (error: any) {
       console.error('❌ Error fetching campaigns:', error);
       
-      // Log de erro
-      await supabase.from('automation_execution_progress').insert({
-        execution_id: executionId,
-        company_id: companyId,
-        client_id: client_id,
-        entity_type: 'campaign',
-        entity_name: 'Facebook API',
-        status: 'error',
-        rule_name: 'Consulta',
-        message: `❌ Erro ao consultar Facebook: ${error.message}`
-      });
+      // 4️⃣ ATUALIZAR com status 'error'
+      if (campaignsProgressLogId) {
+        await supabase
+          .from('automation_execution_progress')
+          .update({
+            status: 'error',
+            message: `❌ Erro ao consultar Facebook: ${error.message}`
+          })
+          .eq('id', campaignsProgressLogId);
+      }
       
       throw error;
     }
@@ -221,21 +225,28 @@ serve(async (req) => {
       if (rulesByType.campaign.length > 0) {
         const maxTimeWindow = Math.max(...rulesByType.campaign.map(r => r.time_window_days));
         
-        // Log antes de buscar métricas
-        await supabase.from('automation_execution_progress').insert({
-          execution_id: executionId,
-          company_id: companyId,
-          client_id: client_id,
-          entity_type: 'campaign',
-          entity_name: campaign.name,
-          status: 'processing',
-          rule_name: 'Análise',
-          message: `📊 Consultando métricas em tempo real no Facebook (janela de ${maxTimeWindow} dias)...`
-        });
+        // 1️⃣ INSERIR log inicial e GUARDAR o ID
+        const { data: metricsProgressLog } = await supabase
+          .from('automation_execution_progress')
+          .insert({
+            execution_id: executionId,
+            company_id: companyId,
+            client_id: client_id,
+            entity_type: 'campaign',
+            entity_name: campaign.name,
+            status: 'processing',
+            rule_name: 'Análise',
+            message: `📊 Consultando métricas em tempo real no Facebook (janela de ${maxTimeWindow} dias)...`
+          })
+          .select('id')
+          .single();
+        
+        const metricsProgressLogId = metricsProgressLog?.id;
         
         // Delay antes de buscar métricas
         await new Promise(resolve => setTimeout(resolve, 1500));
         
+        // 2️⃣ Fazer a operação
         const metrics = await fetchFacebookMetrics(
           campaign.id,
           maxTimeWindow,
@@ -244,6 +255,25 @@ serve(async (req) => {
           supabase,
           companyId
         );
+        
+        // 3️⃣ ATUALIZAR o mesmo log
+        if (metricsProgressLogId && metrics) {
+          await supabase
+            .from('automation_execution_progress')
+            .update({
+              status: 'actioned',
+              message: `✅ Métricas consultadas (CPA: R$ ${metrics.cpa.toFixed(2)}, Conv: ${metrics.conversions})`
+            })
+            .eq('id', metricsProgressLogId);
+        } else if (metricsProgressLogId && !metrics) {
+          await supabase
+            .from('automation_execution_progress')
+            .update({
+              status: 'skipped',
+              message: `⏭️ Sem dados de métricas disponíveis`
+            })
+            .eq('id', metricsProgressLogId);
+        }
         
         // Delay após buscar métricas
         await new Promise(resolve => setTimeout(resolve, 1500));
