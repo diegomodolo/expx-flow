@@ -64,7 +64,9 @@ Deno.serve(async (req) => {
     const { client_id: bodyClientId, scheduled_execution: bodyScheduled = false } = body;
     client_id = bodyClientId;
     scheduled_execution = bodyScheduled;
-    executionId = body.execution_id;
+    
+    // Usar execution_id passado ou gerar um novo (para execuções manuais)
+    executionId = body.execution_id || crypto.randomUUID();
 
     console.log('🚀 Starting automation execution:', { client_id, execution_id: executionId });
 
