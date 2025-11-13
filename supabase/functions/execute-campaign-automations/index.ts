@@ -303,7 +303,8 @@ Deno.serve(async (req) => {
               metrics,
               executionId,
               accessToken,
-              supabase
+              supabase,
+              namePrefix
             );
 
             if (result === 'actioned') totalActioned++;
@@ -388,7 +389,8 @@ Deno.serve(async (req) => {
                 metrics,
                 executionId,
                 accessToken,
-                supabase
+                supabase,
+                namePrefix
               );
 
               if (result === 'actioned') totalActioned++;
@@ -807,7 +809,8 @@ async function processEntityWithRule(
   metrics: any,
   executionId: string,
   accessToken: string,
-  supabase: any
+  supabase: any,
+  namePrefix: string
 ): Promise<'skipped' | 'actioned' | 'error'> {
   console.log(`\n⚙️  Applying rule: ${rule.rule_name} to ${entity.name}`);
 
