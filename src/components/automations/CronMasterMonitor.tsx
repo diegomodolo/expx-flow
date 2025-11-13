@@ -256,8 +256,8 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
                       <Badge variant={getStatusVariant(log.status)}>
                         {getStatusLabel(log.status)}
                       </Badge>
-                      {showClientColumn && log.clients && (
-                        <span className="text-sm font-medium">{log.clients.name}</span>
+                      {showClientColumn && log.client_id && (
+                        <span className="text-sm text-muted-foreground">Cliente: {log.client_id.substring(0, 8)}</span>
                       )}
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(log.started_at), {

@@ -18,9 +18,6 @@ export interface AutomationExecutionLog {
   error_message: string | null;
   execution_details: any;
   created_at: string;
-  clients?: {
-    name: string;
-  };
 }
 
 export type PeriodFilter = 'hour' | 'day' | 'week' | 'all';
@@ -104,12 +101,7 @@ export const useAutomationExecutionLogs = (
         
         const query = supabase
           .from('automation_execution_logs' as any)
-          .select(`
-            *,
-            clients:client_id (
-              name
-            )
-          `)
+          .select('*')
           .eq('company_id', activeCompany.company_id)
           .order('started_at', { ascending: false })
           .limit(limit);
