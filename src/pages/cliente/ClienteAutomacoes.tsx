@@ -69,6 +69,38 @@ export default function ClienteAutomacoes() {
   const [executionId, setExecutionId] = useState<string>('');
   const [executionsPerDay, setExecutionsPerDay] = useState<number>(schedule?.executions_per_day || 2);
 
+  // Função para converter horário UTC para timezone local (BRT = UTC-3)
+  const convertUTCToLocal = (utcTime: string): string => {
+    const [hours, minutes] = utcTime.split(':').map(Number);
+    const utcDate = new Date();
+    utcDate.setUTCHours(hours, minutes, 0, 0);
+    
+    // Formatar para timezone local (BRT)
+    return utcDate.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  // Função para gerar preview de horários no timezone local
+  const getLocalTimePreview = (executions: number): string[] => {
+    const intervalMinutes = (24 * 60) / executions;
+    const times: string[] = [];
+    
+    for (let i = 0; i < executions; i++) {
+      const utcMinutes = i * intervalMinutes;
+      const hours = Math.floor(utcMinutes / 60);
+      const minutes = utcMinutes % 60;
+      
+      const utcTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      times.push(convertUTCToLocal(utcTime));
+    }
+    
+    return times;
+  };
+
   // Sync executionsPerDay with schedule
   useEffect(() => {
     if (schedule?.executions_per_day) {
@@ -414,10 +446,18 @@ export default function ClienteAutomacoes() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1x por dia (00:00)</SelectItem>
-                    <SelectItem value="2">2x por dia (00:00, 12:00)</SelectItem>
-                    <SelectItem value="3">3x por dia (00:00, 08:00, 16:00)</SelectItem>
-                    <SelectItem value="4">4x por dia (00:00, 06:00, 12:00, 18:00)</SelectItem>
+                    <SelectItem value="1">
+                      1x por dia ({getLocalTimePreview(1)[0]})
+                    </SelectItem>
+                    <SelectItem value="2">
+                      2x por dia ({getLocalTimePreview(2).join(', ')})
+                    </SelectItem>
+                    <SelectItem value="3">
+                      3x por dia ({getLocalTimePreview(3).join(', ')})
+                    </SelectItem>
+                    <SelectItem value="4">
+                      4x por dia ({getLocalTimePreview(4).join(', ')})
+                    </SelectItem>
                     <SelectItem value="6">6x por dia (a cada 4h)</SelectItem>
                     <SelectItem value="8">8x por dia (a cada 3h)</SelectItem>
                     <SelectItem value="12">12x por dia (a cada 2h)</SelectItem>
@@ -426,13 +466,18 @@ export default function ClienteAutomacoes() {
               </div>
 
               {schedule.scheduled_times && schedule.scheduled_times.length > 0 && <div className="rounded-lg bg-muted p-4 space-y-2">
-                  <p className="text-sm font-medium">Horários programados:</p>
+                  <p className="text-sm font-medium">
+                    Horários programados (horário local - BRT):
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {schedule.scheduled_times.map(time => <Badge key={time} variant="outline" className="gap-1">
                         <Clock className="h-3 w-3" />
-                        {time}
+                        {convertUTCToLocal(time)}
                       </Badge>)}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    * Horários convertidos automaticamente de UTC para BRT (UTC-3)
+                  </p>
                 </div>}
 
               {schedule.last_execution_at && <div className="text-sm text-muted-foreground">

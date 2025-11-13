@@ -89,6 +89,18 @@ export const CronMasterMonitor = ({
     }
   };
 
+  const formatLocalDateTime = (isoDate: string): string => {
+    const date = new Date(isoDate);
+    return date.toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const getStatusMessage = (log: any) => {
     const actionsTaken = log.actions_taken || 0;
     const details = log.execution_details || {};
@@ -360,7 +372,7 @@ export const CronMasterMonitor = ({
                             </span>
                           )}
                           <span className="text-xs text-muted-foreground">
-                            {new Date(log.started_at).toLocaleString('pt-BR')}
+                            {formatLocalDateTime(log.started_at)}
                           </span>
                         </div>
 
