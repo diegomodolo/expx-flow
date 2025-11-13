@@ -235,108 +235,108 @@ Deno.serve(async (req) => {
       
       // 1️⃣ APLICAR REGRAS DE CAMPANHA
       if (rulesByType.campaign.length > 0) {
-        const maxTimeWindow = Math.max(...rulesByType.campaign.map(r => r.time_window_days));
-        
-        // 1️⃣ INSERIR log inicial e GUARDAR o ID
-        const { data: metricsProgressLog } = await supabase
-          .from('automation_execution_progress')
-          .insert({
-            execution_id: executionId,
-            company_id: companyId,
-            client_id: client_id,
-            entity_type: 'campaign',
-            entity_name: campaign.name,
-            status: 'processing',
-            rule_name: 'Análise',
-            message: `📊 Consultando métricas em tempo real no Facebook (janela de ${maxTimeWindow} dias)...`
-          })
-          .select('id')
-          .single();
-        
-        const metricsProgressLogId = metricsProgressLog?.id;
-        
-        // Delay antes de buscar métricas
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 2️⃣ Fazer a operação
-        const metrics = await fetchFacebookMetrics(
-          campaign.id,
-          maxTimeWindow,
-          accessToken,
-          executionId,
-          supabase,
-          companyId
-        );
-        
-        // 3️⃣ ATUALIZAR o mesmo log
-        if (metricsProgressLogId && metrics) {
-        await supabase
-          .from('automation_execution_progress')
-          .update({
-            status: 'processing',
-            message: `✅ Métricas consultadas (CPA: R$ ${metrics.cpa.toFixed(2)}, Conv: ${metrics.conversions})`
-          })
-          .eq('id', metricsProgressLogId);
-        } else if (metricsProgressLogId && !metrics) {
-          await supabase
-            .from('automation_execution_progress')
-            .update({
-              status: 'skipped',
-              message: `⏭️ Sem dados de métricas disponíveis`
-            })
-            .eq('id', metricsProgressLogId);
-        }
-        
-        // Delay após buscar métricas
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        totalProcessed++;
 
-        if (metrics) {
-          totalProcessed++;
-
-          for (const rule of rulesByType.campaign) {
-            // Verificar se o objetivo da campanha está nas campaign_objectives da regra
-            if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
-              if (!rule.campaign_objectives.includes(campaign.objective)) {
-                console.log(`  ⏭️  Regra "${rule.rule_name}" não se aplica ao objetivo ${campaign.objective}`);
-                
-                // Log de regra não aplicável
-                await supabase.from('automation_execution_progress').insert({
-                  execution_id: executionId,
-                  company_id: rule.company_id,
-                  client_id: client_id,
-                  entity_type: rule.entity_type,
-                  entity_name: campaign.name,
-                  status: 'skipped',
-                  rule_name: rule.rule_name,
-                  message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
-                });
-                
-                totalSkipped++;
-                continue;
-              }
+        for (const rule of rulesByType.campaign) {
+          // Verificar se o objetivo da campanha está nas campaign_objectives da regra
+          if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+            if (!rule.campaign_objectives.includes(campaign.objective)) {
+              console.log(`  ⏭️  Regra "${rule.rule_name}" não se aplica ao objetivo ${campaign.objective}`);
+              
+              // Log de regra não aplicável
+              await supabase.from('automation_execution_progress').insert({
+                execution_id: executionId,
+                company_id: rule.company_id,
+                client_id: client_id,
+                entity_type: rule.entity_type,
+                entity_name: campaign.name,
+                status: 'skipped',
+                rule_name: rule.rule_name,
+                message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
+              });
+              
+              totalSkipped++;
+              continue;
             }
-
-            const result = await processEntityWithRule(
-              {
-                id: campaign.id,
-                name: campaign.name,
-                facebook_id: campaign.id,
-                client_id,
-                campaign_id: campaign.id,
-                objective: campaign.objective
-              },
-              rule,
-              metrics,
-              executionId,
-              accessToken,
-              supabase,
-              namePrefix
-            );
-
-            if (result === 'actioned') totalActioned++;
-            else if (result === 'skipped') totalSkipped++;
-            else if (result === 'error') totalErrors++;
           }
+          
+          // 1️⃣ INSERIR log inicial e GUARDAR o ID
+          const { data: metricsProgressLog } = await supabase
+            .from('automation_execution_progress')
+            .insert({
+              execution_id: executionId,
+              company_id: companyId,
+              client_id: client_id,
+              entity_type: 'campaign',
+              entity_name: campaign.name,
+              status: 'processing',
+              rule_name: rule.rule_name,
+              message: `📊 Consultando métricas (janela de ${rule.time_window_days} dias)...`
+            })
+            .select('id')
+            .single();
+          
+          const metricsProgressLogId = metricsProgressLog?.id;
+          
+          // Delay antes de buscar métricas
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // 2️⃣ Buscar métricas COM A JANELA ESPECÍFICA DA REGRA
+          const metrics = await fetchFacebookMetrics(
+            campaign.id,
+            rule.time_window_days,
+            accessToken,
+            executionId,
+            supabase,
+            companyId
+          );
+          
+          // 3️⃣ ATUALIZAR o mesmo log
+          if (metricsProgressLogId) {
+            if (metrics) {
+              await supabase
+                .from('automation_execution_progress')
+                .update({
+                  status: 'processing',
+                  message: `✅ Métricas consultadas (CPA: R$ ${metrics.cpa.toFixed(2)}, Conv: ${metrics.conversions})`
+                })
+                .eq('id', metricsProgressLogId);
+            } else {
+              await supabase
+                .from('automation_execution_progress')
+                .update({
+                  status: 'skipped',
+                  message: `⏭️ Sem dados de métricas disponíveis para esta janela`
+                })
+                .eq('id', metricsProgressLogId);
+              totalSkipped++;
+              continue;
+            }
+          }
+          
+          // Delay após buscar métricas
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          const result = await processEntityWithRule(
+            {
+              id: campaign.id,
+              name: campaign.name,
+              facebook_id: campaign.id,
+              client_id,
+              campaign_id: campaign.id,
+              objective: campaign.objective
+            },
+            rule,
+            metrics,
+            executionId,
+            accessToken,
+            supabase,
+            namePrefix
+          );
+
+          if (result === 'actioned') totalActioned++;
+          else if (result === 'skipped') totalSkipped++;
+          else if (result === 'error') totalErrors++;
         }
       }
 
@@ -362,67 +362,105 @@ Deno.serve(async (req) => {
           // Delay antes de processar cada ad set
           await new Promise(resolve => setTimeout(resolve, 2000));
 
-          const maxTimeWindow = Math.max(...rulesByType.adset.map(r => r.time_window_days));
-          
-          // Delay antes de buscar métricas
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          const metrics = await fetchFacebookMetrics(
-            adset.id,
-            maxTimeWindow,
-            accessToken,
-            executionId,
-            supabase,
-            companyId
-          );
-          
-          // Delay após buscar métricas
-          await new Promise(resolve => setTimeout(resolve, 1500));
-
-          if (metrics) {
+          for (const rule of rulesByType.adset) {
+            // Verificar campaign_objectives
+            if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+              if (!rule.campaign_objectives.includes(campaign.objective)) {
+                await supabase.from('automation_execution_progress').insert({
+                  execution_id: executionId,
+                  company_id: rule.company_id,
+                  client_id: client_id,
+                  entity_type: rule.entity_type,
+                  entity_name: adset.name,
+                  status: 'skipped',
+                  rule_name: rule.rule_name,
+                  message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
+                });
+                totalSkipped++;
+                continue;
+              }
+            }
+            
+            // Log de início
+            const { data: metricsProgressLog } = await supabase
+              .from('automation_execution_progress')
+              .insert({
+                execution_id: executionId,
+                company_id: companyId,
+                client_id: client_id,
+                entity_type: 'adset',
+                entity_name: adset.name,
+                status: 'processing',
+                rule_name: rule.rule_name,
+                message: `📊 Consultando métricas (janela de ${rule.time_window_days} dias)...`
+              })
+              .select('id')
+              .single();
+            
+            const metricsProgressLogId = metricsProgressLog?.id;
+            
+            // Delay antes de buscar métricas
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Buscar métricas COM A JANELA ESPECÍFICA DA REGRA
+            const adsetMetrics = await fetchFacebookMetrics(
+              adset.id,
+              rule.time_window_days,
+              accessToken,
+              executionId,
+              supabase,
+              companyId
+            );
+            
+            // Atualizar log
+            if (metricsProgressLogId) {
+              if (adsetMetrics) {
+                await supabase
+                  .from('automation_execution_progress')
+                  .update({
+                    status: 'processing',
+                    message: `✅ Métricas consultadas (CPA: R$ ${adsetMetrics.cpa.toFixed(2)}, Conv: ${adsetMetrics.conversions})`
+                  })
+                  .eq('id', metricsProgressLogId);
+              } else {
+                await supabase
+                  .from('automation_execution_progress')
+                  .update({
+                    status: 'skipped',
+                    message: `⏭️ Sem dados de métricas disponíveis para esta janela`
+                  })
+                  .eq('id', metricsProgressLogId);
+                totalSkipped++;
+                continue;
+              }
+            }
+            
+            // Delay após buscar métricas
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             totalProcessed++;
 
-            for (const rule of rulesByType.adset) {
-              // Verificar campaign_objectives
-              if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
-                if (!rule.campaign_objectives.includes(campaign.objective)) {
-                  await supabase.from('automation_execution_progress').insert({
-                    execution_id: executionId,
-                    company_id: rule.company_id,
-                    client_id: client_id,
-                    entity_type: rule.entity_type,
-                    entity_name: adset.name,
-                    status: 'skipped',
-                    rule_name: rule.rule_name,
-                    message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
-                  });
-                  totalSkipped++;
-                  continue;
-                }
-              }
+            const result = await processEntityWithRule(
+              {
+                id: adset.id,
+                name: adset.name,
+                facebook_id: adset.id,
+                client_id,
+                campaign_id: campaign.id,
+                ad_set_id: adset.id,
+                objective: campaign.objective
+              },
+              rule,
+              adsetMetrics,
+              executionId,
+              accessToken,
+              supabase,
+              namePrefix
+            );
 
-              const result = await processEntityWithRule(
-                {
-                  id: adset.id,
-                  name: adset.name,
-                  facebook_id: adset.id,
-                  client_id,
-                  campaign_id: campaign.id,
-                  ad_set_id: adset.id,
-                  objective: campaign.objective
-                },
-                rule,
-                metrics,
-                executionId,
-                accessToken,
-                supabase,
-                namePrefix
-              );
-
-              if (result === 'actioned') totalActioned++;
-              else if (result === 'skipped') totalSkipped++;
-              else if (result === 'error') totalErrors++;
-            }
+            if (result === 'actioned') totalActioned++;
+            else if (result === 'skipped') totalSkipped++;
+            else if (result === 'error') totalErrors++;
           }
 
           // 3️⃣ BUSCAR E PROCESSAR ADS DESTE AD SET
@@ -447,67 +485,105 @@ Deno.serve(async (req) => {
               // Delay antes de processar cada ad
               await new Promise(resolve => setTimeout(resolve, 2000));
 
-              const maxTimeWindow = Math.max(...rulesByType.ad.map(r => r.time_window_days));
-              
-              // Delay antes de buscar métricas
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              
-              const metrics = await fetchFacebookMetrics(
-                ad.id,
-                maxTimeWindow,
-                accessToken,
-                executionId,
-                supabase,
-                companyId
-              );
-              
-              // Delay após buscar métricas
-              await new Promise(resolve => setTimeout(resolve, 1500));
-
-              if (metrics) {
+              for (const rule of rulesByType.ad) {
+                // Verificar campaign_objectives
+                if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
+                  if (!rule.campaign_objectives.includes(campaign.objective)) {
+                    await supabase.from('automation_execution_progress').insert({
+                      execution_id: executionId,
+                      company_id: rule.company_id,
+                      client_id: client_id,
+                      entity_type: rule.entity_type,
+                      entity_name: ad.name,
+                      status: 'skipped',
+                      rule_name: rule.rule_name,
+                      message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
+                    });
+                    totalSkipped++;
+                    continue;
+                  }
+                }
+                
+                // Log de início
+                const { data: metricsProgressLog } = await supabase
+                  .from('automation_execution_progress')
+                  .insert({
+                    execution_id: executionId,
+                    company_id: companyId,
+                    client_id: client_id,
+                    entity_type: 'ad',
+                    entity_name: ad.name,
+                    status: 'processing',
+                    rule_name: rule.rule_name,
+                    message: `📊 Consultando métricas (janela de ${rule.time_window_days} dias)...`
+                  })
+                  .select('id')
+                  .single();
+                
+                const metricsProgressLogId = metricsProgressLog?.id;
+                
+                // Delay antes de buscar métricas
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Buscar métricas COM A JANELA ESPECÍFICA DA REGRA
+                const adMetrics = await fetchFacebookMetrics(
+                  ad.id,
+                  rule.time_window_days,
+                  accessToken,
+                  executionId,
+                  supabase,
+                  companyId
+                );
+                
+                // Atualizar log
+                if (metricsProgressLogId) {
+                  if (adMetrics) {
+                    await supabase
+                      .from('automation_execution_progress')
+                      .update({
+                        status: 'processing',
+                        message: `✅ Métricas consultadas (CPA: R$ ${adMetrics.cpa.toFixed(2)}, Conv: ${adMetrics.conversions})`
+                      })
+                      .eq('id', metricsProgressLogId);
+                  } else {
+                    await supabase
+                      .from('automation_execution_progress')
+                      .update({
+                        status: 'skipped',
+                        message: `⏭️ Sem dados de métricas disponíveis para esta janela`
+                      })
+                      .eq('id', metricsProgressLogId);
+                    totalSkipped++;
+                    continue;
+                  }
+                }
+                
+                // Delay após buscar métricas
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 totalProcessed++;
 
-                for (const rule of rulesByType.ad) {
-                  // Verificar campaign_objectives
-                  if (rule.campaign_objectives && rule.campaign_objectives.length > 0) {
-                    if (!rule.campaign_objectives.includes(campaign.objective)) {
-                      await supabase.from('automation_execution_progress').insert({
-                        execution_id: executionId,
-                        company_id: rule.company_id,
-                        client_id: client_id,
-                        entity_type: rule.entity_type,
-                        entity_name: ad.name,
-                        status: 'skipped',
-                        rule_name: rule.rule_name,
-                        message: `⏭️ Regra não se aplica ao objetivo ${campaign.objective}`
-                      });
-                      totalSkipped++;
-                      continue;
-                    }
-                  }
+                const result = await processEntityWithRule(
+                  {
+                    id: ad.id,
+                    name: ad.name,
+                    facebook_id: ad.id,
+                    client_id,
+                    campaign_id: campaign.id,
+                    ad_set_id: adset.id,
+                    objective: campaign.objective
+                  },
+                  rule,
+                  adMetrics,
+                  executionId,
+                  accessToken,
+                  supabase,
+                  namePrefix
+                );
 
-                  const result = await processEntityWithRule(
-                    {
-                      id: ad.id,
-                      name: ad.name,
-                      facebook_id: ad.id,
-                      client_id,
-                      campaign_id: campaign.id,
-                      ad_set_id: adset.id,
-                      objective: campaign.objective
-                    },
-                    rule,
-                    metrics,
-                    executionId,
-                    accessToken,
-                    supabase,
-                    namePrefix
-                  );
-
-                  if (result === 'actioned') totalActioned++;
-                  else if (result === 'skipped') totalSkipped++;
-                  else if (result === 'error') totalErrors++;
-                }
+                if (result === 'actioned') totalActioned++;
+                else if (result === 'skipped') totalSkipped++;
+                else if (result === 'error') totalErrors++;
               }
 
               // Delay entre ads
