@@ -196,22 +196,6 @@ serve(async (req) => {
       throw error;
     }
     
-    // Limitar processamento para evitar rate limit (máximo 3 campanhas por execução)
-    const maxCampaigns = 3;
-    if (campaigns.length > maxCampaigns) {
-      console.log(`⚠️  Limitando processamento a ${maxCampaigns} campanhas para respeitar rate limit`);
-      await supabase.from('automation_execution_progress').insert({
-        execution_id: executionId,
-        company_id: companyId,
-        client_id: client_id,
-        entity_type: 'campaign',
-        entity_name: 'Sistema',
-        status: 'processing',
-        rule_name: 'Limitação',
-        message: `⚠️ Processando apenas ${maxCampaigns} de ${campaigns.length} campanhas para respeitar rate limit do Facebook`
-      });
-      campaigns = campaigns.slice(0, maxCampaigns);
-    }
 
     // ========== PROCESSAR EM CASCATA ==========
     for (const campaign of campaigns) {
@@ -339,14 +323,7 @@ serve(async (req) => {
         // Delay após buscar ad sets
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Limitar ad sets para evitar rate limit (máximo 2 por campanha)
-        const maxAdSets = 2;
-        const processedAdSets = adsets.slice(0, maxAdSets);
-        if (adsets.length > maxAdSets) {
-          console.log(`  ⚠️  Processando apenas ${maxAdSets} de ${adsets.length} ad sets`);
-        }
-
-        for (const adset of processedAdSets) {
+        for (const adset of adsets) {
           console.log(`    💼 Processando ad set: ${adset.name}`);
           
           // Delay antes de processar cada ad set
@@ -427,14 +404,7 @@ serve(async (req) => {
             // Delay após buscar ads
             await new Promise(resolve => setTimeout(resolve, 1500));
             
-            // Limitar ads para evitar rate limit (máximo 3 por ad set)
-            const maxAds = 3;
-            const processedAds = ads.slice(0, maxAds);
-            if (ads.length > maxAds) {
-              console.log(`      ⚠️  Processando apenas ${maxAds} de ${ads.length} ads`);
-            }
-
-            for (const ad of processedAds) {
+            for (const ad of ads) {
               console.log(`        🎨 Processando ad: ${ad.name}`);
               
               // Delay antes de processar cada ad
