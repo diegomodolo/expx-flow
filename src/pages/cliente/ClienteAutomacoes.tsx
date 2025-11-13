@@ -15,7 +15,7 @@ import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutom
 import { EditAutomationValuesDialog } from "@/components/clients/EditAutomationValuesDialog";
 import { AutomationProgressModal } from "@/components/clients/AutomationProgressModal";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
-import { Play, Plus, Trash2, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, Undo2, Zap, Pencil, ArrowRight } from "lucide-react";
+import { Play, Plus, Trash2, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, Undo2, Zap, Pencil, ArrowRight, Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
@@ -194,6 +194,17 @@ export default function ClienteAutomacoes() {
       setClearingLogs(false);
     }
   };
+  const formatTimeWindow = (days: number): string => {
+    if (days === 1) return "Último 1 dia";
+    if (days === 7) return "Últimos 7 dias";
+    if (days === 14) return "Últimos 14 dias";
+    if (days === 30) return "Últimos 30 dias";
+    if (days === 60) return "Últimos 60 dias";
+    if (days === 90) return "Últimos 90 dias";
+    
+    return `Últimos ${days} dias`;
+  };
+
   const getActionTypeLabel = (actionType: string) => {
     const labels: Record<string, string> = {
       pause_campaign: "Pausar Campanha",
@@ -371,8 +382,16 @@ export default function ClienteAutomacoes() {
                                   </span>
                                 </div>)}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-2">
-                              Lógica: <strong>{rule.conditions.logic === "AND" ? "Todas" : "Qualquer uma"}</strong> das condições
+                            <div className="flex items-center gap-4 mt-2">
+                              <div className="text-xs text-muted-foreground">
+                                Lógica: <strong>{rule.conditions.logic === "AND" ? "Todas" : "Qualquer uma"}</strong> das condições
+                              </div>
+                              <div className="flex items-center gap-1 text-xs">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-muted-foreground">
+                                  Janela: <strong>{formatTimeWindow(rule.time_window_days)}</strong>
+                                </span>
+                              </div>
                             </div>
                           </div>}
                       </div>
