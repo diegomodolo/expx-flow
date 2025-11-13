@@ -10,6 +10,7 @@ import { useAutomationLogs } from "@/hooks/useAutomationLogs";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutomationTemplateDialog";
 import { EditAutomationValuesDialog } from "@/components/clients/EditAutomationValuesDialog";
+import { AutomationProgressModal } from "@/components/clients/AutomationProgressModal";
 import { translateObjective } from "@/components/automations/CampaignObjectiveSelector";
 import { 
   Play, 
@@ -62,6 +63,8 @@ export default function ClienteAutomacoes() {
   const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
   const [clearLogsDialogOpen, setClearLogsDialogOpen] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [executionId, setExecutionId] = useState<string>('');
 
   const filteredLogs = logs.filter(log => 
     logEntityFilter === 'all' || log.entity_type === logEntityFilter
@@ -106,22 +109,32 @@ export default function ClienteAutomacoes() {
   const handleExecuteAll = async () => {
     if (!clientId) return;
     
+    const newExecutionId = crypto.randomUUID();
+    setExecutionId(newExecutionId);
+    setProgressModalOpen(true);
     setExecuting(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke('execute-campaign-automations', {
-        body: { client_id: clientId }
-      });
+      const { data, error } = await supabase.functions.invoke(
+        'execute-campaign-automations',
+        { 
+          body: { 
+            client_id: clientId,
+            execution_id: newExecutionId 
+          }
+        }
+      );
 
       if (error) throw error;
 
-      toast({
-        title: "Automações executadas",
-        description: `${data?.processed || 0} automações processadas com sucesso.`,
-      });
-      
-      // Refresh logs after execution
       await fetchLogs();
+      
+      toast({
+        title: "Automações concluídas",
+        description: `${data?.totalActioned || 0} ações executadas com sucesso.`,
+      });
     } catch (error: any) {
+      console.error('Error executing automations:', error);
       toast({
         title: "Erro ao executar automações",
         description: error.message,
@@ -686,6 +699,14 @@ export default function ClienteAutomacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Automation Progress Modal */}
+      <AutomationProgressModal
+        open={progressModalOpen}
+        executionId={executionId}
+        clientId={clientId || ''}
+        onClose={() => setProgressModalOpen(false)}
+      />
     </div>
   );
 }

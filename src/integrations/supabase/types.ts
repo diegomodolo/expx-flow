@@ -364,6 +364,69 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_execution_progress: {
+        Row: {
+          client_id: string | null
+          company_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_name: string
+          entity_type: string
+          execution_id: string
+          facebook_id: string | null
+          id: string
+          message: string | null
+          metadata: Json | null
+          rule_name: string | null
+          status: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_name: string
+          entity_type: string
+          execution_id: string
+          facebook_id?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          rule_name?: string | null
+          status: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_name?: string
+          entity_type?: string
+          execution_id?: string
+          facebook_id?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          rule_name?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_execution_progress_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_execution_progress_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_settings: {
         Row: {
           campaign_name_prefix: string
