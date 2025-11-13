@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationLogs } from "@/hooks/useAutomationLogs";
 import { useAutomationSchedule } from "@/hooks/useAutomationSchedule";
+import { CronMasterMonitor } from "@/components/automations/CronMasterMonitor";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutomationTemplateDialog";
 import { EditAutomationValuesDialog } from "@/components/clients/EditAutomationValuesDialog";
@@ -660,6 +661,19 @@ export default function ClienteAutomacoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cron Master Monitor */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Monitor de Execuções Automáticas</CardTitle>
+          <CardDescription>
+            Acompanhe o status e histórico de execuções automáticas do sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CronMasterMonitor clientId={clientId} />
+        </CardContent>
+      </Card>
 
       {/* Automation Progress Modal */}
       <AutomationProgressModal open={progressModalOpen} executionId={executionId} clientId={clientId || ''} onClose={() => setProgressModalOpen(false)} />

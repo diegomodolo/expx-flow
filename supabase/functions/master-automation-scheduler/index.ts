@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface AutomationSchedule {
   id: string;
+  company_id: string;
   client_id: string;
   is_enabled: boolean;
   executions_per_day: number;
@@ -110,7 +111,27 @@ Deno.serve(async (req) => {
     for (const schedule of schedules as AutomationSchedule[]) {
       console.log(`\n🔄 Processing schedule for client: ${schedule.client_id}`);
       
+      const executionId = crypto.randomUUID();
+      const execStartTime = Date.now();
+      
       try {
+        // Create execution log entry with running status
+        const { error: logError } = await supabase
+          .from('automation_execution_logs' as any)
+          .insert({
+            company_id: schedule.company_id,
+            client_id: schedule.client_id,
+            execution_id: executionId,
+            status: 'running',
+            actions_taken: 0,
+            total_rules_evaluated: 0,
+            started_at: new Date().toISOString(),
+          });
+
+        if (logError) {
+          console.error(`⚠️ Error creating execution log:`, logError);
+        }
+        
         // Invocar execute-campaign-automations para este cliente
         const { data: execData, error: execError } = await supabase.functions.invoke(
           'execute-campaign-automations',
@@ -119,9 +140,23 @@ Deno.serve(async (req) => {
           }
         );
 
+        const execDuration = Date.now() - execStartTime;
+
         if (execError) {
           console.error(`❌ Error executing automations for client ${schedule.client_id}:`, execError);
           errorCount++;
+          
+          // Update log with error status
+          await supabase
+            .from('automation_execution_logs' as any)
+            .update({
+              status: 'failed',
+              completed_at: new Date().toISOString(),
+              duration_ms: execDuration,
+              error_message: execError.message || 'Unknown error',
+            })
+            .eq('execution_id', executionId);
+          
           results.push({
             client_id: schedule.client_id,
             success: false,
@@ -131,6 +166,19 @@ Deno.serve(async (req) => {
         }
 
         console.log(`✅ Automations executed for client ${schedule.client_id}:`, execData);
+
+        // Update log with success status
+        await supabase
+          .from('automation_execution_logs' as any)
+          .update({
+            status: (execData?.actionsTaken || 0) > 0 ? 'completed' : 'partial',
+            completed_at: new Date().toISOString(),
+            duration_ms: execDuration,
+            actions_taken: execData?.actionsTaken || 0,
+            total_rules_evaluated: execData?.rulesEvaluated || 0,
+            execution_details: execData || {},
+          })
+          .eq('execution_id', executionId);
 
         // Calcular próximo next_execution_at
         const nextExecution = calculateNextExecution(schedule.scheduled_times);
@@ -160,6 +208,20 @@ Deno.serve(async (req) => {
       } catch (error) {
         console.error(`❌ Exception processing client ${schedule.client_id}:`, error);
         errorCount++;
+        
+        const execDuration = Date.now() - execStartTime;
+        
+        // Update log with error status
+        await supabase
+          .from('automation_execution_logs' as any)
+          .update({
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            duration_ms: execDuration,
+            error_message: error.message || 'Unknown error',
+          })
+          .eq('execution_id', executionId);
+        
         results.push({
           client_id: schedule.client_id,
           success: false,

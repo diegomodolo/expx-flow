@@ -48,6 +48,7 @@ import FacebookCallback from "./pages/FacebookCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
 import AdminLeadReports from "./pages/AdminLeadReports";
 import CRMPublicView from "./pages/CRMPublicView";
+import MonitorCronMaster from "./pages/MonitorCronMaster";
 import CRMLogin from "./pages/CRMLogin";
 import Automacoes from "./pages/Automacoes";
 
@@ -138,12 +139,17 @@ const App = () => {
                    <Squad />
                  </ProtectedRoute>
                } />
-               <Route path="/tarefas" element={
-                 <ProtectedRoute>
-                   <Tarefas />
-                 </ProtectedRoute>
-               } />
-                <Route path="/relatorios" element={
+                <Route path="/tarefas" element={
+                  <ProtectedRoute>
+                    <Tarefas />
+                  </ProtectedRoute>
+                } />
+                <Route path="/monitor-cron-master" element={
+                  <ProtectedRoute>
+                    <MonitorCronMaster />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/relatorios" element={
                   <ProtectedRoute>
                     <Relatorios />
                   </ProtectedRoute>
