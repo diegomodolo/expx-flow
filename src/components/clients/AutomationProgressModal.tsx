@@ -5,14 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, XCircle, AlertCircle, TrendingUp, Package, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
 interface AutomationProgressModalProps {
   open: boolean;
   executionId: string;
   clientId: string;
   onClose: () => void;
 }
-
 interface ProgressUpdate {
   id: string;
   entity_type: 'campaign' | 'adset' | 'ad';
@@ -22,7 +20,6 @@ interface ProgressUpdate {
   message: string;
   created_at: string;
 }
-
 export function AutomationProgressModal({
   open,
   executionId,
@@ -32,42 +29,31 @@ export function AutomationProgressModal({
   const [updates, setUpdates] = useState<ProgressUpdate[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!open || !executionId) return;
 
     // Buscar updates existentes
     const fetchExistingUpdates = async () => {
-      const { data } = await supabase
-        .from('automation_execution_progress')
-        .select('*')
-        .eq('execution_id', executionId)
-        .order('created_at', { ascending: true });
-
+      const {
+        data
+      } = await supabase.from('automation_execution_progress').select('*').eq('execution_id', executionId).order('created_at', {
+        ascending: true
+      });
       if (data) {
         setUpdates(data as ProgressUpdate[]);
       }
     };
-
     fetchExistingUpdates();
 
     // Subscribe para novos updates
-    const subscription = supabase
-      .channel(`automation-progress-${executionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'automation_execution_progress',
-          filter: `execution_id=eq.${executionId}`
-        },
-        (payload) => {
-          setUpdates(prev => [...prev, payload.new as ProgressUpdate]);
-        }
-      )
-      .subscribe();
-
+    const subscription = supabase.channel(`automation-progress-${executionId}`).on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'automation_execution_progress',
+      filter: `execution_id=eq.${executionId}`
+    }, payload => {
+      setUpdates(prev => [...prev, payload.new as ProgressUpdate]);
+    }).subscribe();
     return () => {
       subscription.unsubscribe();
     };
@@ -79,32 +65,30 @@ export function AutomationProgressModal({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [updates]);
-
   const stats = {
     total: updates.length,
     actioned: updates.filter(u => u.status === 'actioned').length,
     skipped: updates.filter(u => u.status === 'skipped').length,
     errors: updates.filter(u => u.status === 'error').length,
-    processing: updates.filter(u => u.status === 'processing').length,
+    processing: updates.filter(u => u.status === 'processing').length
   };
-
-  const progress = stats.total > 0 
-    ? ((stats.actioned + stats.skipped + stats.errors) / stats.total) * 100 
-    : 0;
-
+  const progress = stats.total > 0 ? (stats.actioned + stats.skipped + stats.errors) / stats.total * 100 : 0;
   const getEntityIcon = (type: string) => {
     switch (type) {
-      case 'campaign': return <TrendingUp className="h-4 w-4" />;
-      case 'adset': return <Package className="h-4 w-4" />;
-      case 'ad': return <Image className="h-4 w-4" />;
-      default: return null;
+      case 'campaign':
+        return <TrendingUp className="h-4 w-4" />;
+      case 'adset':
+        return <Package className="h-4 w-4" />;
+      case 'ad':
+        return <Image className="h-4 w-4" />;
+      default:
+        return null;
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'processing':
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
+        return;
       case 'actioned':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'skipped':
@@ -115,11 +99,10 @@ export function AutomationProgressModal({
         return null;
     }
   };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'processing':
-        return <Badge variant="outline" className="text-blue-500">Processando</Badge>;
+        return;
       case 'actioned':
         return <Badge variant="outline" className="text-green-500">Ação Executada</Badge>;
       case 'skipped':
@@ -130,9 +113,7 @@ export function AutomationProgressModal({
         return null;
     }
   };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
+  return <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Execução de Automações</DialogTitle>
@@ -171,17 +152,10 @@ export function AutomationProgressModal({
           {/* Updates List */}
           <ScrollArea className="h-[400px] border rounded-lg p-4" ref={scrollRef}>
             <div className="space-y-3">
-              {updates.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
+              {updates.length === 0 ? <div className="text-center text-muted-foreground py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
                   <p>Iniciando execução...</p>
-                </div>
-              ) : (
-                updates.map((update) => (
-                  <div
-                    key={update.id}
-                    className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                  >
+                </div> : updates.map(update => <div key={update.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                     <div className="flex-shrink-0 mt-0.5">
                       {getStatusIcon(update.status)}
                     </div>
@@ -200,15 +174,12 @@ export function AutomationProgressModal({
                         {update.message}
                       </p>
                     </div>
-                  </div>
-                ))
-              )}
+                  </div>)}
             </div>
           </ScrollArea>
 
           {/* Complete Message */}
-          {stats.processing === 0 && stats.total > 0 && (
-            <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+          {stats.processing === 0 && stats.total > 0 && <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
               <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
               <p className="font-medium text-green-700 dark:text-green-300">
                 Execução Concluída!
@@ -216,10 +187,8 @@ export function AutomationProgressModal({
               <p className="text-sm text-muted-foreground">
                 {stats.actioned} ações executadas, {stats.skipped} ignoradas
               </p>
-            </div>
-          )}
+            </div>}
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 }
