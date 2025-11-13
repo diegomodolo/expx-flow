@@ -90,19 +90,39 @@ serve(async (req) => {
       } else if (rule.entity_type === 'adset') {
         const { data } = await supabase
           .from('ad_sets')
-          .select('id, name, facebook_id, client_id, campaign_id')
+          .select(`
+            id, 
+            name, 
+            facebook_id, 
+            client_id, 
+            campaign_id,
+            campaigns!inner(id, is_active)
+          `)
           .eq('client_id', client_id)
           .eq('is_active', true)
+          .eq('campaigns.is_active', true)
           .not('facebook_id', 'is', null);
         entities = data || [];
+        console.log(`📦 Found ${entities.length} active ad sets from active campaigns`);
       } else if (rule.entity_type === 'ad') {
         const { data } = await supabase
           .from('ads')
-          .select('id, name, facebook_id, client_id, campaign_id, ad_set_id')
+          .select(`
+            id, 
+            name, 
+            facebook_id, 
+            client_id, 
+            campaign_id, 
+            ad_set_id,
+            ad_sets!inner(id, is_active, campaign_id, campaigns!inner(id, is_active))
+          `)
           .eq('client_id', client_id)
           .eq('is_active', true)
+          .eq('ad_sets.is_active', true)
+          .eq('ad_sets.campaigns.is_active', true)
           .not('facebook_id', 'is', null);
         entities = data || [];
+        console.log(`📦 Found ${entities.length} active ads from active ad sets in active campaigns`);
       }
 
       console.log(`📦 Found ${entities.length} entities to process`);
