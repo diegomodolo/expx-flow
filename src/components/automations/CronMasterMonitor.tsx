@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Clock, Activity, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useAutomationExecutionLogs } from "@/hooks/useAutomationExecutionLogs";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -80,6 +82,23 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh Button */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Activity className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Status de Execuções</h3>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => refetch()}
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
+      </div>
+
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -151,10 +170,14 @@ export const CronMasterMonitor = ({ clientId, showClientColumn = false }: CronMa
         </CardHeader>
         <CardContent>
           {logs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Activity className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>Nenhuma execução registrada ainda</p>
-            </div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Nenhum Log Encontrado</AlertTitle>
+              <AlertDescription>
+                Ainda não há execuções registradas para este {clientId ? 'cliente' : 'sistema'}. 
+                As execuções automáticas aparecerão aqui quando forem processadas pelo Cron Master.
+              </AlertDescription>
+            </Alert>
           ) : (
             <div className="space-y-2">
               {logs.map((log) => (

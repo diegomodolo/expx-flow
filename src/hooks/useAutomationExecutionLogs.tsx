@@ -32,8 +32,10 @@ export const useAutomationExecutionLogs = (clientId?: string | null, limit: numb
       if (!user || !activeCompany?.company_id) return [];
 
       try {
+        console.log('Fetching execution logs for company:', activeCompany.company_id, 'client:', clientId);
+        
         const query = supabase
-          .from('automation_execution_logs' as any)
+          .from('automation_execution_logs')
           .select(`
             *,
             clients:client_id (
@@ -55,6 +57,7 @@ export const useAutomationExecutionLogs = (clientId?: string | null, limit: numb
           return [];
         }
 
+        console.log('Execution logs fetched:', data?.length || 0, 'logs');
         return (data || []) as unknown as AutomationExecutionLog[];
       } catch (error) {
         console.error('Error in execution logs query:', error);
