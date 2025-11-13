@@ -19,7 +19,7 @@ export const CronMasterMonitor = ({
   clientId,
   showClientColumn = false
 }: CronMasterMonitorProps) => {
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('day');
   const {
     logs,
     loading,
