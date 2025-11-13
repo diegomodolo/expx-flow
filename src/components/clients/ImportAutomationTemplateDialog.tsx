@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAutomationRules, AutomationRule } from "@/hooks/useAutomationRules";
-import { Loader2, Search, CheckCircle2, Zap } from "lucide-react";
+import { useAutomationTemplates } from "@/hooks/useAutomationTemplates";
+import { Loader2, Search, CheckCircle2, Zap, Package } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfigureAutomationDialog } from "./ConfigureAutomationDialog";
 
@@ -31,6 +33,7 @@ export function ImportAutomationTemplateDialog({
 }: ImportAutomationTemplateDialogProps) {
   const { toast } = useToast();
   const { templates, rules, loading, importTemplateToClient, importConfiguredTemplate } = useAutomationRules();
+  const { templates: templateGroups, loading: templateGroupsLoading, importTemplateToClient: importTemplateGroup } = useAutomationTemplates();
   const [importing, setImporting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [configureDialogOpen, setConfigureDialogOpen] = useState(false);
@@ -40,6 +43,10 @@ export function ImportAutomationTemplateDialog({
 
   const filteredTemplates = templates.filter((template) =>
     template.rule_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredTemplateGroups = templateGroups.filter((template) =>
+    template.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleImport = async (templateId: string) => {
@@ -53,6 +60,27 @@ export function ImportAutomationTemplateDialog({
     } catch (error: any) {
       toast({
         title: "Erro ao carregar template",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  const handleImportTemplateGroup = async (templateId: string) => {
+    setImporting(templateId);
+    try {
+      await importTemplateGroup(templateId, clientId);
+      toast({
+        title: "Template importado",
+        description: "Todas as regras foram importadas com sucesso.",
+      });
+      onImported?.();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao importar template",
         description: error.message,
         variant: "destructive",
       });
@@ -115,27 +143,40 @@ export function ImportAutomationTemplateDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Importar Template de Automação</DialogTitle>
-          <DialogDescription>
-            Selecione um template para importar e ativar neste cliente
-          </DialogDescription>
-        </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Importar Automações</DialogTitle>
+            <DialogDescription>
+              Escolha entre importar uma regra individual ou um template completo
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar templates..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+          <Tabs defaultValue="rules" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="rules">
+                <Zap className="w-4 h-4 mr-2" />
+                Regras Individuais
+              </TabsTrigger>
+              <TabsTrigger value="templates">
+                <Package className="w-4 h-4 mr-2" />
+                Templates
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Templates List */}
-          <ScrollArea className="h-[400px] pr-4">
+            {/* Tab: Regras Individuais */}
+            <TabsContent value="rules" className="space-y-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar regras..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Rules List */}
+              <ScrollArea className="h-[400px] pr-4">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -205,9 +246,121 @@ export function ImportAutomationTemplateDialog({
               </div>
             )}
           </ScrollArea>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </TabsContent>
+
+        {/* Tab: Templates */}
+        <TabsContent value="templates" className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar templates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Template Groups List */}
+          <ScrollArea className="h-[400px] pr-4">
+            {templateGroupsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredTemplateGroups.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  {searchTerm
+                    ? "Nenhum template encontrado com este termo."
+                    : "Nenhum template disponível para importar."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredTemplateGroups.map((template) => {
+                  const isImporting = importing === template.id;
+
+                  return (
+                    <Card
+                      key={template.id}
+                      className="border-border/50 hover:border-primary/50 transition-colors"
+                    >
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-2 flex-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">{template.name}</h4>
+                                {template.category && (
+                                  <Badge variant="outline">{template.category}</Badge>
+                                )}
+                                <Badge variant="secondary">
+                                  {template.rules?.length || 0} {template.rules?.length === 1 ? 'regra' : 'regras'}
+                                </Badge>
+                              </div>
+                              {template.description && (
+                                <p className="text-xs text-muted-foreground">
+                                  {template.description}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              onClick={() => handleImportTemplateGroup(template.id)}
+                              disabled={isImporting}
+                              size="sm"
+                            >
+                              {isImporting ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Importando...
+                                </>
+                              ) : (
+                                "Importar Todas"
+                              )}
+                            </Button>
+                          </div>
+
+                          {/* Preview of rules */}
+                          {template.rules && template.rules.length > 0 && (
+                            <div className="space-y-2 pt-3 border-t">
+                              <div className="text-xs font-medium text-muted-foreground">
+                                Regras incluídas:
+                              </div>
+                              <div className="space-y-1">
+                                {template.rules.slice(0, 3).map((templateRule: any) => (
+                                  <div 
+                                    key={templateRule.id}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    <Badge variant="outline" className="text-xs">
+                                      {getActionTypeLabel(templateRule.rule?.action_type)}
+                                    </Badge>
+                                    <span className="text-muted-foreground">
+                                      {templateRule.rule?.rule_name}
+                                    </span>
+                                  </div>
+                                ))}
+                                {template.rules.length > 3 && (
+                                  <div className="text-xs text-muted-foreground italic">
+                                    + {template.rules.length - 3} mais {template.rules.length - 3 === 1 ? 'regra' : 'regras'}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </DialogContent>
+  </Dialog>
 
     {selectedTemplate && (
       <ConfigureAutomationDialog
