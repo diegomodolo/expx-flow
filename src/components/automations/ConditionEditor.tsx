@@ -72,8 +72,8 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
   const addCondition = () => {
     const newCondition: ConditionType = {
       field: "cpa",
-      operator: isTemplate ? null : ">",
-      value: isTemplate ? null : 0,
+      operator: ">",
+      value: 100,
       type: "number",
     };
     
@@ -217,21 +217,26 @@ export const ConditionEditor = ({ value, onChange, isTemplate = false }: Conditi
                       <div className="h-10 px-3 py-2 border rounded-md bg-muted text-muted-foreground text-sm flex items-center">
                         A configurar
                       </div>
-                    ) : (
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={condition.value ?? 0}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0;
-                          updateCondition(index, { value });
-                        }}
-                        onBlur={() => validateCondition(condition, index)}
-                      />
-                    )}
-                  </div>
-                </div>
+                     ) : (
+                       <Input
+                         type="number"
+                         min="0"
+                         step="0.01"
+                         value={condition.value ?? 0}
+                         onChange={(e) => {
+                           const value = parseFloat(e.target.value) || 0;
+                           updateCondition(index, { value });
+                         }}
+                         onBlur={() => validateCondition(condition, index)}
+                       />
+                     )}
+                   </div>
+                   {isTemplate && (
+                     <div className="text-xs text-muted-foreground mt-1">
+                       💡 Este valor será usado como padrão quando a regra for importada
+                     </div>
+                   )}
+                 </div>
 
                 <Button
                   type="button"

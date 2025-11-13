@@ -289,10 +289,33 @@ export const useAutomationRules = (clientId?: string | null) => {
       return;
     }
 
-    toast({
-      title: "Regra atualizada",
-      description: "Regra atualizada com sucesso.",
-    });
+    // Verificar se é template e notificar sincronização
+    const updatedRule = rules.find(r => r.id === id);
+    if (updatedRule?.is_template) {
+      // Buscar quantas regras foram sincronizadas
+      const { count } = await supabase
+        .from('campaign_automation_rules')
+        .select('id', { count: 'exact', head: true })
+        .eq('template_id', id)
+        .eq('is_template', false);
+
+      if (count && count > 0) {
+        toast({
+          title: "✅ Regra atualizada",
+          description: `Template atualizado e sincronizado em ${count} cliente(s)`,
+        });
+      } else {
+        toast({
+          title: "✅ Regra atualizada",
+          description: "Template atualizado com sucesso.",
+        });
+      }
+    } else {
+      toast({
+        title: "Regra atualizada",
+        description: "Regra atualizada com sucesso.",
+      });
+    }
 
     await fetchTemplates();
     await fetchRules();

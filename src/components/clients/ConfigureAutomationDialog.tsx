@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -47,13 +47,20 @@ export function ConfigureAutomationDialog({
   onConfirm,
 }: ConfigureAutomationDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [configuredConditions, setConfiguredConditions] = useState(() => {
-    return template.conditions.conditions.map((condition: any) => ({
-      ...condition,
-      operator: condition.operator || ">",
-      value: condition.value ?? 100,
-    }));
-  });
+  const [configuredConditions, setConfiguredConditions] = useState<any[]>([]);
+
+  // Inicializar condições com valores default da template
+  useEffect(() => {
+    if (template && open) {
+      const initialConditions = template.conditions.conditions.map((cond: any) => ({
+        field: cond.field,
+        operator: cond.operator,
+        value: cond.value,
+        type: cond.type
+      }));
+      setConfiguredConditions(initialConditions);
+    }
+  }, [template, open]);
 
   const handleConditionChange = (index: number, field: string, value: any) => {
     const newConditions = [...configuredConditions];
@@ -142,10 +149,20 @@ export function ConfigureAutomationDialog({
                       <Badge variant="outline" className="text-xs">
                         Condição {index + 1}
                       </Badge>
-                      <span className="text-sm font-medium">
-                        {FIELD_LABELS[condition.field] || condition.field}
-                      </span>
-                    </div>
+                       <span className="text-sm font-medium">
+                         {FIELD_LABELS[condition.field] || condition.field}
+                       </span>
+                     </div>
+
+                     <div className="space-y-1 text-xs">
+                       <div className="flex items-center gap-2">
+                         <span className="text-muted-foreground">Valor (Padrão):</span>
+                         <Badge variant="secondary" className="text-xs">
+                           {condition.value}
+                         </Badge>
+                         <span className="text-xs text-muted-foreground">← Pode ser alterado</span>
+                       </div>
+                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
