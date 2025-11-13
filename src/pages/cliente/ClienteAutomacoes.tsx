@@ -405,6 +405,11 @@ export default function ClienteAutomacoes() {
                                   Configuração da ação:
                                 </div>
                                 <div className="space-y-1 text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-muted-foreground">Janela de análise:</span>
+                                    <span className="font-semibold">{rule.time_window_days} dia(s)</span>
+                                  </div>
                                   {rule.action_config.percentage && <div className="flex items-center gap-2">
                                       <span className="text-muted-foreground">Percentual:</span>
                                       <span className="font-semibold">{rule.action_config.percentage}%</span>
