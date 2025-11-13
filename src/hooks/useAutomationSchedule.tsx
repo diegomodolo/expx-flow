@@ -10,7 +10,6 @@ export interface AutomationSchedule {
   is_enabled: boolean;
   executions_per_day: number;
   scheduled_times: string[];
-  cron_job_ids: any;
   last_execution_at?: string;
   next_execution_at?: string;
   created_at: string;

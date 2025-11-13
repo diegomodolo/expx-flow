@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationLogs } from "@/hooks/useAutomationLogs";
@@ -432,22 +433,41 @@ export default function ClienteAutomacoes() {
       {/* Scheduling Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Agendamento Automático
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              <CardTitle>Agendamento Automático</CardTitle>
+              {schedule?.is_enabled && (
+                <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Sistema Ativo
+                </Badge>
+              )}
+            </div>
+          </div>
           <CardDescription>
-            Configure execuções automáticas das automações em horários programados
+            Configure execuções automáticas gerenciadas pelo Cron Master
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
+        <CardContent className="space-y-6">
+          
+          {schedule?.is_enabled && (
+            <Alert className="border-blue-500/50 bg-blue-500/5">
+              <CheckCircle2 className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-500">Sistema Configurado</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                O Cron Master está monitorando seus agendamentos e executará as automações automaticamente nos horários programados abaixo.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
               <Label htmlFor="schedule-enabled" className="text-base font-medium">
-                Ativar execução automática
+                Ativar Execução Programada
               </Label>
               <p className="text-sm text-muted-foreground">
-                Executar automações automaticamente em background
+                Configure e ative a execução automática das suas regras de automação
               </p>
             </div>
             <Switch

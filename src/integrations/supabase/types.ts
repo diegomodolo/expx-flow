@@ -432,7 +432,6 @@ export type Database = {
           client_id: string
           company_id: string
           created_at: string | null
-          cron_job_ids: Json | null
           executions_per_day: number
           id: string
           is_enabled: boolean | null
@@ -445,7 +444,6 @@ export type Database = {
           client_id: string
           company_id: string
           created_at?: string | null
-          cron_job_ids?: Json | null
           executions_per_day?: number
           id?: string
           is_enabled?: boolean | null
@@ -458,7 +456,6 @@ export type Database = {
           client_id?: string
           company_id?: string
           created_at?: string | null
-          cron_job_ids?: Json | null
           executions_per_day?: number
           id?: string
           is_enabled?: boolean | null

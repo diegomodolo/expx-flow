@@ -109,3 +109,6 @@ verify_jwt = false
 
 [functions.crm-auth]
 verify_jwt = false
+
+[functions.master-automation-scheduler]
+verify_jwt = false
