@@ -57,10 +57,13 @@ Deno.serve(async (req) => {
   let executionId: string | undefined;
   let companyId: string | undefined;
   let client_id: string | undefined;
+  let scheduled_execution: boolean = false;
 
   try {
     const body = await req.json();
-    client_id = body.client_id;
+    const { client_id: bodyClientId, scheduled_execution: bodyScheduled = false } = body;
+    client_id = bodyClientId;
+    scheduled_execution = bodyScheduled;
     executionId = body.execution_id;
 
     console.log('🚀 Starting automation execution:', { client_id, execution_id: executionId });
@@ -510,20 +513,27 @@ Deno.serve(async (req) => {
       totalProcessed, 
       totalActioned, 
       totalSkipped, 
-      totalErrors 
+      totalErrors,
+      scheduled_execution
     });
 
-    // Log final de conclusão
-    await supabase.from('automation_execution_progress').insert({
-      execution_id: executionId,
-      company_id: companyId,
-      client_id: client_id,
-      entity_type: 'campaign',
-      entity_name: 'Sistema',
-      status: 'actioned',
-      rule_name: 'Conclusão',
-      message: `✨ Execução concluída! ${totalActioned} ações executadas, ${totalSkipped} ignoradas, ${totalErrors} erros`
-    });
+    // Log final de conclusão (apenas se não for execução agendada OU se houve ações)
+    if (!scheduled_execution || totalActioned > 0) {
+      await supabase.from('automation_execution_progress').insert({
+        execution_id: executionId,
+        company_id: companyId,
+        client_id: client_id,
+        entity_type: 'campaign',
+        entity_name: 'Sistema',
+        status: totalActioned > 0 ? 'actioned' : 'skipped',
+        rule_name: 'Conclusão',
+        message: scheduled_execution
+          ? `✨ Execução agendada: ${totalActioned} ações, ${totalSkipped} ignorados, ${totalErrors} erros`
+          : `✨ Execução concluída: ${totalActioned} ações, ${totalSkipped} ignorados, ${totalErrors} erros`
+      });
+    } else {
+      console.log('⏭️ Scheduled execution with no actions - no log entry created');
+    }
 
     return new Response(
       JSON.stringify({
@@ -531,7 +541,8 @@ Deno.serve(async (req) => {
         totalProcessed,
         totalActioned,
         totalSkipped,
-        totalErrors
+        totalErrors,
+        total_actioned: totalActioned // Para compatibilidade com scheduled-automation-execution
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -12,6 +12,12 @@ verify_jwt = true
 [functions.execute-automation-recommendation]
 verify_jwt = true
 
+[functions.manage-automation-schedule]
+verify_jwt = true
+
+[functions.scheduled-automation-execution]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

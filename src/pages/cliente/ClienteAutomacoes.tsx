@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationLogs } from "@/hooks/useAutomationLogs";
+import { useAutomationSchedule } from "@/hooks/useAutomationSchedule";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { ImportAutomationTemplateDialog } from "@/components/clients/ImportAutomationTemplateDialog";
 import { EditAutomationValuesDialog } from "@/components/clients/EditAutomationValuesDialog";
@@ -28,6 +29,8 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -54,6 +57,7 @@ export default function ClienteAutomacoes() {
   const { client } = useClientDetails(clientId || "");
   const { rules, loading: rulesLoading, updateRule, updateRuleConditions, deleteRule, fetchRules } = useAutomationRules(clientId);
   const { logs, loading: logsLoading, fetchLogs, rollbackAction, clearLogs } = useAutomationLogs(clientId);
+  const { schedule, loading: scheduleLoading, createOrUpdateSchedule, toggleSchedule } = useAutomationSchedule(clientId);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -65,6 +69,14 @@ export default function ClienteAutomacoes() {
   const [clearingLogs, setClearingLogs] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [executionId, setExecutionId] = useState<string>('');
+  const [executionsPerDay, setExecutionsPerDay] = useState<number>(schedule?.executions_per_day || 2);
+
+  // Sync executionsPerDay with schedule
+  useEffect(() => {
+    if (schedule?.executions_per_day) {
+      setExecutionsPerDay(schedule.executions_per_day);
+    }
+  }, [schedule]);
 
   const filteredLogs = logs.filter(log => 
     logEntityFilter === 'all' || log.entity_type === logEntityFilter
@@ -412,6 +424,111 @@ export default function ClienteAutomacoes() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Scheduling Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Agendamento Automático
+          </CardTitle>
+          <CardDescription>
+            Configure execuções automáticas das automações em horários programados
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="schedule-enabled" className="text-base font-medium">
+                Ativar execução automática
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Executar automações automaticamente em background
+              </p>
+            </div>
+            <Switch
+              id="schedule-enabled"
+              checked={schedule?.is_enabled || false}
+              onCheckedChange={(checked) => toggleSchedule(checked)}
+              disabled={scheduleLoading || rules.length === 0}
+            />
+          </div>
+
+          {schedule?.is_enabled && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="frequency">Frequência de Execução</Label>
+                <Select
+                  value={executionsPerDay.toString()}
+                  onValueChange={(value) => {
+                    const executions = parseInt(value);
+                    setExecutionsPerDay(executions);
+                    createOrUpdateSchedule({
+                      is_enabled: true,
+                      executions_per_day: executions
+                    });
+                  }}
+                  disabled={scheduleLoading}
+                >
+                  <SelectTrigger id="frequency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1x por dia (00:00)</SelectItem>
+                    <SelectItem value="2">2x por dia (00:00, 12:00)</SelectItem>
+                    <SelectItem value="3">3x por dia (00:00, 08:00, 16:00)</SelectItem>
+                    <SelectItem value="4">4x por dia (00:00, 06:00, 12:00, 18:00)</SelectItem>
+                    <SelectItem value="6">6x por dia (a cada 4h)</SelectItem>
+                    <SelectItem value="8">8x por dia (a cada 3h)</SelectItem>
+                    <SelectItem value="12">12x por dia (a cada 2h)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {schedule.scheduled_times && schedule.scheduled_times.length > 0 && (
+                <div className="rounded-lg bg-muted p-4 space-y-2">
+                  <p className="text-sm font-medium">Horários programados:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {schedule.scheduled_times.map((time) => (
+                      <Badge key={time} variant="outline" className="gap-1">
+                        <Clock className="h-3 w-3" />
+                        {time}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {schedule.last_execution_at && (
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium">Última execução:</span>{" "}
+                  {formatDistanceToNow(new Date(schedule.last_execution_at), {
+                    addSuffix: true,
+                    locale: ptBR,
+                  })}
+                </div>
+              )}
+
+              {schedule.next_execution_at && (
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium">Próxima execução:</span>{" "}
+                  {formatDistanceToNow(new Date(schedule.next_execution_at), {
+                    addSuffix: true,
+                    locale: ptBR,
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {rules.length === 0 && (
+            <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+              <AlertCircle className="h-4 w-4 inline mr-2" />
+              Configure pelo menos uma automação antes de ativar o agendamento
             </div>
           )}
         </CardContent>
