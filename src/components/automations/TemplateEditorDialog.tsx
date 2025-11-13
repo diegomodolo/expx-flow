@@ -186,6 +186,14 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         }))
       },
       action_config: formData.action_config,
+      budget_safety_limits: {
+        max_daily_budget_increase_percent: 20,
+        max_daily_budget_decrease_percent: 30,
+      },
+      execution_limits: {
+        max_executions_per_day: 3,
+        cooldown_hours: 4,
+      },
       scope_filters: {},
       campaign_objectives: selectedObjectives.length > 0 ? selectedObjectives : null,
     };
