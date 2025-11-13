@@ -311,8 +311,11 @@ Deno.serve(async (req) => {
       }
 
       // 2️⃣ BUSCAR E PROCESSAR AD SETS DESTA CAMPANHA
-      if (rulesByType.adset.length > 0) {
-        console.log(`  🔍 Buscando ad sets ativos da campanha...`);
+      // Verificar se existe ALGUMA regra de adset aplicável a este objetivo
+      const hasApplicableAdSetRules = hasApplicableRules(rulesByType.adset, campaign.objective);
+
+      if (hasApplicableAdSetRules) {
+        console.log(`  🔍 Buscando ad sets ativos da campanha (regras aplicáveis encontradas)...`);
         
         // Delay antes de buscar ad sets
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -392,8 +395,11 @@ Deno.serve(async (req) => {
           }
 
           // 3️⃣ BUSCAR E PROCESSAR ADS DESTE AD SET
-          if (rulesByType.ad.length > 0) {
-            console.log(`      🔍 Buscando ads ativos do ad set...`);
+          // Verificar se existe ALGUMA regra de ad aplicável a este objetivo
+          const hasApplicableAdRules = hasApplicableRules(rulesByType.ad, campaign.objective);
+
+          if (hasApplicableAdRules) {
+            console.log(`      🔍 Buscando ads ativos do ad set (regras aplicáveis encontradas)...`);
             
             // Delay antes de buscar ads
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -475,11 +481,37 @@ Deno.serve(async (req) => {
               // Delay entre ads
               await new Promise(resolve => setTimeout(resolve, 2000));
             }
+          } else if (rulesByType.ad.length > 0) {
+            console.log(`      ⏭️  Nenhuma regra de ad se aplica ao objetivo ${campaign.objective} - pulando busca de ads`);
+            
+            await supabase.from('automation_execution_progress').insert({
+              execution_id: executionId,
+              company_id: companyId,
+              client_id: client_id,
+              entity_type: 'ad',
+              entity_name: adset.name,
+              status: 'skipped',
+              rule_name: 'Validação',
+              message: `⏭️ Nenhuma regra de ad aplicável ao objetivo ${campaign.objective}`
+            });
           }
 
           // Delay entre ad sets
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
+      } else if (rulesByType.adset.length > 0) {
+        console.log(`  ⏭️  Nenhuma regra de ad set se aplica ao objetivo ${campaign.objective} - pulando busca de ad sets`);
+        
+        await supabase.from('automation_execution_progress').insert({
+          execution_id: executionId,
+          company_id: companyId,
+          client_id: client_id,
+          entity_type: 'adset',
+          entity_name: campaign.name,
+          status: 'skipped',
+          rule_name: 'Validação',
+          message: `⏭️ Nenhuma regra de ad set aplicável ao objetivo ${campaign.objective}`
+        });
       }
 
       // Delay maior entre campanhas
@@ -545,6 +577,27 @@ Deno.serve(async (req) => {
 
 // ============ FUNÇÕES AUXILIARES ============
 
+// Função para verificar se existe alguma regra que se aplica ao objetivo
+function hasApplicableRules(
+  rules: AutomationRule[], 
+  campaignObjective: string
+): boolean {
+  if (rules.length === 0) return false;
+  
+  // Se alguma regra não tem filtro de objetivos, ela se aplica a todos
+  const hasUniversalRule = rules.some(r => 
+    !r.campaign_objectives || r.campaign_objectives.length === 0
+  );
+  
+  if (hasUniversalRule) return true;
+  
+  // Verifica se alguma regra específica se aplica a este objetivo
+  return rules.some(r => 
+    r.campaign_objectives && 
+    r.campaign_objectives.includes(campaignObjective)
+  );
+}
+
 // Buscar campanhas ativas do Facebook
 async function fetchWithRetry(
   url: string,
@@ -589,14 +642,33 @@ async function fetchActiveCampaignsFromFacebook(
   adAccountId: string,
   accessToken: string
 ): Promise<FacebookCampaign[]> {
-  try {
-    const url = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?` +
-      `fields=id,name,status,objective,effective_status&` +
-      `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
-      `access_token=${accessToken}`;
+  const allCampaigns: FacebookCampaign[] = [];
+  let url = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?` +
+    `fields=id,name,status,objective,effective_status&` +
+    `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
+    `limit=100&` +
+    `access_token=${accessToken}`;
 
-    const data = await fetchWithRetry(url);
-    return data.data || [];
+  try {
+    while (url) {
+      const data = await fetchWithRetry(url);
+      
+      if (data.data && data.data.length > 0) {
+        allCampaigns.push(...data.data);
+        console.log(`  📦 Buscadas ${data.data.length} campanhas (total: ${allCampaigns.length})`);
+      }
+      
+      // Verificar se há próxima página
+      url = data.paging?.next || null;
+      
+      // Delay entre páginas para respeitar rate limit
+      if (url) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    console.log(`✅ Total de campanhas ativas encontradas: ${allCampaigns.length}`);
+    return allCampaigns;
   } catch (error: any) {
     console.error('❌ Error fetching campaigns from Facebook:', error);
     throw error;
