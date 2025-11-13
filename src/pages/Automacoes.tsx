@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle, Settings } from "lucide-react";
 import { useAutomationRules } from "@/hooks/useAutomationRules";
 import { useAutomationRecommendations } from "@/hooks/useAutomationRecommendations";
-import { useAutomationLogs } from "@/hooks/useAutomationLogs";
 import { useAutomationSettings } from "@/hooks/useAutomationSettings";
+import { CronMasterMonitor } from "@/components/automations/CronMasterMonitor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,10 +26,8 @@ const Automacoes = () => {
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [prefixInput, setPrefixInput] = useState("");
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
-  const [logEntityFilter, setLogEntityFilter] = useState<'all' | 'campaign' | 'adset' | 'ad'>('all');
   const { templates, loading: templatesLoading, createTemplate, updateRule, deleteRule } = useAutomationRules();
   const { recommendations, approveRecommendation, rejectRecommendation } = useAutomationRecommendations();
-  const { logs, rollbackAction, fetchLogs } = useAutomationLogs(null, 50);
   const { settings, loading: settingsLoading, updateSettings } = useAutomationSettings();
   const { toast } = useToast();
 
@@ -56,10 +54,6 @@ const Automacoes = () => {
 
   const filteredTemplates = templates.filter(t => 
     entityTypeFilter === 'all' || t.entity_type === entityTypeFilter || (!t.entity_type && entityTypeFilter === 'campaign')
-  );
-
-  const filteredLogs = logs.filter(log => 
-    logEntityFilter === 'all' || log.entity_type === logEntityFilter
   );
 
   const handleEditTemplate = (template: any) => {
@@ -118,7 +112,7 @@ const Automacoes = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="logs">
-              📊 Histórico ({logs.length})
+              📊 Histórico
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="mr-2 h-4 w-4" />
@@ -337,191 +331,7 @@ const Automacoes = () => {
 
           {/* ABA LOGS */}
           <TabsContent value="logs">
-            <Card>
-              <CardHeader>
-                <CardTitle>Histórico de Execuções</CardTitle>
-                <CardDescription>
-                  Últimas 50 ações executadas pela automação
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Filtros por Tipo de Entidade */}
-                <div className="flex gap-2 mb-4">
-                  <Button 
-                    variant={logEntityFilter === 'all' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setLogEntityFilter('all')}
-                  >
-                    Todos ({logs.length})
-                  </Button>
-                  <Button 
-                    variant={logEntityFilter === 'campaign' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setLogEntityFilter('campaign')}
-                  >
-                    📊 Campanhas ({logs.filter(l => l.entity_type === 'campaign').length})
-                  </Button>
-                  <Button 
-                    variant={logEntityFilter === 'adset' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setLogEntityFilter('adset')}
-                  >
-                    📁 Conjuntos ({logs.filter(l => l.entity_type === 'adset').length})
-                  </Button>
-                  <Button 
-                    variant={logEntityFilter === 'ad' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setLogEntityFilter('ad')}
-                  >
-                    🎨 Criativos ({logs.filter(l => l.entity_type === 'ad').length})
-                  </Button>
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Regra</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead className="max-w-[300px]">Entidade Afetada</TableHead>
-                      <TableHead>Ação</TableHead>
-                      <TableHead>Renomeação</TableHead>
-                      <TableHead>Recovery</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Detalhes</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLogs.map((log: any) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="text-sm">
-                          {new Date(log.executed_at).toLocaleString('pt-BR')}
-                        </TableCell>
-                        <TableCell className="text-sm">{log.rule?.rule_name}</TableCell>
-                        <TableCell className="text-sm">{log.client?.name}</TableCell>
-                        <TableCell className="max-w-[300px]">
-                          {log.entity_type === 'campaign' && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">📊</span>
-                              <div className="flex flex-col">
-                                <span className="font-medium text-sm">{log.campaign?.name}</span>
-                                <Badge variant="outline" className="text-xs w-fit mt-1">Campanha</Badge>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {log.entity_type === 'adset' && (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">📁</span>
-                                <span className="font-medium text-sm">{log.adset?.name}</span>
-                              </div>
-                              <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
-                                <ArrowRight className="h-3 w-3" />
-                                <span>{log.campaign?.name}</span>
-                              </div>
-                              <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Conjunto de Anúncios</Badge>
-                            </div>
-                          )}
-                          
-                          {log.entity_type === 'ad' && (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">🎨</span>
-                                <span className="font-medium text-sm truncate max-w-[250px]">{log.ad?.name}</span>
-                              </div>
-                              <div className="flex items-center gap-2 ml-6 text-xs text-muted-foreground">
-                                <ArrowRight className="h-3 w-3" />
-                                <span className="truncate max-w-[200px]">{log.adset?.name || 'Conjunto não disponível'}</span>
-                              </div>
-                              <div className="flex items-center gap-2 ml-12 text-xs text-muted-foreground">
-                                <ArrowRight className="h-3 w-3" />
-                                <span className="truncate max-w-[200px]">{log.campaign?.name}</span>
-                              </div>
-                              <Badge variant="outline" className="text-xs w-fit ml-6 mt-1">Criativo</Badge>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">{getActionLabel(log.action_type)}</TableCell>
-                        <TableCell className="text-xs">
-                          {log.old_name && log.new_name && (
-                            <div className="space-y-1">
-                              <div className="text-muted-foreground line-through">
-                                {log.old_name.substring(0, 30)}...
-                              </div>
-                              <div className="font-medium text-green-600">
-                                {log.new_name.substring(0, 30)}...
-                              </div>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {log.recovery_trigger_enabled && (
-                            <Badge variant={log.recovery_executed ? "outline" : "secondary"} className="text-xs">
-                              {log.recovery_executed ? (
-                                <>
-                                  🔄 {log.recovery_executed_at && format(new Date(log.recovery_executed_at), 'dd/MM HH:mm')}
-                                </>
-                              ) : (
-                                <>
-                                  ⏱️ {log.recovery_scheduled_for && format(new Date(log.recovery_scheduled_for), 'dd/MM HH:mm')}
-                                </>
-                              )}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              log.action_result === 'success' ? 'default' : 
-                              log.action_result === 'error' ? 'destructive' : 
-                              'outline'
-                            }
-                            className={log.action_result === 'skipped' ? 'text-muted-foreground' : ''}
-                          >
-                            {log.action_result === 'success' && '✅ Sucesso'}
-                            {log.action_result === 'error' && '❌ Erro'}
-                            {log.action_result === 'skipped' && '⏭️ Sem Ação'}
-                          </Badge>
-                          {log.rolled_back && (
-                            <Badge variant="secondary" className="ml-2">Revertido</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs max-w-[200px]">
-                          {log.action_result === 'skipped' && log.metadata?.reason && (
-                            <div className="text-muted-foreground">
-                              <div className="font-medium">{log.metadata.reason}</div>
-                              {log.metadata.conditions_checked && (
-                                <div className="text-xs mt-1 text-muted-foreground/70">
-                                  {log.metadata.conditions_checked}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {log.action_result === 'error' && log.error_message && (
-                            <div className="text-destructive text-xs">
-                              {log.error_message}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {log.action_result === 'success' && !log.rolled_back && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => rollbackAction(log.id)}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <CronMasterMonitor showClientColumn={true} />
           </TabsContent>
 
           {/* ABA CONFIGURAÇÕES */}
@@ -558,7 +368,6 @@ const Automacoes = () => {
                               title: "Recovery triggers processados!",
                               description: "As reativações pendentes foram processadas com sucesso.",
                             });
-                            fetchLogs();
                           } catch (error: any) {
                             toast({
                               title: "Erro ao processar recovery triggers",
