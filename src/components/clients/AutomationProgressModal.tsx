@@ -65,14 +65,21 @@ export function AutomationProgressModal({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [updates]);
+  // Filtrar registro de conclusão dos stats
+  const actualUpdates = updates.filter(u => u.rule_name !== 'Conclusão');
+  const completionUpdate = updates.find(u => u.rule_name === 'Conclusão');
+  
   const stats = {
-    total: updates.length,
-    actioned: updates.filter(u => u.status === 'actioned').length,
-    skipped: updates.filter(u => u.status === 'skipped').length,
-    errors: updates.filter(u => u.status === 'error').length,
-    processing: updates.filter(u => u.status === 'processing').length
+    total: actualUpdates.length,
+    actioned: actualUpdates.filter(u => u.status === 'actioned').length,
+    skipped: actualUpdates.filter(u => u.status === 'skipped').length,
+    errors: actualUpdates.filter(u => u.status === 'error').length,
+    processing: actualUpdates.filter(u => u.status === 'processing').length
   };
-  const progress = stats.total > 0 ? (stats.actioned + stats.skipped + stats.errors) / stats.total * 100 : 0;
+  
+  // Se não há mais processando e há total, marcar como 100%
+  const isExecutionComplete = stats.processing === 0 && stats.total > 0;
+  const progress = isExecutionComplete ? 100 : (stats.total > 0 ? (stats.actioned + stats.skipped + stats.errors) / stats.total * 100 : 0);
   const getEntityIcon = (type: string) => {
     switch (type) {
       case 'campaign':
@@ -152,10 +159,10 @@ export function AutomationProgressModal({
           {/* Updates List */}
           <ScrollArea className="h-[400px] border rounded-lg p-4" ref={scrollRef}>
             <div className="space-y-3">
-              {updates.length === 0 ? <div className="text-center text-muted-foreground py-8">
+              {actualUpdates.length === 0 && !completionUpdate ? <div className="text-center text-muted-foreground py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
                   <p>Iniciando execução...</p>
-                </div> : updates.map(update => <div key={update.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                </div> : actualUpdates.map(update => <div key={update.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                     <div className="flex-shrink-0 mt-0.5">
                       {getStatusIcon(update.status)}
                     </div>
@@ -179,13 +186,10 @@ export function AutomationProgressModal({
           </ScrollArea>
 
           {/* Complete Message */}
-          {stats.processing === 0 && stats.total > 0 && <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+          {completionUpdate && <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
               <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
               <p className="font-medium text-green-700 dark:text-green-300">
-                Execução Concluída!
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {stats.actioned} ações executadas, {stats.skipped} ignoradas
+                ✨ {completionUpdate.message}
               </p>
             </div>}
         </div>
