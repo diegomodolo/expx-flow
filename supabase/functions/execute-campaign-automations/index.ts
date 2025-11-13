@@ -58,6 +58,8 @@ Deno.serve(async (req) => {
   let companyId: string | undefined;
   let client_id: string | undefined;
   let scheduled_execution: boolean = false;
+  let logEntryId: string | undefined;
+  let execStartTime: number = Date.now();
 
   try {
     const body = await req.json();
@@ -86,6 +88,30 @@ Deno.serve(async (req) => {
     }
 
     console.log(`📋 Found ${rules.length} active rules`);
+
+    // Se não for execução agendada, criar registro no log principal
+    if (!scheduled_execution) {
+      const { data: logEntry, error: logError } = await supabase
+        .from('automation_execution_logs')
+        .insert({
+          company_id: rules[0].company_id,
+          client_id: client_id,
+          execution_id: executionId,
+          status: 'running',
+          actions_taken: 0,
+          total_rules_evaluated: 0,
+          started_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      
+      if (logError) {
+        console.error('❌ Error creating execution log:', logError);
+      } else {
+        logEntryId = logEntry?.id;
+        console.log(`📝 Execution log created: ${logEntryId}`);
+      }
+    }
 
     // Buscar integração do Facebook
     const { data: integration, error: integrationError } = await supabase
@@ -550,6 +576,32 @@ Deno.serve(async (req) => {
       console.log('⏭️ Scheduled execution with no actions - no log entry created');
     }
 
+    // Atualizar log principal (se não for execução agendada)
+    if (!scheduled_execution && logEntryId) {
+      const execDuration = Date.now() - execStartTime;
+      
+      await supabase
+        .from('automation_execution_logs')
+        .update({
+          status: totalErrors > 0 
+            ? (totalActioned > 0 ? 'partial' : 'failed')
+            : 'completed',
+          completed_at: new Date().toISOString(),
+          duration_ms: execDuration,
+          actions_taken: totalActioned,
+          total_rules_evaluated: totalProcessed + totalSkipped,
+          execution_details: {
+            totalProcessed,
+            totalActioned,
+            totalSkipped,
+            totalErrors
+          }
+        })
+        .eq('id', logEntryId);
+      
+      console.log(`✅ Execution log updated: ${logEntryId}`);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -578,6 +630,21 @@ Deno.serve(async (req) => {
         rule_name: 'Execução',
         message: `❌ Erro: ${error.message}`
       });
+    }
+    
+    // Atualizar log principal em caso de erro
+    if (!scheduled_execution && logEntryId) {
+      const execDuration = Date.now() - execStartTime;
+      
+      await supabase
+        .from('automation_execution_logs')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          duration_ms: execDuration,
+          error_message: error.message
+        })
+        .eq('id', logEntryId);
     }
     
     return new Response(
