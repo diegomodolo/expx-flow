@@ -327,8 +327,9 @@ export default function ClienteAutomacoes() {
                   Executar Agora
                 </>}
             </Button>
-            <Button onClick={() => setImportDialogOpen(true)}>Importar Automação<Plus className="mr-2 h-4 w-4" />
-              Importar Template
+            <Button onClick={() => setImportDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Importar Regra
             </Button>
           </div>
 
