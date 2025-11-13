@@ -1,7 +1,10 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useSyncJobStatus } from "@/hooks/useSyncJobStatus";
 import {
   LayoutDashboard,
   Megaphone,
@@ -20,6 +23,7 @@ import {
   Clock,
   Kanban,
   Zap,
+  Loader2,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -30,6 +34,34 @@ interface ClientDetailsLayoutProps {
 
 export function ClientDetailsLayout({ children, clientId, clientName }: ClientDetailsLayoutProps) {
   const location = useLocation();
+  const [activeSyncJobId, setActiveSyncJobId] = useState<string | null>(null);
+  const { job, progressPercentage } = useSyncJobStatus(activeSyncJobId);
+
+  // Check for active sync jobs for this client
+  useEffect(() => {
+    const checkActiveSyncJob = async () => {
+      const { data } = await supabase
+        .from('sync_jobs')
+        .select('id, status')
+        .eq('client_id', clientId)
+        .in('status', ['pending', 'processing'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (data) {
+        setActiveSyncJobId(data.id);
+      } else {
+        setActiveSyncJobId(null);
+      }
+    };
+
+    if (clientId) {
+      checkActiveSyncJob();
+      const interval = setInterval(checkActiveSyncJob, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [clientId]);
 
   const navItems = [
     {
@@ -148,6 +180,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
             <p className="font-medium truncate" title={clientName}>
               {clientName}
             </p>
+            {job && (job.status === 'processing' || job.status === 'pending') && (
+              <Badge variant="outline" className="mt-2 w-full justify-center animate-pulse">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                Sincronizando {progressPercentage}%
+              </Badge>
+            )}
           </div>
           
           <nav className="space-y-1">

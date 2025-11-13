@@ -155,9 +155,10 @@ export default function NewDashboard() {
     await refetch();
   };
 
-  const handleSyncConfirm = async (options: SyncOptions) => {
+  const handleSyncConfirm = async (options: SyncOptions): Promise<string | null> => {
     setSyncDialogOpen(false);
     await syncAllClientsLocal(options);
+    return null; // TODO: Implement job tracking for bulk sync
   };
 
   // Função para converter ação em tarefa

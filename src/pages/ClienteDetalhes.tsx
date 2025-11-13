@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ClientDetailsLayout } from "@/components/clients/ClientDetailsLayout";
@@ -27,13 +27,14 @@ import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { Loader2 } from "lucide-react";
 import { useOfflineConversions } from "@/hooks/useOfflineConversions";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
   const { client, loading, error, refetch } = useClientDetails(id || "");
   const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
-  const { syncCampaigns, syncing: syncLoading, progress } = useFacebookCampaignSync();
+  const { syncCampaigns, syncing: syncLoading, progress, currentJobId, handleJobComplete } = useFacebookCampaignSync();
   const { conversions } = useOfflineConversions(id || "");
   
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
@@ -91,23 +92,42 @@ const ClienteDetalhes = () => {
   }, [totalSales, totalInvested]);
 
   // Handle sync
-  const handleSyncConfirm = async (options: SyncOptions) => {
-    if (!id) return;
+  const handleSyncConfirm = async (options: SyncOptions): Promise<string | null> => {
+    if (!id) return null;
     
-    try {
-      await syncCampaigns(id, options.period, {
-        campaigns: true,
-        adsets: true,
-        ads: true
-      });
-      await refetch();
-      await refetchAdSets();
-      await refetchAds();
-      setSyncDialogOpen(false);
-    } catch (error) {
-      console.error('Error syncing campaigns:', error);
-    }
+    const jobId = await syncCampaigns(id, options.period, {
+      campaigns: options.campaigns,
+      adsets: options.adsets,
+      ads: options.ads
+    }, false, options.includeInactive);
+    
+    return jobId;
   };
+
+  // Handle job completion
+  useEffect(() => {
+    if (currentJobId) {
+      const checkJobStatus = async () => {
+        const { data } = await supabase
+          .from('sync_jobs')
+          .select('status, error_message')
+          .eq('id', currentJobId)
+          .single();
+
+        if (data && (data.status === 'completed' || data.status === 'error')) {
+          handleJobComplete(currentJobId, data.status === 'completed', data.error_message);
+          if (data.status === 'completed') {
+            refetch();
+            refetchAdSets();
+            refetchAds();
+          }
+        }
+      };
+
+      const interval = setInterval(checkJobStatus, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [currentJobId, handleJobComplete, refetch, refetchAdSets, refetchAds]);
 
   // Calculate funnel completeness score
   const funnelCompletenessScore = useMemo(() => {
@@ -246,6 +266,7 @@ const ClienteDetalhes = () => {
           onOpenChange={setSyncDialogOpen}
           onConfirm={handleSyncConfirm}
           syncing={syncLoading}
+          jobId={currentJobId}
           title="Sincronizar Campanhas do Cliente"
         />
       </ClientContextProvider>

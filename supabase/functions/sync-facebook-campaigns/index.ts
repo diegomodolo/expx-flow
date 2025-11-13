@@ -77,40 +77,92 @@ Deno.serve(async (req) => {
 
     console.log('Processing sync for client ID:', clientId, 'Sync options:', { syncCampaigns, syncAdSets, syncAds, includeInactive })
 
-    // Get client info
+    // Get client info for company_id
     console.log('Fetching client data...')
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('company_id')
+      .eq('id', clientId)
+      .single()
+
+    if (clientError || !client) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Client not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Create sync job
+    const { data: job, error: jobError } = await supabase
+      .from('sync_jobs')
+      .insert({
+        client_id: clientId,
+        company_id: client.company_id,
+        status: 'pending',
+        job_type: 'sync_campaigns',
+        options: { period, syncCampaigns, syncAdSets, syncAds, includeInactive }
+      })
+      .select()
+      .single()
+
+    if (jobError || !job) {
+      console.error('Error creating sync job:', jobError)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to create sync job' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Created sync job:', job.id)
+
+    // Return job ID immediately
+    const response = new Response(
+      JSON.stringify({ success: true, job_id: job.id }),
+      { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+    // Continue processing in background
+    processSync(supabase, job.id, clientId, period, syncCampaigns, syncAdSets, syncAds, includeInactive)
+      .catch(error => console.error('Background sync error:', error))
+
+    return response
+  } catch (error: any) {
+    console.error('Edge function error:', error)
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
+
+async function processSync(
+  supabase: any,
+  jobId: string,
+  clientId: string,
+  period: string,
+  syncCampaigns: boolean,
+  syncAdSets: boolean,
+  syncAds: boolean,
+  includeInactive: boolean
+) {
+  try {
+    // Update job to processing
+    await supabase.from('sync_jobs').update({ status: 'processing', started_at: new Date().toISOString() }).eq('id', jobId)
+
+    // Get full client info
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
       .eq('id', clientId)
       .maybeSingle()
 
-    if (clientError) {
-      console.error('Error fetching client:', clientError)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Database error while fetching client' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    if (!client) {
-      console.error('Client not found for ID:', clientId)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Client not found' 
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    if (clientError || !client) {
+      await supabase.from('sync_jobs').update({
+        status: 'error',
+        error_message: 'Client not found',
+        completed_at: new Date().toISOString()
+      }).eq('id', jobId)
+      return
     }
 
     console.log('Client found:', { id: client.id, name: client.name, ad_account_id: client.ad_account_id })
@@ -410,6 +462,19 @@ Deno.serve(async (req) => {
         console.log('⚠️ Account marked with funding issues due to balance check error')
       }
     }
+
+    const campaigns = campaignsData.data || []
+    const totalCampaigns = campaigns.length
+    
+    // Update job with total counts
+    await supabase.from('sync_jobs').update({
+      progress: {
+        campaigns: { current: 0, total: totalCampaigns },
+        adsets: { current: 0, total: 0 },
+        ads: { current: 0, total: 0 },
+        current_entity: ''
+      }
+    }).eq('id', jobId)
 
     console.log('Fetching campaigns from Facebook for account:', accountId)
     console.log('Using period:', period)
@@ -1361,3 +1426,15 @@ Deno.serve(async (req) => {
     )
   }
 })
+
+async function updateJobProgress(supabase: any, jobId: string, progress: any) {
+  await supabase.from('sync_jobs').update({ progress }).eq('id', jobId)
+}
+
+async function completeJob(supabase: any, jobId: string, success: boolean, errorMessage?: string) {
+  await supabase.from('sync_jobs').update({
+    status: success ? 'completed' : 'error',
+    error_message: errorMessage,
+    completed_at: new Date().toISOString()
+  }).eq('id', jobId)
+}

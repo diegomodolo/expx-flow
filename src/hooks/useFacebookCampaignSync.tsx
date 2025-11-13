@@ -6,10 +6,17 @@ import { SyncOptions } from '@/components/facebook/SyncPeriodDialog';
 export const useFacebookCampaignSync = () => {
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, clientName: '' });
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const syncCampaigns = async (clientId: string, period: string = '30', options?: { campaigns?: boolean; adsets?: boolean; ads?: boolean }, silent: boolean = false, includeInactive: boolean = false) => {
-    if (!clientId) return;
+  const syncCampaigns = async (
+    clientId: string, 
+    period: string = '30', 
+    options?: { campaigns?: boolean; adsets?: boolean; ads?: boolean }, 
+    silent: boolean = false, 
+    includeInactive: boolean = false
+  ): Promise<string | null> => {
+    if (!clientId) return null;
 
     setSyncing(true);
     try {
@@ -26,43 +33,33 @@ export const useFacebookCampaignSync = () => {
 
       if (error) {
         console.error('Sync error:', error);
-        throw new Error(error.message || 'Erro ao sincronizar campanhas');
+        throw new Error(error.message || 'Erro ao iniciar sincronização');
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Erro ao sincronizar campanhas');
+        throw new Error(data.error || 'Erro ao iniciar sincronização');
       }
 
-      console.log('Sync successful:', data);
-      
-      // Only show individual toast if not in silent mode (bulk sync)
+      const jobId = data.job_id;
+      setCurrentJobId(jobId);
+
       if (!silent) {
-        const periodLabel = period === 'lifetime' ? 'máximo' : `${period} dias`;
-        const syncTypes = [];
-        if (options?.campaigns !== false) syncTypes.push('campanhas');
-        if (options?.adsets !== false) syncTypes.push('conjuntos de anúncios');
-        if (options?.ads !== false) syncTypes.push('criativos');
-        const syncType = syncTypes.join(', ') || 'campanhas';
         toast({
-          title: "Sincronização concluída",
-          description: `${syncType} atualizados com sucesso! (${periodLabel})`,
+          title: "Sincronização iniciada",
+          description: "Processando dados em background...",
         });
       }
 
-      // Trigger a refresh of clients data
-      window.dispatchEvent(new CustomEvent('clientsUpdated'));
-
-      return data.data;
+      return jobId;
     } catch (error: any) {
       console.error('Error syncing campaigns:', error);
       toast({
-        title: "Erro na sincronização",
-        description: error.message || "Não foi possível sincronizar as campanhas.",
+        title: "Erro ao iniciar sincronização",
+        description: error.message || "Não foi possível iniciar a sincronização.",
         variant: "destructive",
       });
-      return null;
-    } finally {
       setSyncing(false);
+      return null;
     }
   };
 
@@ -128,10 +125,39 @@ export const useFacebookCampaignSync = () => {
     }
   };
 
+  const handleJobComplete = (jobId: string, success: boolean, errorMessage?: string) => {
+    if (success) {
+      toast({
+        title: "✅ Sincronização concluída",
+        description: "Dados atualizados com sucesso!",
+      });
+      window.dispatchEvent(new CustomEvent('clientsUpdated'));
+    } else {
+      toast({
+        title: "❌ Erro na sincronização",
+        description: errorMessage || "Ocorreu um erro durante a sincronização.",
+        variant: "destructive",
+      });
+    }
+    
+    setSyncing(false);
+    if (currentJobId === jobId) {
+      setCurrentJobId(null);
+    }
+  };
+
+  const syncAllClientsWrapper = async (options: SyncOptions): Promise<string | null> => {
+    await syncAllClients(options);
+    return null; // TODO: Implement job tracking for bulk sync
+  };
+
   return {
     syncing,
     progress,
+    currentJobId,
     syncCampaigns,
-    syncAllClients,
+    syncAllClients: syncAllClientsWrapper,
+    handleJobComplete,
+    clearJobId: () => setCurrentJobId(null)
   };
 };
