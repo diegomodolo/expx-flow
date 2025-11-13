@@ -38,25 +38,20 @@ export function ExecutionDetailsModal({
     return <Badge variant="outline">Nenhuma Ação</Badge>;
   };
 
-  const groupedLogs = progressLogs?.reduce((acc, log) => {
-    const key = `${log.entity_type}-${log.entity_id}`;
-    if (!acc[key]) {
-      acc[key] = {
-        entity_type: log.entity_type,
-        entity_id: log.entity_id,
-        entity_name: log.entity_name,
-        logs: [],
-      };
-    }
-    acc[key].logs.push(log);
-    return acc;
-  }, {} as Record<string, any>);
+  // Filtrar logs internos
+  const internalLogTypes = ['Consulta', 'Análise', 'Validação', 'Conclusão'];
+  const actualLogs = progressLogs?.filter(l => !internalLogTypes.includes(l.rule_name || '')) || [];
+
+  // Separar logs por categoria
+  const actionLogs = actualLogs.filter(l => l.status === 'actioned');
+  const skippedLogs = actualLogs.filter(l => l.status === 'skipped');
+  const errorLogs = actualLogs.filter(l => l.error_message);
 
   const summary = {
-    total: progressLogs?.length || 0,
-    actioned: progressLogs?.filter(l => l.action_taken).length || 0,
-    errors: progressLogs?.filter(l => l.error_message).length || 0,
-    skipped: progressLogs?.filter(l => !l.action_taken && !l.error_message).length || 0,
+    total: actualLogs.length,
+    actioned: actionLogs.length,
+    errors: errorLogs.length,
+    skipped: skippedLogs.length,
   };
 
   const getEntityIcon = (type: string) => {
@@ -123,68 +118,114 @@ export function ExecutionDetailsModal({
                 </div>
               </div>
 
-              {/* Histórico Detalhado */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">Histórico Detalhado</h3>
-                
-                {!groupedLogs || Object.keys(groupedLogs).length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Nenhum detalhe de execução disponível</p>
-                  </div>
-                ) : (
-                  Object.values(groupedLogs).map((group: any) => (
-                    <div key={`${group.entity_type}-${group.entity_id}`} className="border border-border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{getEntityIcon(group.entity_type)}</span>
-                        <div>
-                          <div className="font-medium text-foreground">{group.entity_name}</div>
-                          <div className="text-xs text-muted-foreground capitalize">{group.entity_type}</div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 ml-8">
-                        {group.logs.map((log: any) => (
-                          <div key={log.id} className="border-l-2 border-border pl-4 py-2">
-                            <div className="flex items-center gap-2 mb-1">
-                              {getActionIcon(log.action_taken, log.error_message)}
-                              <span className="font-medium text-sm text-foreground">{log.rule_name}</span>
-                              {getActionBadge(log.action_taken, log.error_message)}
-                            </div>
-
-                            {log.action_taken && (
-                              <div className="text-sm text-foreground ml-6">
-                                <div className="font-medium">🎬 Ação: {getActionLabel(log.action_taken)}</div>
-                                {log.action_details && (
-                                  <div className="text-muted-foreground mt-1 space-y-1">
-                                    {Object.entries(log.action_details).map(([key, value]) => (
-                                      <div key={key} className="text-xs">
-                                        • {key}: {String(value)}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+              {/* Ações Executadas */}
+              {actionLogs.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">Ações Executadas</h3>
+                  <div className="space-y-3">
+                    {actionLogs.map((log: any) => (
+                      <div key={log.id} className="border rounded-lg p-4 space-y-3 bg-green-50/50 dark:bg-green-950/20">
+                        {/* Hierarquia */}
+                        {log.metadata && (
+                          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                            {log.metadata.campaign_name && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">🎯</span>
+                                <span className="font-medium">{log.metadata.campaign_name}</span>
                               </div>
                             )}
-
-                            {!log.action_taken && !log.error_message && (
-                              <div className="text-sm text-muted-foreground ml-6">
-                                ⏭️ Condições não atendidas
-                              </div>
-                            )}
-
-                            {log.error_message && (
-                              <div className="text-sm text-destructive ml-6 mt-1">
-                                ❌ Erro: {log.error_message}
+                            {log.metadata.adset_name && (
+                              <div className="flex items-center gap-2 ml-6">
+                                <span className="text-lg">📊</span>
+                                <span className="font-medium">{log.metadata.adset_name}</span>
                               </div>
                             )}
                           </div>
-                        ))}
+                        )}
+                        
+                        {/* Ação Executada */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{getEntityIcon(log.entity_type)}</span>
+                          <div className="flex-1">
+                            <div className="font-medium text-foreground">{log.entity_name}</div>
+                            <div className="text-sm text-muted-foreground mt-1">{log.message}</div>
+                          </div>
+                          <Badge variant="default" className="bg-green-600">✓ Executado</Badge>
+                        </div>
+                        
+                        {/* Métricas */}
+                        {log.metadata?.metrics && (
+                          <div className="ml-8 grid grid-cols-4 gap-3 p-3 bg-background rounded-md text-xs">
+                            <div>
+                              <div className="text-muted-foreground">CPA</div>
+                              <div className="font-semibold">R$ {log.metadata.metrics.cpa.toFixed(2)}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">CTR</div>
+                              <div className="font-semibold">{log.metadata.metrics.ctr.toFixed(2)}%</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Conversões</div>
+                              <div className="font-semibold">{log.metadata.metrics.conversions}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">Gasto</div>
+                              <div className="font-semibold">R$ {log.metadata.metrics.spend.toFixed(2)}</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Regras Avaliadas Sem Ação */}
+              {skippedLogs.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">Regras Avaliadas (Sem Ação)</h3>
+                  <div className="space-y-2">
+                    {skippedLogs.map((log: any) => (
+                      <div key={log.id} className="border rounded-lg p-3 flex items-center gap-3 bg-muted/30">
+                        <span className="text-lg">{getEntityIcon(log.entity_type)}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">{log.entity_name}</div>
+                          <div className="text-xs text-muted-foreground">{log.message}</div>
+                        </div>
+                        <Badge variant="outline">Nenhuma Ação</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Erros */}
+              {errorLogs.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">Erros</h3>
+                  <div className="space-y-2">
+                    {errorLogs.map((log: any) => (
+                      <div key={log.id} className="border border-destructive/50 rounded-lg p-3 bg-destructive/5">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="font-medium text-foreground">{log.entity_name}</div>
+                            <div className="text-sm text-destructive mt-1">{log.error_message}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Caso não tenha nenhum log */}
+              {actualLogs.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum detalhe de execução disponível</p>
+                </div>
+              )}
             </div>
           </ScrollArea>
         )}
