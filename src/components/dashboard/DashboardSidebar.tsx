@@ -83,7 +83,7 @@ export function DashboardSidebar() {
       
       {/* Sidebar fixo posicionado sobre o conteúdo */}
       <div
-        className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 bg-white border-r border-gray-200 shadow-lg ${
+        className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 bg-card border-r border-border shadow-lg ${
           open ? 'w-60' : 'w-14'
         }`}
         onMouseEnter={() => setOpen(true)}
@@ -99,18 +99,18 @@ export function DashboardSidebar() {
                   className={({ isActive }) =>
                     `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
                       isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-50"
+                        ? "bg-primary/10 text-primary dark:bg-primary/20"
+                        : "text-card-foreground hover:bg-muted/50"
                     }`
                   }
                   title={!open ? item.title : ''}
                 >
                   <item.icon className={`w-5 h-5 transition-colors duration-200 flex-shrink-0 ${
-                    isActive(item.url) ? "text-blue-600" : "text-gray-500"
+                    isActive(item.url) ? "text-primary" : "text-muted-foreground"
                   }`} />
                   {open && (
                     <span className={`font-medium transition-all duration-300 whitespace-nowrap ${
-                      isActive(item.url) ? "text-blue-600" : "text-gray-700"
+                      isActive(item.url) ? "text-primary" : "text-card-foreground"
                     }`}>
                       {item.title}
                     </span>
