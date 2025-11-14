@@ -112,3 +112,6 @@ verify_jwt = false
 
 [functions.master-automation-scheduler]
 verify_jwt = false
+
+[functions.client-dashboard-data]
+verify_jwt = false

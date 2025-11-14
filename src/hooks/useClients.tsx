@@ -57,6 +57,7 @@ export interface Client {
   ai_briefing?: string;
   briefing_generated_at?: string;
   team_id?: string;
+  dashboard_token?: string;
   facebook_ad_accounts?: {
     id: string;
     account_name: string;

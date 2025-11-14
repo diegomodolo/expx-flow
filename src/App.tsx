@@ -51,6 +51,7 @@ import CRMPublicView from "./pages/CRMPublicView";
 import CRMLogin from "./pages/CRMLogin";
 import Automacoes from "./pages/Automacoes";
 import DashboardOrcamento from "./pages/DashboardOrcamento";
+import ClientDashboardPublic from "./pages/ClientDashboardPublic";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -75,6 +76,7 @@ const App = () => {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
+              <Route path="/dashboard-publico/:token" element={<ClientDashboardPublic />} />
               <Route path="/crm/:token/login" element={<CRMLogin />} />
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
               
