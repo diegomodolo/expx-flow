@@ -43,6 +43,7 @@ const ClientDashboardPublic = () => {
   const [nextRefresh, setNextRefresh] = useState<Date | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const {
     data,
     isLoading,
@@ -53,6 +54,14 @@ const ClientDashboardPublic = () => {
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
   const handleDateSelect = (range: {
     from: Date;
