@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
     
     let totalSpend = 0;
     let totalConversions = 0;
+    let totalMessages = 0; // Rastrear mensagens reais
     let totalImpressions = 0;
     let totalClicks = 0;
     let totalReach = 0;
@@ -264,6 +265,7 @@ Deno.serve(async (req) => {
       // Aggregate all insights for this campaign (agora deve ser apenas 1 insight por campanha)
       let totalCampaignSpend = 0;
       let totalCampaignConversions = 0;
+      let totalCampaignMessages = 0; // Rastrear mensagens reais da campanha
       let totalCampaignImpressions = 0;
       let totalCampaignClicks = 0;
       let totalCampaignReach = 0;
@@ -275,8 +277,15 @@ Deno.serve(async (req) => {
         const reach = parseInt(insight.reach || '0', 10);
         const conversions = extractConversions(insight.actions, campaign.name);
         
+        // Coletar mensagens reais da API do Facebook
+        const messages = insight.actions?.find(
+          (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+        )?.value || 0;
+        const messagesValue = parseFloat(messages);
+        
         totalCampaignSpend += spend;
         totalCampaignConversions += conversions;
+        totalCampaignMessages += messagesValue;
         totalCampaignImpressions += impressions;
         totalCampaignClicks += clicks;
         totalCampaignReach += reach;
@@ -285,6 +294,7 @@ Deno.serve(async (req) => {
       // Global aggregation
       totalSpend += totalCampaignSpend;
       totalConversions += totalCampaignConversions;
+      totalMessages += totalCampaignMessages; // Somar mensagens reais
       totalImpressions += totalCampaignImpressions;
       totalClicks += totalCampaignClicks;
       totalReach += totalCampaignReach;
@@ -295,6 +305,7 @@ Deno.serve(async (req) => {
         status: campaign.status,
         spend: totalCampaignSpend,
         conversions: totalCampaignConversions,
+        messages: totalCampaignMessages, // Adicionar mensagens reais
         impressions: totalCampaignImpressions,
         clicks: totalCampaignClicks,
         reach: totalCampaignReach,
@@ -308,7 +319,7 @@ Deno.serve(async (req) => {
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const frequency = totalReach > 0 ? totalImpressions / totalReach : 0;
-    const messages = Math.round(totalConversions * 0.6);
+    const messages = totalMessages; // Usar dados reais ao invés de estimativa
     const pageViews = Math.round(totalClicks * 0.8);
     const connectRate = pageViews > 0 ? (messages / pageViews) * 100 : 0;
     const leadRate = pageViews > 0 ? (totalConversions / pageViews) * 100 : 0;
@@ -352,7 +363,7 @@ Deno.serve(async (req) => {
       spend: c.spend,
       leads: c.conversions,
       cpl: c.conversions > 0 ? c.spend / c.conversions : 0,
-      messages: Math.round(c.conversions * 0.6),
+      messages: c.messages, // Usar mensagens reais
       cpm: c.impressions > 0 ? (c.spend / c.impressions) * 1000 : 0,
       status: c.status,
     }));
