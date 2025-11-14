@@ -364,6 +364,54 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_execution_logs: {
+        Row: {
+          actions_taken: number | null
+          client_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          execution_details: Json | null
+          execution_id: string
+          id: string
+          started_at: string
+          status: string
+          total_rules_evaluated: number | null
+        }
+        Insert: {
+          actions_taken?: number | null
+          client_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          execution_details?: Json | null
+          execution_id: string
+          id?: string
+          started_at?: string
+          status: string
+          total_rules_evaluated?: number | null
+        }
+        Update: {
+          actions_taken?: number | null
+          client_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          execution_details?: Json | null
+          execution_id?: string
+          id?: string
+          started_at?: string
+          status?: string
+          total_rules_evaluated?: number | null
+        }
+        Relationships: []
+      }
       automation_execution_progress: {
         Row: {
           client_id: string | null
@@ -420,6 +468,47 @@ export type Database = {
           },
           {
             foreignKeyName: "automation_execution_progress_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rule_templates: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rule_templates_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -494,6 +583,45 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_template_rules: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_index: number
+          rule_id: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_index?: number
+          rule_id: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_index?: number
+          rule_id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_template_rules_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_automation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_template_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rule_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1330,6 +1458,7 @@ export type Database = {
           company: string
           company_id: string | null
           created_at: string
+          dashboard_token: string | null
           email: string
           id: string
           inactive_reason: string | null
@@ -1366,6 +1495,7 @@ export type Database = {
           company: string
           company_id?: string | null
           created_at?: string
+          dashboard_token?: string | null
           email: string
           id?: string
           inactive_reason?: string | null
@@ -1402,6 +1532,7 @@ export type Database = {
           company?: string
           company_id?: string | null
           created_at?: string
+          dashboard_token?: string | null
           email?: string
           id?: string
           inactive_reason?: string | null
@@ -4192,6 +4323,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_client_dashboard_token: { Args: never; Returns: string }
       generate_crm_access_token: { Args: never; Returns: string }
       generate_funnel_public_token: { Args: never; Returns: string }
       get_user_company_ids: {
