@@ -12,15 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Loader2, RefreshCw, Maximize, Minimize } from "lucide-react";
+import { CalendarIcon, Loader2, RefreshCw, Maximize, Minimize, Sun, Moon } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 const ClientDashboardPublic = () => {
   const { token } = useParams<{ token: string }>();
+  const { theme, setTheme } = useTheme();
   const [period, setPeriod] = useState(30);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -31,8 +33,14 @@ const ClientDashboardPublic = () => {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [nextRefresh, setNextRefresh] = useState<Date | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const { data, isLoading, error, refetch } = useClientDashboard(token || "", period);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleDateSelect = (range: { from: Date; to: Date } | undefined) => {
     if (range?.from && range?.to) {
@@ -117,6 +125,12 @@ const ClientDashboardPublic = () => {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    toast.success(`Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -163,6 +177,22 @@ const ClientDashboardPublic = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Theme toggle */}
+              {mounted && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleTheme}
+                  title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+
               {/* Fullscreen button */}
               <Button
                 variant="outline"
