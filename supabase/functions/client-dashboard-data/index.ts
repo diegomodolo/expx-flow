@@ -127,7 +127,10 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching campaigns from Facebook for period ${since} to ${until}`);
 
-    const campaignsUrl = `https://graph.facebook.com/v20.0/act_${adAccount.account_id}/campaigns?` +
+    // Remove "act_" prefix if it already exists to avoid "act_act_" duplication
+    const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
+
+    const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
       `fields=id,name,status,objective,` +
       `insights.time_range({since:'${since}',until:'${until}'})` +
       `.action_report_time(conversion)` +
