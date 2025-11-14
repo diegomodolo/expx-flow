@@ -136,10 +136,10 @@ Deno.serve(async (req) => {
     const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
       `fields=id,name,status,objective,` +
       `insights.time_range({since:'${since}',until:'${until}'})` +
-      `.breakdowns([time])` +
       `.action_report_time(conversion)` +
       `.action_attribution_windows(["7d_click","1d_view"])` +
       `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
+      `&time_increment=1` +
       `&limit=500&access_token=${integration.access_token}`;
 
     const campaignsResponse = await fetch(campaignsUrl);
