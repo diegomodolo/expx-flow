@@ -476,19 +476,6 @@ async function processSync(
       }
     }
 
-    const campaigns = campaignsData.data || []
-    const totalCampaigns = campaigns.length
-    
-    // Update job with total counts
-    await supabase.from('sync_jobs').update({
-      progress: {
-        campaigns: { current: 0, total: totalCampaigns },
-        adsets: { current: 0, total: 0 },
-        ads: { current: 0, total: 0 },
-        current_entity: ''
-      }
-    }).eq('id', jobId)
-
     console.log('Fetching campaigns from Facebook for account:', accountId)
     console.log('Using period:', period)
     
