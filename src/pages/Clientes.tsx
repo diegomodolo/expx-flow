@@ -168,7 +168,7 @@ const BudgetStatusIcon = ({ client }: { client: Client }) => {
       </TooltipTrigger>
       <TooltipContent>
         <p className="text-sm">{config.tooltip}</p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground/80 mt-1">
           Período: {client.last_sync_period} dias
         </p>
       </TooltipContent>
@@ -424,7 +424,7 @@ const Clientes = () => {
             {/* Header Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Gerenciar Clientes</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-card-foreground">Gerenciar Clientes</h2>
                 <Badge variant="secondary" className="px-3 py-1">
                   {totalClients} clientes
                 </Badge>
@@ -443,9 +443,9 @@ const Clientes = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-status-excellent rounded-full"></div>
-                      <span className="text-sm font-medium text-gray-600">Excelente</span>
+                      <span className="text-sm font-medium text-muted-foreground">Excelente</span>
                     </div>
-                    <span className="text-xs text-gray-500">{statusStats.excelente.percentage.toFixed(1)}%</span>
+                    <span className="text-xs text-muted-foreground/80">{statusStats.excelente.percentage.toFixed(1)}%</span>
                   </div>
                   <div className="text-2xl font-bold text-status-excellent mb-2">{statusStats.excelente.count}</div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -463,9 +463,9 @@ const Clientes = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-status-attention rounded-full"></div>
-                      <span className="text-sm font-medium text-gray-600">Atenção</span>
+                      <span className="text-sm font-medium text-muted-foreground">Atenção</span>
                     </div>
-                    <span className="text-xs text-gray-500">{statusStats.atencao.percentage.toFixed(1)}%</span>
+                    <span className="text-xs text-muted-foreground/80">{statusStats.atencao.percentage.toFixed(1)}%</span>
                   </div>
                   <div className="text-2xl font-bold text-status-attention mb-2">{statusStats.atencao.count}</div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -483,9 +483,9 @@ const Clientes = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-status-emergency rounded-full"></div>
-                      <span className="text-sm font-medium text-gray-600">Emergencial</span>
+                      <span className="text-sm font-medium text-muted-foreground">Emergencial</span>
                     </div>
-                    <span className="text-xs text-gray-500">{statusStats.emergencial.percentage.toFixed(1)}%</span>
+                    <span className="text-xs text-muted-foreground/80">{statusStats.emergencial.percentage.toFixed(1)}%</span>
                   </div>
                   <div className="text-2xl font-bold text-status-emergency mb-2">{statusStats.emergencial.count}</div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -503,9 +503,9 @@ const Clientes = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-gray-600">Sem Fundos</span>
+                      <span className="text-sm font-medium text-muted-foreground">Sem Fundos</span>
                     </div>
-                    <span className="text-xs text-gray-500">{statusStats.sem_fundos.percentage.toFixed(1)}%</span>
+                    <span className="text-xs text-muted-foreground/80">{statusStats.sem_fundos.percentage.toFixed(1)}%</span>
                   </div>
                   <div className="text-2xl font-bold text-orange-600 mb-2">{statusStats.sem_fundos.count}</div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -523,9 +523,9 @@ const Clientes = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-status-inactive rounded-full"></div>
-                      <span className="text-sm font-medium text-gray-600">Inativo</span>
+                      <span className="text-sm font-medium text-muted-foreground">Inativo</span>
                     </div>
-                    <span className="text-xs text-gray-500">{statusStats.inativo.percentage.toFixed(1)}%</span>
+                    <span className="text-xs text-muted-foreground/80">{statusStats.inativo.percentage.toFixed(1)}%</span>
                   </div>
                   <div className="text-2xl font-bold text-status-inactive mb-2">{statusStats.inativo.count}</div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -785,10 +785,10 @@ const Clientes = () => {
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                      <table className="w-full">
-                       <thead className="bg-gray-50">
+                       <thead className="bg-muted/30">
                          <tr>
                            <th 
-                             className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('name')}
                            >
                              <div className="flex items-center space-x-1">
@@ -797,7 +797,7 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('status')}
                            >
                              <div className="flex items-center space-x-1">
@@ -806,7 +806,7 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('active_campaigns')}
                            >
                              <div className="flex items-center space-x-1">
@@ -815,7 +815,7 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('avg_cpl')}
                            >
                              <div className="flex items-center space-x-1">
@@ -824,7 +824,7 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('leads_generated')}
                            >
                              <div className="flex items-center space-x-1">
@@ -833,7 +833,7 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('monthly_budget')}
                            >
                              <div className="flex items-center space-x-1">
@@ -842,7 +842,7 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                             className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                              onClick={() => handleSort('spend')}
                            >
                              <div className="flex items-center space-x-1">
@@ -850,14 +850,14 @@ const Clientes = () => {
                                {getSortIcon('spend')}
                              </div>
                            </th>
-                           <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                           <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                              Ações
                            </th>
                          </tr>
                        </thead>
-                       <tbody className="bg-white divide-y divide-gray-200">
+                       <tbody className="bg-card divide-y divide-border">
                          {paginatedClients.map((client) => (
-                           <tr key={client.id} className="hover:bg-gray-50 transition-colors">
+                           <tr key={client.id} className="hover:bg-muted/30 transition-colors">
                              <td className="px-3 py-3">
                                <div className="flex items-center space-x-3">
                                  <div className={`w-2 h-2 rounded-full ${getStatusConfig(client.status).dotColor}`}></div>
@@ -866,9 +866,9 @@ const Clientes = () => {
                                    <AvatarFallback className="text-xs">{client.name.charAt(0)}</AvatarFallback>
                                  </Avatar>
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-medium text-gray-900 truncate" title={client.name}>{client.name}</div>
-                                  <div className="text-xs text-gray-500 truncate md:hidden">{client.company}</div>
-                                  <div className="text-xs text-gray-500 truncate">{client.email}</div>
+                                  <div className="text-sm font-medium text-card-foreground truncate" title={client.name}>{client.name}</div>
+                                  <div className="text-xs text-muted-foreground/80 truncate md:hidden">{client.company}</div>
+                                  <div className="text-xs text-muted-foreground/80 truncate">{client.email}</div>
                                 </div>
                               </div>
                             </td>
@@ -882,28 +882,28 @@ const Clientes = () => {
                                     {getStatusConfig(client.status).label}
                                   </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent className="whitespace-pre-line max-w-xs bg-white shadow-lg border border-gray-200 rounded-md p-3 text-sm z-50">
+                                <TooltipContent className="whitespace-pre-line max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
                                   <p>{getStatusExplanation(client)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-card-foreground">
                                 {client.active_campaigns}
                               </div>
                             </td>
                             <td className="hidden lg:table-cell px-3 py-3 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
+                              <div className="text-sm text-card-foreground">
                                 R$ {client.avg_cpl.toFixed(2)}
                               </div>
                             </td>
                              <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
-                               <div className="text-sm text-gray-900">
+                               <div className="text-sm text-card-foreground">
                                  {client.leads_generated}
                                </div>
                              </td>
                              <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
-                               <div className="text-sm text-gray-900">
+                               <div className="text-sm text-card-foreground">
                                  R$ {(client.monthly_budget || 0).toLocaleString('pt-BR', { 
                                    minimumFractionDigits: 2, 
                                    maximumFractionDigits: 2 
@@ -912,7 +912,7 @@ const Clientes = () => {
                              </td>
                              <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
                                <div className="flex items-center gap-2">
-                                 <div className="text-sm text-gray-900">
+                                 <div className="text-sm text-card-foreground">
                                    R$ {(client.spend || 0).toLocaleString('pt-BR', { 
                                      minimumFractionDigits: 2, 
                                      maximumFractionDigits: 2 
@@ -988,10 +988,10 @@ const Clientes = () => {
                           <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-900 truncate" title={client.name}>
+                          <h3 className="font-medium text-card-foreground truncate" title={client.name}>
                             {client.name}
                           </h3>
-                          <p className="text-sm text-gray-500 truncate">
+                          <p className="text-sm text-muted-foreground truncate">
                             {client.email}
                           </p>
                         </div>
@@ -1042,11 +1042,11 @@ const Clientes = () => {
                             {getStatusConfig(client.status).label}
                           </Badge>
                         </TooltipTrigger>
-                        <TooltipContent className="whitespace-pre-line max-w-xs bg-white shadow-lg border border-gray-200 rounded-md p-3 text-sm z-50">
+                        <TooltipContent className="whitespace-pre-line max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
                           <p>{getStatusExplanation(client)}</p>
                         </TooltipContent>
                       </Tooltip>
-                      <div className="text-sm text-gray-600 truncate max-w-[150px]" title={client.company}>
+                      <div className="text-sm text-muted-foreground truncate max-w-[150px]" title={client.company}>
                         {client.company}
                       </div>
                     </div>
@@ -1054,45 +1054,45 @@ const Clientes = () => {
                      {/* Metrics Grid */}
                      <div className="grid grid-cols-2 gap-3 text-sm">
                        <div>
-                         <span className="text-gray-500">Campanhas:</span>
+                         <span className="text-muted-foreground">Campanhas:</span>
                          <span className="ml-1 font-medium">{client.active_campaigns}</span>
                        </div>
                        <div>
-                         <span className="text-gray-500">Leads:</span>
+                         <span className="text-muted-foreground">Leads:</span>
                          <span className="ml-1 font-medium">{client.leads_generated}</span>
                        </div>
                        <div>
-                         <span className="text-gray-500">CPL Médio:</span>
+                         <span className="text-muted-foreground">CPL Médio:</span>
                          <span className="ml-1 font-medium">R$ {client.avg_cpl.toFixed(2)}</span>
                        </div>
                        <div>
-                         <span className="text-gray-500">Setor:</span>
+                         <span className="text-muted-foreground">Setor:</span>
                          <span className="ml-1 font-medium truncate" title={client.sector}>{client.sector}</span>
                        </div>
                        <div>
-                         <span className="text-gray-500">Orçamento:</span>
+                         <span className="text-muted-foreground">Orçamento:</span>
                          <span className="ml-1 font-medium">R$ {(client.monthly_budget || 0).toLocaleString('pt-BR', { 
                            minimumFractionDigits: 0, 
                            maximumFractionDigits: 0 
                          })}</span>
                        </div>
                        <div className="flex items-center gap-2">
-                         <div>
-                           <span className="text-gray-500">Gasto:</span>
-                           <span className="ml-1 font-medium">R$ {(client.spend || 0).toLocaleString('pt-BR', { 
-                             minimumFractionDigits: 0, 
-                             maximumFractionDigits: 0 
-                           })}</span>
-                         </div>
-                         <BudgetStatusIcon client={client} />
-                       </div>
-                     </div>
+                          <div>
+                            <span className="text-muted-foreground">Gasto:</span>
+                            <span className="ml-1 font-medium">R$ {(client.spend || 0).toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 0, 
+                              maximumFractionDigits: 0 
+                            })}</span>
+                          </div>
+                          <BudgetStatusIcon client={client} />
+                        </div>
+                      </div>
 
-                    {/* Additional Info */}
-                    {client.monthly_budget > 0 && (
-                      <div className="pt-2 border-t border-gray-100">
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Orçamento Mensal:</span> R$ {client.monthly_budget.toLocaleString('pt-BR', { 
+                     {/* Additional Info */}
+                     {client.monthly_budget > 0 && (
+                       <div className="pt-2 border-t border-border">
+                         <div className="text-sm text-muted-foreground">
+                           <span className="font-medium">Orçamento Mensal:</span> R$ {client.monthly_budget.toLocaleString('pt-BR', {
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
                           })}
