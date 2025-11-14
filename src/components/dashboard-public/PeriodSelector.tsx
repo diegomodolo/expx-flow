@@ -74,8 +74,8 @@ export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorP
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
             <p className="text-xs">
-              Os dados usam janela de atribuição de 7 dias (clique) e 1 dia (visualização) do Facebook.
-              Leads podem ser atribuídos a anúncios visualizados até 7 dias atrás.
+              Os dados mostram conversões com janela de atribuição de <strong>7 dias após clique</strong>, 
+              que é o padrão do Facebook Ads Manager.
             </p>
           </TooltipContent>
         </Tooltip>
