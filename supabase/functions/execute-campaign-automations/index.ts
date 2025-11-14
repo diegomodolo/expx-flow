@@ -1107,17 +1107,17 @@ function generateEntityName(
       break;
     
     case 'increase_budget':
-      const increasePercent = budgetChange || 0;
-      suffix = `Budget +${increasePercent.toFixed(0)}% (${ruleName})`;
+      suffix = `Budget +${percentChange}% (${ruleName})`;
       break;
     
     case 'decrease_budget':
-      const decreasePercent = budgetChange || 0;
-      suffix = `Budget -${decreasePercent.toFixed(0)}% (${ruleName})`;
+      suffix = `Budget -${percentChange}% (${ruleName})`;
       break;
     
-    case 'adjust_budget':
-      suffix = `Budget Ajustado (${ruleName})`;
+    case 'duplicate_campaign':
+    case 'duplicate_adset':
+    case 'duplicate_ad':
+      suffix = `Cópia (${ruleName})`;
       break;
     
     default:
@@ -1202,6 +1202,32 @@ async function executeAction(
         };
         break;
       
+      case 'duplicate_campaign':
+      case 'duplicate_adset':
+      case 'duplicate_ad':
+        // Duplicar usando o endpoint de cópias do Facebook
+        url = `https://graph.facebook.com/v20.0/${facebookId}/copies`;
+        
+        const newName = generateEntityName(currentName, namePrefix, actionType, ruleName);
+        body = {
+          name: newName,
+          status: 'ACTIVE'
+        };
+        
+        // Se tiver configuração de budget para duplicação
+        if (actionConfig.duplicate_budget_percent && (entityType === 'campaign' || entityType === 'adset')) {
+          const currentResponse = await fetch(
+            `https://graph.facebook.com/v20.0/${facebookId}?fields=daily_budget,lifetime_budget&access_token=${accessToken}`
+          );
+          const currentData = await currentResponse.json();
+          const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
+          const newDuplicateBudget = currentBudget * (actionConfig.duplicate_budget_percent / 100);
+          body.daily_budget = Math.round(newDuplicateBudget * 100);
+        }
+        
+        console.log(`📋 Duplicating ${entityType} with new name: ${newName}`);
+        break;
+      
       default:
         console.log(`⚠️  Action type not implemented yet: ${actionType}`);
         return { success: false, error: `Tipo de ação não implementado: ${actionType}` };
@@ -1248,6 +1274,9 @@ function getActionDescription(actionType: string): string {
     adjust_budget: 'Budget Ajustado',
     increase_budget: 'Budget Aumentado',
     decrease_budget: 'Budget Reduzido',
+    duplicate_campaign: 'Campanha Duplicada',
+    duplicate_adset: 'Conjunto Duplicado',
+    duplicate_ad: 'Anúncio Duplicado',
   };
   return descriptions[actionType] || actionType;
 }
