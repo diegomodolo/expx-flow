@@ -1167,7 +1167,11 @@ const Clientes = () => {
               await createClient(clientData);
             } else {
               await updateClient(selectedClient!.id, clientData);
+              // Force refetch after update to ensure UI reflects changes
+              await fetchClients();
             }
+            // Close dialog after successful update
+            setDialogOpen(false);
           }}
         />
 
