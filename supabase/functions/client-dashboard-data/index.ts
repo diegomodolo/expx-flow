@@ -324,7 +324,7 @@ Deno.serve(async (req) => {
 
     // Agora calcular as métricas com os valores corretos
     const cpl = totalConversions > 0 ? totalSpend / totalConversions : 0;
-    const leadsPerK = totalImpressions > 0 ? (totalConversions / totalImpressions) * 1000 : 0;
+    const leadsPerK = totalSpend > 0 ? (totalConversions / totalSpend) * 1000 : 0;
     const cpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
