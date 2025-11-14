@@ -178,8 +178,8 @@ export default function NewDashboard() {
     <DashboardLayout>
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard - Controle de Tráfego</h1>
-          <p className="text-gray-600 mt-1">Visão completa da performance dos seus projetos</p>
+          <h1 className="text-2xl font-bold text-card-foreground">Dashboard - Controle de Tráfego</h1>
+          <p className="text-muted-foreground mt-1">Visão completa da performance dos seus projetos</p>
         </div>
         
         <div className="flex items-center space-x-4 mt-4 lg:mt-0">
@@ -202,77 +202,77 @@ export default function NewDashboard() {
       {/* Conteúdo do Dashboard */}
       <div className="space-y-8">
         {/* Resumo Executivo */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-gray-900">Resumo Executivo</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Resumo Executivo</h2>
           </div>
           
           <div className="grid grid-cols-5 gap-6">
             {/* Investimento Total */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+            <div className="bg-blue-500/10 dark:bg-blue-500/20 rounded-lg p-6 border border-blue-500/30">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                   <DollarSign className="text-white w-5 h-5" />
                 </div>
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                   metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 
-                    ? 'text-green-600 bg-green-100' 
-                    : 'text-red-600 bg-red-100'
+                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
+                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
                 }`}>
                   {metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 ? '+' : ''}
                   {metrics ? calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment).toFixed(1) : 0}%
                 </span>
               </div>
               <div className="space-y-1">
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-card-foreground">
                   {formatCurrency(metrics?.totalInvestment || 0)}
                 </p>
-                <p className="text-sm text-gray-600">Receita Total</p>
+                <p className="text-sm text-muted-foreground">Receita Total</p>
               </div>
             </div>
 
             {/* Leads Gerados */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+            <div className="bg-green-500/10 dark:bg-green-500/20 rounded-lg p-6 border border-green-500/30">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
                   <Users className="text-white w-5 h-5" />
                 </div>
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                   metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 
-                    ? 'text-green-600 bg-green-100' 
-                    : 'text-red-600 bg-red-100'
+                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
+                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
                 }`}>
                   {metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 ? '+' : ''}
                   {metrics ? calculateChange(metrics.totalLeads, metrics.previousPeriodLeads).toFixed(1) : 0}%
                 </span>
               </div>
               <div className="space-y-1">
-                <p className="text-2xl font-bold text-gray-900">{metrics?.totalLeads || 0}</p>
-                <p className="text-sm text-gray-600">Leads Gerados</p>
+                <p className="text-2xl font-bold text-card-foreground">{metrics?.totalLeads || 0}</p>
+                <p className="text-sm text-muted-foreground">Leads Gerados</p>
               </div>
             </div>
 
             {/* CPA Médio */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
+            <div className="bg-purple-500/10 dark:bg-purple-500/20 rounded-lg p-6 border border-purple-500/30">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                   <Target className="text-white w-5 h-5" />
                 </div>
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                   metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 
-                    ? 'text-green-600 bg-green-100' 
-                    : 'text-red-600 bg-red-100'
+                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
+                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
                 }`}>
                   {metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 ? '' : '+'}
                   {metrics ? calculateChange(metrics.averageCPA, metrics.previousPeriodCPA).toFixed(1) : 0}%
                 </span>
               </div>
               <div className="space-y-1">
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-card-foreground">
                   {formatCurrency(metrics?.averageCPA || 0)}
                 </p>
-                <p className="text-sm text-gray-600">CPA Médio</p>
+                <p className="text-sm text-muted-foreground">CPA Médio</p>
               </div>
             </div>
 
@@ -300,28 +300,28 @@ export default function NewDashboard() {
             </div>
 
             {/* MQL Percentage */}
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-6 border border-emerald-200">
+            <div className="bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg p-6 border border-emerald-500/30">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
                   <Award className="text-white w-5 h-5" />
                 </div>
                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                   leadQualityData.mqlPercentage >= 70 
-                    ? 'text-green-600 bg-green-100' 
+                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
                     : leadQualityData.mqlPercentage >= 50
-                    ? 'text-yellow-600 bg-yellow-100'
-                    : 'text-red-600 bg-red-100'
+                    ? 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30'
+                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
                 }`}>
                   {leadQualityData.disqualifiedLeads > 0 ? 'Com Filtro' : 'Sem Dados'}
                 </span>
               </div>
               <div className="space-y-1">
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-card-foreground">
                   {leadQualityLoading ? '...' : `${leadQualityData.mqlPercentage.toFixed(1)}%`}
                 </p>
-                <p className="text-sm text-gray-600">MQL Rate</p>
+                <p className="text-sm text-muted-foreground">MQL Rate</p>
                 {leadQualityData.totalLeads > 0 && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground/80">
                     {leadQualityData.totalLeads - leadQualityData.disqualifiedLeads} de {leadQualityData.totalLeads} leads
                   </p>
                 )}
@@ -333,10 +333,10 @@ export default function NewDashboard() {
         {/* Gráficos de Performance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico 1: Top Clientes por Investimento vs Leads */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-gray-900">Top Clientes - Investimento vs Leads</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">Top Clientes - Investimento vs Leads</h2>
             </div>
             
             <div className="h-[400px] w-full">
@@ -412,10 +412,10 @@ export default function NewDashboard() {
           </div>
 
           {/* Gráfico 2: CPL vs Investimento por Cliente */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-gray-900">CPL vs Investimento por Cliente</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">CPL vs Investimento por Cliente</h2>
             </div>
             
             <div className="h-[400px] w-full">
@@ -513,18 +513,18 @@ export default function NewDashboard() {
         </div>
 
         {/* Top 5 Clientes por Investimento e Leads */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="grid grid-cols-2 gap-8">
             {/* Top 5 Clientes por Investimento */}
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <Users className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-gray-900">Top 5 Clientes por Investimento</h2>
+                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Clientes por Investimento</h2>
               </div>
 
               <div className="space-y-3">
                 {topClientsByROI.slice(0, 5).map((client, index) => (
-                  <div key={client.id} className={`p-4 bg-white rounded-lg shadow-sm ${
+                  <div key={client.id} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
                     index === 0 ? 'border-l-4 border-green-500' :
                     index === 1 ? 'border-l-4 border-blue-500' :
                     index === 2 ? 'border-l-4 border-purple-500' :
@@ -543,15 +543,15 @@ export default function NewDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900">{client.name}</h4>
+                          <h4 className="text-sm font-semibold text-card-foreground">{client.name}</h4>
                           <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
                             {formatCurrency(client.investment)}
                           </span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                             {client.company}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-muted-foreground">
                           Campanhas: {client.active_campaigns} • Leads: {client.leads_generated} • CPA: {formatCurrency(client.avg_cpl)} • {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}% do total
                         </p>
                       </div>
@@ -565,7 +565,7 @@ export default function NewDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <Target className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-gray-900">Top 5 Clientes por Resultado de Leads</h2>
+                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Clientes por Resultado de Leads</h2>
               </div>
 
               <div className="space-y-3">
@@ -573,7 +573,7 @@ export default function NewDashboard() {
                   .sort((a, b) => b.leads_generated - a.leads_generated)
                   .slice(0, 5)
                   .map((client, index) => (
-                  <div key={`leads-${client.id}`} className={`p-4 bg-white rounded-lg shadow-sm ${
+                  <div key={`leads-${client.id}`} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
                     index === 0 ? 'border-l-4 border-green-500' :
                     index === 1 ? 'border-l-4 border-blue-500' :
                     index === 2 ? 'border-l-4 border-purple-500' :
@@ -592,15 +592,15 @@ export default function NewDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900">{client.name}</h4>
+                          <h4 className="text-sm font-semibold text-card-foreground">{client.name}</h4>
                           <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
                             {client.leads_generated} leads
                           </span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                             {client.company}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-muted-foreground">
                           Campanhas: {client.active_campaigns} • Investimento: {formatCurrency(client.investment)} • CPA: {formatCurrency(client.avg_cpl)} • {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}% dos leads
                         </p>
                       </div>
@@ -613,10 +613,10 @@ export default function NewDashboard() {
         </div>
 
         {/* Performance por Etapas do Funil */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center gap-2 mb-6">
             <Target className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-gray-900">Performance por Etapas do Funil</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Performance por Etapas do Funil</h2>
           </div>
 
           <div className="grid grid-cols-3 gap-6">
@@ -660,10 +660,10 @@ export default function NewDashboard() {
 
 
         {/* Alertas & Oportunidades */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center gap-2 mb-6">
             <AlertTriangle className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-gray-900">Alertas & Oportunidades</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Alertas & Oportunidades</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-8">
@@ -671,7 +671,7 @@ export default function NewDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <AlertTriangle className="w-4 h-4 text-red-500" />
-                <h3 className="text-base font-medium text-gray-900">Problemas ({dangerAlerts.length})</h3>
+                <h3 className="text-base font-medium text-card-foreground">Problemas ({dangerAlerts.length})</h3>
               </div>
           <div className="space-y-3">
                 {alertsLoading && !alertsReady ? (
@@ -687,22 +687,22 @@ export default function NewDashboard() {
                   </div>
                 ) : (
                   dangerAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert) => (
-                    <div key={alert.id} className="p-4 bg-white border-l-4 border-red-500 rounded-lg shadow-sm">
+                    <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-red-500 rounded-lg shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <AlertTriangle className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                            <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
                             <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
                               R$ {alert.value || '0,00'}
                             </span>
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                            <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                               {alert.client || 'Cliente não informado'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700 mb-2">
+                          <p className="text-sm text-muted-foreground mb-2">
                             Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
                           </p>
                            <div className="flex items-center gap-2">
@@ -725,7 +725,7 @@ export default function NewDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircle className="w-4 h-4 text-green-500" />
-                <h3 className="text-base font-medium text-gray-900">Oportunidades ({opportunityAlerts.length})</h3>
+                <h3 className="text-base font-medium text-card-foreground">Oportunidades ({opportunityAlerts.length})</h3>
               </div>
               <div className="space-y-3">
                 {alertsLoading && !alertsReady ? (
