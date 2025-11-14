@@ -17,7 +17,15 @@ interface AutomationRule {
   action_config: any;
   time_window_days: number;
   scope_filters?: any;
-  safety_limits?: any;
+  budget_safety_limits?: {
+    max_increase_percentage?: number;
+    max_decrease_percentage?: number;
+  };
+  execution_limits?: {
+    max_executions_per_day?: number;
+    cooldown_hours?: number;
+    entity_cooldown_days?: number;
+  };
   campaign_objectives?: string[];
   is_active: boolean;
 }
@@ -1021,7 +1029,8 @@ async function processEntityWithRule(
         rule.rule_name,
         namePrefix,
         accessToken,
-        adAccountId
+        adAccountId,
+        rule
       );
 
       if (actionResult.success) {
@@ -1187,7 +1196,8 @@ async function executeAction(
   ruleName: string,
   namePrefix: string,
   accessToken: string,
-  adAccountId: string
+  adAccountId: string,
+  rule?: AutomationRule
 ): Promise<{ success: boolean; error?: string }> {
   try {
     let url = '';
@@ -1228,23 +1238,46 @@ async function executeAction(
         let newBudget = actionConfig.new_budget;
         let percentChange = 0;
         
-        if (actionType === 'increase_budget' && actionConfig.increase_percentage) {
+        if (actionType === 'increase_budget') {
           // Buscar budget atual primeiro
           const currentResponse = await fetch(
             `https://graph.facebook.com/v20.0/${facebookId}?fields=daily_budget,lifetime_budget&access_token=${accessToken}`
           );
           const currentData = await currentResponse.json();
           const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
-          percentChange = actionConfig.increase_percentage;
-          newBudget = currentBudget * (1 + percentChange / 100);
-        } else if (actionType === 'decrease_budget' && actionConfig.decrease_percentage) {
+          
+          // ✅ Buscar percentual nos limites de segurança OU no action_config
+          percentChange = actionConfig.increase_percentage || 
+                          rule?.budget_safety_limits?.max_increase_percentage || 
+                          0;
+          
+          if (percentChange > 0) {
+            newBudget = currentBudget * (1 + percentChange / 100);
+            console.log(`📊 Aumentando budget de ${currentBudget} em ${percentChange}% = ${newBudget}`);
+          } else {
+            console.log(`⚠️ Nenhum percentual de aumento configurado, mantendo budget atual`);
+            newBudget = currentBudget;
+          }
+        } else if (actionType === 'decrease_budget') {
+          // Buscar budget atual
           const currentResponse = await fetch(
             `https://graph.facebook.com/v20.0/${facebookId}?fields=daily_budget,lifetime_budget&access_token=${accessToken}`
           );
           const currentData = await currentResponse.json();
           const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
-          percentChange = actionConfig.decrease_percentage;
-          newBudget = currentBudget * (1 - percentChange / 100);
+          
+          // ✅ Buscar percentual nos limites de segurança OU no action_config
+          percentChange = actionConfig.decrease_percentage || 
+                          rule?.budget_safety_limits?.max_decrease_percentage || 
+                          0;
+          
+          if (percentChange > 0) {
+            newBudget = currentBudget * (1 - percentChange / 100);
+            console.log(`📊 Reduzindo budget de ${currentBudget} em ${percentChange}% = ${newBudget}`);
+          } else {
+            console.log(`⚠️ Nenhum percentual de redução configurado, mantendo budget atual`);
+            newBudget = currentBudget;
+          }
         }
         
         body = {
