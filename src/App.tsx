@@ -50,6 +50,7 @@ import AdminLeadReports from "./pages/AdminLeadReports";
 import CRMPublicView from "./pages/CRMPublicView";
 import CRMLogin from "./pages/CRMLogin";
 import Automacoes from "./pages/Automacoes";
+import DashboardOrcamento from "./pages/DashboardOrcamento";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -289,6 +290,11 @@ const App = () => {
                 <Route path="/automacoes" element={
                   <ProtectedRoute>
                     <Automacoes />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard-orcamento" element={
+                  <ProtectedRoute>
+                    <DashboardOrcamento />
                   </ProtectedRoute>
                 } />
                 <Route path="/configuracoes/*" element={
