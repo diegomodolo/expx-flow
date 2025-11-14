@@ -9,11 +9,15 @@ import { CampaignsTable } from "@/components/dashboard-public/CampaignsTable";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarIcon, Loader2, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ClientDashboardPublic = () => {
   const { token } = useParams<{ token: string }>();
@@ -22,8 +26,12 @@ const ClientDashboardPublic = () => {
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState("5");
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [nextRefresh, setNextRefresh] = useState<Date | null>(null);
 
-  const { data, isLoading, error } = useClientDashboard(token || "", period);
+  const { data, isLoading, error, refetch } = useClientDashboard(token || "", period);
 
   const handleDateSelect = (range: { from: Date; to: Date } | undefined) => {
     if (range?.from && range?.to) {
@@ -31,6 +39,55 @@ const ClientDashboardPublic = () => {
       const days = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
       setPeriod(days);
     }
+  };
+
+  const handleManualRefresh = useCallback(async () => {
+    toast.info("Atualizando dados...");
+    await refetch();
+    setLastRefresh(new Date());
+    if (autoRefresh) {
+      setNextRefresh(new Date(Date.now() + parseInt(refreshInterval) * 60 * 1000));
+    }
+    toast.success("Dados atualizados!");
+  }, [refetch, autoRefresh, refreshInterval]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh) {
+      setNextRefresh(null);
+      return;
+    }
+
+    const intervalMs = parseInt(refreshInterval) * 60 * 1000;
+    setNextRefresh(new Date(Date.now() + intervalMs));
+
+    const interval = setInterval(async () => {
+      await refetch();
+      setLastRefresh(new Date());
+      setNextRefresh(new Date(Date.now() + intervalMs));
+      toast.success("Dados atualizados automaticamente");
+    }, intervalMs);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, refetch]);
+
+  // Update next refresh time every second
+  useEffect(() => {
+    if (!autoRefresh || !nextRefresh) return;
+
+    const timer = setInterval(() => {
+      setNextRefresh(new Date(Date.now() + parseInt(refreshInterval) * 60 * 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [autoRefresh, refreshInterval, nextRefresh]);
+
+  const getTimeUntilRefresh = () => {
+    if (!nextRefresh || !autoRefresh) return null;
+    const diff = Math.max(0, nextRefresh.getTime() - Date.now());
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   if (isLoading) {
@@ -79,6 +136,50 @@ const ClientDashboardPublic = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Auto-refresh controls */}
+              <div className="flex items-center gap-3 border-r border-border pr-3">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="auto-refresh"
+                    checked={autoRefresh}
+                    onCheckedChange={setAutoRefresh}
+                  />
+                  <Label htmlFor="auto-refresh" className="text-sm cursor-pointer">
+                    Auto-refresh
+                  </Label>
+                </div>
+                {autoRefresh && (
+                  <>
+                    <Select value={refreshInterval} onValueChange={setRefreshInterval}>
+                      <SelectTrigger className="w-24 h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 min</SelectItem>
+                        <SelectItem value="5">5 min</SelectItem>
+                        <SelectItem value="10">10 min</SelectItem>
+                        <SelectItem value="15">15 min</SelectItem>
+                        <SelectItem value="30">30 min</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xs text-muted-foreground">
+                      Próx: {getTimeUntilRefresh()}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Manual refresh button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={isLoading}
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              </Button>
+
+              {/* Date picker */}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
