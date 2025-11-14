@@ -1,0 +1,2 @@
+-- Add comment to execution_limits field to document the new entity_cooldown_days parameter
+COMMENT ON COLUMN campaign_automation_rules.execution_limits IS 'Execution limits including max_executions_per_day, max_budget_change_per_day, and entity_cooldown_days (days to wait before duplicating same entity again)';
