@@ -167,31 +167,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         title: "Sucesso",
         description: client ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!",
       });
-      onOpenChange(false);
-      setFormData({
-        name: "",
-        email: "",
-        company: "",
-        sector: "",
-        status: "excelente",
-        avatar: "",
-        monthly_budget: 0,
-        target_audience: "",
-        product_name: "",
-        voice_tone: "",
-        objectives: "",
-        preferred_platforms: [],
-        campaign_type: "",
-        notes: "",
-        ad_account_id: "",
-        website_url: "",
-        inactive_reason: "",
-        team_id: "none"
-      });
-    } catch (error) {
+      // Don't close dialog here - let parent component handle it
+    } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao salvar cliente. Tente novamente.",
+        description: error.message || "Erro ao salvar cliente",
         variant: "destructive",
       });
     } finally {
