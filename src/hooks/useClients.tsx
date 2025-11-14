@@ -50,6 +50,7 @@ export interface Client {
   notes?: string;
   ad_account_id?: string;
   leads_generated: number;
+  spend?: number;
   last_sync_at?: string;
   last_sync_period?: string;
   website_url?: string;
@@ -475,7 +476,22 @@ export function useClients() {
         }
       }));
       
-      setClients(clientsWithStatus);
+      // Calculate total spend for each client
+      const clientsWithSpend = await Promise.all(clientsWithStatus.map(async (client) => {
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('spend')
+          .eq('client_id', client.id);
+        
+        const totalSpend = campaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
+        
+        return {
+          ...client,
+          spend: totalSpend
+        };
+      }));
+      
+      setClients(clientsWithSpend);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao buscar clientes");
     } finally {
