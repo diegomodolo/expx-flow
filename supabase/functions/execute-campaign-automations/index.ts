@@ -1215,27 +1215,31 @@ async function executeAction(
         break;
       
       case 'duplicate_ad':
-        // Para anúncios, usar deep_copy para evitar problemas com specs obsoletas de imagem
-        url = `https://graph.facebook.com/v20.0/${facebookId}/copies?deep_copy=1`;
+        // Para anúncios, criar um novo ao invés de copiar para evitar specs obsoletas
+        console.log(`📋 Fetching original ad data to create new ad...`);
         
+        // Buscar dados do anúncio original
+        const adDataResponse = await fetchWithRetry(
+          `https://graph.facebook.com/v20.0/${facebookId}?fields=name,adset_id,creative,status&access_token=${accessToken}`,
+          { method: 'GET' }
+        );
+        
+        if (!adDataResponse.ok) {
+          throw new Error(`Failed to fetch ad data: ${adDataResponse.status}`);
+        }
+        
+        const adData = await adDataResponse.json();
         const newAdName = generateEntityName(currentName, namePrefix, actionType, ruleName);
+        
+        // Criar novo anúncio no mesmo ad set
+        url = `https://graph.facebook.com/v20.0/${adData.adset_id}/ads`;
         body = {
           name: newAdName,
+          creative: { creative_id: adData.creative.id },
           status: 'ACTIVE'
         };
         
-        // Se tiver configuração de budget para duplicação
-        if (actionConfig.duplicate_budget_percent && (entityType === 'campaign' || entityType === 'adset')) {
-          const currentResponse = await fetch(
-            `https://graph.facebook.com/v20.0/${facebookId}?fields=daily_budget,lifetime_budget&access_token=${accessToken}`
-          );
-          const currentData = await currentResponse.json();
-          const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
-          const newDuplicateBudget = currentBudget * (actionConfig.duplicate_budget_percent / 100);
-          body.daily_budget = Math.round(newDuplicateBudget * 100);
-        }
-        
-        console.log(`📋 Duplicating ${entityType} with new name: ${actionType === 'duplicate_ad' ? newAdName : newName}`);
+        console.log(`📋 Creating new ad in adset ${adData.adset_id} with name: ${newAdName}`);
         break;
       
       default:
