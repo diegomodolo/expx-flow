@@ -1,4 +1,4 @@
-import { Search, Bell, Settings, LogOut, User, ChevronDown, AlertTriangle } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, ChevronDown, AlertTriangle, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
+import { useState, useEffect } from "react";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
@@ -46,6 +48,14 @@ export function DashboardHeader() {
     signOut = async () => ({ error: null });
     profile = null;
   }
+
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     if (!signOut) return;
@@ -86,6 +96,17 @@ export function DashboardHeader() {
     navigate('/leads-desqualificados');
   };
 
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    if (toast) {
+      toast({
+        title: `Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`,
+        description: "O tema foi alterado com sucesso"
+      });
+    }
+  };
+
   return (
     <header className="h-16 bg-card border-b border-border z-20 shrink-0">
       <div className="flex items-center justify-between h-full px-6">
@@ -119,6 +140,23 @@ export function DashboardHeader() {
               )}
             </Button>
           </div>
+          
+          {/* Theme Toggle */}
+          {mounted && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="relative p-2 h-auto hover:bg-muted/50"
+              title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <Moon className="h-5 w-5 text-muted-foreground" />
+              )}
+            </Button>
+          )}
           
           <CompanySelector />
           
