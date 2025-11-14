@@ -11,6 +11,7 @@ import { HelpCircle } from "lucide-react";
 import { AutomationRule } from "@/hooks/useAutomationRules";
 import { ConditionEditor, ConditionsGroup } from "./ConditionEditor";
 import { CampaignObjectiveSelector } from "./CampaignObjectiveSelector";
+import { SafetyLimitsEditor, SafetyLimits } from "./SafetyLimitsEditor";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,18 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
     is_active: true,
     action_config: {} as any,
     entity_type: "campaign" as "campaign" | "adset" | "ad",
+  });
+
+  const [safetyLimits, setSafetyLimits] = useState<SafetyLimits>({
+    budget_safety_limits: {
+      max_daily_budget_increase_percent: 20,
+      max_daily_budget_decrease_percent: 30,
+    },
+    execution_limits: {
+      max_executions_per_day: 3,
+      cooldown_hours: 6,
+      entity_cooldown_days: 7,
+    },
   });
 
   const [conditions, setConditions] = useState<ConditionsGroup>({
@@ -95,6 +108,21 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
       setConditions(template.conditions as ConditionsGroup);
 
       setSelectedObjectives(template.campaign_objectives || []);
+
+      // Load safety limits from template
+      if (template.budget_safety_limits || template.execution_limits) {
+        setSafetyLimits({
+          budget_safety_limits: template.budget_safety_limits || {
+            max_daily_budget_increase_percent: 20,
+            max_daily_budget_decrease_percent: 30,
+          },
+          execution_limits: template.execution_limits || {
+            max_executions_per_day: 3,
+            cooldown_hours: 6,
+            entity_cooldown_days: 7,
+          },
+        });
+      }
       
       // Delay to ensure state is updated before rendering
       setTimeout(() => {
@@ -186,14 +214,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         }))
       },
       action_config: formData.action_config,
-      budget_safety_limits: {
-        max_daily_budget_increase_percent: 20,
-        max_daily_budget_decrease_percent: 30,
-      },
-      execution_limits: {
-        max_executions_per_day: 3,
-        cooldown_hours: 4,
-      },
+      budget_safety_limits: safetyLimits.budget_safety_limits,
+      execution_limits: safetyLimits.execution_limits,
       scope_filters: {},
       campaign_objectives: selectedObjectives.length > 0 ? selectedObjectives : null,
     };
@@ -523,6 +545,14 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
               </div>
             </>
           )}
+
+          <Separator className="my-6" />
+
+          <SafetyLimitsEditor
+            value={safetyLimits}
+            onChange={setSafetyLimits}
+            actionType={formData.action_type}
+          />
 
           <Separator className="my-6" />
 
