@@ -18,8 +18,8 @@ interface AutomationRule {
   time_window_days: number;
   scope_filters?: any;
   budget_safety_limits?: {
-    max_increase_percentage?: number;
-    max_decrease_percentage?: number;
+    max_daily_budget_increase_percent?: number;
+    max_daily_budget_decrease_percent?: number;
   };
   execution_limits?: {
     max_executions_per_day?: number;
@@ -1251,7 +1251,7 @@ async function executeAction(
           
           // ✅ Buscar percentual nos limites de segurança OU no action_config
           percentChange = actionConfig.increase_percentage || 
-                          rule?.budget_safety_limits?.max_increase_percentage || 
+                          rule?.budget_safety_limits?.max_daily_budget_increase_percent || 
                           0;
           
           if (percentChange > 0) {
@@ -1276,7 +1276,7 @@ async function executeAction(
           
           // ✅ Buscar percentual nos limites de segurança OU no action_config
           percentChange = actionConfig.decrease_percentage || 
-                          rule?.budget_safety_limits?.max_decrease_percentage || 
+                          rule?.budget_safety_limits?.max_daily_budget_decrease_percent || 
                           0;
           
           if (percentChange > 0) {
