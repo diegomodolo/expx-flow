@@ -1204,13 +1204,23 @@ async function executeAction(
       
       case 'duplicate_campaign':
       case 'duplicate_adset':
-      case 'duplicate_ad':
-        // Duplicar usando o endpoint de cópias do Facebook
+        // Duplicar campanha ou ad set usando endpoint padrão
         url = `https://graph.facebook.com/v20.0/${facebookId}/copies`;
         
         const newName = generateEntityName(currentName, namePrefix, actionType, ruleName);
         body = {
           name: newName,
+          status: 'ACTIVE'
+        };
+        break;
+      
+      case 'duplicate_ad':
+        // Para anúncios, usar deep_copy para evitar problemas com specs obsoletas de imagem
+        url = `https://graph.facebook.com/v20.0/${facebookId}/copies?deep_copy=1`;
+        
+        const newAdName = generateEntityName(currentName, namePrefix, actionType, ruleName);
+        body = {
+          name: newAdName,
           status: 'ACTIVE'
         };
         
@@ -1225,7 +1235,7 @@ async function executeAction(
           body.daily_budget = Math.round(newDuplicateBudget * 100);
         }
         
-        console.log(`📋 Duplicating ${entityType} with new name: ${newName}`);
+        console.log(`📋 Duplicating ${entityType} with new name: ${actionType === 'duplicate_ad' ? newAdName : newName}`);
         break;
       
       default:
