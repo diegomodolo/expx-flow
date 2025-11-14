@@ -13,6 +13,7 @@ export const safetyLimitsSchema = z.object({
   execution_limits: z.object({
     max_executions_per_day: z.number().int().min(1, "Mínimo 1 execução").max(50, "Máximo 50 execuções"),
     cooldown_hours: z.number().int().min(1, "Mínimo 1 hora").max(72, "Máximo 72 horas"),
+    entity_cooldown_days: z.number().int().min(0, "Mínimo 0 dias").max(30, "Máximo 30 dias").optional(),
   }),
 });
 
@@ -26,6 +27,7 @@ interface SafetyLimitsEditorProps {
 
 export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimitsEditorProps) => {
   const showBudgetLimits = ["increase_budget", "decrease_budget"].includes(actionType);
+  const showEntityCooldown = ["duplicate_campaign", "duplicate_adset", "duplicate_ad"].includes(actionType);
 
   const updateBudgetLimit = (field: keyof SafetyLimits["budget_safety_limits"], newValue: number) => {
     onChange({
@@ -147,63 +149,98 @@ export const SafetyLimitsEditor = ({ value, onChange, actionType }: SafetyLimits
             Controle a frequência de execução da automação
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="max_executions">
-              Execuções Máximas por Dia
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Quantidade máxima de vezes que a regra pode executar por campanha em 24h</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Input
-              id="max_executions"
-              type="number"
-              min="1"
-              max="50"
-              value={value.execution_limits.max_executions_per_day}
-              onChange={(e) => updateExecutionLimit("max_executions_per_day", parseInt(e.target.value) || 1)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Previne execuções excessivas na mesma campanha
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cooldown">
-              Cooldown (horas)
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Tempo mínimo entre execuções consecutivas na mesma campanha</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <div className="flex items-center gap-2">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="max_executions">
+                Execuções Máximas por Dia
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Quantidade máxima de vezes que a regra pode executar por campanha em 24h</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
               <Input
-                id="cooldown"
+                id="max_executions"
                 type="number"
                 min="1"
-                max="72"
-                value={value.execution_limits.cooldown_hours}
-                onChange={(e) => updateExecutionLimit("cooldown_hours", parseInt(e.target.value) || 1)}
+                max="50"
+                value={value.execution_limits.max_executions_per_day}
+                onChange={(e) => updateExecutionLimit("max_executions_per_day", parseInt(e.target.value) || 1)}
               />
-              <span className="text-sm text-muted-foreground">h</span>
+              <p className="text-xs text-muted-foreground">
+                Previne execuções excessivas na mesma campanha
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Evita ações muito frequentes (anti flip-flop)
-            </p>
+
+            <div className="space-y-2">
+              <Label htmlFor="cooldown">
+                Cooldown (horas)
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Tempo mínimo entre execuções consecutivas na mesma campanha</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="cooldown"
+                  type="number"
+                  min="1"
+                  max="72"
+                  value={value.execution_limits.cooldown_hours}
+                  onChange={(e) => updateExecutionLimit("cooldown_hours", parseInt(e.target.value) || 1)}
+                />
+                <span className="text-sm text-muted-foreground">h</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Evita ações muito frequentes (anti flip-flop)
+              </p>
+            </div>
           </div>
+
+          {showEntityCooldown && (
+            <div className="space-y-2 pt-2 border-t">
+              <Label htmlFor="entity_cooldown_days">
+                Cooldown por Entidade (dias)
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">
+                      <p>Tempo mínimo entre duplicações da mesma entidade. Use 0 para desabilitar.</p>
+                      <p className="text-xs mt-1 text-muted-foreground">
+                        Exemplo: Se configurar 7 dias, uma campanha só pode ser duplicada novamente após 7 dias da última duplicação.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="entity_cooldown_days"
+                type="number"
+                min="0"
+                max="30"
+                value={value.execution_limits.entity_cooldown_days || 0}
+                onChange={(e) => updateExecutionLimit("entity_cooldown_days", parseInt(e.target.value) || 0)}
+                placeholder="0 = sem cooldown"
+              />
+              <p className="text-xs text-muted-foreground">
+                Previne duplicações repetidas da mesma entidade. Cópias também nunca são duplicadas.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

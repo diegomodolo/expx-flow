@@ -961,6 +961,46 @@ async function processEntityWithRule(
 ): Promise<'skipped' | 'actioned' | 'error'> {
   console.log(`\n⚙️  Applying rule: ${rule.rule_name} to ${entity.name}`);
 
+  // Verificar se é uma cópia (para evitar duplicar cópias)
+  const isCopy = entity.name.includes('[Cópia]') || 
+                 entity.name.includes('(Cópia)') || 
+                 entity.name.includes('- Cópia') ||
+                 entity.name.match(/\s+\d+$/); // Nome termina com número (ex: "Campanha 2")
+  
+  if (isCopy && ['duplicate_campaign', 'duplicate_adset', 'duplicate_ad'].includes(rule.action_type)) {
+    console.log(`⏭️  Skipping copy: ${entity.name}`);
+    return 'skipped';
+  }
+  
+  // Verificar cooldown para ações de duplicação
+  if (['duplicate_campaign', 'duplicate_adset', 'duplicate_ad'].includes(rule.action_type)) {
+    const cooldownDays = rule.execution_limits?.entity_cooldown_days;
+    if (cooldownDays && cooldownDays > 0) {
+      const cooldownDate = new Date();
+      cooldownDate.setDate(cooldownDate.getDate() - cooldownDays);
+      
+      // Buscar últimas duplicações desta entidade
+      const { data: recentLogs, error: logsError } = await supabase
+        .from('campaign_automation_logs')
+        .select('created_at')
+        .eq('company_id', rule.company_id)
+        .eq('entity_id', entity.id)
+        .eq('action_type', rule.action_type)
+        .gte('created_at', cooldownDate.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (logsError) {
+        console.error('⚠️  Error checking cooldown:', logsError);
+      } else if (recentLogs && recentLogs.length > 0) {
+        const lastDuplication = new Date(recentLogs[0].created_at);
+        const daysSince = Math.floor((Date.now() - lastDuplication.getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`⏸️  Cooldown active: last duplication ${daysSince} days ago (minimum: ${cooldownDays} days)`);
+        return 'skipped';
+      }
+    }
+  }
+
   try {
     const conditionsMet = evaluateConditions(rule.conditions, metrics);
 
