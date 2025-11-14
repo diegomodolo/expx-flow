@@ -6,13 +6,12 @@ import { PerformanceMetrics } from "@/components/dashboard-public/PerformanceMet
 import { TimelineChart } from "@/components/dashboard-public/TimelineChart";
 import { TopCampaignsPie } from "@/components/dashboard-public/TopCampaignsPie";
 import { CampaignsTable } from "@/components/dashboard-public/CampaignsTable";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PeriodSelector } from "@/components/dashboard-public/PeriodSelector";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Loader2, RefreshCw, Maximize, Minimize, Sun, Moon, Monitor } from "lucide-react";
+import { Loader2, RefreshCw, Maximize, Minimize, Sun, Moon, Monitor } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -83,7 +82,7 @@ const ClientDashboardPublic = () => {
       }, 5000);
     };
 
-    const handleActivity = () => {
+  const handleActivity = () => {
       resetTimer();
     };
 
@@ -102,15 +101,11 @@ const ClientDashboardPublic = () => {
       window.removeEventListener('keydown', handleActivity);
     };
   }, [kioskMode]);
-  const handleDateSelect = (range: {
-    from: Date;
-    to: Date;
-  } | undefined) => {
-    if (range?.from && range?.to) {
-      setDateRange(range);
-      const days = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
-      setPeriod(days);
-    }
+
+  const handleDateRangeChange = (range: { from: Date; to: Date }) => {
+    setDateRange(range);
+    const days = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
+    setPeriod(days);
   };
   const handleManualRefresh = useCallback(async () => {
     toast.info("Atualizando dados...");
@@ -284,31 +279,14 @@ const ClientDashboardPublic = () => {
               <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={isLoading}>
                 <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               </Button>
+            </div>
+          </div>
 
-              {/* Date picker */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? dateRange.to ? <>
-                          {format(dateRange.from, "dd/MM/yy", {
-                      locale: ptBR
-                    })} -{" "}
-                          {format(dateRange.to, "dd/MM/yy", {
-                      locale: ptBR
-                    })}
-                        </> : format(dateRange.from, "dd/MM/yy", {
-                    locale: ptBR
-                  }) : <span>Período</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={{
-                  from: dateRange.from,
-                  to: dateRange.to
-                }} onSelect={handleDateSelect as any} numberOfMonths={2} locale={ptBR} />
-                </PopoverContent>
-              </Popover>
+          {/* Period Selector - New Row */}
+          <div className="px-6 pb-3 border-t border-border pt-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Período:</span>
+              <PeriodSelector dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
             </div>
           </div>
         </div>
