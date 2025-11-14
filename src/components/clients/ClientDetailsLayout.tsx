@@ -42,7 +42,7 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
     const checkActiveSyncJob = async () => {
       const { data } = await supabase
         .from('sync_jobs')
-        .select('id, status')
+        .select('id, status, created_at')
         .eq('client_id', clientId)
         .in('status', ['pending', 'processing'])
         .order('created_at', { ascending: false })
@@ -50,7 +50,25 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
         .maybeSingle();
 
       if (data) {
-        setActiveSyncJobId(data.id);
+        // Only show sync indicator if job is less than 10 minutes old
+        const jobAge = Date.now() - new Date(data.created_at).getTime();
+        const tenMinutes = 10 * 60 * 1000;
+        
+        if (jobAge < tenMinutes) {
+          setActiveSyncJobId(data.id);
+        } else {
+          // Job is too old, likely stuck - mark it as error
+          await supabase
+            .from('sync_jobs')
+            .update({ 
+              status: 'error',
+              error_message: 'Job timeout - took more than 10 minutes',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', data.id);
+          
+          setActiveSyncJobId(null);
+        }
       } else {
         setActiveSyncJobId(null);
       }
