@@ -100,11 +100,11 @@ export function ClienteCampanhas() {
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             <tr>
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center space-x-1">
@@ -114,14 +114,14 @@ export function ClienteCampanhas() {
                   )}
                 </div>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Plataforma
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Status
               </th>
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('cpc')}
               >
                 <div className="flex items-center space-x-1">
@@ -132,7 +132,7 @@ export function ClienteCampanhas() {
                 </div>
               </th>
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('cpa')}
               >
                 <div className="flex items-center space-x-1">
@@ -143,7 +143,7 @@ export function ClienteCampanhas() {
                 </div>
               </th>
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('conversions')}
               >
                 <div className="flex items-center space-x-1">
@@ -154,7 +154,7 @@ export function ClienteCampanhas() {
                 </div>
               </th>
               <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
+                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('spend')}
               >
                 <div className="flex items-center space-x-1">
@@ -164,24 +164,24 @@ export function ClienteCampanhas() {
                   )}
                 </div>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 Ações
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {filteredAndSortedCampaigns.length > 0 ? (
               filteredAndSortedCampaigns.map((campaign) => (
                 <tr 
                   key={campaign.id}
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-muted/30 cursor-pointer"
                   onClick={() => handleCampaignClick(campaign.id)}
                 >
                   <td className="px-4 py-4 whitespace-nowrap">
                     <TooltipProvider>
                       <UITooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-sm font-medium text-gray-900 cursor-help">
+                          <div className="text-sm font-medium text-card-foreground cursor-help">
                             {campaign.name && campaign.name.length > 50 
                               ? `${campaign.name.substring(0, 50)}...` 
                               : campaign.name}
@@ -201,24 +201,24 @@ export function ClienteCampanhas() {
                   <td className="px-4 py-4 whitespace-nowrap">
                     <Badge className={
                       campaign.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
                         : campaign.status === 'paused'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400'
                     }>
                       {campaign.status === 'active' ? 'Ativa' : campaign.status === 'paused' ? 'Pausada' : 'Finalizada'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
                     R$ {campaign.cpc.toFixed(2)}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
                     R$ {campaign.cpa.toFixed(2)}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-card-foreground">
                     {campaign.conversions}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-card-foreground">
                     R$ {campaign.spend.toFixed(2)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm">
@@ -247,7 +247,7 @@ export function ClienteCampanhas() {
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                   <div>
                     <p className="mb-2">Nenhuma campanha encontrada</p>
                     <p className="text-sm">As campanhas sincronizadas aparecerão aqui</p>
