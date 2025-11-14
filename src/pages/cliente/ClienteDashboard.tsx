@@ -125,13 +125,13 @@ export function ClienteDashboard({
                 </AvatarFallback>
               </Avatar>
               <div className="text-center sm:text-left">
-                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">{client.name}</h2>
-                <p className="text-base lg:text-lg text-gray-600">{client.company}</p>
+                <h2 className="text-xl lg:text-2xl font-bold text-card-foreground">{client.name}</h2>
+                <p className="text-base lg:text-lg text-muted-foreground">{client.company}</p>
                 <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-2">
                   <Badge className={statusConfig[client.status]?.color}>
                     {statusConfig[client.status]?.label}
                   </Badge>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Mail className="w-4 h-4" />
                     <span className="truncate max-w-[200px]">{client.email}</span>
                   </div>
@@ -170,8 +170,8 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Completude do Funil</p>
-                <p className="text-2xl font-bold text-gray-900">{funnelCompletenessScore}%</p>
+                <p className="text-sm font-medium text-muted-foreground">Completude do Funil</p>
+                <p className="text-2xl font-bold text-card-foreground">{funnelCompletenessScore}%</p>
                 <div className="flex items-center space-x-1 mt-1">
                   {funnelCompletenessScore >= 80 ? (
                     <>
@@ -192,8 +192,8 @@ export function ClienteDashboard({
                 </div>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                funnelCompletenessScore >= 80 ? 'bg-green-100' :
-                funnelCompletenessScore >= 50 ? 'bg-yellow-100' : 'bg-red-100'
+                funnelCompletenessScore >= 80 ? 'bg-green-100 dark:bg-green-900/30' :
+                funnelCompletenessScore >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-red-100 dark:bg-red-900/30'
               }`}>
                 <BarChart3 className={`w-6 h-6 ${
                   funnelCompletenessScore >= 80 ? 'text-green-600' :
@@ -208,8 +208,8 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total de Leads Gerados</p>
-                <p className="text-2xl font-bold text-gray-900">{totalLeadsGenerated}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total de Leads Gerados</p>
+                <p className="text-2xl font-bold text-card-foreground">{totalLeadsGenerated}</p>
                 <div className="flex items-center space-x-1 mt-1">
                   <TrendingUp className="w-3 h-3 text-green-500" />
                   <span className="text-xs text-green-500">este período</span>
@@ -226,8 +226,8 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Campanhas Ativas</p>
-                <p className="text-2xl font-bold text-gray-900">{activeCampaigns}</p>
+                <p className="text-sm font-medium text-muted-foreground">Campanhas Ativas</p>
+                <p className="text-2xl font-bold text-card-foreground">{activeCampaigns}</p>
                 <div className="flex items-center space-x-1 mt-1">
                   <TrendingUp className="w-3 h-3 text-green-500" />
                   <span className="text-xs text-green-500">esta semana</span>
@@ -248,7 +248,7 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">CPL Médio</p>
+                <p className="text-sm font-medium text-muted-foreground">CPL Médio</p>
                 <p className="text-2xl font-bold text-green-600">
                   R$ {client.avg_cpl.toFixed(2)}
                 </p>
@@ -269,8 +269,8 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Valor Total Investido</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-muted-foreground">Valor Total Investido</p>
+                <p className="text-2xl font-bold text-card-foreground">
                   R$ {totalInvested.toFixed(2)}
                 </p>
                 <div className="flex items-center space-x-1 mt-1">
@@ -290,8 +290,8 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total em Vendas Realizadas</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-muted-foreground">Total em Vendas Realizadas</p>
+                <p className="text-2xl font-bold text-card-foreground">
                   R$ {totalSales.toFixed(2)}
                 </p>
                 <div className="flex items-center space-x-1 mt-1">
@@ -311,7 +311,7 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">ROI</p>
+                <p className="text-sm font-medium text-muted-foreground">ROI</p>
                 <p className={`text-2xl font-bold ${
                   roi >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -349,7 +349,7 @@ export function ClienteDashboard({
         <Card>
           <CardHeader>
             <CardTitle>CPL por Campanha</CardTitle>
-            <p className="text-sm text-gray-600">Custo por Lead de cada campanha ativa</p>
+            <p className="text-sm text-muted-foreground">Custo por Lead de cada campanha ativa</p>
           </CardHeader>
           <CardContent className="p-4 pb-2">
             <div className="h-[28rem]">
@@ -373,12 +373,12 @@ export function ClienteDashboard({
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
                           return (
-                            <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-                              <p className="font-medium text-gray-900">{data.fullName}</p>
-                              <p className="text-blue-600">CPL: R$ {data.cpl.toFixed(2)}</p>
-                              <p className="text-gray-600">Investido: R$ {data.spend.toFixed(2)}</p>
-                              <p className="text-gray-600">Conversões: {data.conversions}</p>
-                              <p className="text-gray-600">Status: {data.status === 'active' ? 'Ativa' : 'Pausada'}</p>
+                            <div className="bg-popover p-3 border border-border rounded-lg shadow-lg">
+                              <p className="font-medium text-card-foreground">{data.fullName}</p>
+                              <p className="text-blue-600 dark:text-blue-400">CPL: R$ {data.cpl.toFixed(2)}</p>
+                              <p className="text-muted-foreground">Investido: R$ {data.spend.toFixed(2)}</p>
+                              <p className="text-muted-foreground">Conversões: {data.conversions}</p>
+                              <p className="text-muted-foreground">Status: {data.status === 'active' ? 'Ativa' : 'Pausada'}</p>
                             </div>
                           );
                         }
@@ -393,7 +393,7 @@ export function ClienteDashboard({
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-muted-foreground">
                   <div className="text-center">
                     <p>Nenhum dado disponível</p>
                     <p className="text-sm">Sincronize as campanhas para ver os dados</p>
@@ -408,7 +408,7 @@ export function ClienteDashboard({
         <Card>
           <CardHeader>
             <CardTitle>Distribuição de Investimento</CardTitle>
-            <p className="text-sm text-gray-600">Proporção do orçamento por campanha</p>
+            <p className="text-sm text-muted-foreground">Proporção do orçamento por campanha</p>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -435,7 +435,7 @@ export function ClienteDashboard({
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-muted-foreground">
                   <div className="text-center">
                     <p>Nenhum dado disponível</p>
                     <p className="text-sm">Sincronize as campanhas para ver os dados</p>
