@@ -39,7 +39,8 @@ import {
   ChevronDown,
   CheckCircle2,
   AlertCircle,
-  XCircle
+  XCircle,
+  BarChart
 } from "lucide-react";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 
@@ -927,12 +928,21 @@ const Clientes = () => {
                                     <MoreHorizontal className="w-3.5 h-3.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem asChild>
                                     <Link to={`/clientes/${client.id}`}>
                                       <Eye className="w-4 h-4 mr-2" />
                                       Ver detalhes
                                     </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      const dashboardUrl = `${window.location.origin}/dashboard-publico/${client.dashboard_token}`;
+                                      window.open(dashboardUrl, '_blank');
+                                    }}
+                                  >
+                                    <BarChart className="w-4 h-4 mr-2" />
+                                    Dashboard
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => {
                                     setSelectedClient(client);
