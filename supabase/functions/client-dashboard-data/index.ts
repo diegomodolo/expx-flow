@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       `fields=id,name,status,objective,` +
       `insights.time_range({since:'${since}',until:'${until}'})` +
       `.action_report_time(conversion)` +
-      `.action_attribution_windows(["7d_click","1d_view"])` +
+      `.action_attribution_windows(["7d_click"])` +
       `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
       `&limit=500&access_token=${integration.access_token}`;
 
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       `time_range={'since':'${since}','until':'${until}'}` +
       `&time_increment=1` +
       `&fields=date_start,actions,spend` +
-      `&action_attribution_windows=["7d_click","1d_view"]` +
+      `&action_attribution_windows=["7d_click"]` +
       `&action_report_time=conversion` +
       `&level=account` +
       `&access_token=${integration.access_token}`;
