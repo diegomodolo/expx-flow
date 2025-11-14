@@ -66,7 +66,7 @@ export function BudgetFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os setores</SelectItem>
-              {sectors.map((sector) => (
+              {sectors.filter(sector => sector && sector.trim() !== '').map((sector) => (
                 <SelectItem key={sector} value={sector}>
                   {sector}
                 </SelectItem>
