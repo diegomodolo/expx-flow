@@ -42,8 +42,8 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
   };
 
   return (
-    <Card className="p-6 bg-card border-border">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Campanhas</h3>
+    <Card className="p-4 bg-card border-border">
+      <h3 className="text-xl font-semibold text-foreground mb-4">Campanhas</h3>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>

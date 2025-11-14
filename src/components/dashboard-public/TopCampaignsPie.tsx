@@ -17,10 +17,10 @@ export const TopCampaignsPie = ({ campaigns }: TopCampaignsPieProps) => {
   }));
 
   return (
-    <Card className="p-6 bg-card border-border">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Top Campanhas por Conversões</h3>
+    <Card className="p-4 bg-card border-border">
+      <h3 className="text-xl font-semibold text-foreground mb-4">Top Campanhas por Conversões</h3>
       {chartData.length > 0 ? (
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={280}>
           <PieChart>
             <Pie
               data={chartData}
@@ -47,7 +47,7 @@ export const TopCampaignsPie = ({ campaigns }: TopCampaignsPieProps) => {
           </PieChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+        <div className="flex items-center justify-center h-[280px] text-muted-foreground">
           Nenhuma campanha com conversões encontrada
         </div>
       )}
