@@ -133,16 +133,32 @@ Deno.serve(async (req) => {
     // Remove "act_" prefix if it already exists to avoid "act_act_" duplication
     const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
 
+    // Query para buscar campanhas com insights agregados do período (sem time_increment)
     const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
       `fields=id,name,status,objective,` +
       `insights.time_range({since:'${since}',until:'${until}'})` +
       `.action_report_time(conversion)` +
       `.action_attribution_windows(["7d_click","1d_view"])` +
       `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
-      `&time_increment=1` +
       `&limit=500&access_token=${integration.access_token}`;
 
+    console.log('Fetching campaigns from Meta (aggregated data)');
+
     const campaignsResponse = await fetch(campaignsUrl);
+    
+    // Query separada para dados diários do timeline
+    const timelineUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
+      `time_range={'since':'${since}','until':'${until}'}` +
+      `&time_increment=1` +
+      `&fields=date_start,actions,spend` +
+      `&action_attribution_windows=["7d_click","1d_view"]` +
+      `&action_report_time=conversion` +
+      `&level=account` +
+      `&access_token=${integration.access_token}`;
+
+    console.log('Fetching timeline data from Meta (daily breakdown)');
+
+    const timelineResponse = await fetch(timelineUrl);
     
     if (!campaignsResponse.ok) {
       const errorData = await campaignsResponse.json();
@@ -161,11 +177,41 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (!timelineResponse.ok) {
+      const timelineError = await timelineResponse.json();
+      console.error('Facebook Timeline API error:', timelineError);
+      // Não é crítico, pode continuar sem timeline diário
+    }
+
     const fbData = await campaignsResponse.json();
+    const timelineData = timelineResponse.ok ? await timelineResponse.json() : { data: [] };
+    
     console.log(`Fetched ${fbData.data?.length || 0} campaigns from Facebook`);
+    console.log(`Fetched ${timelineData.data?.length || 0} daily timeline insights`);
 
     const campaigns = fbData.data || [];
+    
+    // Processar timeline diário usando a query separada
     const timelineMap = new Map<string, { leads: number; messages: number }>();
+    
+    if (timelineData.data && Array.isArray(timelineData.data)) {
+      timelineData.data.forEach((insight: any) => {
+        const date = insight.date_start;
+        if (date) {
+          const conversions = extractConversions(insight.actions);
+          const messages = insight.actions?.find(
+            (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+          )?.value || 0;
+          
+          timelineMap.set(date, {
+            leads: conversions,
+            messages: parseFloat(messages),
+          });
+        }
+      });
+    }
+    
+    console.log('Timeline daily data points:', timelineMap.size);
     
     let totalSpend = 0;
     let totalConversions = 0;
@@ -190,7 +236,7 @@ Deno.serve(async (req) => {
         };
       }
 
-      // Aggregate all insights for this campaign
+      // Aggregate all insights for this campaign (agora deve ser apenas 1 insight por campanha)
       let totalCampaignSpend = 0;
       let totalCampaignConversions = 0;
       let totalCampaignImpressions = 0;
@@ -209,16 +255,6 @@ Deno.serve(async (req) => {
         totalCampaignImpressions += impressions;
         totalCampaignClicks += clicks;
         totalCampaignReach += reach;
-        
-        // Add to timeline by date
-        const date = insight.date_start;
-        if (date) {
-          const existing = timelineMap.get(date) || { leads: 0, messages: 0 };
-          timelineMap.set(date, {
-            leads: existing.leads + conversions,
-            messages: existing.messages + Math.round(conversions * 0.6),
-          });
-        }
       });
 
       // Global aggregation
