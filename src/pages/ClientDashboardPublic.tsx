@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Loader2, RefreshCw } from "lucide-react";
+import { CalendarIcon, Loader2, RefreshCw, Maximize, Minimize } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,6 +30,7 @@ const ClientDashboardPublic = () => {
   const [refreshInterval, setRefreshInterval] = useState("5");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [nextRefresh, setNextRefresh] = useState<Date | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { data, isLoading, error, refetch } = useClientDashboard(token || "", period);
 
@@ -90,6 +91,32 @@ const ClientDashboardPublic = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Fullscreen functionality
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        toast.success("Modo tela cheia ativado");
+      } else {
+        await document.exitFullscreen();
+        toast.info("Modo tela cheia desativado");
+      }
+    } catch (error) {
+      console.error("Erro ao alternar fullscreen:", error);
+      toast.error("Não foi possível alterar o modo tela cheia");
+    }
+  }, []);
+
+  // Listen to fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -136,6 +163,20 @@ const ClientDashboardPublic = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Fullscreen button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Sair da tela cheia (ESC)" : "Tela cheia"}
+              >
+                {isFullscreen ? (
+                  <Minimize className="h-4 w-4" />
+                ) : (
+                  <Maximize className="h-4 w-4" />
+                )}
+              </Button>
+
               {/* Auto-refresh controls */}
               <div className="flex items-center gap-3 border-r border-border pr-3">
                 <div className="flex items-center gap-2">
