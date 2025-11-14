@@ -99,14 +99,15 @@ All colors MUST be HSL.
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 47.4% 11.2%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 47.4% 11.2%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 271 81% 56%;
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 271 81% 66%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -120,17 +121,43 @@ All colors MUST be HSL.
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 217.2 32.6% 20%;
+    --input: 217.2 32.6% 20%;
+    --ring: 271 81% 56%;
+    
+    /* Success, warning, danger mantidos */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 100%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+    
+    /* Dashboard specific */
+    --dashboard-bg: 222.2 84% 4.9%;
+    --metric-positive: 142 76% 36%;
+    --metric-negative: 0 84% 60%;
+    --metric-neutral: 45 93% 47%;
+    
+    /* Status badge colors */
+    --status-excellent: 142 76% 36%;
+    --status-excellent-foreground: 0 0% 100%;
+    --status-attention: 45 93% 47%;
+    --status-attention-foreground: 0 0% 100%;
+    --status-emergency: 0 84% 60%;
+    --status-emergency-foreground: 0 0% 100%;
+    --status-inactive: 210 9% 53%;
+    --status-inactive-foreground: 0 0% 100%;
+    
+    /* Sidebar */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 271 81% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 271 81% 56%;
   }
 }
 
@@ -141,6 +168,34 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Dark mode specific improvements */
+@layer base {
+  .dark {
+    /* Garantir que dropdowns tenham background sólido e z-index alto */
+    [data-radix-popper-content-wrapper] {
+      z-index: 50;
+    }
+    
+    /* Melhorar contraste de inputs no modo escuro */
+    input:not([type="checkbox"]):not([type="radio"]), 
+    textarea, 
+    select {
+      @apply bg-card border-input;
+    }
+    
+    /* Garantir que tooltips sejam visíveis */
+    [role="tooltip"] {
+      @apply bg-popover text-popover-foreground border border-border;
+    }
+    
+    /* Garantir que menus dropdown tenham fundo sólido */
+    [role="menu"],
+    [role="listbox"] {
+      @apply bg-popover;
+    }
   }
 }
 
