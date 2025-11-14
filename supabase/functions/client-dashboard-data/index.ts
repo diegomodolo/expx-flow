@@ -27,12 +27,37 @@ const VALID_LEAD_ACTIONS = [
   'offsite_conversion.fb_pixel_lead', 'onsite_conversion.messaging_conversation_started_7d'
 ];
 
-function extractConversions(actions: any[]): number {
+function extractConversions(actions: any[], campaignName?: string): number {
   if (!actions || !Array.isArray(actions)) return 0;
   
-  return actions
-    .filter(action => VALID_LEAD_ACTIONS.includes(action.action_type))
-    .reduce((sum, action) => sum + (parseFloat(action.value) || 0), 0);
+  // Log para debug - filtrar apenas ações relacionadas a leads
+  const leadActions = actions.filter(action => 
+    VALID_LEAD_ACTIONS.includes(action.action_type)
+  );
+  
+  if (leadActions.length > 0) {
+    console.log(`\n=== Campaign: ${campaignName} ===`);
+    console.log(`Total action types found: ${leadActions.length}`);
+    leadActions.forEach(action => {
+      console.log(`  - ${action.action_type}: ${action.value}`);
+    });
+    
+    // Mostrar se há múltiplos action_types (possível causa de duplicação)
+    if (leadActions.length > 1) {
+      const total = leadActions.reduce((sum, action) => sum + (parseFloat(action.value) || 0), 0);
+      console.log(`  ⚠️ MULTIPLE ACTION TYPES - Total if summed: ${total}`);
+    }
+  }
+  
+  // Usar apenas 'lead' para evitar duplicação (padrão do Facebook Ads Manager)
+  const leadAction = actions.find(action => action.action_type === 'lead');
+  const result = leadAction ? parseFloat(leadAction.value) || 0 : 0;
+  
+  if (leadActions.length > 0) {
+    console.log(`  ✅ Using only 'lead' action: ${result}`);
+  }
+  
+  return result;
 }
 
 Deno.serve(async (req) => {
@@ -198,7 +223,7 @@ Deno.serve(async (req) => {
       timelineData.data.forEach((insight: any) => {
         const date = insight.date_start;
         if (date) {
-          const conversions = extractConversions(insight.actions);
+          const conversions = extractConversions(insight.actions, `Timeline ${date}`);
           const messages = insight.actions?.find(
             (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
           )?.value || 0;
@@ -248,7 +273,7 @@ Deno.serve(async (req) => {
         const impressions = parseInt(insight.impressions || '0', 10);
         const clicks = parseInt(insight.clicks || '0', 10);
         const reach = parseInt(insight.reach || '0', 10);
-        const conversions = extractConversions(insight.actions);
+        const conversions = extractConversions(insight.actions, campaign.name);
         
         totalCampaignSpend += spend;
         totalCampaignConversions += conversions;
