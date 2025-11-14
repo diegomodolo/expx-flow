@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calendar as CalendarIcon, Info } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -65,9 +66,22 @@ export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorP
   ];
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {/* Preset buttons */}
-      {presetButtons.map((preset) => (
+    <TooltipProvider>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <p className="text-xs">
+              Os dados usam janela de atribuição de 7 dias (clique) e 1 dia (visualização) do Facebook.
+              Leads podem ser atribuídos a anúncios visualizados até 7 dias atrás.
+            </p>
+          </TooltipContent>
+        </Tooltip>
+        
+        {/* Preset buttons */}
+        {presetButtons.map((preset) => (
         <Button
           key={preset.value}
           variant={selectedPreset === preset.value ? "default" : "outline"}
@@ -114,9 +128,10 @@ export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorP
             numberOfMonths={2}
             locale={ptBR}
             className="pointer-events-auto bg-card"
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </TooltipProvider>
   );
 };

@@ -45,12 +45,15 @@ const ClientDashboardPublic = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [kioskMode, setKioskMode] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const startDate = format(dateRange.from, 'yyyy-MM-dd');
+  const endDate = format(dateRange.to, 'yyyy-MM-dd');
+  
   const {
     data,
     isLoading,
     error,
     refetch
-  } = useClientDashboard(token || "", period);
+  } = useClientDashboard(token || "", startDate, endDate);
 
   // Prevent hydration mismatch
   useEffect(() => {

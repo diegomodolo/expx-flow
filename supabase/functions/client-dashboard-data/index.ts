@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token, period = 30 } = await req.json();
+    const { token, start_date, end_date } = await req.json();
 
     if (!token) {
       return new Response(
@@ -50,7 +50,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const safePeriod = Math.min(Math.max(period, 1), 365);
+    if (!start_date || !end_date) {
+      return new Response(
+        JSON.stringify({ error: 'start_date and end_date are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -133,6 +138,7 @@ Deno.serve(async (req) => {
     const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
       `fields=id,name,status,objective,` +
       `insights.time_range({since:'${since}',until:'${until}'})` +
+      `.breakdowns([time])` +
       `.action_report_time(conversion)` +
       `.action_attribution_windows(["7d_click","1d_view"])` +
       `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
@@ -170,9 +176,9 @@ Deno.serve(async (req) => {
     let totalReach = 0;
 
     const processedCampaigns = campaigns.map((campaign: any) => {
-      const insights = campaign.insights?.data?.[0];
+      const insights = campaign.insights?.data || [];
       
-      if (!insights) {
+      if (insights.length === 0) {
         return {
           id: campaign.id,
           name: campaign.name,
@@ -186,38 +192,54 @@ Deno.serve(async (req) => {
         };
       }
 
-      const spend = parseFloat(insights.spend || '0');
-      const impressions = parseInt(insights.impressions || '0', 10);
-      const clicks = parseInt(insights.clicks || '0', 10);
-      const reach = parseInt(insights.reach || '0', 10);
-      const frequency = parseFloat(insights.frequency || '0');
-      const conversions = extractConversions(insights.actions);
+      // Aggregate all insights for this campaign
+      let totalCampaignSpend = 0;
+      let totalCampaignConversions = 0;
+      let totalCampaignImpressions = 0;
+      let totalCampaignClicks = 0;
+      let totalCampaignReach = 0;
+      
+      insights.forEach((insight: any) => {
+        const spend = parseFloat(insight.spend || '0');
+        const impressions = parseInt(insight.impressions || '0', 10);
+        const clicks = parseInt(insight.clicks || '0', 10);
+        const reach = parseInt(insight.reach || '0', 10);
+        const conversions = extractConversions(insight.actions);
+        
+        totalCampaignSpend += spend;
+        totalCampaignConversions += conversions;
+        totalCampaignImpressions += impressions;
+        totalCampaignClicks += clicks;
+        totalCampaignReach += reach;
+        
+        // Add to timeline by date
+        const date = insight.date_start;
+        if (date) {
+          const existing = timelineMap.get(date) || { leads: 0, messages: 0 };
+          timelineMap.set(date, {
+            leads: existing.leads + conversions,
+            messages: existing.messages + Math.round(conversions * 0.6),
+          });
+        }
+      });
 
-      totalSpend += spend;
-      totalConversions += conversions;
-      totalImpressions += impressions;
-      totalClicks += clicks;
-      totalReach += reach;
-
-      const date = insights.date_start;
-      if (date) {
-        const existing = timelineMap.get(date) || { leads: 0, messages: 0 };
-        timelineMap.set(date, {
-          leads: existing.leads + conversions,
-          messages: existing.messages + Math.round(conversions * 0.6),
-        });
-      }
+      // Global aggregation
+      totalSpend += totalCampaignSpend;
+      totalConversions += totalCampaignConversions;
+      totalImpressions += totalCampaignImpressions;
+      totalClicks += totalCampaignClicks;
+      totalReach += totalCampaignReach;
 
       return {
         id: campaign.id,
         name: campaign.name,
         status: campaign.status,
-        spend,
-        conversions,
-        impressions,
-        clicks,
-        reach,
-        frequency,
+        spend: totalCampaignSpend,
+        conversions: totalCampaignConversions,
+        impressions: totalCampaignImpressions,
+        clicks: totalCampaignClicks,
+        reach: totalCampaignReach,
+        frequency: totalCampaignReach > 0 ? totalCampaignImpressions / totalCampaignReach : 0,
       };
     });
 
@@ -276,6 +298,8 @@ Deno.serve(async (req) => {
       status: c.status,
     }));
 
+    const daysDiff = Math.ceil((new Date(until).getTime() - new Date(since).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
     const response = {
       client: {
         name: client.name,
@@ -284,7 +308,7 @@ Deno.serve(async (req) => {
       period: {
         start_date: since,
         end_date: until,
-        days: safePeriod,
+        days: daysDiff,
       },
       metrics,
       timeline,

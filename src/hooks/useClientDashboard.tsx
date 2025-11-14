@@ -60,21 +60,21 @@ export interface DashboardData {
   campaigns_table: CampaignTableRow[];
 }
 
-export const useClientDashboard = (token: string, period: number = 30) => {
+export const useClientDashboard = (token: string, startDate: string, endDate: string) => {
   return useQuery({
-    queryKey: ['client-dashboard', token, period],
+    queryKey: ['client-dashboard', token, startDate, endDate],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke(
         'client-dashboard-data',
         { 
-          body: { token, period } 
+          body: { token, start_date: startDate, end_date: endDate } 
         }
       );
       
       if (error) throw error;
       return data as DashboardData;
     },
-    enabled: !!token,
+    enabled: !!token && !!startDate && !!endDate,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
