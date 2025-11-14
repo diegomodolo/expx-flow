@@ -58,19 +58,26 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <CompanyProvider>
-            <CRMAuthProvider>
-              <Routes>
+      <ThemeProvider 
+        attribute="class" 
+        defaultTheme="light" 
+        enableSystem={false}
+        storageKey="dashboard-theme"
+      >
+        <BrowserRouter>
+          <Toaster />
+          <Sonner />
+          <AuthProvider>
+            <CompanyProvider>
+              <CRMAuthProvider>
+                <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
@@ -317,6 +324,7 @@ const App = () => {
           </CompanyProvider>
         </AuthProvider>
       </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
