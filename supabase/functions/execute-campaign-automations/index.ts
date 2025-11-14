@@ -1157,11 +1157,11 @@ function generateEntityName(
       break;
     
     case 'increase_budget':
-      suffix = `Budget +${percentChange}% (${ruleName})`;
+      suffix = `Budget +${budgetChange}% (${ruleName})`;
       break;
     
     case 'decrease_budget':
-      suffix = `Budget -${percentChange}% (${ruleName})`;
+      suffix = `Budget -${budgetChange}% (${ruleName})`;
       break;
     
     case 'duplicate_campaign':
