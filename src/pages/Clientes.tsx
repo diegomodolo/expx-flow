@@ -36,7 +36,10 @@ import {
   Trash2,
   RefreshCw,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2,
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 
@@ -90,6 +93,86 @@ const getStatusConfig = (status: ClientStatus | undefined) => {
     return statusConfig.atencao; // Fallback padrão
   }
   return statusConfig[status];
+};
+
+// Função para calcular se o gasto está dentro do orçamento proporcional
+const getBudgetStatus = (client: Client): {
+  status: 'ok' | 'warning' | 'over' | 'no-budget';
+  percentage: number;
+  expectedSpend: number;
+} => {
+  const monthlyBudget = client.monthly_budget || 0;
+  const syncPeriod = parseInt(client.last_sync_period || '0');
+  const actualSpend = client.spend || 0;
+  
+  // Se não tem orçamento configurado, retorna status especial
+  if (monthlyBudget === 0) {
+    return { status: 'no-budget', percentage: 0, expectedSpend: 0 };
+  }
+  
+  // Se não tem período de sincronização, não pode calcular
+  if (syncPeriod === 0) {
+    return { status: 'no-budget', percentage: 0, expectedSpend: 0 };
+  }
+  
+  // Calcula gasto esperado proporcional ao período sincronizado
+  const expectedSpend = (monthlyBudget / 30) * syncPeriod;
+  
+  // Calcula porcentagem de utilização
+  const percentage = (actualSpend / expectedSpend) * 100;
+  
+  // Define status baseado na porcentagem
+  if (percentage <= 90) {
+    return { status: 'ok', percentage, expectedSpend };
+  } else if (percentage <= 100) {
+    return { status: 'warning', percentage, expectedSpend };
+  } else {
+    return { status: 'over', percentage, expectedSpend };
+  }
+};
+
+// Componente para renderizar o ícone de status do orçamento
+const BudgetStatusIcon = ({ client }: { client: Client }) => {
+  const budgetStatus = getBudgetStatus(client);
+  
+  if (budgetStatus.status === 'no-budget') {
+    return null; // Não mostra ícone se não tem orçamento configurado
+  }
+  
+  const icons = {
+    ok: {
+      icon: CheckCircle2,
+      color: 'text-green-500',
+      tooltip: `Gasto dentro do esperado (${budgetStatus.percentage.toFixed(0)}% de R$ ${budgetStatus.expectedSpend.toFixed(2)})`
+    },
+    warning: {
+      icon: AlertCircle,
+      color: 'text-yellow-500',
+      tooltip: `Atenção: Gasto próximo ao limite (${budgetStatus.percentage.toFixed(0)}% de R$ ${budgetStatus.expectedSpend.toFixed(2)})`
+    },
+    over: {
+      icon: XCircle,
+      color: 'text-red-500',
+      tooltip: `Alerta: Gasto acima do planejado (${budgetStatus.percentage.toFixed(0)}% de R$ ${budgetStatus.expectedSpend.toFixed(2)})`
+    }
+  };
+  
+  const config = icons[budgetStatus.status];
+  const Icon = config.icon;
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger>
+        <Icon className={`w-4 h-4 ${config.color}`} />
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="text-sm">{config.tooltip}</p>
+        <p className="text-xs text-gray-500 mt-1">
+          Período: {client.last_sync_period} dias
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  );
 };
 
 const Clientes = () => {
@@ -226,10 +309,10 @@ const Clientes = () => {
       bValue = statusOrder[b.status];
     }
     
-    // Handle spend field (simulated as avg_cpl * active_campaigns)
+    // Handle spend field
     if (sortField === 'spend') {
-      aValue = a.avg_cpl * a.active_campaigns;
-      bValue = b.avg_cpl * b.active_campaigns;
+      aValue = a.spend || 0;
+      bValue = b.spend || 0;
     }
 
     // Handle null/undefined values
@@ -271,7 +354,7 @@ const Clientes = () => {
       `R$ ${client.avg_cpl.toFixed(2)}`,
       client.leads_generated,
       `R$ ${(client.monthly_budget || 0).toFixed(2)}`,
-      `R$ ${(client.avg_cpl * client.active_campaigns).toFixed(2)}`
+      `R$ ${(client.spend || 0).toFixed(2)}`
     ]);
     
     const csvContent = [headers, ...csvData]
@@ -827,11 +910,14 @@ const Clientes = () => {
                                </div>
                              </td>
                              <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
-                               <div className="text-sm text-gray-900">
-                                 R$ {(client.avg_cpl * client.active_campaigns).toLocaleString('pt-BR', { 
-                                   minimumFractionDigits: 2, 
-                                   maximumFractionDigits: 2 
-                                 })}
+                               <div className="flex items-center gap-2">
+                                 <div className="text-sm text-gray-900">
+                                   R$ {(client.spend || 0).toLocaleString('pt-BR', { 
+                                     minimumFractionDigits: 2, 
+                                     maximumFractionDigits: 2 
+                                   })}
+                                 </div>
+                                 <BudgetStatusIcon client={client} />
                                </div>
                              </td>
                              <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
@@ -980,12 +1066,15 @@ const Clientes = () => {
                            maximumFractionDigits: 0 
                          })}</span>
                        </div>
-                       <div>
-                         <span className="text-gray-500">Gasto:</span>
-                         <span className="ml-1 font-medium">R$ {(client.avg_cpl * client.active_campaigns).toLocaleString('pt-BR', { 
-                           minimumFractionDigits: 0, 
-                           maximumFractionDigits: 0 
-                         })}</span>
+                       <div className="flex items-center gap-2">
+                         <div>
+                           <span className="text-gray-500">Gasto:</span>
+                           <span className="ml-1 font-medium">R$ {(client.spend || 0).toLocaleString('pt-BR', { 
+                             minimumFractionDigits: 0, 
+                             maximumFractionDigits: 0 
+                           })}</span>
+                         </div>
+                         <BudgetStatusIcon client={client} />
                        </div>
                      </div>
 
