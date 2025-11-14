@@ -741,22 +741,22 @@ export default function NewDashboard() {
                   </div>
                 ) : (
                   opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert) => (
-                    <div key={alert.id} className="p-4 bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
+                    <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-green-500 rounded-lg shadow-sm">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <TrendingUp className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                            <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
                             <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
                               +{alert.value || '0'}%
                             </span>
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                            <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                               {alert.client || 'Cliente não informado'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700 mb-2">
+                          <p className="text-sm text-muted-foreground mb-2">
                             Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
                           </p>
                            <div className="flex items-center gap-2">
@@ -778,10 +778,10 @@ export default function NewDashboard() {
         </div>
 
         {/* Ranking de Campanhas */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-gray-900">Ranking de Campanhas</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Ranking de Campanhas</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-8">
@@ -789,12 +789,12 @@ export default function NewDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <Target className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-gray-900">Top 5 Campanhas por CPA</h2>
+                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Campanhas por CPA</h2>
               </div>
 
               <div className="space-y-3">
                 {topCampaignsByCPA.slice(0, 5).map((campaign, index) => (
-                  <div key={campaign.id} className={`p-4 bg-white rounded-lg shadow-sm ${
+                  <div key={campaign.id} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
                     index === 0 ? 'border-l-4 border-green-500' :
                     index === 1 ? 'border-l-4 border-blue-500' :
                     index === 2 ? 'border-l-4 border-purple-500' :
@@ -813,15 +813,15 @@ export default function NewDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900 truncate">{campaign.name}</h4>
+                          <h4 className="text-sm font-semibold text-card-foreground truncate">{campaign.name}</h4>
                           <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
                             {formatCurrency(campaign.cpa)}
                           </span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                             {campaign.client_name}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-muted-foreground">
                           Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}% • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'} • Leads: {campaign.conversions}
                         </p>
                       </div>
@@ -835,7 +835,7 @@ export default function NewDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <Users className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-gray-900">Top 5 Campanhas por Leads</h2>
+                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Campanhas por Leads</h2>
               </div>
 
               <div className="space-y-3">
@@ -843,7 +843,7 @@ export default function NewDashboard() {
                   .sort((a, b) => b.conversions - a.conversions)
                   .slice(0, 5)
                   .map((campaign, index) => (
-                  <div key={`leads-${campaign.id}`} className={`p-4 bg-white rounded-lg shadow-sm ${
+                  <div key={`leads-${campaign.id}`} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
                     index === 0 ? 'border-l-4 border-green-500' :
                     index === 1 ? 'border-l-4 border-blue-500' :
                     index === 2 ? 'border-l-4 border-purple-500' :
@@ -862,15 +862,15 @@ export default function NewDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900 truncate">{campaign.name}</h4>
+                          <h4 className="text-sm font-semibold text-card-foreground truncate">{campaign.name}</h4>
                           <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
                             {campaign.conversions} leads
                           </span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                             {campaign.client_name}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-muted-foreground">
                           Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}% • CPA: {formatCurrency(campaign.cpa)} • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'}
                         </p>
                       </div>
@@ -883,20 +883,20 @@ export default function NewDashboard() {
         </div>
 
         {/* Ações Recomendadas do Dia */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <div className="flex items-center gap-2 mb-6">
             <Calendar className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-gray-900">Ações Recomendadas do Dia</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Ações Recomendadas do Dia</h2>
           </div>
 
           {(opportunityAlerts.filter(a => !convertedActions.has(a.id)).length === 0 && 
             dangerAlerts.filter(a => !convertedActions.has(a.id)).length === 0) ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="text-green-500 w-8 h-8" />
               </div>
-              <p className="text-gray-600">Todas as ações foram executadas</p>
-              <p className="text-sm text-gray-500 mt-1">Próxima verificação em 2 horas</p>
+              <p className="text-muted-foreground">Todas as ações foram executadas</p>
+              <p className="text-sm text-muted-foreground/80 mt-1">Próxima verificação em 2 horas</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -905,23 +905,23 @@ export default function NewDashboard() {
                 .filter(alert => !convertedActions.has(alert.id))
                 .slice(0, 3)
                 .map((alert) => (
-                <div key={alert.id} className="p-4 bg-white border-l-4 border-green-500 rounded-lg shadow-sm">
+                <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-green-500 rounded-lg shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <TrendingUp className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                        <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
                         <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
                           +{alert.value || '0'}%
                         </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                        <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                           {alert.client || 'Cliente não informado'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-muted-foreground">
                           Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}% • {alert.recommendation}
                         </p>
                         <Button 
@@ -942,23 +942,23 @@ export default function NewDashboard() {
                 .filter(alert => !convertedActions.has(alert.id))
                 .slice(0, 2)
                 .map((alert) => (
-                <div key={alert.id} className="p-4 bg-white border-l-4 border-red-500 rounded-lg shadow-sm">
+                <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-red-500 rounded-lg shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <AlertTriangle className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-semibold text-gray-900">{alert.title}</h4>
+                        <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
                         <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
                           R$ {alert.value || '0,00'}
                         </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                        <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
                           {alert.client || 'Cliente não informado'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-muted-foreground">
                           Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'} • {alert.recommendation}
                         </p>
                         <Button 
