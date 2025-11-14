@@ -75,7 +75,7 @@ const statusConfig = {
   },
 };
 
-type SortField = 'name' | 'company' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend';
+type SortField = 'name' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend';
 type SortDirection = 'asc' | 'desc';
 
 // Função para gerar a explicação do status baseada nas métricas do cliente
@@ -713,15 +713,6 @@ const Clientes = () => {
                              </div>
                            </th>
                            <th 
-                             className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                             onClick={() => handleSort('company')}
-                           >
-                             <div className="flex items-center space-x-1">
-                               <span>Empresa</span>
-                               {getSortIcon('company')}
-                             </div>
-                           </th>
-                           <th 
                              className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                              onClick={() => handleSort('status')}
                            >
@@ -796,10 +787,6 @@ const Clientes = () => {
                                   <div className="text-xs text-gray-500 truncate">{client.email}</div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="hidden md:table-cell px-3 py-3">
-                              <div className="text-sm text-gray-900 truncate">{client.company}</div>
-                              <div className="text-xs text-gray-500 truncate">{client.sector}</div>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
                               <Tooltip>
