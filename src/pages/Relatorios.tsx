@@ -57,6 +57,16 @@ const Relatorios = () => {
       iconBg: "hsl(271, 91%, 65%)"
     },
     {
+      title: "Análise de Orçamento",
+      description: "Orçamento vs. gasto de clientes, utilização, projeções e alertas críticos",
+      icon: DollarSign,
+      category: "estrategico",
+      isAiPowered: false,
+      href: "/dashboard-orcamento",
+      iconColor: "#FFFFFF",
+      iconBg: "hsl(142, 71%, 45%)"
+    },
+    {
       title: "Oportunidades",
       description: "Campanhas para escalar, criativos vencedores e insights aplicáveis",
       icon: Lightbulb,
