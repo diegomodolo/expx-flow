@@ -291,10 +291,8 @@ Deno.serve(async (req) => {
         totalCampaignReach += reach;
       });
 
-      // Global aggregation
+      // Global aggregation (apenas spend, impressions, clicks, reach - leads e messages já foram somados do timeline)
       totalSpend += totalCampaignSpend;
-      totalConversions += totalCampaignConversions;
-      totalMessages += totalCampaignMessages; // Somar mensagens reais
       totalImpressions += totalCampaignImpressions;
       totalClicks += totalCampaignClicks;
       totalReach += totalCampaignReach;
@@ -344,6 +342,12 @@ Deno.serve(async (req) => {
     const timeline = Array.from(timelineMap.entries())
       .map(([date, data]) => ({ date, ...data }))
       .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calcular totalConversions e totalMessages a partir do timeline (dados diários reais)
+    timeline.forEach((point: any) => {
+      totalConversions += parseFloat(point.leads || 0);
+      totalMessages += parseFloat(point.messages || 0);
+    });
 
     const topCampaigns = processedCampaigns
       .filter((c: any) => c.conversions > 0)
