@@ -60,10 +60,10 @@ const ClientDashboardPublic = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen w-screen bg-background overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
+      <div className="border-b border-border bg-card flex-shrink-0">
+        <div className="px-6 py-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <img
@@ -72,7 +72,7 @@ const ClientDashboardPublic = () => {
                 className="h-8"
               />
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Relatório Meta Ads</h1>
+                <h1 className="text-3xl font-bold text-foreground">Relatório Meta Ads</h1>
                 <p className="text-sm text-muted-foreground">
                   {data.client.company} - {data.client.name}
                 </p>
@@ -83,6 +83,7 @@ const ClientDashboardPublic = () => {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    size="sm"
                     className={cn(
                       "justify-start text-left font-normal",
                       !dateRange && "text-muted-foreground"
@@ -92,14 +93,14 @@ const ClientDashboardPublic = () => {
                     {dateRange?.from ? (
                       dateRange.to ? (
                         <>
-                          {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
-                          {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                          {format(dateRange.from, "dd/MM/yy", { locale: ptBR })} -{" "}
+                          {format(dateRange.to, "dd/MM/yy", { locale: ptBR })}
                         </>
                       ) : (
-                        format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                        format(dateRange.from, "dd/MM/yy", { locale: ptBR })
                       )
                     ) : (
-                      <span>Selecione o período</span>
+                      <span>Período</span>
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -121,12 +122,12 @@ const ClientDashboardPublic = () => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
         {/* Metrics Cards */}
         <MetricsCards metrics={data.metrics} />
 
         {/* Funnel and Performance Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FunnelVisualization metrics={data.metrics} />
           <PerformanceMetrics metrics={data.metrics} />
         </div>
@@ -135,7 +136,7 @@ const ClientDashboardPublic = () => {
         <TimelineChart data={data.timeline} />
 
         {/* Top Campaigns and Table */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-2">
             <TopCampaignsPie campaigns={data.top_campaigns} />
           </div>

@@ -18,13 +18,13 @@ export const PerformanceMetrics = ({ metrics }: PerformanceMetricsProps) => {
   ];
 
   return (
-    <Card className="p-6 bg-card border-border">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Métricas de Performance</h3>
+    <Card className="p-4 bg-card border-border">
+      <h3 className="text-xl font-semibold text-foreground mb-4">Métricas de Performance</h3>
       <div className="grid grid-cols-2 gap-4">
         {metricsData.map((metric, index) => (
           <div key={index} className="border-l-2 border-primary pl-3">
             <p className="text-sm text-muted-foreground">{metric.label}</p>
-            <p className="text-xl font-bold text-foreground">{metric.value}</p>
+            <p className="text-2xl font-bold text-foreground">{metric.value}</p>
           </div>
         ))}
       </div>

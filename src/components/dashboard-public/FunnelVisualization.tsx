@@ -14,8 +14,8 @@ export const FunnelVisualization = ({ metrics }: FunnelVisualizationProps) => {
   ];
 
   return (
-    <Card className="p-6 bg-card border-border">
-      <h3 className="text-lg font-semibold text-foreground mb-6">Funil de Conversão</h3>
+    <Card className="p-4 bg-card border-border">
+      <h3 className="text-xl font-semibold text-foreground mb-4">Funil de Conversão</h3>
       <div className="space-y-4">
         {stages.map((stage, index) => (
           <div key={index} className="relative">

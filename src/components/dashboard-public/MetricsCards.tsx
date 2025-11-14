@@ -54,7 +54,7 @@ export const MetricsCards = ({ metrics }: MetricsCardsProps) => {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground mb-1">{card.label}</p>
-                <p className="text-2xl font-bold text-foreground">{card.value}</p>
+                <p className="text-3xl font-bold text-foreground">{card.value}</p>
               </div>
               <div className={`p-2 rounded-lg ${card.bg}`}>
                 <Icon className={`w-5 h-5 ${card.color}`} />
