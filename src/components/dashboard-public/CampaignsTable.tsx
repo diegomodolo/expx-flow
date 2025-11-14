@@ -9,12 +9,19 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { CampaignTableRow } from "@/hooks/useClientDashboard";
+import { useEffect, useState } from "react";
 
 interface CampaignsTableProps {
   campaigns: CampaignTableRow[];
 }
 
 export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
+  const [animateKey, setAnimateKey] = useState(0);
+
+  useEffect(() => {
+    setAnimateKey(prev => prev + 1);
+  }, [campaigns]);
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -42,12 +49,12 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
   };
 
   return (
-    <Card className="p-4 bg-card border-border">
-      <h3 className="text-xl font-semibold text-foreground mb-4">Campanhas</h3>
+    <Card className="p-4 bg-card border-border animate-fade-in">
+      <h3 className="text-xl font-semibold text-foreground mb-4 transition-colors duration-300">Campanhas</h3>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="transition-colors duration-300">
               <TableHead>Nome da Campanha</TableHead>
               <TableHead className="text-center">Conj.</TableHead>
               <TableHead className="text-center">Anúncios</TableHead>
@@ -61,27 +68,31 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
           </TableHeader>
           <TableBody>
             {campaigns.map((campaign, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium max-w-xs truncate">
+              <TableRow 
+                key={`${index}-${animateKey}`}
+                className="animate-fade-in transition-all duration-300 hover:bg-muted/50"
+                style={{ animationDelay: `${index * 30}ms` }}
+              >
+                <TableCell className="font-medium max-w-xs truncate transition-colors duration-300">
                   {campaign.name}
                 </TableCell>
-                <TableCell className="text-center">{campaign.ad_sets_count}</TableCell>
-                <TableCell className="text-center">{campaign.ads_count}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-center transition-all duration-500">{campaign.ad_sets_count}</TableCell>
+                <TableCell className="text-center transition-all duration-500">{campaign.ads_count}</TableCell>
+                <TableCell className="text-right transition-all duration-500">
                   R$ {campaign.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
-                <TableCell className="text-center font-semibold">
+                <TableCell className="text-center font-semibold transition-all duration-500">
                   {campaign.leads}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right transition-all duration-500">
                   R$ {campaign.cpl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
-                <TableCell className="text-center">{campaign.messages}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-center transition-all duration-500">{campaign.messages}</TableCell>
+                <TableCell className="text-right transition-all duration-500">
                   R$ {campaign.cpm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={getStatusColor(campaign.status)}>
+                  <Badge variant="outline" className={`${getStatusColor(campaign.status)} transition-all duration-300`}>
                     {getStatusLabel(campaign.status)}
                   </Badge>
                 </TableCell>
