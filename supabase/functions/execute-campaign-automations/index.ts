@@ -1278,6 +1278,32 @@ async function executeAction(
     }
 
     console.log(`✅ Action executed successfully. New name: ${body.name || 'unchanged'}`);
+
+    // Se for duplicação de anúncio, garantir que está ativado
+    if (actionType === 'duplicate_ad' && data.id) {
+      console.log(`✅ Ad created with ID: ${data.id}, now activating...`);
+      
+      // Ativar o anúncio explicitamente
+      const activateResponse = await fetch(
+        `https://graph.facebook.com/v20.0/${data.id}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'ACTIVE',
+            access_token: accessToken
+          })
+        }
+      );
+      
+      const activateData = await activateResponse.json();
+      if (activateData.error) {
+        console.error('⚠️  Warning: Failed to activate ad:', activateData.error);
+      } else {
+        console.log(`✅ Ad activated successfully`);
+      }
+    }
+
     return { success: true };
   } catch (error: any) {
     console.error('❌ Error executing action:', error);
