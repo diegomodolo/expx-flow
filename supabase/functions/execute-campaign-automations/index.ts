@@ -81,11 +81,12 @@ Deno.serve(async (req) => {
     console.log('🚀 Starting automation execution:', { client_id, execution_id: executionId });
 
     // Buscar regras ativas
-    const { data: rules, error: rulesError } = await supabase
-      .from('campaign_automation_rules')
-      .select('*')
-      .eq('is_active', true)
-      .or(`client_id.eq.${client_id},client_id.is.null`);
+  const { data: rules, error: rulesError } = await supabase
+    .from('campaign_automation_rules')
+    .select('*')
+    .eq('client_id', client_id)
+    .eq('is_active', true)
+    .eq('is_template', false);
 
     if (rulesError) throw rulesError;
     if (!rules || rules.length === 0) {
