@@ -1246,6 +1246,9 @@ async function executeAction(
           const currentData = await currentResponse.json();
           const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
           
+          console.log(`📊 Budget atual (centavos): ${currentBudget}`);
+          console.log(`📊 Budget atual (reais): R$ ${(currentBudget / 100).toFixed(2)}`);
+          
           // ✅ Buscar percentual nos limites de segurança OU no action_config
           percentChange = actionConfig.increase_percentage || 
                           rule?.budget_safety_limits?.max_increase_percentage || 
@@ -1253,7 +1256,9 @@ async function executeAction(
           
           if (percentChange > 0) {
             newBudget = currentBudget * (1 + percentChange / 100);
-            console.log(`📊 Aumentando budget de ${currentBudget} em ${percentChange}% = ${newBudget}`);
+            console.log(`📊 Novo budget (centavos): ${Math.round(newBudget)}`);
+            console.log(`📊 Novo budget (reais): R$ ${(Math.round(newBudget) / 100).toFixed(2)}`);
+            console.log(`✅ Aumento de ${percentChange}%: R$ ${(currentBudget / 100).toFixed(2)} → R$ ${(Math.round(newBudget) / 100).toFixed(2)}`);
           } else {
             console.log(`⚠️ Nenhum percentual de aumento configurado, mantendo budget atual`);
             newBudget = currentBudget;
@@ -1266,6 +1271,9 @@ async function executeAction(
           const currentData = await currentResponse.json();
           const currentBudget = parseFloat(currentData.daily_budget || currentData.lifetime_budget || '0');
           
+          console.log(`📊 Budget atual (centavos): ${currentBudget}`);
+          console.log(`📊 Budget atual (reais): R$ ${(currentBudget / 100).toFixed(2)}`);
+          
           // ✅ Buscar percentual nos limites de segurança OU no action_config
           percentChange = actionConfig.decrease_percentage || 
                           rule?.budget_safety_limits?.max_decrease_percentage || 
@@ -1273,7 +1281,9 @@ async function executeAction(
           
           if (percentChange > 0) {
             newBudget = currentBudget * (1 - percentChange / 100);
-            console.log(`📊 Reduzindo budget de ${currentBudget} em ${percentChange}% = ${newBudget}`);
+            console.log(`📊 Novo budget (centavos): ${Math.round(newBudget)}`);
+            console.log(`📊 Novo budget (reais): R$ ${(Math.round(newBudget) / 100).toFixed(2)}`);
+            console.log(`✅ Redução de ${percentChange}%: R$ ${(currentBudget / 100).toFixed(2)} → R$ ${(Math.round(newBudget) / 100).toFixed(2)}`);
           } else {
             console.log(`⚠️ Nenhum percentual de redução configurado, mantendo budget atual`);
             newBudget = currentBudget;
@@ -1281,7 +1291,7 @@ async function executeAction(
         }
         
         body = {
-          daily_budget: newBudget ? Math.round(newBudget * 100) : undefined,
+          daily_budget: newBudget ? Math.round(newBudget) : undefined,
           name: generateEntityName(currentName, namePrefix, actionType, ruleName, percentChange)
         };
         break;
