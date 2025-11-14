@@ -180,8 +180,8 @@ export const TemplateEditorDialog = ({ open, onOpenChange, template, onSave }: T
         logic: conditions.logic,
         conditions: conditions.conditions.map(c => ({
           field: c.field,
-          operator: null,
-          value: null,
+          operator: c.operator,
+          value: c.value,
           type: c.type,
         }))
       },
