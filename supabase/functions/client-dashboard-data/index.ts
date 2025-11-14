@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, name, company, avatar_url, ad_account_id')
+      .select('id, name, company, ad_account_id')
       .eq('dashboard_token', token)
       .single();
 
@@ -277,7 +277,6 @@ Deno.serve(async (req) => {
       client: {
         name: client.name,
         company: client.company,
-        avatar_url: client.avatar_url,
       },
       period: {
         start_date: since,
