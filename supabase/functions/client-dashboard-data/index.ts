@@ -22,6 +22,19 @@ interface DashboardMetrics {
   frequency: number;
 }
 
+const VALID_LEAD_ACTIONS = [
+  'lead', 'leadgen.other', 'onsite_conversion.lead_grouped',
+  'offsite_conversion.fb_pixel_lead', 'onsite_conversion.messaging_conversation_started_7d'
+];
+
+function extractConversions(actions: any[]): number {
+  if (!actions || !Array.isArray(actions)) return 0;
+  
+  return actions
+    .filter(action => VALID_LEAD_ACTIONS.includes(action.action_type))
+    .reduce((sum, action) => sum + (parseFloat(action.value) || 0), 0);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,179 +50,228 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Limit period to max 365 days
     const safePeriod = Math.min(Math.max(period, 1), 365);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get client by dashboard token
+    console.log('Fetching client by dashboard token:', token);
+
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, name, company, avatar_url')
+      .select('id, name, company, avatar_url, ad_account_id')
       .eq('dashboard_token', token)
       .single();
 
     if (clientError || !client) {
+      console.error('Client not found:', clientError);
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Invalid dashboard token' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Calculate date range
+    if (!client.ad_account_id) {
+      return new Response(
+        JSON.stringify({ error: 'No Facebook ad account linked to this client' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Fetching Facebook ad account:', client.ad_account_id);
+
+    const { data: adAccount, error: adAccountError } = await supabase
+      .from('facebook_ad_accounts')
+      .select('account_id, integration_id')
+      .eq('id', client.ad_account_id)
+      .single();
+
+    if (adAccountError || !adAccount) {
+      console.error('Ad account not found:', adAccountError);
+      return new Response(
+        JSON.stringify({ error: 'Facebook ad account not found' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Fetching Facebook integration:', adAccount.integration_id);
+
+    const { data: integration, error: integrationError } = await supabase
+      .from('facebook_integrations')
+      .select('access_token, is_active')
+      .eq('id', adAccount.integration_id)
+      .single();
+
+    if (integrationError || !integration) {
+      console.error('Integration not found:', integrationError);
+      return new Response(
+        JSON.stringify({ error: 'Facebook integration not found' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!integration.is_active) {
+      return new Response(
+        JSON.stringify({ error: 'Facebook integration is not active. Please reconnect.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - safePeriod);
 
-    // Fetch campaigns data
-    const { data: campaigns, error: campaignsError } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('client_id', client.id)
-      .gte('updated_at', startDate.toISOString())
-      .order('spend', { ascending: false });
+    const since = startDate.toISOString().split('T')[0];
+    const until = endDate.toISOString().split('T')[0];
 
-    if (campaignsError) {
-      throw campaignsError;
+    console.log(`Fetching campaigns from Facebook for period ${since} to ${until}`);
+
+    const campaignsUrl = `https://graph.facebook.com/v20.0/act_${adAccount.account_id}/campaigns?` +
+      `fields=id,name,status,objective,` +
+      `insights.time_range({since:'${since}',until:'${until}'})` +
+      `.action_report_time(conversion)` +
+      `.action_attribution_windows(["7d_click","1d_view"])` +
+      `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
+      `&limit=500&access_token=${integration.access_token}`;
+
+    const campaignsResponse = await fetch(campaignsUrl);
+    
+    if (!campaignsResponse.ok) {
+      const errorData = await campaignsResponse.json();
+      console.error('Facebook API error:', errorData);
+      
+      if (campaignsResponse.status === 190 || campaignsResponse.status === 401) {
+        return new Response(
+          JSON.stringify({ error: 'Facebook token expired. Please reconnect your account.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: `Facebook API error: ${errorData.error?.message || 'Unknown error'}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Fetch ad sets data
-    const { data: adSets, error: adSetsError } = await supabase
-      .from('ad_sets')
-      .select('*')
-      .eq('client_id', client.id)
-      .gte('updated_at', startDate.toISOString());
+    const fbData = await campaignsResponse.json();
+    console.log(`Fetched ${fbData.data?.length || 0} campaigns from Facebook`);
 
-    if (adSetsError) {
-      throw adSetsError;
-    }
+    const campaigns = fbData.data || [];
+    const timelineMap = new Map<string, { leads: number; messages: number }>();
+    
+    let totalSpend = 0;
+    let totalConversions = 0;
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalReach = 0;
 
-    // Fetch ads data
-    const { data: ads, error: adsError } = await supabase
-      .from('ads')
-      .select('*')
-      .eq('client_id', client.id)
-      .gte('updated_at', startDate.toISOString());
+    const processedCampaigns = campaigns.map((campaign: any) => {
+      const insights = campaign.insights?.data?.[0];
+      
+      if (!insights) {
+        return {
+          id: campaign.id,
+          name: campaign.name,
+          status: campaign.status,
+          spend: 0,
+          conversions: 0,
+          impressions: 0,
+          clicks: 0,
+          reach: 0,
+          frequency: 0,
+        };
+      }
 
-    if (adsError) {
-      throw adsError;
-    }
+      const spend = parseFloat(insights.spend || '0');
+      const impressions = parseInt(insights.impressions || '0', 10);
+      const clicks = parseInt(insights.clicks || '0', 10);
+      const reach = parseInt(insights.reach || '0', 10);
+      const frequency = parseFloat(insights.frequency || '0');
+      const conversions = extractConversions(insights.actions);
 
-    // Calculate aggregate metrics
-    const totalSpend = campaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
-    const totalConversions = campaigns?.reduce((sum, c) => sum + (c.conversions || 0), 0) || 0;
-    const totalImpressions = campaigns?.reduce((sum, c) => sum + (c.impressions || 0), 0) || 0;
-    const totalClicks = campaigns?.reduce((sum, c) => sum + (c.clicks || 0), 0) || 0;
-    const totalReach = campaigns?.reduce((sum, c) => sum + (c.reach || 0), 0) || 0;
+      totalSpend += spend;
+      totalConversions += conversions;
+      totalImpressions += impressions;
+      totalClicks += clicks;
+      totalReach += reach;
 
-    // Calculate CPL (Cost Per Lead)
+      const date = insights.date_start;
+      if (date) {
+        const existing = timelineMap.get(date) || { leads: 0, messages: 0 };
+        timelineMap.set(date, {
+          leads: existing.leads + conversions,
+          messages: existing.messages + Math.round(conversions * 0.6),
+        });
+      }
+
+      return {
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.status,
+        spend,
+        conversions,
+        impressions,
+        clicks,
+        reach,
+        frequency,
+      };
+    });
+
     const cpl = totalConversions > 0 ? totalSpend / totalConversions : 0;
-
-    // Calculate Leads per 1k impressions
     const leadsPerK = totalImpressions > 0 ? (totalConversions / totalImpressions) * 1000 : 0;
-
-    // Calculate CPM (Cost Per Mille)
     const cpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
-
-    // Calculate CPC (Cost Per Click)
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
-
-    // Calculate CTR (Click Through Rate)
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-
-    // Calculate Frequency
     const frequency = totalReach > 0 ? totalImpressions / totalReach : 0;
-
-    // Estimate messages (assuming 60% of conversions result in messages)
     const messages = Math.round(totalConversions * 0.6);
-
-    // Estimate page views (assuming CTR * 0.8 reach page)
     const pageViews = Math.round(totalClicks * 0.8);
-
-    // Calculate connect rate (messages / page views)
     const connectRate = pageViews > 0 ? (messages / pageViews) * 100 : 0;
-
-    // Calculate lead rate (leads / page views)
     const leadRate = pageViews > 0 ? (totalConversions / pageViews) * 100 : 0;
 
     const metrics: DashboardMetrics = {
       spend: totalSpend,
       leads: totalConversions,
-      messages: messages,
-      cpl: cpl,
+      messages,
+      cpl,
       leads_per_1k: leadsPerK,
       impressions: totalImpressions,
       clicks: totalClicks,
       page_views: pageViews,
-      cpm: cpm,
-      cpc: cpc,
-      ctr: ctr,
+      cpm,
+      cpc,
+      ctr,
       connect_rate: connectRate,
       lead_rate: leadRate,
-      frequency: frequency,
+      frequency,
     };
 
-    // Generate timeline data (daily aggregates)
-    const timelineData = [];
-    const daysArray = [];
-    for (let i = 0; i < safePeriod; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
-      daysArray.push(date.toISOString().split('T')[0]);
-    }
+    const timeline = Array.from(timelineMap.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Aggregate by date
-    for (const day of daysArray) {
-      const dayStart = new Date(day);
-      const dayEnd = new Date(day);
-      dayEnd.setDate(dayEnd.getDate() + 1);
-
-      const dayLeads = campaigns?.reduce((sum, c) => {
-        const updated = new Date(c.updated_at);
-        if (updated >= dayStart && updated < dayEnd) {
-          return sum + (c.conversions || 0);
-        }
-        return sum;
-      }, 0) || 0;
-
-      timelineData.push({
-        date: day,
-        leads: dayLeads,
-        messages: Math.round(dayLeads * 0.6),
-      });
-    }
-
-    // Top campaigns by conversions
-    const topCampaigns = (campaigns || [])
-      .filter((c) => c.conversions > 0)
-      .sort((a, b) => b.conversions - a.conversions)
+    const topCampaigns = processedCampaigns
+      .filter((c: any) => c.conversions > 0)
+      .sort((a: any, b: any) => b.conversions - a.conversions)
       .slice(0, 5)
-      .map((c) => ({
+      .map((c: any) => ({
         name: c.name,
         conversions: c.conversions,
         spend: c.spend,
-        percentage: totalConversions > 0 ? ((c.conversions / totalConversions) * 100) : 0,
+        percentage: totalConversions > 0 ? (c.conversions / totalConversions) * 100 : 0,
       }));
 
-    // Campaigns table data
-    const campaignsTable = (campaigns || []).map((c) => {
-      const campaignAdSets = adSets?.filter((as) => as.campaign_id === c.id) || [];
-      const campaignAds = ads?.filter((ad) => ad.campaign_id === c.id) || [];
-
-      return {
-        name: c.name,
-        ad_sets_count: campaignAdSets.length,
-        ads_count: campaignAds.length,
-        spend: c.spend,
-        leads: c.conversions,
-        cpl: c.conversions > 0 ? c.spend / c.conversions : 0,
-        messages: Math.round(c.conversions * 0.6),
-        cpm: c.impressions > 0 ? (c.spend / c.impressions) * 1000 : 0,
-        status: c.status,
-      };
-    });
+    const campaignsTable = processedCampaigns.map((c: any) => ({
+      name: c.name,
+      ad_sets_count: 0,
+      ads_count: 0,
+      spend: c.spend,
+      leads: c.conversions,
+      cpl: c.conversions > 0 ? c.spend / c.conversions : 0,
+      messages: Math.round(c.conversions * 0.6),
+      cpm: c.impressions > 0 ? (c.spend / c.impressions) * 1000 : 0,
+      status: c.status,
+    }));
 
     const response = {
       client: {
@@ -218,18 +280,22 @@ Deno.serve(async (req) => {
         avatar_url: client.avatar_url,
       },
       period: {
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
+        start_date: since,
+        end_date: until,
         days: safePeriod,
       },
       metrics,
-      timeline: timelineData,
+      timeline,
       top_campaigns: topCampaigns,
       campaigns_table: campaignsTable,
     };
 
     return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300'
+      },
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
