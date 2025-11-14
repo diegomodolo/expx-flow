@@ -19,14 +19,23 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
-
 const ClientDashboardPublic = () => {
-  const { token } = useParams<{ token: string }>();
-  const { theme, setTheme } = useTheme();
+  const {
+    token
+  } = useParams<{
+    token: string;
+  }>();
+  const {
+    theme,
+    setTheme
+  } = useTheme();
   const [period, setPeriod] = useState(30);
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+  const [dateRange, setDateRange] = useState<{
+    from: Date;
+    to: Date;
+  }>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    to: new Date(),
+    to: new Date()
   });
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState("5");
@@ -34,22 +43,27 @@ const ClientDashboardPublic = () => {
   const [nextRefresh, setNextRefresh] = useState<Date | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  const { data, isLoading, error, refetch } = useClientDashboard(token || "", period);
+  const {
+    data,
+    isLoading,
+    error,
+    refetch
+  } = useClientDashboard(token || "", period);
 
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const handleDateSelect = (range: { from: Date; to: Date } | undefined) => {
+  const handleDateSelect = (range: {
+    from: Date;
+    to: Date;
+  } | undefined) => {
     if (range?.from && range?.to) {
       setDateRange(range);
       const days = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
       setPeriod(days);
     }
   };
-
   const handleManualRefresh = useCallback(async () => {
     toast.info("Atualizando dados...");
     await refetch();
@@ -66,36 +80,30 @@ const ClientDashboardPublic = () => {
       setNextRefresh(null);
       return;
     }
-
     const intervalMs = parseInt(refreshInterval) * 60 * 1000;
     setNextRefresh(new Date(Date.now() + intervalMs));
-
     const interval = setInterval(async () => {
       await refetch();
       setLastRefresh(new Date());
       setNextRefresh(new Date(Date.now() + intervalMs));
       toast.success("Dados atualizados automaticamente");
     }, intervalMs);
-
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, refetch]);
 
   // Update next refresh time every second
   useEffect(() => {
     if (!autoRefresh || !nextRefresh) return;
-
     const timer = setInterval(() => {
       setNextRefresh(new Date(Date.now() + parseInt(refreshInterval) * 60 * 1000));
     }, 1000);
-
     return () => clearInterval(timer);
   }, [autoRefresh, refreshInterval, nextRefresh]);
-
   const getTimeUntilRefresh = () => {
     if (!nextRefresh || !autoRefresh) return null;
     const diff = Math.max(0, nextRefresh.getTime() - Date.now());
     const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
+    const seconds = Math.floor(diff % 60000 / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
@@ -120,57 +128,42 @@ const ClientDashboardPublic = () => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
-
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     toast.success(`Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`);
   };
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Carregando dashboard...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-destructive text-lg font-semibold">Erro ao carregar dashboard</p>
           <p className="text-muted-foreground">Token inválido ou expirado</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!data) {
     return null;
   }
-
-  return (
-    <div className="h-screen w-screen bg-background overflow-hidden flex flex-col">
+  return <div className="h-screen w-screen bg-background overflow-hidden flex flex-col">
       {/* Header */}
       <div className="border-b border-border bg-card flex-shrink-0">
         <div className="px-6 py-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg"
-                alt="Meta"
-                className="h-8"
-              />
+              
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Relatório Meta Ads</h1>
+                <h1 className="text-3xl font-bold text-foreground">Relatório de Tráfego  </h1>
                 <p className="text-sm text-muted-foreground">
                   {data.client.company} - {data.client.name}
                 </p>
@@ -178,49 +171,24 @@ const ClientDashboardPublic = () => {
             </div>
             <div className="flex items-center gap-3">
               {/* Theme toggle */}
-              {mounted && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleTheme}
-                  title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
+              {mounted && <Button variant="outline" size="sm" onClick={toggleTheme} title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>}
 
               {/* Fullscreen button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleFullscreen}
-                title={isFullscreen ? "Sair da tela cheia (ESC)" : "Tela cheia"}
-              >
-                {isFullscreen ? (
-                  <Minimize className="h-4 w-4" />
-                ) : (
-                  <Maximize className="h-4 w-4" />
-                )}
+              <Button variant="outline" size="sm" onClick={toggleFullscreen} title={isFullscreen ? "Sair da tela cheia (ESC)" : "Tela cheia"}>
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
               </Button>
 
               {/* Auto-refresh controls */}
               <div className="flex items-center gap-3 border-r border-border pr-3">
                 <div className="flex items-center gap-2">
-                  <Switch
-                    id="auto-refresh"
-                    checked={autoRefresh}
-                    onCheckedChange={setAutoRefresh}
-                  />
+                  <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
                   <Label htmlFor="auto-refresh" className="text-sm cursor-pointer">
                     Auto-refresh
                   </Label>
                 </div>
-                {autoRefresh && (
-                  <>
+                {autoRefresh && <>
                     <Select value={refreshInterval} onValueChange={setRefreshInterval}>
                       <SelectTrigger className="w-24 h-8 text-sm">
                         <SelectValue />
@@ -236,56 +204,36 @@ const ClientDashboardPublic = () => {
                     <span className="text-xs text-muted-foreground">
                       Próx: {getTimeUntilRefresh()}
                     </span>
-                  </>
-                )}
+                  </>}
               </div>
 
               {/* Manual refresh button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualRefresh}
-                disabled={isLoading}
-              >
+              <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={isLoading}>
                 <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               </Button>
 
               {/* Date picker */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !dateRange && "text-muted-foreground"
-                    )}
-                  >
+                  <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "dd/MM/yy", { locale: ptBR })} -{" "}
-                          {format(dateRange.to, "dd/MM/yy", { locale: ptBR })}
-                        </>
-                      ) : (
-                        format(dateRange.from, "dd/MM/yy", { locale: ptBR })
-                      )
-                    ) : (
-                      <span>Período</span>
-                    )}
+                    {dateRange?.from ? dateRange.to ? <>
+                          {format(dateRange.from, "dd/MM/yy", {
+                      locale: ptBR
+                    })} -{" "}
+                          {format(dateRange.to, "dd/MM/yy", {
+                      locale: ptBR
+                    })}
+                        </> : format(dateRange.from, "dd/MM/yy", {
+                    locale: ptBR
+                  }) : <span>Período</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={{ from: dateRange.from, to: dateRange.to }}
-                    onSelect={handleDateSelect as any}
-                    numberOfMonths={2}
-                    locale={ptBR}
-                  />
+                  <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={{
+                  from: dateRange.from,
+                  to: dateRange.to
+                }} onSelect={handleDateSelect as any} numberOfMonths={2} locale={ptBR} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -317,8 +265,6 @@ const ClientDashboardPublic = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ClientDashboardPublic;
