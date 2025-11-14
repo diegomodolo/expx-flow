@@ -123,12 +123,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - safePeriod);
+    console.log('Integration found, active:', integration.is_active);
 
-    const since = startDate.toISOString().split('T')[0];
-    const until = endDate.toISOString().split('T')[0];
+    const since = start_date;
+    const until = end_date;
 
     console.log(`Fetching campaigns from Facebook for period ${since} to ${until}`);
 
