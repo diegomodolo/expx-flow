@@ -331,7 +331,8 @@ Deno.serve(async (req) => {
             executionId,
             accessToken,
             supabase,
-            namePrefix
+            namePrefix,
+            adAccountId
           );
 
           if (result === 'actioned') totalActioned++;
@@ -455,7 +456,8 @@ Deno.serve(async (req) => {
               executionId,
               accessToken,
               supabase,
-              namePrefix
+              namePrefix,
+              adAccountId
             );
 
             if (result === 'actioned') totalActioned++;
@@ -578,7 +580,8 @@ Deno.serve(async (req) => {
                   executionId,
                   accessToken,
                   supabase,
-                  namePrefix
+                  namePrefix,
+                  adAccountId
                 );
 
                 if (result === 'actioned') totalActioned++;
@@ -953,7 +956,8 @@ async function processEntityWithRule(
   executionId: string,
   accessToken: string,
   supabase: any,
-  namePrefix: string
+  namePrefix: string,
+  adAccountId: string
 ): Promise<'skipped' | 'actioned' | 'error'> {
   console.log(`\n⚙️  Applying rule: ${rule.rule_name} to ${entity.name}`);
 
@@ -971,7 +975,8 @@ async function processEntityWithRule(
         rule.entity_type,
         rule.rule_name,
         namePrefix,
-        accessToken
+        accessToken,
+        adAccountId
       );
 
       if (actionResult.success) {
@@ -1136,7 +1141,8 @@ async function executeAction(
   entityType: string,
   ruleName: string,
   namePrefix: string,
-  accessToken: string
+  accessToken: string,
+  adAccountId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     let url = '';
@@ -1215,10 +1221,10 @@ async function executeAction(
         break;
       
       case 'duplicate_ad':
-        // Para anúncios, criar um novo ao invés de copiar para evitar specs obsoletas
+        // Para anúncios, criar novo usando o endpoint correto do ad account
         console.log(`📋 Fetching original ad data to create new ad...`);
         
-        // Buscar dados do anúncio original
+        // Buscar dados do anúncio original (principalmente adset_id e creative)
         const adDataResponse = await fetch(
           `https://graph.facebook.com/v20.0/${facebookId}?fields=name,adset_id,creative&access_token=${accessToken}`
         );
@@ -1230,17 +1236,20 @@ async function executeAction(
         }
         
         const adData = await adDataResponse.json();
+        console.log(`📋 Ad data fetched:`, { adset_id: adData.adset_id, creative_id: adData.creative?.id });
+        
         const newAdName = generateEntityName(currentName, namePrefix, actionType, ruleName);
         
-        // Criar novo anúncio no mesmo ad set
-        url = `https://graph.facebook.com/v20.0/${adData.adset_id}/ads`;
+        // Criar novo anúncio usando o endpoint do ad account
+        url = `https://graph.facebook.com/v20.0/${adAccountId}/ads`;
         body = {
           name: newAdName,
+          adset_id: adData.adset_id,
           creative: { creative_id: adData.creative.id },
           status: 'ACTIVE'
         };
         
-        console.log(`📋 Creating new ad in adset ${adData.adset_id} with name: ${newAdName}`);
+        console.log(`📋 Creating new ad in account ${adAccountId} for adset ${adData.adset_id} with name: ${newAdName}`);
         break;
       
       default:
