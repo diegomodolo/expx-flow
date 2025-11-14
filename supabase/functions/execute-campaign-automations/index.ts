@@ -1219,12 +1219,13 @@ async function executeAction(
         console.log(`📋 Fetching original ad data to create new ad...`);
         
         // Buscar dados do anúncio original
-        const adDataResponse = await fetchWithRetry(
-          `https://graph.facebook.com/v20.0/${facebookId}?fields=name,adset_id,creative,status&access_token=${accessToken}`,
-          { method: 'GET' }
+        const adDataResponse = await fetch(
+          `https://graph.facebook.com/v20.0/${facebookId}?fields=name,adset_id,creative&access_token=${accessToken}`
         );
         
         if (!adDataResponse.ok) {
+          const errorData = await adDataResponse.json();
+          console.error('❌ Failed to fetch ad data:', errorData);
           throw new Error(`Failed to fetch ad data: ${adDataResponse.status}`);
         }
         
