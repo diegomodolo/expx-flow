@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Loader2, RefreshCw, Maximize, Minimize, Sun, Moon } from "lucide-react";
+import { CalendarIcon, Loader2, RefreshCw, Maximize, Minimize, Sun, Moon, Monitor } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,6 +44,8 @@ const ClientDashboardPublic = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [kioskMode, setKioskMode] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const {
     data,
     isLoading,
@@ -63,6 +65,43 @@ const ClientDashboardPublic = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Kiosk mode: hide controls after 5 seconds of inactivity
+  useEffect(() => {
+    if (!kioskMode) {
+      setShowControls(true);
+      return;
+    }
+
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      setShowControls(true);
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        setShowControls(false);
+      }, 5000);
+    };
+
+    const handleActivity = () => {
+      resetTimer();
+    };
+
+    // Initial timer
+    resetTimer();
+
+    // Listen for mouse movement and clicks
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, [kioskMode]);
   const handleDateSelect = (range: {
     from: Date;
     to: Date;
@@ -145,6 +184,16 @@ const ClientDashboardPublic = () => {
     setTheme(newTheme);
     toast.success(`Tema ${newTheme === "dark" ? "escuro" : "claro"} ativado`);
   };
+
+  const toggleKioskMode = () => {
+    const newKioskMode = !kioskMode;
+    setKioskMode(newKioskMode);
+    if (newKioskMode) {
+      toast.success("Modo Kiosk ativado - controles ocultarão após 5s de inatividade");
+    } else {
+      toast.info("Modo Kiosk desativado");
+    }
+  };
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -166,7 +215,12 @@ const ClientDashboardPublic = () => {
   }
   return <div className="h-screen w-screen bg-background overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="border-b border-border bg-card flex-shrink-0">
+      <div 
+        className={cn(
+          "border-b border-border bg-card flex-shrink-0 transition-all duration-500 ease-in-out",
+          kioskMode && !showControls && "opacity-0 -translate-y-full pointer-events-none"
+        )}
+      >
         <div className="px-6 py-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
@@ -179,6 +233,16 @@ const ClientDashboardPublic = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Kiosk mode toggle */}
+              <Button
+                variant={kioskMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleKioskMode}
+                title={kioskMode ? "Desativar modo Kiosk" : "Ativar modo Kiosk (oculta controles após 5s)"}
+              >
+                <Monitor className="h-4 w-4" />
+              </Button>
+
               {/* Theme toggle */}
               {mounted && <Button variant="outline" size="sm" onClick={toggleTheme} title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
