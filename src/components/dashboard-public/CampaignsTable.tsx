@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CampaignTableRow } from "@/hooks/useClientDashboard";
 import { useEffect, useState } from "react";
 
@@ -15,12 +16,20 @@ interface CampaignsTableProps {
   campaigns: CampaignTableRow[];
 }
 
+type StatusFilter = 'all' | 'active' | 'paused';
+
 export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
   const [animateKey, setAnimateKey] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
 
   useEffect(() => {
     setAnimateKey(prev => prev + 1);
   }, [campaigns]);
+
+  const filteredCampaigns = campaigns.filter(campaign => {
+    if (statusFilter === 'all') return true;
+    return campaign.status.toLowerCase() === statusFilter;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -50,7 +59,32 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
 
   return (
     <Card className="p-4 bg-card border-border animate-fade-in">
-      <h3 className="text-xl font-semibold text-foreground mb-4 transition-colors duration-300">Campanhas</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-foreground transition-colors duration-300">Campanhas</h3>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('all')}
+          >
+            Todas ({campaigns.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'active' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('active')}
+          >
+            Ativas ({campaigns.filter(c => c.status.toLowerCase() === 'active').length})
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'paused' ? 'default' : 'outline'}
+            onClick={() => setStatusFilter('paused')}
+          >
+            Pausadas ({campaigns.filter(c => c.status.toLowerCase() === 'paused').length})
+          </Button>
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -67,7 +101,7 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map((campaign, index) => (
+            {filteredCampaigns.map((campaign, index) => (
               <TableRow 
                 key={`${index}-${animateKey}`}
                 className="animate-fade-in transition-all duration-300 hover:bg-muted/50"
