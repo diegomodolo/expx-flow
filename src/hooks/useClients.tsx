@@ -453,16 +453,7 @@ export function useClients() {
       
       // Use cached status from database, fallback to calculating if not available
       const clientsWithStatus = await Promise.all((data || []).map(async (client) => {
-        // PRIORITY 1: If manual_status is set, always use it (user override)
-        if (client.manual_status) {
-          return {
-            ...client,
-            status: statusMapping.display[client.manual_status] as ClientStatus,
-            statusExplanation: '⚠️ Cliente marcado como inativo manualmente'
-          };
-        }
-
-        // PRIORITY 2: If status was calculated and is recent (less than 24h old), use cached version
+        // If status was calculated and is recent (less than 24h old), use cached version
         const statusAge = client.status_calculated_at 
           ? Date.now() - new Date(client.status_calculated_at).getTime()
           : Infinity;
@@ -541,13 +532,9 @@ export function useClients() {
       // Map status to database format if present
       const { status, ...restUpdates } = updates;
       
-      // If status is being updated, set it as manual_status to override automatic calculation
       const dbUpdates = {
         ...restUpdates,
-        ...(status && { 
-          status: statusMapping.database[status],
-          manual_status: statusMapping.database[status]
-        })
+        ...(status && { status: statusMapping.database[status] })
       };
 
       const { error } = await supabase
