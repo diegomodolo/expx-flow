@@ -979,13 +979,16 @@ async function processEntityWithRule(
       const cooldownDate = new Date();
       cooldownDate.setDate(cooldownDate.getDate() - cooldownDays);
       
-      // Buscar últimas duplicações desta entidade
+      // Buscar últimas duplicações desta entidade usando automation_execution_progress
+      console.log(`🔍 Checking cooldown for entity ${entity.name} (${entity.facebook_id}), type: ${rule.entity_type}`);
+      
       const { data: recentLogs, error: logsError } = await supabase
-        .from('campaign_automation_logs')
+        .from('automation_execution_progress')
         .select('created_at')
         .eq('company_id', rule.company_id)
-        .eq('entity_id', entity.id)
-        .eq('action_type', rule.action_type)
+        .eq('facebook_id', entity.facebook_id)
+        .eq('entity_type', rule.entity_type)
+        .eq('status', 'actioned')
         .gte('created_at', cooldownDate.toISOString())
         .order('created_at', { ascending: false })
         .limit(1);
@@ -995,8 +998,10 @@ async function processEntityWithRule(
       } else if (recentLogs && recentLogs.length > 0) {
         const lastDuplication = new Date(recentLogs[0].created_at);
         const daysSince = Math.floor((Date.now() - lastDuplication.getTime()) / (1000 * 60 * 60 * 24));
-        console.log(`⏸️  Cooldown active: last duplication ${daysSince} days ago (minimum: ${cooldownDays} days)`);
+        console.log(`⏸️  Cooldown active: Entity ${entity.name} (${entity.facebook_id}) last duplicated ${daysSince} days ago (minimum: ${cooldownDays} days)`);
         return 'skipped';
+      } else {
+        console.log(`✅ No recent duplications found within cooldown period for ${entity.facebook_id}`);
       }
     }
   }
@@ -1317,13 +1322,16 @@ async function executeAction(
       return { success: false, error: data.error.message };
     }
 
-    console.log(`✅ Action executed successfully. New name: ${body.name || 'unchanged'}`);
+    console.log(`✅ Action executed successfully. New ID: ${data.id || 'N/A'}, Name: ${body.name || 'unchanged'}`);
 
-    // Se for duplicação de anúncio, garantir que está ativado
-    if (actionType === 'duplicate_ad' && data.id) {
-      console.log(`✅ Ad created with ID: ${data.id}, now activating...`);
+    // Se for duplicação de campanha, ad set ou anúncio, garantir que está ativado
+    if (['duplicate_campaign', 'duplicate_adset', 'duplicate_ad'].includes(actionType) && data.id) {
+      const entityLabel = actionType === 'duplicate_campaign' ? 'Campaign' : 
+                         actionType === 'duplicate_adset' ? 'Ad Set' : 'Ad';
       
-      // Ativar o anúncio explicitamente
+      console.log(`✅ ${entityLabel} created with ID: ${data.id}, now activating...`);
+      
+      // Ativar explicitamente
       const activateResponse = await fetch(
         `https://graph.facebook.com/v20.0/${data.id}`,
         {
@@ -1338,9 +1346,9 @@ async function executeAction(
       
       const activateData = await activateResponse.json();
       if (activateData.error) {
-        console.error('⚠️  Warning: Failed to activate ad:', activateData.error);
+        console.error(`⚠️  Warning: Failed to activate ${entityLabel.toLowerCase()}:`, activateData.error);
       } else {
-        console.log(`✅ Ad activated successfully`);
+        console.log(`✅ ${entityLabel} activated successfully`);
       }
     }
 
