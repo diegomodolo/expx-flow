@@ -311,6 +311,18 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Criar timeline primeiro
+    const timeline = Array.from(timelineMap.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calcular totalConversions e totalMessages a partir do timeline (dados diários reais)
+    timeline.forEach((point: any) => {
+      totalConversions += parseFloat(point.leads || 0);
+      totalMessages += parseFloat(point.messages || 0);
+    });
+
+    // Agora calcular as métricas com os valores corretos
     const cpl = totalConversions > 0 ? totalSpend / totalConversions : 0;
     const leadsPerK = totalImpressions > 0 ? (totalConversions / totalImpressions) * 1000 : 0;
     const cpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
@@ -338,16 +350,6 @@ Deno.serve(async (req) => {
       lead_rate: leadRate,
       frequency,
     };
-
-    const timeline = Array.from(timelineMap.entries())
-      .map(([date, data]) => ({ date, ...data }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    // Calcular totalConversions e totalMessages a partir do timeline (dados diários reais)
-    timeline.forEach((point: any) => {
-      totalConversions += parseFloat(point.leads || 0);
-      totalMessages += parseFloat(point.messages || 0);
-    });
 
     const topCampaigns = processedCampaigns
       .filter((c: any) => c.conversions > 0)
