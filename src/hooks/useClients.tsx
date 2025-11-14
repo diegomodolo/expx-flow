@@ -453,7 +453,17 @@ export function useClients() {
       
       // Use cached status from database, fallback to calculating if not available
       const clientsWithStatus = await Promise.all((data || []).map(async (client) => {
-        // If status was calculated and is recent (less than 24h old), use cached version
+        // PRIORITY 1: If status is different from calculated_status, it means manual override
+        // Use the manual status from the status field
+        if (client.status && client.calculated_status && client.status !== client.calculated_status) {
+          return {
+            ...client,
+            status: statusMapping.display[client.status] as ClientStatus,
+            statusExplanation: '✏️ Status definido manualmente'
+          };
+        }
+
+        // PRIORITY 2: If status was calculated and is recent (less than 24h old), use cached version
         const statusAge = client.status_calculated_at 
           ? Date.now() - new Date(client.status_calculated_at).getTime()
           : Infinity;
@@ -462,7 +472,7 @@ export function useClients() {
         if (client.calculated_status && isStatusFresh) {
           return {
             ...client,
-            status: client.calculated_status as ClientStatus,
+            status: statusMapping.display[client.calculated_status] as ClientStatus,
             statusExplanation: client.status_explanation || ''
           };
         } else {
