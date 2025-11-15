@@ -36,6 +36,22 @@ serve(async (req) => {
       const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID');
       const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET');
 
+      // Debug logs (sem expor as credenciais completas)
+      console.log('Debug Info:', {
+        clientIdLength: clientId?.length,
+        clientIdStart: clientId?.substring(0, 20),
+        clientIdEnd: clientId?.substring(clientId.length - 20),
+        clientSecretLength: clientSecret?.length,
+        clientSecretStart: clientSecret?.substring(0, 10),
+        redirectUri: redirectUri,
+        codeLength: code?.length,
+        hasSpaces: {
+          clientId: clientId !== clientId?.trim(),
+          clientSecret: clientSecret !== clientSecret?.trim(),
+          redirectUri: redirectUri !== redirectUri?.trim()
+        }
+      });
+
       console.log('Exchanging code for tokens...');
 
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -55,6 +71,14 @@ serve(async (req) => {
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.text();
         console.error('Token exchange failed:', errorData);
+        console.error('Request details:', {
+          url: 'https://oauth2.googleapis.com/token',
+          method: 'POST',
+          redirectUri: redirectUri,
+          codeProvided: !!code,
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText
+        });
         throw new Error(`Failed to exchange code for tokens: ${errorData}`);
       }
 
