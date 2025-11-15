@@ -52,8 +52,10 @@ export const useFacebookSyncSchedule = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('manage-facebook-sync-schedule', {
-        body: null,
-        method: 'GET',
+        body: {
+          action: 'get',
+          company_id: activeCompany.company_id,
+        },
       });
 
       if (error) throw error;
@@ -110,6 +112,7 @@ export const useFacebookSyncSchedule = () => {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('manage-facebook-sync-schedule', {
         body: {
+          action: 'upsert',
           company_id: activeCompany.company_id,
           is_enabled: isEnabled,
           sync_options: syncOptions,
@@ -146,10 +149,10 @@ export const useFacebookSyncSchedule = () => {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('manage-facebook-sync-schedule', {
         body: {
+          action: 'patch',
           company_id: activeCompany.company_id,
           is_enabled: enabled,
         },
-        method: 'PATCH',
       });
 
       if (error) throw error;
@@ -182,8 +185,10 @@ export const useFacebookSyncSchedule = () => {
     try {
       setLoading(true);
       const { error } = await supabase.functions.invoke('manage-facebook-sync-schedule', {
-        body: null,
-        method: 'DELETE',
+        body: {
+          action: 'delete',
+          company_id: activeCompany.company_id,
+        },
       });
 
       if (error) throw error;
