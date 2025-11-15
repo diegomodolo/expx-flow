@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
-import { Loader2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -52,7 +53,7 @@ export function GoogleAdsIntegrationCard() {
         .from('google_ads_accounts')
         .insert({
           integration_id: integration.id,
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
           google_customer_id: cleanId,
           account_name: `Customer ${cleanId}`,
           currency: 'BRL',
@@ -83,6 +84,7 @@ export function GoogleAdsIntegrationCard() {
   }
 
   const isConnected = integration && integration.is_active;
+  const hasAccounts = adAccounts && adAccounts.length > 0;
   const isExpired = integration && new Date(integration.expires_at) < new Date();
 
   return (
@@ -102,16 +104,21 @@ export function GoogleAdsIntegrationCard() {
             </CardDescription>
           </div>
           {isConnected ? (
-            <Badge variant={isExpired ? "destructive" : "default"} className="gap-1">
+            <Badge variant={isExpired ? "destructive" : (hasAccounts ? "default" : "secondary")} className="gap-1">
               {isExpired ? (
                 <>
                   <XCircle className="h-3 w-3" />
                   Expirado
                 </>
+              ) : hasAccounts ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3" />
+                  Conectado ({adAccounts.length} conta{adAccounts.length !== 1 ? 's' : ''})
+                </>
               ) : (
                 <>
                   <CheckCircle2 className="h-3 w-3" />
-                  Conectado
+                  Conectado - Adicione Customer ID
                 </>
               )}
             </Badge>
@@ -135,6 +142,17 @@ export function GoogleAdsIntegrationCard() {
           </div>
         ) : (
           <div className="space-y-4">
+            {!hasAccounts && !isExpired && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Configure sua conta</AlertTitle>
+                <AlertDescription>
+                  A integração está ativa! Agora adicione seu Google Ads Customer ID para começar a sincronizar campanhas.
+                  Você encontra este ID no canto superior direito da sua conta do Google Ads (formato: XXX-XXX-XXXX).
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Última atualização:</span>
@@ -151,7 +169,7 @@ export function GoogleAdsIntegrationCard() {
               </div>
             </div>
 
-            {adAccounts.length === 0 && (
+            {!hasAccounts && (
               <div className="space-y-3 rounded-lg border border-dashed p-4">
                 <div>
                   <Label htmlFor="customerId" className="text-sm font-medium">
