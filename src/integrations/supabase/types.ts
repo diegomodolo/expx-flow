@@ -1460,6 +1460,7 @@ export type Database = {
           created_at: string
           dashboard_token: string | null
           email: string
+          google_account_id: string | null
           id: string
           inactive_reason: string | null
           last_sync_at: string | null
@@ -1497,6 +1498,7 @@ export type Database = {
           created_at?: string
           dashboard_token?: string | null
           email: string
+          google_account_id?: string | null
           id?: string
           inactive_reason?: string | null
           last_sync_at?: string | null
@@ -1534,6 +1536,7 @@ export type Database = {
           created_at?: string
           dashboard_token?: string | null
           email?: string
+          google_account_id?: string | null
           id?: string
           inactive_reason?: string | null
           last_sync_at?: string | null
@@ -1570,6 +1573,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_google_account_id_fkey"
+            columns: ["google_account_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -3018,6 +3028,451 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      google_ad_groups: {
+        Row: {
+          campaign_id: string
+          clicks: number | null
+          client_id: string
+          company_id: string
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          google_account_id: string
+          google_id: string
+          id: string
+          impressions: number | null
+          is_active: boolean
+          name: string
+          spend: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          clicks?: number | null
+          client_id: string
+          company_id: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          google_account_id: string
+          google_id: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          name: string
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          clicks?: number | null
+          client_id?: string
+          company_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          google_account_id?: string
+          google_id?: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          name?: string
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ad_groups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "google_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ad_groups_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ad_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ad_groups_google_account_id_fkey"
+            columns: ["google_account_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads: {
+        Row: {
+          ad_group_id: string
+          ad_type: string | null
+          campaign_id: string
+          clicks: number | null
+          client_id: string
+          company_id: string
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          descriptions: Json | null
+          final_url: string | null
+          google_account_id: string
+          google_id: string
+          headlines: Json | null
+          id: string
+          impressions: number | null
+          is_active: boolean
+          name: string
+          spend: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad_group_id: string
+          ad_type?: string | null
+          campaign_id: string
+          clicks?: number | null
+          client_id: string
+          company_id: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          descriptions?: Json | null
+          final_url?: string | null
+          google_account_id: string
+          google_id: string
+          headlines?: Json | null
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          name: string
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad_group_id?: string
+          ad_type?: string | null
+          campaign_id?: string
+          clicks?: number | null
+          client_id?: string
+          company_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          descriptions?: Json | null
+          final_url?: string | null
+          google_account_id?: string
+          google_id?: string
+          headlines?: Json | null
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          name?: string
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_ad_group_id_fkey"
+            columns: ["ad_group_id"]
+            isOneToOne: false
+            referencedRelation: "google_ad_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "google_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_google_account_id_fkey"
+            columns: ["google_account_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_accounts: {
+        Row: {
+          account_name: string
+          company_id: string
+          created_at: string
+          currency: string | null
+          google_customer_id: string
+          id: string
+          integration_id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          company_id: string
+          created_at?: string
+          currency?: string | null
+          google_customer_id: string
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          company_id?: string
+          created_at?: string
+          currency?: string | null
+          google_customer_id?: string
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_accounts_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_integrations: {
+        Row: {
+          access_token: string
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          refresh_token: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          company_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean
+          refresh_token: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          refresh_token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_ads_sync_schedules: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          executions_per_day: number
+          id: string
+          is_enabled: boolean | null
+          last_execution_at: string | null
+          next_execution_at: string | null
+          scheduled_times: string[]
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          executions_per_day?: number
+          id?: string
+          is_enabled?: boolean | null
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          scheduled_times?: string[]
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          executions_per_day?: number
+          id?: string
+          is_enabled?: boolean | null
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          scheduled_times?: string[]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_sync_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_campaigns: {
+        Row: {
+          campaign_type: string | null
+          clicks: number | null
+          client_id: string
+          company_id: string
+          conversions: number | null
+          cpa: number | null
+          cpc: number | null
+          created_at: string
+          ctr: number | null
+          frequency: number | null
+          google_account_id: string
+          google_id: string
+          id: string
+          impressions: number | null
+          is_active: boolean
+          name: string
+          period: string
+          reach: number | null
+          spend: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_type?: string | null
+          clicks?: number | null
+          client_id: string
+          company_id: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          frequency?: number | null
+          google_account_id: string
+          google_id: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          name: string
+          period?: string
+          reach?: number | null
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_type?: string | null
+          clicks?: number | null
+          client_id?: string
+          company_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          cpc?: number | null
+          created_at?: string
+          ctr?: number | null
+          frequency?: number | null
+          google_account_id?: string
+          google_id?: string
+          id?: string
+          impressions?: number | null
+          is_active?: boolean
+          name?: string
+          period?: string
+          reach?: number | null
+          spend?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_campaigns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_campaigns_google_account_id_fkey"
+            columns: ["google_account_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ia_agent_conversations: {
         Row: {

@@ -1,0 +1,145 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
+import { Loader2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+export function GoogleAdsIntegrationCard() {
+  const {
+    loading,
+    integration,
+    adAccounts,
+    connectGoogle,
+    disconnectGoogle,
+    refreshAdAccounts,
+  } = useGoogleAdsIntegration();
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isConnected = integration && integration.is_active;
+  const isExpired = integration && new Date(integration.expires_at) < new Date();
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#4285F4"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#4285F4" strokeWidth="2"/>
+              </svg>
+              Google Ads
+            </CardTitle>
+            <CardDescription>
+              Integração com Google Ads para sincronização de campanhas
+            </CardDescription>
+          </div>
+          {isConnected ? (
+            <Badge variant={isExpired ? "destructive" : "default"} className="gap-1">
+              {isExpired ? (
+                <>
+                  <XCircle className="h-3 w-3" />
+                  Expirado
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3 w-3" />
+                  Conectado
+                </>
+              )}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1">
+              <XCircle className="h-3 w-3" />
+              Desconectado
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!isConnected ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Conecte sua conta do Google Ads para sincronizar campanhas, grupos de anúncios e anúncios automaticamente.
+            </p>
+            <Button onClick={connectGoogle} className="w-full">
+              Conectar Google Ads
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Última atualização:</span>
+                <span>
+                  {formatDistanceToNow(new Date(integration.created_at), {
+                    addSuffix: true,
+                    locale: ptBR,
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Contas conectadas:</span>
+                <span className="font-medium">{adAccounts.length}</span>
+              </div>
+            </div>
+
+            {adAccounts.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Contas Google Ads:</p>
+                <div className="space-y-1">
+                  {adAccounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center justify-between rounded-lg border p-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">{account.account_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {account.google_customer_id}
+                        </p>
+                      </div>
+                      {account.currency && (
+                        <Badge variant="outline">{account.currency}</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                onClick={refreshAdAccounts}
+                variant="outline"
+                className="flex-1"
+                size="sm"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Atualizar Contas
+              </Button>
+              <Button
+                onClick={disconnectGoogle}
+                variant="destructive"
+                size="sm"
+              >
+                Desconectar
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

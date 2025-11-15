@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -39,6 +40,18 @@ const settingsNavItems = [
     href: "/configuracoes/sincronizacao-facebook",
     icon: RefreshCw,
     description: "Agendamento automático de sincronização",
+  },
+  {
+    title: "Google Ads",
+    href: "/configuracoes/integracao-google",
+    icon: SiGoogle as any,
+    description: "Integração com Google Ads",
+  },
+  {
+    title: "Sincronização Google",
+    href: "/configuracoes/sincronizacao-google",
+    icon: RefreshCw,
+    description: "Sincronização do Google Ads",
   },
   {
     title: "Planner",
