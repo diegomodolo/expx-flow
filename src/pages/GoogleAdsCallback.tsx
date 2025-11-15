@@ -10,7 +10,7 @@ export default function GoogleAdsCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { activeCompany } = useCompany();
-  const { handleCallback } = useGoogleAdsIntegration();
+  const { handleCallback, refreshAdAccounts } = useGoogleAdsIntegration();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   
@@ -57,6 +57,7 @@ export default function GoogleAdsCallback() {
       try {
         console.log('Processing callback with company:', activeCompany.company_id);
         await handleCallback(code, activeCompany.company_id);
+        await refreshAdAccounts();
         setStatus('success');
         setTimeout(() => {
           navigate('/configuracoes/integracao-google');
