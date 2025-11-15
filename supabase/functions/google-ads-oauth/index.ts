@@ -36,20 +36,16 @@ serve(async (req) => {
       const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID');
       const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET');
 
-      // Debug logs (sem expor as credenciais completas)
-      console.log('Debug Info:', {
-        clientIdLength: clientId?.length,
-        clientIdStart: clientId?.substring(0, 20),
-        clientIdEnd: clientId?.substring(clientId.length - 20),
-        clientSecretLength: clientSecret?.length,
-        clientSecretStart: clientSecret?.substring(0, 10),
-        redirectUri: redirectUri,
-        codeLength: code?.length,
-        hasSpaces: {
-          clientId: clientId !== clientId?.trim(),
-          clientSecret: clientSecret !== clientSecret?.trim(),
-          redirectUri: redirectUri !== redirectUri?.trim()
-        }
+      // Garantir que não há espaços em branco
+      const cleanClientId = clientId?.trim();
+      const cleanClientSecret = clientSecret?.trim();
+      const cleanRedirectUri = redirectUri?.trim();
+
+      console.log('Token exchange request:', {
+        hasClientId: !!cleanClientId,
+        hasClientSecret: !!cleanClientSecret,
+        redirectUri: cleanRedirectUri,
+        codeLength: code?.length
       });
 
       console.log('Exchanging code for tokens...');
@@ -61,9 +57,9 @@ serve(async (req) => {
         },
         body: new URLSearchParams({
           code,
-          client_id: clientId!,
-          client_secret: clientSecret!,
-          redirect_uri: redirectUri,
+          client_id: cleanClientId!,
+          client_secret: cleanClientSecret!,
+          redirect_uri: cleanRedirectUri!,
           grant_type: 'authorization_code',
         }),
       });
@@ -74,12 +70,27 @@ serve(async (req) => {
         console.error('Request details:', {
           url: 'https://oauth2.googleapis.com/token',
           method: 'POST',
-          redirectUri: redirectUri,
+          redirectUri: cleanRedirectUri,
           codeProvided: !!code,
+          codeLength: code?.length,
           status: tokenResponse.status,
           statusText: tokenResponse.statusText
         });
-        throw new Error(`Failed to exchange code for tokens: ${errorData}`);
+        
+        // Parse error para mensagem mais clara
+        let errorMessage = 'Failed to exchange code for tokens';
+        try {
+          const errorJson = JSON.parse(errorData);
+          if (errorJson.error === 'invalid_grant') {
+            errorMessage = 'Código de autorização inválido ou expirado. Por favor, tente novamente.';
+          } else {
+            errorMessage = `Google OAuth error: ${errorJson.error_description || errorJson.error}`;
+          }
+        } catch {
+          errorMessage = errorData;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const tokens = await tokenResponse.json();

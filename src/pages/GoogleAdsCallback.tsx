@@ -18,14 +18,21 @@ export default function GoogleAdsCallback() {
   const hasProcessedRef = useRef(false);
 
   useEffect(() => {
-    // Prevenir múltiplas execuções
+    // Prevenir múltiplas execuções - verificação ANTES de qualquer processamento
     if (hasProcessedRef.current) {
+      console.log('Callback already processed in this session, preventing duplicate');
       return;
     }
 
     const processCallback = async () => {
       const code = searchParams.get('code');
       const errorParam = searchParams.get('error');
+
+      console.log('GoogleAdsCallback - Processing:', { 
+        hasCode: !!code, 
+        hasError: !!errorParam,
+        hasCompany: !!activeCompany 
+      });
 
       if (errorParam) {
         setStatus('error');
@@ -45,17 +52,23 @@ export default function GoogleAdsCallback() {
         return;
       }
 
+      // Marcar como processado ANTES de fazer a chamada
+      hasProcessedRef.current = true;
+
       try {
-        hasProcessedRef.current = true;
         await handleCallback(code, activeCompany.id);
         setStatus('success');
         setTimeout(() => {
           navigate('/configuracoes/integracao-google');
         }, 2000);
       } catch (error: any) {
+        console.error('Callback processing error:', error);
         setStatus('error');
         setError(error.message || 'Erro ao processar callback');
-        hasProcessedRef.current = false; // Permitir retry em caso de erro
+        // Resetar apenas se for erro de duplicação
+        if (error.message !== 'Code already being processed') {
+          hasProcessedRef.current = false;
+        }
       }
     };
 
