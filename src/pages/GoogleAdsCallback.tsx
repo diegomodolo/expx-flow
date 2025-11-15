@@ -39,7 +39,7 @@ export default function GoogleAdsCallback() {
         hasCode: !!code, 
         hasError: !!errorParam,
         hasCompany: !!activeCompany,
-        companyId: activeCompany?.id
+        companyId: activeCompany?.company_id
       });
 
       if (errorParam) {
@@ -55,8 +55,8 @@ export default function GoogleAdsCallback() {
       }
 
       try {
-        console.log('Processing callback with company:', activeCompany.id);
-        await handleCallback(code, activeCompany.id);
+        console.log('Processing callback with company:', activeCompany.company_id);
+        await handleCallback(code, activeCompany.company_id);
         setStatus('success');
         setTimeout(() => {
           navigate('/configuracoes/integracao-google');
