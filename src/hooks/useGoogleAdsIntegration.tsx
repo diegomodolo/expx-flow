@@ -30,8 +30,11 @@ export function useGoogleAdsIntegration() {
 
   const getAuthUrl = () => {
     const clientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/google-ads/callback`;
+    // Use URL fixo para garantir consistência
+    const redirectUri = 'https://preview--controledetrafego.lovable.app/google-ads/callback';
     const scope = 'https://www.googleapis.com/auth/adwords';
+    
+    console.log('Auth URL redirect_uri:', redirectUri);
     
     return `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}` +
@@ -51,7 +54,7 @@ export function useGoogleAdsIntegration() {
     // Prevenir reprocessamento do mesmo código
     if (processingCodeRef.current === code) {
       console.log('Code already being processed, skipping duplicate request...');
-      return;
+      throw new Error('Code already being processed');
     }
 
     try {
@@ -63,12 +66,16 @@ export function useGoogleAdsIntegration() {
         throw new Error("No active session");
       }
 
+      // Use o mesmo redirect_uri fixo
+      const redirectUri = 'https://preview--controledetrafego.lovable.app/google-ads/callback';
+      console.log('Callback redirect_uri:', redirectUri);
+
       const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
         body: {
           action: 'exchange',
           code,
           companyId,
-          redirectUri: `${window.location.origin}/google-ads/callback`,
+          redirectUri,
         },
       });
 
