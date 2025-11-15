@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -13,8 +13,16 @@ export default function GoogleAdsCallback() {
   const { handleCallback } = useGoogleAdsIntegration();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
+  
+  // Ref para garantir que o processamento só aconteça uma vez
+  const hasProcessedRef = useRef(false);
 
   useEffect(() => {
+    // Prevenir múltiplas execuções
+    if (hasProcessedRef.current) {
+      return;
+    }
+
     const processCallback = async () => {
       const code = searchParams.get('code');
       const errorParam = searchParams.get('error');
@@ -38,6 +46,7 @@ export default function GoogleAdsCallback() {
       }
 
       try {
+        hasProcessedRef.current = true;
         await handleCallback(code, activeCompany.id);
         setStatus('success');
         setTimeout(() => {
@@ -46,6 +55,7 @@ export default function GoogleAdsCallback() {
       } catch (error: any) {
         setStatus('error');
         setError(error.message || 'Erro ao processar callback');
+        hasProcessedRef.current = false; // Permitir retry em caso de erro
       }
     };
 
