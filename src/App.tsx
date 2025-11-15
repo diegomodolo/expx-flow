@@ -45,6 +45,7 @@ import EditorFunil from "./pages/EditorFunil";
 import { FunnelEditor } from "./components/funnel-editor/FunnelEditor";
 import NotFound from "./pages/NotFound";
 import FacebookCallback from "./pages/FacebookCallback";
+import GoogleAdsCallback from "./pages/GoogleAdsCallback";
 import ReportLeadDesqualificado from "./pages/ReportLeadDesqualificado";
 import AdminLeadReports from "./pages/AdminLeadReports";
 import CRMPublicView from "./pages/CRMPublicView";
@@ -82,6 +83,7 @@ const App = () => {
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<FacebookCallback />} />
+              <Route path="/google-ads/callback" element={<GoogleAdsCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
               <Route path="/dashboard-publico/:token" element={<ClientDashboardPublic />} />
               <Route path="/crm/:token/login" element={<CRMLogin />} />

@@ -6,6 +6,8 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { PlansSettings } from "@/components/settings/PlansSettings";
 import { FacebookIntegrationSettings } from "@/components/facebook/FacebookIntegrationSettings";
 import { FacebookSyncSettings } from "@/components/facebook/FacebookSyncSettings";
+import { GoogleAdsIntegrationCard } from "@/components/google/GoogleAdsIntegrationCard";
+import { GoogleAdsSyncSettings } from "@/components/google/GoogleAdsSyncSettings";
 import { PlannerSettings } from "@/components/planner/PlannerSettings";
 import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProtectedRoute";
 import ParametrosPerformance from "./ParametrosPerformance";
@@ -29,6 +31,8 @@ const Configuracoes = () => {
             <Route path="planos" element={<PlansSettings />} />
             <Route path="facebook" element={<FacebookIntegrationSettings />} />
             <Route path="sincronizacao-facebook" element={<FacebookSyncSettings />} />
+            <Route path="integracao-google" element={<GoogleAdsIntegrationCard />} />
+            <Route path="sincronizacao-google" element={<GoogleAdsSyncSettings />} />
             <Route path="planner" element={<PlannerSettings />} />
             <Route path="parametros-performance" element={<ParametrosPerformance />} />
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
