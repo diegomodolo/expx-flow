@@ -3327,7 +3327,7 @@ export type Database = {
           {
             foreignKeyName: "google_ads_integrations_company_id_fkey"
             columns: ["company_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
