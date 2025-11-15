@@ -18,11 +18,12 @@ export default function GoogleAdsCallback() {
   const hasProcessedRef = useRef(false);
 
   useEffect(() => {
-    // Prevenir múltiplas execuções - verificação ANTES de qualquer processamento
+    // Marcar IMEDIATAMENTE para prevenir race conditions
     if (hasProcessedRef.current) {
       console.log('Callback already processed in this session, preventing duplicate');
       return;
     }
+    hasProcessedRef.current = true;
 
     const processCallback = async () => {
       const code = searchParams.get('code');
@@ -52,9 +53,6 @@ export default function GoogleAdsCallback() {
         return;
       }
 
-      // Marcar como processado ANTES de fazer a chamada
-      hasProcessedRef.current = true;
-
       try {
         await handleCallback(code, activeCompany.id);
         setStatus('success');
@@ -65,7 +63,7 @@ export default function GoogleAdsCallback() {
         console.error('Callback processing error:', error);
         setStatus('error');
         setError(error.message || 'Erro ao processar callback');
-        // Resetar apenas se for erro de duplicação
+        // Resetar apenas se for erro real (não duplicação)
         if (error.message !== 'Code already being processed') {
           hasProcessedRef.current = false;
         }
@@ -73,7 +71,7 @@ export default function GoogleAdsCallback() {
     };
 
     processCallback();
-  }, [searchParams, activeCompany, handleCallback, navigate]);
+  }, []); // Array vazio = executa apenas uma vez no mount
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

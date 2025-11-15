@@ -1,10 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { Loader2, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export function GoogleAdsIntegrationCard() {
   const {
@@ -15,6 +21,56 @@ export function GoogleAdsIntegrationCard() {
     disconnectGoogle,
     refreshAdAccounts,
   } = useGoogleAdsIntegration();
+  
+  const { activeCompany } = useCompany();
+  const [customerId, setCustomerId] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const saveCustomerId = async () => {
+    if (!customerId.trim()) {
+      toast.error("Digite um Customer ID válido");
+      return;
+    }
+
+    if (!activeCompany) {
+      toast.error("Nenhuma empresa ativa");
+      return;
+    }
+
+    if (!integration) {
+      toast.error("Integração não encontrada");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Remover caracteres não numéricos do Customer ID
+      const cleanId = customerId.replace(/\D/g, '');
+      
+      // Criar registro de conta do Google Ads
+      const { error } = await supabase
+        .from('google_ads_accounts')
+        .insert({
+          integration_id: integration.id,
+          company_id: activeCompany.id,
+          google_customer_id: cleanId,
+          account_name: `Customer ${cleanId}`,
+          currency: 'BRL',
+          is_active: true,
+        });
+
+      if (error) throw error;
+
+      toast.success("Customer ID salvo com sucesso!");
+      setCustomerId("");
+      refreshAdAccounts();
+    } catch (error: any) {
+      console.error('Error saving customer ID:', error);
+      toast.error(error.message || "Erro ao salvar Customer ID");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +150,39 @@ export function GoogleAdsIntegrationCard() {
                 <span className="font-medium">{adAccounts.length}</span>
               </div>
             </div>
+
+            {adAccounts.length === 0 && (
+              <div className="space-y-3 rounded-lg border border-dashed p-4">
+                <div>
+                  <Label htmlFor="customerId" className="text-sm font-medium">
+                    Google Ads Customer ID
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Encontre seu Customer ID no canto superior direito do Google Ads
+                  </p>
+                </div>
+                <Input 
+                  id="customerId"
+                  placeholder="123-456-7890"
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                />
+                <Button 
+                  onClick={saveCustomerId} 
+                  disabled={saving || !customerId.trim()}
+                  className="w-full"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar Customer ID"
+                  )}
+                </Button>
+              </div>
+            )}
 
             {adAccounts.length > 0 && (
               <div className="space-y-2">

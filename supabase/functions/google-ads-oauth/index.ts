@@ -97,118 +97,45 @@ serve(async (req) => {
       console.log('Tokens received successfully');
 
       // Calculate token expiry
-      const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+    const tokens = await tokenResponse.json();
+    console.log('Tokens received successfully');
 
-      // Fetch accessible Google Ads accounts
-      const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
-      
-      console.log('Fetching accessible customers...');
-      
-      const customersResponse = await fetch(
-        'https://googleads.googleapis.com/v15/customers:listAccessibleCustomers',
-        {
-          headers: {
-            'Authorization': `Bearer ${tokens.access_token}`,
-            'developer-token': developerToken!,
-          },
-        }
-      );
+    // Calculate token expiry
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
-      if (!customersResponse.ok) {
-        const errorData = await customersResponse.text();
-        console.error('Failed to fetch customers:', errorData);
-        throw new Error(`Failed to fetch customers: ${errorData}`);
+    // Save integration (sem buscar customers - será configurado manualmente)
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from('google_ads_integrations')
+      .upsert({
+        company_id: companyId,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_at: expiresAt,
+        is_active: true,
+      }, {
+        onConflict: 'company_id',
+      })
+      .select()
+      .single();
+
+    if (integrationError) {
+      console.error('Failed to save integration:', integrationError);
+      throw integrationError;
+    }
+
+    console.log('Integration saved successfully:', integration.id);
+
+    // Retornar sucesso SEM accounts (será configurado manualmente)
+    return new Response(
+      JSON.stringify({
+        success: true,
+        integration,
+        message: 'OAuth completed successfully. Configure Google Customer ID in settings.',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-
-      const customersData = await customersResponse.json();
-      console.log('Customers fetched:', customersData);
-
-      // Save integration
-      const { data: integration, error: integrationError } = await supabaseClient
-        .from('google_ads_integrations')
-        .upsert({
-          company_id: companyId,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          expires_at: expiresAt,
-          is_active: true,
-        }, {
-          onConflict: 'company_id',
-        })
-        .select()
-        .single();
-
-      if (integrationError) {
-        console.error('Failed to save integration:', integrationError);
-        throw integrationError;
-      }
-
-      console.log('Integration saved:', integration.id);
-
-      // Fetch and save account details for each customer
-      const accounts = [];
-      
-      for (const resourceName of customersData.resourceNames || []) {
-        const customerId = resourceName.split('/')[1];
-        
-        try {
-          // Fetch account details
-          const accountResponse = await fetch(
-            `https://googleads.googleapis.com/v15/customers/${customerId}/googleAdsFields:search`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${tokens.access_token}`,
-                'developer-token': developerToken!,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                query: `SELECT customer.id, customer.descriptive_name, customer.currency_code FROM customer WHERE customer.id = ${customerId}`,
-              }),
-            }
-          );
-
-          if (accountResponse.ok) {
-            const accountData = await accountResponse.json();
-            if (accountData.results && accountData.results.length > 0) {
-              const customer = accountData.results[0].customer;
-              
-              const { data: account, error: accountError } = await supabaseClient
-                .from('google_ads_accounts')
-                .upsert({
-                  integration_id: integration.id,
-                  company_id: companyId,
-                  google_customer_id: customerId,
-                  account_name: customer.descriptiveName || `Account ${customerId}`,
-                  currency: customer.currencyCode,
-                  is_active: true,
-                }, {
-                  onConflict: 'google_customer_id,company_id',
-                })
-                .select()
-                .single();
-
-              if (!accountError && account) {
-                accounts.push(account);
-                console.log('Account saved:', account.id);
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch details for customer ${customerId}:`, error);
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          integration,
-          accounts,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    );
     }
 
     throw new Error('Invalid action');
