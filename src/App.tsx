@@ -14,6 +14,7 @@ import Perfil from "./pages/Perfil";
 import Clientes from "./pages/Clientes";
 import ClienteDetalhes from "./pages/ClienteDetalhes";
 import Campanhas from "./pages/Campanhas";
+import CampanhasUnificadas from "./pages/CampanhasUnificadas";
 import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
@@ -130,16 +131,21 @@ const App = () => {
                      <ClienteDetalhes />
                    </ProtectedRoute>
                  } />
-               <Route path="/campanhas" element={
-                 <ProtectedRoute>
-                   <Campanhas />
-                 </ProtectedRoute>
-               } />
-               <Route path="/campanhas/:id" element={
-                 <ProtectedRoute>
-                   <CampanhaDetalhes />
-                 </ProtectedRoute>
-               } />
+                <Route path="/campanhas" element={
+                  <ProtectedRoute>
+                    <Campanhas />
+                  </ProtectedRoute>
+                } />
+                <Route path="/campanhas-unificadas" element={
+                  <ProtectedRoute>
+                    <CampanhasUnificadas />
+                  </ProtectedRoute>
+                } />
+                <Route path="/campanhas/:id" element={
+                  <ProtectedRoute>
+                    <CampanhaDetalhes />
+                  </ProtectedRoute>
+                } />
                <Route path="/colaboradores" element={
                  <ProtectedRoute>
                    <Colaboradores />
