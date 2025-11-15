@@ -185,6 +185,40 @@ export function useGoogleAdsIntegration() {
     await loadIntegration(activeCompany.company_id);
   };
 
+  const addCustomerId = async (customerId: string) => {
+    if (!integration || !activeCompany) {
+      toast.error("Nenhuma integração ativa encontrada");
+      return;
+    }
+
+    try {
+      // Validar formato do Customer ID (deve ser numérico, com ou sem hífens)
+      const cleanId = customerId.replace(/[-\s]/g, '');
+      if (!/^\d{10}$/.test(cleanId)) {
+        toast.error("Customer ID inválido. Deve ter 10 dígitos (formato: 123-456-7890)");
+        return;
+      }
+
+      console.log('Adding Google Ads Customer ID:', customerId);
+      
+      const { data, error } = await supabase.functions.invoke('google-ads-fetch-account', {
+        body: {
+          customerId: cleanId,
+          companyId: activeCompany.company_id,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success("Conta adicionada com sucesso!");
+      await loadIntegration(activeCompany.company_id);
+    } catch (error: any) {
+      console.error("Error adding customer ID:", error);
+      toast.error(`Erro ao adicionar conta: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
     if (activeCompany) {
       loadIntegration(activeCompany.company_id);
@@ -200,6 +234,7 @@ export function useGoogleAdsIntegration() {
     loadIntegration,
     disconnectGoogle,
     refreshAdAccounts,
+    addCustomerId,
     getAuthUrl,
   };
 }
