@@ -51,6 +51,12 @@ export function useGoogleAdsIntegration() {
   };
 
   const handleCallback = async (code: string, companyId: string) => {
+    console.log('handleCallback called with:', { 
+      codeLength: code?.length, 
+      codeSample: code?.substring(0, 20) + '...', 
+      companyId 
+    });
+    
     // Prevenir reprocessamento do mesmo código
     if (processingCodeRef.current === code) {
       console.log('Code already being processed, skipping duplicate request...');
@@ -62,13 +68,19 @@ export function useGoogleAdsIntegration() {
       console.log("Processing Google Ads OAuth callback...");
       
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session check:', { hasSession: !!session, userId: session?.user?.id });
+      
       if (!session) {
         throw new Error("No active session");
       }
 
       // Use o mesmo redirect_uri fixo
       const redirectUri = 'https://preview--controledetrafego.lovable.app/google-ads/callback';
-      console.log('Callback redirect_uri:', redirectUri);
+      console.log('Calling edge function with:', { 
+        redirectUri, 
+        companyId,
+        hasCode: !!code 
+      });
 
       const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
         body: {
@@ -79,9 +91,20 @@ export function useGoogleAdsIntegration() {
         },
       });
 
-      if (error) throw error;
+      console.log('Edge function response:', { 
+        hasData: !!data, 
+        hasError: !!error,
+        dataKeys: data ? Object.keys(data) : [],
+        errorMessage: error?.message 
+      });
+
+      if (error) {
+        console.error('Edge function returned error:', error);
+        throw error;
+      }
 
       if (data.error) {
+        console.error('Data contains error:', data.error);
         throw new Error(data.error);
       }
 

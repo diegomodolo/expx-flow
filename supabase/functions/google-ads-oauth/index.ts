@@ -7,9 +7,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('CORS preflight request received');
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
+
+  console.log('google-ads-oauth function called, method:', req.method);
 
   try {
     const supabaseClient = createClient(
@@ -18,6 +25,8 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
@@ -26,10 +35,16 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
+      console.error('Auth error:', userError);
       throw new Error('Unauthorized');
     }
 
-    const { action, code, companyId, redirectUri } = await req.json();
+    console.log('User authenticated:', user.id);
+
+    const body = await req.json();
+    console.log('Request body:', { ...body, code: body.code ? 'PRESENT' : 'MISSING' });
+    
+    const { action, code, companyId, redirectUri } = body;
 
     if (action === 'exchange') {
       // Exchange authorization code for tokens
@@ -97,14 +112,10 @@ serve(async (req) => {
       console.log('Tokens received successfully');
 
       // Calculate token expiry
-    const tokens = await tokenResponse.json();
-    console.log('Tokens received successfully');
+      const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
-    // Calculate token expiry
-    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
-
-    // Save integration (sem buscar customers - será configurado manualmente)
-    const { data: integration, error: integrationError } = await supabaseClient
+      // Save integration (sem buscar customers - será configurado manualmente)
+      const { data: integration, error: integrationError } = await supabaseClient
       .from('google_ads_integrations')
       .upsert({
         company_id: companyId,
