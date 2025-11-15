@@ -5,6 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mapping between display status and database status
+const statusMapping = {
+  database: {
+    excelente: "green",
+    atencao: "yellow",
+    emergencial: "red",
+    inativo: "red",
+    sem_fundos: "orange",
+  }
+} as const;
+
 interface ClientMetrics {
   current_week_leads: number;
   previous_week_leads: number;
@@ -33,7 +44,7 @@ async function calculateClientStatus(
   supabase: any,
   clientId: string,
   companyId: string
-): Promise<{ status: string; explanation: string }> {
+): Promise<{ humanStatus: string; dbStatus: string; explanation: string }> {
   try {
     // Fetch metrics
     const metrics = await getClientMetrics(supabase, clientId, companyId);
@@ -55,11 +66,8 @@ async function calculateClientStatus(
         console.log(`[Client ${clientId}] Rule "${rule.rule_name}" (${rule.status_output}): ${ruleMatched ? 'MATCHED ✓' : 'not matched'}`);
         
         if (ruleMatched) {
-          const result = {
-            status: rule.status_output,
-            explanation: generateExplanation(rule.status_output, metrics, rule.rule_name),
-          };
-          console.log(`[Client ${clientId}] Final status: ${result.status}`);
+          const result = generateExplanation(rule.status_output, metrics, rule.rule_name);
+          console.log(`[Client ${clientId}] Final status: ${result.humanStatus} (${result.dbStatus})`);
           return result;
         }
       }
@@ -67,14 +75,12 @@ async function calculateClientStatus(
 
     // Default status
     console.log(`[Client ${clientId}] No rules matched, using default status: atencao`);
-    return {
-      status: 'atencao',
-      explanation: generateExplanation('atencao', metrics, 'Nenhuma regra correspondente'),
-    };
+    return generateExplanation('atencao', metrics, 'Nenhuma regra correspondente');
   } catch (error) {
     console.error('Error calculating status for client:', clientId, error);
     return {
-      status: 'atencao',
+      humanStatus: 'atencao',
+      dbStatus: 'yellow',
       explanation: '⚠️ Erro ao calcular status. Requer análise manual.',
     };
   }
@@ -289,7 +295,11 @@ function evaluateRule(rule: any, metrics: ClientMetrics): boolean {
     : results.some((r: boolean) => r === true);
 }
 
-function generateExplanation(status: string, metrics: ClientMetrics, ruleName?: string): string {
+function generateExplanation(status: string, metrics: ClientMetrics, ruleName?: string): { 
+  humanStatus: string; 
+  dbStatus: string; 
+  explanation: string 
+} {
   const statusEmojis: Record<string, string> = {
     sem_fundos: '💳',
     inativo: '⚫',
@@ -348,7 +358,13 @@ function generateExplanation(status: string, metrics: ClientMetrics, ruleName?: 
     explanation += `\n⚠️ Cliente marcado como inativo manualmente`;
   }
 
-  return explanation;
+  explanation += `\n\n${emoji} Status calculado pela regra: ${ruleName || 'Sistema'}`;
+
+  return {
+    humanStatus: status,
+    dbStatus: statusMapping.database[status as keyof typeof statusMapping.database],
+    explanation: explanation
+  };
 }
 
 Deno.serve(async (req) => {
@@ -385,18 +401,18 @@ Deno.serve(async (req) => {
     // Recalculate status for each client
     for (const client of clients || []) {
       try {
-        const { status, explanation } = await calculateClientStatus(
+        const { humanStatus, dbStatus, explanation } = await calculateClientStatus(
           supabaseClient,
           client.id,
           client.company_id
         );
 
-        // Update client with calculated status
+        // Update client with BOTH status fields using DATABASE values
         const { error: updateError } = await supabaseClient
           .from('clients')
           .update({
-            status: status,
-            calculated_status: status,
+            status: dbStatus,
+            calculated_status: dbStatus,
             status_explanation: explanation,
             status_calculated_at: new Date().toISOString(),
           })
@@ -406,6 +422,7 @@ Deno.serve(async (req) => {
           console.error(`Error updating client ${client.id}:`, updateError);
           errorCount++;
         } else {
+          console.log(`✅ Client status updated: ${humanStatus} (${dbStatus})`);
           successCount++;
         }
       } catch (error) {
