@@ -136,17 +136,145 @@ serve(async (req) => {
 
     console.log('Integration saved successfully:', integration.id);
 
-    // Retornar sucesso SEM accounts (será configurado manualmente)
-    return new Response(
-      JSON.stringify({
-        success: true,
-        integration,
-        message: 'OAuth completed successfully. Configure Google Customer ID in settings.',
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Buscar contas acessíveis do Google Ads automaticamente
+    console.log('Fetching accessible Google Ads accounts...');
+    const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
+
+    if (!developerToken) {
+      console.warn('GOOGLE_ADS_DEVELOPER_TOKEN not set, skipping automatic account fetch');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          integration,
+          accounts: [],
+          message: 'OAuth completed. Add Developer Token to fetch accounts automatically.',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    try {
+      const accessibleCustomersResponse = await fetch(
+        'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers',
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${tokens.access_token}`,
+            'developer-token': developerToken,
+          },
+        }
+      );
+
+      if (!accessibleCustomersResponse.ok) {
+        const errorText = await accessibleCustomersResponse.text();
+        console.error('Failed to fetch accessible customers:', errorText);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            integration,
+            accounts: [],
+            warning: 'OAuth successful but failed to fetch accounts.',
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
-    );
+
+      const accessibleCustomers = await accessibleCustomersResponse.json();
+      console.log('Accessible customers:', accessibleCustomers);
+
+      // Salvar cada conta encontrada
+      const accounts = [];
+      const resourceNames = accessibleCustomers.resourceNames || [];
+
+      for (const customerResourceName of resourceNames) {
+        // Extrair customer ID do resource name (formato: customers/1234567890)
+        const customerId = customerResourceName.split('/')[1];
+        
+        // Buscar detalhes da conta usando Google Ads API query
+        const query = `SELECT customer.id, customer.descriptive_name, customer.currency_code FROM customer WHERE customer.id = ${customerId}`;
+        
+        const customerDetailsResponse = await fetch(
+          `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:search`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${tokens.access_token}`,
+              'developer-token': developerToken,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query }),
+          }
+        );
+
+        if (customerDetailsResponse.ok) {
+          const customerDetailsData = await customerDetailsResponse.json();
+          const results = customerDetailsData.results || [];
+          
+          if (results.length > 0) {
+            const customerDetails = results[0].customer;
+            
+            // Inserir na tabela google_ads_accounts
+            const { data: account, error: accountError } = await supabaseClient
+              .from('google_ads_accounts')
+              .upsert({
+                integration_id: integration.id,
+                company_id: companyId,
+                google_customer_id: customerId,
+                account_name: customerDetails.descriptiveName || `Customer ${customerId}`,
+                currency: customerDetails.currencyCode || 'BRL',
+                is_active: true,
+              }, {
+                onConflict: 'integration_id,google_customer_id',
+              })
+              .select()
+              .single();
+
+            if (!accountError && account) {
+              console.log('Account saved:', account.account_name);
+              accounts.push(account);
+            } else if (accountError) {
+              console.error('Error saving account:', accountError);
+            }
+          }
+        } else {
+          const errorText = await customerDetailsResponse.text();
+          console.error(`Failed to fetch details for customer ${customerId}:`, errorText);
+        }
+      }
+
+      console.log(`Successfully saved ${accounts.length} Google Ads accounts`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          integration,
+          accounts,
+          message: 'Google Ads connected successfully',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (fetchError) {
+      console.error('Error fetching accounts:', fetchError);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          integration,
+          accounts: [],
+          warning: 'OAuth successful but error fetching accounts',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
     }
 
     throw new Error('Invalid action');
