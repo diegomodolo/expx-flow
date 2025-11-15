@@ -91,25 +91,6 @@ export function UnifiedSyncButton({
       console.error("Error syncing both platforms:", error);
     }
   };
-    if (hasGoogleAccount) {
-      tasks.push(syncGoogle({
-        clientId,
-        companyId,
-        period: 'last_30_days',
-        syncCampaigns: true,
-        syncAdGroups: false,
-        syncAds: false,
-      }));
-    }
-
-    try {
-      await Promise.all(tasks);
-      toast.success("Sincronização de ambas as plataformas concluída!");
-      onSyncComplete?.();
-    } catch (error) {
-      console.error("Error syncing both platforms:", error);
-    }
-  };
 
   if (!hasMetaAccount && !hasGoogleAccount) {
     return (
