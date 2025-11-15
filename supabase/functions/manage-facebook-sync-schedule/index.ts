@@ -74,12 +74,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const url = new URL(req.url);
-    const companyId = url.searchParams.get('company_id');
+    const body = await req.json();
+    const { action, company_id, is_enabled, sync_options, executions_per_day } = body;
 
     // GET - Buscar schedule
-    if (req.method === 'GET') {
-      if (!companyId) {
+    if (action === 'get') {
+      if (!company_id) {
         return new Response(JSON.stringify({ error: 'company_id is required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       const { data: schedule, error } = await supabase
         .from('facebook_sync_schedules')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', company_id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -101,10 +101,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST - Criar ou atualizar schedule
-    if (req.method === 'POST') {
-      const body = await req.json();
-      const { company_id, is_enabled, sync_options, executions_per_day } = body;
+    // CREATE/UPDATE - Criar ou atualizar schedule
+    if (action === 'upsert') {
 
       if (!company_id) {
         return new Response(JSON.stringify({ error: 'company_id is required' }), {
@@ -145,9 +143,10 @@ Deno.serve(async (req) => {
     }
 
     // PATCH - Atualizar campos específicos
-    if (req.method === 'PATCH') {
-      const body = await req.json();
-      const { company_id, ...updates } = body;
+    if (action === 'patch') {
+      const updates = { ...body };
+      delete updates.action;
+      delete updates.company_id;
 
       if (!company_id) {
         return new Response(JSON.stringify({ error: 'company_id is required' }), {
@@ -186,8 +185,8 @@ Deno.serve(async (req) => {
     }
 
     // DELETE - Remover schedule
-    if (req.method === 'DELETE') {
-      if (!companyId) {
+    if (action === 'delete') {
+      if (!company_id) {
         return new Response(JSON.stringify({ error: 'company_id is required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -197,7 +196,7 @@ Deno.serve(async (req) => {
       const { error } = await supabase
         .from('facebook_sync_schedules')
         .delete()
-        .eq('company_id', companyId);
+        .eq('company_id', company_id);
 
       if (error) throw error;
 
