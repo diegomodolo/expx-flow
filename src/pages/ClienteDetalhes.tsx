@@ -23,21 +23,19 @@ import ClienteAutomacoes from "./cliente/ClienteAutomacoes";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
-import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
-import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { Loader2 } from "lucide-react";
 import { useOfflineConversions } from "@/hooks/useOfflineConversions";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+import { UnifiedSyncButton } from "@/components/clients/UnifiedSyncButton";
 
 const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
+  const { activeCompany } = useCompany();
   const { client, loading, error, refetch } = useClientDetails(id || "");
   const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
   const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
-  const { syncCampaigns, syncing: syncLoading, progress, currentJobId, handleJobComplete } = useFacebookCampaignSync();
   const { conversions } = useOfflineConversions(id || "");
-  
-  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   
   // Estados para filtros de navegação entre abas
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -91,43 +89,12 @@ const ClienteDetalhes = () => {
     return ((totalSales - totalInvested) / totalInvested) * 100;
   }, [totalSales, totalInvested]);
 
-  // Handle sync
-  const handleSyncConfirm = async (options: SyncOptions): Promise<string | null> => {
-    if (!id) return null;
-    
-    const jobId = await syncCampaigns(id, options.period, {
-      campaigns: options.campaigns,
-      adsets: options.adsets,
-      ads: options.ads
-    }, false, options.includeInactive);
-    
-    return jobId;
+  // Handle sync complete
+  const handleSyncComplete = () => {
+    refetch();
+    refetchAdSets();
+    refetchAds();
   };
-
-  // Handle job completion
-  useEffect(() => {
-    if (currentJobId) {
-      const checkJobStatus = async () => {
-        const { data } = await supabase
-          .from('sync_jobs')
-          .select('status, error_message')
-          .eq('id', currentJobId)
-          .single();
-
-        if (data && (data.status === 'completed' || data.status === 'error')) {
-          handleJobComplete(currentJobId, data.status === 'completed', data.error_message);
-          if (data.status === 'completed') {
-            refetch();
-            refetchAdSets();
-            refetchAds();
-          }
-        }
-      };
-
-      const interval = setInterval(checkJobStatus, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [currentJobId, handleJobComplete, refetch, refetchAdSets, refetchAds]);
 
   // Calculate funnel completeness score
   const funnelCompletenessScore = useMemo(() => {
@@ -224,8 +191,15 @@ const ClienteDetalhes = () => {
               element={
                 <ClienteDashboard
                   client={client}
-                  syncLoading={syncLoading}
-                  onSyncClick={() => setSyncDialogOpen(true)}
+                  syncButton={
+                    <UnifiedSyncButton
+                      clientId={id || ""}
+                      companyId={activeCompany?.id || ""}
+                      hasMetaAccount={!!client.ad_account_id}
+                      hasGoogleAccount={!!(client as any).google_account_id}
+                      onSyncComplete={handleSyncComplete}
+                    />
+                  }
                   totalCampaigns={totalCampaigns}
                   activeCampaigns={activeCampaigns}
                   totalLeadsGenerated={totalLeadsGenerated}
@@ -259,16 +233,6 @@ const ClienteDetalhes = () => {
             <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </ClientDetailsLayout>
-
-        {/* Sync Period Dialog */}
-        <SyncPeriodDialog
-          open={syncDialogOpen}
-          onOpenChange={setSyncDialogOpen}
-          onConfirm={handleSyncConfirm}
-          syncing={syncLoading}
-          jobId={currentJobId}
-          title="Sincronizar Campanhas do Cliente"
-        />
       </ClientContextProvider>
     </DashboardLayout>
   );
