@@ -26,8 +26,7 @@ import { ClientDetailsData } from "@/hooks/useClientDetails";
 
 interface ClienteDashboardProps {
   client: ClientDetailsData;
-  syncLoading: boolean;
-  onSyncClick: () => void;
+  syncButton: React.ReactNode;
   totalCampaigns: number;
   activeCampaigns: number;
   totalLeadsGenerated: number;
@@ -43,8 +42,7 @@ interface ClienteDashboardProps {
 
 export function ClienteDashboard({
   client,
-  syncLoading,
-  onSyncClick,
+  syncButton,
   totalCampaigns,
   activeCampaigns,
   totalLeadsGenerated,
@@ -82,19 +80,7 @@ export function ClienteDashboard({
             lastSyncAt={client.last_sync_at} 
             lastSyncPeriod={client.last_sync_period}
           />
-          <Button 
-            onClick={onSyncClick}
-            disabled={syncLoading}
-            className="flex items-center space-x-2 w-full sm:w-auto"
-            size="sm"
-          >
-            {syncLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <TrendingUp className="w-4 h-4" />
-            )}
-            <span className="text-sm">{syncLoading ? 'Sincronizando...' : 'Sincronizar Dados'}</span>
-          </Button>
+          {syncButton}
         </div>
       </div>
 
