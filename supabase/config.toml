@@ -124,3 +124,6 @@ verify_jwt = true
 
 [functions.sync-google-ads-campaigns]
 verify_jwt = true
+
+[functions.google-ads-sync-scheduler]
+verify_jwt = false

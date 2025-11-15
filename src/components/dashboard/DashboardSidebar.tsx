@@ -36,6 +36,7 @@ const items = [
   { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
   { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
   { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
+  { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
   { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
   { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
   { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
