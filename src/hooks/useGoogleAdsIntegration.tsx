@@ -58,6 +58,7 @@ export function useGoogleAdsIntegration() {
           action: 'exchange',
           code,
           companyId,
+          redirectUri: `${window.location.origin}/google-ads/callback`,
         },
       });
 
