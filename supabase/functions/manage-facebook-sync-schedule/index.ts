@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         .from('facebook_sync_schedules')
         .select('*')
         .eq('company_id', company_id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         .from('facebook_sync_schedules')
         .upsert(scheduleData, { onConflict: 'company_id' })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
           .from('facebook_sync_schedules')
           .select('scheduled_times')
           .eq('company_id', company_id)
-          .single();
+          .maybeSingle();
 
         if (currentSchedule && updates.is_enabled) {
           updates.next_execution_at = calculateNextExecution(currentSchedule.scheduled_times).toISOString();
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
         .update(updates)
         .eq('company_id', company_id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
