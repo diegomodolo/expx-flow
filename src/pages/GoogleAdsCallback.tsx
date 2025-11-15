@@ -18,17 +18,24 @@ export default function GoogleAdsCallback() {
   const hasProcessedRef = useRef(false);
 
   useEffect(() => {
+    // Só processar se activeCompany estiver disponível
+    if (!activeCompany) {
+      console.log('Waiting for activeCompany to load...');
+      return;
+    }
+
     // Marcar IMEDIATAMENTE para prevenir race conditions
     if (hasProcessedRef.current) {
       console.log('Callback already processed in this session, preventing duplicate');
       return;
     }
+    hasProcessedRef.current = true;
 
     const processCallback = async () => {
       const code = searchParams.get('code');
       const errorParam = searchParams.get('error');
 
-      console.log('GoogleAdsCallback - Initial check:', { 
+      console.log('GoogleAdsCallback - Processing:', { 
         hasCode: !!code, 
         hasError: !!errorParam,
         hasCompany: !!activeCompany,
@@ -38,43 +45,14 @@ export default function GoogleAdsCallback() {
       if (errorParam) {
         setStatus('error');
         setError('Autorização negada pelo usuário');
-        hasProcessedRef.current = true;
         return;
       }
 
       if (!code) {
         setStatus('error');
         setError('Código de autorização não encontrado');
-        hasProcessedRef.current = true;
         return;
       }
-
-      // Aguardar a empresa estar disponível (com timeout de 10 segundos)
-      if (!activeCompany) {
-        console.log('Waiting for activeCompany to load...');
-        const maxWaitTime = 10000; // 10 segundos
-        const checkInterval = 100; // Verificar a cada 100ms
-        let elapsedTime = 0;
-
-        while (!activeCompany && elapsedTime < maxWaitTime) {
-          await new Promise(resolve => setTimeout(resolve, checkInterval));
-          elapsedTime += checkInterval;
-          console.log(`Waiting... ${elapsedTime}ms elapsed, activeCompany:`, !!activeCompany);
-        }
-
-        if (!activeCompany) {
-          console.error('Timeout waiting for activeCompany');
-          setStatus('error');
-          setError('Tempo esgotado aguardando empresa ativa. Tente novamente.');
-          hasProcessedRef.current = true;
-          return;
-        }
-
-        console.log('ActiveCompany loaded:', activeCompany.id);
-      }
-
-      // Marcar como processado ANTES de fazer a chamada
-      hasProcessedRef.current = true;
 
       try {
         console.log('Processing callback with company:', activeCompany.id);
@@ -87,15 +65,12 @@ export default function GoogleAdsCallback() {
         console.error('Callback processing error:', error);
         setStatus('error');
         setError(error.message || 'Erro ao processar callback');
-        // Resetar apenas se for erro real (não duplicação)
-        if (error.message !== 'Code already being processed') {
-          hasProcessedRef.current = false;
-        }
+        hasProcessedRef.current = false; // Permitir retry em caso de erro
       }
     };
 
     processCallback();
-  }, [activeCompany]); // Depender de activeCompany para reexecutar quando carregar
+  }, [activeCompany, searchParams, handleCallback, navigate]); // Executar quando activeCompany carregar
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
