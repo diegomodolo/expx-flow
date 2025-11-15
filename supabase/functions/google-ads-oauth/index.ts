@@ -29,13 +29,12 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { action, code, companyId } = await req.json();
+    const { action, code, companyId, redirectUri } = await req.json();
 
     if (action === 'exchange') {
       // Exchange authorization code for tokens
       const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID');
       const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET');
-      const redirectUri = `${req.headers.get('origin')}/google-ads/callback`;
 
       console.log('Exchanging code for tokens...');
 
