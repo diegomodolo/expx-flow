@@ -182,12 +182,12 @@ export function useGoogleAdsIntegration() {
 
   const refreshAdAccounts = async () => {
     if (!activeCompany) return;
-    await loadIntegration(activeCompany.id);
+    await loadIntegration(activeCompany.company_id);
   };
 
   useEffect(() => {
     if (activeCompany) {
-      loadIntegration(activeCompany.id);
+      loadIntegration(activeCompany.company_id);
     }
   }, [activeCompany]);
 
