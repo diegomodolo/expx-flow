@@ -2837,6 +2837,110 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_sync_execution_logs: {
+        Row: {
+          clients_processed: number | null
+          clients_total: number | null
+          company_id: string
+          completed_at: string | null
+          error_message: string | null
+          execution_details: Json | null
+          id: string
+          schedule_id: string | null
+          started_at: string
+          status: string
+          sync_options: Json | null
+        }
+        Insert: {
+          clients_processed?: number | null
+          clients_total?: number | null
+          company_id: string
+          completed_at?: string | null
+          error_message?: string | null
+          execution_details?: Json | null
+          id?: string
+          schedule_id?: string | null
+          started_at?: string
+          status?: string
+          sync_options?: Json | null
+        }
+        Update: {
+          clients_processed?: number | null
+          clients_total?: number | null
+          company_id?: string
+          completed_at?: string | null
+          error_message?: string | null
+          execution_details?: Json | null
+          id?: string
+          schedule_id?: string | null
+          started_at?: string
+          status?: string
+          sync_options?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_sync_execution_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_sync_execution_logs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_sync_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facebook_sync_schedules: {
+        Row: {
+          company_id: string
+          created_at: string
+          executions_per_day: number
+          id: string
+          is_enabled: boolean
+          last_execution_at: string | null
+          next_execution_at: string | null
+          scheduled_times: string[]
+          sync_options: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          executions_per_day?: number
+          id?: string
+          is_enabled?: boolean
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          scheduled_times?: string[]
+          sync_options?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          executions_per_day?: number
+          id?: string
+          is_enabled?: boolean
+          last_execution_at?: string | null
+          next_execution_at?: string | null
+          scheduled_times?: string[]
+          sync_options?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_sync_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_block_types: {
         Row: {
           category: string

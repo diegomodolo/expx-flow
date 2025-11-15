@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw } from "lucide-react";
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -33,6 +33,12 @@ const settingsNavItems = [
     href: "/configuracoes/facebook",
     icon: Facebook,
     description: "Integração com Facebook Ads",
+  },
+  {
+    title: "Sincronização Facebook",
+    href: "/configuracoes/sincronizacao-facebook",
+    icon: RefreshCw,
+    description: "Agendamento automático de sincronização",
   },
   {
     title: "Planner",
