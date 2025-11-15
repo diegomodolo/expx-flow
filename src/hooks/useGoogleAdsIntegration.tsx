@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
@@ -24,6 +24,9 @@ export function useGoogleAdsIntegration() {
   const [loading, setLoading] = useState(true);
   const [integration, setIntegration] = useState<GoogleAdsIntegration | null>(null);
   const [adAccounts, setAdAccounts] = useState<GoogleAdAccount[]>([]);
+  
+  // Ref para prevenir múltiplas chamadas com o mesmo código
+  const processingCodeRef = useRef<string | null>(null);
 
   const getAuthUrl = () => {
     const clientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
@@ -45,7 +48,14 @@ export function useGoogleAdsIntegration() {
   };
 
   const handleCallback = async (code: string, companyId: string) => {
+    // Prevenir reprocessamento do mesmo código
+    if (processingCodeRef.current === code) {
+      console.log('Code already being processed, skipping duplicate request...');
+      return;
+    }
+
     try {
+      processingCodeRef.current = code;
       console.log("Processing Google Ads OAuth callback...");
       
       const { data: { session } } = await supabase.auth.getSession();
@@ -71,10 +81,15 @@ export function useGoogleAdsIntegration() {
       console.log("Google Ads connected successfully");
       toast.success("Google Ads conectado com sucesso!");
       
+      // Limpar o código processado após sucesso
+      processingCodeRef.current = null;
+      
       return data;
     } catch (error: any) {
       console.error("Error in handleCallback:", error);
       toast.error(`Erro ao conectar Google Ads: ${error.message}`);
+      // Limpar o código processado após erro
+      processingCodeRef.current = null;
       throw error;
     }
   };
