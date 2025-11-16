@@ -157,7 +157,7 @@ serve(async (req) => {
 
     try {
       const accessibleCustomersResponse = await fetch(
-        'https://googleads.googleapis.com/v17/customers:listAccessibleCustomers',
+        'https://googleads.googleapis.com/v22/customers:listAccessibleCustomers',
         {
           method: 'GET',
           headers: {
@@ -187,19 +187,25 @@ serve(async (req) => {
       const accessibleCustomers = await accessibleCustomersResponse.json();
       console.log('Accessible customers:', accessibleCustomers);
 
-      // Salvar cada conta encontrada
+      // Salvar cada conta encontrada (incluindo MCCs e sub-contas)
       const accounts = [];
       const resourceNames = accessibleCustomers.resourceNames || [];
+      const processedCustomerIds = new Set(); // Evitar duplicatas
 
       for (const customerResourceName of resourceNames) {
         // Extrair customer ID do resource name (formato: customers/1234567890)
         const customerId = customerResourceName.split('/')[1];
         
-        // Buscar detalhes da conta usando Google Ads API query
-        const query = `SELECT customer.id, customer.descriptive_name, customer.currency_code FROM customer WHERE customer.id = ${customerId}`;
+        if (processedCustomerIds.has(customerId)) {
+          continue;
+        }
+        processedCustomerIds.add(customerId);
+        
+        // Buscar detalhes da conta incluindo se é MCC e status
+        const query = `SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone, customer.manager, customer.status FROM customer WHERE customer.id = ${customerId}`;
         
         const customerDetailsResponse = await fetch(
-          `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:search`,
+          `https://googleads.googleapis.com/v22/customers/${customerId}/googleAds:search`,
           {
             method: 'POST',
             headers: {
@@ -217,8 +223,10 @@ serve(async (req) => {
           
           if (results.length > 0) {
             const customerDetails = results[0].customer;
+            const isManager = customerDetails.manager || false;
+            const accountStatus = customerDetails.status || 'ENABLED';
             
-            // Inserir na tabela google_ads_accounts
+            // Salvar conta principal
             const { data: account, error: accountError } = await supabaseClient
               .from('google_ads_accounts')
               .upsert({
@@ -227,7 +235,11 @@ serve(async (req) => {
                 google_customer_id: customerId,
                 account_name: customerDetails.descriptiveName || `Customer ${customerId}`,
                 currency: customerDetails.currencyCode || 'BRL',
+                time_zone: customerDetails.timeZone || 'America/Sao_Paulo',
                 is_active: true,
+                is_manager: isManager,
+                status: accountStatus,
+                parent_customer_id: null,
               }, {
                 onConflict: 'integration_id,google_customer_id',
               })
@@ -235,8 +247,89 @@ serve(async (req) => {
               .single();
 
             if (!accountError && account) {
-              console.log('Account saved:', account.account_name);
+              console.log('Account saved:', account.account_name, '- Is MCC:', isManager);
               accounts.push(account);
+
+              // Se for MCC, buscar sub-contas
+              if (isManager) {
+                console.log(`Fetching sub-accounts for MCC ${customerId}...`);
+                
+                const subAccountsQuery = `
+                  SELECT 
+                    customer_client.id,
+                    customer_client.descriptive_name,
+                    customer_client.currency_code,
+                    customer_client.time_zone,
+                    customer_client.status,
+                    customer_client.manager
+                  FROM customer_client
+                  WHERE customer_client.level <= 1
+                `;
+                
+                const subAccountsResponse = await fetch(
+                  `https://googleads.googleapis.com/v22/customers/${customerId}/googleAds:search`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${tokens.access_token}`,
+                      'developer-token': developerToken,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: subAccountsQuery }),
+                  }
+                );
+
+                if (subAccountsResponse.ok) {
+                  const subAccountsData = await subAccountsResponse.json();
+                  const subAccounts = subAccountsData.results || [];
+                  
+                  console.log(`Found ${subAccounts.length} sub-accounts for MCC ${customerId}`);
+                  
+                  for (const subAccountResult of subAccounts) {
+                    const subCustomer = subAccountResult.customerClient;
+                    const subCustomerId = subCustomer.id.toString();
+                    
+                    // Evitar processar a própria MCC ou contas já processadas
+                    if (subCustomerId === customerId || processedCustomerIds.has(subCustomerId)) {
+                      continue;
+                    }
+                    processedCustomerIds.add(subCustomerId);
+                    
+                    const subAccountStatus = subCustomer.status || 'ENABLED';
+                    const isSubManager = subCustomer.manager || false;
+                    
+                    // Salvar sub-conta
+                    const { data: subAccount, error: subAccountError } = await supabaseClient
+                      .from('google_ads_accounts')
+                      .upsert({
+                        integration_id: integration.id,
+                        company_id: companyId,
+                        google_customer_id: subCustomerId,
+                        account_name: subCustomer.descriptiveName || `Customer ${subCustomerId}`,
+                        currency: subCustomer.currencyCode || 'BRL',
+                        time_zone: subCustomer.timeZone || 'America/Sao_Paulo',
+                        is_active: true,
+                        is_manager: isSubManager,
+                        status: subAccountStatus,
+                        parent_customer_id: customerId,
+                      }, {
+                        onConflict: 'integration_id,google_customer_id',
+                      })
+                      .select()
+                      .single();
+
+                    if (!subAccountError && subAccount) {
+                      console.log('Sub-account saved:', subAccount.account_name, '- Status:', subAccountStatus);
+                      accounts.push(subAccount);
+                    } else if (subAccountError) {
+                      console.error('Error saving sub-account:', subAccountError);
+                    }
+                  }
+                } else {
+                  const errorText = await subAccountsResponse.text();
+                  console.error(`Failed to fetch sub-accounts for MCC ${customerId}:`, errorText);
+                }
+              }
             } else if (accountError) {
               console.error('Error saving account:', accountError);
             }
