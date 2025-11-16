@@ -29,7 +29,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { customerId, companyId } = await req.json();
+    const { customerId, companyId, clientId } = await req.json();
 
     if (!customerId || !companyId) {
       throw new Error('Customer ID and Company ID are required');
@@ -110,6 +110,7 @@ serve(async (req) => {
         currency: accountData.currencyCode || 'USD',
         time_zone: accountData.timeZone || 'America/Sao_Paulo',
         is_active: accountData.status === 'ENABLED',
+        client_id: clientId || null,
       }, {
         onConflict: 'google_customer_id,company_id',
       })

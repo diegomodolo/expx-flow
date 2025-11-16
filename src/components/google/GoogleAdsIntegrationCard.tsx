@@ -4,14 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Unlink, CheckCircle, Plus, Info } from "lucide-react";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useClients } from "@/hooks/useClients";
 import { useEffect, useState } from "react";
 
 export function GoogleAdsIntegrationCard() {
   const { activeCompany } = useCompany();
+  const { clients } = useClients();
   const [newCustomerId, setNewCustomerId] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   
   const {
     loading,
@@ -34,8 +38,9 @@ export function GoogleAdsIntegrationCard() {
 
   const handleAddCustomerId = async () => {
     if (!newCustomerId.trim()) return;
-    await addCustomerId(newCustomerId.trim());
+    await addCustomerId(newCustomerId.trim(), selectedClientId || undefined);
     setNewCustomerId("");
+    setSelectedClientId("");
   };
 
   if (loading) {
@@ -117,46 +122,83 @@ export function GoogleAdsIntegrationCard() {
 
         {isConnected && (
           <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="customer-id">Customer ID</Label>
-              <div className="flex gap-2">
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <h4 className="text-sm font-medium">Adicionar Nova Conta</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="customer-id">Customer ID do Google Ads</Label>
                 <Input
                   id="customer-id"
                   placeholder="123-456-7890"
                   value={newCustomerId}
                   onChange={(e) => setNewCustomerId(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && newCustomerId.trim()) {
                       handleAddCustomerId();
                     }
                   }}
                 />
-                <Button 
-                  onClick={handleAddCustomerId}
-                  disabled={!newCustomerId.trim()}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Encontre no canto superior direito do Google Ads (formato: 123-456-7890)
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Digite o Customer ID sem hífens ou com hífens (ex: 1234567890 ou 123-456-7890)
-              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="client-select">Cliente Associado (Opcional)</Label>
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger id="client-select">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (associar depois)</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Associe esta conta a um cliente específico para sincronização automática
+                </p>
+              </div>
+
+              <Button 
+                onClick={handleAddCustomerId}
+                disabled={!newCustomerId.trim()}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Conta
+              </Button>
             </div>
 
             {adAccounts.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">Contas Conectadas:</h4>
+                <h4 className="text-sm font-medium">Contas Conectadas ({adAccounts.length}):</h4>
                 <div className="space-y-1">
-                  {adAccounts.map((account) => (
-                    <div key={account.id} className="flex items-center justify-between p-2 border rounded-md bg-card">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{account.account_name}</span>
-                        <span className="text-xs text-muted-foreground">ID: {account.google_customer_id}</span>
+                  {adAccounts.map((account) => {
+                    const associatedClient = account.client_id 
+                      ? clients.find(c => c.id === account.client_id)
+                      : null;
+                    return (
+                      <div key={account.id} className="flex items-center justify-between p-3 border rounded-md bg-card hover:bg-accent/50 transition-colors">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-medium">{account.account_name}</span>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>ID: {account.google_customer_id}</span>
+                            {associatedClient && (
+                              <>
+                                <span>•</span>
+                                <span className="text-primary">Cliente: {associatedClient.name}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="secondary">{account.currency}</Badge>
                       </div>
-                      <Badge variant="secondary">{account.currency}</Badge>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
