@@ -111,6 +111,26 @@ serve(async (req) => {
       const tokens = await tokenResponse.json();
       console.log('Tokens received successfully');
 
+      // Fetch user email from Google OAuth2 API
+      let userEmail = null;
+      try {
+        const userInfoResponse = await fetch(
+          'https://www.googleapis.com/oauth2/v2/userinfo',
+          {
+            headers: {
+              'Authorization': `Bearer ${tokens.access_token}`,
+            },
+          }
+        );
+        if (userInfoResponse.ok) {
+          const userInfo = await userInfoResponse.json();
+          userEmail = userInfo.email;
+          console.log('User email fetched:', userEmail);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch user email:', error);
+      }
+
       // Calculate token expiry
       const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
@@ -123,6 +143,7 @@ serve(async (req) => {
         refresh_token: tokens.refresh_token,
         expires_at: expiresAt,
         is_active: true,
+        user_email: userEmail,
       }, {
         onConflict: 'company_id',
       })
@@ -241,7 +262,7 @@ serve(async (req) => {
                 status: accountStatus,
                 parent_customer_id: null,
               }, {
-                onConflict: 'integration_id,google_customer_id',
+                onConflict: 'google_customer_id,company_id',
               })
               .select()
               .single();
@@ -313,7 +334,7 @@ serve(async (req) => {
                         status: subAccountStatus,
                         parent_customer_id: customerId,
                       }, {
-                        onConflict: 'integration_id,google_customer_id',
+                        onConflict: 'google_customer_id,company_id',
                       })
                       .select()
                       .single();
@@ -335,8 +356,19 @@ serve(async (req) => {
             }
           }
         } else {
-          const errorText = await customerDetailsResponse.text();
-          console.error(`Failed to fetch details for customer ${customerId}:`, errorText);
+          const errorData = await customerDetailsResponse.json().catch(() => ({}));
+          
+          // Check if error is CUSTOMER_NOT_ENABLED
+          const errors = errorData?.error?.details?.[0]?.errors || [];
+          const isNotEnabled = errors.some((err: any) => 
+            err?.errorCode?.authorizationError === 'CUSTOMER_NOT_ENABLED'
+          );
+          
+          if (isNotEnabled) {
+            console.log(`Customer ${customerId} is not enabled, skipping...`);
+          } else {
+            console.error(`Failed to fetch details for customer ${customerId}:`, errorData);
+          }
         }
       }
 
@@ -368,6 +400,206 @@ serve(async (req) => {
         }
       );
     }
+    }
+
+    // Action: refresh_accounts (re-fetch accounts for existing integration)
+    if (action === 'refresh_accounts') {
+      const { integrationId, companyId: refreshCompanyId } = body;
+
+      if (!integrationId || !refreshCompanyId) {
+        throw new Error('Missing integrationId or companyId');
+      }
+
+      console.log('Refreshing accounts for integration:', integrationId);
+
+      // Fetch integration
+      const { data: integration, error: integrationError } = await supabaseClient
+        .from('google_ads_integrations')
+        .select('*')
+        .eq('id', integrationId)
+        .eq('company_id', refreshCompanyId)
+        .single();
+
+      if (integrationError || !integration) {
+        throw new Error('Integration not found');
+      }
+
+      const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
+      if (!developerToken) {
+        throw new Error('Developer token not configured');
+      }
+
+      try {
+        const accessibleCustomersResponse = await fetch(
+          'https://googleads.googleapis.com/v22/customers:listAccessibleCustomers',
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${integration.access_token}`,
+              'developer-token': developerToken,
+            },
+          }
+        );
+
+        if (!accessibleCustomersResponse.ok) {
+          throw new Error('Failed to fetch accessible customers');
+        }
+
+        const accessibleCustomers = await accessibleCustomersResponse.json();
+        const resourceNames = accessibleCustomers.resourceNames || [];
+        const accounts = [];
+        const processedCustomerIds = new Set();
+
+        for (const customerResourceName of resourceNames) {
+          const customerId = customerResourceName.split('/')[1];
+          
+          if (processedCustomerIds.has(customerId)) {
+            continue;
+          }
+          processedCustomerIds.add(customerId);
+          
+          const query = `SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone, customer.manager, customer.status FROM customer WHERE customer.id = ${customerId}`;
+          
+          const customerDetailsResponse = await fetch(
+            `https://googleads.googleapis.com/v22/customers/${customerId}/googleAds:search`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${integration.access_token}`,
+                'developer-token': developerToken,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ query }),
+            }
+          );
+
+          if (customerDetailsResponse.ok) {
+            const customerDetailsData = await customerDetailsResponse.json();
+            const results = customerDetailsData.results || [];
+            
+            if (results.length > 0) {
+              const customerDetails = results[0].customer;
+              const isManager = customerDetails.manager || false;
+              const accountStatus = customerDetails.status || 'ENABLED';
+              
+              const { data: account, error: accountError } = await supabaseClient
+                .from('google_ads_accounts')
+                .upsert({
+                  integration_id: integration.id,
+                  company_id: refreshCompanyId,
+                  google_customer_id: customerId,
+                  account_name: customerDetails.descriptiveName || `Customer ${customerId}`,
+                  currency: customerDetails.currencyCode || 'BRL',
+                  time_zone: customerDetails.timeZone || 'America/Sao_Paulo',
+                  is_active: true,
+                  is_manager: isManager,
+                  status: accountStatus,
+                  parent_customer_id: null,
+                }, {
+                  onConflict: 'google_customer_id,company_id',
+                })
+                .select()
+                .single();
+
+              if (!accountError && account) {
+                accounts.push(account);
+
+                if (isManager) {
+                  const subAccountsQuery = `
+                    SELECT 
+                      customer_client.id,
+                      customer_client.descriptive_name,
+                      customer_client.currency_code,
+                      customer_client.time_zone,
+                      customer_client.status,
+                      customer_client.manager
+                    FROM customer_client
+                    WHERE customer_client.level <= 1
+                  `;
+                  
+                  const subAccountsResponse = await fetch(
+                    `https://googleads.googleapis.com/v22/customers/${customerId}/googleAds:search`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${integration.access_token}`,
+                        'developer-token': developerToken,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ query: subAccountsQuery }),
+                    }
+                  );
+
+                  if (subAccountsResponse.ok) {
+                    const subAccountsData = await subAccountsResponse.json();
+                    const subAccounts = subAccountsData.results || [];
+                    
+                    for (const subAccountResult of subAccounts) {
+                      const subCustomer = subAccountResult.customerClient;
+                      const subCustomerId = subCustomer.id.toString();
+                      
+                      if (subCustomerId === customerId || processedCustomerIds.has(subCustomerId)) {
+                        continue;
+                      }
+                      processedCustomerIds.add(subCustomerId);
+                      
+                      const subAccountStatus = subCustomer.status || 'ENABLED';
+                      const isSubManager = subCustomer.manager || false;
+                      
+                      const { data: subAccount } = await supabaseClient
+                        .from('google_ads_accounts')
+                        .upsert({
+                          integration_id: integration.id,
+                          company_id: refreshCompanyId,
+                          google_customer_id: subCustomerId,
+                          account_name: subCustomer.descriptiveName || `Customer ${subCustomerId}`,
+                          currency: subCustomer.currencyCode || 'BRL',
+                          time_zone: subCustomer.timeZone || 'America/Sao_Paulo',
+                          is_active: true,
+                          is_manager: isSubManager,
+                          status: subAccountStatus,
+                          parent_customer_id: customerId,
+                        }, {
+                          onConflict: 'google_customer_id,company_id',
+                        })
+                        .select()
+                        .single();
+
+                      if (subAccount) {
+                        accounts.push(subAccount);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            const errorData = await customerDetailsResponse.json().catch(() => ({}));
+            const errors = errorData?.error?.details?.[0]?.errors || [];
+            const isNotEnabled = errors.some((err: any) => 
+              err?.errorCode?.authorizationError === 'CUSTOMER_NOT_ENABLED'
+            );
+            
+            if (!isNotEnabled) {
+              console.error(`Failed to fetch details for customer ${customerId}:`, errorData);
+            }
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            accounts,
+            message: `Successfully refreshed ${accounts.length} accounts`,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (refreshError) {
+        console.error('Error refreshing accounts:', refreshError);
+        throw refreshError;
+      }
     }
 
     throw new Error('Invalid action');

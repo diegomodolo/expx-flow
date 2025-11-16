@@ -22,6 +22,7 @@ export interface GoogleAdsIntegration {
   expires_at: string;
   is_active: boolean;
   created_at: string;
+  user_email?: string | null;
 }
 
 export function useGoogleAdsIntegration() {
@@ -186,8 +187,37 @@ export function useGoogleAdsIntegration() {
   };
 
   const refreshAdAccounts = async () => {
-    if (!activeCompany) return;
-    await loadIntegration(activeCompany.company_id);
+    if (!activeCompany?.company_id || !integration?.id) {
+      toast.error("Nenhuma integração ativa encontrada");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('Refreshing Google Ads accounts...');
+      
+      const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
+        body: {
+          action: 'refresh_accounts',
+          integrationId: integration.id,
+          companyId: activeCompany.company_id,
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      console.log('Accounts refreshed:', data);
+      toast.success(`${data.accounts?.length || 0} conta(s) recarregada(s) com sucesso!`);
+      
+      // Reload integration data
+      await loadIntegration(activeCompany.company_id);
+    } catch (error: any) {
+      console.error('Error refreshing accounts:', error);
+      toast.error(`Erro ao recarregar contas: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addCustomerId = async (customerId: string, clientId?: string) => {
