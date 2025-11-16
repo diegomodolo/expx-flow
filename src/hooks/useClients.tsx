@@ -552,11 +552,18 @@ export function useClients() {
         'ai_briefing', 'briefing_generated_at', 'offline_event_set_id'
       ];
       
-      // Filtrar apenas campos permitidos
+      // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs
       const filteredUpdates = Object.keys(updates)
         .filter(key => allowedFields.includes(key))
         .reduce((obj, key) => {
-          obj[key] = updates[key as keyof Client];
+          let value = updates[key as keyof Client];
+          
+          // Converter strings vazias para null em campos UUID
+          if ((key === 'ad_account_id' || key === 'google_account_id' || key === 'team_id') && value === "") {
+            value = null;
+          }
+          
+          obj[key] = value;
           return obj;
         }, {} as any);
       
