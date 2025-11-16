@@ -8,6 +8,7 @@ export interface GoogleAdAccount {
   google_customer_id: string;
   account_name: string;
   currency?: string;
+  time_zone?: string;
   is_active: boolean;
   client_id?: string | null;
 }
