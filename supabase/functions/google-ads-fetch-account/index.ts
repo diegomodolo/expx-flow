@@ -77,7 +77,6 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${integration.access_token}`,
           'developer-token': developerToken,
-          'login-customer-id': cleanCustomerId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query }),
@@ -86,8 +85,27 @@ serve(async (req) => {
 
     if (!customerDetailsResponse.ok) {
       const errorText = await customerDetailsResponse.text();
-      console.error('Failed to fetch customer details:', errorText);
-      throw new Error(`Failed to fetch account details. Verify the Customer ID is correct and you have access to it.`);
+      console.error('API Error Response:', errorText);
+      console.error('Status:', customerDetailsResponse.status);
+      
+      let errorMessage = 'Failed to fetch account details. ';
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error && errorJson.error.message) {
+          errorMessage += errorJson.error.message;
+        }
+      } catch {
+        if (customerDetailsResponse.status === 404) {
+          errorMessage += 'Customer ID not found. Please verify the ID is correct and you have access to this account.';
+        } else if (customerDetailsResponse.status === 401 || customerDetailsResponse.status === 403) {
+          errorMessage += 'Authorization failed. Please reconnect your Google Ads account.';
+        } else {
+          errorMessage += 'Please verify the Customer ID and try again.';
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const customerDetails = await customerDetailsResponse.json();
