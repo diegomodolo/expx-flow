@@ -32,8 +32,8 @@ export function useGoogleAdsIntegration() {
 
   const getAuthUrl = () => {
     const clientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
-    // Use URL fixo para garantir consistência
-    const redirectUri = 'https://preview--controledetrafego.lovable.app/google-ads/callback';
+    // Use URL dinâmica baseada no domínio atual
+    const redirectUri = `${window.location.origin}/google-ads/callback`;
     const scope = 'https://www.googleapis.com/auth/adwords';
     
     console.log('Auth URL redirect_uri:', redirectUri);
@@ -76,8 +76,8 @@ export function useGoogleAdsIntegration() {
         throw new Error("No active session");
       }
 
-      // Use o mesmo redirect_uri fixo
-      const redirectUri = 'https://preview--controledetrafego.lovable.app/google-ads/callback';
+      // Use redirect_uri dinâmico baseado no domínio atual
+      const redirectUri = `${window.location.origin}/google-ads/callback`;
       console.log('Calling edge function with:', { 
         redirectUri, 
         companyId,
