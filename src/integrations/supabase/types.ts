@@ -2768,6 +2768,7 @@ export type Database = {
           is_active: boolean
           is_prepaid: boolean | null
           last_balance_check: string | null
+          recharge_day: number | null
           spend_cap: number | null
           updated_at: string
         }
@@ -2786,6 +2787,7 @@ export type Database = {
           is_active?: boolean
           is_prepaid?: boolean | null
           last_balance_check?: string | null
+          recharge_day?: number | null
           spend_cap?: number | null
           updated_at?: string
         }
@@ -2804,6 +2806,7 @@ export type Database = {
           is_active?: boolean
           is_prepaid?: boolean | null
           last_balance_check?: string | null
+          recharge_day?: number | null
           spend_cap?: number | null
           updated_at?: string
         }

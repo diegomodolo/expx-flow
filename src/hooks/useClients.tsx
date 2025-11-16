@@ -69,6 +69,7 @@ export interface Client {
     last_balance_check?: string;
     is_prepaid: boolean;
     funding_source_details?: any;
+    recharge_day?: number;
   };
   team?: {
     id: string;
@@ -440,7 +441,8 @@ export function useClients() {
             has_funding_issues,
             last_balance_check,
             is_prepaid,
-            funding_source_details
+            funding_source_details,
+            recharge_day
           ),
           team:teams!team_id (
             id,
