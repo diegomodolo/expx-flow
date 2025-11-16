@@ -543,23 +543,31 @@ export function useClients() {
 
   const updateClient = async (id: string, updates: Partial<Client>) => {
     try {
-      // Map status to database format if present and filter out non-database fields
-      const { 
-        status, 
-        facebook_ad_accounts, 
-        team, 
-        spend,
-        ...restUpdates 
-      } = updates as any;
+      // Whitelist de campos permitidos para atualização
+      const allowedFields = [
+        'name', 'email', 'company', 'sector', 'avatar', 'monthly_budget',
+        'target_audience', 'product_name', 'voice_tone', 'objectives',
+        'preferred_platforms', 'campaign_type', 'notes', 'ad_account_id',
+        'google_account_id', 'website_url', 'inactive_reason', 'team_id',
+        'ai_briefing', 'briefing_generated_at', 'offline_event_set_id'
+      ];
       
-      const dbUpdates = {
-        ...restUpdates,
-        ...(status && { status: statusMapping.database[status] })
-      };
+      // Filtrar apenas campos permitidos
+      const filteredUpdates = Object.keys(updates)
+        .filter(key => allowedFields.includes(key))
+        .reduce((obj, key) => {
+          obj[key] = updates[key as keyof Client];
+          return obj;
+        }, {} as any);
+      
+      // Map status to database format if present
+      if (updates.status) {
+        filteredUpdates.status = statusMapping.database[updates.status];
+      }
 
       const { error } = await supabase
         .from("clients")
-        .update(dbUpdates)
+        .update(filteredUpdates)
         .eq("id", id);
 
       if (error) throw error;
