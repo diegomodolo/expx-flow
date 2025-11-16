@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
+import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { ClientDetailsData } from "@/hooks/useClientDetails";
 
@@ -146,6 +147,19 @@ export function ClienteDashboard({
           hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
           accountName={client.facebook_ad_accounts.account_name}
           className="mb-6"
+        />
+      )}
+
+      {/* Account Balance Card */}
+      {client.facebook_ad_accounts && (
+        <AccountBalanceCard
+          balance={client.facebook_ad_accounts.balance}
+          currency={client.facebook_ad_accounts.currency}
+          accountStatus={client.facebook_ad_accounts.account_status}
+          disableReason={client.facebook_ad_accounts.disable_reason}
+          hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
+          accountName={client.facebook_ad_accounts.account_name}
+          lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
         />
       )}
 

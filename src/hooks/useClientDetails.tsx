@@ -33,6 +33,7 @@ export interface ClientDetailsData extends Client {
     id: string;
     account_name: string;
     balance: number;
+    currency: string;
     account_status: number;
     disable_reason?: string;
     has_funding_issues: boolean;
@@ -65,6 +66,7 @@ export function useClientDetails(clientId: string) {
             id,
             account_name,
             balance,
+            currency,
             account_status,
             disable_reason,
             has_funding_issues,
