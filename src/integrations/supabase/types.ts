@@ -3324,6 +3324,7 @@ export type Database = {
           is_active: boolean
           refresh_token: string
           updated_at: string
+          user_email: string | null
         }
         Insert: {
           access_token: string
@@ -3334,6 +3335,7 @@ export type Database = {
           is_active?: boolean
           refresh_token: string
           updated_at?: string
+          user_email?: string | null
         }
         Update: {
           access_token?: string
@@ -3344,6 +3346,7 @@ export type Database = {
           is_active?: boolean
           refresh_token?: string
           updated_at?: string
+          user_email?: string | null
         }
         Relationships: [
           {
