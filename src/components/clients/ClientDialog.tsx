@@ -90,7 +90,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
-  const [rechargeDayValue, setRechargeDayValue] = useState<string>("");
+  const [rechargeDayValue, setRechargeDayValue] = useState<string>("none");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const platforms = ["Google Ads", "Meta Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
@@ -133,7 +133,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       
       // Carregar dia de recarga
       const rechargeDay = client.facebook_ad_accounts?.recharge_day;
-      setRechargeDayValue(rechargeDay ? rechargeDay.toString() : "");
+      setRechargeDayValue(rechargeDay ? rechargeDay.toString() : "none");
     }
   }, [client?.id, open]);
 
@@ -180,7 +180,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         const { error: accountError } = await supabase
           .from('facebook_ad_accounts')
           .update({
-            recharge_day: rechargeDayValue ? parseInt(rechargeDayValue) : null
+            recharge_day: rechargeDayValue === "none" ? null : parseInt(rechargeDayValue)
           })
           .eq('id', client.facebook_ad_accounts.id);
         
@@ -490,7 +490,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   <SelectValue placeholder="Selecione o dia de recarga" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Não configurado (usar final do mês)</SelectItem>
+                  <SelectItem value="none">Não configurado (usar final do mês)</SelectItem>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                     <SelectItem key={day} value={day.toString()}>
                       Dia {day}
