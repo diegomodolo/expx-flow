@@ -81,7 +81,7 @@ const statusConfig = {
   },
 };
 
-type SortField = 'name' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend';
+type SortField = 'name' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend' | 'balance';
 type SortDirection = 'asc' | 'desc';
 
 // Função para gerar a explicação do status baseada nas métricas do cliente
@@ -321,6 +321,12 @@ const Clientes = () => {
       aValue = a.spend || 0;
       bValue = b.spend || 0;
     }
+    
+    // Handle balance field
+    if (sortField === 'balance') {
+      aValue = a.facebook_ad_accounts?.balance || 0;
+      bValue = b.facebook_ad_accounts?.balance || 0;
+    }
 
     // Handle null/undefined values
     if (aValue == null) aValue = 0;
@@ -350,7 +356,7 @@ const Clientes = () => {
 
   
   const exportToCSV = () => {
-    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Leads Gerados", "Orçamento Mensal", "Gasto Estimado"];
+    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Leads Gerados", "Orçamento Mensal", "Gasto Estimado", "Saldo"];
     const csvData = filteredAndSortedClients.map(client => [
       client.name,
       client.email,
@@ -361,7 +367,8 @@ const Clientes = () => {
       `R$ ${client.avg_cpl.toFixed(2)}`,
       client.leads_generated,
       `R$ ${(client.monthly_budget || 0).toFixed(2)}`,
-      `R$ ${(client.spend || 0).toFixed(2)}`
+      `R$ ${(client.spend || 0).toFixed(2)}`,
+      client.facebook_ad_accounts?.balance !== undefined ? `R$ ${client.facebook_ad_accounts.balance.toFixed(2)}` : '-'
     ]);
     
     const csvContent = [headers, ...csvData]
@@ -847,18 +854,27 @@ const Clientes = () => {
                                {getSortIcon('monthly_budget')}
                              </div>
                            </th>
-                           <th 
-                             className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                             onClick={() => handleSort('spend')}
-                           >
-                             <div className="flex items-center space-x-1">
-                               <span>Gasto</span>
-                               {getSortIcon('spend')}
-                             </div>
-                           </th>
-                           <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                             Ações
-                           </th>
+                            <th 
+                              className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('spend')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Gasto</span>
+                                {getSortIcon('spend')}
+                              </div>
+                            </th>
+                            <th 
+                              className="hidden 2xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => handleSort('balance')}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span>Saldo</span>
+                                {getSortIcon('balance')}
+                              </div>
+                            </th>
+                            <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Ações
+                            </th>
                          </tr>
                        </thead>
                        <tbody className="bg-card divide-y divide-border">
@@ -916,18 +932,32 @@ const Clientes = () => {
                                  })}
                                </div>
                              </td>
-                             <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
-                               <div className="flex items-center gap-2">
-                                 <div className="text-sm text-card-foreground">
-                                   R$ {(client.spend || 0).toLocaleString('pt-BR', { 
-                                     minimumFractionDigits: 2, 
-                                     maximumFractionDigits: 2 
-                                   })}
-                                 </div>
-                                 <BudgetStatusIcon client={client} />
-                               </div>
-                             </td>
-                             <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
+                              <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <div className="text-sm text-card-foreground">
+                                    R$ {(client.spend || 0).toLocaleString('pt-BR', { 
+                                      minimumFractionDigits: 2, 
+                                      maximumFractionDigits: 2 
+                                    })}
+                                  </div>
+                                  <BudgetStatusIcon client={client} />
+                                </div>
+                              </td>
+                              <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
+                                <div className="text-sm text-card-foreground">
+                                  {client.facebook_ad_accounts?.balance !== undefined ? (
+                                    <>
+                                      R$ {client.facebook_ad_accounts.balance.toLocaleString('pt-BR', { 
+                                        minimumFractionDigits: 2, 
+                                        maximumFractionDigits: 2 
+                                      })}
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="sm" className="w-7 h-7 p-0">
