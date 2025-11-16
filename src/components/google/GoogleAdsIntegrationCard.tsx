@@ -2,10 +2,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Unlink, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Unlink, CheckCircle, AlertTriangle, RefreshCw, Calendar, Clock } from "lucide-react";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useEffect } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export function GoogleAdsIntegrationCard() {
   const { activeCompany } = useCompany();
@@ -17,6 +19,7 @@ export function GoogleAdsIntegrationCard() {
     connectGoogle,
     loadIntegration,
     disconnectGoogle,
+    refreshAdAccounts,
   } = useGoogleAdsIntegration();
 
   useEffect(() => {
@@ -27,6 +30,11 @@ export function GoogleAdsIntegrationCard() {
 
   const isConnected = integration && integration.is_active;
   const isExpired = integration && new Date(integration.expires_at) < new Date();
+  
+  const handleRefreshAccounts = async () => {
+    if (!activeCompany?.company_id) return;
+    await refreshAdAccounts();
+  };
 
   if (loading) {
     return (
@@ -94,6 +102,40 @@ export function GoogleAdsIntegrationCard() {
           )}
         </div>
 
+        {isConnected && integration && (
+          <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+            <h4 className="text-sm font-semibold">Informações da Integração</h4>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Conectado em</p>
+                  <p className="font-medium">
+                    {format(new Date(integration.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Token expira em</p>
+                  <p className="font-medium">
+                    {format(new Date(integration.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Badge variant={isExpired ? "destructive" : "secondary"} className="text-xs">
+                {isExpired ? "Token Expirado" : "Token Válido"}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {adAccounts.length} conta(s) encontrada(s)
+              </Badge>
+            </div>
+          </div>
+        )}
+
         {isExpired && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -108,9 +150,24 @@ export function GoogleAdsIntegrationCard() {
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Nenhuma conta encontrada</AlertTitle>
-            <AlertDescription>
-              Não foram encontradas contas do Google Ads acessíveis com esta conta do Google.
-              Verifique se você fez login com a conta correta que tem acesso ao Google Ads ou a uma conta MCC (gerenciadora).
+            <AlertDescription className="space-y-2">
+              <p>Não foram encontradas contas do Google Ads acessíveis com esta conta do Google.</p>
+              <p className="text-xs">Possíveis motivos:</p>
+              <ul className="text-xs list-disc list-inside space-y-1 ml-2">
+                <li>Você fez login com uma conta sem acesso ao Google Ads</li>
+                <li>A conta MCC não possui sub-contas configuradas</li>
+                <li>Houve um erro ao buscar as contas</li>
+              </ul>
+              <Button 
+                onClick={handleRefreshAccounts} 
+                variant="outline" 
+                size="sm"
+                disabled={loading}
+                className="mt-2"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Tentar Recarregar Contas
+              </Button>
             </AlertDescription>
           </Alert>
         )}
