@@ -277,6 +277,11 @@ const getBalanceSufficiency = (client: Client): {
 
 // Componente para renderizar o ícone de suficiência do saldo
 const BalanceSufficiencyIcon = ({ client }: { client: Client }) => {
+  // Não mostrar para clientes pós-pagos
+  if (client.payment_type === 'postpaid') {
+    return null;
+  }
+  
   const sufficiency = getBalanceSufficiency(client);
   
   if (sufficiency.status === 'no-data') {
@@ -1104,19 +1109,27 @@ const Clientes = () => {
                               </td>
                               <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
-                                  <div className="text-sm text-card-foreground">
-                                    {client.facebook_ad_accounts?.balance !== undefined ? (
-                                      <>
-                                        R$ {client.facebook_ad_accounts.balance.toLocaleString('pt-BR', { 
-                                          minimumFractionDigits: 2, 
-                                          maximumFractionDigits: 2 
-                                        })}
-                                      </>
-                                    ) : (
-                                      <span className="text-muted-foreground">-</span>
-                                    )}
-                                  </div>
-                                  <BalanceSufficiencyIcon client={client} />
+                                  {client.payment_type === 'postpaid' ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="text-sm text-muted-foreground">💳 Pós-pago</div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="text-sm text-card-foreground">
+                                        {client.facebook_ad_accounts?.balance !== undefined ? (
+                                          <>
+                                            R$ {client.facebook_ad_accounts.balance.toLocaleString('pt-BR', { 
+                                              minimumFractionDigits: 2, 
+                                              maximumFractionDigits: 2 
+                                            })}
+                                          </>
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </div>
+                                      <BalanceSufficiencyIcon client={client} />
+                                    </>
+                                  )}
                                 </div>
                               </td>
                               <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">

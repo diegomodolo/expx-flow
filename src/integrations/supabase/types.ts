@@ -1471,6 +1471,7 @@ export type Database = {
           notes: string | null
           objectives: string | null
           offline_event_set_id: string | null
+          payment_type: Database["public"]["Enums"]["payment_type"]
           preferred_platforms: string[] | null
           product_name: string | null
           sector: string
@@ -1509,6 +1510,7 @@ export type Database = {
           notes?: string | null
           objectives?: string | null
           offline_event_set_id?: string | null
+          payment_type?: Database["public"]["Enums"]["payment_type"]
           preferred_platforms?: string[] | null
           product_name?: string | null
           sector: string
@@ -1547,6 +1549,7 @@ export type Database = {
           notes?: string | null
           objectives?: string | null
           offline_event_set_id?: string | null
+          payment_type?: Database["public"]["Enums"]["payment_type"]
           preferred_platforms?: string[] | null
           product_name?: string | null
           sector?: string
@@ -4943,6 +4946,7 @@ export type Database = {
         | "agentes-ia"
         | "editar-agentes"
         | "editor-funil"
+      payment_type: "prepaid" | "postpaid"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
@@ -5092,6 +5096,7 @@ export const Constants = {
         "editar-agentes",
         "editor-funil",
       ],
+      payment_type: ["prepaid", "postpaid"],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
       task_status: ["todo", "progress", "review", "done"],

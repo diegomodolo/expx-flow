@@ -162,6 +162,7 @@ export function ClienteDashboard({
           lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
           accountId={client.facebook_ad_accounts.id}
           clientId={client.id}
+          paymentType={client.payment_type}
         />
       )}
 

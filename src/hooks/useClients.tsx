@@ -77,6 +77,7 @@ export interface Client {
     color: string;
   };
   inactive_reason?: string;
+  payment_type?: 'prepaid' | 'postpaid';
 }
 
 // Helper function to get all client metrics for rule evaluation
@@ -549,7 +550,7 @@ export function useClients() {
         'target_audience', 'product_name', 'voice_tone', 'objectives',
         'preferred_platforms', 'campaign_type', 'notes', 'ad_account_id',
         'google_account_id', 'website_url', 'inactive_reason', 'team_id',
-        'ai_briefing', 'briefing_generated_at', 'offline_event_set_id'
+        'ai_briefing', 'briefing_generated_at', 'offline_event_set_id', 'payment_type'
       ];
       
       // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs

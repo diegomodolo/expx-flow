@@ -58,7 +58,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: client.google_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
-        team_id: client.team_id || "none"
+        team_id: client.team_id || "none",
+        payment_type: (client.payment_type || "prepaid") as 'prepaid' | 'postpaid'
       };
     }
     return {
@@ -80,7 +81,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       google_account_id: "",
       website_url: "",
       inactive_reason: "",
-      team_id: "none"
+      team_id: "none",
+      payment_type: "prepaid" as 'prepaid' | 'postpaid'
     };
   });
   const [loading, setLoading] = useState(false);
@@ -127,7 +129,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: client.google_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
-        team_id: client.team_id || "none"
+        team_id: client.team_id || "none",
+        payment_type: client.payment_type || "prepaid"
       });
       setLocalClient(client);
       
@@ -501,6 +504,29 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               <p className="text-xs text-muted-foreground">
                 O dia do mês em que o cliente recarrega o saldo da conta de anúncios.
                 Usado para calcular se o saldo atual é suficiente até o próximo dia de recarga.
+              </p>
+            </div>
+
+            {/* Tipo de Pagamento */}
+            <div className="space-y-2">
+              <Label htmlFor="payment_type">Tipo de Pagamento</Label>
+              <Select
+                value={formData.payment_type}
+                onValueChange={(value: 'prepaid' | 'postpaid') =>
+                  setFormData({ ...formData, payment_type: value })
+                }
+                disabled={readOnly}
+              >
+                <SelectTrigger id="payment_type">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prepaid">💰 Pré-pago (com saldo)</SelectItem>
+                  <SelectItem value="postpaid">💳 Pós-pago (cartão)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Pré-pago: conta com saldo limitado. Pós-pago: cartão de crédito sem limite.
               </p>
             </div>
 

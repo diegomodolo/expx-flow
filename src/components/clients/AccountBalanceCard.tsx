@@ -16,6 +16,7 @@ interface AccountBalanceCardProps {
   lastBalanceCheck?: string;
   accountId: string;
   clientId: string;
+  paymentType?: 'prepaid' | 'postpaid';
 }
 
 export const AccountBalanceCard = ({
@@ -27,9 +28,32 @@ export const AccountBalanceCard = ({
   accountName,
   lastBalanceCheck,
   accountId,
-  clientId
+  clientId,
+  paymentType = 'prepaid'
 }: AccountBalanceCardProps) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Se for pós-pago, mostrar card especial
+  if (paymentType === 'postpaid') {
+    return (
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Tipo de Pagamento</p>
+              <div className="flex items-center gap-2 mt-2">
+                <CreditCard className="w-5 h-5 text-blue-600" />
+                <h2 className="text-2xl font-bold text-blue-700">Pós-pago</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cliente utiliza cartão de crédito (sem limite de saldo)
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleRefreshBalance = async () => {
     setIsRefreshing(true);
