@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Client, ClientStatus } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ interface ClientDialogProps {
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const { sectors, createSector } = useSectors();
   const { adAccounts } = useFacebookIntegration();
+  const { adAccounts: googleAdAccounts } = useGoogleAdsIntegration();
   const { clients } = useClients();
   const { teams } = useTeams();
   const { toast } = useToast();
@@ -53,6 +55,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         campaign_type: client.campaign_type || "",
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
+        google_account_id: client.google_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none"
@@ -74,6 +77,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       campaign_type: "",
       notes: "",
       ad_account_id: "",
+      google_account_id: "",
       website_url: "",
       inactive_reason: "",
       team_id: "none"
@@ -82,12 +86,13 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [adAccountOpen, setAdAccountOpen] = useState(false);
+  const [googleAccountOpen, setGoogleAccountOpen] = useState(false);
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const platforms = ["Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
+  const platforms = ["Google Ads", "Meta Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
   const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
 
@@ -118,6 +123,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         campaign_type: client.campaign_type || "",
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
+        google_account_id: client.google_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none"
@@ -476,8 +482,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 5: Voice Tone, Campaign Type, Ad Account - 3 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Row 5: Voice Tone, Campaign Type - 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="voice_tone">Tom de Voz</Label>
                 <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
@@ -504,64 +510,129 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ad_account_id">Conta de Anúncios</Label>
-                <Popover open={adAccountOpen} onOpenChange={setAdAccountOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={adAccountOpen}
-                      className="w-full justify-between"
-                      disabled={readOnly}
-                    >
-                      {formData.ad_account_id 
-                        ? availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.account_name + 
-                          ` (${availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.currency})`
-                        : "Selecione a conta de anúncios..."
-                      }
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Pesquisar conta de anúncios..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="none"
-                            onSelect={() => {
-                              setFormData({ ...formData, ad_account_id: "" });
-                              setAdAccountOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${!formData.ad_account_id ? "opacity-100" : "opacity-0"}`}
-                            />
-                            Nenhuma conta selecionada
-                          </CommandItem>
-                          {availableAdAccounts.map((account) => (
+            </div>
+
+            {/* Row 5.5: Contas de Anúncio Condicionais */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Meta Ads Account - Só aparece se "Meta Ads" estiver selecionado */}
+              {formData.preferred_platforms.includes("Meta Ads") && (
+                <div className="space-y-2">
+                  <Label htmlFor="ad_account">Conta de Anúncio (Meta Ads)</Label>
+                  <Popover open={adAccountOpen} onOpenChange={setAdAccountOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={adAccountOpen}
+                        className="w-full justify-between"
+                        disabled={readOnly}
+                      >
+                        {formData.ad_account_id
+                          ? availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.account_name
+                          : "Selecione a conta Meta Ads"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar conta..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                          <CommandGroup>
                             <CommandItem
-                              key={account.id}
-                              value={`${account.account_name} ${account.currency} ${account.id}`}
+                              value="none"
                               onSelect={() => {
-                                setFormData({ ...formData, ad_account_id: account.id });
+                                setFormData({ ...formData, ad_account_id: "" });
                                 setAdAccountOpen(false);
                               }}
                             >
                               <Check
-                                className={`mr-2 h-4 w-4 ${formData.ad_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                                className={`mr-2 h-4 w-4 ${!formData.ad_account_id ? "opacity-100" : "opacity-0"}`}
                               />
-                              {account.account_name} ({account.currency})
+                              Nenhuma conta selecionada
                             </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                            {availableAdAccounts.map((account) => (
+                              <CommandItem
+                                key={account.id}
+                                value={account.account_name}
+                                onSelect={() => {
+                                  setFormData({ ...formData, ad_account_id: account.id });
+                                  setAdAccountOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${formData.ad_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                                />
+                                {account.account_name} ({account.currency})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              {/* Google Ads Account - Só aparece se "Google Ads" estiver selecionado */}
+              {formData.preferred_platforms.includes("Google Ads") && (
+                <div className="space-y-2">
+                  <Label htmlFor="google_account">Conta de Anúncio (Google Ads)</Label>
+                  <Popover open={googleAccountOpen} onOpenChange={setGoogleAccountOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={googleAccountOpen}
+                        className="w-full justify-between"
+                        disabled={readOnly}
+                      >
+                        {formData.google_account_id
+                          ? googleAdAccounts.find((account) => account.id === formData.google_account_id)?.account_name
+                          : "Selecione a conta Google Ads"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar conta..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="none"
+                              onSelect={() => {
+                                setFormData({ ...formData, google_account_id: "" });
+                                setGoogleAccountOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${!formData.google_account_id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              Nenhuma conta selecionada
+                            </CommandItem>
+                            {googleAdAccounts.map((account) => (
+                              <CommandItem
+                                key={account.id}
+                                value={account.account_name}
+                                onSelect={() => {
+                                  setFormData({ ...formData, google_account_id: account.id });
+                                  setGoogleAccountOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${formData.google_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                                />
+                                {account.account_name} ({account.currency || 'N/A'})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
             </div>
 
             {/* Row 6: Avatar Upload - Full width */}

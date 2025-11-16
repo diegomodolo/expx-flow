@@ -49,6 +49,7 @@ export interface Client {
   campaign_type?: string;
   notes?: string;
   ad_account_id?: string;
+  google_account_id?: string;
   leads_generated: number;
   spend?: number;
   last_sync_at?: string;
