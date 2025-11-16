@@ -63,10 +63,9 @@ serve(async (req) => {
         customer.id,
         customer.descriptive_name,
         customer.currency_code,
-        customer.time_zone,
-        customer.status
+        customer.time_zone
       FROM customer
-      WHERE customer.id = ${cleanCustomerId}
+      LIMIT 1
     `;
 
     console.log('Executing GAQL query for customer:', cleanCustomerId);
@@ -78,6 +77,7 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${integration.access_token}`,
           'developer-token': developerToken,
+          'login-customer-id': cleanCustomerId,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query }),
@@ -107,9 +107,9 @@ serve(async (req) => {
         integration_id: integration.id,
         google_customer_id: cleanCustomerId,
         account_name: accountData.descriptiveName || `Conta ${cleanCustomerId}`,
-        currency: accountData.currencyCode || 'USD',
+        currency: accountData.currencyCode || 'BRL',
         time_zone: accountData.timeZone || 'America/Sao_Paulo',
-        is_active: accountData.status === 'ENABLED',
+        is_active: true,
         client_id: clientId || null,
       }, {
         onConflict: 'google_customer_id,company_id',
