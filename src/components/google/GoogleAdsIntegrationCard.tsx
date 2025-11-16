@@ -125,11 +125,34 @@ export function GoogleAdsIntegrationCard() {
               {adAccounts.map((account) => (
                 <div key={account.id} className="flex items-center justify-between p-3 border rounded-md bg-card hover:bg-accent/50 transition-colors">
                   <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium">{account.account_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{account.account_name}</span>
+                      {account.is_manager && (
+                        <Badge variant="outline" className="text-xs">
+                          MCC
+                        </Badge>
+                      )}
+                      {account.status === 'CANCELLED' && (
+                        <Badge variant="destructive" className="text-xs">
+                          Cancelada
+                        </Badge>
+                      )}
+                      {account.status === 'SUSPENDED' && (
+                        <Badge variant="destructive" className="text-xs">
+                          Suspensa
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>ID: {account.google_customer_id}</span>
                       <span>•</span>
                       <span>Fuso: {account.time_zone}</span>
+                      {account.parent_customer_id && (
+                        <>
+                          <span>•</span>
+                          <span>MCC Pai: {account.parent_customer_id}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <Badge variant="secondary">{account.currency}</Badge>

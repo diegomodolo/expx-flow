@@ -3252,6 +3252,9 @@ export type Database = {
           id: string
           integration_id: string
           is_active: boolean
+          is_manager: boolean | null
+          parent_customer_id: string | null
+          status: string | null
           time_zone: string | null
           updated_at: string
         }
@@ -3265,6 +3268,9 @@ export type Database = {
           id?: string
           integration_id: string
           is_active?: boolean
+          is_manager?: boolean | null
+          parent_customer_id?: string | null
+          status?: string | null
           time_zone?: string | null
           updated_at?: string
         }
@@ -3278,6 +3284,9 @@ export type Database = {
           id?: string
           integration_id?: string
           is_active?: boolean
+          is_manager?: boolean | null
+          parent_customer_id?: string | null
+          status?: string | null
           time_zone?: string | null
           updated_at?: string
         }

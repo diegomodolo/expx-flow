@@ -10,6 +10,9 @@ export interface GoogleAdAccount {
   currency?: string;
   time_zone?: string;
   is_active: boolean;
+  is_manager?: boolean;
+  status?: string;
+  parent_customer_id?: string | null;
   client_id?: string | null;
 }
 
