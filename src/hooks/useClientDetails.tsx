@@ -121,6 +121,16 @@ export function useClientDetails(clientId: string) {
     fetchClientDetails();
   }, [clientId, user?.id, activeCompany?.company_id]);
 
+  // Listen for refresh events
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchClientDetails();
+    };
+    
+    window.addEventListener('refreshClientDetails', handleRefresh);
+    return () => window.removeEventListener('refreshClientDetails', handleRefresh);
+  }, [clientId, user?.id, activeCompany?.company_id]);
+
   return {
     client,
     loading,

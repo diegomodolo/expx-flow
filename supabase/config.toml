@@ -127,3 +127,6 @@ verify_jwt = true
 
 [functions.google-ads-sync-scheduler]
 verify_jwt = false
+
+[functions.refresh-account-balance]
+verify_jwt = true

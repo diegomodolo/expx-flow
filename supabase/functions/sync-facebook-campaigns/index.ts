@@ -328,9 +328,9 @@ async function processSync(
         const balanceData = await balanceResponse.json()
         console.log('Balance data received:', balanceData)
         
-        const balance = parseFloat(balanceData.balance || '0')
+        const balance = parseFloat(balanceData.balance || '0') / 100 // Converter centavos para reais
         const accountStatus = parseInt(balanceData.account_status || '1')
-        const spendCap = parseFloat(balanceData.spend_cap || '0')
+        const spendCap = parseFloat(balanceData.spend_cap || '0') / 100 // Converter centavos para reais
         const disableReason = balanceData.disable_reason || null
         const fundingSourceDetails = balanceData.funding_source_details || {}
         
