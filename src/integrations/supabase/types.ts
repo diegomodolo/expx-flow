@@ -3244,6 +3244,7 @@ export type Database = {
       google_ads_accounts: {
         Row: {
           account_name: string
+          client_id: string | null
           company_id: string
           created_at: string
           currency: string | null
@@ -3251,10 +3252,12 @@ export type Database = {
           id: string
           integration_id: string
           is_active: boolean
+          time_zone: string | null
           updated_at: string
         }
         Insert: {
           account_name: string
+          client_id?: string | null
           company_id: string
           created_at?: string
           currency?: string | null
@@ -3262,10 +3265,12 @@ export type Database = {
           id?: string
           integration_id: string
           is_active?: boolean
+          time_zone?: string | null
           updated_at?: string
         }
         Update: {
           account_name?: string
+          client_id?: string | null
           company_id?: string
           created_at?: string
           currency?: string | null
@@ -3273,9 +3278,17 @@ export type Database = {
           id?: string
           integration_id?: string
           is_active?: boolean
+          time_zone?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "google_ads_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "google_ads_accounts_company_id_fkey"
             columns: ["company_id"]

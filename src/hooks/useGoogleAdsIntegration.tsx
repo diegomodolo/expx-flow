@@ -9,6 +9,7 @@ export interface GoogleAdAccount {
   account_name: string;
   currency?: string;
   is_active: boolean;
+  client_id?: string | null;
 }
 
 export interface GoogleAdsIntegration {
@@ -185,7 +186,7 @@ export function useGoogleAdsIntegration() {
     await loadIntegration(activeCompany.company_id);
   };
 
-  const addCustomerId = async (customerId: string) => {
+  const addCustomerId = async (customerId: string, clientId?: string) => {
     if (!integration || !activeCompany) {
       toast.error("Nenhuma integração ativa encontrada");
       return;
@@ -199,12 +200,13 @@ export function useGoogleAdsIntegration() {
         return;
       }
 
-      console.log('Adding Google Ads Customer ID:', customerId);
+      console.log('Adding Google Ads Customer ID:', customerId, 'for client:', clientId);
       
       const { data, error } = await supabase.functions.invoke('google-ads-fetch-account', {
         body: {
           customerId: cleanId,
           companyId: activeCompany.company_id,
+          clientId: clientId || null,
         },
       });
 
