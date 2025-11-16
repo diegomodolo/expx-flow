@@ -5,6 +5,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper function to extract balance from display_string for prepaid accounts
+function extractBalanceFromDisplayString(displayString: string): number | null {
+  if (!displayString) return null
+  
+  // Match formats like "Saldo disponível (R$782,55 BRL)" or "R$ 782.55"
+  const match = displayString.match(/R\$\s*([\d.,]+)/)
+  if (!match) return null
+  
+  // Convert "782,55" to 782.55 (Brazilian format to US format)
+  const cleanValue = match[1].replace(/\./g, '').replace(',', '.')
+  return parseFloat(cleanValue)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -109,8 +122,23 @@ Deno.serve(async (req) => {
     const balanceData = await balanceResponse.json()
     console.log('Balance data received:', balanceData)
 
-    // Convert balance from cents to currency units
-    const balance = parseFloat(balanceData.balance || '0') / 100
+    // Extract balance based on account type
+    let balance = 0
+    const isPrepaid = balanceData.funding_source_details?.type === 20
+    
+    if (isPrepaid && balanceData.funding_source_details?.display_string) {
+      // For prepaid accounts, extract balance from display_string
+      const extractedBalance = extractBalanceFromDisplayString(
+        balanceData.funding_source_details.display_string
+      )
+      balance = extractedBalance || 0
+      console.log('✅ Prepaid account - extracted balance from display_string:', balance)
+    } else {
+      // For postpaid accounts, use balance field (convert from cents)
+      balance = parseFloat(balanceData.balance || '0') / 100
+      console.log('💳 Postpaid account - balance from API:', balance)
+    }
+    
     const accountStatus = parseInt(balanceData.account_status || '1')
     const disableReason = balanceData.disable_reason || null
     const fundingSourceDetails = balanceData.funding_source_details || {}
