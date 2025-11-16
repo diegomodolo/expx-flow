@@ -12,10 +12,12 @@ import { useClients } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useTeams } from "@/hooks/useTeams";
 import { useToast } from "@/hooks/use-toast";
+import { useCompany } from "@/contexts/CompanyContext";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { DeleteClientDialog } from "@/components/clients/DeleteClientDialog";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
-import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
+import { useGoogleAdsCampaignSync } from "@/hooks/useGoogleAdsCampaignSync";
+import { UnifiedSyncDialog } from "@/components/clients/UnifiedSyncDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -198,7 +200,11 @@ const Clientes = () => {
   const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients, recalculateAllStatus, recalculatingProgress } = useClients();
   const { sectors, fetchSectors } = useSectors();
   const { teams } = useTeams();
-  const { syncCampaigns, syncing, progress, syncAllClients } = useFacebookCampaignSync();
+  const { syncing: syncingMeta, progress: metaProgress } = useFacebookCampaignSync();
+  const { syncing: syncingGoogle, progress: googleProgress } = useGoogleAdsCampaignSync();
+  const { activeCompany } = useCompany();
+  const syncing = syncingMeta || syncingGoogle;
+  const progress = syncingMeta ? metaProgress : googleProgress;
   const { toast } = useToast();
   
   // Usar valor fixo maior para aproveitar melhor a tela
@@ -1197,17 +1203,19 @@ const Clientes = () => {
           }}
         />
 
-        <SyncPeriodDialog
+        <UnifiedSyncDialog
           open={syncDialogOpen}
           onOpenChange={setSyncDialogOpen}
-          onConfirm={syncAllClients}
-          syncing={syncing}
-          title="Sincronizar Clientes"
+          companyId={activeCompany?.company_id || ''}
         />
 
         <SyncProgressModal
           open={syncing}
-          progress={progress}
+          progress={{
+            current: progress.current,
+            total: progress.total,
+            clientName: progress.clientName || ''
+          }}
         />
 
         <SyncProgressModal
