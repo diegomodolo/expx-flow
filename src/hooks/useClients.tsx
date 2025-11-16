@@ -543,8 +543,14 @@ export function useClients() {
 
   const updateClient = async (id: string, updates: Partial<Client>) => {
     try {
-      // Map status to database format if present
-      const { status, ...restUpdates } = updates;
+      // Map status to database format if present and filter out non-database fields
+      const { 
+        status, 
+        facebook_ad_accounts, 
+        team, 
+        spend,
+        ...restUpdates 
+      } = updates as any;
       
       const dbUpdates = {
         ...restUpdates,
