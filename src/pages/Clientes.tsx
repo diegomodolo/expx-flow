@@ -178,6 +178,165 @@ const BudgetStatusIcon = ({ client }: { client: Client }) => {
   );
 };
 
+// Função para calcular se o saldo é suficiente até o próximo dia de recarga
+const getBalanceSufficiency = (client: Client): {
+  status: 'sufficient' | 'tight' | 'insufficient' | 'no-data';
+  balance: number;
+  projectedSpend: number;
+  daysRemaining: number;
+  dailySpend: number;
+  nextRechargeDate: Date | null;
+  usesFallback: boolean;
+} => {
+  const balance = client.facebook_ad_accounts?.balance || 0;
+  const syncPeriod = parseInt(client.last_sync_period || '0');
+  const actualSpend = client.spend || 0;
+  const rechargeDay = client.facebook_ad_accounts?.recharge_day;
+  
+  // Se não tem dados suficientes, retorna status especial
+  if (syncPeriod === 0 || actualSpend === 0 || balance === 0) {
+    return { 
+      status: 'no-data', 
+      balance: 0, 
+      projectedSpend: 0, 
+      daysRemaining: 0,
+      dailySpend: 0,
+      nextRechargeDate: null,
+      usesFallback: false
+    };
+  }
+  
+  // Calcular gasto médio diário
+  const dailySpend = actualSpend / syncPeriod;
+  
+  const now = new Date();
+  const currentDay = now.getDate();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  let nextRechargeDate: Date;
+  let usesFallback = false;
+  
+  // Se tem dia de recarga configurado, usar ele
+  if (rechargeDay && rechargeDay >= 1 && rechargeDay <= 31) {
+    // Verificar se o próximo dia de recarga é no mesmo mês ou próximo mês
+    if (currentDay < rechargeDay) {
+      // Próximo recharge é ainda neste mês
+      nextRechargeDate = new Date(currentYear, currentMonth, rechargeDay);
+    } else {
+      // Próximo recharge é no próximo mês
+      nextRechargeDate = new Date(currentYear, currentMonth + 1, rechargeDay);
+    }
+    
+    // Ajustar se o dia for maior que os dias do mês
+    const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
+    if (rechargeDay > maxDayInMonth) {
+      nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
+    }
+  } else {
+    // Fallback: usar último dia do mês atual
+    nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
+    usesFallback = true;
+  }
+  
+  // Calcular dias restantes
+  const timeDiff = nextRechargeDate.getTime() - now.getTime();
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+  
+  // Se dias restantes <= 0 (não deveria acontecer, mas por segurança)
+  if (daysRemaining <= 0) {
+    return { 
+      status: 'no-data', 
+      balance, 
+      projectedSpend: 0, 
+      daysRemaining: 0,
+      dailySpend,
+      nextRechargeDate: null,
+      usesFallback
+    };
+  }
+  
+  // Calcular gasto projetado até o dia de recarga
+  const projectedSpend = dailySpend * daysRemaining;
+  
+  // Calcular porcentagem de cobertura
+  const coveragePercentage = (balance / projectedSpend) * 100;
+  
+  // Define status baseado na cobertura
+  let status: 'sufficient' | 'tight' | 'insufficient';
+  if (coveragePercentage >= 100) {
+    status = 'sufficient';
+  } else if (coveragePercentage >= 80) {
+    status = 'tight';
+  } else {
+    status = 'insufficient';
+  }
+  
+  return { status, balance, projectedSpend, daysRemaining, dailySpend, nextRechargeDate, usesFallback };
+};
+
+// Componente para renderizar o ícone de suficiência do saldo
+const BalanceSufficiencyIcon = ({ client }: { client: Client }) => {
+  const sufficiency = getBalanceSufficiency(client);
+  
+  if (sufficiency.status === 'no-data') {
+    return null;
+  }
+  
+  const icons = {
+    sufficient: {
+      icon: CheckCircle2,
+      color: 'text-green-500',
+      tooltip: `Saldo suficiente até o dia de recarga`
+    },
+    tight: {
+      icon: AlertCircle,
+      color: 'text-yellow-500',
+      tooltip: `Atenção: Saldo pode não durar até o dia de recarga`
+    },
+    insufficient: {
+      icon: XCircle,
+      color: 'text-red-500',
+      tooltip: `Alerta: Saldo insuficiente até o dia de recarga`
+    }
+  };
+  
+  const config = icons[sufficiency.status];
+  const Icon = config.icon;
+  
+  // Formatar data do próximo dia de recarga
+  const rechargeDateStr = sufficiency.nextRechargeDate 
+    ? sufficiency.nextRechargeDate.toLocaleDateString('pt-BR')
+    : 'N/A';
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger>
+        <Icon className={`w-4 h-4 ${config.color}`} />
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="text-sm font-medium">{config.tooltip}</p>
+        <div className="mt-2 space-y-1 text-xs">
+          <p>
+            <span className="text-muted-foreground">Próxima recarga:</span>{' '}
+            <span className="font-medium">{rechargeDateStr}</span>
+            {sufficiency.usesFallback && (
+              <span className="text-yellow-500 ml-1">(padrão: fim do mês)</span>
+            )}
+          </p>
+          <p><span className="text-muted-foreground">Saldo atual:</span> <span className="font-medium">R$ {sufficiency.balance.toFixed(2)}</span></p>
+          <p><span className="text-muted-foreground">Gasto médio/dia:</span> <span className="font-medium">R$ {sufficiency.dailySpend.toFixed(2)}</span></p>
+          <p><span className="text-muted-foreground">Dias restantes:</span> <span className="font-medium">{sufficiency.daysRemaining} dias</span></p>
+          <p><span className="text-muted-foreground">Gasto projetado:</span> <span className="font-medium">R$ {sufficiency.projectedSpend.toFixed(2)}</span></p>
+        </div>
+        <p className="text-xs text-muted-foreground/80 mt-2">
+          Baseado em {client.last_sync_period} dias de dados
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+
 const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");

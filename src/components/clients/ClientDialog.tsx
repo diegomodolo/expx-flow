@@ -90,6 +90,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
+  const [rechargeDayValue, setRechargeDayValue] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const platforms = ["Google Ads", "Meta Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
@@ -129,6 +130,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         team_id: client.team_id || "none"
       });
       setLocalClient(client);
+      
+      // Carregar dia de recarga
+      const rechargeDay = client.facebook_ad_accounts?.recharge_day;
+      setRechargeDayValue(rechargeDay ? rechargeDay.toString() : "");
     }
   }, [client?.id, open]);
 
@@ -169,6 +174,26 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       };
       
       await onSubmit(submitData);
+      
+      // Se está editando e tem conta de anúncios, atualizar o dia de recarga
+      if (client?.facebook_ad_accounts?.id) {
+        const { error: accountError } = await supabase
+          .from('facebook_ad_accounts')
+          .update({
+            recharge_day: rechargeDayValue ? parseInt(rechargeDayValue) : null
+          })
+          .eq('id', client.facebook_ad_accounts.id);
+        
+        if (accountError) {
+          console.error('Erro ao atualizar dia de recarga:', accountError);
+          toast({
+            title: "Aviso",
+            description: "Cliente salvo, mas houve um erro ao atualizar o dia de recarga.",
+            variant: "destructive",
+          });
+        }
+      }
+      
       toast({
         title: "Sucesso",
         description: client ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!",
@@ -451,6 +476,32 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                     disabled={readOnly}
                   />
                 </div>
+            </div>
+
+            {/* Dia de Recarga */}
+            <div className="space-y-2">
+              <Label htmlFor="recharge_day">Dia de Recarga do Saldo (Opcional)</Label>
+              <Select
+                value={rechargeDayValue}
+                onValueChange={(value) => setRechargeDayValue(value)}
+                disabled={readOnly}
+              >
+                <SelectTrigger id="recharge_day">
+                  <SelectValue placeholder="Selecione o dia de recarga" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Não configurado (usar final do mês)</SelectItem>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      Dia {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O dia do mês em que o cliente recarrega o saldo da conta de anúncios.
+                Usado para calcular se o saldo atual é suficiente até o próximo dia de recarga.
+              </p>
             </div>
 
                 {/* Motivo de Inatividade - aparece apenas quando status é "inativo" */}
