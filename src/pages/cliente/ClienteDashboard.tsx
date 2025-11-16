@@ -160,6 +160,8 @@ export function ClienteDashboard({
           hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
           accountName={client.facebook_ad_accounts.account_name}
           lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
+          accountId={client.facebook_ad_accounts.id}
+          clientId={client.id}
         />
       )}
 

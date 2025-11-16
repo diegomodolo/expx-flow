@@ -1,6 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreditCard, AlertTriangle, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface AccountBalanceCardProps {
   balance: number;
@@ -10,6 +14,8 @@ interface AccountBalanceCardProps {
   hasFundingIssues: boolean;
   accountName: string;
   lastBalanceCheck?: string;
+  accountId: string;
+  clientId: string;
 }
 
 export const AccountBalanceCard = ({
@@ -19,8 +25,32 @@ export const AccountBalanceCard = ({
   disableReason,
   hasFundingIssues,
   accountName,
-  lastBalanceCheck
+  lastBalanceCheck,
+  accountId,
+  clientId
 }: AccountBalanceCardProps) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshBalance = async () => {
+    setIsRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('refresh-account-balance', {
+        body: { clientId }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Saldo atualizado com sucesso!');
+      
+      // Trigger refetch do client details
+      window.dispatchEvent(new CustomEvent('refreshClientDetails'));
+    } catch (err: any) {
+      console.error('Erro ao atualizar saldo:', err);
+      toast.error(err.message || 'Erro ao atualizar saldo');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const formatCurrency = (amount: number, currencyCode: string) => {
     const currencySymbols: { [key: string]: string } = {
       'BRL': 'R$',
@@ -99,7 +129,19 @@ export const AccountBalanceCard = ({
           <CreditCard className="h-4 w-4" />
           Saldo da Conta
         </CardTitle>
-        <StatusIcon className={`h-4 w-4 ${statusInfo.color}`} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefreshBalance}
+            disabled={isRefreshing}
+            className="h-6 w-6"
+            title="Atualizar saldo"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <StatusIcon className={`h-4 w-4 ${statusInfo.color}`} />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
