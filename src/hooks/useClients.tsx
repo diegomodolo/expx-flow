@@ -525,6 +525,7 @@ export function useClients() {
         status: statusMapping.database[status],
         user_id: user.id,
         company_id: activeCompany.company_id,
+        payment_type: clientData.payment_type || 'prepaid', // Garantir valor padrão
       };
 
       const { data, error } = await supabase
@@ -538,7 +539,7 @@ export function useClients() {
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar cliente");
-      return null;
+      throw err; // Re-throw para o toast capturar a mensagem
     }
   };
 
