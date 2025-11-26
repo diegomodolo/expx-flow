@@ -525,7 +525,11 @@ export function useClients() {
         status: statusMapping.database[status],
         user_id: user.id,
         company_id: activeCompany.company_id,
-        payment_type: clientData.payment_type || 'prepaid', // Garantir valor padrão
+        payment_type: clientData.payment_type || 'prepaid',
+        // Convert empty strings to null for UUID fields
+        ad_account_id: clientData.ad_account_id === "" ? null : clientData.ad_account_id,
+        google_account_id: clientData.google_account_id === "" ? null : clientData.google_account_id,
+        team_id: clientData.team_id === "" || clientData.team_id === "none" ? null : clientData.team_id,
       };
 
       const { data, error } = await supabase
