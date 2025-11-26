@@ -538,8 +538,9 @@ export function useClients() {
       await fetchClients(); // Refresh the list
       return data;
     } catch (err) {
+      console.error("Supabase erro ao criar cliente:", err);
       setError(err instanceof Error ? err.message : "Erro ao criar cliente");
-      throw err; // Re-throw para o toast capturar a mensagem
+      return null;
     }
   };
 
