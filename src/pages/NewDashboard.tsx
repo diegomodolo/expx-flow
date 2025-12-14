@@ -176,20 +176,21 @@ export default function NewDashboard() {
 
   return (
     <DashboardLayout>
+      {/* Header - Google Style */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-card-foreground">Dashboard - Controle de Tráfego</h1>
-          <p className="text-muted-foreground mt-1">Visão completa da performance dos seus projetos</p>
+          <h1 className="text-headline-lg text-foreground">Dashboard</h1>
+          <p className="text-body-md text-muted-foreground mt-1">Visão geral de performance</p>
         </div>
         
-        <div className="flex items-center space-x-4 mt-4 lg:mt-0">
+        <div className="flex items-center gap-3 mt-4 lg:mt-0">
           <SyncStatusIndicator 
             lastSyncAt={lastSyncInfo?.lastSyncAt} 
             lastSyncPeriod={lastSyncInfo?.lastSyncPeriod}
           />
           <Button 
             variant="outline" 
-            className="flex items-center space-x-2" 
+            className="flex items-center gap-2 rounded-full px-4 h-9 text-body-md font-medium border-border hover:bg-secondary" 
             onClick={() => setSyncDialogOpen(true)}
             disabled={syncing}
           >
@@ -200,146 +201,119 @@ export default function NewDashboard() {
       </div>
 
       {/* Conteúdo do Dashboard */}
-      <div className="space-y-8">
-        {/* Resumo Executivo */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-card-foreground">Resumo Executivo</h2>
+      <div className="space-y-6">
+        {/* KPI Cards - Google Style */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Investimento Total */}
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <DollarSign className="w-5 h-5 text-primary" />
+              <span className={`text-label-md px-2 py-0.5 rounded-full ${
+                metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 
+                  ? 'text-google-green-600 bg-google-green-50' 
+                  : 'text-google-red-600 bg-google-red-50'
+              }`}>
+                {metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 ? '+' : ''}
+                {metrics ? calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment).toFixed(1) : 0}%
+              </span>
+            </div>
+            <p className="text-body-sm text-muted-foreground mb-1">Investimento Total</p>
+            <p className="text-headline-md text-foreground">
+              {formatCurrency(metrics?.totalInvestment || 0)}
+            </p>
           </div>
-          
-          <div className="grid grid-cols-5 gap-6">
-            {/* Investimento Total */}
-            <div className="bg-blue-500/10 dark:bg-blue-500/20 rounded-lg p-6 border border-blue-500/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <DollarSign className="text-white w-5 h-5" />
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 
-                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
-                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
-                }`}>
-                  {metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 ? '+' : ''}
-                  {metrics ? calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment).toFixed(1) : 0}%
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-card-foreground">
-                  {formatCurrency(metrics?.totalInvestment || 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Receita Total</p>
-              </div>
-            </div>
 
-            {/* Leads Gerados */}
-            <div className="bg-green-500/10 dark:bg-green-500/20 rounded-lg p-6 border border-green-500/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                  <Users className="text-white w-5 h-5" />
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 
-                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
-                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
-                }`}>
-                  {metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 ? '+' : ''}
-                  {metrics ? calculateChange(metrics.totalLeads, metrics.previousPeriodLeads).toFixed(1) : 0}%
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-card-foreground">{metrics?.totalLeads || 0}</p>
-                <p className="text-sm text-muted-foreground">Leads Gerados</p>
-              </div>
+          {/* Leads Gerados */}
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <Users className="w-5 h-5 text-google-green-500" />
+              <span className={`text-label-md px-2 py-0.5 rounded-full ${
+                metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 
+                  ? 'text-google-green-600 bg-google-green-50' 
+                  : 'text-google-red-600 bg-google-red-50'
+              }`}>
+                {metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 ? '+' : ''}
+                {metrics ? calculateChange(metrics.totalLeads, metrics.previousPeriodLeads).toFixed(1) : 0}%
+              </span>
             </div>
+            <p className="text-body-sm text-muted-foreground mb-1">Leads Gerados</p>
+            <p className="text-headline-md text-foreground">{metrics?.totalLeads || 0}</p>
+          </div>
 
-            {/* CPA Médio */}
-            <div className="bg-purple-500/10 dark:bg-purple-500/20 rounded-lg p-6 border border-purple-500/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <Target className="text-white w-5 h-5" />
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 
-                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
-                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
-                }`}>
-                  {metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 ? '' : '+'}
-                  {metrics ? calculateChange(metrics.averageCPA, metrics.previousPeriodCPA).toFixed(1) : 0}%
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-card-foreground">
-                  {formatCurrency(metrics?.averageCPA || 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">CPA Médio</p>
-              </div>
+          {/* CPA Médio */}
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <Target className="w-5 h-5 text-google-yellow-500" />
+              <span className={`text-label-md px-2 py-0.5 rounded-full ${
+                metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 
+                  ? 'text-google-green-600 bg-google-green-50' 
+                  : 'text-google-red-600 bg-google-red-50'
+              }`}>
+                {metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 ? '' : '+'}
+                {metrics ? calculateChange(metrics.averageCPA, metrics.previousPeriodCPA).toFixed(1) : 0}%
+              </span>
             </div>
+            <p className="text-body-sm text-muted-foreground mb-1">CPA Médio</p>
+            <p className="text-headline-md text-foreground">
+              {formatCurrency(metrics?.averageCPA || 0)}
+            </p>
+          </div>
 
-            {/* CTR Médio */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 border border-orange-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <Target className="text-white w-5 h-5" />
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 
-                    ? 'text-green-600 bg-green-100' 
-                    : 'text-red-600 bg-red-100'
-                }`}>
-                  {metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 ? '+' : ''}
-                  {metrics ? calculateChange(metrics.averageCTR, metrics.previousPeriodCTR).toFixed(1) : 0}%
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-gray-900">
-                  {metrics?.averageCTR ? `${metrics.averageCTR.toFixed(2)}%` : '0%'}
-                </p>
-                <p className="text-sm text-gray-600">Taxa de cliques</p>
-              </div>
+          {/* CTR Médio */}
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <MousePointer className="w-5 h-5 text-google-blue-500" />
+              <span className={`text-label-md px-2 py-0.5 rounded-full ${
+                metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 
+                  ? 'text-google-green-600 bg-google-green-50' 
+                  : 'text-google-red-600 bg-google-red-50'
+              }`}>
+                {metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 ? '+' : ''}
+                {metrics ? calculateChange(metrics.averageCTR, metrics.previousPeriodCTR).toFixed(1) : 0}%
+              </span>
             </div>
+            <p className="text-body-sm text-muted-foreground mb-1">Taxa de Cliques</p>
+            <p className="text-headline-md text-foreground">
+              {metrics?.averageCTR ? `${metrics.averageCTR.toFixed(2)}%` : '0%'}
+            </p>
+          </div>
 
-            {/* MQL Percentage */}
-            <div className="bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg p-6 border border-emerald-500/30">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <Award className="text-white w-5 h-5" />
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  leadQualityData.mqlPercentage >= 70 
-                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30' 
-                    : leadQualityData.mqlPercentage >= 50
-                    ? 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30'
-                    : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
-                }`}>
-                  {leadQualityData.disqualifiedLeads > 0 ? 'Com Filtro' : 'Sem Dados'}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-card-foreground">
-                  {leadQualityLoading ? '...' : `${leadQualityData.mqlPercentage.toFixed(1)}%`}
-                </p>
-                <p className="text-sm text-muted-foreground">MQL Rate</p>
-                {leadQualityData.totalLeads > 0 && (
-                  <p className="text-xs text-muted-foreground/80">
-                    {leadQualityData.totalLeads - leadQualityData.disqualifiedLeads} de {leadQualityData.totalLeads} leads
-                  </p>
-                )}
-              </div>
+          {/* MQL Rate */}
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <Award className="w-5 h-5 text-google-green-500" />
+              <span className={`text-label-md px-2 py-0.5 rounded-full ${
+                leadQualityData.mqlPercentage >= 70 
+                  ? 'text-google-green-600 bg-google-green-50' 
+                  : leadQualityData.mqlPercentage >= 50
+                  ? 'text-google-yellow-600 bg-google-yellow-50'
+                  : 'text-google-red-600 bg-google-red-50'
+              }`}>
+                {leadQualityData.disqualifiedLeads > 0 ? 'Com Filtro' : 'Sem Dados'}
+              </span>
             </div>
+            <p className="text-body-sm text-muted-foreground mb-1">MQL Rate</p>
+            <p className="text-headline-md text-foreground">
+              {leadQualityLoading ? '...' : `${leadQualityData.mqlPercentage.toFixed(1)}%`}
+            </p>
+            {leadQualityData.totalLeads > 0 && (
+              <p className="text-body-sm text-muted-foreground mt-1">
+                {leadQualityData.totalLeads - leadQualityData.disqualifiedLeads} de {leadQualityData.totalLeads} leads
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Gráficos de Performance */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráficos de Performance - Google Style */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Gráfico 1: Top Clientes por Investimento vs Leads */}
-          <div className="bg-card rounded-lg border border-border p-4">
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-card-foreground">Top Clientes - Investimento vs Leads</h2>
+              <h2 className="text-title-lg text-foreground">Top Clientes - Investimento vs Leads</h2>
             </div>
             
-            <div className="h-[400px] w-full">
+            <div className="h-[350px] w-full">
               <Bar
                 data={{
                   labels: topClientsByROI.slice(0, 8).map(client => 
@@ -349,17 +323,19 @@ export default function NewDashboard() {
                     {
                       label: 'Investimento',
                       data: topClientsByROI.slice(0, 8).map(client => client.investment),
-                      backgroundColor: '#3b82f6',
-                      borderColor: '#3b82f6',
-                      borderWidth: 1,
+                      backgroundColor: 'hsl(217, 91%, 60%)',
+                      borderColor: 'hsl(217, 91%, 60%)',
+                      borderWidth: 0,
+                      borderRadius: 4,
                       yAxisID: 'y',
                     },
                     {
                       label: 'Leads',
                       data: topClientsByROI.slice(0, 8).map(client => client.leads_generated),
-                      backgroundColor: '#10b981',
-                      borderColor: '#10b981',
-                      borderWidth: 1,
+                      backgroundColor: 'hsl(142, 71%, 45%)',
+                      borderColor: 'hsl(142, 71%, 45%)',
+                      borderWidth: 0,
+                      borderRadius: 4,
                       yAxisID: 'y1',
                     },
                   ],
@@ -373,8 +349,22 @@ export default function NewDashboard() {
                   plugins: {
                     legend: {
                       position: 'top' as const,
+                      labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: {
+                          family: 'Google Sans, Inter, sans-serif',
+                          size: 12,
+                        },
+                      },
                     },
                     tooltip: {
+                      backgroundColor: 'hsl(213, 5%, 16%)',
+                      titleFont: { family: 'Google Sans, Inter, sans-serif' },
+                      bodyFont: { family: 'Google Sans, Inter, sans-serif' },
+                      cornerRadius: 8,
+                      padding: 12,
                       callbacks: {
                         label: (context) => {
                           const label = context.dataset.label || '';
@@ -387,9 +377,11 @@ export default function NewDashboard() {
                   scales: {
                     x: {
                       display: true,
+                      grid: { display: false },
                       ticks: {
                         maxRotation: 45,
                         minRotation: 45,
+                        font: { family: 'Google Sans, Inter, sans-serif', size: 11 },
                       },
                     },
                     y: {
@@ -401,9 +393,7 @@ export default function NewDashboard() {
                       type: 'linear' as const,
                       display: false,
                       position: 'right' as const,
-                      grid: {
-                        drawOnChartArea: false,
-                      },
+                      grid: { drawOnChartArea: false },
                     },
                   },
                 }}
@@ -412,13 +402,13 @@ export default function NewDashboard() {
           </div>
 
           {/* Gráfico 2: CPL vs Investimento por Cliente */}
-          <div className="bg-card rounded-lg border border-border p-4">
+          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-card-foreground">CPL vs Investimento por Cliente</h2>
+              <h2 className="text-title-lg text-foreground">CPL vs Investimento por Cliente</h2>
             </div>
             
-            <div className="h-[400px] w-full">
+            <div className="h-[350px] w-full">
               <Line
                 data={{
                   labels: (() => {
@@ -438,12 +428,14 @@ export default function NewDashboard() {
                            .sort((a, b) => a.investment - b.investment);
                          return sortedClients.slice(0, 8).map(client => client.investment);
                        })(),
-                      borderColor: '#3b82f6',
-                      backgroundColor: '#3b82f6',
-                      borderWidth: 3,
-                      pointBackgroundColor: '#3b82f6',
-                      pointBorderColor: '#3b82f6',
-                      pointRadius: 4,
+                      borderColor: 'hsl(217, 91%, 60%)',
+                      backgroundColor: 'hsl(217, 91%, 60%)',
+                      borderWidth: 2,
+                      pointBackgroundColor: 'hsl(217, 91%, 60%)',
+                      pointBorderColor: 'white',
+                      pointBorderWidth: 2,
+                      pointRadius: 5,
+                      tension: 0.3,
                       yAxisID: 'y',
                     },
                     {
@@ -454,12 +446,14 @@ export default function NewDashboard() {
                            .sort((a, b) => a.investment - b.investment);
                          return sortedClients.slice(0, 8).map(client => client.avg_cpl);
                        })(),
-                      borderColor: '#f59e0b',
-                      backgroundColor: '#f59e0b',
-                      borderWidth: 3,
-                      pointBackgroundColor: '#f59e0b',
-                      pointBorderColor: '#f59e0b',
-                      pointRadius: 4,
+                      borderColor: 'hsl(36, 100%, 50%)',
+                      backgroundColor: 'hsl(36, 100%, 50%)',
+                      borderWidth: 2,
+                      pointBackgroundColor: 'hsl(36, 100%, 50%)',
+                      pointBorderColor: 'white',
+                      pointBorderWidth: 2,
+                      pointRadius: 5,
+                      tension: 0.3,
                       yAxisID: 'y1',
                     },
                   ],
@@ -467,14 +461,23 @@ export default function NewDashboard() {
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
-                  layout: {
-                    padding: 0,
-                  },
+                  layout: { padding: 0 },
                   plugins: {
                     legend: {
                       position: 'top' as const,
+                      labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: { family: 'Google Sans, Inter, sans-serif', size: 12 },
+                      },
                     },
                     tooltip: {
+                      backgroundColor: 'hsl(213, 5%, 16%)',
+                      titleFont: { family: 'Google Sans, Inter, sans-serif' },
+                      bodyFont: { family: 'Google Sans, Inter, sans-serif' },
+                      cornerRadius: 8,
+                      padding: 12,
                       callbacks: {
                         label: (context) => {
                           const label = context.dataset.label || '';
@@ -487,23 +490,19 @@ export default function NewDashboard() {
                   scales: {
                     x: {
                       display: true,
+                      grid: { display: false },
                       ticks: {
                         maxRotation: 45,
                         minRotation: 45,
+                        font: { family: 'Google Sans, Inter, sans-serif', size: 11 },
                       },
                     },
-                    y: {
-                      type: 'linear' as const,
-                      display: false,
-                      position: 'left' as const,
-                    },
+                    y: { type: 'linear' as const, display: false, position: 'left' as const },
                     y1: {
                       type: 'linear' as const,
                       display: false,
                       position: 'right' as const,
-                      grid: {
-                        drawOnChartArea: false,
-                      },
+                      grid: { drawOnChartArea: false },
                     },
                   },
                 }}
@@ -512,49 +511,38 @@ export default function NewDashboard() {
           </div>
         </div>
 
-        {/* Top 5 Clientes por Investimento e Leads */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="grid grid-cols-2 gap-8">
+        {/* Top 5 Clientes - Google Style */}
+        <div className="bg-card rounded-xl p-5 shadow-google-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top 5 Clientes por Investimento */}
             <div>
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <Users className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Clientes por Investimento</h2>
+                <h2 className="text-title-lg text-foreground">Top 5 por Investimento</h2>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topClientsByROI.slice(0, 5).map((client, index) => (
-                  <div key={client.id} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
-                    index === 0 ? 'border-l-4 border-green-500' :
-                    index === 1 ? 'border-l-4 border-blue-500' :
-                    index === 2 ? 'border-l-4 border-purple-500' :
-                    index === 3 ? 'border-l-4 border-orange-500' :
-                    'border-l-4 border-yellow-500'
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        index === 0 ? 'bg-green-500' :
-                        index === 1 ? 'bg-blue-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' :
-                        'bg-yellow-500'
-                      }`}>
-                        <span className="text-sm font-bold text-white">{index + 1}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-card-foreground">{client.name}</h4>
-                          <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
-                            {formatCurrency(client.investment)}
-                          </span>
-                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                            {client.company}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Campanhas: {client.active_campaigns} • Leads: {client.leads_generated} • CPA: {formatCurrency(client.avg_cpl)} • {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}% do total
-                        </p>
-                      </div>
+                  <div key={client.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
+                      index === 0 ? 'bg-google-blue-100 text-google-blue-600' :
+                      index === 1 ? 'bg-google-green-100 text-google-green-600' :
+                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
+                      'bg-secondary text-muted-foreground'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-md font-medium text-foreground truncate">{client.name}</p>
+                      <p className="text-body-sm text-muted-foreground">
+                        {client.leads_generated} leads • CPA: {formatCurrency(client.avg_cpl)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-body-md font-medium text-foreground">{formatCurrency(client.investment)}</p>
+                      <p className="text-body-sm text-muted-foreground">
+                        {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}%
+                      </p>
                     </div>
                   </div>
                 ))}

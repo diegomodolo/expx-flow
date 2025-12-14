@@ -12,152 +12,160 @@
   line-height: 1.4;
 }
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Google Material Design 3 inspired design system
+   All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Google-inspired color palette */
+    --background: 0 0% 98%;
+    --foreground: 213 5% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 213 5% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 213 5% 16%;
 
-    --primary: 271 81% 56%;
+    /* Google Blue as primary */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 271 81% 66%;
+    --primary-glow: 217 91% 70%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 213 5% 16%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 14% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 213 5% 16%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 4 90% 58%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 271 81% 56%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
 
-    /* Purple gradient system inspired by logo */
-    --gradient-primary: linear-gradient(135deg, hsl(271 81% 56%), hsl(271 81% 66%));
-    --gradient-hero: linear-gradient(135deg, hsl(271 81% 56%) 0%, hsl(280 65% 45%) 50%, hsl(290 70% 40%) 100%);
-    --gradient-accent: linear-gradient(45deg, hsl(271 81% 66%), hsl(280 65% 55%));
+    /* Google-style subtle gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(240 65% 45%) 50%, hsl(280 70% 40%) 100%);
+    --gradient-accent: linear-gradient(45deg, hsl(217 91% 70%), hsl(240 65% 55%));
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     
-    /* Campaign Dashboard Colors */
-    --success: 142 76% 36%;
+    /* Google-style status colors (softer) */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 93% 47%;
+    --warning: 36 100% 50%;
     --warning-foreground: 0 0% 100%;
-    --danger: 0 84% 60%;
+    --danger: 4 90% 58%;
     --danger-foreground: 0 0% 100%;
     
     /* Dashboard specific */
-    --dashboard-bg: 0 0% 100%;
-    --metric-positive: 142 76% 36%;
-    --metric-negative: 0 84% 60%;
-    --metric-neutral: 45 93% 47%;
+    --dashboard-bg: 0 0% 98%;
+    --metric-positive: 142 71% 45%;
+    --metric-negative: 4 90% 58%;
+    --metric-neutral: 36 100% 50%;
     
-    /* Status badge colors */
-    --status-excellent: 142 76% 36%; /* Green */
+    /* Status badge colors - Google-like pastels */
+    --status-excellent: 142 71% 45%;
     --status-excellent-foreground: 0 0% 100%;
-    --status-attention: 45 93% 47%; /* Yellow */
+    --status-attention: 36 100% 50%;
     --status-attention-foreground: 0 0% 100%;
-    --status-emergency: 0 84% 60%; /* Red */
+    --status-emergency: 4 90% 58%;
     --status-emergency-foreground: 0 0% 100%;
-    --status-inactive: 210 9% 53%; /* Gray */
+    --status-inactive: 220 9% 53%;
     --status-inactive-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 100%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
+    --sidebar-foreground: 213 5% 16%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 213 5% 16%;
     --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
 
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Google Material elevation shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
+    --shadow-md: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 2px 6px 2px rgb(60 64 67 / 0.15);
+    --shadow-lg: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
+    --shadow-hover: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 213 18% 10%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 47.4% 11.2%;
+    --card: 213 18% 13%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 47.4% 11.2%;
+    --popover: 213 18% 13%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 271 81% 56%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 271 81% 66%;
+    /* Google Blue - slightly brighter in dark mode */
+    --primary: 217 91% 65%;
+    --primary-foreground: 213 18% 10%;
+    --primary-glow: 217 91% 75%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 213 18% 18%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 213 18% 18%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 213 18% 18%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 4 80% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 20%;
-    --input: 217.2 32.6% 20%;
-    --ring: 271 81% 56%;
+    --border: 213 18% 20%;
+    --input: 213 18% 20%;
+    --ring: 217 91% 65%;
     
-    /* Success, warning, danger mantidos */
-    --success: 142 76% 36%;
+    /* Status colors - dark mode */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 93% 47%;
+    --warning: 36 100% 50%;
     --warning-foreground: 0 0% 100%;
-    --danger: 0 84% 60%;
+    --danger: 4 80% 50%;
     --danger-foreground: 0 0% 100%;
     
     /* Dashboard specific */
-    --dashboard-bg: 222.2 84% 4.9%;
-    --metric-positive: 142 76% 36%;
-    --metric-negative: 0 84% 60%;
-    --metric-neutral: 45 93% 47%;
+    --dashboard-bg: 213 18% 10%;
+    --metric-positive: 142 71% 45%;
+    --metric-negative: 4 80% 50%;
+    --metric-neutral: 36 100% 50%;
     
     /* Status badge colors */
-    --status-excellent: 142 76% 36%;
+    --status-excellent: 142 71% 45%;
     --status-excellent-foreground: 0 0% 100%;
-    --status-attention: 45 93% 47%;
+    --status-attention: 36 100% 50%;
     --status-attention-foreground: 0 0% 100%;
-    --status-emergency: 0 84% 60%;
+    --status-emergency: 4 80% 50%;
     --status-emergency-foreground: 0 0% 100%;
-    --status-inactive: 210 9% 53%;
+    --status-inactive: 220 9% 53%;
     --status-inactive-foreground: 0 0% 100%;
     
     /* Sidebar */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 271 81% 56%;
+    --sidebar-background: 213 18% 10%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 271 81% 56%;
+    --sidebar-accent: 213 18% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 213 18% 18%;
+    --sidebar-ring: 217 91% 65%;
+
+    /* Dark mode shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 1px rgb(0 0 0 / 0.25);
+    --shadow-md: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 2px 6px 2px rgb(0 0 0 / 0.25);
+    --shadow-lg: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 4px 8px 3px rgb(0 0 0 / 0.25);
+    --shadow-hover: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 4px 8px 3px rgb(0 0 0 / 0.25);
   }
 }
 
@@ -167,7 +175,43 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Google Sans', 'Inter', 'Roboto', system-ui, sans-serif;
+    letter-spacing: -0.011em;
+  }
+
+  /* Google-style typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Google Sans', 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Google Material elevation utilities */
+@layer utilities {
+  .elevation-0 {
+    box-shadow: none;
+  }
+  
+  .elevation-1 {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .elevation-2 {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .elevation-3 {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .elevation-hover {
+    transition: box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .elevation-hover:hover {
+    box-shadow: var(--shadow-hover);
   }
 }
 
