@@ -1908,6 +1908,72 @@ export type Database = {
           },
         ]
       }
+      content_presentations: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          month: number
+          name: string
+          primary_color: string | null
+          public_token: string | null
+          secondary_color: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          view_count: number | null
+          year: number
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          month: number
+          name: string
+          primary_color?: string | null
+          public_token?: string | null
+          secondary_color?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+          year: number
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          month?: number
+          name?: string
+          primary_color?: string | null
+          public_token?: string | null
+          secondary_color?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_presentations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_presentations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_prompts: {
         Row: {
           company_id: string
@@ -1940,6 +2006,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      creative_media: {
+        Row: {
+          created_at: string
+          creative_id: string
+          id: string
+          media_type: string
+          media_url: string
+          order_index: number
+          slide_headline: string | null
+          slide_subheadline: string | null
+        }
+        Insert: {
+          created_at?: string
+          creative_id: string
+          id?: string
+          media_type: string
+          media_url: string
+          order_index?: number
+          slide_headline?: string | null
+          slide_subheadline?: string | null
+        }
+        Update: {
+          created_at?: string
+          creative_id?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          order_index?: number
+          slide_headline?: string | null
+          slide_subheadline?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_media_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "presentation_creatives"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       creative_versions: {
         Row: {
@@ -4604,6 +4711,65 @@ export type Database = {
             columns: ["scheduled_post_id"]
             isOneToOne: false
             referencedRelation: "scheduled_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presentation_creatives: {
+        Row: {
+          caption: string | null
+          created_at: string
+          creative_type: string
+          hashtags: string | null
+          headline: string | null
+          id: string
+          objective: string | null
+          order_index: number
+          presentation_id: string
+          scheduled_date: string | null
+          scheduled_time: string | null
+          script: Json | null
+          subheadline: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          creative_type: string
+          hashtags?: string | null
+          headline?: string | null
+          id?: string
+          objective?: string | null
+          order_index?: number
+          presentation_id: string
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          script?: Json | null
+          subheadline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          creative_type?: string
+          hashtags?: string | null
+          headline?: string | null
+          id?: string
+          objective?: string | null
+          order_index?: number
+          presentation_id?: string
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          script?: Json | null
+          subheadline?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presentation_creatives_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "content_presentations"
             referencedColumns: ["id"]
           },
         ]
