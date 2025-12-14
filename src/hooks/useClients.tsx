@@ -588,7 +588,8 @@ export function useClients() {
         'preferred_platforms', 'campaign_type', 'notes', 'ad_account_id',
         'google_account_id', 'facebook_page_id', 'instagram_account_id',
         'website_url', 'inactive_reason', 'team_id',
-        'ai_briefing', 'briefing_generated_at', 'offline_event_set_id', 'payment_type'
+        'ai_briefing', 'briefing_generated_at', 'offline_event_set_id', 'payment_type',
+        'presentation_logo', 'presentation_bg_image', 'presentation_overlay_color', 'presentation_overlay_opacity'
       ];
       
       // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs
