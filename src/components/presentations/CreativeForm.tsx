@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, Trash2, Upload, Loader2, X, GripVertical } from "lucide-react";
-import { useCreatives, useCreativeMedia } from "@/hooks/useCreatives";
+import { useCreatives } from "@/hooks/useCreatives";
 import { usePresentationDetails, PresentationCreative, CreativeMedia } from "@/hooks/usePresentations";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreativeFormProps {
   presentationId: string;
@@ -31,7 +32,6 @@ interface SceneItem {
 export function CreativeForm({ presentationId, editingId, onClose }: CreativeFormProps) {
   const { toast } = useToast();
   const { createCreative, updateCreative } = useCreatives(presentationId);
-  const { uploadMedia, addMedia, deleteMedia } = useCreativeMedia('', presentationId);
   const { data: presentation } = usePresentationDetails(presentationId);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,20 +160,40 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
       // Upload new media files
       if (mediaFiles.length > 0) {
         setUploadingMedia(true);
-        const mediaUploader = useCreativeMedia(creativeId, presentationId);
         
         for (let i = 0; i < mediaFiles.length; i++) {
           const mediaFile = mediaFiles[i];
           if (mediaFile.file) {
-            const publicUrl = await mediaUploader.uploadMedia(mediaFile.file);
-            await addMedia.mutateAsync({
-              creative_id: creativeId,
-              media_url: publicUrl,
-              media_type: mediaFile.type,
-              order_index: existingMedia.length + i,
-              slide_headline: mediaFile.headline || null,
-              slide_subheadline: mediaFile.subheadline || null,
-            });
+            // Upload file to storage
+            const fileExt = mediaFile.file.name.split('.').pop()?.toLowerCase();
+            const fileName = `${crypto.randomUUID()}.${fileExt}`;
+            const filePath = `${presentationId}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('presentation-media')
+              .upload(filePath, mediaFile.file, {
+                contentType: mediaFile.file.type,
+              });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('presentation-media')
+              .getPublicUrl(filePath);
+
+            // Add media record to database
+            const { error: mediaError } = await supabase
+              .from('creative_media')
+              .insert({
+                creative_id: creativeId,
+                media_url: publicUrl,
+                media_type: mediaFile.type,
+                order_index: existingMedia.length + i,
+                slide_headline: mediaFile.headline || null,
+                slide_subheadline: mediaFile.subheadline || null,
+              });
+
+            if (mediaError) throw mediaError;
           }
         }
       }
