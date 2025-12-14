@@ -24,6 +24,7 @@ import {
   Kanban,
   Zap,
   Loader2,
+  Share2,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -177,6 +178,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/automacoes`,
       icon: Zap,
       description: "Gerenciar automações"
+    },
+    {
+      title: "Redes Sociais",
+      href: `/clientes/${clientId}/redes-sociais`,
+      icon: Share2,
+      description: "Análise de redes sociais"
     },
     {
       title: "Histórico",
