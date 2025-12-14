@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield, Instagram } from "lucide-react";
+import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield, Instagram, ChevronDown, ChevronRight } from "lucide-react";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export const FacebookIntegrationSettings = () => {
   const { activeCompany } = useCompany();
@@ -31,6 +32,9 @@ export const FacebookIntegrationSettings = () => {
   const [scopesData, setScopesData] = useState<any>(null);
   const [checkingScopes, setCheckingScopes] = useState(false);
   const [refreshingPages, setRefreshingPages] = useState(false);
+  const [adAccountsOpen, setAdAccountsOpen] = useState(false);
+  const [pagesOpen, setPagesOpen] = useState(false);
+  const [instagramOpen, setInstagramOpen] = useState(false);
 
   const handleCheckScopes = async () => {
     if (!activeCompany?.company_id) return;
@@ -213,147 +217,170 @@ export const FacebookIntegrationSettings = () => {
             </CardContent>
           </Card>
 
-          {/* Card de Contas de Anúncios */}
+          {/* Card de Contas de Anúncios - Colapsável */}
           <Card>
-            <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Contas de Anúncios ({adAccounts.length})
-              </div>
-              {isConnected && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={refreshAdAccounts}
-                  disabled={loading}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  Atualizar Contas
-                </Button>
-              )}
-            </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {adAccounts.length > 0 ? (
-                <div className="space-y-3">
-                  {adAccounts.map((account) => (
-                    <div
-                      key={account.id}
-                      className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
+            <Collapsible open={adAccountsOpen} onOpenChange={setAdAccountsOpen}>
+              <CardHeader className="cursor-pointer" onClick={() => setAdAccountsOpen(!adAccountsOpen)}>
+                <CardTitle className="flex items-center justify-between">
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer">
+                      {adAccountsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <DollarSign className="h-4 w-4" />
+                      Contas de Anúncios ({adAccounts.length})
+                    </div>
+                  </CollapsibleTrigger>
+                  {isConnected && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); refreshAdAccounts(); }}
+                      disabled={loading}
+                      className="flex items-center gap-2"
                     >
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{account.account_name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          ID: {account.id}
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                      Atualizar Contas
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  {adAccounts.length > 0 ? (
+                    <div className="space-y-3">
+                      {adAccounts.map((account) => (
+                        <div
+                          key={account.id}
+                          className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{account.account_name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              ID: {account.id}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {account.currency}
+                            </Badge>
+                            {account.is_active && (
+                              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                                Ativa
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {account.currency}
-                        </Badge>
-                        {account.is_active && (
-                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
-                            Ativa
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma conta de anúncios encontrada.
+                    </p>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* Card de Páginas do Facebook - Colapsável */}
+          <Card>
+            <Collapsible open={pagesOpen} onOpenChange={setPagesOpen}>
+              <CardHeader className="cursor-pointer" onClick={() => setPagesOpen(!pagesOpen)}>
+                <CardTitle className="flex items-center justify-between">
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer">
+                      {pagesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <Facebook className="h-4 w-4 text-blue-600" />
+                      Páginas do Facebook ({pages.length})
+                    </div>
+                  </CollapsibleTrigger>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleRefreshPages(); }}
+                    disabled={refreshingPages}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${refreshingPages ? 'animate-spin' : ''}`} />
+                    {refreshingPages ? 'Buscando...' : 'Atualizar Páginas'}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  {pages.length > 0 ? (
+                    <div className="space-y-3">
+                      {pages.map((page) => (
+                        <div
+                          key={page.id}
+                          className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{page.page_name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              ID: {page.page_id}
+                            </div>
+                          </div>
+                          {page.page_category && (
+                            <Badge variant="outline" className="text-xs">
+                              {page.page_category}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {refreshingPages ? 'Buscando páginas...' : 'Nenhuma página encontrada. Clique em "Atualizar Páginas" para buscar.'}
+                    </p>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* Card de Contas do Instagram - Colapsável */}
+          <Card>
+            <Collapsible open={instagramOpen} onOpenChange={setInstagramOpen}>
+              <CardHeader className="cursor-pointer" onClick={() => setInstagramOpen(!instagramOpen)}>
+                <CardTitle className="flex items-center gap-2">
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer">
+                      {instagramOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <Instagram className="h-4 w-4 text-pink-600" />
+                      Contas do Instagram ({instagramAccounts.length})
+                    </div>
+                  </CollapsibleTrigger>
+                </CardTitle>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  {instagramAccounts.length > 0 ? (
+                    <div className="space-y-3">
+                      {instagramAccounts.map((account) => (
+                        <div
+                          key={account.id}
+                          className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">@{account.username}</div>
+                            <div className="text-xs text-muted-foreground">
+                              ID: {account.instagram_id}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {account.followers_count?.toLocaleString() || 0} seguidores
                           </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma conta de anúncios encontrada.
-                </p>
-              )}
-              </CardContent>
-          </Card>
-
-          {/* Card de Páginas do Facebook */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Facebook className="h-4 w-4 text-blue-600" />
-                  Páginas do Facebook ({pages.length})
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshPages}
-                  disabled={refreshingPages}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshingPages ? 'animate-spin' : ''}`} />
-                  {refreshingPages ? 'Buscando...' : 'Atualizar Páginas'}
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pages.length > 0 ? (
-                <div className="space-y-3">
-                  {pages.map((page) => (
-                    <div
-                      key={page.id}
-                      className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{page.page_name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          ID: {page.page_id}
                         </div>
-                      </div>
-                      {page.page_category && (
-                        <Badge variant="outline" className="text-xs">
-                          {page.page_category}
-                        </Badge>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {refreshingPages ? 'Buscando páginas...' : 'Nenhuma página encontrada. Clique em "Atualizar Páginas" para buscar.'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Card de Contas do Instagram */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Instagram className="h-4 w-4 text-pink-600" />
-                Contas do Instagram ({instagramAccounts.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {instagramAccounts.length > 0 ? (
-                <div className="space-y-3">
-                  {instagramAccounts.map((account) => (
-                    <div
-                      key={account.id}
-                      className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">@{account.username}</div>
-                        <div className="text-xs text-muted-foreground">
-                          ID: {account.instagram_id}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {account.followers_count?.toLocaleString() || 0} seguidores
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma conta do Instagram vinculada às páginas.
-                </p>
-              )}
-            </CardContent>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma conta do Instagram vinculada às páginas.
+                    </p>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
         </>
       )}
