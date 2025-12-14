@@ -302,19 +302,24 @@ const ClientDashboardPublic = () => {
         {/* Metrics Cards */}
         <MetricsCards metrics={data.metrics} />
 
-        {/* Social Metrics - Compact horizontal layout below main metrics */}
-        {data.social_metrics && (
+        {/* Social Metrics - Only show if Instagram or Facebook is configured */}
+        {data.social_metrics && (data.social_metrics.instagram || data.social_metrics.facebook) && (
           <SocialMetricsCard socialMetrics={data.social_metrics} />
         )}
 
         {/* Funnel, Performance Metrics, and Top Posts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <FunnelVisualization metrics={data.metrics} />
-          <PerformanceMetrics metrics={data.metrics} />
-          {data.social_metrics?.instagram?.top_posts && data.social_metrics.instagram.top_posts.length > 0 && (
-            <TopEngagementPostsCard posts={data.social_metrics.instagram.top_posts} />
-          )}
-        </div>
+        {(() => {
+          const hasTopPosts = data.social_metrics?.instagram?.top_posts && data.social_metrics.instagram.top_posts.length > 0;
+          return (
+            <div className={`grid grid-cols-1 gap-4 ${hasTopPosts ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+              <FunnelVisualization metrics={data.metrics} />
+              <PerformanceMetrics metrics={data.metrics} />
+              {hasTopPosts && (
+                <TopEngagementPostsCard posts={data.social_metrics!.instagram!.top_posts!} />
+              )}
+            </div>
+          );
+        })()}
 
         {/* Timeline Chart */}
         <TimelineChart data={data.timeline} />
