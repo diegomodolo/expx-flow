@@ -311,8 +311,12 @@ export function useSendToSchedule() {
         let scheduledAt = new Date().toISOString();
         if (creative.scheduled_date) {
           const date = creative.scheduled_date;
-          const time = creative.scheduled_time || '10:00';
-          scheduledAt = `${date}T${time}:00`;
+          let time = creative.scheduled_time || '10:00:00';
+          // Ensure time has seconds (HH:MM:SS format)
+          if (time.split(':').length === 2) {
+            time = `${time}:00`;
+          }
+          scheduledAt = `${date}T${time}`;
         }
 
         // Build caption with hashtags
