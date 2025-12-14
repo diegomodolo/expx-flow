@@ -114,18 +114,7 @@ export function ClienteRedesSociais() {
         </div>
       )}
 
-      {/* Feed Previews */}
-      {instagram?.top_posts && instagram.top_posts.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <InstagramFeedPreview
-            posts={instagram.top_posts}
-            username={instagram.username}
-            profilePicture={instagram.profile_picture_url}
-            followersCount={instagram.followers_count}
-          />
-        </div>
-      )}
-
+      {/* Instagram & Facebook Summary Cards */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Instagram Card */}
         {instagram && (
@@ -240,7 +229,7 @@ export function ClienteRedesSociais() {
                     Top Posts por Engajamento
                   </h3>
                   <div className="space-y-2">
-                    {instagram.top_posts.slice(0, 5).map((post, index) => (
+                    {instagram.top_posts.slice(0, 6).map((post) => (
                       <a
                         key={post.id}
                         href={post.permalink}
@@ -337,6 +326,44 @@ export function ClienteRedesSociais() {
           </Card>
         )}
       </div>
+
+      {/* Feed Previews - Instagram and Facebook side by side */}
+      {instagram?.top_posts && instagram.top_posts.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <InstagramFeedPreview
+            posts={instagram.top_posts}
+            username={instagram.username}
+            profilePicture={instagram.profile_picture_url}
+            followersCount={instagram.followers_count}
+          />
+          {/* Placeholder for Facebook feed - will show empty state or future Facebook posts */}
+          {facebook && (
+            <Card className="bg-card border-0 shadow-google-sm rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Facebook className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-title-sm text-foreground font-medium">Feed do Facebook</span>
+                    </div>
+                    <p className="text-body-sm text-muted-foreground">
+                      {facebook.page_name}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
+                <Facebook className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-body-sm text-muted-foreground">
+                  Feed do Facebook em breve
+                </p>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }
