@@ -342,7 +342,7 @@ export const FacebookIntegrationSettings = () => {
           <Card>
             <Collapsible open={instagramOpen} onOpenChange={setInstagramOpen}>
               <CardHeader className="cursor-pointer" onClick={() => setInstagramOpen(!instagramOpen)}>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center justify-between">
                   <CollapsibleTrigger asChild>
                     <div className="flex items-center gap-2 cursor-pointer">
                       {instagramOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -350,6 +350,16 @@ export const FacebookIntegrationSettings = () => {
                       Contas do Instagram ({instagramAccounts.length})
                     </div>
                   </CollapsibleTrigger>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleRefreshPages(); }}
+                    disabled={refreshingPages}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${refreshingPages ? 'animate-spin' : ''}`} />
+                    {refreshingPages ? 'Buscando...' : 'Atualizar Contas'}
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CollapsibleContent>
