@@ -636,61 +636,47 @@ export default function NewDashboard() {
         </div>
 
 
-        {/* Alertas & Oportunidades */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center gap-2 mb-6">
+        {/* Alertas & Oportunidades - Google Style */}
+        <div className="bg-card rounded-xl p-5 shadow-google-sm">
+          <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-card-foreground">Alertas & Oportunidades</h2>
+            <h2 className="text-title-lg text-foreground">Alertas & Oportunidades</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Problemas */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
-                <h3 className="text-base font-medium text-card-foreground">Problemas ({dangerAlerts.length})</h3>
+                <AlertTriangle className="w-4 h-4 text-google-red-500" />
+                <h3 className="text-body-md font-medium text-foreground">Problemas ({dangerAlerts.length})</h3>
               </div>
-          <div className="space-y-3">
+              <div className="space-y-2">
                 {alertsLoading && !alertsReady ? (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="p-4 rounded-lg bg-google-red-50 dark:bg-google-red-900/20">
                     <div className="flex items-center justify-center">
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2 text-red-500" />
-                      <span className="text-sm text-red-600">Analisando campanhas...</span>
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2 text-google-red-500" />
+                      <span className="text-body-sm text-google-red-600">Analisando campanhas...</span>
                     </div>
                   </div>
                 ) : dangerAlerts.length === 0 ? (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600 text-center">Nenhum problema detectado! 🎉</p>
+                  <div className="p-4 rounded-lg bg-google-green-50 dark:bg-google-green-900/20">
+                    <p className="text-body-sm text-google-green-600 text-center">Nenhum problema detectado! 🎉</p>
                   </div>
                 ) : (
-                  dangerAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert) => (
-                    <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-red-500 rounded-lg shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <AlertTriangle className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
-                            <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
-                              R$ {alert.value || '0,00'}
-                            </span>
-                            <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                              {alert.client || 'Cliente não informado'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'}
-                          </p>
-                           <div className="flex items-center gap-2">
-                             {alert.recommendation === 'Carregando recomendação...' ? (
-                               <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />
-                             ) : (
-                               <AlertTriangle className="w-3 h-3 text-red-500" />
-                             )}
-                             <p className="text-xs text-gray-600">{alert.recommendation}</p>
-                           </div>
-                        </div>
+                  dangerAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert, index) => (
+                    <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-red-100 text-google-red-600">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
+                        <p className="text-body-sm text-muted-foreground truncate">
+                          {alert.client} • {alert.campaign}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-body-md font-medium text-google-red-600">R$ {alert.value || '0'}</p>
+                        <p className="text-body-sm text-muted-foreground">CPA</p>
                       </div>
                     </div>
                   ))
@@ -701,50 +687,36 @@ export default function NewDashboard() {
             {/* Oportunidades */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <h3 className="text-base font-medium text-card-foreground">Oportunidades ({opportunityAlerts.length})</h3>
+                <CheckCircle className="w-4 h-4 text-google-green-500" />
+                <h3 className="text-body-md font-medium text-foreground">Oportunidades ({opportunityAlerts.length})</h3>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {alertsLoading && !alertsReady ? (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="p-4 rounded-lg bg-google-green-50 dark:bg-google-green-900/20">
                     <div className="flex items-center justify-center">
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2 text-green-500" />
-                      <span className="text-sm text-green-600">Buscando oportunidades...</span>
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2 text-google-green-500" />
+                      <span className="text-body-sm text-google-green-600">Buscando oportunidades...</span>
                     </div>
                   </div>
                 ) : opportunityAlerts.length === 0 ? (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-600 text-center">Nenhuma oportunidade detectada no momento.</p>
+                  <div className="p-4 rounded-lg bg-secondary/50">
+                    <p className="text-body-sm text-muted-foreground text-center">Nenhuma oportunidade detectada no momento.</p>
                   </div>
                 ) : (
-                  opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert) => (
-                    <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-green-500 rounded-lg shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <TrendingUp className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
-                            <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
-                              +{alert.value || '0'}%
-                            </span>
-                            <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                              {alert.client || 'Cliente não informado'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}%
-                          </p>
-                           <div className="flex items-center gap-2">
-                             {alert.recommendation === 'Carregando recomendação...' ? (
-                               <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />
-                             ) : (
-                               <CheckCircle className="w-3 h-3 text-green-500" />
-                             )}
-                             <p className="text-xs text-gray-600">{alert.recommendation}</p>
-                           </div>
-                        </div>
+                  opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert, index) => (
+                    <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-green-100 text-google-green-600">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
+                        <p className="text-body-sm text-muted-foreground truncate">
+                          {alert.client} • {alert.campaign}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-body-md font-medium text-google-green-600">+{alert.value || '0'}%</p>
+                        <p className="text-body-sm text-muted-foreground">ROI</p>
                       </div>
                     </div>
                   ))
@@ -754,54 +726,41 @@ export default function NewDashboard() {
           </div>
         </div>
 
-        {/* Ranking de Campanhas */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center gap-2 mb-6">
+        {/* Ranking de Campanhas - Google Style */}
+        <div className="bg-card rounded-xl p-5 shadow-google-sm">
+          <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-card-foreground">Ranking de Campanhas</h2>
+            <h2 className="text-title-lg text-foreground">Ranking de Campanhas</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Top 5 Campanhas por CPA */}
             <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Target className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Campanhas por CPA</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <Target className="w-4 h-4 text-primary" />
+                <h3 className="text-body-md font-medium text-foreground">Top 5 por CPA</h3>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topCampaignsByCPA.slice(0, 5).map((campaign, index) => (
-                  <div key={campaign.id} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
-                    index === 0 ? 'border-l-4 border-green-500' :
-                    index === 1 ? 'border-l-4 border-blue-500' :
-                    index === 2 ? 'border-l-4 border-purple-500' :
-                    index === 3 ? 'border-l-4 border-orange-500' :
-                    'border-l-4 border-yellow-500'
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        index === 0 ? 'bg-green-500' :
-                        index === 1 ? 'bg-blue-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' :
-                        'bg-yellow-500'
-                      }`}>
-                        <span className="text-sm font-bold text-white">{index + 1}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-card-foreground truncate">{campaign.name}</h4>
-                          <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
-                            {formatCurrency(campaign.cpa)}
-                          </span>
-                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                            {campaign.client_name}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}% • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'} • Leads: {campaign.conversions}
-                        </p>
-                      </div>
+                  <div key={campaign.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
+                      index === 0 ? 'bg-google-green-100 text-google-green-600' :
+                      index === 1 ? 'bg-google-blue-100 text-google-blue-600' :
+                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
+                      'bg-secondary text-muted-foreground'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-md font-medium text-foreground truncate">{campaign.name}</p>
+                      <p className="text-body-sm text-muted-foreground truncate">
+                        {campaign.client_name} • {campaign.conversions} leads
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-body-md font-medium text-foreground">{formatCurrency(campaign.cpa)}</p>
+                      <p className="text-body-sm text-muted-foreground">CPA</p>
                     </div>
                   </div>
                 ))}
@@ -810,47 +769,36 @@ export default function NewDashboard() {
 
             {/* Top 5 Campanhas por Leads */}
             <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Users className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Campanhas por Leads</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-primary" />
+                <h3 className="text-body-md font-medium text-foreground">Top 5 por Leads</h3>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {[...topCampaignsByCPA]
                   .sort((a, b) => b.conversions - a.conversions)
                   .slice(0, 5)
                   .map((campaign, index) => (
-                  <div key={`leads-${campaign.id}`} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
-                    index === 0 ? 'border-l-4 border-green-500' :
-                    index === 1 ? 'border-l-4 border-blue-500' :
-                    index === 2 ? 'border-l-4 border-purple-500' :
-                    index === 3 ? 'border-l-4 border-orange-500' :
-                    'border-l-4 border-yellow-500'
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        index === 0 ? 'bg-green-500' :
-                        index === 1 ? 'bg-blue-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' :
-                        'bg-yellow-500'
-                      }`}>
-                        <span className="text-sm font-bold text-white">{index + 1}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-card-foreground truncate">{campaign.name}</h4>
-                          <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
-                            {campaign.conversions} leads
-                          </span>
-                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                            {campaign.client_name}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Investimento: {formatCurrency(campaign.spend)} • CTR: {campaign.ctr.toFixed(1)}% • CPA: {formatCurrency(campaign.cpa)} • Performance: {campaign.cpa <= 30 ? 'Excelente' : campaign.cpa <= 50 ? 'Bom' : 'Regular'}
-                        </p>
-                      </div>
+                  <div key={`leads-${campaign.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
+                      index === 0 ? 'bg-google-green-100 text-google-green-600' :
+                      index === 1 ? 'bg-google-blue-100 text-google-blue-600' :
+                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
+                      'bg-secondary text-muted-foreground'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-md font-medium text-foreground truncate">{campaign.name}</p>
+                      <p className="text-body-sm text-muted-foreground truncate">
+                        {campaign.client_name} • CPA: {formatCurrency(campaign.cpa)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-body-md font-medium text-foreground">{campaign.conversions} leads</p>
+                      <p className="text-body-sm text-muted-foreground">
+                        {((campaign.conversions / topCampaignsByCPA.reduce((sum, c) => sum + c.conversions, 0)) * 100).toFixed(1)}%
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -859,58 +807,51 @@ export default function NewDashboard() {
           </div>
         </div>
 
-        {/* Ações Recomendadas do Dia */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center gap-2 mb-6">
+        {/* Ações Recomendadas do Dia - Google Style */}
+        <div className="bg-card rounded-xl p-5 shadow-google-sm">
+          <div className="flex items-center gap-2 mb-4">
             <Calendar className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-card-foreground">Ações Recomendadas do Dia</h2>
+            <h2 className="text-title-lg text-foreground">Ações Recomendadas do Dia</h2>
           </div>
 
           {(opportunityAlerts.filter(a => !convertedActions.has(a.id)).length === 0 && 
             dangerAlerts.filter(a => !convertedActions.has(a.id)).length === 0) ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="text-green-500 w-8 h-8" />
+              <div className="w-16 h-16 bg-google-green-100 dark:bg-google-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="text-google-green-500 w-8 h-8" />
               </div>
-              <p className="text-muted-foreground">Todas as ações foram executadas</p>
-              <p className="text-sm text-muted-foreground/80 mt-1">Próxima verificação em 2 horas</p>
+              <p className="text-body-md text-muted-foreground">Todas as ações foram executadas</p>
+              <p className="text-body-sm text-muted-foreground/80 mt-1">Próxima verificação em 2 horas</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Oportunidades */}
               {opportunityAlerts
                 .filter(alert => !convertedActions.has(alert.id))
                 .slice(0, 3)
                 .map((alert) => (
-                <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-green-500 rounded-lg shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
-                        <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded">
-                          +{alert.value || '0'}%
-                        </span>
-                        <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                          {alert.client || 'Cliente não informado'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">
-                          Campanha "{alert.campaign}" com ROI de +{alert.value || '0'}% • {alert.recommendation}
-                        </p>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleConvertActionToTask(alert)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          Criar Tarefa
-                        </Button>
-                      </div>
-                    </div>
+                <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-green-100 text-google-green-600">
+                    <TrendingUp className="w-4 h-4" />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
+                    <p className="text-body-sm text-muted-foreground truncate">
+                      {alert.client} • {alert.campaign}
+                    </p>
+                  </div>
+                  <div className="text-right mr-2">
+                    <p className="text-body-md font-medium text-google-green-600">+{alert.value || '0'}%</p>
+                    <p className="text-body-sm text-muted-foreground">ROI</p>
+                  </div>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleConvertActionToTask(alert)}
+                    className="rounded-full text-google-green-600 border-google-green-200 hover:bg-google-green-50"
+                  >
+                    Criar Tarefa
+                  </Button>
                 </div>
               ))}
               
@@ -919,35 +860,28 @@ export default function NewDashboard() {
                 .filter(alert => !convertedActions.has(alert.id))
                 .slice(0, 2)
                 .map((alert) => (
-                <div key={alert.id} className="p-4 bg-card/50 dark:bg-card border-l-4 border-red-500 rounded-lg shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <AlertTriangle className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-semibold text-card-foreground">{alert.title}</h4>
-                        <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded">
-                          R$ {alert.value || '0,00'}
-                        </span>
-                        <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                          {alert.client || 'Cliente não informado'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">
-                          Campanha "{alert.campaign}" com CPA de R$ {alert.value || '0,00'} • {alert.recommendation}
-                        </p>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleConvertActionToTask(alert)}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                          Criar Tarefa
-                        </Button>
-                      </div>
-                    </div>
+                <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-red-100 text-google-red-600">
+                    <AlertTriangle className="w-4 h-4" />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
+                    <p className="text-body-sm text-muted-foreground truncate">
+                      {alert.client} • {alert.campaign}
+                    </p>
+                  </div>
+                  <div className="text-right mr-2">
+                    <p className="text-body-md font-medium text-google-red-600">R$ {alert.value || '0'}</p>
+                    <p className="text-body-sm text-muted-foreground">CPA</p>
+                  </div>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleConvertActionToTask(alert)}
+                    className="rounded-full text-google-red-600 border-google-red-200 hover:bg-google-red-50"
+                  >
+                    Criar Tarefa
+                  </Button>
                 </div>
               ))}
             </div>
