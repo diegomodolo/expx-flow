@@ -372,7 +372,14 @@ export default function ApresentacaoPublica() {
 
     setIsCreatingMeeting(true);
     try {
-      // Create meeting record
+      // Cancel any existing in_progress meetings for this presentation
+      await supabase
+        .from("presentation_meetings")
+        .update({ status: "cancelled" })
+        .eq("presentation_id", presentation.id)
+        .eq("status", "in_progress");
+
+      // Create new meeting record
       const { data: meetingData, error: meetingError } = await supabase
         .from("presentation_meetings")
         .insert({
