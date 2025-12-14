@@ -1,13 +1,15 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Facebook, Unlink, CheckCircle } from "lucide-react";
+import { Facebook, Unlink, CheckCircle, RefreshCw, Instagram } from "lucide-react";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useCompany } from "@/contexts/CompanyContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const FacebookIntegrationCard = () => {
   const { activeCompany } = useCompany();
+  const [refreshingPages, setRefreshingPages] = useState(false);
   const {
     loading,
     integration,
@@ -16,6 +18,8 @@ export const FacebookIntegrationCard = () => {
     loadIntegration,
     disconnectFacebook,
   } = useFacebookIntegration();
+  
+  const { pages, instagramAccounts, refreshPages, fetchPages, fetchInstagramAccounts } = useFacebookPages();
 
   useEffect(() => {
     if (activeCompany?.company_id) {
@@ -25,6 +29,23 @@ export const FacebookIntegrationCard = () => {
 
   const isConnected = integration && integration.is_active;
   const isExpired = integration && new Date(integration.expires_at) < new Date();
+
+  const handleRefreshPages = async () => {
+    if (!integration?.id) return;
+    setRefreshingPages(true);
+    try {
+      await refreshPages(integration.id);
+    } finally {
+      setRefreshingPages(false);
+    }
+  };
+
+  // Auto-fetch pages when integration becomes available and pages are empty
+  useEffect(() => {
+    if (integration?.id && isConnected && pages.length === 0 && !refreshingPages) {
+      handleRefreshPages();
+    }
+  }, [integration?.id, isConnected]);
 
   return (
     <Card>
@@ -85,6 +106,63 @@ export const FacebookIntegrationCard = () => {
                 <div key={account.id} className="flex items-center justify-between p-2 border rounded-md">
                   <span className="text-sm">{account.account_name}</span>
                   <Badge variant="secondary">{account.currency}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Facebook Pages Section */}
+        {isConnected && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium">Páginas do Facebook:</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefreshPages}
+                disabled={refreshingPages}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${refreshingPages ? 'animate-spin' : ''}`} />
+                {refreshingPages ? 'Buscando...' : 'Atualizar Páginas'}
+              </Button>
+            </div>
+            {pages.length > 0 ? (
+              <div className="space-y-1">
+                {pages.map((page) => (
+                  <div key={page.id} className="flex items-center justify-between p-2 border rounded-md">
+                    <div className="flex items-center gap-2">
+                      <Facebook className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm">{page.page_name}</span>
+                    </div>
+                    {page.page_category && (
+                      <Badge variant="secondary" className="text-xs">{page.page_category}</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {refreshingPages ? 'Buscando páginas...' : 'Nenhuma página encontrada. Clique em "Atualizar Páginas" para buscar.'}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Instagram Accounts Section */}
+        {isConnected && instagramAccounts.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Contas do Instagram:</h4>
+            <div className="space-y-1">
+              {instagramAccounts.map((account) => (
+                <div key={account.id} className="flex items-center justify-between p-2 border rounded-md">
+                  <div className="flex items-center gap-2">
+                    <Instagram className="h-4 w-4 text-pink-600" />
+                    <span className="text-sm">@{account.username}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {account.followers_count.toLocaleString()} seguidores
+                  </Badge>
                 </div>
               ))}
             </div>
