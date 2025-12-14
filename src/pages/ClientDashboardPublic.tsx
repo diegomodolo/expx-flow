@@ -8,6 +8,7 @@ import { TopCampaignsPie } from "@/components/dashboard-public/TopCampaignsPie";
 import { CampaignsTable } from "@/components/dashboard-public/CampaignsTable";
 import { PeriodSelector } from "@/components/dashboard-public/PeriodSelector";
 import { SocialMetricsCard } from "@/components/dashboard-public/SocialMetricsCard";
+import { TopEngagementPostsCard } from "@/components/dashboard-public/TopEngagementPostsCard";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -306,10 +307,13 @@ const ClientDashboardPublic = () => {
           <SocialMetricsCard socialMetrics={data.social_metrics} />
         )}
 
-        {/* Funnel and Performance Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Funnel, Performance Metrics, and Top Posts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <FunnelVisualization metrics={data.metrics} />
           <PerformanceMetrics metrics={data.metrics} />
+          {data.social_metrics?.instagram?.top_posts && data.social_metrics.instagram.top_posts.length > 0 && (
+            <TopEngagementPostsCard posts={data.social_metrics.instagram.top_posts} />
+          )}
         </div>
 
         {/* Timeline Chart */}
