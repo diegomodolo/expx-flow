@@ -551,47 +551,36 @@ export default function NewDashboard() {
 
             {/* Top 5 Clientes por Resultado de Leads */}
             <div>
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <Target className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-card-foreground">Top 5 Clientes por Resultado de Leads</h2>
+                <h2 className="text-title-lg text-foreground">Top 5 por Resultados de Leads</h2>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {[...topClientsByROI]
                   .sort((a, b) => b.leads_generated - a.leads_generated)
                   .slice(0, 5)
                   .map((client, index) => (
-                  <div key={`leads-${client.id}`} className={`p-4 bg-card/50 dark:bg-card rounded-lg shadow-sm ${
-                    index === 0 ? 'border-l-4 border-green-500' :
-                    index === 1 ? 'border-l-4 border-blue-500' :
-                    index === 2 ? 'border-l-4 border-purple-500' :
-                    index === 3 ? 'border-l-4 border-orange-500' :
-                    'border-l-4 border-yellow-500'
-                  }`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        index === 0 ? 'bg-green-500' :
-                        index === 1 ? 'bg-blue-500' :
-                        index === 2 ? 'bg-purple-500' :
-                        index === 3 ? 'bg-orange-500' :
-                        'bg-yellow-500'
-                      }`}>
-                        <span className="text-sm font-bold text-white">{index + 1}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-card-foreground">{client.name}</h4>
-                          <span className="px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded">
-                            {client.leads_generated} leads
-                          </span>
-                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium rounded">
-                            {client.company}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Campanhas: {client.active_campaigns} • Investimento: {formatCurrency(client.investment)} • CPA: {formatCurrency(client.avg_cpl)} • {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}% dos leads
-                        </p>
-                      </div>
+                  <div key={`leads-${client.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
+                      index === 0 ? 'bg-google-green-100 text-google-green-600' :
+                      index === 1 ? 'bg-google-blue-100 text-google-blue-600' :
+                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
+                      'bg-secondary text-muted-foreground'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-md font-medium text-foreground truncate">{client.name}</p>
+                      <p className="text-body-sm text-muted-foreground">
+                        CPA: {formatCurrency(client.avg_cpl)} • {client.active_campaigns} campanhas
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-body-md font-medium text-foreground">{client.leads_generated} leads</p>
+                      <p className="text-body-sm text-muted-foreground">
+                        {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}%
+                      </p>
                     </div>
                   </div>
                 ))}
