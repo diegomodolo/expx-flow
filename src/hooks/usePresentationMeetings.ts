@@ -307,7 +307,7 @@ export function useSendToSchedule() {
 
         if (mediaUrls.length === 0) continue;
 
-        // Build scheduled datetime
+        // Build scheduled datetime - preserve the exact time as entered (Brazil timezone)
         let scheduledAt = new Date().toISOString();
         if (creative.scheduled_date) {
           const date = creative.scheduled_date;
@@ -316,7 +316,9 @@ export function useSendToSchedule() {
           if (time.split(':').length === 2) {
             time = `${time}:00`;
           }
-          scheduledAt = `${date}T${time}`;
+          // Add Brazil timezone offset to preserve the exact time entered
+          // This ensures 04:00 stays as 04:00 in Brazil time
+          scheduledAt = `${date}T${time}-03:00`;
         }
 
         // Build caption with hashtags
