@@ -1475,6 +1475,10 @@ export type Database = {
           offline_event_set_id: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
           preferred_platforms: string[] | null
+          presentation_bg_image: string | null
+          presentation_logo: string | null
+          presentation_overlay_color: string | null
+          presentation_overlay_opacity: number | null
           product_name: string | null
           sector: string
           status: Database["public"]["Enums"]["client_status"]
@@ -1516,6 +1520,10 @@ export type Database = {
           offline_event_set_id?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
           preferred_platforms?: string[] | null
+          presentation_bg_image?: string | null
+          presentation_logo?: string | null
+          presentation_overlay_color?: string | null
+          presentation_overlay_opacity?: number | null
           product_name?: string | null
           sector: string
           status?: Database["public"]["Enums"]["client_status"]
@@ -1557,6 +1565,10 @@ export type Database = {
           offline_event_set_id?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
           preferred_platforms?: string[] | null
+          presentation_bg_image?: string | null
+          presentation_logo?: string | null
+          presentation_overlay_color?: string | null
+          presentation_overlay_opacity?: number | null
           product_name?: string | null
           sector?: string
           status?: Database["public"]["Enums"]["client_status"]

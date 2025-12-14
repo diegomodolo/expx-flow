@@ -18,7 +18,8 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,7 +33,7 @@ interface ClientDialogProps {
   readOnly?: boolean;
 }
 
-type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'briefing';
+type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'apresentacao' | 'briefing';
 
 const sections: { id: SectionType; label: string; icon: React.ElementType; editOnly?: boolean }[] = [
   { id: 'cadastro', label: 'Cadastro', icon: User },
@@ -40,6 +41,7 @@ const sections: { id: SectionType; label: string; icon: React.ElementType; editO
   { id: 'integracoes', label: 'Contas & Integrações', icon: Link },
   { id: 'copywriting', label: 'Copywriting', icon: Pencil },
   { id: 'produto', label: 'Produto & Público', icon: Package },
+  { id: 'apresentacao', label: 'Apresentação', icon: Presentation },
   { id: 'briefing', label: 'Briefing', icon: FileText, editOnly: true },
 ];
 
@@ -76,7 +78,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
-        payment_type: (client.payment_type || "prepaid") as 'prepaid' | 'postpaid'
+        payment_type: (client.payment_type || "prepaid") as 'prepaid' | 'postpaid',
+        presentation_logo: (client as any).presentation_logo || "",
+        presentation_bg_image: (client as any).presentation_bg_image || "",
+        presentation_overlay_color: (client as any).presentation_overlay_color || "#1a73e8",
+        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7
       };
     }
     return {
@@ -101,7 +107,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       website_url: "",
       inactive_reason: "",
       team_id: "none",
-      payment_type: "prepaid" as 'prepaid' | 'postpaid'
+      payment_type: "prepaid" as 'prepaid' | 'postpaid',
+      presentation_logo: "",
+      presentation_bg_image: "",
+      presentation_overlay_color: "#1a73e8",
+      presentation_overlay_opacity: 0.7
     };
   });
   const [loading, setLoading] = useState(false);
@@ -115,6 +125,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
   const [rechargeDayValue, setRechargeDayValue] = useState<string>("none");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const presentationLogoInputRef = useRef<HTMLInputElement>(null);
+  const presentationBgInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPresentationLogo, setUploadingPresentationLogo] = useState(false);
+  const [uploadingPresentationBg, setUploadingPresentationBg] = useState(false);
 
   const platforms = ["Google Ads", "Meta Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
@@ -151,7 +165,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
-        payment_type: client.payment_type || "prepaid"
+        payment_type: client.payment_type || "prepaid",
+        presentation_logo: (client as any).presentation_logo || "",
+        presentation_bg_image: (client as any).presentation_bg_image || "",
+        presentation_overlay_color: (client as any).presentation_overlay_color || "#1a73e8",
+        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7
       });
       setLocalClient(client);
       
@@ -267,6 +285,76 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handlePresentationLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPresentationLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const fileName = `presentation-logo-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('client-avatars')
+        .upload(fileName, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-avatars')
+        .getPublicUrl(fileName);
+
+      setFormData({ ...formData, presentation_logo: publicUrl });
+      toast({
+        title: "Sucesso",
+        description: "Logo da apresentação enviada com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar logo. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPresentationLogo(false);
+    }
+  };
+
+  const handlePresentationBgUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPresentationBg(true);
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const fileName = `presentation-bg-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('client-avatars')
+        .upload(fileName, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-avatars')
+        .getPublicUrl(fileName);
+
+      setFormData({ ...formData, presentation_bg_image: publicUrl });
+      toast({
+        title: "Sucesso",
+        description: "Imagem de fundo enviada com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPresentationBg(false);
     }
   };
 
@@ -969,6 +1057,199 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 placeholder="Informações adicionais sobre o cliente..."
                 rows={4}
                 disabled={readOnly}
+              />
+            </div>
+          </div>
+        );
+
+      case 'apresentacao':
+        return (
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground mb-4">
+              Configure a aparência visual das apresentações de conteúdo deste cliente.
+            </p>
+
+            {/* Preview da Capa */}
+            <div className="space-y-2">
+              <Label>Prévia da Capa</Label>
+              <div 
+                className="relative w-full aspect-video rounded-lg overflow-hidden border"
+                style={{ 
+                  backgroundImage: formData.presentation_bg_image ? `url(${formData.presentation_bg_image})` : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundColor: !formData.presentation_bg_image ? formData.presentation_overlay_color : undefined
+                }}
+              >
+                {/* Overlay */}
+                {formData.presentation_bg_image && (
+                  <div 
+                    className="absolute inset-0"
+                    style={{ 
+                      backgroundColor: formData.presentation_overlay_color,
+                      opacity: formData.presentation_overlay_opacity
+                    }}
+                  />
+                )}
+                {/* Conteúdo */}
+                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-6">
+                  {formData.presentation_logo ? (
+                    <img 
+                      src={formData.presentation_logo} 
+                      alt="Logo" 
+                      className="max-h-20 max-w-[200px] object-contain mb-4"
+                    />
+                  ) : formData.avatar ? (
+                    <img 
+                      src={formData.avatar} 
+                      alt="Avatar" 
+                      className="w-16 h-16 rounded-full object-cover border-2 border-white/30 mb-4"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-white/20 mb-4" />
+                  )}
+                  <h3 className="text-lg font-bold text-white text-center">Planejamento de Conteúdo</h3>
+                  <p className="text-sm text-white/80">{formData.company || formData.name || "Nome do Cliente"}</p>
+                  <p className="text-xs text-white/60 mt-1">Dezembro de 2024</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Logo da Apresentação */}
+            <div className="space-y-2">
+              <Label>Logo da Apresentação</Label>
+              <p className="text-xs text-muted-foreground">
+                Uma logo grande (preferencialmente PNG transparente) que aparecerá na capa das apresentações.
+              </p>
+              <div className="flex items-center gap-4">
+                {formData.presentation_logo && (
+                  <div className="relative bg-muted rounded-lg p-2">
+                    <img 
+                      src={formData.presentation_logo} 
+                      alt="Logo" 
+                      className="h-16 object-contain"
+                    />
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                        onClick={() => setFormData({ ...formData, presentation_logo: "" })}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => presentationLogoInputRef.current?.click()}
+                  disabled={uploadingPresentationLogo || readOnly}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadingPresentationLogo ? "Enviando..." : "Upload de Logo"}
+                </Button>
+                <Input
+                  ref={presentationLogoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePresentationLogoUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* Imagem de Fundo */}
+            <div className="space-y-2">
+              <Label>Imagem de Fundo</Label>
+              <p className="text-xs text-muted-foreground">
+                Uma imagem que será usada como fundo da capa da apresentação.
+              </p>
+              <div className="flex items-center gap-4">
+                {formData.presentation_bg_image && (
+                  <div className="relative">
+                    <img 
+                      src={formData.presentation_bg_image} 
+                      alt="Background" 
+                      className="h-20 w-32 object-cover rounded-lg"
+                    />
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                        onClick={() => setFormData({ ...formData, presentation_bg_image: "" })}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => presentationBgInputRef.current?.click()}
+                  disabled={uploadingPresentationBg || readOnly}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploadingPresentationBg ? "Enviando..." : "Upload de Imagem"}
+                </Button>
+                <Input
+                  ref={presentationBgInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePresentationBgUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* Cor do Overlay */}
+            <div className="space-y-2">
+              <Label htmlFor="overlay_color">Cor do Overlay</Label>
+              <p className="text-xs text-muted-foreground">
+                Cor que será sobreposta à imagem de fundo (ou cor de fundo se não houver imagem).
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  id="overlay_color"
+                  value={formData.presentation_overlay_color}
+                  onChange={(e) => setFormData({ ...formData, presentation_overlay_color: e.target.value })}
+                  disabled={readOnly}
+                  className="w-12 h-10 rounded cursor-pointer border"
+                />
+                <Input
+                  value={formData.presentation_overlay_color}
+                  onChange={(e) => setFormData({ ...formData, presentation_overlay_color: e.target.value })}
+                  placeholder="#1a73e8"
+                  className="w-32"
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            {/* Opacidade do Overlay */}
+            <div className="space-y-2">
+              <Label htmlFor="overlay_opacity">
+                Opacidade do Overlay: {Math.round(formData.presentation_overlay_opacity * 100)}%
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Quanto da cor do overlay será visível sobre a imagem de fundo.
+              </p>
+              <Slider
+                value={[formData.presentation_overlay_opacity]}
+                onValueChange={(value) => setFormData({ ...formData, presentation_overlay_opacity: value[0] })}
+                min={0}
+                max={1}
+                step={0.05}
+                disabled={readOnly}
+                className="w-full max-w-xs"
               />
             </div>
           </div>
