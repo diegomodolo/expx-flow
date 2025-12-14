@@ -15,6 +15,7 @@ import {
   Wand2,
   Zap,
   Activity,
+  CalendarClock,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -28,6 +29,7 @@ const items = [
   { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
   { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
   { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
+  { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
   { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
   { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
   { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
