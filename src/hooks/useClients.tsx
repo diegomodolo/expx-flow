@@ -431,12 +431,13 @@ export function useClients() {
       return;
     }
     
-    // Check if user has permission to access clients or content generator
+    // Check if user has permission to access clients or related modules
     // Use currentUserPermissions directly instead of hasPermission function
     const hasClientsPermission = currentUserPermissions.includes('clientes');
     const hasContentPermission = currentUserPermissions.includes('gerador-conteudo');
+    const hasCampaignsPermission = currentUserPermissions.includes('campanhas');
     
-    if (!isOwner && !hasClientsPermission && !hasContentPermission) {
+    if (!isOwner && !hasClientsPermission && !hasContentPermission && !hasCampaignsPermission) {
       setClients([]);
       setLoading(false);
       return;
