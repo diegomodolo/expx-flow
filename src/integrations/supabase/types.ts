@@ -4861,6 +4861,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          current_slide: number | null
           id: string
           meeting_date: string
           presentation_id: string
@@ -4870,6 +4871,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          current_slide?: number | null
           id?: string
           meeting_date?: string
           presentation_id: string
@@ -4879,6 +4881,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          current_slide?: number | null
           id?: string
           meeting_date?: string
           presentation_id?: string

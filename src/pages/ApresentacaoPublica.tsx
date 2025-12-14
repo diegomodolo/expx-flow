@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ChevronLeft, ChevronRight, Calendar, Target, Hash, Image as ImageIcon, Play, Layers, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
@@ -108,6 +108,23 @@ export default function ApresentacaoPublica() {
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [currentRejectionCreativeId, setCurrentRejectionCreativeId] = useState<string | null>(null);
 
+  // Ref for debounced slide save
+  const saveSlideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Save current slide to database (debounced)
+  const saveCurrentSlideToDb = useCallback(async (slideIndex: number, currentMeetingId: string | null) => {
+    if (!currentMeetingId) return;
+    
+    try {
+      await supabase
+        .from("presentation_meetings")
+        .update({ current_slide: slideIndex })
+        .eq("id", currentMeetingId);
+    } catch (err) {
+      console.error("Error saving slide position:", err);
+    }
+  }, []);
+
   useEffect(() => {
     async function fetchPresentation() {
       if (!token) {
@@ -184,7 +201,7 @@ export default function ApresentacaoPublica() {
           creative_media: c.creative_media?.sort((a: CreativeMedia, b: CreativeMedia) => a.order_index - b.order_index) || [],
         }));
 
-        setPresentation({
+        const presentationObj: Presentation = {
           ...presentationData,
           client: {
             name: client?.name || "",
@@ -194,16 +211,67 @@ export default function ApresentacaoPublica() {
             instagram_username: instagramAccount?.username || null,
           },
           creatives,
-        });
+        };
 
-        // Initialize approvals state
-        setApprovals(creatives.map((c: Creative) => ({
-          creativeId: c.id,
-          headline: c.headline,
-          creativeType: c.creative_type,
-          status: "pending" as const,
-          rejectionReason: null,
-        })));
+        setPresentation(presentationObj);
+
+        // Check for existing in_progress meeting
+        const { data: existingMeeting, error: meetingError } = await supabase
+          .from("presentation_meetings")
+          .select("*")
+          .eq("presentation_id", presentationData.id)
+          .eq("status", "in_progress")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingMeeting && !meetingError) {
+          // Restore session from existing meeting
+          setMeetingId(existingMeeting.id);
+          setMeetingDate(new Date(existingMeeting.meeting_date));
+          setMeetingStarted(true);
+          setCurrentSlide(existingMeeting.current_slide || 2);
+
+          // Load participants
+          const { data: participantsData } = await supabase
+            .from("presentation_meeting_participants")
+            .select("name, role, email")
+            .eq("meeting_id", existingMeeting.id);
+
+          if (participantsData) {
+            setParticipants(participantsData);
+          }
+
+          // Load approvals
+          const { data: approvalsData } = await supabase
+            .from("presentation_creative_approvals")
+            .select("creative_id, status, rejection_reason")
+            .eq("meeting_id", existingMeeting.id);
+
+          if (approvalsData) {
+            setApprovals(creatives.map((c: Creative) => {
+              const approval = approvalsData.find(a => a.creative_id === c.id);
+              return {
+                creativeId: c.id,
+                headline: c.headline,
+                creativeType: c.creative_type,
+                status: (approval?.status as "pending" | "approved" | "rejected") || "pending",
+                rejectionReason: approval?.rejection_reason || null,
+              };
+            }));
+          }
+
+          toast.info("Sessão anterior restaurada");
+        } else {
+          // Initialize fresh approvals state
+          setApprovals(creatives.map((c: Creative) => ({
+            creativeId: c.id,
+            headline: c.headline,
+            creativeType: c.creative_type,
+            status: "pending" as const,
+            rejectionReason: null,
+          })));
+        }
 
         // Increment view count
         await supabase
@@ -224,7 +292,7 @@ export default function ApresentacaoPublica() {
   // Slide calculation: Cover + Participants + Creatives + Summary
   const totalSlides = presentation ? 1 + 1 + presentation.creatives.length + 1 : 0;
 
-  const goToSlide = (index: number) => {
+  const goToSlide = useCallback((index: number) => {
     if (index >= 0 && index < totalSlides) {
       // Only allow advancing past participants slide if meeting started
       if (index > 1 && !meetingStarted) {
@@ -232,11 +300,21 @@ export default function ApresentacaoPublica() {
       }
       setCurrentSlide(index);
       setCurrentCarouselIndex(0);
-    }
-  };
 
-  const nextSlide = () => goToSlide(currentSlide + 1);
-  const prevSlide = () => goToSlide(currentSlide - 1);
+      // Debounce save to database
+      if (meetingId && index >= 2) {
+        if (saveSlideTimeoutRef.current) {
+          clearTimeout(saveSlideTimeoutRef.current);
+        }
+        saveSlideTimeoutRef.current = setTimeout(() => {
+          saveCurrentSlideToDb(index, meetingId);
+        }, 500);
+      }
+    }
+  }, [totalSlides, meetingStarted, meetingId, saveCurrentSlideToDb]);
+
+  const nextSlide = useCallback(() => goToSlide(currentSlide + 1), [currentSlide, goToSlide]);
+  const prevSlide = useCallback(() => goToSlide(currentSlide - 1), [currentSlide, goToSlide]);
 
   const nextCarouselImage = () => {
     const creativeIndex = currentSlide - 2; // Adjusted for new slide order
@@ -278,7 +356,7 @@ export default function ApresentacaoPublica() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide, totalSlides, meetingStarted, rejectionModalOpen]);
+  }, [nextSlide, prevSlide, rejectionModalOpen]);
 
   // Meeting functions
   const handleAddParticipant = (participant: Participant) => {
@@ -301,6 +379,7 @@ export default function ApresentacaoPublica() {
           presentation_id: presentation.id,
           meeting_date: new Date().toISOString(),
           status: "in_progress",
+          current_slide: 2, // Start at first creative
         })
         .select()
         .single();
@@ -337,7 +416,9 @@ export default function ApresentacaoPublica() {
       setMeetingId(meetingData.id);
       setMeetingDate(new Date(meetingData.meeting_date));
       setMeetingStarted(true);
-      nextSlide(); // Go to first creative slide
+      
+      // Go directly to first creative slide (index 2)
+      setCurrentSlide(2);
 
       toast.success("Reunião iniciada!");
     } catch (err: any) {
