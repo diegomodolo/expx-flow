@@ -54,6 +54,9 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load existing creative data if editing
+  // Track the original status for resetting on edit
+  const [originalStatus, setOriginalStatus] = useState<string | null>(null);
+
   useEffect(() => {
     if (editingId && presentation?.creatives) {
       const creative = presentation.creatives.find(c => c.id === editingId);
@@ -70,6 +73,7 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
           script: creative.script || [],
         });
         setExistingMedia(creative.creative_media || []);
+        setOriginalStatus(creative.current_status || null);
       }
     }
   }, [editingId, presentation]);
@@ -150,7 +154,11 @@ export function CreativeForm({ presentationId, editingId, onClose }: CreativeFor
       let creativeId: string;
 
       if (editingId) {
-        await updateCreative.mutateAsync({ id: editingId, ...creativeData });
+        // If editing a rejected creative, reset status to pending
+        const updatePayload = originalStatus === 'rejected' 
+          ? { id: editingId, ...creativeData, current_status: 'pending' as const }
+          : { id: editingId, ...creativeData };
+        await updateCreative.mutateAsync(updatePayload);
         creativeId = editingId;
       } else {
         const result = await createCreative.mutateAsync(creativeData);
