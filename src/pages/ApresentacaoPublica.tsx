@@ -70,6 +70,7 @@ export default function ApresentacaoPublica() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
 
   useEffect(() => {
     async function fetchPresentation() {
@@ -171,11 +172,29 @@ export default function ApresentacaoPublica() {
   const goToSlide = (index: number) => {
     if (index >= 0 && index < totalSlides) {
       setCurrentSlide(index);
+      setCurrentCarouselIndex(0); // Reset carousel when changing slides
     }
   };
 
   const nextSlide = () => goToSlide(currentSlide + 1);
   const prevSlide = () => goToSlide(currentSlide - 1);
+
+  // Carousel navigation
+  const nextCarouselImage = () => {
+    const creativeIndex = currentSlide - 1;
+    if (creativeIndex >= 0 && presentation) {
+      const creative = presentation.creatives[creativeIndex];
+      if (creative && currentCarouselIndex < creative.creative_media.length - 1) {
+        setCurrentCarouselIndex(prev => prev + 1);
+      }
+    }
+  };
+
+  const prevCarouselImage = () => {
+    if (currentCarouselIndex > 0) {
+      setCurrentCarouselIndex(prev => prev - 1);
+    }
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -267,22 +286,24 @@ export default function ApresentacaoPublica() {
 
     if (!creative) return null;
 
-    const mainMedia = creative.creative_media[0];
+    const isCarousel = creative.creative_type === "carrossel" && creative.creative_media.length > 1;
+    const currentMediaIndex = isCarousel ? currentCarouselIndex : 0;
+    const currentMedia = creative.creative_media[currentMediaIndex];
 
     return (
       <div className="w-full h-full bg-background flex overflow-hidden">
         {/* Left side - Media */}
-        <div className="w-1/2 h-full bg-muted flex items-center justify-center p-8">
-          {mainMedia ? (
-            mainMedia.media_type === "video" ? (
+        <div className="w-1/2 h-full bg-muted flex items-center justify-center p-8 relative">
+          {currentMedia ? (
+            currentMedia.media_type === "video" ? (
               <video 
-                src={mainMedia.media_url} 
+                src={currentMedia.media_url} 
                 controls 
                 className="max-w-full max-h-full rounded-lg shadow-lg"
               />
             ) : (
               <img 
-                src={mainMedia.media_url} 
+                src={currentMedia.media_url} 
                 alt={creative.headline || ""} 
                 className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
               />
@@ -293,19 +314,50 @@ export default function ApresentacaoPublica() {
             </div>
           )}
           
-          {/* Carousel indicator */}
-          {creative.creative_type === "carrossel" && creative.creative_media.length > 1 && (
-            <div className="absolute bottom-8 left-1/4 flex gap-2">
-              {creative.creative_media.map((_, i) => (
-                <div 
-                  key={i} 
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    i === 0 ? "bg-primary" : "bg-muted-foreground/30"
-                  )}
-                />
-              ))}
-            </div>
+          {/* Carousel navigation */}
+          {isCarousel && (
+            <>
+              {/* Previous button */}
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={prevCarouselImage}
+                disabled={currentCarouselIndex === 0}
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full shadow-lg"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+
+              {/* Next button */}
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={nextCarouselImage}
+                disabled={currentCarouselIndex === creative.creative_media.length - 1}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full shadow-lg"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+
+              {/* Carousel indicator */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/30 px-3 py-1.5 rounded-full">
+                {creative.creative_media.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentCarouselIndex(i)}
+                    className={cn(
+                      "w-2 h-2 rounded-full transition-all",
+                      i === currentCarouselIndex ? "bg-white w-4" : "bg-white/50 hover:bg-white/70"
+                    )}
+                  />
+                ))}
+              </div>
+
+              {/* Counter */}
+              <div className="absolute top-4 right-4 bg-black/50 text-white text-sm px-2 py-1 rounded">
+                {currentCarouselIndex + 1} / {creative.creative_media.length}
+              </div>
+            </>
           )}
         </div>
 
