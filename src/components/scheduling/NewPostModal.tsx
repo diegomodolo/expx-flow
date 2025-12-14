@@ -62,6 +62,23 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('12:00');
 
+  // Get linked accounts for selected client
+  const selectedClientData = clients.find(c => c.id === selectedClient);
+  const clientFacebookPage = pages.find(p => p.id === selectedClientData?.facebook_page_id);
+  const clientInstagramAccount = instagramAccounts.find(a => a.id === selectedClientData?.instagram_account_id);
+
+  // Auto-set accounts when client is selected
+  useEffect(() => {
+    if (selectedClient && selectedClientData) {
+      if (selectedClientData.facebook_page_id) {
+        setSelectedFacebookPage(selectedClientData.facebook_page_id);
+      }
+      if (selectedClientData.instagram_account_id) {
+        setSelectedInstagramAccount(selectedClientData.instagram_account_id);
+      }
+    }
+  }, [selectedClient, selectedClientData]);
+
   // Reset form when opening modal
   useEffect(() => {
     if (open) {
@@ -82,24 +99,14 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setCaption('');
         setMediaUrls([]);
         setSelectedPlatforms([]);
-        setSelectedFacebookPage(pages[0]?.id || '');
-        setSelectedInstagramAccount(instagramAccounts[0]?.id || '');
+        setSelectedFacebookPage('');
+        setSelectedInstagramAccount('');
         setSelectedClient('');
         setScheduledDate(initialDate || new Date());
         setScheduledTime('12:00');
       }
     }
-  }, [open, post, initialDate, pages, instagramAccounts]);
-
-  // Auto-select Instagram account when Facebook page changes
-  useEffect(() => {
-    if (selectedFacebookPage) {
-      const linkedIg = instagramAccounts.find(ig => ig.facebook_page_id === selectedFacebookPage);
-      if (linkedIg) {
-        setSelectedInstagramAccount(linkedIg.id);
-      }
-    }
-  }, [selectedFacebookPage, instagramAccounts]);
+  }, [open, post, initialDate]);
 
   // Clear media when content type changes
   useEffect(() => {
@@ -149,7 +156,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
     }
   };
 
-  const isValid = scheduledDate && mediaUrls.length > 0 && selectedPlatforms.length > 0;
+  const isValid = scheduledDate && mediaUrls.length > 0 && selectedPlatforms.length > 0 && selectedClient;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -159,6 +166,47 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Client Selection - FIRST */}
+          <div>
+            <Label htmlFor="client" className="mb-2 block font-medium">
+              Cliente <span className="text-destructive">*</span>
+            </Label>
+            <ClientCombobox
+              clients={clients}
+              value={selectedClient}
+              onValueChange={setSelectedClient}
+              placeholder="Selecione o cliente primeiro"
+            />
+          </div>
+
+          {/* Linked Accounts Display */}
+          {selectedClient && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <FaFacebook className="h-4 w-4 text-blue-600" />
+                  <Label className="text-xs text-muted-foreground">Página do Facebook</Label>
+                </div>
+                {clientFacebookPage ? (
+                  <p className="font-medium text-sm">{clientFacebookPage.page_name}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Não vinculada</p>
+                )}
+              </div>
+              <div className="p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <FaInstagram className="h-4 w-4 text-pink-600" />
+                  <Label className="text-xs text-muted-foreground">Conta do Instagram</Label>
+                </div>
+                {clientInstagramAccount ? (
+                  <p className="font-medium text-sm">@{clientInstagramAccount.username}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Não vinculada</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Content Type */}
           <div>
             <Label className="mb-3 block">Tipo de Conteúdo</Label>
@@ -223,83 +271,37 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
             <Label className="mb-3 block">Plataformas</Label>
             <div className="flex gap-4">
               <label className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors flex-1",
+                "flex items-center gap-3 p-3 rounded-lg border transition-colors flex-1",
+                !clientFacebookPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                 selectedPlatforms.includes('facebook') 
                   ? "border-blue-500 bg-blue-500/5" 
                   : "border-border"
               )}>
                 <Checkbox
                   checked={selectedPlatforms.includes('facebook')}
-                  onCheckedChange={() => togglePlatform('facebook')}
+                  onCheckedChange={() => clientFacebookPage && togglePlatform('facebook')}
+                  disabled={!clientFacebookPage}
                 />
                 <FaFacebook className="h-5 w-5 text-blue-600" />
                 <span className="font-medium">Facebook</span>
               </label>
 
               <label className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors flex-1",
+                "flex items-center gap-3 p-3 rounded-lg border transition-colors flex-1",
+                !clientInstagramAccount ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                 selectedPlatforms.includes('instagram') 
                   ? "border-pink-500 bg-pink-500/5" 
                   : "border-border"
               )}>
                 <Checkbox
                   checked={selectedPlatforms.includes('instagram')}
-                  onCheckedChange={() => togglePlatform('instagram')}
+                  onCheckedChange={() => clientInstagramAccount && togglePlatform('instagram')}
+                  disabled={!clientInstagramAccount}
                 />
                 <FaInstagram className="h-5 w-5 text-pink-600" />
                 <span className="font-medium">Instagram</span>
               </label>
             </div>
-          </div>
-
-          {/* Page/Account Selection */}
-          <div className="grid grid-cols-2 gap-4">
-            {selectedPlatforms.includes('facebook') && (
-              <div>
-                <Label htmlFor="fb-page" className="mb-2 block">Página do Facebook</Label>
-                <Select value={selectedFacebookPage} onValueChange={setSelectedFacebookPage}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a página" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pages.map(page => (
-                      <SelectItem key={page.id} value={page.id}>
-                        {page.page_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {selectedPlatforms.includes('instagram') && (
-              <div>
-                <Label htmlFor="ig-account" className="mb-2 block">Conta do Instagram</Label>
-                <Select value={selectedInstagramAccount} onValueChange={setSelectedInstagramAccount}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a conta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {instagramAccounts.map(account => (
-                      <SelectItem key={account.id} value={account.id}>
-                        @{account.username}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {/* Client (Optional) */}
-          <div>
-            <Label htmlFor="client" className="mb-2 block">Cliente (opcional)</Label>
-            <ClientCombobox
-              clients={clients}
-              value={selectedClient}
-              onValueChange={setSelectedClient}
-              placeholder="Selecione um cliente"
-            />
           </div>
 
           {/* Schedule */}
