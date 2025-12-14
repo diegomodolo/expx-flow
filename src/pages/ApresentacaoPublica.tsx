@@ -778,22 +778,22 @@ export default function ApresentacaoPublica() {
 
           {/* Headline */}
           {creative.headline && (
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
               {creative.headline}
             </h2>
           )}
 
           {/* Subheadline */}
           {creative.subheadline && (
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="text-xl md:text-2xl text-muted-foreground mb-6">
               {creative.subheadline}
             </p>
           )}
 
           {/* Schedule info */}
           {creative.scheduled_date && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <Calendar className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-base text-muted-foreground mb-5">
+              <Calendar className="w-5 h-5" />
               <span>
                 {new Date(creative.scheduled_date).toLocaleDateString("pt-BR")}
                 {creative.scheduled_time && ` às ${creative.scheduled_time.slice(0, 5)}`}
@@ -803,20 +803,20 @@ export default function ApresentacaoPublica() {
 
           {/* Objective */}
           {creative.objective && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-                <Target className="w-4 h-4" />
+            <div className="mb-5">
+              <div className="flex items-center gap-2 text-base font-medium text-foreground mb-2">
+                <Target className="w-5 h-5" />
                 Objetivo
               </div>
-              <p className="text-muted-foreground text-sm">{creative.objective}</p>
+              <p className="text-muted-foreground text-base">{creative.objective}</p>
             </div>
           )}
 
           {/* Caption */}
           {creative.caption && (
-            <div className="mb-4">
-              <div className="text-sm font-medium text-foreground mb-1">Legenda</div>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-6">
+            <div className="mb-5">
+              <div className="text-base font-medium text-foreground mb-2">Legenda</div>
+              <p className="text-base text-muted-foreground whitespace-pre-wrap line-clamp-6">
                 {creative.caption}
               </p>
             </div>
@@ -824,8 +824,8 @@ export default function ApresentacaoPublica() {
 
           {/* Hashtags */}
           {creative.hashtags && (
-            <div className="flex items-center gap-2 text-sm text-primary">
-              <Hash className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-base text-primary">
+              <Hash className="w-5 h-5" />
               <span className="line-clamp-1">{creative.hashtags}</span>
             </div>
           )}
