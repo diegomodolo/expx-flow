@@ -103,8 +103,8 @@ export function ClienteRedesSociais() {
         <div className="grid gap-6 lg:grid-cols-2">
           <SocialTimelineChart
             reachData={instagram.timeline.reach}
-            impressionsData={instagram.timeline.impressions}
-            title="Alcance e Impressões (30 dias)"
+            engagedData={instagram.timeline.accounts_engaged}
+            title="Alcance e Engajamento (30 dias)"
           />
           <FollowersGrowthChart
             data={instagram.timeline.follower_count}

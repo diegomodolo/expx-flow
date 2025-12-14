@@ -40,7 +40,7 @@ interface TimelineDataPoint2 {
 
 interface InstagramTimeline {
   reach: TimelineDataPoint2[];
-  impressions: TimelineDataPoint2[];
+  accounts_engaged: TimelineDataPoint2[];
   profile_views: TimelineDataPoint2[];
   website_clicks: TimelineDataPoint2[];
   follower_count: TimelineDataPoint2[];
@@ -48,7 +48,7 @@ interface InstagramTimeline {
 
 interface InstagramComparison {
   reach_change_pct: number;
-  impressions_change_pct: number;
+  accounts_engaged_change_pct: number;
   profile_views_change_pct: number;
   website_clicks_change_pct: number;
   followers_gained: number;
@@ -215,7 +215,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
       // Timeline data for charts
       let timeline: InstagramTimeline = {
         reach: [],
-        impressions: [],
+        accounts_engaged: [],
         profile_views: [],
         website_clicks: [],
         follower_count: [],
@@ -224,7 +224,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
       // Comparison data
       let comparison: InstagramComparison = {
         reach_change_pct: 0,
-        impressions_change_pct: 0,
+        accounts_engaged_change_pct: 0,
         profile_views_change_pct: 0,
         website_clicks_change_pct: 0,
         followers_gained: 0,
@@ -238,8 +238,9 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         const until = Math.floor(now.getTime() / 1000);
         
         // Insights de período com breakdown diário (últimos 30 dias)
+        // Using valid metrics: reach, accounts_engaged, profile_views, website_clicks, follower_count
         const insightsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
-          `metric=reach,impressions,profile_views,website_clicks,follower_count` +
+          `metric=reach,accounts_engaged,profile_views,website_clicks,follower_count` +
           `&period=day` +
           `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
@@ -267,8 +268,9 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
                   timeline.reach = timelineArray;
                   reach = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
                   break;
-                case 'impressions':
-                  timeline.impressions = timelineArray;
+                case 'accounts_engaged':
+                  timeline.accounts_engaged = timelineArray;
+                  // Use accounts_engaged as a proxy for engagement metrics
                   impressions = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
                   break;
                 case 'profile_views':
@@ -295,7 +297,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
             };
             
             comparison.reach_change_pct = calcComparison(timeline.reach);
-            comparison.impressions_change_pct = calcComparison(timeline.impressions);
+            comparison.accounts_engaged_change_pct = calcComparison(timeline.accounts_engaged);
             comparison.profile_views_change_pct = calcComparison(timeline.profile_views);
             comparison.website_clicks_change_pct = calcComparison(timeline.website_clicks);
             
@@ -308,7 +310,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
             
             console.log('Timeline processed:', {
               reach_points: timeline.reach.length,
-              impressions_points: timeline.impressions.length,
+              accounts_engaged_points: timeline.accounts_engaged.length,
               follower_points: timeline.follower_count.length,
             });
           }
