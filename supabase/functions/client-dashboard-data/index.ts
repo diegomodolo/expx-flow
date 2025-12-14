@@ -23,6 +23,16 @@ interface DashboardMetrics {
   frequency: number;
 }
 
+interface TopEngagementPost {
+  id: string;
+  thumbnail_url: string;
+  caption: string;
+  like_count: number;
+  comments_count: number;
+  permalink: string;
+  engagement: number;
+}
+
 interface SocialMetrics {
   instagram: {
     username: string;
@@ -37,6 +47,8 @@ interface SocialMetrics {
     impressions?: number;
     profile_views?: number;
     website_clicks?: number;
+    // Top engagement posts
+    top_posts?: TopEngagementPost[];
   } | null;
   facebook: {
     page_name: string;
@@ -131,9 +143,9 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     console.log('Fetching Instagram data for:', igAccount.username);
     
     try {
-      // Buscar últimos 25 posts para calcular métricas de engajamento
+      // Buscar últimos 25 posts com dados completos para ranking de engajamento
       const mediaUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/media?` +
-        `fields=id,like_count,comments_count` +
+        `fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,permalink` +
         `&limit=25&access_token=${pageAccessToken}`;
       
       const mediaResponse = await fetch(mediaUrl);
@@ -141,6 +153,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
       let totalComments = 0;
       let postsCount = 0;
       let avgEngagement = 0;
+      let topPosts: TopEngagementPost[] = [];
 
       if (mediaResponse.ok) {
         const mediaData = await mediaResponse.json();
@@ -151,7 +164,21 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         totalComments = posts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
         avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
         
-        console.log(`Fetched ${postsCount} Instagram posts for engagement calculation`);
+        // Ordenar por engajamento e pegar top 5
+        topPosts = posts
+          .map((p: any) => ({
+            id: p.id,
+            thumbnail_url: p.thumbnail_url || p.media_url || '',
+            caption: p.caption || '',
+            like_count: p.like_count || 0,
+            comments_count: p.comments_count || 0,
+            permalink: p.permalink || '',
+            engagement: (p.like_count || 0) + (p.comments_count || 0),
+          }))
+          .sort((a: TopEngagementPost, b: TopEngagementPost) => b.engagement - a.engagement)
+          .slice(0, 5);
+        
+        console.log(`Fetched ${postsCount} Instagram posts, top 5 by engagement selected`);
       }
 
       // Buscar insights do Instagram (requer instagram_manage_insights)
@@ -213,6 +240,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         impressions,
         profile_views: profileViews,
         website_clicks: websiteClicks,
+        top_posts: topPosts,
       };
     } catch (error) {
       console.error('Error fetching Instagram data:', error);

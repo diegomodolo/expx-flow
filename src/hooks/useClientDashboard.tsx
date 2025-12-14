@@ -44,6 +44,16 @@ export interface CampaignTableRow {
   status: string;
 }
 
+export interface TopEngagementPost {
+  id: string;
+  thumbnail_url: string;
+  caption: string;
+  like_count: number;
+  comments_count: number;
+  permalink: string;
+  engagement: number;
+}
+
 export interface SocialMetrics {
   instagram: {
     username: string;
@@ -58,6 +68,8 @@ export interface SocialMetrics {
     impressions?: number;
     profile_views?: number;
     website_clicks?: number;
+    // Top engagement posts
+    top_posts?: TopEngagementPost[];
   } | null;
   facebook: {
     page_name: string;
