@@ -18,6 +18,15 @@ verify_jwt = true
 [functions.scheduled-automation-execution]
 verify_jwt = false
 
+[functions.fetch-facebook-pages]
+verify_jwt = true
+
+[functions.publish-scheduled-post]
+verify_jwt = true
+
+[functions.scheduled-post-publisher]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

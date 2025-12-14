@@ -2853,6 +2853,63 @@ export type Database = {
         }
         Relationships: []
       }
+      facebook_pages: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          instagram_business_account_id: string | null
+          integration_id: string
+          is_active: boolean | null
+          page_access_token: string
+          page_category: string | null
+          page_id: string
+          page_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          instagram_business_account_id?: string | null
+          integration_id: string
+          is_active?: boolean | null
+          page_access_token: string
+          page_category?: string | null
+          page_id: string
+          page_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          instagram_business_account_id?: string | null
+          integration_id?: string
+          is_active?: boolean | null
+          page_access_token?: string
+          page_category?: string | null
+          page_id?: string
+          page_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_pages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_pages_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facebook_sync_execution_logs: {
         Row: {
           clients_processed: number | null
@@ -3696,6 +3753,60 @@ export type Database = {
           },
         ]
       }
+      instagram_accounts: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          facebook_page_id: string
+          followers_count: number | null
+          id: string
+          instagram_id: string
+          is_active: boolean | null
+          profile_picture_url: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          facebook_page_id: string
+          followers_count?: number | null
+          id?: string
+          instagram_id: string
+          is_active?: boolean | null
+          profile_picture_url?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          facebook_page_id?: string
+          followers_count?: number | null
+          id?: string
+          instagram_id?: string
+          is_active?: boolean | null
+          profile_picture_url?: string | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_accounts_facebook_page_id_fkey"
+            columns: ["facebook_page_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_disqualification_reports: {
         Row: {
           additional_notes: string | null
@@ -4433,6 +4544,50 @@ export type Database = {
           },
         ]
       }
+      post_publish_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          platform: string
+          response_data: Json | null
+          scheduled_post_id: string
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          platform: string
+          response_data?: Json | null
+          scheduled_post_id: string
+          status: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          platform?: string
+          response_data?: Json | null
+          scheduled_post_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_publish_logs_scheduled_post_id_fkey"
+            columns: ["scheduled_post_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -4465,6 +4620,113 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      scheduled_posts: {
+        Row: {
+          caption: string | null
+          client_id: string | null
+          company_id: string
+          content_type: string
+          created_at: string | null
+          created_by: string
+          error_message: string | null
+          facebook_page_id: string | null
+          facebook_post_id: string | null
+          id: string
+          instagram_account_id: string | null
+          instagram_media_id: string | null
+          media_urls: string[]
+          metadata: Json | null
+          platforms: string[]
+          published_at: string | null
+          retry_count: number | null
+          scheduled_at: string
+          status: string
+          thumbnail_url: string | null
+          timezone: string | null
+          updated_at: string | null
+          visual_creative_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          client_id?: string | null
+          company_id: string
+          content_type: string
+          created_at?: string | null
+          created_by: string
+          error_message?: string | null
+          facebook_page_id?: string | null
+          facebook_post_id?: string | null
+          id?: string
+          instagram_account_id?: string | null
+          instagram_media_id?: string | null
+          media_urls?: string[]
+          metadata?: Json | null
+          platforms?: string[]
+          published_at?: string | null
+          retry_count?: number | null
+          scheduled_at: string
+          status?: string
+          thumbnail_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          visual_creative_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          client_id?: string | null
+          company_id?: string
+          content_type?: string
+          created_at?: string | null
+          created_by?: string
+          error_message?: string | null
+          facebook_page_id?: string | null
+          facebook_post_id?: string | null
+          id?: string
+          instagram_account_id?: string | null
+          instagram_media_id?: string | null
+          media_urls?: string[]
+          metadata?: Json | null
+          platforms?: string[]
+          published_at?: string | null
+          retry_count?: number | null
+          scheduled_at?: string
+          status?: string
+          thumbnail_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          visual_creative_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_posts_facebook_page_id_fkey"
+            columns: ["facebook_page_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_posts_instagram_account_id_fkey"
+            columns: ["instagram_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sectors: {
         Row: {

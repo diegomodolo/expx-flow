@@ -1,0 +1,436 @@
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, Image, Video, Film, Images, Upload, X, Loader2 } from 'lucide-react';
+import { FaFacebook, FaInstagram } from 'react-icons/fa';
+import { useScheduledPosts, ScheduledPost, CreateScheduledPostInput } from '@/hooks/useScheduledPosts';
+import { FacebookPage, InstagramAccount } from '@/hooks/useFacebookPages';
+import { useClients } from '@/hooks/useClients';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
+interface NewPostModalProps {
+  open: boolean;
+  onClose: () => void;
+  post?: ScheduledPost | null;
+  initialDate?: Date | null;
+  pages: FacebookPage[];
+  instagramAccounts: InstagramAccount[];
+}
+
+type ContentType = 'image' | 'video' | 'carousel' | 'reel';
+
+const contentTypes: { value: ContentType; label: string; icon: React.ElementType; description: string }[] = [
+  { value: 'image', label: 'Imagem', icon: Image, description: 'Post de imagem única' },
+  { value: 'video', label: 'Vídeo', icon: Video, description: 'Post de vídeo' },
+  { value: 'carousel', label: 'Carrossel', icon: Images, description: 'Múltiplas imagens/vídeos' },
+  { value: 'reel', label: 'Reel', icon: Film, description: 'Vídeo curto vertical' },
+];
+
+export const NewPostModal: React.FC<NewPostModalProps> = ({
+  open,
+  onClose,
+  post,
+  initialDate,
+  pages,
+  instagramAccounts,
+}) => {
+  const { createPost, updatePost } = useScheduledPosts();
+  const { clients } = useClients();
+  const [loading, setLoading] = useState(false);
+
+  // Form state
+  const [contentType, setContentType] = useState<ContentType>('image');
+  const [caption, setCaption] = useState('');
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedFacebookPage, setSelectedFacebookPage] = useState<string>('');
+  const [selectedInstagramAccount, setSelectedInstagramAccount] = useState<string>('');
+  const [selectedClient, setSelectedClient] = useState<string>('');
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
+  const [scheduledTime, setScheduledTime] = useState('12:00');
+
+  // Reset form when opening modal
+  useEffect(() => {
+    if (open) {
+      if (post) {
+        // Edit mode
+        setContentType(post.content_type);
+        setCaption(post.caption || '');
+        setMediaUrls(post.media_urls || []);
+        setSelectedPlatforms(post.platforms);
+        setSelectedFacebookPage(post.facebook_page_id || '');
+        setSelectedInstagramAccount(post.instagram_account_id || '');
+        setSelectedClient(post.client_id || '');
+        setScheduledDate(new Date(post.scheduled_at));
+        setScheduledTime(format(new Date(post.scheduled_at), 'HH:mm'));
+      } else {
+        // New post mode
+        setContentType('image');
+        setCaption('');
+        setMediaUrls([]);
+        setNewMediaUrl('');
+        setSelectedPlatforms([]);
+        setSelectedFacebookPage(pages[0]?.id || '');
+        setSelectedInstagramAccount(instagramAccounts[0]?.id || '');
+        setSelectedClient('');
+        setScheduledDate(initialDate || new Date());
+        setScheduledTime('12:00');
+      }
+    }
+  }, [open, post, initialDate, pages, instagramAccounts]);
+
+  // Auto-select Instagram account when Facebook page changes
+  useEffect(() => {
+    if (selectedFacebookPage) {
+      const linkedIg = instagramAccounts.find(ig => ig.facebook_page_id === selectedFacebookPage);
+      if (linkedIg) {
+        setSelectedInstagramAccount(linkedIg.id);
+      }
+    }
+  }, [selectedFacebookPage, instagramAccounts]);
+
+  const handleAddMedia = () => {
+    if (newMediaUrl.trim()) {
+      setMediaUrls([...mediaUrls, newMediaUrl.trim()]);
+      setNewMediaUrl('');
+    }
+  };
+
+  const handleRemoveMedia = (index: number) => {
+    setMediaUrls(mediaUrls.filter((_, i) => i !== index));
+  };
+
+  const togglePlatform = (platform: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platform) 
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  };
+
+  const handleSubmit = async () => {
+    if (!scheduledDate || mediaUrls.length === 0 || selectedPlatforms.length === 0) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [hours, minutes] = scheduledTime.split(':').map(Number);
+      const scheduledAt = new Date(scheduledDate);
+      scheduledAt.setHours(hours, minutes, 0, 0);
+
+      const input: CreateScheduledPostInput = {
+        content_type: contentType,
+        caption,
+        media_urls: mediaUrls,
+        platforms: selectedPlatforms,
+        facebook_page_id: selectedPlatforms.includes('facebook') ? selectedFacebookPage : null,
+        instagram_account_id: selectedPlatforms.includes('instagram') ? selectedInstagramAccount : null,
+        client_id: selectedClient || null,
+        scheduled_at: scheduledAt.toISOString(),
+        status: 'scheduled',
+      };
+
+      if (post) {
+        await updatePost(post.id, input);
+      } else {
+        await createPost(input);
+      }
+
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isValid = scheduledDate && mediaUrls.length > 0 && selectedPlatforms.length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{post ? 'Editar Post' : 'Novo Post Agendado'}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Content Type */}
+          <div>
+            <Label className="mb-3 block">Tipo de Conteúdo</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {contentTypes.map(type => {
+                const Icon = type.icon;
+                return (
+                  <button
+                    key={type.value}
+                    onClick={() => setContentType(type.value)}
+                    className={cn(
+                      "p-3 rounded-lg border text-center transition-colors",
+                      contentType === type.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "h-5 w-5 mx-auto mb-1",
+                      contentType === type.value ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    <span className={cn(
+                      "text-xs font-medium",
+                      contentType === type.value ? "text-primary" : "text-foreground"
+                    )}>{type.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Media URLs */}
+          <div>
+            <Label className="mb-3 block">Mídia</Label>
+            <div className="space-y-2">
+              {mediaUrls.map((url, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="w-12 h-12 rounded bg-muted overflow-hidden flex-shrink-0">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <Input value={url} readOnly className="flex-1 text-xs" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleRemoveMedia(index)}
+                    className="text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Cole a URL da imagem ou vídeo"
+                  value={newMediaUrl}
+                  onChange={(e) => setNewMediaUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddMedia()}
+                />
+                <Button variant="outline" onClick={handleAddMedia} disabled={!newMediaUrl.trim()}>
+                  <Upload className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                {contentType === 'carousel' 
+                  ? 'Adicione até 10 imagens ou vídeos'
+                  : 'Cole a URL pública da mídia'}
+              </p>
+            </div>
+          </div>
+
+          {/* Caption */}
+          <div>
+            <Label htmlFor="caption" className="mb-2 block">
+              Legenda
+              <span className="text-muted-foreground ml-2 text-xs">
+                {caption.length}/2200
+              </span>
+            </Label>
+            <Textarea
+              id="caption"
+              placeholder="Escreva a legenda do post..."
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={4}
+              maxLength={2200}
+            />
+          </div>
+
+          {/* Platforms */}
+          <div>
+            <Label className="mb-3 block">Plataformas</Label>
+            <div className="flex gap-4">
+              <label className={cn(
+                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors flex-1",
+                selectedPlatforms.includes('facebook') 
+                  ? "border-blue-500 bg-blue-500/5" 
+                  : "border-border"
+              )}>
+                <Checkbox
+                  checked={selectedPlatforms.includes('facebook')}
+                  onCheckedChange={() => togglePlatform('facebook')}
+                />
+                <FaFacebook className="h-5 w-5 text-blue-600" />
+                <span className="font-medium">Facebook</span>
+              </label>
+
+              <label className={cn(
+                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors flex-1",
+                selectedPlatforms.includes('instagram') 
+                  ? "border-pink-500 bg-pink-500/5" 
+                  : "border-border"
+              )}>
+                <Checkbox
+                  checked={selectedPlatforms.includes('instagram')}
+                  onCheckedChange={() => togglePlatform('instagram')}
+                />
+                <FaInstagram className="h-5 w-5 text-pink-600" />
+                <span className="font-medium">Instagram</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Page/Account Selection */}
+          <div className="grid grid-cols-2 gap-4">
+            {selectedPlatforms.includes('facebook') && (
+              <div>
+                <Label htmlFor="fb-page" className="mb-2 block">Página do Facebook</Label>
+                <Select value={selectedFacebookPage} onValueChange={setSelectedFacebookPage}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a página" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pages.map(page => (
+                      <SelectItem key={page.id} value={page.id}>
+                        {page.page_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {selectedPlatforms.includes('instagram') && (
+              <div>
+                <Label htmlFor="ig-account" className="mb-2 block">Conta do Instagram</Label>
+                <Select value={selectedInstagramAccount} onValueChange={setSelectedInstagramAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {instagramAccounts.map(account => (
+                      <SelectItem key={account.id} value={account.id}>
+                        @{account.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Client (Optional) */}
+          <div>
+            <Label htmlFor="client" className="mb-2 block">Cliente (opcional)</Label>
+            <Select value={selectedClient} onValueChange={setSelectedClient}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum</SelectItem>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Schedule */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="mb-2 block">Data</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !scheduledDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {scheduledDate ? (
+                      format(scheduledDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+                    ) : (
+                      "Selecione a data"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={scheduledDate}
+                    onSelect={setScheduledDate}
+                    initialFocus
+                    disabled={(date) => date < new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Label htmlFor="time" className="mb-2 block">Horário</Label>
+              <Input
+                id="time"
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Preview */}
+          {mediaUrls.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <Label className="mb-3 block text-xs text-muted-foreground">Preview</Label>
+                <div className="flex gap-4">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                    <img 
+                      src={mediaUrls[0]} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm line-clamp-3">{caption || 'Sem legenda'}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {selectedPlatforms.map(p => (
+                        <Badge key={p} variant="secondary" className="text-xs">
+                          {p === 'facebook' ? <FaFacebook className="h-3 w-3 mr-1" /> : <FaInstagram className="h-3 w-3 mr-1" />}
+                          {p}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={!isValid || loading}>
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {post ? 'Salvar Alterações' : 'Agendar Post'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

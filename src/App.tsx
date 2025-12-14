@@ -54,6 +54,7 @@ import CRMLogin from "./pages/CRMLogin";
 import Automacoes from "./pages/Automacoes";
 import DashboardOrcamento from "./pages/DashboardOrcamento";
 import ClientDashboardPublic from "./pages/ClientDashboardPublic";
+import Agendamento from "./pages/Agendamento";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -312,8 +313,13 @@ const App = () => {
                 <Route path="/dashboard-orcamento" element={
                   <ProtectedRoute>
                     <DashboardOrcamento />
-                  </ProtectedRoute>
-                } />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/agendamento" element={
+                   <ProtectedRoute>
+                     <Agendamento />
+                   </ProtectedRoute>
+                 } />
                 <Route path="/configuracoes/*" element={
                   <ProtectedRoute>
                     <Configuracoes />
