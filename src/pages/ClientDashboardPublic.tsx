@@ -7,6 +7,7 @@ import { TimelineChart } from "@/components/dashboard-public/TimelineChart";
 import { TopCampaignsPie } from "@/components/dashboard-public/TopCampaignsPie";
 import { CampaignsTable } from "@/components/dashboard-public/CampaignsTable";
 import { PeriodSelector } from "@/components/dashboard-public/PeriodSelector";
+import { SocialMetricsCard } from "@/components/dashboard-public/SocialMetricsCard";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -318,6 +319,13 @@ const ClientDashboardPublic = () => {
             <CampaignsTable campaigns={data.campaigns_table} />
           </div>
         </div>
+
+        {/* Social Metrics */}
+        {data.social_metrics && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SocialMetricsCard socialMetrics={data.social_metrics} />
+          </div>
+        )}
       </div>
     </div>;
 };

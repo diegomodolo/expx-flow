@@ -44,6 +44,44 @@ export interface CampaignTableRow {
   status: string;
 }
 
+export interface InstagramPost {
+  id: string;
+  media_type: string;
+  media_url: string;
+  thumbnail_url: string;
+  caption: string;
+  like_count: number;
+  comments_count: number;
+  permalink: string;
+  timestamp: string;
+}
+
+export interface SocialMetrics {
+  instagram: {
+    username: string;
+    profile_picture_url: string;
+    followers_count: number;
+    posts_count: number;
+    recent_posts: InstagramPost[];
+    total_likes: number;
+    total_comments: number;
+    avg_engagement: number;
+    top_post: {
+      id: string;
+      thumbnail_url: string;
+      media_url: string;
+      like_count: number;
+      comments_count: number;
+      permalink: string;
+    } | null;
+  } | null;
+  facebook: {
+    page_name: string;
+    page_category: string;
+    page_picture_url: string;
+  } | null;
+}
+
 export interface DashboardData {
   client: {
     name: string;
@@ -59,6 +97,7 @@ export interface DashboardData {
   timeline: TimelineDataPoint[];
   top_campaigns: TopCampaign[];
   campaigns_table: CampaignTableRow[];
+  social_metrics?: SocialMetrics;
 }
 
 export const useClientDashboard = (token: string, startDate: string, endDate: string) => {
