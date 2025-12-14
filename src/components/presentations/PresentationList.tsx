@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ContentPresentation, usePresentations } from "@/hooks/usePresentations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ const statusConfig = {
 
 export function PresentationList({ presentations, isLoading, onEdit }: PresentationListProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { deletePresentation, publishPresentation } = usePresentations();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -113,9 +115,13 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {presentations.map((presentation) => (
-          <Card key={presentation.id} className="overflow-hidden hover:shadow-md transition-shadow">
+          <Card 
+            key={presentation.id} 
+            className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate(`/geradores/apresentacoes/${presentation.id}`)}
+          >
             <div 
-              className="h-2" 
+              className="h-2"
               style={{ backgroundColor: presentation.primary_color }}
             />
             <CardContent className="p-4">
@@ -137,12 +143,12 @@ export function PresentationList({ presentations, isLoading, onEdit }: Presentat
                   </div>
                 </div>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenuItem onClick={() => onEdit(presentation.id)}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Editar
