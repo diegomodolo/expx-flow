@@ -18,17 +18,7 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: Home, permission: "dashboard" as MenuItemType },
@@ -57,70 +47,82 @@ export function DashboardSidebar() {
 
   // Filter items based on permissions
   const visibleItems = useMemo(() => {
-    // Always show all items for owners
     if (isOwner) {
       return items;
     }
     
-    // During loading, show basic items only
     if (permissionsLoading) {
       return items.filter(item => item.permission === 'dashboard' || item.permission === 'tarefas');
     }
     
-    // Filter based on permissions
     const filtered = items.filter(item => hasPermission(item.permission));
     return filtered;
   }, [permissionsLoading, isOwner, hasPermission]);
 
   return (
     <>
-      {/* Overlay escuro quando sidebar está expandido */}
+      {/* Overlay when sidebar is expanded */}
       {open && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-20 z-40 transition-opacity duration-300"
+          className="fixed inset-0 bg-black/20 z-40 transition-opacity duration-200"
           onClick={() => setOpen(false)}
         />
       )}
       
-      {/* Sidebar fixo posicionado sobre o conteúdo */}
+      {/* Google-style Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full z-50 transition-all duration-300 bg-card border-r border-border shadow-lg ${
-          open ? 'w-60' : 'w-14'
+        className={`fixed left-0 top-0 h-full z-50 transition-all duration-200 ease-in-out bg-card shadow-google-sm ${
+          open ? 'w-[280px]' : 'w-[72px]'
         }`}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
       >
-        <div className="pt-6 h-full">
-          <div className="space-y-2 px-2">
-            {visibleItems.map((item) => (
-              <div key={item.title}>
-                <NavLink 
-                  to={item.url} 
-                  end 
-                  className={({ isActive }) =>
-                    `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-2'} py-3 rounded-lg transition-all duration-300 ${
-                      isActive
-                        ? "bg-primary/10 text-primary dark:bg-primary/20"
-                        : "text-card-foreground hover:bg-muted/50"
-                    }`
-                  }
-                  title={!open ? item.title : ''}
-                >
-                  <item.icon className={`w-5 h-5 transition-colors duration-200 flex-shrink-0 ${
-                    isActive(item.url) ? "text-primary" : "text-muted-foreground"
-                  }`} />
-                  {open && (
-                    <span className={`font-medium transition-all duration-300 whitespace-nowrap ${
-                      isActive(item.url) ? "text-primary" : "text-card-foreground"
-                    }`}>
-                      {item.title}
-                    </span>
-                  )}
-                </NavLink>
-              </div>
-            ))}
-          </div>
+        {/* Logo area */}
+        <div className="h-16 flex items-center px-5">
+          <img 
+            src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
+            alt="Logo" 
+            className="w-8 h-8 object-contain flex-shrink-0"
+          />
+          {open && (
+            <span className="ml-4 text-base font-medium text-foreground tracking-tight whitespace-nowrap">
+              Controle de Trafego
+            </span>
+          )}
         </div>
+
+        {/* Navigation */}
+        <nav className="px-3 py-2 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
+          {visibleItems.map((item) => (
+            <NavLink 
+              key={item.title}
+              to={item.url} 
+              end 
+              className={({ isActive: active }) =>
+                `flex items-center ${open ? 'gap-4 px-4' : 'justify-center px-0'} py-2.5 rounded-full transition-all duration-150 ${
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted/50"
+                }`
+              }
+              title={!open ? item.title : ''}
+            >
+              <item.icon 
+                className={`w-6 h-6 flex-shrink-0 transition-colors duration-150 ${
+                  isActive(item.url) ? "text-primary" : "text-muted-foreground"
+                }`} 
+                strokeWidth={isActive(item.url) ? 2 : 1.5}
+              />
+              {open && (
+                <span className={`text-sm font-medium tracking-wide whitespace-nowrap ${
+                  isActive(item.url) ? "text-primary" : "text-foreground"
+                }`}>
+                  {item.title}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
       </div>
     </>
   );
