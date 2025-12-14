@@ -66,8 +66,8 @@ export function SocialMetricsCard({ socialMetrics }: SocialMetricsCardProps) {
               </div>
             </div>
 
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Metrics Grid - 4 columns */}
+            <div className="grid grid-cols-4 gap-2">
               <MetricItem 
                 icon={Users} 
                 iconColor="text-pink-500" 
@@ -86,10 +86,16 @@ export function SocialMetricsCard({ socialMetrics }: SocialMetricsCardProps) {
                 value={formatNumber(instagram.total_comments)} 
                 label="Comentários" 
               />
+              <MetricItem 
+                icon={TrendingUp} 
+                iconColor="text-green-500" 
+                value={instagram.avg_engagement.toFixed(1)} 
+                label="Engaj. Médio" 
+              />
             </div>
 
             {/* Insights Row (if available) */}
-            {(instagram.reach || instagram.impressions || instagram.profile_views || instagram.website_clicks) ? (
+            {(instagram.reach || instagram.impressions || instagram.profile_views || instagram.website_clicks) && (
               <div className="grid grid-cols-4 gap-2">
                 <MetricItem 
                   icon={Eye} 
@@ -118,21 +124,6 @@ export function SocialMetricsCard({ socialMetrics }: SocialMetricsCardProps) {
                   value={formatNumber(instagram.website_clicks || 0)} 
                   label="Cliques Link" 
                   small 
-                />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <MetricItem 
-                  icon={TrendingUp} 
-                  iconColor="text-green-500" 
-                  value={instagram.avg_engagement.toFixed(1)} 
-                  label="Engaj. Médio" 
-                />
-                <MetricItem 
-                  icon={Eye} 
-                  iconColor="text-purple-500" 
-                  value={formatNumber(instagram.posts_count)} 
-                  label="Posts Analisados" 
                 />
               </div>
             )}
