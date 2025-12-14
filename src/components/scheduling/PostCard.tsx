@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale';
 interface PostCardProps {
   post: ScheduledPost;
   compact?: boolean;
+  onPreview?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onCancel?: () => void;
@@ -37,6 +38,7 @@ const contentTypeIcons = {
 export const PostCard: React.FC<PostCardProps> = ({
   post,
   compact = false,
+  onPreview,
   onEdit,
   onDelete,
   onCancel,
@@ -51,7 +53,10 @@ export const PostCard: React.FC<PostCardProps> = ({
 
   if (compact) {
     return (
-      <div className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+      <div 
+        className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+        onClick={onPreview}
+      >
         {/* Thumbnail */}
         {post.media_urls?.[0] && (
           <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
@@ -87,7 +92,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-6 w-6">
               <MoreVertical className="h-3 w-3" />
             </Button>
