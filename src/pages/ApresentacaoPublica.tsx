@@ -257,6 +257,16 @@ export default function ApresentacaoPublica() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle navigation if user is typing in an input/textarea or modal is open
+      const activeElement = document.activeElement;
+      const isTyping = activeElement instanceof HTMLInputElement || 
+                       activeElement instanceof HTMLTextAreaElement ||
+                       activeElement?.getAttribute('contenteditable') === 'true';
+      
+      if (isTyping || rejectionModalOpen) {
+        return;
+      }
+
       if (e.key === "ArrowRight" || e.key === " ") {
         e.preventDefault();
         nextSlide();
@@ -268,7 +278,7 @@ export default function ApresentacaoPublica() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide, totalSlides, meetingStarted]);
+  }, [currentSlide, totalSlides, meetingStarted, rejectionModalOpen]);
 
   // Meeting functions
   const handleAddParticipant = (participant: Participant) => {
