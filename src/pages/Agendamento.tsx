@@ -2,15 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, List, Plus, ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Calendar, List, Plus, ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle2, XCircle, Loader2, Filter } from 'lucide-react';
 import { useScheduledPosts, ScheduledPost } from '@/hooks/useScheduledPosts';
 import { useFacebookPages } from '@/hooks/useFacebookPages';
+import { useClients } from '@/hooks/useClients';
+import { useTeams } from '@/hooks/useTeams';
 import { NewPostModal } from '@/components/scheduling/NewPostModal';
 import { PostCard } from '@/components/scheduling/PostCard';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ClientCombobox } from '@/components/scheduling/ClientCombobox';
 
 const statusConfig = {
   draft: { label: 'Rascunho', color: 'bg-muted text-muted-foreground', icon: Clock },
@@ -27,9 +30,44 @@ const Agendamento = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  
+  // Filters
+  const [clientFilter, setClientFilter] = useState<string>('');
+  const [squadFilter, setSquadFilter] = useState<string>('all');
 
   const { posts, loading, fetchPosts, deletePost, cancelPost, reschedulePost, publishNow } = useScheduledPosts();
   const { pages, instagramAccounts } = useFacebookPages();
+  const { clients } = useClients();
+  const { teams } = useTeams();
+
+  // Create a map of client_id to team_id for filtering
+  const clientTeamMap = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    clients.forEach(client => {
+      map[client.id] = client.team_id || null;
+    });
+    return map;
+  }, [clients]);
+
+  // Filter posts based on selected filters
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      // Client filter
+      if (clientFilter && post.client_id !== clientFilter) {
+        return false;
+      }
+      
+      // Squad filter
+      if (squadFilter !== 'all' && post.client_id) {
+        const postTeamId = clientTeamMap[post.client_id];
+        if (postTeamId !== squadFilter) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [posts, clientFilter, squadFilter, clientTeamMap]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -40,13 +78,13 @@ const Agendamento = () => {
 
   const postsByDate = useMemo(() => {
     const grouped: Record<string, ScheduledPost[]> = {};
-    posts.forEach(post => {
+    filteredPosts.forEach(post => {
       const dateKey = format(new Date(post.scheduled_at), 'yyyy-MM-dd');
       if (!grouped[dateKey]) grouped[dateKey] = [];
       grouped[dateKey].push(post);
     });
     return grouped;
-  }, [posts]);
+  }, [filteredPosts]);
 
   const selectedDatePosts = useMemo(() => {
     if (!selectedDate) return [];
@@ -55,11 +93,11 @@ const Agendamento = () => {
   }, [selectedDate, postsByDate]);
 
   const stats = useMemo(() => ({
-    scheduled: posts.filter(p => p.status === 'scheduled').length,
-    published: posts.filter(p => p.status === 'published').length,
-    failed: posts.filter(p => p.status === 'failed').length,
-    total: posts.length,
-  }), [posts]);
+    scheduled: filteredPosts.filter(p => p.status === 'scheduled').length,
+    published: filteredPosts.filter(p => p.status === 'published').length,
+    failed: filteredPosts.filter(p => p.status === 'failed').length,
+    total: filteredPosts.length,
+  }), [filteredPosts]);
 
   const handleEditPost = (post: ScheduledPost) => {
     setSelectedPost(post);
@@ -78,6 +116,13 @@ const Agendamento = () => {
     fetchPosts();
   };
 
+  const clearFilters = () => {
+    setClientFilter('');
+    setSquadFilter('all');
+  };
+
+  const hasActiveFilters = clientFilter || squadFilter !== 'all';
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -92,6 +137,51 @@ const Agendamento = () => {
             Novo Post
           </Button>
         </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  Filtrar por Cliente
+                </label>
+                <ClientCombobox
+                  clients={clients}
+                  value={clientFilter}
+                  onValueChange={setClientFilter}
+                  placeholder="Todos os clientes"
+                />
+              </div>
+              
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  Filtrar por Squad
+                </label>
+                <Select value={squadFilter} onValueChange={setSquadFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os squads" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os squads</SelectItem>
+                    {teams.map(team => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={clearFilters} className="gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -279,17 +369,19 @@ const Agendamento = () => {
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
-                ) : posts.length === 0 ? (
+                ) : filteredPosts.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum post agendado ainda</p>
-                    <Button variant="link" onClick={() => handleNewPost()}>
-                      Criar primeiro post
-                    </Button>
+                    <p>{hasActiveFilters ? 'Nenhum post encontrado com os filtros selecionados' : 'Nenhum post agendado ainda'}</p>
+                    {!hasActiveFilters && (
+                      <Button variant="link" onClick={() => handleNewPost()}>
+                        Criar primeiro post
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {posts.map(post => (
+                    {filteredPosts.map(post => (
                       <PostCard
                         key={post.id}
                         post={post}

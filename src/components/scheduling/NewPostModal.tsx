@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Image, Video, Film, Images, Upload, X, Loader2 } from 'lucide-react';
+import { CalendarIcon, Image, Video, Film, Images, Loader2 } from 'lucide-react';
 import { FaFacebook, FaInstagram } from 'react-icons/fa';
 import { useScheduledPosts, ScheduledPost, CreateScheduledPostInput } from '@/hooks/useScheduledPosts';
 import { FacebookPage, InstagramAccount } from '@/hooks/useFacebookPages';
@@ -18,6 +18,8 @@ import { useClients } from '@/hooks/useClients';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { ClientCombobox } from './ClientCombobox';
+import { MediaUploader } from './MediaUploader';
 
 interface NewPostModalProps {
   open: boolean;
@@ -53,7 +55,6 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   const [contentType, setContentType] = useState<ContentType>('image');
   const [caption, setCaption] = useState('');
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
-  const [newMediaUrl, setNewMediaUrl] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedFacebookPage, setSelectedFacebookPage] = useState<string>('');
   const [selectedInstagramAccount, setSelectedInstagramAccount] = useState<string>('');
@@ -80,7 +81,6 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setContentType('image');
         setCaption('');
         setMediaUrls([]);
-        setNewMediaUrl('');
         setSelectedPlatforms([]);
         setSelectedFacebookPage(pages[0]?.id || '');
         setSelectedInstagramAccount(instagramAccounts[0]?.id || '');
@@ -101,16 +101,10 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
     }
   }, [selectedFacebookPage, instagramAccounts]);
 
-  const handleAddMedia = () => {
-    if (newMediaUrl.trim()) {
-      setMediaUrls([...mediaUrls, newMediaUrl.trim()]);
-      setNewMediaUrl('');
-    }
-  };
-
-  const handleRemoveMedia = (index: number) => {
-    setMediaUrls(mediaUrls.filter((_, i) => i !== index));
-  };
+  // Clear media when content type changes
+  useEffect(() => {
+    setMediaUrls([]);
+  }, [contentType]);
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms(prev => 
@@ -196,45 +190,14 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
             </div>
           </div>
 
-          {/* Media URLs */}
+          {/* Media Upload */}
           <div>
             <Label className="mb-3 block">Mídia</Label>
-            <div className="space-y-2">
-              {mediaUrls.map((url, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-12 h-12 rounded bg-muted overflow-hidden flex-shrink-0">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <Input value={url} readOnly className="flex-1 text-xs" />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleRemoveMedia(index)}
-                    className="text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Cole a URL da imagem ou vídeo"
-                  value={newMediaUrl}
-                  onChange={(e) => setNewMediaUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddMedia()}
-                />
-                <Button variant="outline" onClick={handleAddMedia} disabled={!newMediaUrl.trim()}>
-                  <Upload className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <p className="text-xs text-muted-foreground">
-                {contentType === 'carousel' 
-                  ? 'Adicione até 10 imagens ou vídeos'
-                  : 'Cole a URL pública da mídia'}
-              </p>
-            </div>
+            <MediaUploader
+              contentType={contentType}
+              mediaUrls={mediaUrls}
+              onMediaChange={setMediaUrls}
+            />
           </div>
 
           {/* Caption */}
@@ -331,19 +294,12 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
           {/* Client (Optional) */}
           <div>
             <Label htmlFor="client" className="mb-2 block">Cliente (opcional)</Label>
-            <Select value={selectedClient || "none"} onValueChange={(val) => setSelectedClient(val === "none" ? "" : val)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientCombobox
+              clients={clients}
+              value={selectedClient}
+              onValueChange={setSelectedClient}
+              placeholder="Selecione um cliente"
+            />
           </div>
 
           {/* Schedule */}
@@ -374,6 +330,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
                     onSelect={setScheduledDate}
                     initialFocus
                     disabled={(date) => date < new Date()}
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
