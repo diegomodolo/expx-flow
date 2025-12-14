@@ -108,8 +108,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         instagram_id,
         username,
         profile_picture_url,
-        followers_count,
-        media_count
+        followers_count
       ),
       facebook_pages!clients_facebook_page_id_fkey(
         id,
@@ -174,7 +173,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           username: igAccount.username,
           profile_picture_url: igAccount.profile_picture_url || '',
           followers_count: igAccount.followers_count || 0,
-          posts_count: igAccount.media_count || 0,
+          posts_count: posts.length,
           recent_posts: posts.slice(0, 6).map((p: any) => ({
             id: p.id,
             media_type: p.media_type,
@@ -207,7 +206,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           username: igAccount.username,
           profile_picture_url: igAccount.profile_picture_url || '',
           followers_count: igAccount.followers_count || 0,
-          posts_count: igAccount.media_count || 0,
+          posts_count: 0,
           recent_posts: [],
           total_likes: 0,
           total_comments: 0,
@@ -223,7 +222,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         username: igAccount.username,
         profile_picture_url: igAccount.profile_picture_url || '',
         followers_count: igAccount.followers_count || 0,
-        posts_count: igAccount.media_count || 0,
+        posts_count: 0,
         recent_posts: [],
         total_likes: 0,
         total_comments: 0,
