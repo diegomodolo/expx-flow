@@ -28,6 +28,7 @@ import { ptBR } from "date-fns/locale";
 import { ExtendedPresentationCreative, useSendToSchedule } from "@/hooks/usePresentationMeetings";
 import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SendToScheduleModalProps {
   open: boolean;
@@ -63,27 +64,51 @@ export function SendToScheduleModal({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [facebookPageId, setFacebookPageId] = useState<string>("none");
   const [instagramAccountId, setInstagramAccountId] = useState<string>("none");
+  const [clientData, setClientData] = useState<{ facebook_page_id: string | null; instagram_account_id: string | null } | null>(null);
   
   const { sendToSchedule } = useSendToSchedule();
   const { pages, instagramAccounts, loading: loadingAccounts } = useFacebookPages();
 
-  // Filter pages/accounts for this client
-  const clientPages = pages.filter(p => (p as any).client_id === clientId);
-  const clientInstagramAccounts = instagramAccounts.filter(a => (a as any).client_id === clientId);
+  // Fetch client data to get configured accounts
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!clientId) return;
+      
+      const { data } = await supabase
+        .from('clients')
+        .select('facebook_page_id, instagram_account_id')
+        .eq('id', clientId)
+        .maybeSingle();
+      
+      setClientData(data);
+    };
+    
+    if (open) {
+      fetchClientData();
+    }
+  }, [clientId, open]);
+
+  // Filter pages/accounts based on client's configured IDs
+  const clientPages = clientData?.facebook_page_id 
+    ? pages.filter(p => p.id === clientData.facebook_page_id)
+    : [];
+  const clientInstagramAccounts = clientData?.instagram_account_id
+    ? instagramAccounts.filter(a => a.id === clientData.instagram_account_id)
+    : [];
 
   // Auto-select all creatives on open
   useEffect(() => {
     if (open) {
       setSelectedIds(new Set(creatives.map(c => c.id)));
-      // Auto-select first account if available
-      if (clientPages.length > 0 && !facebookPageId) {
-        setFacebookPageId(clientPages[0].id);
+      // Auto-select client's configured account if available
+      if (clientData?.facebook_page_id) {
+        setFacebookPageId(clientData.facebook_page_id);
       }
-      if (clientInstagramAccounts.length > 0 && !instagramAccountId) {
-        setInstagramAccountId(clientInstagramAccounts[0].id);
+      if (clientData?.instagram_account_id) {
+        setInstagramAccountId(clientData.instagram_account_id);
       }
     }
-  }, [open, creatives, clientPages, clientInstagramAccounts]);
+  }, [open, creatives, clientData]);
 
   const toggleCreative = (id: string) => {
     setSelectedIds(prev => {
