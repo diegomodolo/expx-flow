@@ -41,6 +41,8 @@ interface Presentation {
     name: string;
     company: string;
     avatar: string | null;
+    instagram_profile_picture: string | null;
+    instagram_username: string | null;
   };
   creatives: Creative[];
 }
@@ -95,7 +97,11 @@ export default function ApresentacaoPublica() {
             clients!content_presentations_client_id_fkey (
               name,
               company,
-              avatar
+              avatar,
+              instagram_accounts (
+                profile_picture_url,
+                username
+              )
             )
           `)
           .eq("public_token", token)
@@ -138,12 +144,16 @@ export default function ApresentacaoPublica() {
 
         const client = presentationData.clients as any;
 
+        const instagramAccount = client?.instagram_accounts as any;
+
         setPresentation({
           ...presentationData,
           client: {
             name: client?.name || "",
             company: client?.company || "",
             avatar: client?.avatar || null,
+            instagram_profile_picture: instagramAccount?.profile_picture_url || null,
+            instagram_username: instagramAccount?.username || null,
           },
           creatives: (creativesData || []).map((c: any) => ({
             ...c,
@@ -293,28 +303,38 @@ export default function ApresentacaoPublica() {
     return (
       <div className="w-full h-full bg-background flex overflow-hidden">
         {/* Left side - Instagram Frame */}
-        <div className="w-1/2 h-full bg-muted flex items-center justify-center p-4">
-          {/* Instagram Post Frame */}
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-[380px] overflow-hidden">
+        <div className="w-1/2 h-full bg-muted flex items-center justify-center p-2">
+          {/* Instagram Post Frame - Larger size */}
+          <div className="bg-white rounded-xl shadow-2xl w-full h-[95%] max-w-[500px] overflow-hidden flex flex-col">
             {/* Instagram Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  {presentation.client.name.charAt(0).toUpperCase()}
-                </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-3">
+                {presentation.client.instagram_profile_picture ? (
+                  <img 
+                    src={presentation.client.instagram_profile_picture} 
+                    alt={presentation.client.name}
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                  />
+                ) : (
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {presentation.client.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{presentation.client.name.toLowerCase().replace(/\s+/g, '')}</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {presentation.client.instagram_username || presentation.client.name.toLowerCase().replace(/\s+/g, '')}
+                  </p>
                   <p className="text-xs text-gray-500">Patrocinado</p>
                 </div>
               </div>
-              <MoreHorizontal className="w-5 h-5 text-gray-600" />
+              <MoreHorizontal className="w-6 h-6 text-gray-600" />
             </div>
 
-            {/* Media Container */}
-            <div className="relative aspect-square bg-gray-100">
+            {/* Media Container - flex-1 to fill remaining space */}
+            <div className="relative flex-1 bg-gray-100 min-h-0">
               {currentMedia ? (
                 currentMedia.media_type === "video" ? (
                   <video 
@@ -343,28 +363,28 @@ export default function ApresentacaoPublica() {
                     size="icon"
                     onClick={prevCarouselImage}
                     disabled={currentCarouselIndex === 0}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full shadow-lg w-7 h-7 bg-white/90 hover:bg-white"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full shadow-lg w-8 h-8 bg-white/90 hover:bg-white"
                   >
-                    <ChevronLeft className="w-4 h-4 text-gray-700" />
+                    <ChevronLeft className="w-5 h-5 text-gray-700" />
                   </Button>
                   <Button
                     variant="secondary"
                     size="icon"
                     onClick={nextCarouselImage}
                     disabled={currentCarouselIndex === creative.creative_media.length - 1}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full shadow-lg w-7 h-7 bg-white/90 hover:bg-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full shadow-lg w-8 h-8 bg-white/90 hover:bg-white"
                   >
-                    <ChevronRight className="w-4 h-4 text-gray-700" />
+                    <ChevronRight className="w-5 h-5 text-gray-700" />
                   </Button>
 
                   {/* Carousel dots */}
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
                     {creative.creative_media.map((_, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentCarouselIndex(i)}
                         className={cn(
-                          "w-1.5 h-1.5 rounded-full transition-all",
+                          "w-2 h-2 rounded-full transition-all",
                           i === currentCarouselIndex ? "bg-blue-500" : "bg-white/70"
                         )}
                       />
@@ -375,20 +395,22 @@ export default function ApresentacaoPublica() {
             </div>
 
             {/* Instagram Actions */}
-            <div className="px-3 py-2">
+            <div className="px-4 py-3 shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-4">
-                  <Heart className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
-                  <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
-                  <Send className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
+                  <Heart className="w-7 h-7 text-gray-800 cursor-pointer hover:text-gray-500" />
+                  <MessageCircle className="w-7 h-7 text-gray-800 cursor-pointer hover:text-gray-500" />
+                  <Send className="w-7 h-7 text-gray-800 cursor-pointer hover:text-gray-500" />
                 </div>
-                <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
+                <Bookmark className="w-7 h-7 text-gray-800 cursor-pointer hover:text-gray-500" />
               </div>
               <p className="text-sm font-semibold text-gray-900 mb-1">1.234 curtidas</p>
               {creative.caption && (
                 <p className="text-sm text-gray-800 line-clamp-2">
-                  <span className="font-semibold">{presentation.client.name.toLowerCase().replace(/\s+/g, '')}</span>{' '}
-                  {creative.caption.substring(0, 80)}{creative.caption.length > 80 ? '...' : ''}
+                  <span className="font-semibold">
+                    {presentation.client.instagram_username || presentation.client.name.toLowerCase().replace(/\s+/g, '')}
+                  </span>{' '}
+                  {creative.caption.substring(0, 100)}{creative.caption.length > 100 ? '...' : ''}
                 </p>
               )}
             </div>
