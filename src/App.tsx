@@ -56,6 +56,7 @@ import Automacoes from "./pages/Automacoes";
 import DashboardOrcamento from "./pages/DashboardOrcamento";
 import ClientDashboardPublic from "./pages/ClientDashboardPublic";
 import Agendamento from "./pages/Agendamento";
+import ApresentacaoPublica from "./pages/ApresentacaoPublica";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -89,6 +90,7 @@ const App = () => {
               <Route path="/google-ads/callback" element={<GoogleAdsCallback />} />
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
               <Route path="/dashboard-publico/:token" element={<ClientDashboardPublic />} />
+              <Route path="/apresentacao/:token" element={<ApresentacaoPublica />} />
               <Route path="/crm/:token/login" element={<CRMLogin />} />
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
               
