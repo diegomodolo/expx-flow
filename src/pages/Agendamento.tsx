@@ -11,6 +11,7 @@ import { useClients } from '@/hooks/useClients';
 import { useTeams } from '@/hooks/useTeams';
 import { NewPostModal } from '@/components/scheduling/NewPostModal';
 import { PostCard } from '@/components/scheduling/PostCard';
+import { PostPreviewModal } from '@/components/scheduling/PostPreviewModal';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ClientCombobox } from '@/components/scheduling/ClientCombobox';
@@ -29,6 +30,7 @@ const Agendamento = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
+  const [previewPost, setPreviewPost] = useState<ScheduledPost | null>(null);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   
   // Filters
@@ -99,7 +101,12 @@ const Agendamento = () => {
     total: filteredPosts.length,
   }), [filteredPosts]);
 
+  const handlePreviewPost = (post: ScheduledPost) => {
+    setPreviewPost(post);
+  };
+
   const handleEditPost = (post: ScheduledPost) => {
+    setPreviewPost(null);
     setSelectedPost(post);
     setIsModalOpen(true);
   };
@@ -347,6 +354,7 @@ const Agendamento = () => {
                         key={post.id}
                         post={post}
                         compact
+                        onPreview={() => handlePreviewPost(post)}
                         onEdit={() => handleEditPost(post)}
                         onDelete={() => deletePost(post.id)}
                         onCancel={() => cancelPost(post.id)}
@@ -385,6 +393,7 @@ const Agendamento = () => {
                       <PostCard
                         key={post.id}
                         post={post}
+                        onPreview={() => handlePreviewPost(post)}
                         onEdit={() => handleEditPost(post)}
                         onDelete={() => deletePost(post.id)}
                         onCancel={() => cancelPost(post.id)}
@@ -398,6 +407,13 @@ const Agendamento = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <PostPreviewModal
+        open={!!previewPost}
+        onClose={() => setPreviewPost(null)}
+        post={previewPost}
+        onEdit={() => previewPost && handleEditPost(previewPost)}
+      />
 
       <NewPostModal
         open={isModalOpen}
