@@ -50,6 +50,8 @@ export interface Client {
   notes?: string;
   ad_account_id?: string;
   google_account_id?: string;
+  facebook_page_id?: string;
+  instagram_account_id?: string;
   leads_generated: number;
   spend?: number;
   last_sync_at?: string;
@@ -70,6 +72,19 @@ export interface Client {
     is_prepaid: boolean;
     funding_source_details?: any;
     recharge_day?: number;
+  };
+  facebook_page?: {
+    id: string;
+    page_id: string;
+    page_name: string;
+    page_category: string | null;
+  };
+  instagram_account?: {
+    id: string;
+    instagram_id: string;
+    username: string;
+    profile_picture_url: string | null;
+    followers_count: number;
   };
   team?: {
     id: string;
@@ -445,6 +460,19 @@ export function useClients() {
             funding_source_details,
             recharge_day
           ),
+          facebook_page:facebook_pages!facebook_page_id (
+            id,
+            page_id,
+            page_name,
+            page_category
+          ),
+          instagram_account:instagram_accounts!instagram_account_id (
+            id,
+            instagram_id,
+            username,
+            profile_picture_url,
+            followers_count
+          ),
           team:teams!team_id (
             id,
             name,
@@ -529,6 +557,8 @@ export function useClients() {
         // Convert empty strings to null for UUID fields
         ad_account_id: clientData.ad_account_id === "" ? null : clientData.ad_account_id,
         google_account_id: clientData.google_account_id === "" ? null : clientData.google_account_id,
+        facebook_page_id: (clientData as any).facebook_page_id === "" ? null : (clientData as any).facebook_page_id,
+        instagram_account_id: (clientData as any).instagram_account_id === "" ? null : (clientData as any).instagram_account_id,
         team_id: clientData.team_id === "" || clientData.team_id === "none" ? null : clientData.team_id,
       };
 
@@ -555,7 +585,8 @@ export function useClients() {
         'name', 'email', 'company', 'sector', 'avatar', 'monthly_budget',
         'target_audience', 'product_name', 'voice_tone', 'objectives',
         'preferred_platforms', 'campaign_type', 'notes', 'ad_account_id',
-        'google_account_id', 'website_url', 'inactive_reason', 'team_id',
+        'google_account_id', 'facebook_page_id', 'instagram_account_id',
+        'website_url', 'inactive_reason', 'team_id',
         'ai_briefing', 'briefing_generated_at', 'offline_event_set_id', 'payment_type'
       ];
       
@@ -566,7 +597,7 @@ export function useClients() {
           let value = updates[key as keyof Client];
           
           // Converter strings vazias para null em campos UUID
-          if ((key === 'ad_account_id' || key === 'google_account_id' || key === 'team_id') && value === "") {
+          if ((key === 'ad_account_id' || key === 'google_account_id' || key === 'team_id' || key === 'facebook_page_id' || key === 'instagram_account_id') && value === "") {
             value = null;
           }
           

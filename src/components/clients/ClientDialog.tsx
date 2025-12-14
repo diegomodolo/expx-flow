@@ -14,11 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Client, ClientStatus } from "@/hooks/useClients";
 import { useSectors } from "@/hooks/useSectors";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook } from "lucide-react";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 
 interface ClientDialogProps {
@@ -33,6 +34,7 @@ interface ClientDialogProps {
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const { sectors, createSector } = useSectors();
   const { adAccounts } = useFacebookIntegration();
+  const { pages: facebookPages, instagramAccounts } = useFacebookPages();
   const { adAccounts: googleAdAccounts } = useGoogleAdsIntegration();
   const { clients } = useClients();
   const { teams } = useTeams();
@@ -56,6 +58,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
         google_account_id: client.google_account_id || "",
+        facebook_page_id: client.facebook_page_id || "",
+        instagram_account_id: client.instagram_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
@@ -79,6 +83,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       notes: "",
       ad_account_id: "",
       google_account_id: "",
+      facebook_page_id: "",
+      instagram_account_id: "",
       website_url: "",
       inactive_reason: "",
       team_id: "none",
@@ -89,6 +95,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [uploading, setUploading] = useState(false);
   const [adAccountOpen, setAdAccountOpen] = useState(false);
   const [googleAccountOpen, setGoogleAccountOpen] = useState(false);
+  const [facebookPageOpen, setFacebookPageOpen] = useState(false);
+  const [instagramAccountOpen, setInstagramAccountOpen] = useState(false);
   const [showNewSectorInput, setShowNewSectorInput] = useState(false);
   const [newSectorName, setNewSectorName] = useState("");
   const [localClient, setLocalClient] = useState<Client | undefined>(client);
@@ -127,6 +135,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         notes: client.notes || "",
         ad_account_id: client.ad_account_id || "",
         google_account_id: client.google_account_id || "",
+        facebook_page_id: client.facebook_page_id || "",
+        instagram_account_id: client.instagram_account_id || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
@@ -710,6 +720,141 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </Popover>
                 </div>
               )}
+            </div>
+
+            {/* Row 5.6: Facebook Page and Instagram Account */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Facebook Page */}
+              <div className="space-y-2">
+                <Label htmlFor="facebook_page">Página do Facebook</Label>
+                <Popover open={facebookPageOpen} onOpenChange={setFacebookPageOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={facebookPageOpen}
+                      className="w-full justify-between"
+                      disabled={readOnly}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Facebook className="w-4 h-4 text-blue-600" />
+                        {formData.facebook_page_id
+                          ? facebookPages.find((page) => page.id === formData.facebook_page_id)?.page_name
+                          : "Selecione uma página"}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar página..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma página encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => {
+                              setFormData({ ...formData, facebook_page_id: "" });
+                              setFacebookPageOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${!formData.facebook_page_id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            Nenhuma página selecionada
+                          </CommandItem>
+                          {facebookPages.map((page) => (
+                            <CommandItem
+                              key={page.id}
+                              value={page.page_name}
+                              onSelect={() => {
+                                setFormData({ ...formData, facebook_page_id: page.id });
+                                setFacebookPageOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${formData.facebook_page_id === page.id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              <Facebook className="mr-2 h-4 w-4 text-blue-600" />
+                              {page.page_name}
+                              {page.page_category && (
+                                <span className="ml-1 text-muted-foreground text-xs">
+                                  ({page.page_category})
+                                </span>
+                              )}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Instagram Account */}
+              <div className="space-y-2">
+                <Label htmlFor="instagram_account">Conta do Instagram</Label>
+                <Popover open={instagramAccountOpen} onOpenChange={setInstagramAccountOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={instagramAccountOpen}
+                      className="w-full justify-between"
+                      disabled={readOnly}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Instagram className="w-4 h-4 text-pink-600" />
+                        {formData.instagram_account_id
+                          ? `@${instagramAccounts.find((acc) => acc.id === formData.instagram_account_id)?.username}`
+                          : "Selecione uma conta"}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar conta..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => {
+                              setFormData({ ...formData, instagram_account_id: "" });
+                              setInstagramAccountOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${!formData.instagram_account_id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            Nenhuma conta selecionada
+                          </CommandItem>
+                          {instagramAccounts.map((account) => (
+                            <CommandItem
+                              key={account.id}
+                              value={account.username}
+                              onSelect={() => {
+                                setFormData({ ...formData, instagram_account_id: account.id });
+                                setInstagramAccountOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${formData.instagram_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              <Instagram className="mr-2 h-4 w-4 text-pink-600" />
+                              @{account.username}
+                              <span className="ml-1 text-muted-foreground text-xs">
+                                ({account.followers_count.toLocaleString()} seguidores)
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             {/* Row 6: Avatar Upload - Full width */}

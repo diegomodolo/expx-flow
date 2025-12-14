@@ -22,6 +22,7 @@ import {
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
+import { ClientSocialAccounts } from "@/components/clients/ClientSocialAccounts";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { ClientDetailsData } from "@/hooks/useClientDetails";
 
@@ -163,6 +164,14 @@ export function ClienteDashboard({
           accountId={client.facebook_ad_accounts.id}
           clientId={client.id}
           paymentType={client.payment_type}
+        />
+      )}
+
+      {/* Social Accounts Card */}
+      {(client.facebook_page || client.instagram_account) && (
+        <ClientSocialAccounts
+          facebookPage={client.facebook_page}
+          instagramAccount={client.instagram_account}
         />
       )}
 
