@@ -4715,6 +4715,54 @@ export type Database = {
           },
         ]
       }
+      presentation_creative_approvals: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          creative_id: string
+          id: string
+          meeting_id: string
+          rejection_reason: string | null
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          creative_id: string
+          id?: string
+          meeting_id: string
+          rejection_reason?: string | null
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          creative_id?: string
+          id?: string
+          meeting_id?: string
+          rejection_reason?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presentation_creative_approvals_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "presentation_creatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentation_creative_approvals_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "presentation_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       presentation_creatives: {
         Row: {
           caption: string | null
@@ -4767,6 +4815,79 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "presentation_creatives_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "content_presentations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presentation_meeting_participants: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          meeting_id: string
+          name: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          meeting_id: string
+          name: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          meeting_id?: string
+          name?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presentation_meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "presentation_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      presentation_meetings: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          meeting_date: string
+          presentation_id: string
+          status: string
+          summary_sent: boolean
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          meeting_date?: string
+          presentation_id: string
+          status?: string
+          summary_sent?: boolean
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          meeting_date?: string
+          presentation_id?: string
+          status?: string
+          summary_sent?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "presentation_meetings_presentation_id_fkey"
             columns: ["presentation_id"]
             isOneToOne: false
             referencedRelation: "content_presentations"
