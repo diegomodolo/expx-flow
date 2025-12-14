@@ -9,6 +9,7 @@ interface DashboardMetrics {
   spend: number;
   leads: number;
   messages: number;
+  total_conversions: number;
   cpl: number;
   leads_per_1k: number;
   impressions: number;
@@ -323,21 +324,29 @@ Deno.serve(async (req) => {
     });
 
     // Agora calcular as métricas com os valores corretos
-    const cpl = totalConversions > 0 ? totalSpend / totalConversions : 0;
-    const leadsPerK = totalSpend > 0 ? (totalConversions / totalSpend) * 1000 : 0;
+    // Total de conversões = leads + mensagens
+    const totalConversionsAll = totalConversions + totalMessages;
+    
+    // CPL baseado em TODAS as conversões (leads + mensagens)
+    const cpl = totalConversionsAll > 0 ? totalSpend / totalConversionsAll : 0;
+    
+    // Conversões por 1k baseado em TODAS as conversões
+    const leadsPerK = totalSpend > 0 ? (totalConversionsAll / totalSpend) * 1000 : 0;
+    
     const cpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
     const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const frequency = totalReach > 0 ? totalImpressions / totalReach : 0;
-    const messages = totalMessages; // Usar dados reais ao invés de estimativa
+    const messages = totalMessages;
     const pageViews = Math.round(totalClicks * 0.8);
     const connectRate = pageViews > 0 ? (messages / pageViews) * 100 : 0;
-    const leadRate = pageViews > 0 ? (totalConversions / pageViews) * 100 : 0;
+    const leadRate = pageViews > 0 ? (totalConversionsAll / pageViews) * 100 : 0;
 
     const metrics: DashboardMetrics = {
       spend: totalSpend,
       leads: totalConversions,
       messages,
+      total_conversions: totalConversionsAll,
       cpl,
       leads_per_1k: leadsPerK,
       impressions: totalImpressions,

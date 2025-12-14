@@ -44,7 +44,7 @@ export const MetricsCards = ({ metrics }: MetricsCardsProps) => {
       bg: "bg-orange-500/10",
     },
     {
-      label: "Leads / 1k",
+      label: "Conversões / 1k",
       value: metrics.leads_per_1k.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       icon: TrendingUp,
       color: "text-cyan-500",
