@@ -231,7 +231,7 @@ export function CreativesList({ creatives, isLoading, presentationId, clientId, 
                         </>
                       )}
                       
-                      {(creative.current_status === 'rejected' || creative.current_status === 'resubmitted') && (
+                      {(creative.current_status === 'pending' || creative.current_status === 'rejected' || creative.current_status === 'resubmitted') && (
                         <DropdownMenuItem 
                           onClick={() => handleManagerApprove(creative.id)}
                           className="text-green-600"
