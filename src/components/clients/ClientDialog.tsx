@@ -584,7 +584,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             {/* Avatar Upload */}
             <div className="space-y-2">
               <Label>Foto do Cliente</Label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 {formData.avatar && (
                   <div className="relative">
                     <Avatar className="w-16 h-16">
@@ -614,6 +614,30 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   <Upload className="w-4 h-4" />
                   {uploading ? "Enviando..." : "Upload de Foto"}
                 </Button>
+                {/* Botão para buscar do Instagram */}
+                {(() => {
+                  const selectedInstagram = instagramAccounts.find(acc => acc.id === formData.instagram_account_id);
+                  if (selectedInstagram?.profile_picture_url && !readOnly) {
+                    return (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setFormData({ ...formData, avatar: selectedInstagram.profile_picture_url || "" });
+                          toast({
+                            title: "Foto atualizada",
+                            description: "Foto do perfil do Instagram aplicada com sucesso!",
+                          });
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Instagram className="w-4 h-4" />
+                        Buscar do Instagram
+                      </Button>
+                    );
+                  }
+                  return null;
+                })()}
                 <Input
                   ref={fileInputRef}
                   type="file"
@@ -622,6 +646,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   className="hidden"
                 />
               </div>
+              {formData.instagram_account_id && !instagramAccounts.find(acc => acc.id === formData.instagram_account_id)?.profile_picture_url && (
+                <p className="text-xs text-muted-foreground">
+                  Configure uma conta do Instagram em "Contas & Integrações" para importar a foto do perfil.
+                </p>
+              )}
             </div>
           </div>
         );
