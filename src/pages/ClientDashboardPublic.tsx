@@ -16,25 +16,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, RefreshCw, Maximize, Minimize, Sun, Moon, Monitor } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
+
 const ClientDashboardPublic = () => {
-  const {
-    token
-  } = useParams<{
-    token: string;
-  }>();
-  const {
-    theme,
-    setTheme
-  } = useTheme();
+  const { token } = useParams<{ token: string }>();
+  const { theme, setTheme } = useTheme();
   const [period, setPeriod] = useState(30);
-  const [dateRange, setDateRange] = useState<{
-    from: Date;
-    to: Date;
-  }>({
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date()
   });
@@ -47,22 +37,16 @@ const ClientDashboardPublic = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [kioskMode, setKioskMode] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  
   const startDate = format(dateRange.from, 'yyyy-MM-dd');
   const endDate = format(dateRange.to, 'yyyy-MM-dd');
   
-  const {
-    data,
-    isLoading,
-    error,
-    refetch
-  } = useClientDashboard(token || "", startDate, endDate);
+  const { data, isLoading, error, refetch } = useClientDashboard(token || "", startDate, endDate);
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -70,7 +54,6 @@ const ClientDashboardPublic = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Kiosk mode: hide controls after 5 seconds of inactivity
   useEffect(() => {
     if (!kioskMode) {
       setShowControls(true);
@@ -87,14 +70,12 @@ const ClientDashboardPublic = () => {
       }, 5000);
     };
 
-  const handleActivity = () => {
+    const handleActivity = () => {
       resetTimer();
     };
 
-    // Initial timer
     resetTimer();
 
-    // Listen for mouse movement and clicks
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('click', handleActivity);
     window.addEventListener('keydown', handleActivity);
@@ -112,6 +93,7 @@ const ClientDashboardPublic = () => {
     const days = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
     setPeriod(days);
   };
+
   const handleManualRefresh = useCallback(async () => {
     toast.info("Atualizando dados...");
     await refetch();
@@ -122,7 +104,6 @@ const ClientDashboardPublic = () => {
     toast.success("Dados atualizados!");
   }, [refetch, autoRefresh, refreshInterval]);
 
-  // Auto-refresh effect
   useEffect(() => {
     if (!autoRefresh) {
       setNextRefresh(null);
@@ -139,7 +120,6 @@ const ClientDashboardPublic = () => {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, refetch]);
 
-  // Update next refresh time every second
   useEffect(() => {
     if (!autoRefresh || !nextRefresh) return;
     const timer = setInterval(() => {
@@ -147,6 +127,7 @@ const ClientDashboardPublic = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [autoRefresh, refreshInterval, nextRefresh]);
+
   const getTimeUntilRefresh = () => {
     if (!nextRefresh || !autoRefresh) return null;
     const diff = Math.max(0, nextRefresh.getTime() - Date.now());
@@ -155,7 +136,6 @@ const ClientDashboardPublic = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Fullscreen functionality
   const toggleFullscreen = useCallback(async () => {
     try {
       if (!document.fullscreenElement) {
@@ -171,7 +151,6 @@ const ClientDashboardPublic = () => {
     }
   }, []);
 
-  // Listen to fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -179,6 +158,7 @@ const ClientDashboardPublic = () => {
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
@@ -194,76 +174,96 @@ const ClientDashboardPublic = () => {
       toast.info("Modo Kiosk desativado");
     }
   };
+
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Carregando dashboard...</p>
+          <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" />
+          <p className="text-body-md text-muted-foreground">Carregando dashboard...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
+
   if (error) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-destructive text-lg font-semibold">Erro ao carregar dashboard</p>
-          <p className="text-muted-foreground">Token inválido ou expirado</p>
+          <p className="text-destructive text-title-lg">Erro ao carregar dashboard</p>
+          <p className="text-body-md text-muted-foreground">Token inválido ou expirado</p>
         </div>
-      </div>;
+      </div>
+    );
   }
+
   if (!data) {
     return null;
   }
-  return <div className="h-screen w-screen bg-background overflow-hidden flex flex-col">
+
+  const hasTopPosts = data.social_metrics?.instagram?.top_posts && data.social_metrics.instagram.top_posts.length > 0;
+
+  return (
+    <div className="h-screen w-screen bg-background overflow-hidden flex flex-col">
       {/* Header */}
       <div 
         className={cn(
-          "border-b border-border bg-card flex-shrink-0 transition-all duration-500 ease-in-out",
+          "border-b border-border bg-card shadow-google-sm flex-shrink-0 transition-all duration-500 ease-in-out",
           kioskMode && !showControls && "opacity-0 -translate-y-full pointer-events-none"
         )}
       >
         <div className="px-6 py-3">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Relatório de Tráfego  </h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-headline-md text-foreground">Relatório de Tráfego</h1>
+                <p className="text-body-sm text-muted-foreground">
                   {data.client.company} - {data.client.name}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Kiosk mode toggle */}
+            <div className="flex items-center gap-2">
               <Button
-                variant={kioskMode ? "default" : "outline"}
+                variant={kioskMode ? "default" : "ghost"}
                 size="sm"
                 onClick={toggleKioskMode}
-                title={kioskMode ? "Desativar modo Kiosk" : "Ativar modo Kiosk (oculta controles após 5s)"}
+                title={kioskMode ? "Desativar modo Kiosk" : "Ativar modo Kiosk"}
+                className="rounded-full"
               >
                 <Monitor className="h-4 w-4" />
               </Button>
 
-              {/* Theme toggle */}
-              {mounted && <Button variant="outline" size="sm" onClick={toggleTheme} title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}>
+              {mounted && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={toggleTheme} 
+                  title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+                  className="rounded-full"
+                >
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>}
+                </Button>
+              )}
 
-              {/* Fullscreen button */}
-              <Button variant="outline" size="sm" onClick={toggleFullscreen} title={isFullscreen ? "Sair da tela cheia (ESC)" : "Tela cheia"}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleFullscreen} 
+                title={isFullscreen ? "Sair tela cheia" : "Tela cheia"}
+                className="rounded-full"
+              >
                 {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
               </Button>
 
-              {/* Auto-refresh controls */}
-              <div className="flex items-center gap-3 border-r border-border pr-3">
-                <div className="flex items-center gap-2">
-                  <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-                  <Label htmlFor="auto-refresh" className="text-sm cursor-pointer">
-                    Auto-refresh
-                  </Label>
-                </div>
-                {autoRefresh && <>
+              <div className="flex items-center gap-2 border-l border-border pl-3 ml-1">
+                <Switch id="auto-refresh" checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+                <Label htmlFor="auto-refresh" className="text-body-sm cursor-pointer">
+                  Auto
+                </Label>
+                {autoRefresh && (
+                  <>
                     <Select value={refreshInterval} onValueChange={setRefreshInterval}>
-                      <SelectTrigger className="w-24 h-8 text-sm">
+                      <SelectTrigger className="w-20 h-7 text-body-sm rounded-full border-0 bg-secondary">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -274,23 +274,28 @@ const ClientDashboardPublic = () => {
                         <SelectItem value="30">30 min</SelectItem>
                       </SelectContent>
                     </Select>
-                    <span className="text-xs text-muted-foreground">
-                      Próx: {getTimeUntilRefresh()}
+                    <span className="text-label-sm text-muted-foreground">
+                      {getTimeUntilRefresh()}
                     </span>
-                  </>}
+                  </>
+                )}
               </div>
 
-              {/* Manual refresh button */}
-              <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={isLoading}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleManualRefresh} 
+                disabled={isLoading}
+                className="rounded-full"
+              >
                 <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               </Button>
             </div>
           </div>
 
-          {/* Period Selector - New Row */}
-          <div className="px-6 pb-3 border-t border-border pt-3">
+          <div className="mt-3 pt-3 border-t border-border">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">Período:</span>
+              <span className="text-body-sm font-medium text-foreground">Período:</span>
               <PeriodSelector dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
             </div>
           </div>
@@ -298,34 +303,24 @@ const ClientDashboardPublic = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
-        {/* Metrics Cards */}
+      <div className="flex-1 overflow-auto px-6 py-4 space-y-3">
         <MetricsCards metrics={data.metrics} />
 
-        {/* Social Metrics - Only show if Instagram or Facebook is configured */}
         {data.social_metrics && (data.social_metrics.instagram || data.social_metrics.facebook) && (
           <SocialMetricsCard socialMetrics={data.social_metrics} />
         )}
 
-        {/* Funnel, Performance Metrics, and Top Posts */}
-        {(() => {
-          const hasTopPosts = data.social_metrics?.instagram?.top_posts && data.social_metrics.instagram.top_posts.length > 0;
-          return (
-            <div className={`grid grid-cols-1 gap-4 ${hasTopPosts ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
-              <FunnelVisualization metrics={data.metrics} />
-              <PerformanceMetrics metrics={data.metrics} />
-              {hasTopPosts && (
-                <TopEngagementPostsCard posts={data.social_metrics!.instagram!.top_posts!} />
-              )}
-            </div>
-          );
-        })()}
+        <div className={`grid grid-cols-1 gap-3 ${hasTopPosts ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+          <FunnelVisualization metrics={data.metrics} />
+          <PerformanceMetrics metrics={data.metrics} />
+          {hasTopPosts && (
+            <TopEngagementPostsCard posts={data.social_metrics!.instagram!.top_posts!} />
+          )}
+        </div>
 
-        {/* Timeline Chart */}
         <TimelineChart data={data.timeline} />
 
-        {/* Top Campaigns and Table */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
           <div className="lg:col-span-2">
             <TopCampaignsPie campaigns={data.top_campaigns} />
           </div>
@@ -334,6 +329,8 @@ const ClientDashboardPublic = () => {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ClientDashboardPublic;

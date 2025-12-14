@@ -34,13 +34,13 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
+        return 'bg-success/10 text-success border-0';
       case 'paused':
-        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+        return 'bg-warning/10 text-warning border-0';
       case 'inactive':
-        return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+        return 'bg-muted text-muted-foreground border-0';
       default:
-        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+        return 'bg-primary/10 text-primary border-0';
     }
   };
 
@@ -58,28 +58,31 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
   };
 
   return (
-    <Card className="p-4 bg-card border-border animate-fade-in">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-foreground transition-colors duration-300">Campanhas</h3>
-        <div className="flex gap-2">
+    <Card className="p-4 bg-card border-0 shadow-google-sm rounded-xl animate-fade-in h-full">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-title-md text-foreground">Campanhas</h3>
+        <div className="flex gap-1.5">
           <Button
             size="sm"
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            variant={statusFilter === 'all' ? 'default' : 'ghost'}
             onClick={() => setStatusFilter('all')}
+            className="h-7 px-3 text-label-sm rounded-full"
           >
             Todas ({campaigns.length})
           </Button>
           <Button
             size="sm"
-            variant={statusFilter === 'active' ? 'default' : 'outline'}
+            variant={statusFilter === 'active' ? 'default' : 'ghost'}
             onClick={() => setStatusFilter('active')}
+            className="h-7 px-3 text-label-sm rounded-full"
           >
             Ativas ({campaigns.filter(c => c.status.toLowerCase() === 'active').length})
           </Button>
           <Button
             size="sm"
-            variant={statusFilter === 'paused' ? 'default' : 'outline'}
+            variant={statusFilter === 'paused' ? 'default' : 'ghost'}
             onClick={() => setStatusFilter('paused')}
+            className="h-7 px-3 text-label-sm rounded-full"
           >
             Pausadas ({campaigns.filter(c => c.status.toLowerCase() === 'paused').length})
           </Button>
@@ -88,45 +91,45 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="transition-colors duration-300">
-              <TableHead>Nome da Campanha</TableHead>
-              <TableHead className="text-center">Conj.</TableHead>
-              <TableHead className="text-center">Anúncios</TableHead>
-              <TableHead className="text-right">Investimento</TableHead>
-              <TableHead className="text-center">Leads</TableHead>
-              <TableHead className="text-right">CPL</TableHead>
-              <TableHead className="text-center">Mensagens</TableHead>
-              <TableHead className="text-right">CPM</TableHead>
-              <TableHead className="text-center">Status</TableHead>
+            <TableRow className="border-b border-border">
+              <TableHead className="text-label-sm">Nome da Campanha</TableHead>
+              <TableHead className="text-center text-label-sm">Conj.</TableHead>
+              <TableHead className="text-center text-label-sm">Anúncios</TableHead>
+              <TableHead className="text-right text-label-sm">Investimento</TableHead>
+              <TableHead className="text-center text-label-sm">Leads</TableHead>
+              <TableHead className="text-right text-label-sm">CPL</TableHead>
+              <TableHead className="text-center text-label-sm">Mensagens</TableHead>
+              <TableHead className="text-right text-label-sm">CPM</TableHead>
+              <TableHead className="text-center text-label-sm">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredCampaigns.map((campaign, index) => (
               <TableRow 
                 key={`${index}-${animateKey}`}
-                className="animate-fade-in transition-all duration-300 hover:bg-muted/50"
+                className="animate-fade-in border-b border-border/50 hover:bg-secondary/50 transition-colors"
                 style={{ animationDelay: `${index * 30}ms` }}
               >
-                <TableCell className="font-medium max-w-xs truncate transition-colors duration-300">
+                <TableCell className="text-body-sm font-medium max-w-xs truncate">
                   {campaign.name}
                 </TableCell>
-                <TableCell className="text-center transition-all duration-500">{campaign.ad_sets_count}</TableCell>
-                <TableCell className="text-center transition-all duration-500">{campaign.ads_count}</TableCell>
-                <TableCell className="text-right transition-all duration-500">
+                <TableCell className="text-center text-body-sm">{campaign.ad_sets_count}</TableCell>
+                <TableCell className="text-center text-body-sm">{campaign.ads_count}</TableCell>
+                <TableCell className="text-right text-body-sm">
                   R$ {campaign.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
-                <TableCell className="text-center font-semibold transition-all duration-500">
+                <TableCell className="text-center text-title-sm text-foreground">
                   {campaign.leads}
                 </TableCell>
-                <TableCell className="text-right transition-all duration-500">
+                <TableCell className="text-right text-body-sm">
                   R$ {campaign.cpl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
-                <TableCell className="text-center transition-all duration-500">{campaign.messages}</TableCell>
-                <TableCell className="text-right transition-all duration-500">
+                <TableCell className="text-center text-body-sm">{campaign.messages}</TableCell>
+                <TableCell className="text-right text-body-sm">
                   R$ {campaign.cpm.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={`${getStatusColor(campaign.status)} transition-all duration-300`}>
+                  <Badge className={`${getStatusColor(campaign.status)} text-label-sm rounded-full px-2 py-0.5`}>
                     {getStatusLabel(campaign.status)}
                   </Badge>
                 </TableCell>

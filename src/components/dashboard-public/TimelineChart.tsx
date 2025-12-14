@@ -24,49 +24,53 @@ export const TimelineChart = ({ data }: TimelineChartProps) => {
   }, [data]);
 
   return (
-    <Card className="p-4 bg-card border-border animate-fade-in">
-      <h3 className="text-xl font-semibold text-foreground mb-4 transition-colors duration-300">Leads e Mensagens ao Longo do Tempo</h3>
+    <Card className="p-4 bg-card border-0 shadow-google-sm rounded-xl animate-fade-in">
+      <h3 className="text-title-md text-foreground mb-4">Leads e Mensagens ao Longo do Tempo</h3>
       <div key={animateKey} className="animate-scale-in">
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={240}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" className="transition-opacity duration-500" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis 
               dataKey="date" 
               stroke="hsl(var(--muted-foreground))"
-              tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+              tickLine={false}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
-              tick={{ fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
             />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))', 
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px'
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: '0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15)'
               }}
-              animationDuration={300}
+              animationDuration={200}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line 
               type="monotone" 
               dataKey="leads" 
-              stroke="#10b981" 
+              stroke="hsl(var(--success))" 
               strokeWidth={2}
               name="Leads"
-              dot={{ fill: '#10b981' }}
-              animationDuration={1000}
-              animationEasing="ease-in-out"
+              dot={{ fill: 'hsl(var(--success))', r: 3 }}
+              animationDuration={800}
+              animationEasing="ease-out"
             />
             <Line 
               type="monotone" 
               dataKey="messages" 
-              stroke="#3b82f6" 
+              stroke="hsl(var(--primary))" 
               strokeWidth={2}
               name="Mensagens"
-              dot={{ fill: '#3b82f6' }}
-              animationDuration={1000}
-              animationEasing="ease-in-out"
+              dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+              animationDuration={800}
+              animationEasing="ease-out"
             />
           </LineChart>
         </ResponsiveContainer>
