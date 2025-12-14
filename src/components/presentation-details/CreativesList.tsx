@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ExtendedPresentationCreative, usePresentationMeetings, useSendToSchedule } from "@/hooks/usePresentationMeetings";
 import { CreativePreviewModal } from "./CreativePreviewModal";
+import { CreativeForm } from "@/components/presentations/CreativeForm";
 
 interface CreativesListProps {
   creatives: ExtendedPresentationCreative[];
@@ -81,6 +83,7 @@ export function CreativesList({ creatives, isLoading, presentationId, clientId, 
   const [previewCreative, setPreviewCreative] = useState<ExtendedPresentationCreative | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [resubmittingId, setResubmittingId] = useState<string | null>(null);
+  const [editingCreativeId, setEditingCreativeId] = useState<string | null>(null);
   
   const { managerApproveCreative, markAsResubmitted } = usePresentationMeetings(presentationId);
   const { sendToSchedule } = useSendToSchedule();
@@ -213,6 +216,11 @@ export function CreativesList({ creatives, isLoading, presentationId, clientId, 
                         Visualizar
                       </DropdownMenuItem>
                       
+                      <DropdownMenuItem onClick={() => setEditingCreativeId(creative.id)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      
                       {creative.current_status === 'rejected' && (
                         <>
                           <DropdownMenuSeparator />
@@ -279,6 +287,20 @@ export function CreativesList({ creatives, isLoading, presentationId, clientId, 
         creative={previewCreative}
         onClose={() => setPreviewCreative(null)}
       />
+
+      {/* Edit Sheet */}
+      <Sheet open={!!editingCreativeId} onOpenChange={(open) => !open && setEditingCreativeId(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <CreativeForm
+            presentationId={presentationId}
+            editingId={editingCreativeId}
+            onClose={() => {
+              setEditingCreativeId(null);
+              onRefresh();
+            }}
+          />
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
