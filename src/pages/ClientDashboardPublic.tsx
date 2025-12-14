@@ -301,6 +301,11 @@ const ClientDashboardPublic = () => {
         {/* Metrics Cards */}
         <MetricsCards metrics={data.metrics} />
 
+        {/* Social Metrics - Compact horizontal layout below main metrics */}
+        {data.social_metrics && (
+          <SocialMetricsCard socialMetrics={data.social_metrics} />
+        )}
+
         {/* Funnel and Performance Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FunnelVisualization metrics={data.metrics} />
@@ -319,13 +324,6 @@ const ClientDashboardPublic = () => {
             <CampaignsTable campaigns={data.campaigns_table} />
           </div>
         </div>
-
-        {/* Social Metrics */}
-        {data.social_metrics && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <SocialMetricsCard socialMetrics={data.social_metrics} />
-          </div>
-        )}
       </div>
     </div>;
 };

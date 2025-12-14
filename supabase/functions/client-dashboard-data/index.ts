@@ -29,33 +29,22 @@ interface SocialMetrics {
     profile_picture_url: string;
     followers_count: number;
     posts_count: number;
-    recent_posts: Array<{
-      id: string;
-      media_type: string;
-      media_url: string;
-      thumbnail_url: string;
-      caption: string;
-      like_count: number;
-      comments_count: number;
-      permalink: string;
-      timestamp: string;
-    }>;
     total_likes: number;
     total_comments: number;
     avg_engagement: number;
-    top_post: {
-      id: string;
-      thumbnail_url: string;
-      media_url: string;
-      like_count: number;
-      comments_count: number;
-      permalink: string;
-    } | null;
+    // Insights data (requires instagram_manage_insights permission)
+    reach?: number;
+    impressions?: number;
+    profile_views?: number;
+    website_clicks?: number;
   } | null;
   facebook: {
     page_name: string;
     page_category: string;
-    page_picture_url: string;
+    followers_count?: number;
+    page_reach?: number;
+    page_impressions?: number;
+    page_engaged_users?: number;
   } | null;
 }
 
@@ -139,81 +128,92 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     const igAccount = clientFull.instagram_accounts;
     const pageAccessToken = clientFull.facebook_pages.page_access_token;
     
-    console.log('Fetching Instagram media for:', igAccount.username);
+    console.log('Fetching Instagram data for:', igAccount.username);
     
     try {
-      // Buscar últimos 25 posts com métricas
+      // Buscar últimos 25 posts para calcular métricas de engajamento
       const mediaUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/media?` +
-        `fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,comments_count,permalink` +
+        `fields=id,like_count,comments_count` +
         `&limit=25&access_token=${pageAccessToken}`;
       
       const mediaResponse = await fetch(mediaUrl);
-      
+      let totalLikes = 0;
+      let totalComments = 0;
+      let postsCount = 0;
+      let avgEngagement = 0;
+
       if (mediaResponse.ok) {
         const mediaData = await mediaResponse.json();
         const posts = mediaData.data || [];
+        postsCount = posts.length;
         
-        console.log(`Fetched ${posts.length} Instagram posts`);
+        totalLikes = posts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
+        totalComments = posts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
+        avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
         
-        // Calcular métricas agregadas
-        const totalLikes = posts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
-        const totalComments = posts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
-        const avgEngagement = posts.length > 0 ? (totalLikes + totalComments) / posts.length : 0;
-        
-        // Encontrar post com melhor engajamento
-        const topPost = posts.length > 0 
-          ? posts.reduce((best: any, current: any) => {
-              const bestEngagement = (best.like_count || 0) + (best.comments_count || 0);
-              const currentEngagement = (current.like_count || 0) + (current.comments_count || 0);
-              return currentEngagement > bestEngagement ? current : best;
-            })
-          : null;
-        
-        instagramData = {
-          username: igAccount.username,
-          profile_picture_url: igAccount.profile_picture_url || '',
-          followers_count: igAccount.followers_count || 0,
-          posts_count: posts.length,
-          recent_posts: posts.slice(0, 6).map((p: any) => ({
-            id: p.id,
-            media_type: p.media_type,
-            media_url: p.media_url || '',
-            thumbnail_url: p.thumbnail_url || p.media_url || '',
-            caption: p.caption || '',
-            like_count: p.like_count || 0,
-            comments_count: p.comments_count || 0,
-            permalink: p.permalink,
-            timestamp: p.timestamp,
-          })),
-          total_likes: totalLikes,
-          total_comments: totalComments,
-          avg_engagement: avgEngagement,
-          top_post: topPost ? {
-            id: topPost.id,
-            thumbnail_url: topPost.thumbnail_url || topPost.media_url || '',
-            media_url: topPost.media_url || '',
-            like_count: topPost.like_count || 0,
-            comments_count: topPost.comments_count || 0,
-            permalink: topPost.permalink,
-          } : null,
-        };
-      } else {
-        const errorData = await mediaResponse.json();
-        console.error('Error fetching Instagram media:', errorData);
-        
-        // Retornar dados básicos mesmo sem posts
-        instagramData = {
-          username: igAccount.username,
-          profile_picture_url: igAccount.profile_picture_url || '',
-          followers_count: igAccount.followers_count || 0,
-          posts_count: 0,
-          recent_posts: [],
-          total_likes: 0,
-          total_comments: 0,
-          avg_engagement: 0,
-          top_post: null,
-        };
+        console.log(`Fetched ${postsCount} Instagram posts for engagement calculation`);
       }
+
+      // Buscar insights do Instagram (requer instagram_manage_insights)
+      let reach = 0;
+      let impressions = 0;
+      let profileViews = 0;
+      let websiteClicks = 0;
+
+      try {
+        // Insights de período (últimos 30 dias)
+        const insightsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
+          `metric=reach,impressions,profile_views,website_clicks` +
+          `&period=day&metric_type=total_value` +
+          `&access_token=${pageAccessToken}`;
+        
+        console.log('Fetching Instagram insights...');
+        const insightsResponse = await fetch(insightsUrl);
+        
+        if (insightsResponse.ok) {
+          const insightsData = await insightsResponse.json();
+          console.log('Instagram insights data:', JSON.stringify(insightsData, null, 2));
+          
+          if (insightsData.data) {
+            insightsData.data.forEach((metric: any) => {
+              const value = metric.total_value?.value || 0;
+              switch (metric.name) {
+                case 'reach':
+                  reach = value;
+                  break;
+                case 'impressions':
+                  impressions = value;
+                  break;
+                case 'profile_views':
+                  profileViews = value;
+                  break;
+                case 'website_clicks':
+                  websiteClicks = value;
+                  break;
+              }
+            });
+          }
+        } else {
+          const errorData = await insightsResponse.json();
+          console.log('Instagram insights not available (may need permission):', errorData.error?.message);
+        }
+      } catch (insightsError) {
+        console.log('Error fetching Instagram insights:', insightsError);
+      }
+
+      instagramData = {
+        username: igAccount.username,
+        profile_picture_url: igAccount.profile_picture_url || '',
+        followers_count: igAccount.followers_count || 0,
+        posts_count: postsCount,
+        total_likes: totalLikes,
+        total_comments: totalComments,
+        avg_engagement: avgEngagement,
+        reach,
+        impressions,
+        profile_views: profileViews,
+        website_clicks: websiteClicks,
+      };
     } catch (error) {
       console.error('Error fetching Instagram data:', error);
       
@@ -223,22 +223,80 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         profile_picture_url: igAccount.profile_picture_url || '',
         followers_count: igAccount.followers_count || 0,
         posts_count: 0,
-        recent_posts: [],
         total_likes: 0,
         total_comments: 0,
         avg_engagement: 0,
-        top_post: null,
       };
     }
   }
 
-  // Dados do Facebook Page
+  // Dados do Facebook Page com insights
   if (clientFull?.facebook_pages) {
     const fbPage = clientFull.facebook_pages;
+    const pageAccessToken = fbPage.page_access_token;
+    
+    let followersCount = 0;
+    let pageReach = 0;
+    let pageImpressions = 0;
+    let pageEngagedUsers = 0;
+
+    if (pageAccessToken) {
+      try {
+        // Buscar followers count
+        const pageInfoUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}?` +
+          `fields=followers_count&access_token=${pageAccessToken}`;
+        
+        const pageInfoResponse = await fetch(pageInfoUrl);
+        if (pageInfoResponse.ok) {
+          const pageInfo = await pageInfoResponse.json();
+          followersCount = pageInfo.followers_count || 0;
+        }
+
+        // Buscar insights da página
+        const pageInsightsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/insights?` +
+          `metric=page_impressions,page_engaged_users,page_post_engagements` +
+          `&period=day&date_preset=last_28d` +
+          `&access_token=${pageAccessToken}`;
+        
+        console.log('Fetching Facebook Page insights...');
+        const pageInsightsResponse = await fetch(pageInsightsUrl);
+        
+        if (pageInsightsResponse.ok) {
+          const insightsData = await pageInsightsResponse.json();
+          console.log('Facebook Page insights data received');
+          
+          if (insightsData.data) {
+            insightsData.data.forEach((metric: any) => {
+              // Somar valores dos últimos 28 dias
+              const values = metric.values || [];
+              const total = values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
+              
+              switch (metric.name) {
+                case 'page_impressions':
+                  pageImpressions = total;
+                  break;
+                case 'page_engaged_users':
+                  pageEngagedUsers = total;
+                  break;
+              }
+            });
+          }
+        } else {
+          const errorData = await pageInsightsResponse.json();
+          console.log('Facebook Page insights not available:', errorData.error?.message);
+        }
+      } catch (fbError) {
+        console.log('Error fetching Facebook Page data:', fbError);
+      }
+    }
+
     facebookData = {
       page_name: fbPage.page_name,
       page_category: fbPage.page_category || '',
-      page_picture_url: '',
+      followers_count: followersCount,
+      page_reach: pageReach,
+      page_impressions: pageImpressions,
+      page_engaged_users: pageEngagedUsers,
     };
   }
 

@@ -1,8 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Instagram, Heart, MessageCircle, TrendingUp, ExternalLink, Image } from "lucide-react";
+import { 
+  Instagram, 
+  Facebook, 
+  Users, 
+  Heart, 
+  MessageCircle, 
+  TrendingUp, 
+  Eye,
+  MousePointerClick,
+  UserPlus,
+  ExternalLink
+} from "lucide-react";
 import { SocialMetrics } from "@/hooks/useClientDashboard";
-import { cn } from "@/lib/utils";
 
 interface SocialMetricsCardProps {
   socialMetrics: SocialMetrics;
@@ -24,154 +34,173 @@ export function SocialMetricsCard({ socialMetrics }: SocialMetricsCardProps) {
   }
 
   const instagram = socialMetrics.instagram;
+  const facebook = socialMetrics.facebook;
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Instagram className="h-5 w-5 text-pink-500" />
-          Performance do Instagram
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Card className="bg-card border-border p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Instagram Section */}
         {instagram && (
-          <>
-            {/* Profile Header */}
-            <div className="flex items-center gap-4 pb-4 border-b border-border">
-              <Avatar className="h-14 w-14 ring-2 ring-pink-500/20">
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 ring-2 ring-pink-500/20">
                 <AvatarImage src={instagram.profile_picture_url} alt={instagram.username} />
-                <AvatarFallback className="bg-gradient-to-br from-pink-500 to-purple-500 text-white">
+                <AvatarFallback className="bg-gradient-to-br from-pink-500 to-purple-500 text-white text-sm">
                   {instagram.username?.charAt(0)?.toUpperCase() || 'I'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4 text-pink-500 flex-shrink-0" />
                   <a 
                     href={`https://instagram.com/${instagram.username}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1"
+                    className="font-medium text-foreground hover:text-primary transition-colors flex items-center gap-1 truncate"
                   >
                     @{instagram.username}
-                    <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="h-3 w-3 flex-shrink-0" />
                   </a>
-                </div>
-                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <span className="font-medium text-foreground">{formatNumber(instagram.followers_count)}</span> seguidores
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="font-medium text-foreground">{formatNumber(instagram.posts_count)}</span> posts
-                  </span>
                 </div>
               </div>
             </div>
 
             {/* Metrics Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                <div className="flex items-center justify-center gap-1 text-red-500 mb-1">
-                  <Heart className="h-4 w-4 fill-current" />
-                </div>
-                <div className="text-xl font-bold text-foreground">{formatNumber(instagram.total_likes)}</div>
-                <div className="text-xs text-muted-foreground">Curtidas</div>
+            <div className="grid grid-cols-3 gap-2">
+              <MetricItem 
+                icon={Users} 
+                iconColor="text-pink-500" 
+                value={formatNumber(instagram.followers_count)} 
+                label="Seguidores" 
+              />
+              <MetricItem 
+                icon={Heart} 
+                iconColor="text-red-500" 
+                value={formatNumber(instagram.total_likes)} 
+                label="Curtidas" 
+              />
+              <MetricItem 
+                icon={MessageCircle} 
+                iconColor="text-blue-500" 
+                value={formatNumber(instagram.total_comments)} 
+                label="Comentários" 
+              />
+            </div>
+
+            {/* Insights Row (if available) */}
+            {(instagram.reach || instagram.impressions || instagram.profile_views || instagram.website_clicks) ? (
+              <div className="grid grid-cols-4 gap-2">
+                <MetricItem 
+                  icon={Eye} 
+                  iconColor="text-purple-500" 
+                  value={formatNumber(instagram.reach || 0)} 
+                  label="Alcance" 
+                  small 
+                />
+                <MetricItem 
+                  icon={TrendingUp} 
+                  iconColor="text-green-500" 
+                  value={formatNumber(instagram.impressions || 0)} 
+                  label="Impressões" 
+                  small 
+                />
+                <MetricItem 
+                  icon={UserPlus} 
+                  iconColor="text-cyan-500" 
+                  value={formatNumber(instagram.profile_views || 0)} 
+                  label="Visitas Perfil" 
+                  small 
+                />
+                <MetricItem 
+                  icon={MousePointerClick} 
+                  iconColor="text-orange-500" 
+                  value={formatNumber(instagram.website_clicks || 0)} 
+                  label="Cliques Link" 
+                  small 
+                />
               </div>
-              <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                <div className="flex items-center justify-center gap-1 text-blue-500 mb-1">
-                  <MessageCircle className="h-4 w-4" />
-                </div>
-                <div className="text-xl font-bold text-foreground">{formatNumber(instagram.total_comments)}</div>
-                <div className="text-xs text-muted-foreground">Comentários</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <MetricItem 
+                  icon={TrendingUp} 
+                  iconColor="text-green-500" 
+                  value={instagram.avg_engagement.toFixed(1)} 
+                  label="Engaj. Médio" 
+                />
+                <MetricItem 
+                  icon={Eye} 
+                  iconColor="text-purple-500" 
+                  value={formatNumber(instagram.posts_count)} 
+                  label="Posts Analisados" 
+                />
               </div>
-              <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                <div className="flex items-center justify-center gap-1 text-green-500 mb-1">
-                  <TrendingUp className="h-4 w-4" />
+            )}
+          </div>
+        )}
+
+        {/* Facebook Section */}
+        {facebook && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+                <Facebook className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground truncate">{facebook.page_name}</span>
                 </div>
-                <div className="text-xl font-bold text-foreground">{instagram.avg_engagement.toFixed(1)}</div>
-                <div className="text-xs text-muted-foreground">Engaj. Médio</div>
+                {facebook.page_category && (
+                  <span className="text-xs text-muted-foreground">{facebook.page_category}</span>
+                )}
               </div>
             </div>
 
-            {/* Recent Posts Grid */}
-            {instagram.recent_posts && instagram.recent_posts.length > 0 && (
-              <div className="pt-2">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                  <Image className="h-4 w-4" />
-                  Posts Recentes
-                </h4>
-                <div className="grid grid-cols-3 gap-2">
-                  {instagram.recent_posts.slice(0, 6).map((post) => (
-                    <a
-                      key={post.id}
-                      href={post.permalink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative group aspect-square rounded-lg overflow-hidden bg-secondary"
-                    >
-                      <img
-                        src={post.thumbnail_url || post.media_url}
-                        alt={post.caption?.slice(0, 50) || 'Instagram post'}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 text-white text-xs">
-                        <span className="flex items-center gap-1">
-                          <Heart className="h-3 w-3 fill-current" />
-                          {formatNumber(post.like_count)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MessageCircle className="h-3 w-3" />
-                          {formatNumber(post.comments_count)}
-                        </span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top Post */}
-            {instagram.top_post && (
-              <div className="pt-2 border-t border-border">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">🏆 Post com Melhor Engajamento</h4>
-                <a
-                  href={instagram.top_post.permalink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-                >
-                  <img
-                    src={instagram.top_post.thumbnail_url || instagram.top_post.media_url}
-                    alt="Top post"
-                    className="w-16 h-16 rounded-lg object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1 text-red-500">
-                        <Heart className="h-4 w-4 fill-current" />
-                        {formatNumber(instagram.top_post.like_count)}
-                      </span>
-                      <span className="flex items-center gap-1 text-blue-500">
-                        <MessageCircle className="h-4 w-4" />
-                        {formatNumber(instagram.top_post.comments_count)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatNumber(instagram.top_post.like_count + instagram.top_post.comments_count)} interações totais
-                    </div>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </a>
-              </div>
-            )}
-          </>
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-3 gap-2">
+              <MetricItem 
+                icon={Users} 
+                iconColor="text-blue-500" 
+                value={formatNumber(facebook.followers_count || 0)} 
+                label="Seguidores" 
+              />
+              <MetricItem 
+                icon={Eye} 
+                iconColor="text-purple-500" 
+                value={formatNumber(facebook.page_impressions || 0)} 
+                label="Impressões" 
+              />
+              <MetricItem 
+                icon={TrendingUp} 
+                iconColor="text-green-500" 
+                value={formatNumber(facebook.page_engaged_users || 0)} 
+                label="Engajamento" 
+              />
+            </div>
+          </div>
         )}
-      </CardContent>
+      </div>
     </Card>
+  );
+}
+
+interface MetricItemProps {
+  icon: React.ElementType;
+  iconColor: string;
+  value: string;
+  label: string;
+  small?: boolean;
+}
+
+function MetricItem({ icon: Icon, iconColor, value, label, small }: MetricItemProps) {
+  return (
+    <div className="bg-secondary/50 rounded-lg p-2 text-center">
+      <div className={`flex items-center justify-center gap-1 ${iconColor} mb-0.5`}>
+        <Icon className={small ? "h-3 w-3" : "h-4 w-4"} />
+      </div>
+      <div className={`font-bold text-foreground ${small ? "text-sm" : "text-lg"}`}>{value}</div>
+      <div className={`text-muted-foreground ${small ? "text-[10px]" : "text-xs"}`}>{label}</div>
+    </div>
   );
 }
