@@ -106,13 +106,16 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     try {
       for (const file of filesToUpload) {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `posts/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('scheduled-posts-media')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            contentType: file.type,
+            cacheControl: '3600',
+          });
 
         if (uploadError) throw uploadError;
 
