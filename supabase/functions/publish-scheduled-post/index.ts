@@ -196,30 +196,49 @@ async function publishToInstagram(
     const containerId = containerData.id;
     await logPublishAction(supabase, post.id, 'instagram', 'create_container', 'success', { containerId });
 
-    // Step 2: Wait for container to be ready (for videos/reels)
-    if (post.content_type === 'video' || post.content_type === 'reel') {
-      let status = 'IN_PROGRESS';
-      let attempts = 0;
-      const maxAttempts = 30; // 5 minutes max (10s intervals)
+    // Step 2: Wait for container to be ready (for ALL media types)
+    // Instagram requires the container to be processed before publishing
+    const waitConfig = {
+      image: { interval: 2000, maxAttempts: 10 },      // 20s max for images
+      video: { interval: 10000, maxAttempts: 30 },     // 5min max for videos
+      reel: { interval: 10000, maxAttempts: 30 },      // 5min max for reels
+      carousel: { interval: 3000, maxAttempts: 15 },   // 45s max for carousel
+    };
 
-      while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-        
-        const statusResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${containerId}?fields=status_code&access_token=${pageAccessToken}`
-        );
-        const statusData = await statusResponse.json();
-        status = statusData.status_code;
-        attempts++;
-        
-        console.log(`Container status check ${attempts}: ${status}`);
-      }
+    const config = waitConfig[post.content_type as keyof typeof waitConfig] || waitConfig.image;
+    let containerReady = false;
+    let attempts = 0;
+    let lastStatus = 'IN_PROGRESS';
 
-      if (status !== 'FINISHED') {
-        await logPublishAction(supabase, post.id, 'instagram', 'wait_processing', 'error', { status }, `Container not ready: ${status}`);
-        return { success: false, error: `Video processing failed: ${status}` };
+    console.log(`Waiting for container ${containerId} to be ready (type: ${post.content_type})`);
+    await logPublishAction(supabase, post.id, 'instagram', 'wait_processing', 'started', { containerId, contentType: post.content_type });
+
+    while (!containerReady && attempts < config.maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, config.interval));
+      
+      const statusResponse = await fetch(
+        `https://graph.facebook.com/v20.0/${containerId}?fields=status_code,status&access_token=${pageAccessToken}`
+      );
+      const statusData = await statusResponse.json();
+      lastStatus = statusData.status_code || statusData.status || 'UNKNOWN';
+      attempts++;
+      
+      console.log(`Container status check ${attempts}/${config.maxAttempts}: ${lastStatus}`);
+
+      if (lastStatus === 'FINISHED') {
+        containerReady = true;
+      } else if (lastStatus === 'ERROR' || lastStatus === 'EXPIRED') {
+        await logPublishAction(supabase, post.id, 'instagram', 'wait_processing', 'error', statusData, `Container processing failed: ${lastStatus}`);
+        return { success: false, error: `Media processing failed: ${lastStatus}` };
       }
     }
+
+    if (!containerReady) {
+      await logPublishAction(supabase, post.id, 'instagram', 'wait_processing', 'error', { lastStatus, attempts }, `Container not ready after ${attempts} attempts`);
+      return { success: false, error: `Media not ready after ${attempts} attempts (status: ${lastStatus})` };
+    }
+
+    await logPublishAction(supabase, post.id, 'instagram', 'wait_processing', 'success', { containerId, attempts, status: lastStatus });
 
     // Step 3: Publish the container
     await logPublishAction(supabase, post.id, 'instagram', 'publish', 'started');
