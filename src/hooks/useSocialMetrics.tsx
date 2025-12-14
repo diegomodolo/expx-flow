@@ -27,7 +27,11 @@ export function useSocialMetrics(clientId: string) {
 
       // Fetch dashboard data which includes social metrics
       const { data, error } = await supabase.functions.invoke('client-dashboard-data', {
-        body: { token: client.dashboard_token, startDate, endDate }
+        body: { 
+          token: client.dashboard_token, 
+          start_date: startDate, 
+          end_date: endDate 
+        }
       });
 
       if (error) throw error;
