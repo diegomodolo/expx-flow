@@ -61,8 +61,8 @@ export function SendToScheduleModal({
   onSuccess 
 }: SendToScheduleModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [facebookPageId, setFacebookPageId] = useState<string>("");
-  const [instagramAccountId, setInstagramAccountId] = useState<string>("");
+  const [facebookPageId, setFacebookPageId] = useState<string>("none");
+  const [instagramAccountId, setInstagramAccountId] = useState<string>("none");
   
   const { sendToSchedule } = useSendToSchedule();
   const { pages, instagramAccounts, loading: loadingAccounts } = useFacebookPages();
@@ -112,8 +112,8 @@ export function SendToScheduleModal({
       creatives: selectedCreatives,
       clientId,
       companyId,
-      facebookPageId: facebookPageId || null,
-      instagramAccountId: instagramAccountId || null,
+      facebookPageId: facebookPageId === "none" ? null : facebookPageId,
+      instagramAccountId: instagramAccountId === "none" ? null : instagramAccountId,
     });
 
     onSuccess();
@@ -144,7 +144,7 @@ export function SendToScheduleModal({
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {clientPages.map(page => (
                     <SelectItem key={page.id} value={page.id}>
                       {page.page_name}
@@ -160,7 +160,7 @@ export function SendToScheduleModal({
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {clientInstagramAccounts.map(account => (
                     <SelectItem key={account.id} value={account.id}>
                       @{account.username}
