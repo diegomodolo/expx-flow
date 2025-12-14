@@ -6,7 +6,7 @@ interface GeneratorCardProps {
   icon: LucideIcon;
   title: string;
   description: string;
-  color: "blue" | "purple" | "pink";
+  color: "blue" | "purple" | "pink" | "teal";
   onClick: () => void;
 }
 
@@ -28,6 +28,12 @@ const colorClasses = {
     icon: "text-pink-600",
     badge: "bg-pink-100 text-pink-700 border-pink-200",
     hover: "hover:border-pink-300 hover:shadow-pink-100",
+  },
+  teal: {
+    gradient: "from-teal-500/10 to-teal-500/5",
+    icon: "text-teal-600",
+    badge: "bg-teal-100 text-teal-700 border-teal-200",
+    hover: "hover:border-teal-300 hover:shadow-teal-100",
   },
 };
 
