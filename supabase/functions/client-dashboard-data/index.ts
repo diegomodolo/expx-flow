@@ -33,6 +33,27 @@ interface TopEngagementPost {
   engagement: number;
 }
 
+interface TimelineDataPoint2 {
+  date: string;
+  value: number;
+}
+
+interface InstagramTimeline {
+  reach: TimelineDataPoint2[];
+  impressions: TimelineDataPoint2[];
+  profile_views: TimelineDataPoint2[];
+  website_clicks: TimelineDataPoint2[];
+  follower_count: TimelineDataPoint2[];
+}
+
+interface InstagramComparison {
+  reach_change_pct: number;
+  impressions_change_pct: number;
+  profile_views_change_pct: number;
+  website_clicks_change_pct: number;
+  followers_gained: number;
+}
+
 interface SocialMetrics {
   instagram: {
     username: string;
@@ -49,6 +70,10 @@ interface SocialMetrics {
     website_clicks?: number;
     // Top engagement posts
     top_posts?: TopEngagementPost[];
+    // Timeline data (30 days)
+    timeline?: InstagramTimeline;
+    // Comparison data (7d vs 7d)
+    comparison?: InstagramComparison;
   } | null;
   facebook: {
     page_name: string;
@@ -186,38 +211,105 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
       let impressions = 0;
       let profileViews = 0;
       let websiteClicks = 0;
+      
+      // Timeline data for charts
+      let timeline: InstagramTimeline = {
+        reach: [],
+        impressions: [],
+        profile_views: [],
+        website_clicks: [],
+        follower_count: [],
+      };
+      
+      // Comparison data
+      let comparison: InstagramComparison = {
+        reach_change_pct: 0,
+        impressions_change_pct: 0,
+        profile_views_change_pct: 0,
+        website_clicks_change_pct: 0,
+        followers_gained: 0,
+      };
 
       try {
-        // Insights de período (últimos 30 dias)
+        // Calculate date range (last 30 days)
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const since = Math.floor(thirtyDaysAgo.getTime() / 1000);
+        const until = Math.floor(now.getTime() / 1000);
+        
+        // Insights de período com breakdown diário (últimos 30 dias)
         const insightsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
-          `metric=reach,impressions,profile_views,website_clicks` +
-          `&period=day&metric_type=total_value` +
+          `metric=reach,impressions,profile_views,website_clicks,follower_count` +
+          `&period=day` +
+          `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Instagram insights...');
+        console.log('Fetching Instagram insights with daily breakdown...');
         const insightsResponse = await fetch(insightsUrl);
         
         if (insightsResponse.ok) {
           const insightsData = await insightsResponse.json();
-          console.log('Instagram insights data:', JSON.stringify(insightsData, null, 2));
+          console.log('Instagram insights data received, processing timeline...');
           
           if (insightsData.data) {
             insightsData.data.forEach((metric: any) => {
-              const value = metric.total_value?.value || 0;
-              switch (metric.name) {
+              const values = metric.values || [];
+              const metricName = metric.name;
+              
+              // Build timeline arrays
+              const timelineArray = values.map((v: any) => ({
+                date: v.end_time?.split('T')[0] || '',
+                value: v.value || 0,
+              })).filter((v: any) => v.date);
+              
+              switch (metricName) {
                 case 'reach':
-                  reach = value;
+                  timeline.reach = timelineArray;
+                  reach = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
                   break;
                 case 'impressions':
-                  impressions = value;
+                  timeline.impressions = timelineArray;
+                  impressions = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
                   break;
                 case 'profile_views':
-                  profileViews = value;
+                  timeline.profile_views = timelineArray;
+                  profileViews = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
                   break;
                 case 'website_clicks':
-                  websiteClicks = value;
+                  timeline.website_clicks = timelineArray;
+                  websiteClicks = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
+                  break;
+                case 'follower_count':
+                  timeline.follower_count = timelineArray;
                   break;
               }
+            });
+            
+            // Calculate comparison (last 7 days vs previous 7 days)
+            const calcComparison = (data: TimelineDataPoint2[]) => {
+              if (data.length < 14) return 0;
+              const last7 = data.slice(-7).reduce((sum, v) => sum + v.value, 0);
+              const prev7 = data.slice(-14, -7).reduce((sum, v) => sum + v.value, 0);
+              if (prev7 === 0) return last7 > 0 ? 100 : 0;
+              return ((last7 - prev7) / prev7) * 100;
+            };
+            
+            comparison.reach_change_pct = calcComparison(timeline.reach);
+            comparison.impressions_change_pct = calcComparison(timeline.impressions);
+            comparison.profile_views_change_pct = calcComparison(timeline.profile_views);
+            comparison.website_clicks_change_pct = calcComparison(timeline.website_clicks);
+            
+            // Calculate followers gained in last 7 days
+            if (timeline.follower_count.length >= 7) {
+              const lastFollowers = timeline.follower_count[timeline.follower_count.length - 1]?.value || 0;
+              const weekAgoFollowers = timeline.follower_count[timeline.follower_count.length - 7]?.value || 0;
+              comparison.followers_gained = lastFollowers - weekAgoFollowers;
+            }
+            
+            console.log('Timeline processed:', {
+              reach_points: timeline.reach.length,
+              impressions_points: timeline.impressions.length,
+              follower_points: timeline.follower_count.length,
             });
           }
         } else {
@@ -241,6 +333,8 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         profile_views: profileViews,
         website_clicks: websiteClicks,
         top_posts: topPosts,
+        timeline: timeline.reach.length > 0 ? timeline : undefined,
+        comparison: timeline.reach.length >= 14 ? comparison : undefined,
       };
     } catch (error) {
       console.error('Error fetching Instagram data:', error);
