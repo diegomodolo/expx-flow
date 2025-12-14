@@ -65,9 +65,24 @@ export function SendToScheduleModal({
   const [facebookPageId, setFacebookPageId] = useState<string>("none");
   const [instagramAccountId, setInstagramAccountId] = useState<string>("none");
   const [clientData, setClientData] = useState<{ facebook_page_id: string | null; instagram_account_id: string | null } | null>(null);
+  const [editingDates, setEditingDates] = useState<Record<string, { date: string; time: string }>>({});
   
   const { sendToSchedule } = useSendToSchedule();
   const { pages, instagramAccounts, loading: loadingAccounts } = useFacebookPages();
+
+  // Initialize dates when creatives change
+  useEffect(() => {
+    if (open && creatives.length > 0) {
+      const initialDates: Record<string, { date: string; time: string }> = {};
+      creatives.forEach(c => {
+        initialDates[c.id] = {
+          date: c.scheduled_date || '',
+          time: c.scheduled_time?.slice(0, 5) || ''
+        };
+      });
+      setEditingDates(initialDates);
+    }
+  }, [open, creatives]);
 
   // Fetch client data to get configured accounts
   useEffect(() => {
@@ -131,7 +146,14 @@ export function SendToScheduleModal({
   };
 
   const handleSubmit = async () => {
-    const selectedCreatives = creatives.filter(c => selectedIds.has(c.id));
+    // Apply edited dates to creatives
+    const selectedCreatives = creatives
+      .filter(c => selectedIds.has(c.id))
+      .map(c => ({
+        ...c,
+        scheduled_date: editingDates[c.id]?.date || c.scheduled_date,
+        scheduled_time: editingDates[c.id]?.time ? `${editingDates[c.id].time}:00` : c.scheduled_time,
+      }));
     
     await sendToSchedule.mutateAsync({
       creatives: selectedCreatives,
@@ -143,6 +165,16 @@ export function SendToScheduleModal({
 
     onSuccess();
   };
+
+  // Sort creatives by scheduled date
+  const sortedCreatives = [...creatives].sort((a, b) => {
+    const dateA = a.scheduled_date || '';
+    const dateB = b.scheduled_date || '';
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+    return dateA.localeCompare(dateB);
+  });
 
   const hasNoAccounts = clientPages.length === 0 && clientInstagramAccounts.length === 0;
 
@@ -223,60 +255,99 @@ export function SendToScheduleModal({
           </div>
 
           {/* Creatives List */}
-          <ScrollArea className="h-[300px] pr-4">
-            <div className="space-y-2">
-              {creatives.map((creative) => {
+          <ScrollArea className="h-[350px] pr-4">
+            <div className="space-y-3">
+              {sortedCreatives.map((creative) => {
                 const TypeIcon = CREATIVE_TYPE_ICONS[creative.creative_type] || Image;
                 const firstMedia = creative.creative_media?.[0];
+                const isVideo = creative.creative_type === 'reels' || firstMedia?.media_type === 'video';
 
                 return (
                   <div
                     key={creative.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                    className={`p-3 rounded-lg border transition-colors ${
                       selectedIds.has(creative.id) 
                         ? 'bg-primary/5 border-primary/30' 
                         : 'hover:bg-muted/50'
                     }`}
-                    onClick={() => toggleCreative(creative.id)}
                   >
-                    <Checkbox
-                      checked={selectedIds.has(creative.id)}
-                      onCheckedChange={() => toggleCreative(creative.id)}
-                    />
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selectedIds.has(creative.id)}
+                        onCheckedChange={() => toggleCreative(creative.id)}
+                      />
 
-                    {/* Thumbnail */}
-                    <div className="w-12 h-12 rounded-md bg-muted overflow-hidden shrink-0">
-                      {firstMedia ? (
-                        <img
-                          src={firstMedia.media_url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <TypeIcon className="w-6 h-6 text-muted-foreground" />
+                      {/* Thumbnail */}
+                      <div className="w-12 h-12 rounded-md bg-muted overflow-hidden shrink-0 relative">
+                        {firstMedia ? (
+                          isVideo ? (
+                            <>
+                              <video
+                                src={firstMedia.media_url}
+                                className="w-full h-full object-cover"
+                                muted
+                                preload="metadata"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Film className="w-5 h-5 text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={firstMedia.media_url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          )
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <TypeIcon className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {CREATIVE_TYPE_LABELS[creative.creative_type]}
+                          </Badge>
                         </div>
-                      )}
+                        <p className="text-sm font-medium truncate">
+                          {creative.headline || `Criativo ${creative.order_index + 1}`}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {CREATIVE_TYPE_LABELS[creative.creative_type]}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-medium truncate">
-                        {creative.headline || `Criativo ${creative.order_index + 1}`}
-                      </p>
+                    {/* Editable Date/Time */}
+                    <div className="flex items-center gap-2 mt-2 ml-8">
+                      <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <input
+                        type="date"
+                        value={editingDates[creative.id]?.date || ''}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setEditingDates(prev => ({
+                            ...prev,
+                            [creative.id]: { ...prev[creative.id], date: e.target.value }
+                          }));
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-sm px-2 py-1 border rounded bg-background"
+                      />
+                      <input
+                        type="time"
+                        value={editingDates[creative.id]?.time || ''}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setEditingDates(prev => ({
+                            ...prev,
+                            [creative.id]: { ...prev[creative.id], time: e.target.value }
+                          }));
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-sm px-2 py-1 border rounded bg-background"
+                      />
                     </div>
-
-                    {creative.scheduled_date && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                        <Calendar className="w-3 h-3" />
-                        {format(new Date(creative.scheduled_date), "dd/MM", { locale: ptBR })}
-                        {creative.scheduled_time && ` ${creative.scheduled_time}`}
-                      </div>
-                    )}
                   </div>
                 );
               })}
