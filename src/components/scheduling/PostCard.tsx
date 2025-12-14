@@ -69,21 +69,36 @@ export const PostCard: React.FC<PostCardProps> = ({
         )}
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          {/* Client name */}
+          {post.client && (
+            <p className="text-xs font-medium text-foreground mb-1 truncate">
+              {post.client.name}
+            </p>
+          )}
+          
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-sm font-medium">
               {format(new Date(post.scheduled_at), 'HH:mm')}
             </span>
-            <div className="flex items-center gap-1">
-              {post.platforms.includes('facebook') && (
-                <FaFacebook className="h-3 w-3 text-blue-600" />
-              )}
-              {post.platforms.includes('instagram') && (
-                <FaInstagram className="h-3 w-3 text-pink-600" />
-              )}
-            </div>
             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${status.color}`}>
               {status.label}
             </Badge>
+          </div>
+
+          {/* Account names */}
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {post.platforms.includes('facebook') && (
+              <div className="flex items-center gap-1 text-[10px] text-blue-600">
+                <FaFacebook className="h-3 w-3" />
+                <span className="truncate max-w-[80px]">{post.facebook_page?.page_name || 'Facebook'}</span>
+              </div>
+            )}
+            {post.platforms.includes('instagram') && (
+              <div className="flex items-center gap-1 text-[10px] text-pink-600">
+                <FaInstagram className="h-3 w-3" />
+                <span className="truncate max-w-[80px]">@{post.instagram_account?.username || 'Instagram'}</span>
+              </div>
+            )}
           </div>
           
           <p className="text-xs text-muted-foreground line-clamp-1">
