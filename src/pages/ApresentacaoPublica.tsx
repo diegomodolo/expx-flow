@@ -599,11 +599,12 @@ export default function ApresentacaoPublica() {
       return (
         <div 
           className="w-full h-full flex flex-col items-center justify-center text-white p-12 relative overflow-hidden"
-          style={{ 
-            backgroundImage: hasBgImage ? `url(${presentation.client.presentation_bg_image})` : undefined,
+          style={hasBgImage ? { 
+            backgroundImage: `url(${presentation.client.presentation_bg_image})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            background: !hasBgImage ? `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` : undefined
+          } : {
+            background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
           }}
         >
           {/* Overlay */}
