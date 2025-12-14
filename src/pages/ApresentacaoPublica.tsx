@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronLeft, ChevronRight, Calendar, Target, Hash, Image as ImageIcon, Play, Layers } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Calendar, Target, Hash, Image as ImageIcon, Play, Layers, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -292,73 +292,107 @@ export default function ApresentacaoPublica() {
 
     return (
       <div className="w-full h-full bg-background flex overflow-hidden">
-        {/* Left side - Media */}
-        <div className="w-1/2 h-full bg-muted flex items-center justify-center p-8 relative">
-          {currentMedia ? (
-            currentMedia.media_type === "video" ? (
-              <video 
-                src={currentMedia.media_url} 
-                controls 
-                className="max-w-full max-h-full rounded-lg shadow-lg"
-              />
-            ) : (
-              <img 
-                src={currentMedia.media_url} 
-                alt={creative.headline || ""} 
-                className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-              />
-            )
-          ) : (
-            <div className="w-48 h-48 bg-muted-foreground/20 rounded-lg flex items-center justify-center">
-              <ImageIcon className="w-16 h-16 text-muted-foreground/50" />
+        {/* Left side - Instagram Frame */}
+        <div className="w-1/2 h-full bg-muted flex items-center justify-center p-4">
+          {/* Instagram Post Frame */}
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-[380px] overflow-hidden">
+            {/* Instagram Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  {presentation.client.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{presentation.client.name.toLowerCase().replace(/\s+/g, '')}</p>
+                  <p className="text-xs text-gray-500">Patrocinado</p>
+                </div>
+              </div>
+              <MoreHorizontal className="w-5 h-5 text-gray-600" />
             </div>
-          )}
-          
-          {/* Carousel navigation */}
-          {isCarousel && (
-            <>
-              {/* Previous button */}
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={prevCarouselImage}
-                disabled={currentCarouselIndex === 0}
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full shadow-lg"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
 
-              {/* Next button */}
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={nextCarouselImage}
-                disabled={currentCarouselIndex === creative.creative_media.length - 1}
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full shadow-lg"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-
-              {/* Carousel indicator */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/30 px-3 py-1.5 rounded-full">
-                {creative.creative_media.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentCarouselIndex(i)}
-                    className={cn(
-                      "w-2 h-2 rounded-full transition-all",
-                      i === currentCarouselIndex ? "bg-white w-4" : "bg-white/50 hover:bg-white/70"
-                    )}
+            {/* Media Container */}
+            <div className="relative aspect-square bg-gray-100">
+              {currentMedia ? (
+                currentMedia.media_type === "video" ? (
+                  <video 
+                    src={currentMedia.media_url} 
+                    controls 
+                    className="w-full h-full object-cover"
                   />
-                ))}
-              </div>
+                ) : (
+                  <img 
+                    src={currentMedia.media_url} 
+                    alt={creative.headline || ""} 
+                    className="w-full h-full object-cover"
+                  />
+                )
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ImageIcon className="w-16 h-16 text-gray-300" />
+                </div>
+              )}
 
-              {/* Counter */}
-              <div className="absolute top-4 right-4 bg-black/50 text-white text-sm px-2 py-1 rounded">
-                {currentCarouselIndex + 1} / {creative.creative_media.length}
+              {/* Carousel navigation inside frame */}
+              {isCarousel && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={prevCarouselImage}
+                    disabled={currentCarouselIndex === 0}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full shadow-lg w-7 h-7 bg-white/90 hover:bg-white"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-700" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={nextCarouselImage}
+                    disabled={currentCarouselIndex === creative.creative_media.length - 1}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full shadow-lg w-7 h-7 bg-white/90 hover:bg-white"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-700" />
+                  </Button>
+
+                  {/* Carousel dots */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                    {creative.creative_media.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentCarouselIndex(i)}
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full transition-all",
+                          i === currentCarouselIndex ? "bg-blue-500" : "bg-white/70"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Instagram Actions */}
+            <div className="px-3 py-2">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4">
+                  <Heart className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
+                  <MessageCircle className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
+                  <Send className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
+                </div>
+                <Bookmark className="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" />
               </div>
-            </>
-          )}
+              <p className="text-sm font-semibold text-gray-900 mb-1">1.234 curtidas</p>
+              {creative.caption && (
+                <p className="text-sm text-gray-800 line-clamp-2">
+                  <span className="font-semibold">{presentation.client.name.toLowerCase().replace(/\s+/g, '')}</span>{' '}
+                  {creative.caption.substring(0, 80)}{creative.caption.length > 80 ? '...' : ''}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right side - Content */}
