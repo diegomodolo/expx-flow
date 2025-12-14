@@ -9,6 +9,7 @@ import { ParticipantsForm } from "@/components/presentation/ParticipantsForm";
 import { ApprovalButtons } from "@/components/presentation/ApprovalButtons";
 import { RejectionModal } from "@/components/presentation/RejectionModal";
 import { MeetingSummarySlide } from "@/components/presentation/MeetingSummarySlide";
+import { AddParticipantButton } from "@/components/presentation/AddParticipantButton";
 
 interface CreativeMedia {
   id: string;
@@ -894,7 +895,18 @@ export default function ApresentacaoPublica() {
     : null;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col relative">
+      {/* Add Participant Button - Top Right */}
+      {meetingStarted && !meetingCompleted && (
+        <div className="absolute top-4 right-4 z-50">
+          <AddParticipantButton
+            onAddParticipant={handleAddParticipant}
+            meetingId={meetingId}
+            primaryColor={primaryColor}
+          />
+        </div>
+      )}
+
       {/* Main slide area */}
       <div className="flex-1 flex items-center justify-center p-2">
         <div className="w-[92vw] max-w-[1800px] aspect-[16/9] bg-card rounded-xl shadow-2xl overflow-hidden relative">
