@@ -3,8 +3,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield } from "lucide-react";
+import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield, Instagram } from "lucide-react";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
+import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,10 +24,13 @@ export const FacebookIntegrationSettings = () => {
     refreshAdAccounts,
     checkScopes
   } = useFacebookIntegration();
+  
+  const { pages, instagramAccounts, refreshPages } = useFacebookPages();
 
   const [showScopesModal, setShowScopesModal] = useState(false);
   const [scopesData, setScopesData] = useState<any>(null);
   const [checkingScopes, setCheckingScopes] = useState(false);
+  const [refreshingPages, setRefreshingPages] = useState(false);
 
   const handleCheckScopes = async () => {
     if (!activeCompany?.company_id) return;
@@ -47,6 +51,26 @@ export const FacebookIntegrationSettings = () => {
     }
   }, [activeCompany?.company_id]);
 
+  const isConnected = integration && integration.is_active;
+  const isExpired = integration && new Date(integration.expires_at) < new Date();
+
+  const handleRefreshPages = async () => {
+    if (!integration?.id) return;
+    setRefreshingPages(true);
+    try {
+      await refreshPages(integration.id);
+    } finally {
+      setRefreshingPages(false);
+    }
+  };
+
+  // Auto-fetch pages when integration becomes available and pages are empty
+  useEffect(() => {
+    if (integration?.id && isConnected && pages.length === 0 && !refreshingPages) {
+      handleRefreshPages();
+    }
+  }, [integration?.id, isConnected]);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -64,9 +88,6 @@ export const FacebookIntegrationSettings = () => {
       </div>
     );
   }
-
-  const isConnected = integration && integration.is_active;
-  const isExpired = integration && new Date(integration.expires_at) < new Date();
 
   return (
     <div className="space-y-6">
@@ -244,6 +265,92 @@ export const FacebookIntegrationSettings = () => {
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Nenhuma conta de anúncios encontrada.
+                </p>
+              )}
+              </CardContent>
+          </Card>
+
+          {/* Card de Páginas do Facebook */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Facebook className="h-4 w-4 text-blue-600" />
+                  Páginas do Facebook ({pages.length})
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshPages}
+                  disabled={refreshingPages}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshingPages ? 'animate-spin' : ''}`} />
+                  {refreshingPages ? 'Buscando...' : 'Atualizar Páginas'}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pages.length > 0 ? (
+                <div className="space-y-3">
+                  {pages.map((page) => (
+                    <div
+                      key={page.id}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{page.page_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          ID: {page.page_id}
+                        </div>
+                      </div>
+                      {page.page_category && (
+                        <Badge variant="outline" className="text-xs">
+                          {page.page_category}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {refreshingPages ? 'Buscando páginas...' : 'Nenhuma página encontrada. Clique em "Atualizar Páginas" para buscar.'}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card de Contas do Instagram */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Instagram className="h-4 w-4 text-pink-600" />
+                Contas do Instagram ({instagramAccounts.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {instagramAccounts.length > 0 ? (
+                <div className="space-y-3">
+                  {instagramAccounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">@{account.username}</div>
+                        <div className="text-xs text-muted-foreground">
+                          ID: {account.instagram_id}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {account.followers_count?.toLocaleString() || 0} seguidores
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma conta do Instagram vinculada às páginas.
                 </p>
               )}
             </CardContent>
