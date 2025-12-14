@@ -41,6 +41,19 @@ export interface ClientDetailsData extends Client {
     is_prepaid: boolean;
     funding_source_details?: any;
   };
+  facebook_page?: {
+    id: string;
+    page_id: string;
+    page_name: string;
+    page_category: string | null;
+  };
+  instagram_account?: {
+    id: string;
+    instagram_id: string;
+    username: string;
+    profile_picture_url: string | null;
+    followers_count: number;
+  };
 }
 
 export function useClientDetails(clientId: string) {
@@ -73,6 +86,19 @@ export function useClientDetails(clientId: string) {
             last_balance_check,
             is_prepaid,
             funding_source_details
+          ),
+          facebook_page:facebook_pages!facebook_page_id (
+            id,
+            page_id,
+            page_name,
+            page_category
+          ),
+          instagram_account:instagram_accounts!instagram_account_id (
+            id,
+            instagram_id,
+            username,
+            profile_picture_url,
+            followers_count
           )
         `)
         .eq("id", clientId)

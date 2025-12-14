@@ -1460,9 +1460,11 @@ export type Database = {
           created_at: string
           dashboard_token: string | null
           email: string
+          facebook_page_id: string | null
           google_account_id: string | null
           id: string
           inactive_reason: string | null
+          instagram_account_id: string | null
           last_sync_at: string | null
           last_sync_period: string | null
           leads_generated: number | null
@@ -1499,9 +1501,11 @@ export type Database = {
           created_at?: string
           dashboard_token?: string | null
           email: string
+          facebook_page_id?: string | null
           google_account_id?: string | null
           id?: string
           inactive_reason?: string | null
+          instagram_account_id?: string | null
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
@@ -1538,9 +1542,11 @@ export type Database = {
           created_at?: string
           dashboard_token?: string | null
           email?: string
+          facebook_page_id?: string | null
           google_account_id?: string | null
           id?: string
           inactive_reason?: string | null
+          instagram_account_id?: string | null
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
@@ -1579,10 +1585,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clients_facebook_page_id_fkey"
+            columns: ["facebook_page_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_pages"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clients_google_account_id_fkey"
             columns: ["google_account_id"]
             isOneToOne: false
             referencedRelation: "google_ads_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_instagram_account_id_fkey"
+            columns: ["instagram_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
             referencedColumns: ["id"]
           },
           {
