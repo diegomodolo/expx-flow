@@ -331,12 +331,12 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
           {/* Client (Optional) */}
           <div>
             <Label htmlFor="client" className="mb-2 block">Cliente (opcional)</Label>
-            <Select value={selectedClient} onValueChange={setSelectedClient}>
+            <Select value={selectedClient || "none"} onValueChange={(val) => setSelectedClient(val === "none" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {clients.map(client => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
