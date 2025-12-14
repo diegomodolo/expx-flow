@@ -173,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emails = participants.map(p => p.email);
     
     const emailResponse = await resend.emails.send({
-      from: "Apresentações <onboarding@resend.dev>",
+      from: "Controle de Tráfego <noreply@controledetrafego.com.br>",
       to: emails,
       subject: `Resumo da Reunião: ${presentationName} - ${clientName}`,
       html: htmlContent,
