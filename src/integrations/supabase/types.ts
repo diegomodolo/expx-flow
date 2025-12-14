@@ -4736,6 +4736,7 @@ export type Database = {
           id: string
           meeting_id: string
           rejection_reason: string | null
+          resubmitted_at: string | null
           status: string
         }
         Insert: {
@@ -4746,6 +4747,7 @@ export type Database = {
           id?: string
           meeting_id: string
           rejection_reason?: string | null
+          resubmitted_at?: string | null
           status?: string
         }
         Update: {
@@ -4756,6 +4758,7 @@ export type Database = {
           id?: string
           meeting_id?: string
           rejection_reason?: string | null
+          resubmitted_at?: string | null
           status?: string
         }
         Relationships: [
@@ -4780,13 +4783,17 @@ export type Database = {
           caption: string | null
           created_at: string
           creative_type: string
+          current_status: string | null
           hashtags: string | null
           headline: string | null
           id: string
+          manager_approved_at: string | null
+          manager_approved_by: string | null
           objective: string | null
           order_index: number
           presentation_id: string
           scheduled_date: string | null
+          scheduled_post_id: string | null
           scheduled_time: string | null
           script: Json | null
           subheadline: string | null
@@ -4796,13 +4803,17 @@ export type Database = {
           caption?: string | null
           created_at?: string
           creative_type: string
+          current_status?: string | null
           hashtags?: string | null
           headline?: string | null
           id?: string
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
           objective?: string | null
           order_index?: number
           presentation_id: string
           scheduled_date?: string | null
+          scheduled_post_id?: string | null
           scheduled_time?: string | null
           script?: Json | null
           subheadline?: string | null
@@ -4812,13 +4823,17 @@ export type Database = {
           caption?: string | null
           created_at?: string
           creative_type?: string
+          current_status?: string | null
           hashtags?: string | null
           headline?: string | null
           id?: string
+          manager_approved_at?: string | null
+          manager_approved_by?: string | null
           objective?: string | null
           order_index?: number
           presentation_id?: string
           scheduled_date?: string | null
+          scheduled_post_id?: string | null
           scheduled_time?: string | null
           script?: Json | null
           subheadline?: string | null
@@ -4830,6 +4845,13 @@ export type Database = {
             columns: ["presentation_id"]
             isOneToOne: false
             referencedRelation: "content_presentations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "presentation_creatives_scheduled_post_id_fkey"
+            columns: ["scheduled_post_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -4871,32 +4893,50 @@ export type Database = {
       }
       presentation_meetings: {
         Row: {
+          approved_count: number | null
           completed_at: string | null
           created_at: string
           current_slide: number | null
+          ended_at: string | null
           id: string
           meeting_date: string
+          notes: string | null
           presentation_id: string
+          recording_url: string | null
+          rejected_count: number | null
+          started_at: string | null
           status: string
           summary_sent: boolean
         }
         Insert: {
+          approved_count?: number | null
           completed_at?: string | null
           created_at?: string
           current_slide?: number | null
+          ended_at?: string | null
           id?: string
           meeting_date?: string
+          notes?: string | null
           presentation_id: string
+          recording_url?: string | null
+          rejected_count?: number | null
+          started_at?: string | null
           status?: string
           summary_sent?: boolean
         }
         Update: {
+          approved_count?: number | null
           completed_at?: string | null
           created_at?: string
           current_slide?: number | null
+          ended_at?: string | null
           id?: string
           meeting_date?: string
+          notes?: string | null
           presentation_id?: string
+          recording_url?: string | null
+          rejected_count?: number | null
+          started_at?: string | null
           status?: string
           summary_sent?: boolean
         }
