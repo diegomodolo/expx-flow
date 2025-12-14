@@ -54,6 +54,27 @@ export interface TopEngagementPost {
   engagement: number;
 }
 
+export interface TimelineDataPoint2 {
+  date: string;
+  value: number;
+}
+
+export interface InstagramTimeline {
+  reach: TimelineDataPoint2[];
+  impressions: TimelineDataPoint2[];
+  profile_views: TimelineDataPoint2[];
+  website_clicks: TimelineDataPoint2[];
+  follower_count: TimelineDataPoint2[];
+}
+
+export interface InstagramComparison {
+  reach_change_pct: number;
+  impressions_change_pct: number;
+  profile_views_change_pct: number;
+  website_clicks_change_pct: number;
+  followers_gained: number;
+}
+
 export interface SocialMetrics {
   instagram: {
     username: string;
@@ -70,6 +91,10 @@ export interface SocialMetrics {
     website_clicks?: number;
     // Top engagement posts
     top_posts?: TopEngagementPost[];
+    // Timeline data (30 days)
+    timeline?: InstagramTimeline;
+    // Comparison data (7d vs 7d)
+    comparison?: InstagramComparison;
   } | null;
   facebook: {
     page_name: string;

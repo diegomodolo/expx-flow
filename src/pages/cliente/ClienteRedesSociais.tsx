@@ -17,6 +17,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSocialMetrics } from "@/hooks/useSocialMetrics";
 import { useClientContext } from "./ClienteContext";
+import { SocialTimelineChart } from "@/components/social/SocialTimelineChart";
+import { FollowersGrowthChart } from "@/components/social/FollowersGrowthChart";
+import { ComparisonCard } from "@/components/social/ComparisonCard";
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
@@ -39,6 +42,11 @@ export function ClienteRedesSociais() {
         <div className="flex items-center gap-3">
           <Share2 className="h-6 w-6 text-primary" />
           <h1 className="text-title-lg text-foreground">Redes Sociais</h1>
+        </div>
+        <Skeleton className="h-[120px] rounded-xl" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
           <Skeleton className="h-[400px] rounded-xl" />
@@ -74,6 +82,8 @@ export function ClienteRedesSociais() {
 
   const instagram = socialMetrics?.instagram;
   const facebook = socialMetrics?.facebook;
+  const hasTimeline = instagram?.timeline && instagram.timeline.reach.length > 0;
+  const hasComparison = instagram?.comparison;
 
   return (
     <div className="space-y-6">
@@ -82,6 +92,26 @@ export function ClienteRedesSociais() {
         <Share2 className="h-6 w-6 text-primary" />
         <h1 className="text-title-lg text-foreground">Redes Sociais</h1>
       </div>
+
+      {/* Comparison Card - Full Width */}
+      {hasComparison && instagram?.comparison && (
+        <ComparisonCard data={instagram.comparison} />
+      )}
+
+      {/* Timeline Charts */}
+      {hasTimeline && instagram?.timeline && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SocialTimelineChart
+            reachData={instagram.timeline.reach}
+            impressionsData={instagram.timeline.impressions}
+            title="Alcance e Impressões (30 dias)"
+          />
+          <FollowersGrowthChart
+            data={instagram.timeline.follower_count}
+            title="Variação de Seguidores (30 dias)"
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Instagram Card */}
@@ -156,7 +186,7 @@ export function ClienteRedesSociais() {
               {/* Insights */}
               {(instagram.reach || instagram.impressions || instagram.profile_views || instagram.website_clicks) && (
                 <div>
-                  <h3 className="text-label-md text-muted-foreground uppercase tracking-wider mb-3">Insights</h3>
+                  <h3 className="text-label-md text-muted-foreground uppercase tracking-wider mb-3">Insights (30 dias)</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <MetricCard 
                       icon={Eye} 
