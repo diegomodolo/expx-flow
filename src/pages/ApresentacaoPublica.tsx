@@ -48,6 +48,10 @@ interface Presentation {
     avatar: string | null;
     instagram_profile_picture: string | null;
     instagram_username: string | null;
+    presentation_logo: string | null;
+    presentation_bg_image: string | null;
+    presentation_overlay_color: string | null;
+    presentation_overlay_opacity: number | null;
   };
   creatives: Creative[];
 }
@@ -149,6 +153,10 @@ export default function ApresentacaoPublica() {
               name,
               company,
               avatar,
+              presentation_logo,
+              presentation_bg_image,
+              presentation_overlay_color,
+              presentation_overlay_opacity,
               instagram_accounts (
                 profile_picture_url,
                 username
@@ -209,6 +217,10 @@ export default function ApresentacaoPublica() {
             avatar: client?.avatar || null,
             instagram_profile_picture: instagramAccount?.profile_picture_url || null,
             instagram_username: instagramAccount?.username || null,
+            presentation_logo: client?.presentation_logo || null,
+            presentation_bg_image: client?.presentation_bg_image || null,
+            presentation_overlay_color: client?.presentation_overlay_color || null,
+            presentation_overlay_opacity: client?.presentation_overlay_opacity ?? null,
           },
           creatives,
         };
@@ -580,29 +592,60 @@ export default function ApresentacaoPublica() {
   const renderSlide = () => {
     // Cover slide (index 0)
     if (currentSlide === 0) {
+      const hasBgImage = !!presentation.client.presentation_bg_image;
+      const overlayColor = presentation.client.presentation_overlay_color || primaryColor;
+      const overlayOpacity = presentation.client.presentation_overlay_opacity ?? 0.7;
+
       return (
         <div 
-          className="w-full h-full flex flex-col items-center justify-center text-white p-12"
-          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
+          className="w-full h-full flex flex-col items-center justify-center text-white p-12 relative overflow-hidden"
+          style={{ 
+            backgroundImage: hasBgImage ? `url(${presentation.client.presentation_bg_image})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            background: !hasBgImage ? `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` : undefined
+          }}
         >
-          {presentation.client.avatar && (
-            <img 
-              src={presentation.client.avatar} 
-              alt={presentation.client.name} 
-              className="w-24 h-24 rounded-full object-cover border-4 border-white/30 mb-8"
+          {/* Overlay */}
+          {hasBgImage && (
+            <div 
+              className="absolute inset-0"
+              style={{ 
+                backgroundColor: overlayColor,
+                opacity: overlayOpacity
+              }}
             />
           )}
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-4">
-            {presentation.name}
-          </h1>
-          <p className="text-xl md:text-2xl opacity-90 text-center mb-2">
-            {presentation.client.name}
-          </p>
-          <p className="text-lg opacity-75">
-            {MONTHS[presentation.month - 1]} de {presentation.year}
-          </p>
-          <div className="mt-12 text-sm opacity-60">
-            {presentation.creatives.length} criativos
+          
+          {/* Content */}
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            {/* Logo or Avatar */}
+            {presentation.client.presentation_logo ? (
+              <img 
+                src={presentation.client.presentation_logo} 
+                alt={presentation.client.name} 
+                className="max-h-32 md:max-h-40 max-w-[300px] md:max-w-[400px] object-contain mb-8"
+              />
+            ) : presentation.client.avatar ? (
+              <img 
+                src={presentation.client.avatar} 
+                alt={presentation.client.name} 
+                className="w-24 h-24 rounded-full object-cover border-4 border-white/30 mb-8"
+              />
+            ) : null}
+            
+            <h1 className="text-4xl md:text-5xl font-bold text-center mb-4 drop-shadow-lg">
+              {presentation.name}
+            </h1>
+            <p className="text-xl md:text-2xl opacity-90 text-center mb-2 drop-shadow">
+              {presentation.client.name}
+            </p>
+            <p className="text-lg opacity-75 drop-shadow">
+              {MONTHS[presentation.month - 1]} de {presentation.year}
+            </p>
+            <div className="mt-12 text-sm opacity-60">
+              {presentation.creatives.length} criativos
+            </div>
           </div>
         </div>
       );
