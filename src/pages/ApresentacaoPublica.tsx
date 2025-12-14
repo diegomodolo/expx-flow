@@ -381,8 +381,8 @@ export default function ApresentacaoPublica() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Main slide area */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-6xl aspect-video bg-card rounded-xl shadow-2xl overflow-hidden relative">
+      <div className="flex-1 flex items-center justify-center p-2">
+        <div className="w-[95%] h-[85vh] max-w-[1600px] bg-card rounded-xl shadow-2xl overflow-hidden relative">
           {renderSlide()}
         </div>
       </div>
