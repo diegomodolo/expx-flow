@@ -97,34 +97,34 @@
   }
 
   .dark {
-    --background: 213 18% 10%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 95%;
 
-    --card: 213 18% 13%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 213 18% 13%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
 
     /* Google Blue - slightly brighter in dark mode */
     --primary: 217 91% 65%;
-    --primary-foreground: 213 18% 10%;
+    --primary-foreground: 0 0% 7%;
     --primary-glow: 217 91% 75%;
 
-    --secondary: 213 18% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 213 18% 18%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 213 18% 18%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 95%;
 
     --destructive: 4 80% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 213 18% 20%;
-    --input: 213 18% 20%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
     --ring: 217 91% 65%;
     
     /* Status colors - dark mode */
@@ -136,7 +136,7 @@
     --danger-foreground: 0 0% 100%;
     
     /* Dashboard specific */
-    --dashboard-bg: 213 18% 10%;
+    --dashboard-bg: 0 0% 7%;
     --metric-positive: 142 71% 45%;
     --metric-negative: 4 80% 50%;
     --metric-neutral: 36 100% 50%;
@@ -148,17 +148,17 @@
     --status-attention-foreground: 0 0% 100%;
     --status-emergency: 4 80% 50%;
     --status-emergency-foreground: 0 0% 100%;
-    --status-inactive: 220 9% 53%;
+    --status-inactive: 0 0% 53%;
     --status-inactive-foreground: 0 0% 100%;
     
     /* Sidebar */
-    --sidebar-background: 213 18% 10%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 217 91% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 18% 15%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 213 18% 18%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 14%;
     --sidebar-ring: 217 91% 65%;
 
     /* Dark mode shadows */
