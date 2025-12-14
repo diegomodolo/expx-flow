@@ -220,7 +220,7 @@ export function usePresentationDetails(presentationId: string) {
       return {
         ...presentation,
         creatives: creatives || [],
-      } as ContentPresentation & { creatives: PresentationCreative[] };
+      } as unknown as ContentPresentation & { creatives: PresentationCreative[] };
     },
     enabled: !!presentationId,
   });
@@ -266,7 +266,7 @@ export function usePublicPresentation(token: string) {
       return {
         ...presentation,
         creatives: creatives || [],
-      } as ContentPresentation & { creatives: PresentationCreative[] };
+      } as unknown as ContentPresentation & { creatives: PresentationCreative[] };
     },
     enabled: !!token,
   });
