@@ -90,40 +90,10 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Visão geral e métricas principais"
     },
     {
-      title: "Campanhas",
-      href: `/clientes/${clientId}/campanhas`,
-      icon: Megaphone,
-      description: "Gerenciar campanhas ativas"
-    },
-    {
-      title: "Conjuntos de Anúncios",
-      href: `/clientes/${clientId}/conjuntos`,
-      icon: Layers,
-      description: "Ver conjuntos de anúncios"
-    },
-    {
-      title: "Criativos",
-      href: `/clientes/${clientId}/criativos`,
-      icon: Image,
-      description: "Gerenciar criativos e anúncios"
-    },
-    {
-      title: "Funil de Conversão",
-      href: `/clientes/${clientId}/funil`,
-      icon: TrendingUp,
-      description: "Análise do funil de vendas"
-    },
-    {
       title: "Alertas & Sugestões",
       href: `/clientes/${clientId}/alertas`,
       icon: AlertTriangle,
       description: "Ver alertas e sugestões"
-    },
-    {
-      title: "Análise Completa",
-      href: `/clientes/${clientId}/analise`,
-      icon: BarChart3,
-      description: "Análise detalhada"
     },
     {
       title: "Análise Competitiva",
@@ -132,22 +102,10 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Comparar com concorrentes"
     },
     {
-      title: "Relatório Semanal",
-      href: `/clientes/${clientId}/relatorio`,
-      icon: FileText,
-      description: "Relatórios semanais"
-    },
-    {
-      title: "Comparação de Períodos",
-      href: `/clientes/${clientId}/comparacao`,
-      icon: GitCompare,
-      description: "Comparar períodos"
-    },
-    {
-      title: "Contato & Dados",
-      href: `/clientes/${clientId}/contato`,
-      icon: User,
-      description: "Informações de contato"
+      title: "Análise Completa",
+      href: `/clientes/${clientId}/analise`,
+      icon: BarChart3,
+      description: "Análise detalhada"
     },
     {
       title: "Anotações",
@@ -156,10 +114,34 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Anotações sobre o cliente"
     },
     {
-      title: "Leads Desqualificados",
-      href: `/clientes/${clientId}/leads-desqualificados`,
-      icon: UserX,
-      description: "Gerenciar leads desqualificados"
+      title: "Automações",
+      href: `/clientes/${clientId}/automacoes`,
+      icon: Zap,
+      description: "Gerenciar automações"
+    },
+    {
+      title: "Campanhas",
+      href: `/clientes/${clientId}/campanhas`,
+      icon: Megaphone,
+      description: "Gerenciar campanhas ativas"
+    },
+    {
+      title: "Comparação de Períodos",
+      href: `/clientes/${clientId}/comparacao`,
+      icon: GitCompare,
+      description: "Comparar períodos"
+    },
+    {
+      title: "Conjuntos de Anúncios",
+      href: `/clientes/${clientId}/conjuntos`,
+      icon: Layers,
+      description: "Ver conjuntos de anúncios"
+    },
+    {
+      title: "Contato & Dados",
+      href: `/clientes/${clientId}/contato`,
+      icon: User,
+      description: "Informações de contato"
     },
     {
       title: "Conversões Offline",
@@ -168,16 +150,34 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Rastrear conversões offline"
     },
     {
+      title: "Criativos",
+      href: `/clientes/${clientId}/criativos`,
+      icon: Image,
+      description: "Gerenciar criativos e anúncios"
+    },
+    {
       title: "CRM",
       href: `/clientes/${clientId}/crm`,
       icon: Kanban,
       description: "Gerenciar leads no mini CRM"
     },
     {
-      title: "Automações",
-      href: `/clientes/${clientId}/automacoes`,
-      icon: Zap,
-      description: "Gerenciar automações"
+      title: "Funil de Conversão",
+      href: `/clientes/${clientId}/funil`,
+      icon: TrendingUp,
+      description: "Análise do funil de vendas"
+    },
+    {
+      title: "Histórico",
+      href: `/clientes/${clientId}/historico`,
+      icon: Clock,
+      description: "Histórico de alterações"
+    },
+    {
+      title: "Leads Desqualificados",
+      href: `/clientes/${clientId}/leads-desqualificados`,
+      icon: UserX,
+      description: "Gerenciar leads desqualificados"
     },
     {
       title: "Redes Sociais",
@@ -186,10 +186,10 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Análise de redes sociais"
     },
     {
-      title: "Histórico",
-      href: `/clientes/${clientId}/historico`,
-      icon: Clock,
-      description: "Histórico de alterações"
+      title: "Relatório Semanal",
+      href: `/clientes/${clientId}/relatorio`,
+      icon: FileText,
+      description: "Relatórios semanais"
     }
   ];
 
