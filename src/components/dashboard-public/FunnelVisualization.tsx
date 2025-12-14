@@ -17,7 +17,7 @@ export const FunnelVisualization = ({ metrics }: FunnelVisualizationProps) => {
     { label: "Impressões", value: metrics.impressions, width: 100 },
     { label: "Cliques", value: metrics.clicks, width: 75 },
     { label: "Page View", value: metrics.page_views, width: 50 },
-    { label: "Leads", value: metrics.leads, width: 25 },
+    { label: "Conversões", value: metrics.total_conversions, width: 25 },
   ];
 
   return (

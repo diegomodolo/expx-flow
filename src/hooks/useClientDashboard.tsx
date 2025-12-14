@@ -5,6 +5,7 @@ export interface DashboardMetrics {
   spend: number;
   leads: number;
   messages: number;
+  total_conversions: number;
   cpl: number;
   leads_per_1k: number;
   impressions: number;
