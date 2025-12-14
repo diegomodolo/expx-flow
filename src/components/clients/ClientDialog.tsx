@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +18,10 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText } from "lucide-react";
 import { ClientBriefingTab } from "./ClientBriefingTab";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientDialogProps {
   open: boolean;
@@ -31,6 +32,17 @@ interface ClientDialogProps {
   readOnly?: boolean;
 }
 
+type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'briefing';
+
+const sections: { id: SectionType; label: string; icon: React.ElementType; editOnly?: boolean }[] = [
+  { id: 'cadastro', label: 'Cadastro', icon: User },
+  { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
+  { id: 'integracoes', label: 'Contas & Integrações', icon: Link },
+  { id: 'copywriting', label: 'Copywriting', icon: Pencil },
+  { id: 'produto', label: 'Produto & Público', icon: Package },
+  { id: 'briefing', label: 'Briefing', icon: FileText, editOnly: true },
+];
+
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
   const { sectors, createSector } = useSectors();
   const { adAccounts } = useFacebookIntegration();
@@ -39,6 +51,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const { clients } = useClients();
   const { teams } = useTeams();
   const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState<SectionType>('cadastro');
   const [formData, setFormData] = useState(() => {
     if (client) {
       return {
@@ -107,7 +120,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
   const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
 
-  // Filtrar contas de anúncios disponíveis (não vinculadas a outros clientes ou vinculadas ao cliente atual)
   const availableAdAccounts = adAccounts.filter(account => {
     const isUsedByOtherClient = clients.some(c => 
       c.ad_account_id === account.id && c.id !== client?.id
@@ -115,7 +127,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     return !isUsedByOtherClient;
   });
 
-  // Simplificado: apenas sincroniza quando o client muda
   useEffect(() => {
     if (client && open) {
       setFormData({
@@ -144,12 +155,16 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       });
       setLocalClient(client);
       
-      // Carregar dia de recarga
       const rechargeDay = client.facebook_ad_accounts?.recharge_day;
       setRechargeDayValue(rechargeDay ? rechargeDay.toString() : "none");
     }
   }, [client?.id, open]);
 
+  useEffect(() => {
+    if (open) {
+      setActiveSection('cadastro');
+    }
+  }, [open]);
   
   const handleCreateSector = async () => {
     if (!newSectorName.trim()) return;
@@ -178,7 +193,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     setLoading(true);
 
     try {
-      // Combinar formData com dados do localClient (incluindo briefing)
       const submitData = {
         ...formData,
         team_id: formData.team_id === 'none' ? null : formData.team_id,
@@ -188,7 +202,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       
       await onSubmit(submitData);
       
-      // Se está editando e tem conta de anúncios, atualizar o dia de recarga
       if (client?.facebook_ad_accounts?.id) {
         const { error: accountError } = await supabase
           .from('facebook_ad_accounts')
@@ -211,7 +224,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         title: "Sucesso",
         description: client ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!",
       });
-      // Don't close dialog here - let parent component handle it
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -274,7 +286,6 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
 
   const handleBriefingUpdate = (updatedClient: Client) => {
     setLocalClient(updatedClient);
-    // Atualizar formData para incluir dados do briefing
     setFormData(prev => ({
       ...prev,
       ai_briefing: updatedClient.ai_briefing,
@@ -282,25 +293,14 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     }));
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
-          <p className="text-muted-foreground">
-            {client ? "Edite as informações do cliente e configure suas preferências de tráfego" : "Adicione um novo cliente e configure suas preferências de tráfego"}
-          </p>
-        </DialogHeader>
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="general">Informações Gerais</TabsTrigger>
-            <TabsTrigger value="briefing" disabled={!client}>Briefing</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="general">
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-6 py-4">
-            {/* Row 1: Basic Info - 2 columns */}
+  const filteredSections = sections.filter(s => !s.editOnly || client);
+
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case 'cadastro':
+        return (
+          <div className="space-y-6">
+            {/* Nome e Email */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome *</Label>
@@ -327,7 +327,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
             
-            {/* Row 2: Company Info and Website - 2 columns */}
+            {/* Empresa e Website */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="company">Empresa *</Label>
@@ -353,7 +353,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 3: Sector - Full width */}
+            {/* Setor */}
             <div className="space-y-2">
               <Label htmlFor="sector">Setor *</Label>
               <div className="space-y-2">
@@ -432,8 +432,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 4: Status, Squad, Budget - 3 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Status e Squad */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value: ClientStatus) => setFormData({ ...formData, status: value })} disabled={readOnly}>
@@ -447,417 +447,53 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                     <SelectItem value="sem_fundos">Sem Fundos</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
                   </SelectContent>
-                  </Select>
-                </div>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="team">Squad</Label>
-                  <Select
-                    value={formData.team_id}
-                    onValueChange={(value) => setFormData({ ...formData, team_id: value })}
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a squad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma squad</SelectItem>
-                      {teams.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: team.color }}
-                            />
-                            {team.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
-                  <Input
-                    id="monthly_budget"
-                    type="number"
-                    step="0.01"
-                    value={formData.monthly_budget}
-                    onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
-                    placeholder="0.00"
-                    disabled={readOnly}
-                  />
-                </div>
-            </div>
-
-            {/* Dia de Recarga */}
-            <div className="space-y-2">
-              <Label htmlFor="recharge_day">Dia de Recarga do Saldo (Opcional)</Label>
-              <Select
-                value={rechargeDayValue}
-                onValueChange={(value) => setRechargeDayValue(value)}
-                disabled={readOnly}
-              >
-                <SelectTrigger id="recharge_day">
-                  <SelectValue placeholder="Selecione o dia de recarga" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Não configurado (usar final do mês)</SelectItem>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <SelectItem key={day} value={day.toString()}>
-                      Dia {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                O dia do mês em que o cliente recarrega o saldo da conta de anúncios.
-                Usado para calcular se o saldo atual é suficiente até o próximo dia de recarga.
-              </p>
-            </div>
-
-            {/* Tipo de Pagamento */}
-            <div className="space-y-2">
-              <Label htmlFor="payment_type">Tipo de Pagamento</Label>
-              <Select
-                value={formData.payment_type}
-                onValueChange={(value: 'prepaid' | 'postpaid') =>
-                  setFormData({ ...formData, payment_type: value })
-                }
-                disabled={readOnly}
-              >
-                <SelectTrigger id="payment_type">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prepaid">💰 Pré-pago (com saldo)</SelectItem>
-                  <SelectItem value="postpaid">💳 Pós-pago (cartão)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Pré-pago: conta com saldo limitado. Pós-pago: cartão de crédito sem limite.
-              </p>
-            </div>
-
-                {/* Motivo de Inatividade - aparece apenas quando status é "inativo" */}
-                {formData.status === 'inativo' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="inactive_reason">Motivo da Inatividade</Label>
-                    <Textarea
-                      id="inactive_reason"
-                      value={formData.inactive_reason || ""}
-                      onChange={(e) => setFormData({ ...formData, inactive_reason: e.target.value })}
-                      placeholder="Descreva o motivo da inatividade..."
-                      disabled={readOnly}
-                      rows={3}
-                    />
-                  </div>
-                 )}
-
-            {/* Row 5: Product Name */}
-            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="product_name">Nome do Produto</Label>
-                <Input
-                  id="product_name"
-                  value={formData.product_name}
-                  onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
-                  placeholder="Ex: Aplicativo de delivery"
+                <Label htmlFor="team">Squad</Label>
+                <Select
+                  value={formData.team_id}
+                  onValueChange={(value) => setFormData({ ...formData, team_id: value })}
                   disabled={readOnly}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a squad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma squad</SelectItem>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: team.color }}
+                          />
+                          {team.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Motivo de Inatividade */}
+            {formData.status === 'inativo' && (
+              <div className="space-y-2">
+                <Label htmlFor="inactive_reason">Motivo da Inatividade</Label>
+                <Textarea
+                  id="inactive_reason"
+                  value={formData.inactive_reason || ""}
+                  onChange={(e) => setFormData({ ...formData, inactive_reason: e.target.value })}
+                  placeholder="Descreva o motivo da inatividade..."
+                  disabled={readOnly}
+                  rows={3}
                 />
               </div>
-            </div>
+            )}
 
-            {/* Row 5: Voice Tone, Campaign Type - 2 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="voice_tone">Tom de Voz</Label>
-                <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tom de voz" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {voiceTones.map((tone) => (
-                      <SelectItem key={tone} value={tone}>{tone}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="campaign_type">Tipo de Campanha</Label>
-                <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })} disabled={readOnly}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de campanha" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {campaignTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Row 5.5: Contas de Anúncio Condicionais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Meta Ads Account - Só aparece se "Meta Ads" estiver selecionado */}
-              {formData.preferred_platforms.includes("Meta Ads") && (
-                <div className="space-y-2">
-                  <Label htmlFor="ad_account">Conta de Anúncio (Meta Ads)</Label>
-                  <Popover open={adAccountOpen} onOpenChange={setAdAccountOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={adAccountOpen}
-                        className="w-full justify-between"
-                        disabled={readOnly}
-                      >
-                        {formData.ad_account_id
-                          ? availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.account_name
-                          : "Selecione a conta Meta Ads"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Buscar conta..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value="none"
-                              onSelect={() => {
-                                setFormData({ ...formData, ad_account_id: "" });
-                                setAdAccountOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${!formData.ad_account_id ? "opacity-100" : "opacity-0"}`}
-                              />
-                              Nenhuma conta selecionada
-                            </CommandItem>
-                            {availableAdAccounts.map((account) => (
-                              <CommandItem
-                                key={account.id}
-                                value={account.account_name}
-                                onSelect={() => {
-                                  setFormData({ ...formData, ad_account_id: account.id });
-                                  setAdAccountOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${formData.ad_account_id === account.id ? "opacity-100" : "opacity-0"}`}
-                                />
-                                {account.account_name} ({account.currency})
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-
-              {/* Google Ads Account - Só aparece se "Google Ads" estiver selecionado */}
-              {formData.preferred_platforms.includes("Google Ads") && (
-                <div className="space-y-2">
-                  <Label htmlFor="google_account">Conta de Anúncio (Google Ads)</Label>
-                  <Popover open={googleAccountOpen} onOpenChange={setGoogleAccountOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={googleAccountOpen}
-                        className="w-full justify-between"
-                        disabled={readOnly}
-                      >
-                        {formData.google_account_id
-                          ? googleAdAccounts.find((account) => account.id === formData.google_account_id)?.account_name
-                          : "Selecione a conta Google Ads"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Buscar conta..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value="none"
-                              onSelect={() => {
-                                setFormData({ ...formData, google_account_id: "" });
-                                setGoogleAccountOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${!formData.google_account_id ? "opacity-100" : "opacity-0"}`}
-                              />
-                              Nenhuma conta selecionada
-                            </CommandItem>
-                            {googleAdAccounts.map((account) => (
-                              <CommandItem
-                                key={account.id}
-                                value={account.account_name}
-                                onSelect={() => {
-                                  setFormData({ ...formData, google_account_id: account.id });
-                                  setGoogleAccountOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${formData.google_account_id === account.id ? "opacity-100" : "opacity-0"}`}
-                                />
-                                {account.account_name} ({account.currency || 'N/A'})
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-            </div>
-
-            {/* Row 5.6: Facebook Page and Instagram Account */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Facebook Page */}
-              <div className="space-y-2">
-                <Label htmlFor="facebook_page">Página do Facebook</Label>
-                <Popover open={facebookPageOpen} onOpenChange={setFacebookPageOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={facebookPageOpen}
-                      className="w-full justify-between"
-                      disabled={readOnly}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Facebook className="w-4 h-4 text-blue-600" />
-                        {formData.facebook_page_id
-                          ? facebookPages.find((page) => page.id === formData.facebook_page_id)?.page_name
-                          : "Selecione uma página"}
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Buscar página..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhuma página encontrada.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="none"
-                            onSelect={() => {
-                              setFormData({ ...formData, facebook_page_id: "" });
-                              setFacebookPageOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${!formData.facebook_page_id ? "opacity-100" : "opacity-0"}`}
-                            />
-                            Nenhuma página selecionada
-                          </CommandItem>
-                          {facebookPages.map((page) => (
-                            <CommandItem
-                              key={page.id}
-                              value={page.page_name}
-                              onSelect={() => {
-                                setFormData({ ...formData, facebook_page_id: page.id });
-                                setFacebookPageOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${formData.facebook_page_id === page.id ? "opacity-100" : "opacity-0"}`}
-                              />
-                              <Facebook className="mr-2 h-4 w-4 text-blue-600" />
-                              {page.page_name}
-                              {page.page_category && (
-                                <span className="ml-1 text-muted-foreground text-xs">
-                                  ({page.page_category})
-                                </span>
-                              )}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Instagram Account */}
-              <div className="space-y-2">
-                <Label htmlFor="instagram_account">Conta do Instagram</Label>
-                <Popover open={instagramAccountOpen} onOpenChange={setInstagramAccountOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={instagramAccountOpen}
-                      className="w-full justify-between"
-                      disabled={readOnly}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Instagram className="w-4 h-4 text-pink-600" />
-                        {formData.instagram_account_id
-                          ? `@${instagramAccounts.find((acc) => acc.id === formData.instagram_account_id)?.username}`
-                          : "Selecione uma conta"}
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Buscar conta..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="none"
-                            onSelect={() => {
-                              setFormData({ ...formData, instagram_account_id: "" });
-                              setInstagramAccountOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${!formData.instagram_account_id ? "opacity-100" : "opacity-0"}`}
-                            />
-                            Nenhuma conta selecionada
-                          </CommandItem>
-                          {instagramAccounts.map((account) => (
-                            <CommandItem
-                              key={account.id}
-                              value={account.username}
-                              onSelect={() => {
-                                setFormData({ ...formData, instagram_account_id: account.id });
-                                setInstagramAccountOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${formData.instagram_account_id === account.id ? "opacity-100" : "opacity-0"}`}
-                              />
-                              <Instagram className="mr-2 h-4 w-4 text-pink-600" />
-                              @{account.username}
-                              <span className="ml-1 text-muted-foreground text-xs">
-                                ({account.followers_count.toLocaleString()} seguidores)
-                              </span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Row 6: Avatar Upload - Full width */}
+            {/* Avatar Upload */}
             <div className="space-y-2">
               <Label>Foto do Cliente</Label>
               <div className="flex items-center gap-4">
@@ -899,24 +535,84 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 />
               </div>
             </div>
+          </div>
+        );
 
-            {/* Row 7: Target Audience - Full width */}
+      case 'financeiro':
+        return (
+          <div className="space-y-6">
+            {/* Orçamento Mensal */}
             <div className="space-y-2">
-              <Label htmlFor="target_audience">Público Alvo</Label>
-              <Textarea
-                id="target_audience"
-                value={formData.target_audience}
-                onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
-                placeholder="Ex: Mulheres de 25-45 anos, interessadas em tecnologia..."
-                rows={3}
+              <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
+              <Input
+                id="monthly_budget"
+                type="number"
+                step="0.01"
+                value={formData.monthly_budget}
+                onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
                 disabled={readOnly}
               />
             </div>
 
-            {/* Row 8: Preferred Platforms - Full width */}
+            {/* Tipo de Pagamento */}
+            <div className="space-y-2">
+              <Label htmlFor="payment_type">Tipo de Pagamento</Label>
+              <Select
+                value={formData.payment_type}
+                onValueChange={(value: 'prepaid' | 'postpaid') =>
+                  setFormData({ ...formData, payment_type: value })
+                }
+                disabled={readOnly}
+              >
+                <SelectTrigger id="payment_type">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prepaid">💰 Pré-pago (com saldo)</SelectItem>
+                  <SelectItem value="postpaid">💳 Pós-pago (cartão)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Pré-pago: conta com saldo limitado. Pós-pago: cartão de crédito sem limite.
+              </p>
+            </div>
+
+            {/* Dia de Recarga */}
+            <div className="space-y-2">
+              <Label htmlFor="recharge_day">Dia de Recarga do Saldo (Opcional)</Label>
+              <Select
+                value={rechargeDayValue}
+                onValueChange={(value) => setRechargeDayValue(value)}
+                disabled={readOnly}
+              >
+                <SelectTrigger id="recharge_day">
+                  <SelectValue placeholder="Selecione o dia de recarga" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não configurado (usar final do mês)</SelectItem>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      Dia {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O dia do mês em que o cliente recarrega o saldo da conta de anúncios.
+                Usado para calcular se o saldo atual é suficiente até o próximo dia de recarga.
+              </p>
+            </div>
+          </div>
+        );
+
+      case 'integracoes':
+        return (
+          <div className="space-y-6">
+            {/* Plataformas Preferidas */}
             <div className="space-y-2">
               <Label>Plataformas Preferidas</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {platforms.map((platform) => (
                   <div key={platform} className="flex items-center space-x-2">
                     <Checkbox
@@ -933,7 +629,294 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
-            {/* Row 9: Objectives - Full width */}
+            {/* Meta Ads Account */}
+            {formData.preferred_platforms.includes("Meta Ads") && (
+              <div className="space-y-2">
+                <Label htmlFor="ad_account">Conta de Anúncio (Meta Ads)</Label>
+                <Popover open={adAccountOpen} onOpenChange={setAdAccountOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={adAccountOpen}
+                      className="w-full justify-between"
+                      disabled={readOnly}
+                    >
+                      {formData.ad_account_id
+                        ? availableAdAccounts.find((account) => account.id === formData.ad_account_id)?.account_name
+                        : "Selecione a conta Meta Ads"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar conta..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => {
+                              setFormData({ ...formData, ad_account_id: "" });
+                              setAdAccountOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${!formData.ad_account_id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            Nenhuma conta selecionada
+                          </CommandItem>
+                          {availableAdAccounts.map((account) => (
+                            <CommandItem
+                              key={account.id}
+                              value={account.account_name}
+                              onSelect={() => {
+                                setFormData({ ...formData, ad_account_id: account.id });
+                                setAdAccountOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${formData.ad_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              {account.account_name} ({account.currency})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {/* Google Ads Account */}
+            {formData.preferred_platforms.includes("Google Ads") && (
+              <div className="space-y-2">
+                <Label htmlFor="google_account">Conta de Anúncio (Google Ads)</Label>
+                <Popover open={googleAccountOpen} onOpenChange={setGoogleAccountOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={googleAccountOpen}
+                      className="w-full justify-between"
+                      disabled={readOnly}
+                    >
+                      {formData.google_account_id
+                        ? googleAdAccounts.find((account) => account.id === formData.google_account_id)?.account_name
+                        : "Selecione a conta Google Ads"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar conta..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => {
+                              setFormData({ ...formData, google_account_id: "" });
+                              setGoogleAccountOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${!formData.google_account_id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            Nenhuma conta selecionada
+                          </CommandItem>
+                          {googleAdAccounts.map((account) => (
+                            <CommandItem
+                              key={account.id}
+                              value={account.account_name}
+                              onSelect={() => {
+                                setFormData({ ...formData, google_account_id: account.id });
+                                setGoogleAccountOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${formData.google_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              {account.account_name} ({account.currency || 'N/A'})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {/* Facebook Page */}
+            <div className="space-y-2">
+              <Label htmlFor="facebook_page">Página do Facebook</Label>
+              <Popover open={facebookPageOpen} onOpenChange={setFacebookPageOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={facebookPageOpen}
+                    className="w-full justify-between"
+                    disabled={readOnly}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Facebook className="w-4 h-4 text-blue-600" />
+                      {formData.facebook_page_id
+                        ? facebookPages.find((page) => page.id === formData.facebook_page_id)?.page_name
+                        : "Selecione uma página"}
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar página..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhuma página encontrada.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setFormData({ ...formData, facebook_page_id: "" });
+                            setFacebookPageOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${!formData.facebook_page_id ? "opacity-100" : "opacity-0"}`}
+                          />
+                          Nenhuma página selecionada
+                        </CommandItem>
+                        {facebookPages.map((page) => (
+                          <CommandItem
+                            key={page.id}
+                            value={page.page_name}
+                            onSelect={() => {
+                              setFormData({ ...formData, facebook_page_id: page.id });
+                              setFacebookPageOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${formData.facebook_page_id === page.id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            <Facebook className="mr-2 h-4 w-4 text-blue-600" />
+                            {page.page_name}
+                            {page.page_category && (
+                              <span className="ml-1 text-muted-foreground text-xs">
+                                ({page.page_category})
+                              </span>
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Instagram Account */}
+            <div className="space-y-2">
+              <Label htmlFor="instagram_account">Conta do Instagram</Label>
+              <Popover open={instagramAccountOpen} onOpenChange={setInstagramAccountOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={instagramAccountOpen}
+                    className="w-full justify-between"
+                    disabled={readOnly}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Instagram className="w-4 h-4 text-pink-600" />
+                      {formData.instagram_account_id
+                        ? `@${instagramAccounts.find((acc) => acc.id === formData.instagram_account_id)?.username}`
+                        : "Selecione uma conta"}
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar conta..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setFormData({ ...formData, instagram_account_id: "" });
+                            setInstagramAccountOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${!formData.instagram_account_id ? "opacity-100" : "opacity-0"}`}
+                          />
+                          Nenhuma conta selecionada
+                        </CommandItem>
+                        {instagramAccounts.map((account) => (
+                          <CommandItem
+                            key={account.id}
+                            value={account.username}
+                            onSelect={() => {
+                              setFormData({ ...formData, instagram_account_id: account.id });
+                              setInstagramAccountOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${formData.instagram_account_id === account.id ? "opacity-100" : "opacity-0"}`}
+                            />
+                            <Instagram className="mr-2 h-4 w-4 text-pink-600" />
+                            @{account.username}
+                            <span className="ml-1 text-muted-foreground text-xs">
+                              ({account.followers_count.toLocaleString()} seguidores)
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        );
+
+      case 'copywriting':
+        return (
+          <div className="space-y-6">
+            {/* Tom de Voz e Tipo de Campanha */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="voice_tone">Tom de Voz</Label>
+                <Select value={formData.voice_tone} onValueChange={(value) => setFormData({ ...formData, voice_tone: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tom de voz" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {voiceTones.map((tone) => (
+                      <SelectItem key={tone} value={tone}>{tone}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="campaign_type">Tipo de Campanha</Label>
+                <Select value={formData.campaign_type} onValueChange={(value) => setFormData({ ...formData, campaign_type: value })} disabled={readOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo de campanha" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaignTypes.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Objetivos */}
             <div className="space-y-2">
               <Label htmlFor="objectives">Objetivos</Label>
               <Textarea
@@ -941,12 +924,42 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 value={formData.objectives}
                 onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
                 placeholder="Ex: Aumentar conversões em 30%, reduzir CAC..."
-                rows={3}
+                rows={4}
+                disabled={readOnly}
+              />
+            </div>
+          </div>
+        );
+
+      case 'produto':
+        return (
+          <div className="space-y-6">
+            {/* Nome do Produto */}
+            <div className="space-y-2">
+              <Label htmlFor="product_name">Nome do Produto</Label>
+              <Input
+                id="product_name"
+                value={formData.product_name}
+                onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
+                placeholder="Ex: Aplicativo de delivery"
                 disabled={readOnly}
               />
             </div>
 
-            {/* Row 10: Notes - Full width */}
+            {/* Público Alvo */}
+            <div className="space-y-2">
+              <Label htmlFor="target_audience">Público Alvo</Label>
+              <Textarea
+                id="target_audience"
+                value={formData.target_audience}
+                onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
+                placeholder="Ex: Mulheres de 25-45 anos, interessadas em tecnologia..."
+                rows={4}
+                disabled={readOnly}
+              />
+            </div>
+
+            {/* Observações */}
             <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>
               <Textarea
@@ -954,12 +967,78 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Informações adicionais sobre o cliente..."
-                rows={3}
+                rows={4}
                 disabled={readOnly}
               />
             </div>
           </div>
-          <DialogFooter>
+        );
+
+      case 'briefing':
+        return (
+          <ClientBriefingTab 
+            client={localClient} 
+            formData={formData}
+            onBriefingUpdate={handleBriefingUpdate}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[1100px] max-h-[85vh] p-0 overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh]">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
+            <p className="text-muted-foreground">
+              {client ? "Edite as informações do cliente e configure suas preferências de tráfego" : "Adicione um novo cliente e configure suas preferências de tráfego"}
+            </p>
+          </DialogHeader>
+
+          <div className="flex flex-1 overflow-hidden">
+            {/* Sidebar Menu */}
+            <div className="w-56 border-r bg-muted/30 flex-shrink-0">
+              <ScrollArea className="h-full">
+                <nav className="p-3 space-y-1">
+                  {filteredSections.map((section) => {
+                    const Icon = section.icon;
+                    const isActive = activeSection === section.id;
+                    return (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => setActiveSection(section.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        {section.label}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </ScrollArea>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-6">
+                  {renderSectionContent()}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 py-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {readOnly ? "Fechar" : "Cancelar"}
             </Button>
@@ -970,17 +1049,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             )}
           </DialogFooter>
         </form>
-      </TabsContent>
-
-      <TabsContent value="briefing">
-        <ClientBriefingTab 
-          client={localClient} 
-          formData={formData}
-          onBriefingUpdate={handleBriefingUpdate}
-        />
-      </TabsContent>
-    </Tabs>
-  </DialogContent>
-</Dialog>
+      </DialogContent>
+    </Dialog>
   );
 }
