@@ -1,7 +1,5 @@
-import { Search, Bell, Settings, LogOut, User, ChevronDown, AlertTriangle, Sun, Moon } from "lucide-react";
+import { AlertTriangle, Sun, Moon, LogOut, User, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -23,7 +21,6 @@ import { useState, useEffect } from "react";
 export function DashboardHeader() {
   const navigate = useNavigate();
   
-  // Check if we're within AuthProvider context
   let user = null;
   let signOut = null;
   let toast = null;
@@ -43,8 +40,7 @@ export function DashboardHeader() {
     unviewedCount = notifications.unviewedCount;
     markAllAsViewed = notifications.markAllAsViewed;
   } catch (error) {
-    // Not within AuthProvider, use fallback values
-    toast = () => {}; // No-op function
+    toast = () => {};
     signOut = async () => ({ error: null });
     profile = null;
   }
@@ -52,7 +48,6 @@ export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -88,9 +83,7 @@ export function DashboardHeader() {
   const displayName = profile?.full_name || user?.email || "Usuário";
 
   const handleNotificationClick = async () => {
-    console.log('Notification icon clicked, current count:', unviewedCount);
     if (markAllAsViewed) {
-      console.log('Calling markAllAsViewed before navigation');
       await markAllAsViewed();
     }
     navigate('/leads-desqualificados');
@@ -108,46 +101,39 @@ export function DashboardHeader() {
   };
 
   return (
-    <header className="h-16 bg-card border-b border-border z-20 shrink-0">
+    <header className="h-16 bg-card shadow-google-sm z-20 shrink-0">
       <div className="flex items-center justify-between h-full px-6">
-        <div className="flex items-center space-x-6">
-          <img 
-            src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
-            alt="Controle de Trafego" 
-            className="w-8 h-8 object-contain"
-          />
-          <div className="h-6 w-px bg-border"></div>
-          <h1 className="text-lg font-semibold text-foreground">Controle de Trafego</h1>
+        {/* Left side - empty for alignment */}
+        <div className="flex items-center">
+          {/* Space for potential breadcrumbs or page title */}
         </div>
         
-        <div className="flex items-center space-x-4">
-          {/* Notification Icon for Lead Reports */}
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNotificationClick}
-              className="relative p-2 h-auto hover:bg-muted/50"
-            >
-              <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-              {unviewedCount > 0 && (
-                <Badge 
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-destructive hover:bg-destructive"
-                  title={`${unviewedCount} reports não visualizados`}
-                >
-                  {unviewedCount > 99 ? '99+' : unviewedCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
+        {/* Right side - Actions */}
+        <div className="flex items-center gap-2">
+          {/* Notification Icon */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNotificationClick}
+            className="relative w-10 h-10 rounded-full hover:bg-muted/60"
+          >
+            <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+            {unviewedCount > 0 && (
+              <Badge 
+                className="absolute -top-0.5 -right-0.5 h-5 min-w-5 px-1 flex items-center justify-center text-xs bg-destructive hover:bg-destructive"
+              >
+                {unviewedCount > 99 ? '99+' : unviewedCount}
+              </Badge>
+            )}
+          </Button>
           
           {/* Theme Toggle */}
           {mounted && (
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={toggleTheme}
-              className="relative p-2 h-auto hover:bg-muted/50"
+              className="w-10 h-10 rounded-full hover:bg-muted/60"
               title={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
             >
               {theme === "dark" ? (
@@ -160,29 +146,31 @@ export function DashboardHeader() {
           
           <CompanySelector />
           
+          {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 h-auto p-2 hover:bg-muted/50">
-                <div className="flex flex-col items-start">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-medium text-foreground">
-                      {displayName}
-                    </span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-                <Avatar className="w-8 h-8">
+              <Button 
+                variant="ghost" 
+                className="flex items-center gap-3 h-10 px-3 rounded-full hover:bg-muted/60"
+              >
+                <Avatar className="w-8 h-8 ring-2 ring-transparent hover:ring-primary/20 transition-all">
                   <AvatarImage src={profile?.avatar_url || undefined} alt="User" />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                     {profile?.full_name ? getUserInitials(profile.full_name) : 
                      user?.email ? getUserInitials(user.email) : <User className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
+                <div className="hidden md:flex flex-col items-start">
+                  <span className="text-sm font-medium text-foreground leading-tight">
+                    {displayName}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden md:block" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
-              <div className="flex flex-col space-y-1 p-2">
-                <p className="text-sm font-medium leading-none">
+              <div className="flex flex-col space-y-1 p-3">
+                <p className="text-sm font-medium leading-none text-foreground">
                   {displayName}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
@@ -190,15 +178,15 @@ export function DashboardHeader() {
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/perfil" className="flex items-center">
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="mr-3 h-4 w-4 text-muted-foreground" />
                   <span>Meu Perfil</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                <LogOut className="mr-3 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
