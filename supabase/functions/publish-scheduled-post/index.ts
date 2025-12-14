@@ -133,6 +133,7 @@ async function publishToInstagram(
 
     if (post.content_type === 'image' && post.media_urls?.length > 0) {
       containerBody.image_url = post.media_urls[0];
+      containerBody.media_type = 'IMAGE';
     } else if (post.content_type === 'video' && post.media_urls?.length > 0) {
       containerBody.video_url = post.media_urls[0];
       containerBody.media_type = 'VIDEO';
