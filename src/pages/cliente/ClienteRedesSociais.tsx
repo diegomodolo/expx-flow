@@ -20,6 +20,7 @@ import { useClientContext } from "./ClienteContext";
 import { SocialTimelineChart } from "@/components/social/SocialTimelineChart";
 import { FollowersGrowthChart } from "@/components/social/FollowersGrowthChart";
 import { ComparisonCard } from "@/components/social/ComparisonCard";
+import { InstagramFeedPreview } from "@/components/social/InstagramFeedPreview";
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
@@ -109,6 +110,18 @@ export function ClienteRedesSociais() {
           <FollowersGrowthChart
             data={instagram.timeline.follower_count}
             title="Variação de Seguidores (30 dias)"
+          />
+        </div>
+      )}
+
+      {/* Feed Previews */}
+      {instagram?.top_posts && instagram.top_posts.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <InstagramFeedPreview
+            posts={instagram.top_posts}
+            username={instagram.username}
+            profilePicture={instagram.profile_picture_url}
+            followersCount={instagram.followers_count}
           />
         </div>
       )}
