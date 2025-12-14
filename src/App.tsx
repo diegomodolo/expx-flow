@@ -38,6 +38,7 @@ import RelatorioSnapshotsPerformance from "./pages/reports/RelatorioSnapshotsPer
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
+import GeradorApresentacoes from "./pages/GeradorApresentacoes";
 import Geradores from "./pages/Geradores";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -272,6 +273,11 @@ const App = () => {
                  <Route path="/geradores/criativos" element={
                   <ProtectedRoute>
                     <GeradorCriativos />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/apresentacoes" element={
+                  <ProtectedRoute>
+                    <GeradorApresentacoes />
                   </ProtectedRoute>
                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Wand2 } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2 } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function Geradores() {
     title: string;
     description: string;
     icon: typeof BookOpen;
-    color: "blue" | "purple" | "pink";
+    color: "blue" | "purple" | "pink" | "teal";
     path: string;
   }> = [
     {
@@ -37,6 +37,14 @@ export default function Geradores() {
       icon: Palette,
       color: "pink",
       path: "/geradores/criativos",
+    },
+    {
+      id: "apresentacoes",
+      title: "Gerador de Apresentações",
+      description: "Crie apresentações profissionais de conteúdo para aprovação dos clientes",
+      icon: Presentation,
+      color: "teal",
+      path: "/geradores/apresentacoes",
     },
   ];
 
