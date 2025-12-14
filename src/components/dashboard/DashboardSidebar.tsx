@@ -108,7 +108,7 @@ export function DashboardSidebar() {
               title={!open ? item.title : ''}
             >
               <item.icon 
-                className={`w-6 h-6 flex-shrink-0 transition-colors duration-150 ${
+                className={`w-5 h-5 flex-shrink-0 transition-colors duration-150 ${
                   isActive(item.url) ? "text-primary" : "text-muted-foreground"
                 }`} 
                 strokeWidth={isActive(item.url) ? 2 : 1.5}
