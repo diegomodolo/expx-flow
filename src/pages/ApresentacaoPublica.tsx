@@ -398,6 +398,7 @@ export default function ApresentacaoPublica() {
         .insert({
           presentation_id: presentation.id,
           meeting_date: new Date().toISOString(),
+          started_at: new Date().toISOString(),
           status: "in_progress",
           current_slide: 2, // Start at first creative
         })
@@ -525,17 +526,32 @@ export default function ApresentacaoPublica() {
 
     setIsFinalizingMeeting(true);
     try {
-      // Update meeting status
+      // Calculate counts
+      const approvedCount = approvals.filter(a => a.status === 'approved').length;
+      const rejectedCount = approvals.filter(a => a.status === 'rejected').length;
+
+      // Update meeting status with all data
       const { error: meetingError } = await supabase
         .from("presentation_meetings")
         .update({ 
           status: "completed", 
           completed_at: new Date().toISOString(),
+          ended_at: new Date().toISOString(),
+          approved_count: approvedCount,
+          rejected_count: rejectedCount,
           summary_sent: true 
         })
         .eq("id", meetingId);
 
       if (meetingError) throw meetingError;
+
+      // Update each creative's current_status
+      for (const approval of approvals) {
+        await supabase
+          .from('presentation_creatives')
+          .update({ current_status: approval.status })
+          .eq('id', approval.creativeId);
+      }
 
       // Send email summary
       const { error: emailError } = await supabase.functions.invoke("send-presentation-summary", {
