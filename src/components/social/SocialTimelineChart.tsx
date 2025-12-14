@@ -17,7 +17,7 @@ interface TimelineDataPoint {
 
 interface SocialTimelineChartProps {
   reachData: TimelineDataPoint[];
-  impressionsData: TimelineDataPoint[];
+  engagedData: TimelineDataPoint[];
   title?: string;
 }
 
@@ -26,22 +26,22 @@ const chartConfig = {
     label: "Alcance",
     color: "hsl(var(--primary))",
   },
-  impressions: {
-    label: "Impressões",
+  engaged: {
+    label: "Contas Engajadas",
     color: "hsl(280, 80%, 60%)",
   },
 };
 
 export function SocialTimelineChart({ 
   reachData, 
-  impressionsData,
-  title = "Alcance e Impressões (30 dias)"
+  engagedData,
+  title = "Alcance e Engajamento (30 dias)"
 }: SocialTimelineChartProps) {
   // Merge data by date
   const mergedData = reachData.map((reach, index) => ({
     date: reach.date,
     reach: reach.value,
-    impressions: impressionsData[index]?.value || 0,
+    engaged: engagedData[index]?.value || 0,
   }));
 
   if (mergedData.length === 0) {
@@ -87,8 +87,8 @@ export function SocialTimelineChart({
           />
           <Line
             type="monotone"
-            dataKey="impressions"
-            stroke="var(--color-impressions)"
+            dataKey="engaged"
+            stroke="var(--color-engaged)"
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}

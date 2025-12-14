@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, Minus, Eye, Users, UserPlus, MousePointerClic
 
 interface ComparisonData {
   reach_change_pct: number;
-  impressions_change_pct: number;
+  accounts_engaged_change_pct: number;
   profile_views_change_pct: number;
   website_clicks_change_pct: number;
   followers_gained: number;
@@ -75,8 +75,8 @@ export function ComparisonCard({ data }: ComparisonCardProps) {
         />
         <MetricComparison
           icon={TrendingUp}
-          label="Impressões"
-          value={data.impressions_change_pct}
+          label="Contas Engajadas"
+          value={data.accounts_engaged_change_pct}
         />
         <MetricComparison
           icon={UserPlus}

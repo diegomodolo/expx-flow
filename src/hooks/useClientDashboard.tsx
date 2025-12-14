@@ -61,7 +61,7 @@ export interface TimelineDataPoint2 {
 
 export interface InstagramTimeline {
   reach: TimelineDataPoint2[];
-  impressions: TimelineDataPoint2[];
+  accounts_engaged: TimelineDataPoint2[];
   profile_views: TimelineDataPoint2[];
   website_clicks: TimelineDataPoint2[];
   follower_count: TimelineDataPoint2[];
@@ -69,7 +69,7 @@ export interface InstagramTimeline {
 
 export interface InstagramComparison {
   reach_change_pct: number;
-  impressions_change_pct: number;
+  accounts_engaged_change_pct: number;
   profile_views_change_pct: number;
   website_clicks_change_pct: number;
   followers_gained: number;
