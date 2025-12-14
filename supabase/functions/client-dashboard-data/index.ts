@@ -237,27 +237,25 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         const since = Math.floor(thirtyDaysAgo.getTime() / 1000);
         const until = Math.floor(now.getTime() / 1000);
         
-        // Insights de período com breakdown diário (últimos 30 dias)
-        // Using valid metrics: reach, accounts_engaged, profile_views, website_clicks, follower_count
-        const insightsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
-          `metric=reach,accounts_engaged,profile_views,website_clicks,follower_count` +
+        // Chamada 1: Métricas com period=day (reach, follower_count)
+        const dailyMetricsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
+          `metric=reach,follower_count` +
           `&period=day` +
           `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Instagram insights with daily breakdown...');
-        const insightsResponse = await fetch(insightsUrl);
+        console.log('Fetching Instagram daily metrics (reach, follower_count)...');
+        const dailyResponse = await fetch(dailyMetricsUrl);
         
-        if (insightsResponse.ok) {
-          const insightsData = await insightsResponse.json();
-          console.log('Instagram insights data received, processing timeline...');
+        if (dailyResponse.ok) {
+          const dailyData = await dailyResponse.json();
+          console.log('Instagram daily metrics received');
           
-          if (insightsData.data) {
-            insightsData.data.forEach((metric: any) => {
+          if (dailyData.data) {
+            dailyData.data.forEach((metric: any) => {
               const values = metric.values || [];
               const metricName = metric.name;
               
-              // Build timeline arrays
               const timelineArray = values.map((v: any) => ({
                 date: v.end_time?.split('T')[0] || '',
                 value: v.value || 0,
@@ -268,56 +266,88 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
                   timeline.reach = timelineArray;
                   reach = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
                   break;
-                case 'accounts_engaged':
-                  timeline.accounts_engaged = timelineArray;
-                  // Use accounts_engaged as a proxy for engagement metrics
-                  impressions = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
-                  break;
-                case 'profile_views':
-                  timeline.profile_views = timelineArray;
-                  profileViews = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
-                  break;
-                case 'website_clicks':
-                  timeline.website_clicks = timelineArray;
-                  websiteClicks = timelineArray.reduce((sum: number, v: any) => sum + v.value, 0);
-                  break;
                 case 'follower_count':
                   timeline.follower_count = timelineArray;
                   break;
               }
             });
-            
-            // Calculate comparison (last 7 days vs previous 7 days)
-            const calcComparison = (data: TimelineDataPoint2[]) => {
-              if (data.length < 14) return 0;
-              const last7 = data.slice(-7).reduce((sum, v) => sum + v.value, 0);
-              const prev7 = data.slice(-14, -7).reduce((sum, v) => sum + v.value, 0);
-              if (prev7 === 0) return last7 > 0 ? 100 : 0;
-              return ((last7 - prev7) / prev7) * 100;
-            };
-            
-            comparison.reach_change_pct = calcComparison(timeline.reach);
-            comparison.accounts_engaged_change_pct = calcComparison(timeline.accounts_engaged);
-            comparison.profile_views_change_pct = calcComparison(timeline.profile_views);
-            comparison.website_clicks_change_pct = calcComparison(timeline.website_clicks);
-            
-            // Calculate followers gained in last 7 days
-            if (timeline.follower_count.length >= 7) {
-              const lastFollowers = timeline.follower_count[timeline.follower_count.length - 1]?.value || 0;
-              const weekAgoFollowers = timeline.follower_count[timeline.follower_count.length - 7]?.value || 0;
-              comparison.followers_gained = lastFollowers - weekAgoFollowers;
-            }
-            
-            console.log('Timeline processed:', {
-              reach_points: timeline.reach.length,
-              accounts_engaged_points: timeline.accounts_engaged.length,
-              follower_points: timeline.follower_count.length,
+          }
+        } else {
+          const errorData = await dailyResponse.json();
+          console.log('Instagram daily metrics error:', errorData.error?.message);
+        }
+        
+        // Chamada 2: Métricas com metric_type=total_value (accounts_engaged, profile_views, website_clicks)
+        // Essas métricas retornam valor total, não série temporal
+        const totalMetricsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
+          `metric=accounts_engaged,profile_views,website_clicks` +
+          `&period=day` +
+          `&metric_type=total_value` +
+          `&since=${since}&until=${until}` +
+          `&access_token=${pageAccessToken}`;
+        
+        console.log('Fetching Instagram total metrics (accounts_engaged, profile_views, website_clicks)...');
+        const totalResponse = await fetch(totalMetricsUrl);
+        
+        if (totalResponse.ok) {
+          const totalData = await totalResponse.json();
+          console.log('Instagram total metrics received');
+          
+          if (totalData.data) {
+            totalData.data.forEach((metric: any) => {
+              const metricName = metric.name;
+              const totalValue = metric.total_value?.value || 0;
+              
+              switch (metricName) {
+                case 'accounts_engaged':
+                  impressions = totalValue;
+                  // Create a single point for display (total for period)
+                  timeline.accounts_engaged = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
+                  break;
+                case 'profile_views':
+                  profileViews = totalValue;
+                  timeline.profile_views = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
+                  break;
+                case 'website_clicks':
+                  websiteClicks = totalValue;
+                  timeline.website_clicks = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
+                  break;
+              }
             });
           }
         } else {
-          const errorData = await insightsResponse.json();
-          console.log('Instagram insights not available (may need permission):', errorData.error?.message);
+          const errorData = await totalResponse.json();
+          console.log('Instagram total metrics error:', errorData.error?.message);
         }
+        
+        // Calculate comparison (last 7 days vs previous 7 days) - only for reach and follower_count
+        const calcComparison = (data: TimelineDataPoint2[]) => {
+          if (data.length < 14) return 0;
+          const last7 = data.slice(-7).reduce((sum, v) => sum + v.value, 0);
+          const prev7 = data.slice(-14, -7).reduce((sum, v) => sum + v.value, 0);
+          if (prev7 === 0) return last7 > 0 ? 100 : 0;
+          return ((last7 - prev7) / prev7) * 100;
+        };
+        
+        comparison.reach_change_pct = calcComparison(timeline.reach);
+        // These will be 0 since we don't have daily breakdown for them
+        comparison.accounts_engaged_change_pct = 0;
+        comparison.profile_views_change_pct = 0;
+        comparison.website_clicks_change_pct = 0;
+        
+        // Calculate followers gained in last 7 days
+        if (timeline.follower_count.length >= 7) {
+          const lastFollowers = timeline.follower_count[timeline.follower_count.length - 1]?.value || 0;
+          const weekAgoFollowers = timeline.follower_count[timeline.follower_count.length - 7]?.value || 0;
+          comparison.followers_gained = lastFollowers - weekAgoFollowers;
+        }
+        
+        console.log('Timeline processed:', {
+          reach_points: timeline.reach.length,
+          follower_points: timeline.follower_count.length,
+          accounts_engaged_total: impressions,
+          profile_views_total: profileViews,
+        });
       } catch (insightsError) {
         console.log('Error fetching Instagram insights:', insightsError);
       }
