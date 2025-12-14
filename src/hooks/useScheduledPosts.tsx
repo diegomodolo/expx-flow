@@ -196,12 +196,34 @@ export const useScheduledPosts = () => {
   const deletePost = async (id: string): Promise<boolean> => {
     setLoading(true);
     try {
+      // First, fetch the post to check if there's a linked creative
+      const { data: postData } = await supabase
+        .from('scheduled_posts')
+        .select('visual_creative_id, metadata')
+        .eq('id', id)
+        .single();
+
+      // Delete the post
       const { error } = await supabase
         .from('scheduled_posts')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      // If there was a linked creative, update it back to approved status
+      const creativeId = postData?.visual_creative_id || 
+                         (postData?.metadata as Record<string, any>)?.from_presentation_creative;
+      
+      if (creativeId) {
+        await supabase
+          .from('presentation_creatives')
+          .update({
+            scheduled_post_id: null,
+            current_status: 'approved',
+          })
+          .eq('id', creativeId);
+      }
 
       toast({
         title: 'Post excluído',
