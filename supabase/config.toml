@@ -139,3 +139,6 @@ verify_jwt = false
 
 [functions.refresh-account-balance]
 verify_jwt = true
+
+[functions.send-presentation-summary]
+verify_jwt = false

@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ChevronLeft, ChevronRight, Calendar, Target, Hash, Image as ImageIcon, Play, Layers, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { ParticipantsForm } from "@/components/presentation/ParticipantsForm";
+import { ApprovalButtons } from "@/components/presentation/ApprovalButtons";
+import { RejectionModal } from "@/components/presentation/RejectionModal";
+import { MeetingSummarySlide } from "@/components/presentation/MeetingSummarySlide";
 
 interface CreativeMedia {
   id: string;
@@ -47,6 +52,20 @@ interface Presentation {
   creatives: Creative[];
 }
 
+interface Participant {
+  name: string;
+  role: string;
+  email: string;
+}
+
+interface CreativeApproval {
+  creativeId: string;
+  headline: string | null;
+  creativeType: string;
+  status: "pending" | "approved" | "rejected";
+  rejectionReason: string | null;
+}
+
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -73,6 +92,21 @@ export default function ApresentacaoPublica() {
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+
+  // Meeting state
+  const [meetingId, setMeetingId] = useState<string | null>(null);
+  const [meetingStarted, setMeetingStarted] = useState(false);
+  const [meetingDate, setMeetingDate] = useState<Date>(new Date());
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [approvals, setApprovals] = useState<CreativeApproval[]>([]);
+  const [meetingCompleted, setMeetingCompleted] = useState(false);
+
+  // UI state
+  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false);
+  const [isSavingApproval, setIsSavingApproval] = useState(false);
+  const [isFinalizingMeeting, setIsFinalizingMeeting] = useState(false);
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [currentRejectionCreativeId, setCurrentRejectionCreativeId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPresentation() {
@@ -143,8 +177,12 @@ export default function ApresentacaoPublica() {
         if (creativesError) throw creativesError;
 
         const client = presentationData.clients as any;
-
         const instagramAccount = client?.instagram_accounts as any;
+
+        const creatives = (creativesData || []).map((c: any) => ({
+          ...c,
+          creative_media: c.creative_media?.sort((a: CreativeMedia, b: CreativeMedia) => a.order_index - b.order_index) || [],
+        }));
 
         setPresentation({
           ...presentationData,
@@ -155,11 +193,17 @@ export default function ApresentacaoPublica() {
             instagram_profile_picture: instagramAccount?.profile_picture_url || null,
             instagram_username: instagramAccount?.username || null,
           },
-          creatives: (creativesData || []).map((c: any) => ({
-            ...c,
-            creative_media: c.creative_media?.sort((a: CreativeMedia, b: CreativeMedia) => a.order_index - b.order_index) || [],
-          })),
+          creatives,
         });
+
+        // Initialize approvals state
+        setApprovals(creatives.map((c: Creative) => ({
+          creativeId: c.id,
+          headline: c.headline,
+          creativeType: c.creative_type,
+          status: "pending" as const,
+          rejectionReason: null,
+        })));
 
         // Increment view count
         await supabase
@@ -177,21 +221,25 @@ export default function ApresentacaoPublica() {
     fetchPresentation();
   }, [token]);
 
-  const totalSlides = presentation ? 1 + presentation.creatives.length + 1 : 0; // Cover + creatives + Thank you
+  // Slide calculation: Cover + Participants + Creatives + Summary
+  const totalSlides = presentation ? 1 + 1 + presentation.creatives.length + 1 : 0;
 
   const goToSlide = (index: number) => {
     if (index >= 0 && index < totalSlides) {
+      // Only allow advancing past participants slide if meeting started
+      if (index > 1 && !meetingStarted) {
+        return;
+      }
       setCurrentSlide(index);
-      setCurrentCarouselIndex(0); // Reset carousel when changing slides
+      setCurrentCarouselIndex(0);
     }
   };
 
   const nextSlide = () => goToSlide(currentSlide + 1);
   const prevSlide = () => goToSlide(currentSlide - 1);
 
-  // Carousel navigation
   const nextCarouselImage = () => {
-    const creativeIndex = currentSlide - 1;
+    const creativeIndex = currentSlide - 2; // Adjusted for new slide order
     if (creativeIndex >= 0 && presentation) {
       const creative = presentation.creatives[creativeIndex];
       if (creative && currentCarouselIndex < creative.creative_media.length - 1) {
@@ -220,7 +268,196 @@ export default function ApresentacaoPublica() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentSlide, totalSlides]);
+  }, [currentSlide, totalSlides, meetingStarted]);
+
+  // Meeting functions
+  const handleAddParticipant = (participant: Participant) => {
+    setParticipants(prev => [...prev, participant]);
+  };
+
+  const handleRemoveParticipant = (index: number) => {
+    setParticipants(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleStartPresentation = async () => {
+    if (!presentation || participants.length === 0) return;
+
+    setIsCreatingMeeting(true);
+    try {
+      // Create meeting record
+      const { data: meetingData, error: meetingError } = await supabase
+        .from("presentation_meetings")
+        .insert({
+          presentation_id: presentation.id,
+          meeting_date: new Date().toISOString(),
+          status: "in_progress",
+        })
+        .select()
+        .single();
+
+      if (meetingError) throw meetingError;
+
+      // Add participants
+      const participantsToInsert = participants.map(p => ({
+        meeting_id: meetingData.id,
+        name: p.name,
+        role: p.role,
+        email: p.email,
+      }));
+
+      const { error: participantsError } = await supabase
+        .from("presentation_meeting_participants")
+        .insert(participantsToInsert);
+
+      if (participantsError) throw participantsError;
+
+      // Create approval records for each creative
+      const approvalsToInsert = presentation.creatives.map(c => ({
+        meeting_id: meetingData.id,
+        creative_id: c.id,
+        status: "pending",
+      }));
+
+      const { error: approvalsError } = await supabase
+        .from("presentation_creative_approvals")
+        .insert(approvalsToInsert);
+
+      if (approvalsError) throw approvalsError;
+
+      setMeetingId(meetingData.id);
+      setMeetingDate(new Date(meetingData.meeting_date));
+      setMeetingStarted(true);
+      nextSlide(); // Go to first creative slide
+
+      toast.success("Reunião iniciada!");
+    } catch (err: any) {
+      console.error("Error starting meeting:", err);
+      toast.error("Erro ao iniciar reunião");
+    } finally {
+      setIsCreatingMeeting(false);
+    }
+  };
+
+  const handleApprove = async (creativeId: string) => {
+    if (!meetingId) return;
+
+    setIsSavingApproval(true);
+    try {
+      const { error } = await supabase
+        .from("presentation_creative_approvals")
+        .update({ 
+          status: "approved", 
+          approved_at: new Date().toISOString(),
+          rejection_reason: null 
+        })
+        .eq("meeting_id", meetingId)
+        .eq("creative_id", creativeId);
+
+      if (error) throw error;
+
+      setApprovals(prev => prev.map(a => 
+        a.creativeId === creativeId 
+          ? { ...a, status: "approved" as const, rejectionReason: null }
+          : a
+      ));
+
+      toast.success("Criativo aprovado!");
+    } catch (err: any) {
+      console.error("Error approving:", err);
+      toast.error("Erro ao aprovar criativo");
+    } finally {
+      setIsSavingApproval(false);
+    }
+  };
+
+  const handleRejectClick = (creativeId: string) => {
+    setCurrentRejectionCreativeId(creativeId);
+    setRejectionModalOpen(true);
+  };
+
+  const handleRejectConfirm = async (reason: string) => {
+    if (!meetingId || !currentRejectionCreativeId) return;
+
+    setIsSavingApproval(true);
+    try {
+      const { error } = await supabase
+        .from("presentation_creative_approvals")
+        .update({ 
+          status: "rejected", 
+          rejection_reason: reason,
+          approved_at: null 
+        })
+        .eq("meeting_id", meetingId)
+        .eq("creative_id", currentRejectionCreativeId);
+
+      if (error) throw error;
+
+      setApprovals(prev => prev.map(a => 
+        a.creativeId === currentRejectionCreativeId 
+          ? { ...a, status: "rejected" as const, rejectionReason: reason }
+          : a
+      ));
+
+      setRejectionModalOpen(false);
+      setCurrentRejectionCreativeId(null);
+      toast.success("Criativo reprovado");
+    } catch (err: any) {
+      console.error("Error rejecting:", err);
+      toast.error("Erro ao reprovar criativo");
+    } finally {
+      setIsSavingApproval(false);
+    }
+  };
+
+  const handleFinalizeMeeting = async () => {
+    if (!meetingId || !presentation) return;
+
+    setIsFinalizingMeeting(true);
+    try {
+      // Update meeting status
+      const { error: meetingError } = await supabase
+        .from("presentation_meetings")
+        .update({ 
+          status: "completed", 
+          completed_at: new Date().toISOString(),
+          summary_sent: true 
+        })
+        .eq("id", meetingId);
+
+      if (meetingError) throw meetingError;
+
+      // Send email summary
+      const { error: emailError } = await supabase.functions.invoke("send-presentation-summary", {
+        body: {
+          meetingId,
+          presentationName: presentation.name,
+          clientName: presentation.client.name,
+          participants,
+          creatives: approvals.map(a => ({
+            headline: a.headline,
+            creativeType: a.creativeType,
+            status: a.status,
+            rejectionReason: a.rejectionReason,
+          })),
+          meetingDate: meetingDate.toISOString(),
+        },
+      });
+
+      if (emailError) {
+        console.error("Email error:", emailError);
+        toast.error("Reunião finalizada, mas houve erro ao enviar emails");
+      } else {
+        toast.success("Reunião finalizada e resumo enviado!");
+      }
+
+      setMeetingCompleted(true);
+    } catch (err: any) {
+      console.error("Error finalizing meeting:", err);
+      toast.error("Erro ao finalizar reunião");
+    } finally {
+      setIsFinalizingMeeting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -243,7 +480,7 @@ export default function ApresentacaoPublica() {
   const secondaryColor = presentation.secondary_color || "#ea4335";
 
   const renderSlide = () => {
-    // Cover slide
+    // Cover slide (index 0)
     if (currentSlide === 0) {
       return (
         <div 
@@ -273,25 +510,39 @@ export default function ApresentacaoPublica() {
       );
     }
 
-    // Thank you slide (last)
-    if (currentSlide === totalSlides - 1) {
+    // Participants slide (index 1)
+    if (currentSlide === 1) {
       return (
-        <div 
-          className="w-full h-full flex flex-col items-center justify-center text-white p-12"
-          style={{ background: `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})` }}
-        >
-          <h1 className="text-4xl md:text-5xl font-bold text-center mb-6">
-            Obrigado!
-          </h1>
-          <p className="text-xl opacity-90 text-center">
-            {presentation.client.company}
-          </p>
-        </div>
+        <ParticipantsForm
+          participants={participants}
+          onAddParticipant={handleAddParticipant}
+          onRemoveParticipant={handleRemoveParticipant}
+          onStartPresentation={handleStartPresentation}
+          isLoading={isCreatingMeeting}
+          primaryColor={primaryColor}
+        />
       );
     }
 
-    // Creative slides
-    const creativeIndex = currentSlide - 1;
+    // Summary slide (last)
+    if (currentSlide === totalSlides - 1) {
+      return (
+        <MeetingSummarySlide
+          clientName={presentation.client.name}
+          presentationName={presentation.name}
+          meetingDate={meetingDate}
+          participants={participants}
+          approvals={approvals}
+          onFinalizeMeeting={handleFinalizeMeeting}
+          isLoading={isFinalizingMeeting}
+          isCompleted={meetingCompleted}
+          primaryColor={primaryColor}
+        />
+      );
+    }
+
+    // Creative slides (index 2 to totalSlides - 2)
+    const creativeIndex = currentSlide - 2;
     const creative = presentation.creatives[creativeIndex];
 
     if (!creative) return null;
@@ -299,12 +550,12 @@ export default function ApresentacaoPublica() {
     const isCarousel = creative.creative_type === "carrossel" && creative.creative_media.length > 1;
     const currentMediaIndex = isCarousel ? currentCarouselIndex : 0;
     const currentMedia = creative.creative_media[currentMediaIndex];
+    const approval = approvals.find(a => a.creativeId === creative.id);
 
     return (
       <div className="w-full h-full bg-background flex overflow-hidden">
         {/* Left side - Instagram Frame */}
         <div className="w-1/2 h-full bg-muted flex items-center justify-center p-2">
-          {/* Instagram Post Frame - Larger size */}
           <div className="bg-white rounded-xl shadow-2xl w-full h-[95%] max-w-[500px] overflow-hidden flex flex-col">
             {/* Instagram Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
@@ -333,7 +584,7 @@ export default function ApresentacaoPublica() {
               <MoreHorizontal className="w-6 h-6 text-gray-600" />
             </div>
 
-            {/* Media Container - flex-1 to fill remaining space */}
+            {/* Media Container */}
             <div className="relative flex-1 bg-gray-100 min-h-0">
               {currentMedia ? (
                 currentMedia.media_type === "video" ? (
@@ -355,7 +606,7 @@ export default function ApresentacaoPublica() {
                 </div>
               )}
 
-              {/* Carousel navigation inside frame */}
+              {/* Carousel navigation */}
               {isCarousel && (
                 <>
                   <Button
@@ -377,7 +628,6 @@ export default function ApresentacaoPublica() {
                     <ChevronRight className="w-5 h-5 text-gray-700" />
                   </Button>
 
-                  {/* Carousel dots */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
                     {creative.creative_media.map((_, i) => (
                       <button
@@ -481,10 +731,25 @@ export default function ApresentacaoPublica() {
               <span className="line-clamp-1">{creative.hashtags}</span>
             </div>
           )}
+
+          {/* Approval buttons - only show if meeting started */}
+          {meetingStarted && approval && (
+            <ApprovalButtons
+              status={approval.status}
+              onApprove={() => handleApprove(creative.id)}
+              onReject={() => handleRejectClick(creative.id)}
+              isLoading={isSavingApproval}
+              rejectionReason={approval.rejectionReason}
+            />
+          )}
         </div>
       </div>
     );
   };
+
+  const currentCreative = currentSlide >= 2 && currentSlide < totalSlides - 1
+    ? presentation.creatives[currentSlide - 2]
+    : null;
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -512,11 +777,14 @@ export default function ApresentacaoPublica() {
             <button
               key={i}
               onClick={() => goToSlide(i)}
+              disabled={i > 1 && !meetingStarted}
               className={cn(
                 "w-2 h-2 rounded-full transition-all",
                 currentSlide === i 
                   ? "bg-white w-4" 
-                  : "bg-white/30 hover:bg-white/50"
+                  : i > 1 && !meetingStarted
+                    ? "bg-white/10"
+                    : "bg-white/30 hover:bg-white/50"
               )}
             />
           ))}
@@ -526,7 +794,7 @@ export default function ApresentacaoPublica() {
           variant="ghost"
           size="icon"
           onClick={nextSlide}
-          disabled={currentSlide === totalSlides - 1}
+          disabled={currentSlide === totalSlides - 1 || (currentSlide === 1 && !meetingStarted)}
           className="text-white hover:bg-white/10"
         >
           <ChevronRight className="w-6 h-6" />
@@ -537,6 +805,18 @@ export default function ApresentacaoPublica() {
       <div className="text-center text-white/50 text-sm pb-4">
         {currentSlide + 1} / {totalSlides}
       </div>
+
+      {/* Rejection Modal */}
+      <RejectionModal
+        open={rejectionModalOpen}
+        onClose={() => {
+          setRejectionModalOpen(false);
+          setCurrentRejectionCreativeId(null);
+        }}
+        onConfirm={handleRejectConfirm}
+        creativeName={currentCreative?.headline || undefined}
+        isLoading={isSavingApproval}
+      />
     </div>
   );
 }
