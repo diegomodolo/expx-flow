@@ -29,13 +29,13 @@ export function TopEngagementPostsCard({ posts }: TopEngagementPostsCardProps) {
 
   return (
     <Card className="bg-card border-border h-full">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-1 pt-3 px-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Trophy className="h-4 w-4 text-yellow-500" />
           Top Posts por Engajamento
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1.5 px-3 pb-3">
         {posts.map((post, index) => (
           <a
             key={post.id}

@@ -25,17 +25,17 @@ export const PerformanceMetrics = ({ metrics }: PerformanceMetricsProps) => {
   ];
 
   return (
-    <Card className="p-4 bg-card border-border animate-fade-in">
-      <h3 className="text-xl font-semibold text-foreground mb-4 transition-colors duration-300">Métricas de Performance</h3>
-      <div className="grid grid-cols-2 gap-4">
+    <Card className="p-3 bg-card border-border animate-fade-in">
+      <h3 className="text-base font-semibold text-foreground mb-2 transition-colors duration-300">Métricas de Performance</h3>
+      <div className="grid grid-cols-2 gap-2">
         {metricsData.map((metric, index) => (
           <div 
             key={`${index}-${animateKey}`} 
-            className="border-l-2 border-primary pl-3 transition-all duration-300 hover:border-l-4 animate-fade-in"
+            className="border-l-2 border-primary pl-2 transition-all duration-300 hover:border-l-4 animate-fade-in"
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            <p className="text-sm text-muted-foreground transition-colors duration-300">{metric.label}</p>
-            <p className="text-2xl font-bold text-foreground transition-all duration-500">{metric.value}</p>
+            <p className="text-xs text-muted-foreground transition-colors duration-300">{metric.label}</p>
+            <p className="text-lg font-bold text-foreground transition-all duration-500">{metric.value}</p>
           </div>
         ))}
       </div>
