@@ -67,9 +67,9 @@ import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useClientNotificationSettings, ClientNotificationSettings, ClientContact, TriggerSubscription } from "@/hooks/useClientNotificationSettings";
+import { useClientContacts } from "@/hooks/useClientContacts";
 import { NotificationTrigger } from "@/hooks/useWhatsAppNotifications";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ClientNotificationConfigProps {
   companyId: string | undefined;
@@ -118,6 +118,10 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [contactClientId, setContactClientId] = useState("");
   const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
+  const [contactMode, setContactMode] = useState<'select' | 'create'>('select');
+  const [selectedExistingContactId, setSelectedExistingContactId] = useState("");
+  const [existingContactsOpen, setExistingContactsOpen] = useState(false);
+  const [existingContactsForClient, setExistingContactsForClient] = useState<ClientContact[]>([]);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -271,31 +275,60 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
   };
 
   // Handle add/edit contact
-  const handleOpenContactModal = (clientId: string, contact?: ClientContact) => {
+  const handleOpenContactModal = async (clientId: string, contact?: ClientContact) => {
     setContactClientId(clientId);
+    
     if (contact) {
+      // Editing existing contact
       setEditingContact(contact);
+      setContactMode('create');
       setContactName(contact.contact_name);
       setContactPhone(contact.phone);
       setContactEmail(contact.email || "");
+      setSelectedExistingContactId("");
+      setExistingContactsForClient([]);
     } else {
+      // Adding new - fetch existing contacts for selection
       setEditingContact(null);
+      setContactMode('select');
       setContactName("");
       setContactPhone("");
       setContactEmail("");
+      setSelectedExistingContactId("");
+      
+      // Fetch all contacts for this client to allow selection
+      try {
+        const contacts = await fetchClientContacts(clientId);
+        setExistingContactsForClient(contacts);
+        // If no contacts exist, default to create mode
+        if (contacts.length === 0) {
+          setContactMode('create');
+        }
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
+        setExistingContactsForClient([]);
+        setContactMode('create');
+      }
     }
     setIsContactModalOpen(true);
   };
 
   const handleSaveContact = () => {
+    const settingsEntry = clientSettings.find(s => s.client_id === contactClientId);
+    
     if (editingContact) {
+      // Updating existing contact
       updateContact({
         id: editingContact.id,
         contactName,
         phone: contactPhone.replace(/\D/g, ''),
         email: contactEmail || undefined,
       });
+    } else if (contactMode === 'select' && selectedExistingContactId) {
+      // Selecting existing contact - no need to create, it's already in the DB
+      // Just refresh local data to show it
     } else {
+      // Creating new contact
       createContact({
         clientId: contactClientId,
         contactName,
@@ -303,10 +336,10 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
         email: contactEmail || undefined,
       });
     }
+    
     setIsContactModalOpen(false);
     
     // Refresh local data
-    const settingsEntry = clientSettings.find(s => s.client_id === contactClientId);
     if (settingsEntry) {
       fetchClientContacts(contactClientId).then(contacts => {
         setClientData(prev => ({
@@ -763,44 +796,134 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
 
       {/* Contact Modal */}
       <Dialog open={isContactModalOpen} onOpenChange={setIsContactModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingContact ? 'Editar Contato' : 'Novo Contato'}
+              {editingContact ? 'Editar Contato' : 'Adicionar Contato'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do Contato</Label>
-              <Input
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Ex: João Silva"
-              />
-            </div>
+            {/* Mode selection - only show when not editing */}
+            {!editingContact && existingContactsForClient.length > 0 && (
+              <RadioGroup
+                value={contactMode}
+                onValueChange={(value: 'select' | 'create') => setContactMode(value)}
+                className="space-y-3"
+              >
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value="select" id="select-existing" />
+                  <Label htmlFor="select-existing" className="cursor-pointer">
+                    Selecionar contato existente
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value="create" id="create-new" />
+                  <Label htmlFor="create-new" className="cursor-pointer">
+                    Criar novo contato
+                  </Label>
+                </div>
+              </RadioGroup>
+            )}
 
-            <div className="space-y-2">
-              <Label>Telefone (WhatsApp)</Label>
-              <Input
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="Ex: 5511999999999"
-              />
-              <p className="text-xs text-muted-foreground">
-                Formato: código do país + DDD + número
-              </p>
-            </div>
+            {/* Select existing contact */}
+            {!editingContact && contactMode === 'select' && existingContactsForClient.length > 0 && (
+              <div className="space-y-2">
+                <Label>Selecionar Contato</Label>
+                <Popover open={existingContactsOpen} onOpenChange={setExistingContactsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={existingContactsOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedExistingContactId ? (
+                        <span>
+                          {existingContactsForClient.find(c => c.id === selectedExistingContactId)?.contact_name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Selecione um contato</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-[9999]" align="start">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar contato..." />
+                      <CommandList className="max-h-[200px]">
+                        <CommandEmpty>Nenhum contato encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {existingContactsForClient.map((contact) => (
+                            <CommandItem
+                              key={contact.id}
+                              value={contact.contact_name}
+                              onSelect={() => {
+                                setSelectedExistingContactId(contact.id);
+                                setExistingContactsOpen(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedExistingContactId === contact.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{contact.contact_name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatPhone(contact.phone)}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  Este contato já está cadastrado para o cliente
+                </p>
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label>E-mail (opcional)</Label>
-              <Input
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="Ex: joao@empresa.com"
-              />
-            </div>
+            {/* Create new contact form */}
+            {(editingContact || contactMode === 'create' || existingContactsForClient.length === 0) && (
+              <>
+                <div className="space-y-2">
+                  <Label>Nome do Contato *</Label>
+                  <Input
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="Ex: João Silva"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Telefone (WhatsApp) *</Label>
+                  <Input
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="Ex: 5511999999999"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Formato: código do país + DDD + número
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>E-mail (opcional)</Label>
+                  <Input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="Ex: joao@empresa.com"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter className="mt-4">
@@ -809,10 +932,14 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
             </Button>
             <Button
               onClick={handleSaveContact}
-              disabled={isCreatingContact || !contactName || !contactPhone}
+              disabled={
+                isCreatingContact || 
+                (contactMode === 'create' && (!contactName || !contactPhone)) ||
+                (contactMode === 'select' && !selectedExistingContactId)
+              }
             >
               {isCreatingContact && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingContact ? 'Salvar' : 'Adicionar'}
+              {editingContact ? 'Salvar' : contactMode === 'select' ? 'Selecionar' : 'Adicionar'}
             </Button>
           </DialogFooter>
         </DialogContent>
