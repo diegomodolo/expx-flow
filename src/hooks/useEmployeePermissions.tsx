@@ -4,9 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
 
 export type MenuItemType = 
-  | 'dashboard'
+  | 'dashboard' 
   | 'clientes' 
-  | 'campanhas'
+  | 'campanhas' 
   | 'squad'
   | 'tarefas'
   | 'colaboradores'
@@ -14,11 +14,13 @@ export type MenuItemType =
   | 'gerador-campanhas'
   | 'gerador-conteudo'
   | 'gerador-criativos'
+  | 'geradores'
   | 'ia'
   | 'configuracoes'
   | 'agentes-ia'
   | 'editar-agentes'
-  | 'editor-funil';
+  | 'editor-funil'
+  | 'whatsapp';
 
 export interface EmployeePermission {
   id: string;
@@ -129,7 +131,7 @@ export function useEmployeePermissions() {
 
       // Se for proprietário, não precisa verificar permissões específicas
       if (userIsOwner) {
-        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'ia', 'configuracoes', 'agentes-ia', 'editar-agentes'];
+        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'geradores', 'ia', 'configuracoes', 'agentes-ia', 'editar-agentes', 'editor-funil', 'whatsapp'];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
         return;
