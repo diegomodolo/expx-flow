@@ -352,7 +352,7 @@ export const useEmployees = () => {
         .from("employees")
         .update({
           ...updates,
-          team_id: updates.team_id === "sem-squad" ? null : updates.team_id,
+          team_id: !updates.team_id || updates.team_id === "sem-squad" || updates.team_id === "" ? null : updates.team_id,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
