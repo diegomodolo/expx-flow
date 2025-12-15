@@ -21,7 +21,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Settings, Clock, MessageSquare, Info, RotateCcw } from "lucide-react";
-import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS } from "@/hooks/useWhatsAppNotifications";
+import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS, REALTIME_ONLY_TRIGGERS } from "@/hooks/useWhatsAppNotifications";
+import { Zap } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -393,10 +394,21 @@ export function TriggerEditModal({
       if (type && !triggerName) {
         setTriggerName(type.label);
       }
+
+      // Force realtime frequency for event-based triggers
+      if (REALTIME_ONLY_TRIGGERS.includes(triggerType)) {
+        setFrequencyType('realtime');
+      }
     }
   }, [triggerType, trigger]);
 
+  // Check if current trigger type is realtime-only
+  const isRealtimeOnlyTrigger = REALTIME_ONLY_TRIGGERS.includes(triggerType);
+
   const handleSave = () => {
+    // Force realtime for event-based triggers
+    const effectiveFrequencyType = isRealtimeOnlyTrigger ? 'realtime' : frequencyType;
+    
     onSave({
       trigger: {
         trigger_type: triggerType,
@@ -406,11 +418,11 @@ export function TriggerEditModal({
         conditions,
       },
       schedule: {
-        frequency_type: frequencyType,
-        times_per_day: timesPerDay,
-        execution_hours: executionHours,
-        days_of_week: daysOfWeek,
-        day_of_month: dayOfMonth,
+        frequency_type: effectiveFrequencyType,
+        times_per_day: isRealtimeOnlyTrigger ? 1 : timesPerDay,
+        execution_hours: isRealtimeOnlyTrigger ? [] : executionHours,
+        days_of_week: isRealtimeOnlyTrigger ? [] : daysOfWeek,
+        day_of_month: isRealtimeOnlyTrigger ? null : dayOfMonth,
         respect_quiet_hours: respectQuietHours,
       },
       templates: {
@@ -560,136 +572,157 @@ export function TriggerEditModal({
 
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Frequência</Label>
-              <Select value={frequencyType} onValueChange={(v) => setFrequencyType(v as TriggerSchedule['frequency_type'])}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="realtime">Tempo Real</SelectItem>
-                  <SelectItem value="hourly">A Cada Hora</SelectItem>
-                  <SelectItem value="daily">Diário</SelectItem>
-                  <SelectItem value="weekly">Semanal</SelectItem>
-                  <SelectItem value="monthly">Mensal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {frequencyType === 'daily' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Quantas vezes por dia?</Label>
-                  <Select value={String(timesPerDay)} onValueChange={(v) => setTimesPerDay(Number(v))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 6, 8, 12, 24].map((n) => (
-                        <SelectItem key={n} value={String(n)}>{n}x por dia</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {isRealtimeOnlyTrigger ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="p-4 rounded-full bg-emerald-100 dark:bg-emerald-950 mb-4">
+                  <Zap className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Horários de execução</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {HOURS.map((hour) => (
-                      <Badge
-                        key={hour}
-                        variant={executionHours.includes(hour) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => handleHourToggle(hour)}
-                      >
-                        {String(hour).padStart(2, '0')}h
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Selecionados: {executionHours.map(h => `${h}h`).join(', ') || 'Nenhum'}
-                  </p>
-                </div>
-              </>
-            )}
-
-            {frequencyType === 'weekly' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Dias da Semana</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {DAYS_OF_WEEK.map((day) => (
-                      <Badge
-                        key={day.value}
-                        variant={daysOfWeek.includes(day.value) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => handleDayToggle(day.value)}
-                      >
-                        {day.label}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Horário</Label>
-                  <Select value={String(executionHours[0] || 9)} onValueChange={(v) => setExecutionHours([Number(v)])}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HOURS.map((hour) => (
-                        <SelectItem key={hour} value={String(hour)}>
-                          {String(hour).padStart(2, '0')}:00
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-
-            {frequencyType === 'monthly' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Dia do Mês</Label>
-                  <Select value={String(dayOfMonth)} onValueChange={(v) => setDayOfMonth(Number(v))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                        <SelectItem key={day} value={String(day)}>Dia {day}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Horário</Label>
-                  <Select value={String(executionHours[0] || 9)} onValueChange={(v) => setExecutionHours([Number(v)])}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HOURS.map((hour) => (
-                        <SelectItem key={hour} value={String(hour)}>
-                          {String(hour).padStart(2, '0')}:00
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Respeitar Horário de Silêncio</Label>
-                <p className="text-xs text-muted-foreground">Não enviar durante horário configurado</p>
+                <h3 className="text-lg font-semibold mb-2">Gatilho em Tempo Real</h3>
+                <p className="text-muted-foreground max-w-md mb-4">
+                  Este tipo de gatilho é acionado automaticamente quando o evento ocorre. 
+                  Não é necessário configurar agendamento.
+                </p>
+                <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:bg-emerald-950">
+                  ⚡ Execução Instantânea
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-4">
+                  A mensagem será enviada imediatamente quando: {TRIGGER_TYPES.find(t => t.value === triggerType)?.description?.toLowerCase()}
+                </p>
               </div>
-              <Switch checked={respectQuietHours} onCheckedChange={setRespectQuietHours} />
-            </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Frequência</Label>
+                  <Select value={frequencyType} onValueChange={(v) => setFrequencyType(v as TriggerSchedule['frequency_type'])}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="realtime">Tempo Real</SelectItem>
+                      <SelectItem value="hourly">A Cada Hora</SelectItem>
+                      <SelectItem value="daily">Diário</SelectItem>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                      <SelectItem value="monthly">Mensal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {frequencyType === 'daily' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Quantas vezes por dia?</Label>
+                      <Select value={String(timesPerDay)} onValueChange={(v) => setTimesPerDay(Number(v))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 6, 8, 12, 24].map((n) => (
+                            <SelectItem key={n} value={String(n)}>{n}x por dia</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Horários de execução</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {HOURS.map((hour) => (
+                          <Badge
+                            key={hour}
+                            variant={executionHours.includes(hour) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => handleHourToggle(hour)}
+                          >
+                            {String(hour).padStart(2, '0')}h
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Selecionados: {executionHours.map(h => `${h}h`).join(', ') || 'Nenhum'}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {frequencyType === 'weekly' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Dias da Semana</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <Badge
+                            key={day.value}
+                            variant={daysOfWeek.includes(day.value) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => handleDayToggle(day.value)}
+                          >
+                            {day.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Horário</Label>
+                      <Select value={String(executionHours[0] || 9)} onValueChange={(v) => setExecutionHours([Number(v)])}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HOURS.map((hour) => (
+                            <SelectItem key={hour} value={String(hour)}>
+                              {String(hour).padStart(2, '0')}:00
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                {frequencyType === 'monthly' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Dia do Mês</Label>
+                      <Select value={String(dayOfMonth)} onValueChange={(v) => setDayOfMonth(Number(v))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <SelectItem key={day} value={String(day)}>Dia {day}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Horário</Label>
+                      <Select value={String(executionHours[0] || 9)} onValueChange={(v) => setExecutionHours([Number(v)])}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HOURS.map((hour) => (
+                            <SelectItem key={hour} value={String(hour)}>
+                              {String(hour).padStart(2, '0')}:00
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Respeitar Horário de Silêncio</Label>
+                    <p className="text-xs text-muted-foreground">Não enviar durante horário configurado</p>
+                  </div>
+                  <Switch checked={respectQuietHours} onCheckedChange={setRespectQuietHours} />
+                </div>
+              </>
+            )}
           </TabsContent>
 
           {/* Templates Tab */}
