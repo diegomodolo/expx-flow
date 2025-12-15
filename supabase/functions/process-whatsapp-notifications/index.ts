@@ -623,10 +623,16 @@ serve(async (req) => {
         continue;
       }
       
-      // Get clients that have active notification settings
+      // Get clients that have active notification settings WITH gestor data
       const { data: activeClientSettings } = await supabase
         .from('whatsapp_client_notification_settings')
-        .select('client_id')
+        .select(`
+          id,
+          client_id,
+          gestor_employee_id,
+          gestor:employees!whatsapp_client_notification_settings_gestor_employee_id_fkey(id, name, phone, email),
+          client:clients!whatsapp_client_notification_settings_client_id_fkey(id, name, company, dashboard_token, ad_account_id)
+        `)
         .eq('company_id', trigger.company_id)
         .eq('is_active', true);
       
@@ -638,79 +644,106 @@ serve(async (req) => {
       const activeClientIds = activeClientSettings.map(s => s.client_id);
       console.log(`Found ${activeClientIds.length} clients with active notification settings`);
       
+      // Get subscriptions for this trigger to know the destination for each client
+      const settingsIds = activeClientSettings.map(s => s.id);
+      const { data: subscriptions } = await supabase
+        .from('whatsapp_client_trigger_subscriptions')
+        .select('client_settings_id, destination, is_active')
+        .eq('trigger_id', trigger.id)
+        .eq('is_active', true)
+        .in('client_settings_id', settingsIds);
+      
+      // Create a map of settings_id -> destination
+      const subscriptionMap = new Map();
+      if (subscriptions) {
+        subscriptions.forEach((sub: any) => {
+          subscriptionMap.set(sub.client_settings_id, sub.destination);
+        });
+      }
+      
+      console.log(`Found ${subscriptionMap.size} active subscriptions for trigger ${trigger.trigger_name}`);
+      
       // Get contacts only for clients with active settings
       const { data: contacts } = await supabase
         .from('whatsapp_client_contacts')
-        .select('*, client:clients(id, name, company, dashboard_token, ad_account_id)')
+        .select('*')
         .eq('company_id', trigger.company_id)
         .eq('is_active', true)
         .in('client_id', activeClientIds);
       
-      if (!contacts || contacts.length === 0) {
-        console.log(`No contacts for clients with active notification settings in company ${trigger.company_id}`);
-        continue;
-      }
+      // Build recipients by client, considering destination (gestor, cliente, ambos)
+      const recipientsByClient: Record<string, { 
+        client: any; 
+        recipients: Array<{
+          id: string;
+          contact_name: string;
+          phone: string;
+          profile_type: string;
+          receives_alerts: boolean;
+          receives_reports: boolean;
+          is_gestor: boolean;
+        }>;
+      }> = {};
       
-      // Create execution log
-      const { data: logEntry, error: logError } = await supabase
-        .from('whatsapp_execution_log')
-        .insert({
-          company_id: trigger.company_id,
-          trigger_id: trigger.id,
-          schedule_id: schedule.id,
-          status: 'processing',
-          started_at: now.toISOString(),
-        })
-        .select()
-        .single();
-      
-      if (logError) {
-        console.error('Error creating log entry:', logError);
-        continue;
-      }
-      
-      let messagesSent = 0;
-      let messagesFailed = 0;
-      const executionDetails: any[] = [];
-      
-      // Determine period days based on trigger type
-      let periodDays = 7; // default
-      let periodLabel = 'últimos 7 dias';
-      if (trigger.trigger_type === 'daily_report') {
-        periodDays = 1;
-        periodLabel = 'últimas 24 horas';
-      } else if (trigger.trigger_type === 'monthly_report') {
-        periodDays = 30;
-        periodLabel = 'últimos 30 dias';
-      } else if (trigger.trigger_type === 'weekly_report') {
-        periodDays = 7;
-        periodLabel = 'últimos 7 dias';
-      }
-
-      // Get data source from conditions (for report triggers)
-      const dataSource = trigger.conditions?.data_source || 'meta';
-      const isReportTrigger = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
-      
-      // Get source label
-      let sourceLabel = 'Meta Ads';
-      if (dataSource === 'google') sourceLabel = 'Google Ads';
-      else if (dataSource === 'both') sourceLabel = 'Meta + Google';
-      
-      // Group contacts by client to fetch metrics once per client
-      const contactsByClient = contacts.reduce((acc: any, contact: any) => {
-        if (!acc[contact.client_id]) {
-          acc[contact.client_id] = {
-            client: contact.client,
-            contacts: []
-          };
+      for (const setting of activeClientSettings) {
+        const clientId = setting.client_id;
+        const destination = subscriptionMap.get(setting.id);
+        
+        // Skip if no subscription for this trigger
+        if (!destination) {
+          console.log(`  Client ${clientId}: no subscription for this trigger, skipping`);
+          continue;
         }
-        acc[contact.client_id].contacts.push(contact);
-        return acc;
-      }, {});
+        
+        recipientsByClient[clientId] = {
+          client: setting.client,
+          recipients: []
+        };
+        
+        // Add gestor if destination includes gestor
+        if ((destination === 'gestor' || destination === 'ambos') && setting.gestor && setting.gestor.phone) {
+          console.log(`  Client ${clientId}: adding gestor ${setting.gestor.name} (${setting.gestor.phone})`);
+          recipientsByClient[clientId].recipients.push({
+            id: `gestor-${setting.gestor.id}`,
+            contact_name: setting.gestor.name,
+            phone: setting.gestor.phone,
+            profile_type: 'gestor',
+            receives_alerts: true,
+            receives_reports: true,
+            is_gestor: true
+          });
+        }
+        
+        // Add contacts if destination includes cliente
+        if (destination === 'cliente' || destination === 'ambos') {
+          const clientContacts = contacts?.filter((c: any) => c.client_id === clientId) || [];
+          console.log(`  Client ${clientId}: adding ${clientContacts.length} contacts`);
+          for (const contact of clientContacts) {
+            recipientsByClient[clientId].recipients.push({
+              id: contact.id,
+              contact_name: contact.contact_name,
+              phone: contact.phone,
+              profile_type: contact.profile_type || 'cliente',
+              receives_alerts: contact.receives_alerts !== false,
+              receives_reports: contact.receives_reports !== false,
+              is_gestor: false
+            });
+          }
+        }
+        
+        console.log(`  Client ${clientId}: total ${recipientsByClient[clientId].recipients.length} recipients (destination=${destination})`);
+      }
+      
+      // Check if we have any recipients
+      const totalRecipients = Object.values(recipientsByClient).reduce((sum, c) => sum + c.recipients.length, 0);
+      if (totalRecipients === 0) {
+        console.log(`No recipients for trigger ${trigger.trigger_name}`);
+        continue;
+      }
       
       // Process each client
-      for (const clientId of Object.keys(contactsByClient)) {
-        const { client, contacts: clientContacts } = contactsByClient[clientId];
+      for (const clientId of Object.keys(recipientsByClient)) {
+        const { client, recipients } = recipientsByClient[clientId];
         
         if (!client) continue;
         
@@ -889,45 +922,49 @@ serve(async (req) => {
           }
         }
         
-        // Send to each contact
-        for (const contact of clientContacts) {
-          // Find the right template for this contact's profile
+        // Send to each recipient (gestor and/or contacts based on destination)
+        for (const recipient of recipients) {
+          // Find the right template for this recipient's profile
           const template = templates.find((t: any) => 
-            t.recipient_profile === contact.profile_type ||
+            t.recipient_profile === recipient.profile_type
+          ) || templates.find((t: any) => 
             t.recipient_profile === 'cliente'
           );
           
           if (!template) {
-            console.log(`No template for profile ${contact.profile_type}`);
+            console.log(`No template for profile ${recipient.profile_type}`);
             continue;
           }
           
-          // Check if contact should receive this type of notification
+          // Check if recipient should receive this type of notification
           // Use safe fallback: if field is undefined/null, treat as true (send by default)
           const isAlertType = ['high_cpa', 'low_balance', 'disabled_account', 'post_failed'].includes(trigger.trigger_type);
           const isReportType = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
           
-          const receivesAlerts = contact.receives_alerts !== false; // true if undefined, null, or true
-          const receivesReports = contact.receives_reports !== false; // true if undefined, null, or true
+          const receivesAlerts = recipient.receives_alerts !== false; // true if undefined, null, or true
+          const receivesReports = recipient.receives_reports !== false; // true if undefined, null, or true
           
           if (isAlertType && !receivesAlerts) {
-            console.log(`  Contact ${contact.contact_name} has alerts disabled, skipping`);
+            console.log(`  Recipient ${recipient.contact_name} has alerts disabled, skipping`);
             continue;
           }
           if (isReportType && !receivesReports) {
-            console.log(`  Contact ${contact.contact_name} has reports disabled, skipping`);
+            console.log(`  Recipient ${recipient.contact_name} has reports disabled, skipping`);
             continue;
           }
           
-          console.log(`  Sending to contact: ${contact.contact_name} (${contact.phone}), profile=${contact.profile_type || 'cliente'}, alerts=${receivesAlerts}, reports=${receivesReports}`);
+          const recipientLabel = recipient.is_gestor ? 'GESTOR' : 'CONTATO';
+          console.log(`  Sending to ${recipientLabel}: ${recipient.contact_name} (${recipient.phone}), profile=${recipient.profile_type}, alerts=${receivesAlerts}, reports=${receivesReports}`);
           
-          // Update gestor name in variables
-          variables.gestor = contact.contact_name;
+          // Update gestor name in variables if this is the gestor
+          if (recipient.is_gestor) {
+            variables.gestor = recipient.contact_name;
+          }
           
           const message = replaceVariables(template.message_template, variables);
           
           // Format phone
-          let formattedPhone = contact.phone.replace(/\D/g, '');
+          let formattedPhone = recipient.phone.replace(/\D/g, '');
           if (!formattedPhone.startsWith('55')) {
             formattedPhone = '55' + formattedPhone;
           }
@@ -951,7 +988,7 @@ serve(async (req) => {
               execution_log_id: logEntry.id,
               client_id: clientId,
               client_name: client.name,
-              contact_name: contact.contact_name,
+              contact_name: recipient.contact_name,
               recipient_phone: formattedPhone,
               notification_type: trigger.trigger_type,
               message_content: message,
@@ -964,19 +1001,21 @@ serve(async (req) => {
           if (success) {
             messagesSent++;
             executionDetails.push({
-              contact_id: contact.id,
-              contact_name: contact.contact_name,
+              contact_id: recipient.id,
+              contact_name: recipient.contact_name,
               phone: formattedPhone,
               client_name: client.name,
+              is_gestor: recipient.is_gestor,
               status: 'sent',
             });
           } else {
             messagesFailed++;
             executionDetails.push({
-              contact_id: contact.id,
-              contact_name: contact.contact_name,
+              contact_id: recipient.id,
+              contact_name: recipient.contact_name,
               phone: formattedPhone,
               client_name: client.name,
+              is_gestor: recipient.is_gestor,
               status: 'failed',
             });
           }
