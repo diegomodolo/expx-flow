@@ -70,6 +70,14 @@ export interface ExecutionLog {
   trigger?: NotificationTrigger;
 }
 
+// Triggers that fire in real-time (event-based, no scheduling needed)
+export const REALTIME_ONLY_TRIGGERS = [
+  'post_published',
+  'post_failed',
+  'presentation_summary',
+  'disabled_account',
+];
+
 export const TRIGGER_TYPES = [
   { value: 'high_cpa', label: 'CPA Alto', icon: '⚠️', description: 'Alerta quando CPA está acima do limite' },
   { value: 'low_balance', label: 'Saldo Baixo', icon: '💰', description: 'Alerta quando saldo está baixo' },

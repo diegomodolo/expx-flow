@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Clock, AlertCircle } from "lucide-react";
-import { NotificationTrigger, TRIGGER_TYPES } from "@/hooks/useWhatsAppNotifications";
+import { NotificationTrigger, TRIGGER_TYPES, REALTIME_ONLY_TRIGGERS } from "@/hooks/useWhatsAppNotifications";
 import { TriggerEditModal } from "./TriggerEditModal";
 import {
   AlertDialog,
@@ -27,28 +27,33 @@ interface TriggersListProps {
   onToggleTrigger: (data: { triggerId: string; isActive: boolean }) => void;
 }
 
-function getFrequencyLabel(trigger: NotificationTrigger): string {
+function getFrequencyLabel(trigger: NotificationTrigger): { label: string; isRealtime: boolean } {
+  // Check if this trigger type is realtime-only (event-based)
+  if (REALTIME_ONLY_TRIGGERS.includes(trigger.trigger_type)) {
+    return { label: '⚡ Tempo Real', isRealtime: true };
+  }
+
   const schedule = trigger.schedule;
-  if (!schedule) return 'Não agendado';
+  if (!schedule) return { label: 'Não agendado', isRealtime: false };
 
   switch (schedule.frequency_type) {
     case 'realtime':
-      return 'Tempo real';
+      return { label: '⚡ Tempo Real', isRealtime: true };
     case 'hourly':
-      return 'A cada hora';
+      return { label: 'A cada hora', isRealtime: false };
     case 'daily':
       if (schedule.times_per_day === 1) {
-        return `Diário às ${schedule.execution_hours?.[0] || 9}h`;
+        return { label: `Diário às ${schedule.execution_hours?.[0] || 9}h`, isRealtime: false };
       }
-      return `${schedule.times_per_day}x por dia`;
+      return { label: `${schedule.times_per_day}x por dia`, isRealtime: false };
     case 'weekly':
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       const selectedDays = (schedule.days_of_week || []).map(d => days[d]).join(', ');
-      return `Semanal (${selectedDays})`;
+      return { label: `Semanal (${selectedDays})`, isRealtime: false };
     case 'monthly':
-      return `Mensal (dia ${schedule.day_of_month || 1})`;
+      return { label: `Mensal (dia ${schedule.day_of_month || 1})`, isRealtime: false };
     default:
-      return schedule.frequency_type;
+      return { label: schedule.frequency_type, isRealtime: false };
   }
 }
 
@@ -132,10 +137,23 @@ export function TriggersList({
                             {trigger.is_active ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {getFrequencyLabel(trigger)}
-                        </div>
+                        {(() => {
+                          const freq = getFrequencyLabel(trigger);
+                          return (
+                            <div className="flex items-center gap-2 text-sm">
+                              {freq.isRealtime ? (
+                                <Badge variant="outline" className="text-xs font-normal text-emerald-600 border-emerald-300 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:bg-emerald-950">
+                                  {freq.label}
+                                </Badge>
+                              ) : (
+                                <span className="flex items-center gap-1 text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  {freq.label}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
