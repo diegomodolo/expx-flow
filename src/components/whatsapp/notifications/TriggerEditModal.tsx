@@ -21,8 +21,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Settings, Clock, MessageSquare, Info, RotateCcw } from "lucide-react";
-import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, getVariableGroupsForTriggerType, REALTIME_ONLY_TRIGGERS } from "@/hooks/useWhatsAppNotifications";
-import { Zap } from "lucide-react";
+import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, getVariableGroupsForTriggerType, REALTIME_ONLY_TRIGGERS, REPORT_TRIGGERS, DATA_SOURCE_OPTIONS } from "@/hooks/useWhatsAppNotifications";
+import { Zap, Database } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -124,6 +124,7 @@ Em caso de dúvidas, entre em contato conosco.`,
     gestor: `📅 *Relatório Semanal - {cliente}*
 
 📆 Período: {periodo_inicio} a {periodo_fim}
+📊 Fonte: {fonte}
 
 💰 *Investimento:* R$ {investimento} ({variacao_investimento})
 
@@ -167,6 +168,7 @@ Olá {cliente}!
     gestor: `📆 *Relatório Mensal - {cliente}*
 
 📆 Período: {periodo_inicio} a {periodo_fim}
+📊 Fonte: {fonte}
 
 💰 *Investimento Total:* R$ {investimento} ({variacao_investimento})
 
@@ -214,6 +216,48 @@ Olá {cliente}!
 • Saldo disponível: R$ {saldo}
 
 📊 Acesse seu dashboard completo: {link_dashboard}`,
+  },
+  daily_report: {
+    gestor: `📊 *Relatório Diário - {cliente}*
+
+📆 Data: {data}
+📊 Fonte: {fonte}
+
+💰 *Investimento:* R$ {investimento}
+
+📈 *Resultados das Últimas 24h:*
+• Conversões: {conversoes}
+• Impressões: {impressoes}
+• Cliques: {cliques}
+• Alcance: {alcance}
+
+📉 *Indicadores:*
+• CPL: R$ {cpa_atual}
+• CPC: R$ {cpc}
+• CPM: R$ {cpm}
+• CTR: {ctr}%
+
+🎯 Campanhas ativas: {campanhas_ativas}
+
+📊 Dashboard: {link_dashboard}`,
+    cliente: `📊 *Seu Relatório Diário*
+
+Olá {cliente}!
+
+📆 Data: {data}
+
+💰 *Investimento:* R$ {investimento}
+
+📈 *Seus Resultados de Ontem:*
+• Conversões/Leads: {conversoes}
+• Pessoas alcançadas: {alcance}
+• Cliques no anúncio: {cliques}
+
+📉 *Indicadores:*
+• Custo por Lead: R$ {cpa_atual}
+• Taxa de Cliques: {ctr}%
+
+📊 Acesse seu dashboard: {link_dashboard}`,
   },
   post_published: {
     gestor: `✅ *Post Publicado com Sucesso*
@@ -586,6 +630,37 @@ export function TriggerEditModal({
                     <p className="text-xs text-muted-foreground">Alertar quando saldo durar menos de X dias</p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Data source selector for report triggers */}
+            {REPORT_TRIGGERS.includes(triggerType) && (
+              <div className="space-y-2 p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-blue-600" />
+                  <Label>Fonte de Dados (Tempo Real)</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Os dados serão buscados diretamente das APIs no momento do envio
+                </p>
+                <Select 
+                  value={conditions.data_source || 'meta'} 
+                  onValueChange={(v) => setConditions({ ...conditions, data_source: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DATA_SOURCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <span>{option.icon}</span>
+                          <span>{option.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
