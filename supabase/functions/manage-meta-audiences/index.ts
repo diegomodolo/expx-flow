@@ -57,7 +57,7 @@ serve(async (req) => {
     if (!adAccountId) {
       throw new Error('Client does not have an ad account configured');
     }
-
+    const actAdAccountId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
     // Buscar integração Facebook
     const { data: integration, error: integrationError } = await supabase
       .from('facebook_integrations')
@@ -83,7 +83,7 @@ serve(async (req) => {
       case 'list':
       case 'sync': {
         // Listar públicos do Meta
-        const url = `${graphApiUrl}/act_${adAccountId}/customaudiences?fields=id,name,description,subtype,approximate_count_lower_bound,approximate_count_upper_bound,operation_status&access_token=${accessToken}`;
+        const url = `${graphApiUrl}/${actAdAccountId}/customaudiences?fields=id,name,description,subtype,approximate_count_lower_bound,approximate_count_upper_bound,operation_status&access_token=${accessToken}`;
         
         const response = await fetch(url);
         const data = await response.json();
@@ -142,7 +142,7 @@ serve(async (req) => {
           throw new Error('Name is required');
         }
 
-        const url = `${graphApiUrl}/act_${adAccountId}/customaudiences`;
+        const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
         
         const response = await fetch(url, {
           method: 'POST',
