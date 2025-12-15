@@ -644,7 +644,27 @@ serve(async (req) => {
       const executionDetails: any[] = [];
       
       // Determine period days based on trigger type
-      const periodDays = trigger.trigger_type === 'monthly_report' ? 30 : 7;
+      let periodDays = 7; // default
+      let periodLabel = 'últimos 7 dias';
+      if (trigger.trigger_type === 'daily_report') {
+        periodDays = 1;
+        periodLabel = 'últimas 24 horas';
+      } else if (trigger.trigger_type === 'monthly_report') {
+        periodDays = 30;
+        periodLabel = 'últimos 30 dias';
+      } else if (trigger.trigger_type === 'weekly_report') {
+        periodDays = 7;
+        periodLabel = 'últimos 7 dias';
+      }
+
+      // Get data source from conditions (for report triggers)
+      const dataSource = trigger.conditions?.data_source || 'meta';
+      const isReportTrigger = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
+      
+      // Get source label
+      let sourceLabel = 'Meta Ads';
+      if (dataSource === 'google') sourceLabel = 'Google Ads';
+      else if (dataSource === 'both') sourceLabel = 'Meta + Google';
       
       // Group contacts by client to fetch metrics once per client
       const contactsByClient = contacts.reduce((acc: any, contact: any) => {
@@ -665,7 +685,47 @@ serve(async (req) => {
         if (!client) continue;
         
         // Fetch metrics for this client
-        const metrics = await fetchClientMetrics(supabase, clientId, periodDays);
+        let metrics;
+        
+        // For report triggers, try to fetch real-time data
+        if (isReportTrigger) {
+          try {
+            console.log(`Fetching real-time metrics for client ${clientId}, period=${periodDays}, source=${dataSource}`);
+            
+            // Call the fetch-realtime-metrics function
+            const metricsResponse = await fetch(
+              `${supabaseUrl}/functions/v1/fetch-realtime-metrics`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  clientId,
+                  periodDays,
+                  dataSource
+                }),
+              }
+            );
+            
+            const metricsResult = await metricsResponse.json();
+            
+            if (metricsResult.success && metricsResult.metrics) {
+              console.log(`Real-time metrics fetched successfully for client ${clientId}`);
+              metrics = metricsResult.metrics;
+            } else {
+              console.log(`Failed to fetch real-time metrics, falling back to DB: ${metricsResult.error}`);
+              metrics = await fetchClientMetrics(supabase, clientId, periodDays);
+            }
+          } catch (err) {
+            console.error(`Error fetching real-time metrics for client ${clientId}:`, err);
+            metrics = await fetchClientMetrics(supabase, clientId, periodDays);
+          }
+        } else {
+          // For non-report triggers, use database
+          metrics = await fetchClientMetrics(supabase, clientId, periodDays);
+        }
         
         // Get account balance
         let accountBalance = 0;
@@ -727,8 +787,10 @@ serve(async (req) => {
           // Period
           data: now.toLocaleDateString('pt-BR'),
           hora: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          periodo_inicio: metrics.periodStart.toLocaleDateString('pt-BR'),
-          periodo_fim: metrics.periodEnd.toLocaleDateString('pt-BR'),
+          periodo_inicio: metrics.periodStart ? new Date(metrics.periodStart).toLocaleDateString('pt-BR') : now.toLocaleDateString('pt-BR'),
+          periodo_fim: metrics.periodEnd ? new Date(metrics.periodEnd).toLocaleDateString('pt-BR') : now.toLocaleDateString('pt-BR'),
+          periodo: periodLabel,
+          fonte: sourceLabel,
           
           // Campaigns
           campanha: metrics.current.bestCampaign,
@@ -812,7 +874,7 @@ serve(async (req) => {
           
           // Check if contact should receive this type of notification
           const isAlertType = ['high_cpa', 'low_balance', 'disabled_account', 'post_failed'].includes(trigger.trigger_type);
-          const isReportType = ['weekly_report', 'monthly_report'].includes(trigger.trigger_type);
+          const isReportType = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
           
           if (isAlertType && !contact.receives_alerts) continue;
           if (isReportType && !contact.receives_reports) continue;

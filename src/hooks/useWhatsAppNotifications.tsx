@@ -85,9 +85,20 @@ export const TRIGGER_TYPES = [
   { value: 'presentation_summary', label: 'Resumo de Apresentação', icon: '📊', description: 'Resumo após reunião de apresentação' },
   { value: 'post_published', label: 'Post Publicado', icon: '✅', description: 'Notificação quando post é publicado' },
   { value: 'post_failed', label: 'Falha na Publicação', icon: '❌', description: 'Alerta quando publicação falha' },
-  { value: 'weekly_report', label: 'Relatório Semanal', icon: '📅', description: 'Relatório semanal de performance' },
-  { value: 'monthly_report', label: 'Relatório Mensal', icon: '📆', description: 'Relatório mensal consolidado' },
+  { value: 'daily_report', label: 'Relatório Diário', icon: '📊', description: 'Relatório diário de performance (tempo real)' },
+  { value: 'weekly_report', label: 'Relatório Semanal', icon: '📅', description: 'Relatório semanal de performance (tempo real)' },
+  { value: 'monthly_report', label: 'Relatório Mensal', icon: '📆', description: 'Relatório mensal consolidado (tempo real)' },
   { value: 'custom', label: 'Personalizado', icon: '⚙️', description: 'Gatilho customizado' },
+];
+
+// Report triggers that fetch data in real-time from APIs
+export const REPORT_TRIGGERS = ['daily_report', 'weekly_report', 'monthly_report'];
+
+// Data source options for report triggers
+export const DATA_SOURCE_OPTIONS = [
+  { value: 'meta', label: 'Meta Ads', icon: '📘' },
+  { value: 'google', label: 'Google Ads', icon: '🔍' },
+  { value: 'both', label: 'Ambos', icon: '🔗' },
 ];
 
 // Base variable groups (always available)
@@ -202,6 +213,8 @@ export const METRICS_VARIABLE_GROUPS = [
     variables: [
       { variable: '{periodo_inicio}', description: 'Data de início do período' },
       { variable: '{periodo_fim}', description: 'Data de fim do período' },
+      { variable: '{periodo}', description: 'Descrição do período (ex: últimos 7 dias)' },
+      { variable: '{fonte}', description: 'Fonte dos dados (Meta Ads, Google Ads ou ambos)' },
     ],
   },
   {
