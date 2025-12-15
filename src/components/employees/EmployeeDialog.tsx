@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,36 +33,35 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
   const { teams } = useTeams();
 
   // Update form data when employee prop changes or dialog opens
-  useEffect(() => {
-    if (open) {
-      if (employee) {
-        console.log("EmployeeDialog: Loading employee data", employee);
-        setFormData({
-          name: employee.name || "",
-          email: employee.email || "",
-          phone: employee.phone || "",
-          role: employee.role || "",
-          team_id: employee.team_id || "",
-          status: employee.status || "active",
-          start_date: employee.start_date || "",
-          skills: employee.skills || "",
-          avatar: employee.avatar || ""
-        });
-      } else {
-        console.log("EmployeeDialog: Creating new employee (empty form)");
-        setFormData({
-          name: "",
-          email: "",
-          phone: "",
-          role: "",
-          team_id: "",
-          status: "active",
-          start_date: "",
-          skills: "",
-          avatar: ""
-        });
-      }
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    if (employee) {
+      setFormData({
+        name: employee.name || "",
+        email: employee.email || "",
+        phone: employee.phone || "",
+        role: employee.role || "",
+        team_id: employee.team_id || "",
+        status: employee.status || "active",
+        start_date: employee.start_date || "",
+        skills: employee.skills || "",
+        avatar: employee.avatar || "",
+      });
+      return;
     }
+
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      role: "",
+      team_id: "",
+      status: "active",
+      start_date: "",
+      skills: "",
+      avatar: "",
+    });
   }, [employee, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
