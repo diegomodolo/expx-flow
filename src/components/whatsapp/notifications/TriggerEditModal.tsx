@@ -39,40 +39,262 @@ interface TriggerEditModalProps {
 
 const DEFAULT_TEMPLATES = {
   high_cpa: {
-    gestor: '⚠️ *Alerta CPA Alto*\n\nCliente: {cliente}\nCampanha: {campanha}\nCPA Atual: R$ {cpa_atual}\nVariação: {variacao_cpa}%\n\n📊 Dashboard: {link_dashboard}',
-    cliente: '⚠️ *Atenção - Performance de Campanha*\n\nOlá! Identificamos que sua campanha "{campanha}" está com o custo por aquisição acima do esperado.\n\nSeu gestor já está analisando e tomando as medidas necessárias.\n\n📊 Acompanhe: {link_dashboard}',
+    gestor: `⚠️ *Alerta CPA Alto*
+
+Cliente: {cliente}
+Campanha: {campanha}
+
+📊 *Métricas Atuais:*
+• CPA: R$ {cpa_atual} ({variacao_cpa})
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+• CTR: {ctr}%
+
+🎯 Campanhas ativas: {campanhas_ativas}
+
+📊 Dashboard: {link_dashboard}`,
+    cliente: `⚠️ *Atenção - Performance de Campanha*
+
+Olá {cliente}!
+
+Identificamos que sua campanha "{campanha}" está com o custo por aquisição acima do esperado.
+
+📊 *Resumo:*
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+
+Seu gestor já está analisando e tomando as medidas necessárias.
+
+📊 Acompanhe: {link_dashboard}`,
   },
   low_balance: {
-    gestor: '💰 *Alerta Saldo Baixo*\n\nCliente: {cliente}\nSaldo: R$ {saldo}\nGasto Diário: R$ {gasto_diario}\nDias Restantes: {dias_restantes}\n\n⚠️ Ação necessária: solicitar recarga',
-    cliente: '💰 *Saldo da Conta de Anúncios*\n\nOlá {cliente}!\n\nSeu saldo está em R$ {saldo} e pode durar aproximadamente {dias_restantes} dias.\n\nRecomendamos fazer uma recarga para manter suas campanhas ativas.',
+    gestor: `💰 *Alerta Saldo Baixo*
+
+Cliente: {cliente}
+
+🏦 *Situação da Conta:*
+• Saldo atual: R$ {saldo}
+• Gasto diário médio: R$ {gasto_diario}
+• Dias restantes: {dias_restantes}
+
+📊 *Performance Atual:*
+• Investimento período: R$ {investimento}
+• Conversões: {conversoes}
+• CPA: R$ {cpa_atual}
+
+⚠️ *Ação necessária:* solicitar recarga ao cliente`,
+    cliente: `💰 *Saldo da Conta de Anúncios*
+
+Olá {cliente}!
+
+🏦 *Situação da Conta:*
+• Saldo atual: R$ {saldo}
+• Previsão: {dias_restantes} dias restantes
+
+📊 *Sua Performance:*
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+
+Recomendamos fazer uma recarga para manter suas campanhas ativas sem interrupção.`,
   },
   disabled_account: {
-    gestor: '🚨 *URGENTE - Conta Desabilitada*\n\nCliente: {cliente}\nData: {data} às {hora}\n\n❗ Ação imediata necessária',
-    cliente: '🚨 *Atenção - Conta de Anúncios*\n\nOlá {cliente}!\n\nIdentificamos um problema com sua conta de anúncios. Sua equipe de gestão já foi notificada e está trabalhando na solução.',
+    gestor: `🚨 *URGENTE - Conta Desabilitada*
+
+Cliente: {cliente}
+Data/Hora: {data} às {hora}
+
+📊 *Último Status:*
+• Campanhas ativas: {campanhas_ativas}
+• Investimento período: R$ {investimento}
+• Conversões: {conversoes}
+
+❗ *Ação imediata necessária!*`,
+    cliente: `🚨 *Atenção - Conta de Anúncios*
+
+Olá {cliente}!
+
+Identificamos um problema com sua conta de anúncios em {data} às {hora}.
+
+Sua equipe de gestão já foi notificada e está trabalhando na solução.
+
+Em caso de dúvidas, entre em contato conosco.`,
   },
   weekly_report: {
-    gestor: '📅 *Relatório Semanal - {cliente}*\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento:* R$ {investimento}\n📈 *Conversões:* {conversoes} ({variacao_conversoes})\n👁️ *Impressões:* {impressoes}\n🔗 *Cliques:* {cliques}\n👥 *Alcance:* {alcance}\n\n📉 *Indicadores:*\n• CPL: R$ {cpa_atual}\n• CPC: R$ {cpc}\n• CTR: {ctr}%\n• Frequência: {frequencia}\n\n🏆 Melhor campanha: {melhor_campanha}\n🎯 Campanhas ativas: {campanhas_ativas}\n\n📊 Dashboard: {link_dashboard}',
-    cliente: '📅 *Seu Relatório Semanal*\n\nOlá {cliente}!\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento:* R$ {investimento}\n📈 *Conversões:* {conversoes}\n👥 *Alcance:* {alcance}\n🔗 *Cliques:* {cliques}\n\n📉 *Indicadores:*\n• Custo por Lead: R$ {cpa_atual}\n• Taxa de Cliques: {ctr}%\n\n📊 Acesse seu dashboard: {link_dashboard}',
+    gestor: `📅 *Relatório Semanal - {cliente}*
+
+📆 Período: {periodo_inicio} a {periodo_fim}
+
+💰 *Investimento:* R$ {investimento} ({variacao_investimento})
+
+📈 *Resultados:*
+• Conversões: {conversoes} ({variacao_conversoes})
+• Impressões: {impressoes}
+• Cliques: {cliques}
+• Alcance: {alcance} ({variacao_alcance})
+
+📉 *Indicadores:*
+• CPL: R$ {cpa_atual} ({variacao_cpa})
+• CPC: R$ {cpc}
+• CPM: R$ {cpm}
+• CTR: {ctr}% ({variacao_ctr})
+• Frequência: {frequencia}
+
+🏆 Melhor campanha: {melhor_campanha}
+🎯 Campanhas ativas: {campanhas_ativas}
+
+📊 Dashboard: {link_dashboard}`,
+    cliente: `📅 *Seu Relatório Semanal*
+
+Olá {cliente}!
+
+📆 Período: {periodo_inicio} a {periodo_fim}
+
+💰 *Investimento:* R$ {investimento}
+
+📈 *Seus Resultados:*
+• Conversões/Leads: {conversoes}
+• Pessoas alcançadas: {alcance}
+• Cliques no anúncio: {cliques}
+
+📉 *Indicadores:*
+• Custo por Lead: R$ {cpa_atual}
+• Taxa de Cliques: {ctr}%
+
+📊 Acesse seu dashboard completo: {link_dashboard}`,
   },
   monthly_report: {
-    gestor: '📆 *Relatório Mensal - {cliente}*\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento Total:* R$ {investimento} ({variacao_investimento})\n📈 *Conversões:* {conversoes} ({variacao_conversoes})\n👁️ *Impressões:* {impressoes}\n🔗 *Cliques:* {cliques}\n👥 *Alcance:* {alcance} ({variacao_alcance})\n\n📉 *Indicadores Médios:*\n• CPL: R$ {cpa_atual}\n• CPC: R$ {cpc}\n• CPM: R$ {cpm}\n• CTR: {ctr}% ({variacao_ctr})\n• Frequência: {frequencia}\n\n🏆 Melhor campanha: {melhor_campanha}\n🎯 Campanhas ativas: {campanhas_ativas}\n\n📊 Dashboard: {link_dashboard}',
-    cliente: '📆 *Seu Relatório Mensal*\n\nOlá {cliente}!\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento:* R$ {investimento}\n📈 *Conversões:* {conversoes}\n👥 *Alcance:* {alcance}\n🔗 *Cliques:* {cliques}\n\n📉 *Indicadores:*\n• Custo por Lead: R$ {cpa_atual}\n• Taxa de Cliques: {ctr}%\n\n📊 Acesse seu dashboard: {link_dashboard}',
+    gestor: `📆 *Relatório Mensal - {cliente}*
+
+📆 Período: {periodo_inicio} a {periodo_fim}
+
+💰 *Investimento Total:* R$ {investimento} ({variacao_investimento})
+
+📈 *Resultados do Mês:*
+• Conversões: {conversoes} ({variacao_conversoes})
+• Impressões: {impressoes}
+• Cliques: {cliques}
+• Alcance: {alcance} ({variacao_alcance})
+
+📉 *Indicadores Médios:*
+• CPL: R$ {cpa_atual} ({variacao_cpa})
+• CPC: R$ {cpc}
+• CPM: R$ {cpm}
+• CTR: {ctr}% ({variacao_ctr})
+• Frequência: {frequencia}
+
+🏦 *Conta:*
+• Saldo atual: R$ {saldo}
+• Gasto diário médio: R$ {gasto_diario}
+• Previsão: {dias_restantes} dias
+
+🏆 Melhor campanha: {melhor_campanha}
+🎯 Campanhas ativas: {campanhas_ativas}
+
+📊 Dashboard: {link_dashboard}`,
+    cliente: `📆 *Seu Relatório Mensal*
+
+Olá {cliente}!
+
+📆 Período: {periodo_inicio} a {periodo_fim}
+
+💰 *Investimento Total:* R$ {investimento}
+
+📈 *Seus Resultados do Mês:*
+• Conversões/Leads: {conversoes}
+• Pessoas alcançadas: {alcance}
+• Cliques nos anúncios: {cliques}
+• Impressões: {impressoes}
+
+📉 *Indicadores:*
+• Custo por Lead: R$ {cpa_atual}
+• Taxa de Cliques: {ctr}%
+
+🏦 *Sua Conta:*
+• Saldo disponível: R$ {saldo}
+
+📊 Acesse seu dashboard completo: {link_dashboard}`,
   },
   post_published: {
-    gestor: '✅ *Post Publicado*\n\nCliente: {cliente}\nData: {data} às {hora}',
-    cliente: '✅ *Conteúdo Publicado!*\n\nOlá {cliente}!\n\nSeu conteúdo foi publicado com sucesso!',
+    gestor: `✅ *Post Publicado com Sucesso*
+
+Cliente: {cliente}
+Data/Hora: {data} às {hora}
+
+📊 *Status da Conta:*
+• Campanhas ativas: {campanhas_ativas}
+• Saldo: R$ {saldo}`,
+    cliente: `✅ *Conteúdo Publicado!*
+
+Olá {cliente}!
+
+Seu conteúdo foi publicado com sucesso em {data} às {hora}!
+
+📊 Acompanhe os resultados: {link_dashboard}`,
   },
   post_failed: {
-    gestor: '❌ *Falha na Publicação*\n\nCliente: {cliente}\nData: {data} às {hora}\n\n⚠️ Verificar e tentar novamente',
-    cliente: '⚠️ *Atenção - Publicação*\n\nOlá {cliente}!\n\nTivemos um problema ao publicar seu conteúdo. Nossa equipe já está verificando.',
+    gestor: `❌ *Falha na Publicação*
+
+Cliente: {cliente}
+Data/Hora: {data} às {hora}
+
+📊 *Status da Conta:*
+• Campanhas ativas: {campanhas_ativas}
+• Saldo: R$ {saldo}
+
+⚠️ Verificar e tentar novamente`,
+    cliente: `⚠️ *Atenção - Publicação*
+
+Olá {cliente}!
+
+Tivemos um problema ao publicar seu conteúdo em {data} às {hora}.
+
+Nossa equipe já está verificando e entrará em contato em breve.`,
   },
   presentation_summary: {
-    gestor: '📊 *Resumo da Apresentação*\n\nCliente: {cliente}\nData: {data}',
-    cliente: '📊 *Resumo da Reunião*\n\nOlá {cliente}!\n\nSegue o resumo da nossa reunião de apresentação de conteúdo.',
+    gestor: `📊 *Resumo da Apresentação*
+
+Cliente: {cliente}
+Data: {data} às {hora}
+
+📈 *Métricas do Período:*
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+• Alcance: {alcance}
+
+📊 Dashboard: {link_dashboard}`,
+    cliente: `📊 *Resumo da Reunião*
+
+Olá {cliente}!
+
+Segue o resumo da nossa reunião de apresentação de conteúdo realizada em {data}.
+
+📈 *Resultados do período:*
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+
+📊 Dashboard: {link_dashboard}`,
   },
   custom: {
-    gestor: 'Mensagem para o gestor...',
-    cliente: 'Mensagem para o cliente...',
+    gestor: `📢 *Notificação - {cliente}*
+
+Data: {data} às {hora}
+
+📊 *Métricas:*
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+• CTR: {ctr}%
+• CPA: R$ {cpa_atual}
+
+📊 Dashboard: {link_dashboard}`,
+    cliente: `📢 *Notificação*
+
+Olá {cliente}!
+
+📊 *Seus Resultados:*
+• Investimento: R$ {investimento}
+• Conversões: {conversoes}
+
+📊 Dashboard: {link_dashboard}`,
   },
 };
 
