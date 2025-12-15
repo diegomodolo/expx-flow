@@ -623,15 +623,31 @@ serve(async (req) => {
         continue;
       }
       
-      // Get contacts for this company
+      // Get clients that have active notification settings
+      const { data: activeClientSettings } = await supabase
+        .from('whatsapp_client_notification_settings')
+        .select('client_id')
+        .eq('company_id', trigger.company_id)
+        .eq('is_active', true);
+      
+      if (!activeClientSettings || activeClientSettings.length === 0) {
+        console.log(`No active client notification settings for company ${trigger.company_id}`);
+        continue;
+      }
+      
+      const activeClientIds = activeClientSettings.map(s => s.client_id);
+      console.log(`Found ${activeClientIds.length} clients with active notification settings`);
+      
+      // Get contacts only for clients with active settings
       const { data: contacts } = await supabase
         .from('whatsapp_client_contacts')
         .select('*, client:clients(id, name, company, dashboard_token, ad_account_id)')
         .eq('company_id', trigger.company_id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .in('client_id', activeClientIds);
       
       if (!contacts || contacts.length === 0) {
-        console.log(`No contacts for company ${trigger.company_id}`);
+        console.log(`No contacts for clients with active notification settings in company ${trigger.company_id}`);
         continue;
       }
       
