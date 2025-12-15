@@ -11,6 +11,7 @@ import { GoogleAdsSyncSettings } from "@/components/google/GoogleAdsSyncSettings
 import { PlannerSettings } from "@/components/planner/PlannerSettings";
 import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProtectedRoute";
 import ParametrosPerformance from "./ParametrosPerformance";
+import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
 
 const Configuracoes = () => {
   return (
@@ -36,6 +37,7 @@ const Configuracoes = () => {
             <Route path="planner" element={<PlannerSettings />} />
             <Route path="parametros-performance" element={<ParametrosPerformance />} />
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
+            <Route path="whatsapp" element={<WhatsAppSettings />} />
           </Routes>
         </SettingsLayout>
       </div>

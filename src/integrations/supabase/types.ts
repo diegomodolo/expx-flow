@@ -5477,6 +5477,222 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_configs: {
+        Row: {
+          client_token: string | null
+          company_id: string
+          connected_phone: string | null
+          created_at: string
+          id: string
+          instance_id: string | null
+          is_active: boolean | null
+          is_connected: boolean | null
+          last_connection_test: string | null
+          token: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_token?: string | null
+          company_id: string
+          connected_phone?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean | null
+          is_connected?: boolean | null
+          last_connection_test?: string | null
+          token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_token?: string | null
+          company_id?: string
+          connected_phone?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          is_active?: boolean | null
+          is_connected?: boolean | null
+          last_connection_test?: string | null
+          token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_notification_log: {
+        Row: {
+          company_id: string
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          message_content: string
+          notification_type: string
+          recipient_phone: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          sent_at: string | null
+          status: string | null
+          zapi_message_id: string | null
+        }
+        Insert: {
+          company_id: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content: string
+          notification_type: string
+          recipient_phone: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          sent_at?: string | null
+          status?: string | null
+          zapi_message_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content?: string
+          notification_type?: string
+          recipient_phone?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          sent_at?: string | null
+          status?: string | null
+          zapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_notification_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_notification_preferences: {
+        Row: {
+          balance_threshold_days: number | null
+          company_id: string
+          cpa_threshold_percentage: number | null
+          created_at: string
+          id: string
+          notify_disabled_account: boolean | null
+          notify_high_cpa: boolean | null
+          notify_low_balance: boolean | null
+          notify_post_failed: boolean | null
+          notify_post_published: boolean | null
+          notify_presentation_summary: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance_threshold_days?: number | null
+          company_id: string
+          cpa_threshold_percentage?: number | null
+          created_at?: string
+          id?: string
+          notify_disabled_account?: boolean | null
+          notify_high_cpa?: boolean | null
+          notify_low_balance?: boolean | null
+          notify_post_failed?: boolean | null
+          notify_post_published?: boolean | null
+          notify_presentation_summary?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance_threshold_days?: number | null
+          company_id?: string
+          cpa_threshold_percentage?: number | null
+          created_at?: string
+          id?: string
+          notify_disabled_account?: boolean | null
+          notify_high_cpa?: boolean | null
+          notify_low_balance?: boolean | null
+          notify_post_failed?: boolean | null
+          notify_post_published?: boolean | null
+          notify_presentation_summary?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_notification_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_recipients: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          receive_alerts: boolean | null
+          receive_reports: boolean | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          receive_alerts?: boolean | null
+          receive_reports?: boolean | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          receive_alerts?: boolean | null
+          receive_reports?: boolean | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_recipients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_recipients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       task_stats: {
