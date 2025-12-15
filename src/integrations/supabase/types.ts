@@ -1662,6 +1662,56 @@ export type Database = {
         }
         Relationships: []
       }
+      company_api_keys: {
+        Row: {
+          api_key: string
+          api_key_hash: string
+          company_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          name: string
+          permissions: Json | null
+          request_count: number | null
+        }
+        Insert: {
+          api_key: string
+          api_key_hash: string
+          company_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name: string
+          permissions?: Json | null
+          request_count?: number | null
+        }
+        Update: {
+          api_key?: string
+          api_key_hash?: string
+          company_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          permissions?: Json | null
+          request_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_api_keys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invites: {
         Row: {
           accepted_at: string | null
@@ -3946,6 +3996,76 @@ export type Database = {
           },
         ]
       }
+      lead_client_interactions: {
+        Row: {
+          client_id: string
+          client_sector: string | null
+          company_id: string
+          id: string
+          interaction_type: string
+          lead_id: string
+          metadata: Json | null
+          occurred_at: string | null
+          source: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          value: number | null
+        }
+        Insert: {
+          client_id: string
+          client_sector?: string | null
+          company_id: string
+          id?: string
+          interaction_type: string
+          lead_id: string
+          metadata?: Json | null
+          occurred_at?: string | null
+          source?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          value?: number | null
+        }
+        Update: {
+          client_id?: string
+          client_sector?: string | null
+          company_id?: string
+          id?: string
+          interaction_type?: string
+          lead_id?: string
+          metadata?: Json | null
+          occurred_at?: string | null
+          source?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_client_interactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_client_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_master_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_disqualification_reports: {
         Row: {
           additional_notes: string | null
@@ -4026,6 +4146,285 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lead_export_history: {
+        Row: {
+          audience_id: string | null
+          client_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          export_type: string
+          filters_applied: Json | null
+          id: string
+          leads_exported: number | null
+          leads_matched: number | null
+          match_rate: number | null
+          segment_ids: string[] | null
+          status: string | null
+        }
+        Insert: {
+          audience_id?: string | null
+          client_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          export_type: string
+          filters_applied?: Json | null
+          id?: string
+          leads_exported?: number | null
+          leads_matched?: number | null
+          match_rate?: number | null
+          segment_ids?: string[] | null
+          status?: string | null
+        }
+        Update: {
+          audience_id?: string | null
+          client_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          export_type?: string
+          filters_applied?: Json | null
+          id?: string
+          leads_exported?: number | null
+          leads_matched?: number | null
+          match_rate?: number | null
+          segment_ids?: string[] | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_export_history_audience_id_fkey"
+            columns: ["audience_id"]
+            isOneToOne: false
+            referencedRelation: "meta_audiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_export_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_export_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_master_pool: {
+        Row: {
+          city: string | null
+          company_id: string
+          country: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          email: string | null
+          email_hash: string | null
+          extra_data: Json | null
+          facebook_id: string | null
+          first_captured_at: string | null
+          first_client_id: string | null
+          first_name: string | null
+          full_name: string
+          gender: string | null
+          global_score: number | null
+          id: string
+          instagram: string | null
+          last_name: string | null
+          original_source: string | null
+          phone: string | null
+          phone_hash: string | null
+          propensity_to_convert: number | null
+          state: string | null
+          total_conversions: number | null
+          total_interactions: number | null
+          total_value: number | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          city?: string | null
+          company_id: string
+          country?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          email_hash?: string | null
+          extra_data?: Json | null
+          facebook_id?: string | null
+          first_captured_at?: string | null
+          first_client_id?: string | null
+          first_name?: string | null
+          full_name: string
+          gender?: string | null
+          global_score?: number | null
+          id?: string
+          instagram?: string | null
+          last_name?: string | null
+          original_source?: string | null
+          phone?: string | null
+          phone_hash?: string | null
+          propensity_to_convert?: number | null
+          state?: string | null
+          total_conversions?: number | null
+          total_interactions?: number | null
+          total_value?: number | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          city?: string | null
+          company_id?: string
+          country?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          email_hash?: string | null
+          extra_data?: Json | null
+          facebook_id?: string | null
+          first_captured_at?: string | null
+          first_client_id?: string | null
+          first_name?: string | null
+          full_name?: string
+          gender?: string | null
+          global_score?: number | null
+          id?: string
+          instagram?: string | null
+          last_name?: string | null
+          original_source?: string | null
+          phone?: string | null
+          phone_hash?: string | null
+          propensity_to_convert?: number | null
+          state?: string | null
+          total_conversions?: number | null
+          total_interactions?: number | null
+          total_value?: number | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_master_pool_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_master_pool_first_client_id_fkey"
+            columns: ["first_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_segment_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          lead_id: string
+          segment_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          lead_id: string
+          segment_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          lead_id?: string
+          segment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_segment_assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_master_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_segment_assignments_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "lead_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_segments: {
+        Row: {
+          auto_rules: Json | null
+          color: string | null
+          company_id: string
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_auto: boolean | null
+          last_calculated_at: string | null
+          lead_count: number | null
+          name: string
+          segment_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_rules?: Json | null
+          color?: string | null
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_auto?: boolean | null
+          last_calculated_at?: string | null
+          lead_count?: number | null
+          name: string
+          segment_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_rules?: Json | null
+          color?: string | null
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_auto?: boolean | null
+          last_calculated_at?: string | null
+          lead_count?: number | null
+          name?: string
+          segment_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_segments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meta_audience_uploads: {
         Row: {
