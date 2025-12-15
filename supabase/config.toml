@@ -157,3 +157,9 @@ verify_jwt = true
 
 [functions.fetch-realtime-metrics]
 verify_jwt = false
+
+[functions.lead-capture-api]
+verify_jwt = false
+
+[functions.lead-conversion-api]
+verify_jwt = false
