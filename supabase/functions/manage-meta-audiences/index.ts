@@ -61,17 +61,18 @@ serve(async (req) => {
     // Buscar integração Facebook
     const { data: integration, error: integrationError } = await supabase
       .from('facebook_integrations')
-      .select('access_token, token_expires_at')
+      .select('access_token, expires_at')
       .eq('company_id', client.company_id)
       .eq('is_active', true)
       .single();
 
     if (integrationError || !integration) {
+      console.error('[manage-meta-audiences] Integration error:', integrationError);
       throw new Error('Facebook integration not found');
     }
 
     // Verificar se token expirou
-    if (new Date(integration.token_expires_at) < new Date()) {
+    if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
       throw new Error('Facebook access token has expired');
     }
 
