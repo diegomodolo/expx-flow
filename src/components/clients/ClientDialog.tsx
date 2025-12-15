@@ -18,9 +18,10 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ClientBriefingTab } from "./ClientBriefingTab";
+import { ClientContactsTab } from "./ClientContactsTab";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -33,7 +34,7 @@ interface ClientDialogProps {
   readOnly?: boolean;
 }
 
-type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'apresentacao' | 'briefing';
+type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'apresentacao' | 'contatos' | 'briefing';
 
 const sections: { id: SectionType; label: string; icon: React.ElementType; editOnly?: boolean }[] = [
   { id: 'cadastro', label: 'Cadastro', icon: User },
@@ -42,6 +43,7 @@ const sections: { id: SectionType; label: string; icon: React.ElementType; editO
   { id: 'copywriting', label: 'Copywriting', icon: Pencil },
   { id: 'produto', label: 'Produto & Público', icon: Package },
   { id: 'apresentacao', label: 'Apresentação', icon: Presentation },
+  { id: 'contatos', label: 'Contatos', icon: Users, editOnly: true },
   { id: 'briefing', label: 'Briefing', icon: FileText, editOnly: true },
 ];
 
@@ -1282,6 +1284,14 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               />
             </div>
           </div>
+        );
+
+      case 'contatos':
+        return (
+          <ClientContactsTab 
+            clientId={client?.id}
+            readOnly={readOnly}
+          />
         );
 
       case 'briefing':
