@@ -58,6 +58,7 @@ import DashboardOrcamento from "./pages/DashboardOrcamento";
 import ClientDashboardPublic from "./pages/ClientDashboardPublic";
 import Agendamento from "./pages/Agendamento";
 import ApresentacaoPublica from "./pages/ApresentacaoPublica";
+import NotificacoesWhatsApp from "./pages/NotificacoesWhatsApp";
 
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
@@ -332,6 +333,11 @@ const App = () => {
                  <Route path="/agendamento" element={
                    <ProtectedRoute>
                      <Agendamento />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/notificacoes/whatsapp" element={
+                   <ProtectedRoute>
+                     <NotificacoesWhatsApp />
                    </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={

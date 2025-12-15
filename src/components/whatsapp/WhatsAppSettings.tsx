@@ -1,29 +1,20 @@
 import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useCompany } from "@/contexts/CompanyContext";
 import { WhatsAppConnectionCard } from "./WhatsAppConnectionCard";
-import { WhatsAppPreferencesCard } from "./WhatsAppPreferencesCard";
-import { WhatsAppRecipientsList } from "./WhatsAppRecipientsList";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ArrowRight, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function WhatsAppSettings() {
   const { activeCompany, loading: isLoadingCompany } = useCompany();
   const {
     config,
-    preferences,
-    recipients,
     isLoading,
     saveConfig,
     isSavingConfig,
     testConnection,
     isTestingConnection,
-    savePreferences,
-    isSavingPreferences,
-    addRecipient,
-    isAddingRecipient,
-    deleteRecipient,
-    sendTestMessage,
-    isSendingTestMessage,
   } = useWhatsAppConfig(activeCompany?.company_id);
 
   if (isLoadingCompany || isLoading) {
@@ -36,14 +27,12 @@ export function WhatsAppSettings() {
     );
   }
 
-  const isConnected = config?.is_connected ?? false;
-
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground">WhatsApp (Z-API)</h2>
         <p className="text-sm text-muted-foreground">
-          Configure a integração com WhatsApp para receber alertas e relatórios
+          Configure a conexão com Z-API para envio de notificações via WhatsApp
         </p>
       </div>
 
@@ -55,25 +44,30 @@ export function WhatsAppSettings() {
         isTesting={isTestingConnection}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <WhatsAppPreferencesCard
-          preferences={preferences}
-          onSave={savePreferences}
-          isSaving={isSavingPreferences}
-          isConnected={isConnected}
-        />
-
-        <WhatsAppRecipientsList
-          recipients={recipients}
-          onAdd={addRecipient}
-          onUpdate={() => {}}
-          onDelete={deleteRecipient}
-          onSendTest={sendTestMessage}
-          isAdding={isAddingRecipient}
-          isSendingTest={isSendingTestMessage}
-          isConnected={isConnected}
-        />
-      </div>
+      {/* Link to Notifications Module */}
+      <Card>
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Bell className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium">Módulo de Notificações</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure gatilhos, mensagens e gerencie contatos para alertas
+                </p>
+              </div>
+            </div>
+            <Button asChild>
+              <Link to="/notificacoes/whatsapp">
+                Acessar Módulo
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
