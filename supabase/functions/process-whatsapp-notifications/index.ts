@@ -293,14 +293,15 @@ serve(async (req) => {
     
     const now = new Date();
     const currentHour = now.getHours();
+    const currentDay = now.getDay();
+    const currentDate = now.getDate();
     
-    // Get all active triggers with schedules
+    console.log(`Current time: ${now.toISOString()}, hour: ${currentHour}, day: ${currentDay}, date: ${currentDate}`);
+    
+    // Get all active triggers (separate query)
     const { data: triggers, error: triggersError } = await supabase
       .from('whatsapp_notification_triggers')
-      .select(`
-        *,
-        schedule:whatsapp_trigger_schedules(*)
-      `)
+      .select('*')
       .eq('is_active', true);
     
     if (triggersError) {
@@ -310,14 +311,48 @@ serve(async (req) => {
     
     console.log(`Found ${triggers?.length || 0} active triggers`);
     
+    if (!triggers || triggers.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No active triggers found', results: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Get all schedules for active triggers (separate query)
+    const triggerIds = triggers.map(t => t.id);
+    const { data: schedules, error: schedulesError } = await supabase
+      .from('whatsapp_trigger_schedules')
+      .select('*')
+      .in('trigger_id', triggerIds);
+    
+    if (schedulesError) {
+      console.error('Error fetching schedules:', schedulesError);
+      throw schedulesError;
+    }
+    
+    console.log(`Found ${schedules?.length || 0} schedules for triggers`);
+    
+    // Create a map of schedules by trigger_id
+    const scheduleMap = new Map<string, TriggerSchedule>();
+    for (const schedule of schedules || []) {
+      scheduleMap.set(schedule.trigger_id, schedule as TriggerSchedule);
+    }
+    
     const results: any[] = [];
     
-    for (const trigger of triggers || []) {
-      const schedule = trigger.schedule?.[0] as TriggerSchedule | undefined;
+    for (const trigger of triggers) {
+      const schedule = scheduleMap.get(trigger.id);
+      
+      console.log(`Processing trigger: ${trigger.trigger_name} (${trigger.id})`);
+      console.log(`  Schedule found: ${!!schedule}`);
+      
       if (!schedule) {
-        console.log(`Trigger ${trigger.trigger_name} has no schedule, skipping`);
+        console.log(`  -> No schedule for trigger ${trigger.trigger_name}, skipping`);
         continue;
       }
+      
+      console.log(`  Schedule details: type=${schedule.frequency_type}, hours=${JSON.stringify(schedule.execution_hours)}, days_of_week=${JSON.stringify(schedule.days_of_week)}, day_of_month=${schedule.day_of_month}`);
+      console.log(`  Last executed: ${schedule.last_executed_at}, Next execution: ${schedule.next_execution_at}`);
       
       // Check if should execute based on schedule
       let shouldExecute = false;
@@ -330,23 +365,24 @@ serve(async (req) => {
           shouldExecute = true;
           break;
         case 'daily':
-          shouldExecute = schedule.execution_hours?.includes(currentHour) || false;
+          shouldExecute = Array.isArray(schedule.execution_hours) && schedule.execution_hours.includes(currentHour);
+          console.log(`  Daily check: currentHour=${currentHour}, execution_hours=${JSON.stringify(schedule.execution_hours)}, shouldExecute=${shouldExecute}`);
           break;
         case 'weekly':
-          const currentDay = now.getDay();
-          shouldExecute = 
-            (schedule.days_of_week?.includes(currentDay) || false) &&
-            (schedule.execution_hours?.includes(currentHour) || false);
+          const dayMatch = Array.isArray(schedule.days_of_week) && schedule.days_of_week.includes(currentDay);
+          const hourMatch = Array.isArray(schedule.execution_hours) && schedule.execution_hours.includes(currentHour);
+          shouldExecute = dayMatch && hourMatch;
+          console.log(`  Weekly check: currentDay=${currentDay}, currentHour=${currentHour}, dayMatch=${dayMatch}, hourMatch=${hourMatch}, shouldExecute=${shouldExecute}`);
           break;
         case 'monthly':
-          shouldExecute = 
-            now.getDate() === schedule.day_of_month &&
-            (schedule.execution_hours?.includes(currentHour) || false);
+          shouldExecute = currentDate === schedule.day_of_month && 
+            (Array.isArray(schedule.execution_hours) && schedule.execution_hours.includes(currentHour));
+          console.log(`  Monthly check: currentDate=${currentDate}, day_of_month=${schedule.day_of_month}, shouldExecute=${shouldExecute}`);
           break;
       }
       
       if (!shouldExecute) {
-        console.log(`Trigger ${trigger.trigger_name} not scheduled for now, skipping`);
+        console.log(`  -> Trigger ${trigger.trigger_name} not scheduled for now (hour=${currentHour}), skipping`);
         continue;
       }
       

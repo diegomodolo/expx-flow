@@ -166,6 +166,83 @@ export const TEMPLATE_VARIABLE_GROUPS = [
 // Flat array for backwards compatibility
 export const TEMPLATE_VARIABLES = TEMPLATE_VARIABLE_GROUPS.flatMap(g => g.variables);
 
+// Calculate next execution time based on schedule
+function calculateNextExecutionTime(schedule: {
+  frequency_type: string;
+  execution_hours: number[];
+  days_of_week: number[];
+  day_of_month: number | null;
+}): Date {
+  const now = new Date();
+  const next = new Date(now);
+  
+  switch (schedule.frequency_type) {
+    case 'realtime':
+      next.setHours(next.getHours() + 1);
+      next.setMinutes(0, 0, 0);
+      break;
+      
+    case 'hourly':
+      next.setHours(next.getHours() + 1);
+      next.setMinutes(0, 0, 0);
+      break;
+      
+    case 'daily': {
+      const currentHour = now.getHours();
+      const hours = schedule.execution_hours || [9];
+      const nextHour = hours.find(h => h > currentHour);
+      
+      if (nextHour !== undefined) {
+        next.setHours(nextHour, 0, 0, 0);
+      } else {
+        next.setDate(next.getDate() + 1);
+        next.setHours(hours[0] || 9, 0, 0, 0);
+      }
+      break;
+    }
+      
+    case 'weekly': {
+      const currentDay = now.getDay();
+      const currentDayHour = now.getHours();
+      const execHour = (schedule.execution_hours || [9])[0] || 9;
+      const daysOfWeek = schedule.days_of_week || [1, 2, 3, 4, 5];
+      
+      if (daysOfWeek.includes(currentDay) && currentDayHour < execHour) {
+        next.setHours(execHour, 0, 0, 0);
+      } else {
+        let daysToAdd = 1;
+        for (let i = 1; i <= 7; i++) {
+          const checkDay = (currentDay + i) % 7;
+          if (daysOfWeek.includes(checkDay)) {
+            daysToAdd = i;
+            break;
+          }
+        }
+        next.setDate(next.getDate() + daysToAdd);
+        next.setHours(execHour, 0, 0, 0);
+      }
+      break;
+    }
+      
+    case 'monthly': {
+      const targetDay = schedule.day_of_month || 1;
+      const monthExecHour = (schedule.execution_hours || [9])[0] || 9;
+      
+      if (now.getDate() < targetDay || (now.getDate() === targetDay && now.getHours() < monthExecHour)) {
+        next.setDate(targetDay);
+        next.setHours(monthExecHour, 0, 0, 0);
+      } else {
+        next.setMonth(next.getMonth() + 1);
+        next.setDate(targetDay);
+        next.setHours(monthExecHour, 0, 0, 0);
+      }
+      break;
+    }
+  }
+  
+  return next;
+}
+
 export function useWhatsAppNotifications(companyId: string | undefined) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -280,18 +357,26 @@ export function useWhatsAppNotifications(companyId: string | undefined) {
 
       if (triggerError) throw triggerError;
 
-      // Create schedule
+      // Create schedule with calculated next_execution_at
+      const scheduleData = {
+        frequency_type: data.schedule.frequency_type || 'daily',
+        times_per_day: data.schedule.times_per_day || 1,
+        execution_hours: data.schedule.execution_hours || [9],
+        days_of_week: data.schedule.days_of_week || [1, 2, 3, 4, 5],
+        day_of_month: data.schedule.day_of_month || null,
+        preferred_time: data.schedule.preferred_time || '09:00:00',
+        respect_quiet_hours: data.schedule.respect_quiet_hours ?? true,
+      };
+      
+      // Calculate next execution time
+      const nextExecution = calculateNextExecutionTime(scheduleData as any);
+      
       const { error: scheduleError } = await supabase
         .from('whatsapp_trigger_schedules')
         .insert({
           trigger_id: trigger.id,
-          frequency_type: data.schedule.frequency_type || 'daily',
-          times_per_day: data.schedule.times_per_day || 1,
-          execution_hours: data.schedule.execution_hours || [9],
-          days_of_week: data.schedule.days_of_week || [1, 2, 3, 4, 5],
-          day_of_month: data.schedule.day_of_month,
-          preferred_time: data.schedule.preferred_time || '09:00:00',
-          respect_quiet_hours: data.schedule.respect_quiet_hours ?? true,
+          ...scheduleData,
+          next_execution_at: nextExecution.toISOString(),
         });
 
       if (scheduleError) throw scheduleError;
@@ -341,17 +426,25 @@ export function useWhatsAppNotifications(companyId: string | undefined) {
 
       if (triggerError) throw triggerError;
 
-      // Update schedule
+      // Update schedule with recalculated next_execution_at
+      const scheduleData = {
+        frequency_type: data.schedule.frequency_type,
+        times_per_day: data.schedule.times_per_day,
+        execution_hours: data.schedule.execution_hours,
+        days_of_week: data.schedule.days_of_week,
+        day_of_month: data.schedule.day_of_month,
+        preferred_time: data.schedule.preferred_time,
+        respect_quiet_hours: data.schedule.respect_quiet_hours,
+      };
+      
+      // Recalculate next execution time when schedule is updated
+      const nextExecution = calculateNextExecutionTime(scheduleData as any);
+      
       const { error: scheduleError } = await supabase
         .from('whatsapp_trigger_schedules')
         .update({
-          frequency_type: data.schedule.frequency_type,
-          times_per_day: data.schedule.times_per_day,
-          execution_hours: data.schedule.execution_hours,
-          days_of_week: data.schedule.days_of_week,
-          day_of_month: data.schedule.day_of_month,
-          preferred_time: data.schedule.preferred_time,
-          respect_quiet_hours: data.schedule.respect_quiet_hours,
+          ...scheduleData,
+          next_execution_at: nextExecution.toISOString(),
         })
         .eq('trigger_id', data.triggerId);
 
