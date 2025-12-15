@@ -17,6 +17,7 @@ import {
   Activity,
   CalendarClock,
   MessageCircle,
+  Database,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -37,6 +38,7 @@ const items = [
   { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
   { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
+  { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
   { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
   { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
 ];

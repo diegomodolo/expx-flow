@@ -59,7 +59,7 @@ import ClientDashboardPublic from "./pages/ClientDashboardPublic";
 import Agendamento from "./pages/Agendamento";
 import ApresentacaoPublica from "./pages/ApresentacaoPublica";
 import NotificacoesWhatsApp from "./pages/NotificacoesWhatsApp";
-
+import LeadIntelligenceHub from "./pages/LeadIntelligenceHub";
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -338,6 +338,11 @@ const App = () => {
                  <Route path="/notificacoes/whatsapp" element={
                    <ProtectedRoute>
                      <NotificacoesWhatsApp />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/lead-intelligence" element={
+                   <ProtectedRoute>
+                     <LeadIntelligenceHub />
                    </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={
