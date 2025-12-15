@@ -565,14 +565,28 @@ serve(async (req) => {
         continue;
       }
       
-      // Check if already executed this hour
+      // Check if already executed for this scheduled time slot
       if (schedule.last_executed_at) {
         const lastExec = new Date(schedule.last_executed_at);
-        const hoursSinceLastExec = (now.getTime() - lastExec.getTime()) / (1000 * 60 * 60);
+        const lastExecSP = new Date(lastExec.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        const nowSP = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
         
-        if (hoursSinceLastExec < 1) {
-          console.log(`Trigger ${trigger.trigger_name} already executed recently, skipping`);
-          continue;
+        const isSameDay = lastExecSP.toDateString() === nowSP.toDateString();
+        const lastExecHour = lastExecSP.getHours();
+        
+        // For daily/weekly/monthly triggers, check if already executed at this specific hour today
+        if (schedule.frequency_type === 'daily' || schedule.frequency_type === 'weekly' || schedule.frequency_type === 'monthly') {
+          if (isSameDay && lastExecHour === currentHour) {
+            console.log(`Trigger ${trigger.trigger_name} already executed at ${currentHour}h today, skipping`);
+            continue;
+          }
+        } else {
+          // For realtime/hourly, use the 1-hour check
+          const hoursSinceLastExec = (now.getTime() - lastExec.getTime()) / (1000 * 60 * 60);
+          if (hoursSinceLastExec < 1) {
+            console.log(`Trigger ${trigger.trigger_name} already executed recently, skipping`);
+            continue;
+          }
         }
       }
       
