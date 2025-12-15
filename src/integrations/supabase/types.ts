@@ -4027,6 +4027,132 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_audience_uploads: {
+        Row: {
+          audience_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          records_count: number
+          records_invalid: number | null
+          records_received: number | null
+          session_id: string | null
+          status: string
+          upload_type: string
+        }
+        Insert: {
+          audience_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          records_count?: number
+          records_invalid?: number | null
+          records_received?: number | null
+          session_id?: string | null
+          status?: string
+          upload_type: string
+        }
+        Update: {
+          audience_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          records_count?: number
+          records_invalid?: number | null
+          records_received?: number | null
+          session_id?: string | null
+          status?: string
+          upload_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_audience_uploads_audience_id_fkey"
+            columns: ["audience_id"]
+            isOneToOne: false
+            referencedRelation: "meta_audiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_audience_uploads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_audiences: {
+        Row: {
+          ad_account_id: string
+          approximate_count: number | null
+          client_id: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          meta_audience_id: string
+          name: string
+          operation_status: Json | null
+          subtype: string | null
+          synced_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          approximate_count?: number | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          meta_audience_id: string
+          name: string
+          operation_status?: Json | null
+          subtype?: string | null
+          synced_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          approximate_count?: number | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          meta_audience_id?: string
+          name?: string
+          operation_status?: Json | null
+          subtype?: string | null
+          synced_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_audiences_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_audiences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offline_conversion_webhook_tokens: {
         Row: {
           client_id: string
