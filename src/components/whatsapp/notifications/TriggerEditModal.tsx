@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Settings, Clock, MessageSquare, Info } from "lucide-react";
-import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES } from "@/hooks/useWhatsAppNotifications";
+import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS } from "@/hooks/useWhatsAppNotifications";
 import {
   Tooltip,
   TooltipContent,
@@ -39,7 +39,7 @@ interface TriggerEditModalProps {
 
 const DEFAULT_TEMPLATES = {
   high_cpa: {
-    gestor: '⚠️ *Alerta CPA Alto*\n\nCliente: {cliente}\nCampanha: {campanha}\nCPA Atual: R$ {cpa_atual}\nCPA Meta: R$ {cpa_meta}\nVariação: {variacao_cpa}%\n\n📊 Dashboard: {link_dashboard}',
+    gestor: '⚠️ *Alerta CPA Alto*\n\nCliente: {cliente}\nCampanha: {campanha}\nCPA Atual: R$ {cpa_atual}\nVariação: {variacao_cpa}%\n\n📊 Dashboard: {link_dashboard}',
     cliente: '⚠️ *Atenção - Performance de Campanha*\n\nOlá! Identificamos que sua campanha "{campanha}" está com o custo por aquisição acima do esperado.\n\nSeu gestor já está analisando e tomando as medidas necessárias.\n\n📊 Acompanhe: {link_dashboard}',
   },
   low_balance: {
@@ -51,12 +51,12 @@ const DEFAULT_TEMPLATES = {
     cliente: '🚨 *Atenção - Conta de Anúncios*\n\nOlá {cliente}!\n\nIdentificamos um problema com sua conta de anúncios. Sua equipe de gestão já foi notificada e está trabalhando na solução.',
   },
   weekly_report: {
-    gestor: '📅 *Relatório Semanal*\n\nCliente: {cliente}\nPeríodo: Última semana\n\n📊 Dashboard: {link_dashboard}',
-    cliente: '📅 *Seu Relatório Semanal*\n\nOlá {cliente}!\n\nSeu relatório semanal está disponível.\n\n📊 Acesse: {link_dashboard}',
+    gestor: '📅 *Relatório Semanal - {cliente}*\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento:* R$ {investimento}\n📈 *Conversões:* {conversoes} ({variacao_conversoes})\n👁️ *Impressões:* {impressoes}\n🔗 *Cliques:* {cliques}\n👥 *Alcance:* {alcance}\n\n📉 *Indicadores:*\n• CPL: R$ {cpa_atual}\n• CPC: R$ {cpc}\n• CTR: {ctr}%\n• Frequência: {frequencia}\n\n🏆 Melhor campanha: {melhor_campanha}\n🎯 Campanhas ativas: {campanhas_ativas}\n\n📊 Dashboard: {link_dashboard}',
+    cliente: '📅 *Seu Relatório Semanal*\n\nOlá {cliente}!\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento:* R$ {investimento}\n📈 *Conversões:* {conversoes}\n👥 *Alcance:* {alcance}\n🔗 *Cliques:* {cliques}\n\n📉 *Indicadores:*\n• Custo por Lead: R$ {cpa_atual}\n• Taxa de Cliques: {ctr}%\n\n📊 Acesse seu dashboard: {link_dashboard}',
   },
   monthly_report: {
-    gestor: '📆 *Relatório Mensal*\n\nCliente: {cliente}\nPeríodo: Último mês\n\n📊 Dashboard: {link_dashboard}',
-    cliente: '📆 *Seu Relatório Mensal*\n\nOlá {cliente}!\n\nSeu relatório mensal consolidado está disponível.\n\n📊 Acesse: {link_dashboard}',
+    gestor: '📆 *Relatório Mensal - {cliente}*\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento Total:* R$ {investimento} ({variacao_investimento})\n📈 *Conversões:* {conversoes} ({variacao_conversoes})\n👁️ *Impressões:* {impressoes}\n🔗 *Cliques:* {cliques}\n👥 *Alcance:* {alcance} ({variacao_alcance})\n\n📉 *Indicadores Médios:*\n• CPL: R$ {cpa_atual}\n• CPC: R$ {cpc}\n• CPM: R$ {cpm}\n• CTR: {ctr}% ({variacao_ctr})\n• Frequência: {frequencia}\n\n🏆 Melhor campanha: {melhor_campanha}\n🎯 Campanhas ativas: {campanhas_ativas}\n\n📊 Dashboard: {link_dashboard}',
+    cliente: '📆 *Seu Relatório Mensal*\n\nOlá {cliente}!\n\n📆 Período: {periodo_inicio} a {periodo_fim}\n\n💰 *Investimento:* R$ {investimento}\n📈 *Conversões:* {conversoes}\n👥 *Alcance:* {alcance}\n🔗 *Cliques:* {cliques}\n\n📉 *Indicadores:*\n• Custo por Lead: R$ {cpa_atual}\n• Taxa de Cliques: {ctr}%\n\n📊 Acesse seu dashboard: {link_dashboard}',
   },
   post_published: {
     gestor: '✅ *Post Publicado*\n\nCliente: {cliente}\nData: {data} às {hora}',
@@ -472,40 +472,59 @@ export function TriggerEditModal({
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4 mt-4">
-            <div className="p-3 border rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
+            {/* Variable Groups */}
+            <div className="p-4 border rounded-lg bg-muted/50 max-h-[200px] overflow-y-auto">
+              <div className="flex items-center gap-2 mb-3">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Variáveis Disponíveis</span>
+                <span className="text-xs text-muted-foreground">(clique para copiar)</span>
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="space-y-3">
                 <TooltipProvider>
-                  {TEMPLATE_VARIABLES.map((v) => (
-                    <Tooltip key={v.variable}>
-                      <TooltipTrigger asChild>
-                        <Badge variant="secondary" className="text-xs cursor-help">
-                          {v.variable}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>{v.description}</TooltipContent>
-                    </Tooltip>
+                  {TEMPLATE_VARIABLE_GROUPS.map((group) => (
+                    <div key={group.name}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-sm">{group.icon}</span>
+                        <span className="text-xs font-medium text-muted-foreground">{group.name}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {group.variables.map((v) => (
+                          <Tooltip key={v.variable}>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="secondary"
+                                className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                onClick={() => navigator.clipboard.writeText(v.variable)}
+                              >
+                                {v.variable}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px]">
+                              <p>{v.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </TooltipProvider>
               </div>
             </div>
 
+            {/* Gestor Template */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Mensagem para Gestor</Label>
-                <div className="flex gap-1">
-                  {TEMPLATE_VARIABLES.slice(0, 5).map((v) => (
+                <div className="flex gap-1 flex-wrap justify-end max-w-[60%]">
+                  {['{cliente}', '{investimento}', '{conversoes}', '{cpa_atual}', '{link_dashboard}'].map((v) => (
                     <Button
-                      key={v.variable}
+                      key={v}
                       variant="ghost"
                       size="sm"
-                      className="h-6 text-xs"
-                      onClick={() => insertVariable(v.variable, 'gestor')}
+                      className="h-6 text-xs px-2"
+                      onClick={() => insertVariable(v, 'gestor')}
                     >
-                      {v.variable}
+                      {v}
                     </Button>
                   ))}
                 </div>
@@ -514,24 +533,25 @@ export function TriggerEditModal({
                 value={gestorTemplate}
                 onChange={(e) => setGestorTemplate(e.target.value)}
                 placeholder="Mensagem para gestores..."
-                rows={6}
+                rows={8}
                 className="font-mono text-sm"
               />
             </div>
 
+            {/* Cliente Template */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Mensagem para Cliente</Label>
-                <div className="flex gap-1">
-                  {TEMPLATE_VARIABLES.slice(0, 5).map((v) => (
+                <div className="flex gap-1 flex-wrap justify-end max-w-[60%]">
+                  {['{cliente}', '{investimento}', '{conversoes}', '{ctr}', '{link_dashboard}'].map((v) => (
                     <Button
-                      key={v.variable}
+                      key={v}
                       variant="ghost"
                       size="sm"
-                      className="h-6 text-xs"
-                      onClick={() => insertVariable(v.variable, 'cliente')}
+                      className="h-6 text-xs px-2"
+                      onClick={() => insertVariable(v, 'cliente')}
                     >
-                      {v.variable}
+                      {v}
                     </Button>
                   ))}
                 </div>
@@ -540,7 +560,7 @@ export function TriggerEditModal({
                 value={clienteTemplate}
                 onChange={(e) => setClienteTemplate(e.target.value)}
                 placeholder="Mensagem para clientes..."
-                rows={6}
+                rows={8}
                 className="font-mono text-sm"
               />
             </div>

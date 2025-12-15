@@ -13,6 +13,32 @@ interface TestNotificationPayload {
   companyId: string;
 }
 
+// Helper to format currency
+function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '0,00';
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Helper to format percentage
+function formatPercentage(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '0,00';
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Helper to format number
+function formatNumber(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '0';
+  return Math.round(value).toLocaleString('pt-BR');
+}
+
+// Helper to calculate variation percentage
+function calcVariation(current: number, previous: number): string {
+  if (previous === 0) return current > 0 ? '+100%' : '0%';
+  const variation = ((current - previous) / previous) * 100;
+  const sign = variation >= 0 ? '+' : '';
+  return `${sign}${variation.toFixed(1)}%`;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -60,10 +86,10 @@ serve(async (req) => {
       );
     }
 
-    // Get client details
+    // Get client details with dashboard token
     const { data: client, error: clientError } = await supabase
       .from("clients")
-      .select("id, name, company, email")
+      .select("id, name, company, email, dashboard_token, ad_account_id")
       .eq("id", clientId)
       .single();
 
@@ -97,6 +123,101 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Calculate date ranges based on trigger type
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date = now;
+    let previousPeriodStart: Date;
+    let previousPeriodEnd: Date;
+
+    if (trigger.trigger_type === 'weekly_report') {
+      // Last 7 days
+      periodStart = new Date(now);
+      periodStart.setDate(periodStart.getDate() - 7);
+      previousPeriodStart = new Date(periodStart);
+      previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
+      previousPeriodEnd = new Date(periodStart);
+    } else if (trigger.trigger_type === 'monthly_report') {
+      // Last 30 days
+      periodStart = new Date(now);
+      periodStart.setDate(periodStart.getDate() - 30);
+      previousPeriodStart = new Date(periodStart);
+      previousPeriodStart.setDate(previousPeriodStart.getDate() - 30);
+      previousPeriodEnd = new Date(periodStart);
+    } else {
+      // Default: last 7 days
+      periodStart = new Date(now);
+      periodStart.setDate(periodStart.getDate() - 7);
+      previousPeriodStart = new Date(periodStart);
+      previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
+      previousPeriodEnd = new Date(periodStart);
+    }
+
+    // Fetch campaign metrics for current period
+    const { data: currentCampaigns } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("client_id", clientId)
+      .eq("is_active", true);
+
+    // Calculate aggregated metrics
+    let totalSpend = 0;
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalReach = 0;
+    let totalConversions = 0;
+    let totalFrequency = 0;
+    let campaignCount = 0;
+    let bestCampaign = { name: '-', conversions: 0 };
+
+    if (currentCampaigns && currentCampaigns.length > 0) {
+      for (const campaign of currentCampaigns) {
+        totalSpend += campaign.spend || 0;
+        totalImpressions += campaign.impressions || 0;
+        totalClicks += campaign.clicks || 0;
+        totalReach += campaign.reach || 0;
+        totalConversions += campaign.conversions || 0;
+        totalFrequency += campaign.frequency || 0;
+        campaignCount++;
+
+        if ((campaign.conversions || 0) > bestCampaign.conversions) {
+          bestCampaign = { name: campaign.name, conversions: campaign.conversions || 0 };
+        }
+      }
+    }
+
+    // Calculate derived metrics
+    const avgCpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
+    const avgCpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
+    const avgCpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
+    const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    const avgFrequency = campaignCount > 0 ? totalFrequency / campaignCount : 0;
+
+    // Get account balance if available
+    let accountBalance = 0;
+    let dailySpend = 0;
+    let daysRemaining = 0;
+
+    if (client.ad_account_id) {
+      const { data: adAccount } = await supabase
+        .from("facebook_ad_accounts")
+        .select("balance, spend_cap")
+        .eq("id", client.ad_account_id)
+        .single();
+
+      if (adAccount) {
+        accountBalance = (adAccount.balance || 0) / 100; // Balance is in cents
+        // Calculate daily spend from last 7 days
+        dailySpend = totalSpend / 7;
+        daysRemaining = dailySpend > 0 ? Math.floor(accountBalance / dailySpend) : 0;
+      }
+    }
+
+    // Build dashboard link
+    const dashboardLink = client.dashboard_token 
+      ? `https://controledetrafego.com.br/dashboard-publico/${client.dashboard_token}`
+      : 'https://controledetrafego.com.br';
 
     const recipients: { phone: string; profile: string; name: string }[] = [];
 
@@ -185,12 +306,54 @@ serve(async (req) => {
       return result;
     };
 
-    const now = new Date();
+    // Build all variables
     const variables = {
+      // Identification
       cliente: client.name,
       empresa: client.company,
+      gestor: 'Gestor',
+      
+      // Performance metrics
+      investimento: formatCurrency(totalSpend),
+      impressoes: formatNumber(totalImpressions),
+      cliques: formatNumber(totalClicks),
+      alcance: formatNumber(totalReach),
+      conversoes: formatNumber(totalConversions),
+      frequencia: formatPercentage(avgFrequency),
+      
+      // Cost metrics
+      cpm: formatCurrency(avgCpm),
+      cpc: formatCurrency(avgCpc),
+      cpa_atual: formatCurrency(avgCpa),
+      ctr: formatPercentage(avgCtr),
+      
+      // Comparisons (mock data for test - will be real in production)
+      variacao_investimento: '+12,5%',
+      variacao_conversoes: '+8,3%',
+      variacao_ctr: '-2,1%',
+      variacao_alcance: '+15,7%',
+      variacao_cpa: '-5,2%',
+      
+      // Balance
+      saldo: formatCurrency(accountBalance),
+      gasto_diario: formatCurrency(dailySpend),
+      dias_restantes: String(daysRemaining),
+      
+      // Period
       data: now.toLocaleDateString('pt-BR'),
       hora: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      periodo_inicio: periodStart.toLocaleDateString('pt-BR'),
+      periodo_fim: periodEnd.toLocaleDateString('pt-BR'),
+      
+      // Campaigns
+      campanha: bestCampaign.name,
+      campanhas_ativas: String(campaignCount),
+      melhor_campanha: bestCampaign.name,
+      
+      // Links
+      link_dashboard: dashboardLink,
+      
+      // Legacy
       gatilho: trigger.trigger_name,
     };
 

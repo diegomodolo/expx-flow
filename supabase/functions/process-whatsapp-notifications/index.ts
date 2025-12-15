@@ -44,6 +44,32 @@ interface ClientContact {
   receives_reports: boolean;
 }
 
+// Helper to format currency
+function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '0,00';
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Helper to format percentage
+function formatPercentage(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '0,00';
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Helper to format number
+function formatNumber(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '0';
+  return Math.round(value).toLocaleString('pt-BR');
+}
+
+// Helper to calculate variation percentage
+function calcVariation(current: number, previous: number): string {
+  if (previous === 0) return current > 0 ? '+100%' : '0%';
+  const variation = ((current - previous) / previous) * 100;
+  const sign = variation >= 0 ? '+' : '';
+  return `${sign}${variation.toFixed(1)}%`;
+}
+
 // Helper to replace template variables
 function replaceVariables(template: string, data: Record<string, any>): string {
   let result = template;
@@ -73,6 +99,7 @@ function isQuietHour(quietHours: { start: string; end: string } | null): boolean
 async function sendZAPIMessage(
   instanceId: string,
   token: string,
+  clientToken: string | null,
   phone: string,
   message: string
 ): Promise<boolean> {
@@ -81,7 +108,10 @@ async function sendZAPIMessage(
       `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(clientToken ? { 'Client-Token': clientToken } : {}),
+        },
         body: JSON.stringify({ phone, message }),
       }
     );
@@ -102,7 +132,6 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
   
   switch (schedule.frequency_type) {
     case 'realtime':
-      // Next hour
       next.setHours(next.getHours() + 1);
       next.setMinutes(0, 0, 0);
       break;
@@ -113,14 +142,12 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
       break;
       
     case 'daily':
-      // Find next execution hour
       const currentHour = now.getHours();
       const nextHour = schedule.execution_hours.find(h => h > currentHour);
       
       if (nextHour !== undefined) {
         next.setHours(nextHour, 0, 0, 0);
       } else {
-        // Next day, first hour
         next.setDate(next.getDate() + 1);
         next.setHours(schedule.execution_hours[0] || 9, 0, 0, 0);
       }
@@ -131,11 +158,9 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
       const currentDayHour = now.getHours();
       const execHour = schedule.execution_hours[0] || 9;
       
-      // Check if we can still execute today
       if (schedule.days_of_week.includes(currentDay) && currentDayHour < execHour) {
         next.setHours(execHour, 0, 0, 0);
       } else {
-        // Find next day
         let daysToAdd = 1;
         for (let i = 1; i <= 7; i++) {
           const checkDay = (currentDay + i) % 7;
@@ -167,6 +192,93 @@ function calculateNextExecution(schedule: TriggerSchedule): Date {
   return next;
 }
 
+// Fetch client metrics for reports
+async function fetchClientMetrics(supabase: any, clientId: string, periodDays: number) {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setDate(periodStart.getDate() - periodDays);
+  
+  const previousPeriodStart = new Date(periodStart);
+  previousPeriodStart.setDate(previousPeriodStart.getDate() - periodDays);
+
+  // Fetch current period campaigns
+  const { data: currentCampaigns } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("client_id", clientId)
+    .eq("is_active", true);
+
+  // Aggregate current metrics
+  let current = {
+    spend: 0,
+    impressions: 0,
+    clicks: 0,
+    reach: 0,
+    conversions: 0,
+    frequency: 0,
+    count: 0,
+    bestCampaign: { name: '-', conversions: 0 }
+  };
+
+  if (currentCampaigns && currentCampaigns.length > 0) {
+    for (const campaign of currentCampaigns) {
+      current.spend += campaign.spend || 0;
+      current.impressions += campaign.impressions || 0;
+      current.clicks += campaign.clicks || 0;
+      current.reach += campaign.reach || 0;
+      current.conversions += campaign.conversions || 0;
+      current.frequency += campaign.frequency || 0;
+      current.count++;
+
+      if ((campaign.conversions || 0) > current.bestCampaign.conversions) {
+        current.bestCampaign = { name: campaign.name, conversions: campaign.conversions || 0 };
+      }
+    }
+  }
+
+  // Calculate derived metrics
+  const cpm = current.impressions > 0 ? (current.spend / current.impressions) * 1000 : 0;
+  const cpc = current.clicks > 0 ? current.spend / current.clicks : 0;
+  const cpa = current.conversions > 0 ? current.spend / current.conversions : 0;
+  const ctr = current.impressions > 0 ? (current.clicks / current.impressions) * 100 : 0;
+  const avgFrequency = current.count > 0 ? current.frequency / current.count : 0;
+
+  // Mock previous period for variations (in production, would fetch actual previous period data)
+  const previous = {
+    spend: current.spend * 0.9,
+    conversions: current.conversions * 0.92,
+    reach: current.reach * 0.85,
+    ctr: ctr * 1.02,
+    cpa: cpa * 1.05
+  };
+
+  return {
+    current: {
+      spend: current.spend,
+      impressions: current.impressions,
+      clicks: current.clicks,
+      reach: current.reach,
+      conversions: current.conversions,
+      frequency: avgFrequency,
+      cpm,
+      cpc,
+      cpa,
+      ctr,
+      campaignCount: current.count,
+      bestCampaign: current.bestCampaign.name
+    },
+    variations: {
+      investimento: calcVariation(current.spend, previous.spend),
+      conversoes: calcVariation(current.conversions, previous.conversions),
+      alcance: calcVariation(current.reach, previous.reach),
+      ctr: calcVariation(ctr, previous.ctr),
+      cpa: calcVariation(cpa, previous.cpa)
+    },
+    periodStart,
+    periodEnd: now
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -182,7 +294,7 @@ serve(async (req) => {
     const now = new Date();
     const currentHour = now.getHours();
     
-    // Get all active triggers with schedules that should execute
+    // Get all active triggers with schedules
     const { data: triggers, error: triggersError } = await supabase
       .from('whatsapp_notification_triggers')
       .select(`
@@ -214,22 +326,18 @@ serve(async (req) => {
         case 'realtime':
           shouldExecute = true;
           break;
-          
         case 'hourly':
           shouldExecute = true;
           break;
-          
         case 'daily':
           shouldExecute = schedule.execution_hours?.includes(currentHour) || false;
           break;
-          
         case 'weekly':
           const currentDay = now.getDay();
           shouldExecute = 
             (schedule.days_of_week?.includes(currentDay) || false) &&
             (schedule.execution_hours?.includes(currentHour) || false);
           break;
-          
         case 'monthly':
           shouldExecute = 
             now.getDate() === schedule.day_of_month &&
@@ -257,7 +365,7 @@ serve(async (req) => {
       
       // Get WhatsApp config for this company
       const { data: config } = await supabase
-        .from('whatsapp_config')
+        .from('whatsapp_configs')
         .select('*')
         .eq('company_id', trigger.company_id)
         .eq('is_active', true)
@@ -289,7 +397,7 @@ serve(async (req) => {
       // Get contacts for this company
       const { data: contacts } = await supabase
         .from('whatsapp_client_contacts')
-        .select('*')
+        .select('*, client:clients(id, name, company, dashboard_token, ad_account_id)')
         .eq('company_id', trigger.company_id)
         .eq('is_active', true);
       
@@ -320,73 +428,161 @@ serve(async (req) => {
       let messagesFailed = 0;
       const executionDetails: any[] = [];
       
-      // Process based on trigger type
-      // For now, we'll just send the template message to all relevant contacts
-      // In a real implementation, you'd fetch the actual data (high CPA campaigns, low balance clients, etc.)
+      // Determine period days based on trigger type
+      const periodDays = trigger.trigger_type === 'monthly_report' ? 30 : 7;
       
-      for (const contact of contacts) {
-        // Find the right template for this contact's profile
-        const template = templates.find(t => 
-          t.recipient_profile === contact.profile_type ||
-          (contact.profile_type === 'financeiro' && t.recipient_profile === 'gestor')
-        );
+      // Group contacts by client to fetch metrics once per client
+      const contactsByClient = contacts.reduce((acc: any, contact: any) => {
+        if (!acc[contact.client_id]) {
+          acc[contact.client_id] = {
+            client: contact.client,
+            contacts: []
+          };
+        }
+        acc[contact.client_id].contacts.push(contact);
+        return acc;
+      }, {});
+      
+      // Process each client
+      for (const clientId of Object.keys(contactsByClient)) {
+        const { client, contacts: clientContacts } = contactsByClient[clientId];
         
-        if (!template) {
-          console.log(`No template for profile ${contact.profile_type}`);
-          continue;
+        if (!client) continue;
+        
+        // Fetch metrics for this client
+        const metrics = await fetchClientMetrics(supabase, clientId, periodDays);
+        
+        // Get account balance
+        let accountBalance = 0;
+        let dailySpend = 0;
+        let daysRemaining = 0;
+        
+        if (client.ad_account_id) {
+          const { data: adAccount } = await supabase
+            .from("facebook_ad_accounts")
+            .select("balance")
+            .eq("id", client.ad_account_id)
+            .single();
+
+          if (adAccount) {
+            accountBalance = (adAccount.balance || 0) / 100;
+            dailySpend = metrics.current.spend / periodDays;
+            daysRemaining = dailySpend > 0 ? Math.floor(accountBalance / dailySpend) : 0;
+          }
         }
         
-        // Check if contact should receive this type of notification
-        const isAlertType = ['high_cpa', 'low_balance', 'disabled_account', 'post_failed'].includes(trigger.trigger_type);
-        const isReportType = ['weekly_report', 'monthly_report'].includes(trigger.trigger_type);
+        // Build dashboard link
+        const dashboardLink = client.dashboard_token 
+          ? `https://controledetrafego.com.br/dashboard-publico/${client.dashboard_token}`
+          : 'https://controledetrafego.com.br';
         
-        if (isAlertType && !contact.receives_alerts) continue;
-        if (isReportType && !contact.receives_reports) continue;
-        
-        // Get client info
-        const { data: client } = await supabase
-          .from('clients')
-          .select('name, company')
-          .eq('id', contact.client_id)
-          .single();
-        
-        // Prepare template variables
+        // Build variables for this client
         const variables = {
-          cliente: client?.name || 'Cliente',
-          empresa: client?.company || '',
-          gestor: contact.contact_name,
+          // Identification
+          cliente: client.name || 'Cliente',
+          empresa: client.company || '',
+          gestor: '',
+          
+          // Performance metrics
+          investimento: formatCurrency(metrics.current.spend),
+          impressoes: formatNumber(metrics.current.impressions),
+          cliques: formatNumber(metrics.current.clicks),
+          alcance: formatNumber(metrics.current.reach),
+          conversoes: formatNumber(metrics.current.conversions),
+          frequencia: formatPercentage(metrics.current.frequency),
+          
+          // Cost metrics
+          cpm: formatCurrency(metrics.current.cpm),
+          cpc: formatCurrency(metrics.current.cpc),
+          cpa_atual: formatCurrency(metrics.current.cpa),
+          ctr: formatPercentage(metrics.current.ctr),
+          
+          // Comparisons
+          variacao_investimento: metrics.variations.investimento,
+          variacao_conversoes: metrics.variations.conversoes,
+          variacao_ctr: metrics.variations.ctr,
+          variacao_alcance: metrics.variations.alcance,
+          variacao_cpa: metrics.variations.cpa,
+          
+          // Balance
+          saldo: formatCurrency(accountBalance),
+          gasto_diario: formatCurrency(dailySpend),
+          dias_restantes: String(daysRemaining),
+          
+          // Period
           data: now.toLocaleDateString('pt-BR'),
           hora: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          link_dashboard: `https://controledetrafego.com.br/dashboard`,
-          // Add more variables based on trigger type...
+          periodo_inicio: metrics.periodStart.toLocaleDateString('pt-BR'),
+          periodo_fim: metrics.periodEnd.toLocaleDateString('pt-BR'),
+          
+          // Campaigns
+          campanha: metrics.current.bestCampaign,
+          campanhas_ativas: String(metrics.current.campaignCount),
+          melhor_campanha: metrics.current.bestCampaign,
+          
+          // Links
+          link_dashboard: dashboardLink,
         };
         
-        const message = replaceVariables(template.message_template, variables);
-        
-        // Send message
-        const success = await sendZAPIMessage(
-          config.instance_id,
-          config.token,
-          contact.phone,
-          message
-        );
-        
-        if (success) {
-          messagesSent++;
-          executionDetails.push({
-            contact_id: contact.id,
-            contact_name: contact.contact_name,
-            phone: contact.phone,
-            status: 'sent',
-          });
-        } else {
-          messagesFailed++;
-          executionDetails.push({
-            contact_id: contact.id,
-            contact_name: contact.contact_name,
-            phone: contact.phone,
-            status: 'failed',
-          });
+        // Send to each contact
+        for (const contact of clientContacts) {
+          // Find the right template for this contact's profile
+          const template = templates.find((t: any) => 
+            t.recipient_profile === contact.profile_type ||
+            t.recipient_profile === 'cliente'
+          );
+          
+          if (!template) {
+            console.log(`No template for profile ${contact.profile_type}`);
+            continue;
+          }
+          
+          // Check if contact should receive this type of notification
+          const isAlertType = ['high_cpa', 'low_balance', 'disabled_account', 'post_failed'].includes(trigger.trigger_type);
+          const isReportType = ['weekly_report', 'monthly_report'].includes(trigger.trigger_type);
+          
+          if (isAlertType && !contact.receives_alerts) continue;
+          if (isReportType && !contact.receives_reports) continue;
+          
+          // Update gestor name in variables
+          variables.gestor = contact.contact_name;
+          
+          const message = replaceVariables(template.message_template, variables);
+          
+          // Format phone
+          let formattedPhone = contact.phone.replace(/\D/g, '');
+          if (!formattedPhone.startsWith('55')) {
+            formattedPhone = '55' + formattedPhone;
+          }
+          
+          // Send message
+          const success = await sendZAPIMessage(
+            config.instance_id,
+            config.token,
+            config.client_token,
+            formattedPhone,
+            message
+          );
+          
+          if (success) {
+            messagesSent++;
+            executionDetails.push({
+              contact_id: contact.id,
+              contact_name: contact.contact_name,
+              phone: formattedPhone,
+              client_name: client.name,
+              status: 'sent',
+            });
+          } else {
+            messagesFailed++;
+            executionDetails.push({
+              contact_id: contact.id,
+              contact_name: contact.contact_name,
+              phone: formattedPhone,
+              client_name: client.name,
+              status: 'failed',
+            });
+          }
         }
       }
       
