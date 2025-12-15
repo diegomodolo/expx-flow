@@ -44,6 +44,30 @@ interface ClientContact {
   receives_reports: boolean;
 }
 
+// Post/scheduled post data interface
+interface ScheduledPostData {
+  id: string;
+  caption: string;
+  content_type: string;
+  platforms: string[];
+  scheduled_for: string;
+  published_at: string | null;
+  error_message: string | null;
+  headline?: string;
+  objective?: string;
+  post_url?: string;
+}
+
+// Presentation data interface
+interface PresentationData {
+  id: string;
+  name: string;
+  month: number;
+  year: number;
+  client_id: string;
+  public_token: string | null;
+}
+
 // Helper to format currency
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) return '0,00';
@@ -311,6 +335,127 @@ async function fetchClientMetrics(supabase: any, clientId: string, periodDays: n
   };
 }
 
+// Fetch presentation data for presentation_summary trigger
+async function fetchPresentationData(supabase: any, meetingId: string | null, clientId: string) {
+  if (!meetingId) return null;
+  
+  try {
+    // Fetch the most recent completed meeting for this client
+    const { data: meeting } = await supabase
+      .from('presentation_meetings')
+      .select(`
+        id,
+        presentation_id,
+        started_at,
+        ended_at,
+        approved_count,
+        rejected_count,
+        presentation:content_presentations(id, name, month, year, public_token, client_id)
+      `)
+      .eq('id', meetingId)
+      .single();
+    
+    if (!meeting || !meeting.presentation) return null;
+    
+    // Fetch participants
+    const { data: participants } = await supabase
+      .from('presentation_meeting_participants')
+      .select('name, role')
+      .eq('meeting_id', meetingId);
+    
+    // Calculate duration
+    let duration = '-';
+    if (meeting.started_at && meeting.ended_at) {
+      const startTime = new Date(meeting.started_at);
+      const endTime = new Date(meeting.ended_at);
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const minutes = Math.floor(durationMs / 60000);
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      duration = hours > 0 ? `${hours}h ${remainingMinutes}min` : `${minutes}min`;
+    }
+    
+    // Count total creatives
+    const { count: totalCreatives } = await supabase
+      .from('presentation_creatives')
+      .select('*', { count: 'exact', head: true })
+      .eq('presentation_id', meeting.presentation_id);
+    
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    
+    return {
+      nome: meeting.presentation.name || 'Apresentação',
+      mes: `${monthNames[meeting.presentation.month - 1]} ${meeting.presentation.year}`,
+      total_criativos: String(totalCreatives || 0),
+      aprovados: String(meeting.approved_count || 0),
+      reprovados: String(meeting.rejected_count || 0),
+      participantes: participants?.map((p: any) => `• ${p.name}${p.role ? ` (${p.role})` : ''}`).join('\n') || '-',
+      data_reuniao: meeting.started_at 
+        ? new Date(meeting.started_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) 
+        : '-',
+      duracao: duration,
+      link: meeting.presentation.public_token 
+        ? `https://controledetrafego.com.br/apresentacao/${meeting.presentation.public_token}`
+        : '',
+    };
+  } catch (error) {
+    console.error('Error fetching presentation data:', error);
+    return null;
+  }
+}
+
+// Fetch scheduled post data for post triggers
+async function fetchScheduledPostData(supabase: any, postId: string | null) {
+  if (!postId) return null;
+  
+  try {
+    const { data: post } = await supabase
+      .from('scheduled_posts')
+      .select(`
+        id,
+        caption,
+        content_type,
+        platforms,
+        scheduled_for,
+        published_at,
+        error_message,
+        creative:presentation_creatives(headline, objective)
+      `)
+      .eq('id', postId)
+      .single();
+    
+    if (!post) return null;
+    
+    const contentTypeLabels: Record<string, string> = {
+      'image': 'Imagem',
+      'video': 'Vídeo',
+      'carousel': 'Carrossel',
+      'reel': 'Reel',
+      'story': 'Story',
+    };
+    
+    return {
+      legenda: post.caption?.substring(0, 200) || '-',
+      tipo: contentTypeLabels[post.content_type] || post.content_type || '-',
+      plataformas: Array.isArray(post.platforms) ? post.platforms.join(', ') : '-',
+      data_agendada: post.scheduled_for 
+        ? new Date(post.scheduled_for).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : '-',
+      data_publicacao: post.published_at 
+        ? new Date(post.published_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      headline: post.creative?.headline || '-',
+      objetivo: post.creative?.objective || '-',
+      link: '', // TODO: Add actual post URL when available
+      erro: post.error_message || 'Erro desconhecido',
+    };
+  } catch (error) {
+    console.error('Error fetching post data:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -547,7 +692,7 @@ serve(async (req) => {
           : 'https://controledetrafego.com.br';
         
         // Build variables for this client
-        const variables = {
+        const variables: Record<string, string> = {
           // Identification
           cliente: client.name || 'Cliente',
           empresa: client.company || '',
@@ -593,6 +738,64 @@ serve(async (req) => {
           // Links
           link_dashboard: dashboardLink,
         };
+        
+        // Add post-specific variables for post_published/post_failed triggers
+        if (['post_published', 'post_failed'].includes(trigger.trigger_type)) {
+          const postId = trigger.conditions?.post_id || null;
+          const postData = await fetchScheduledPostData(supabase, postId);
+          
+          if (postData) {
+            variables.post_legenda = postData.legenda;
+            variables.post_tipo = postData.tipo;
+            variables.post_plataformas = postData.plataformas;
+            variables.post_data_agendada = postData.data_agendada;
+            variables.post_data_publicacao = postData.data_publicacao;
+            variables.post_headline = postData.headline;
+            variables.post_objetivo = postData.objetivo;
+            variables.post_link = postData.link;
+            variables.post_erro = postData.erro;
+          } else {
+            // Default empty values
+            variables.post_legenda = '-';
+            variables.post_tipo = '-';
+            variables.post_plataformas = '-';
+            variables.post_data_agendada = '-';
+            variables.post_data_publicacao = now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            variables.post_headline = '-';
+            variables.post_objetivo = '-';
+            variables.post_link = '';
+            variables.post_erro = 'Erro desconhecido';
+          }
+        }
+        
+        // Add presentation-specific variables for presentation_summary trigger
+        if (trigger.trigger_type === 'presentation_summary') {
+          const meetingId = trigger.conditions?.meeting_id || null;
+          const presentationData = await fetchPresentationData(supabase, meetingId, clientId);
+          
+          if (presentationData) {
+            variables.apresentacao_nome = presentationData.nome;
+            variables.apresentacao_mes = presentationData.mes;
+            variables.apresentacao_total_criativos = presentationData.total_criativos;
+            variables.apresentacao_aprovados = presentationData.aprovados;
+            variables.apresentacao_reprovados = presentationData.reprovados;
+            variables.apresentacao_participantes = presentationData.participantes;
+            variables.apresentacao_data_reuniao = presentationData.data_reuniao;
+            variables.apresentacao_duracao = presentationData.duracao;
+            variables.apresentacao_link = presentationData.link;
+          } else {
+            // Default empty values
+            variables.apresentacao_nome = '-';
+            variables.apresentacao_mes = '-';
+            variables.apresentacao_total_criativos = '0';
+            variables.apresentacao_aprovados = '0';
+            variables.apresentacao_reprovados = '0';
+            variables.apresentacao_participantes = '-';
+            variables.apresentacao_data_reuniao = '-';
+            variables.apresentacao_duracao = '-';
+            variables.apresentacao_link = '';
+          }
+        }
         
         // Send to each contact
         for (const contact of clientContacts) {

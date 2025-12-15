@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Settings, Clock, MessageSquare, Info, RotateCcw } from "lucide-react";
-import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS, REALTIME_ONLY_TRIGGERS } from "@/hooks/useWhatsAppNotifications";
+import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, getVariableGroupsForTriggerType, REALTIME_ONLY_TRIGGERS } from "@/hooks/useWhatsAppNotifications";
 import { Zap } from "lucide-react";
 import {
   Tooltip,
@@ -219,18 +219,30 @@ Olá {cliente}!
     gestor: `✅ *Post Publicado com Sucesso*
 
 Cliente: {cliente}
-Data/Hora: {data} às {hora}
+Publicado em: {post_data_publicacao}
 
-📊 *Status da Conta:*
-• Campanhas ativas: {campanhas_ativas}
-• Saldo: R$ {saldo}`,
-    cliente: `✅ *Conteúdo Publicado!*
+📱 *Detalhes:*
+• Tipo: {post_tipo}
+• Plataformas: {post_plataformas}
+• Headline: {post_headline}
+• Objetivo: {post_objetivo}
+
+📝 *Legenda:*
+{post_legenda}
+
+🔗 Ver post: {post_link}`,
+    cliente: `✅ *Seu conteúdo foi publicado!*
 
 Olá {cliente}!
 
-Seu conteúdo foi publicado com sucesso em {data} às {hora}!
+Seu {post_tipo} foi publicado com sucesso em {post_data_publicacao}!
 
-📊 Acompanhe os resultados: {link_dashboard}`,
+📝 *Preview:*
+{post_headline}
+
+🔗 Veja agora: {post_link}
+
+📊 Dashboard: {link_dashboard}`,
   },
   post_failed: {
     gestor: `❌ *Falha na Publicação*
@@ -238,16 +250,20 @@ Seu conteúdo foi publicado com sucesso em {data} às {hora}!
 Cliente: {cliente}
 Data/Hora: {data} às {hora}
 
-📊 *Status da Conta:*
-• Campanhas ativas: {campanhas_ativas}
-• Saldo: R$ {saldo}
+📱 *Detalhes do Post:*
+• Tipo: {post_tipo}
+• Plataformas: {post_plataformas}
+• Headline: {post_headline}
 
-⚠️ Verificar e tentar novamente`,
+⚠️ *Erro:*
+{post_erro}
+
+❗ Verificar e tentar novamente`,
     cliente: `⚠️ *Atenção - Publicação*
 
 Olá {cliente}!
 
-Tivemos um problema ao publicar seu conteúdo em {data} às {hora}.
+Tivemos um problema ao publicar seu conteúdo "{post_headline}" em {data} às {hora}.
 
 Nossa equipe já está verificando e entrará em contato em breve.`,
   },
@@ -255,25 +271,37 @@ Nossa equipe já está verificando e entrará em contato em breve.`,
     gestor: `📊 *Resumo da Apresentação*
 
 Cliente: {cliente}
-Data: {data} às {hora}
+Apresentação: {apresentacao_nome}
+Mês: {apresentacao_mes}
+Data da Reunião: {apresentacao_data_reuniao}
+Duração: {apresentacao_duracao}
 
-📈 *Métricas do Período:*
-• Investimento: R$ {investimento}
-• Conversões: {conversoes}
-• Alcance: {alcance}
+📈 *Resultados:*
+• Total de criativos: {apresentacao_total_criativos}
+• ✅ Aprovados: {apresentacao_aprovados}
+• ❌ Reprovados: {apresentacao_reprovados}
 
-📊 Dashboard: {link_dashboard}`,
-    cliente: `📊 *Resumo da Reunião*
+👥 *Participantes:*
+{apresentacao_participantes}
+
+🔗 Ver apresentação: {apresentacao_link}`,
+    cliente: `📊 *Resumo da Reunião de Conteúdo*
 
 Olá {cliente}!
 
-Segue o resumo da nossa reunião de apresentação de conteúdo realizada em {data}.
+Segue o resumo da nossa reunião de apresentação de conteúdo realizada em {apresentacao_data_reuniao}.
 
-📈 *Resultados do período:*
-• Investimento: R$ {investimento}
-• Conversões: {conversoes}
+📦 *Apresentação:* {apresentacao_nome}
+📅 *Mês:* {apresentacao_mes}
 
-📊 Dashboard: {link_dashboard}`,
+📈 *Resultados:*
+• Total de criativos: {apresentacao_total_criativos}
+• ✅ Aprovados: {apresentacao_aprovados}
+• ❌ Para revisão: {apresentacao_reprovados}
+
+⏱️ Duração: {apresentacao_duracao}
+
+🔗 Ver apresentação: {apresentacao_link}`,
   },
   custom: {
     gestor: `📢 *Notificação - {cliente}*
@@ -796,16 +824,16 @@ export function TriggerEditModal({
                         cliente: `📆 Olá {cliente}!\n\n💰 Investimento: R$ {investimento}\n📈 Conversões: {conversoes}\n\n📊 {link_dashboard}`,
                       },
                       post_published: {
-                        gestor: `✅ Post publicado - {cliente}\n{data} às {hora}`,
-                        cliente: `✅ Olá {cliente}!\n\nSeu conteúdo foi publicado!`,
+                        gestor: `✅ Post publicado - {cliente}\n\n📱 {post_tipo} | {post_plataformas}\n📝 {post_headline}\n\n🔗 {post_link}`,
+                        cliente: `✅ Olá {cliente}!\n\nSeu {post_tipo} "{post_headline}" foi publicado!\n\n🔗 {post_link}`,
                       },
                       post_failed: {
-                        gestor: `❌ Falha na publicação - {cliente}\n{data} às {hora}`,
-                        cliente: `⚠️ Olá {cliente}!\n\nTivemos um problema. Estamos verificando.`,
+                        gestor: `❌ Falha na publicação - {cliente}\n\n📱 {post_tipo} | {post_headline}\n⚠️ {post_erro}`,
+                        cliente: `⚠️ Olá {cliente}!\n\nTivemos um problema ao publicar "{post_headline}". Estamos verificando.`,
                       },
                       presentation_summary: {
-                        gestor: `📊 Apresentação - {cliente}\n{data}\n\n📊 {link_dashboard}`,
-                        cliente: `📊 Olá {cliente}!\n\nResumo da reunião disponível.\n\n📊 {link_dashboard}`,
+                        gestor: `📊 Apresentação - {cliente}\n\n📦 {apresentacao_nome}\n✅ {apresentacao_aprovados} aprovados | ❌ {apresentacao_reprovados} reprovados\n\n🔗 {apresentacao_link}`,
+                        cliente: `📊 Olá {cliente}!\n\n📦 {apresentacao_nome}\n✅ {apresentacao_aprovados} aprovados\n\n🔗 {apresentacao_link}`,
                       },
                       custom: {
                         gestor: `📢 {cliente}\n{data}\n\n📊 {link_dashboard}`,
@@ -836,7 +864,7 @@ export function TriggerEditModal({
               </div>
               <div className="space-y-3">
                 <TooltipProvider>
-                  {TEMPLATE_VARIABLE_GROUPS.map((group) => (
+                  {getVariableGroupsForTriggerType(triggerType).map((group) => (
                     <div key={group.name}>
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="text-sm">{group.icon}</span>

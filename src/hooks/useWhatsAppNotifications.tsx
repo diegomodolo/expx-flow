@@ -90,8 +90,8 @@ export const TRIGGER_TYPES = [
   { value: 'custom', label: 'Personalizado', icon: '⚙️', description: 'Gatilho customizado' },
 ];
 
-// Grouped template variables for better organization
-export const TEMPLATE_VARIABLE_GROUPS = [
+// Base variable groups (always available)
+export const BASE_VARIABLE_GROUPS = [
   {
     name: 'Identificação',
     icon: '👤',
@@ -101,6 +101,59 @@ export const TEMPLATE_VARIABLE_GROUPS = [
       { variable: '{gestor}', description: 'Nome do gestor' },
     ],
   },
+  {
+    name: 'Período e Data',
+    icon: '📅',
+    variables: [
+      { variable: '{data}', description: 'Data atual' },
+      { variable: '{hora}', description: 'Hora atual' },
+    ],
+  },
+  {
+    name: 'Links',
+    icon: '🔗',
+    variables: [
+      { variable: '{link_dashboard}', description: 'Link do dashboard público do cliente' },
+    ],
+  },
+];
+
+// Post-specific variables
+export const POST_VARIABLE_GROUP = {
+  name: 'Informações do Post',
+  icon: '📱',
+  variables: [
+    { variable: '{post_legenda}', description: 'Legenda/caption do post' },
+    { variable: '{post_tipo}', description: 'Tipo de conteúdo (imagem, vídeo, carrossel, reel)' },
+    { variable: '{post_plataformas}', description: 'Plataformas de publicação (Instagram, Facebook)' },
+    { variable: '{post_data_agendada}', description: 'Data/hora que estava agendado' },
+    { variable: '{post_data_publicacao}', description: 'Data/hora da publicação efetiva' },
+    { variable: '{post_headline}', description: 'Título/headline do criativo' },
+    { variable: '{post_objetivo}', description: 'Objetivo do post' },
+    { variable: '{post_link}', description: 'Link do post publicado' },
+    { variable: '{post_erro}', description: 'Mensagem de erro (para falhas)' },
+  ],
+};
+
+// Presentation-specific variables
+export const PRESENTATION_VARIABLE_GROUP = {
+  name: 'Informações da Apresentação',
+  icon: '🎨',
+  variables: [
+    { variable: '{apresentacao_nome}', description: 'Nome da apresentação' },
+    { variable: '{apresentacao_mes}', description: 'Mês/ano da apresentação' },
+    { variable: '{apresentacao_total_criativos}', description: 'Total de criativos na apresentação' },
+    { variable: '{apresentacao_aprovados}', description: 'Quantidade de criativos aprovados' },
+    { variable: '{apresentacao_reprovados}', description: 'Quantidade de criativos reprovados' },
+    { variable: '{apresentacao_participantes}', description: 'Lista de participantes da reunião' },
+    { variable: '{apresentacao_data_reuniao}', description: 'Data/hora da reunião' },
+    { variable: '{apresentacao_duracao}', description: 'Duração da reunião' },
+    { variable: '{apresentacao_link}', description: 'Link público da apresentação' },
+  ],
+};
+
+// Metrics variable groups (for reports and alerts)
+export const METRICS_VARIABLE_GROUPS = [
   {
     name: 'Métricas de Performance',
     icon: '📊',
@@ -144,11 +197,9 @@ export const TEMPLATE_VARIABLE_GROUPS = [
     ],
   },
   {
-    name: 'Período e Data',
+    name: 'Período',
     icon: '📅',
     variables: [
-      { variable: '{data}', description: 'Data atual' },
-      { variable: '{hora}', description: 'Hora atual' },
       { variable: '{periodo_inicio}', description: 'Data de início do período' },
       { variable: '{periodo_fim}', description: 'Data de fim do período' },
     ],
@@ -162,13 +213,30 @@ export const TEMPLATE_VARIABLE_GROUPS = [
       { variable: '{melhor_campanha}', description: 'Campanha com mais conversões' },
     ],
   },
-  {
-    name: 'Links',
-    icon: '🔗',
-    variables: [
-      { variable: '{link_dashboard}', description: 'Link do dashboard público do cliente' },
-    ],
-  },
+];
+
+// Helper function to get variable groups based on trigger type
+export function getVariableGroupsForTriggerType(triggerType: string) {
+  // Post triggers: base + post variables
+  if (['post_published', 'post_failed'].includes(triggerType)) {
+    return [...BASE_VARIABLE_GROUPS, POST_VARIABLE_GROUP];
+  }
+  
+  // Presentation trigger: base + presentation variables
+  if (triggerType === 'presentation_summary') {
+    return [...BASE_VARIABLE_GROUPS, PRESENTATION_VARIABLE_GROUP];
+  }
+  
+  // All other triggers (reports, alerts): base + metrics
+  return [...BASE_VARIABLE_GROUPS, ...METRICS_VARIABLE_GROUPS];
+}
+
+// Grouped template variables for better organization (legacy - full list)
+export const TEMPLATE_VARIABLE_GROUPS = [
+  ...BASE_VARIABLE_GROUPS,
+  ...METRICS_VARIABLE_GROUPS,
+  POST_VARIABLE_GROUP,
+  PRESENTATION_VARIABLE_GROUP,
 ];
 
 // Flat array for backwards compatibility
