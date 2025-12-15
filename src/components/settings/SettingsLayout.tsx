@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -70,6 +70,12 @@ const settingsNavItems = [
     href: "/configuracoes/permissoes",
     icon: Shield,
     description: "Gerenciar permissões de acesso dos colaboradores",
+  },
+  {
+    title: "WhatsApp (Z-API)",
+    href: "/configuracoes/whatsapp",
+    icon: MessageCircle,
+    description: "Integração com WhatsApp para alertas",
   },
 ];
 

@@ -27,6 +27,12 @@ verify_jwt = true
 [functions.scheduled-post-publisher]
 verify_jwt = false
 
+[functions.test-whatsapp-connection]
+verify_jwt = true
+
+[functions.send-whatsapp-notification]
+verify_jwt = true
+
 [api]
 enabled = true
 port = 54321
