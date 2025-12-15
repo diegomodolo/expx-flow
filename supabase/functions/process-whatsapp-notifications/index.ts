@@ -887,11 +887,23 @@ serve(async (req) => {
           }
           
           // Check if contact should receive this type of notification
+          // Use safe fallback: if field is undefined/null, treat as true (send by default)
           const isAlertType = ['high_cpa', 'low_balance', 'disabled_account', 'post_failed'].includes(trigger.trigger_type);
           const isReportType = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
           
-          if (isAlertType && !contact.receives_alerts) continue;
-          if (isReportType && !contact.receives_reports) continue;
+          const receivesAlerts = contact.receives_alerts !== false; // true if undefined, null, or true
+          const receivesReports = contact.receives_reports !== false; // true if undefined, null, or true
+          
+          if (isAlertType && !receivesAlerts) {
+            console.log(`  Contact ${contact.contact_name} has alerts disabled, skipping`);
+            continue;
+          }
+          if (isReportType && !receivesReports) {
+            console.log(`  Contact ${contact.contact_name} has reports disabled, skipping`);
+            continue;
+          }
+          
+          console.log(`  Sending to contact: ${contact.contact_name} (${contact.phone}), profile=${contact.profile_type || 'cliente'}, alerts=${receivesAlerts}, reports=${receivesReports}`);
           
           // Update gestor name in variables
           variables.gestor = contact.contact_name;
