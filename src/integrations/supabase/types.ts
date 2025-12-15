@@ -4552,6 +4552,69 @@ export type Database = {
           },
         ]
       }
+      meta_pixels: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          creation_time: string | null
+          data_use_setting: string | null
+          id: string
+          is_primary: boolean | null
+          is_unavailable: boolean | null
+          last_fired_time: string | null
+          pixel_id: string
+          pixel_name: string
+          stats: Json | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          creation_time?: string | null
+          data_use_setting?: string | null
+          id?: string
+          is_primary?: boolean | null
+          is_unavailable?: boolean | null
+          last_fired_time?: string | null
+          pixel_id: string
+          pixel_name: string
+          stats?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          creation_time?: string | null
+          data_use_setting?: string | null
+          id?: string
+          is_primary?: boolean | null
+          is_unavailable?: boolean | null
+          last_fired_time?: string | null
+          pixel_id?: string
+          pixel_name?: string
+          stats?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_pixels_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_pixels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offline_conversion_webhook_tokens: {
         Row: {
           client_id: string
@@ -5160,6 +5223,79 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pixel_events_log: {
+        Row: {
+          action_source: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          custom_data: Json | null
+          error_message: string | null
+          event_id: string | null
+          event_name: string
+          event_time: string
+          id: string
+          meta_response: Json | null
+          pixel_id: string
+          status: string
+          user_data: Json | null
+        }
+        Insert: {
+          action_source?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          custom_data?: Json | null
+          error_message?: string | null
+          event_id?: string | null
+          event_name: string
+          event_time?: string
+          id?: string
+          meta_response?: Json | null
+          pixel_id: string
+          status?: string
+          user_data?: Json | null
+        }
+        Update: {
+          action_source?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          custom_data?: Json | null
+          error_message?: string | null
+          event_id?: string | null
+          event_name?: string
+          event_time?: string
+          id?: string
+          meta_response?: Json | null
+          pixel_id?: string
+          status?: string
+          user_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pixel_events_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pixel_events_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pixel_events_log_pixel_id_fkey"
+            columns: ["pixel_id"]
+            isOneToOne: false
+            referencedRelation: "meta_pixels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       planner_time_slots: {
         Row: {

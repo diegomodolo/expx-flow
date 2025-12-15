@@ -163,3 +163,9 @@ verify_jwt = false
 
 [functions.lead-conversion-api]
 verify_jwt = false
+
+[functions.manage-meta-pixels]
+verify_jwt = true
+
+[functions.send-pixel-event]
+verify_jwt = true

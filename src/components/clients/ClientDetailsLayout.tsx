@@ -26,6 +26,7 @@ import {
   Loader2,
   Share2,
   UsersRound,
+  Activity,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -179,6 +180,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/leads-desqualificados`,
       icon: UserX,
       description: "Gerenciar leads desqualificados"
+    },
+    {
+      title: "Pixels Meta",
+      href: `/clientes/${clientId}/pixels`,
+      icon: Activity,
+      description: "Gerenciar pixels de conversão"
     },
     {
       title: "Públicos Meta",
