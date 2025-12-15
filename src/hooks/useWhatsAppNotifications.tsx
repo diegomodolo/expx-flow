@@ -44,9 +44,7 @@ export interface ClientContact {
   client_id: string;
   contact_name: string;
   phone: string;
-  profile_type: 'gestor' | 'cliente' | 'financeiro';
-  receives_alerts: boolean;
-  receives_reports: boolean;
+  email: string | null;
   is_active: boolean;
   created_at: string;
   client?: {
@@ -360,9 +358,7 @@ export function useWhatsAppNotifications(companyId: string | undefined) {
           client_id: contact.client_id,
           contact_name: contact.contact_name,
           phone: contact.phone,
-          profile_type: contact.profile_type || 'gestor',
-          receives_alerts: contact.receives_alerts ?? true,
-          receives_reports: contact.receives_reports ?? true,
+          email: contact.email || null,
           is_active: true,
         })
         .select()
@@ -388,9 +384,7 @@ export function useWhatsAppNotifications(companyId: string | undefined) {
         .update({
           contact_name: contact.contact_name,
           phone: contact.phone,
-          profile_type: contact.profile_type,
-          receives_alerts: contact.receives_alerts,
-          receives_reports: contact.receives_reports,
+          email: contact.email,
           is_active: contact.is_active,
         })
         .eq('id', contact.id);

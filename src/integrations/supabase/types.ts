@@ -5483,12 +5483,10 @@ export type Database = {
           company_id: string
           contact_name: string
           created_at: string
+          email: string | null
           id: string
           is_active: boolean
           phone: string
-          profile_type: string
-          receives_alerts: boolean
-          receives_reports: boolean
           updated_at: string
         }
         Insert: {
@@ -5496,12 +5494,10 @@ export type Database = {
           company_id: string
           contact_name: string
           created_at?: string
+          email?: string | null
           id?: string
           is_active?: boolean
           phone: string
-          profile_type?: string
-          receives_alerts?: boolean
-          receives_reports?: boolean
           updated_at?: string
         }
         Update: {
@@ -5509,12 +5505,10 @@ export type Database = {
           company_id?: string
           contact_name?: string
           created_at?: string
+          email?: string | null
           id?: string
           is_active?: boolean
           phone?: string
-          profile_type?: string
-          receives_alerts?: boolean
-          receives_reports?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -5530,6 +5524,103 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_client_notification_settings: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          gestor_employee_id: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          gestor_employee_id?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          gestor_employee_id?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_client_notification_settings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_client_notification_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_client_notification_settings_gestor_employee_id_fkey"
+            columns: ["gestor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_client_trigger_subscriptions: {
+        Row: {
+          client_settings_id: string
+          created_at: string
+          destination: string
+          id: string
+          is_active: boolean
+          trigger_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_settings_id: string
+          created_at?: string
+          destination?: string
+          id?: string
+          is_active?: boolean
+          trigger_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_settings_id?: string
+          created_at?: string
+          destination?: string
+          id?: string
+          is_active?: boolean
+          trigger_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_client_trigger_subscriptions_client_settings_id_fkey"
+            columns: ["client_settings_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_client_notification_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_client_trigger_subscriptions_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_notification_triggers"
             referencedColumns: ["id"]
           },
         ]

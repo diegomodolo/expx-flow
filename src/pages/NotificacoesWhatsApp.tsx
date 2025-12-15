@@ -5,7 +5,7 @@ import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { NotificationsDashboard } from "@/components/whatsapp/notifications/NotificationsDashboard";
 import { TriggersList } from "@/components/whatsapp/notifications/TriggersList";
-import { ClientContactsManager } from "@/components/whatsapp/notifications/ClientContactsManager";
+import { ClientNotificationConfig } from "@/components/whatsapp/notifications/ClientNotificationConfig";
 import { NotificationHistory } from "@/components/whatsapp/notifications/NotificationHistory";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Bell } from "lucide-react";
@@ -16,7 +16,6 @@ export default function NotificacoesWhatsApp() {
   
   const {
     triggers,
-    contacts,
     executionLogs,
     stats,
     isLoading,
@@ -26,10 +25,6 @@ export default function NotificacoesWhatsApp() {
     isUpdatingTrigger,
     deleteTrigger,
     toggleTrigger,
-    createContact,
-    isCreatingContact,
-    updateContact,
-    deleteContact,
   } = useWhatsAppNotifications(activeCompany?.company_id);
 
   if (isLoadingCompany || isLoading) {
@@ -55,7 +50,7 @@ export default function NotificacoesWhatsApp() {
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Notificações WhatsApp</h1>
             <p className="text-sm text-muted-foreground">
-              Configure gatilhos, mensagens e gerencie contatos para alertas via WhatsApp
+              Configure gatilhos, mensagens e gerencie clientes para alertas via WhatsApp
             </p>
           </div>
         </div>
@@ -65,7 +60,7 @@ export default function NotificacoesWhatsApp() {
           <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="triggers">Gatilhos</TabsTrigger>
-            <TabsTrigger value="contacts">Contatos</TabsTrigger>
+            <TabsTrigger value="clients">Clientes</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
 
@@ -89,13 +84,10 @@ export default function NotificacoesWhatsApp() {
             />
           </TabsContent>
 
-          <TabsContent value="contacts" className="space-y-6">
-            <ClientContactsManager
-              contacts={contacts}
-              onCreateContact={createContact}
-              isCreating={isCreatingContact}
-              onUpdateContact={updateContact}
-              onDeleteContact={deleteContact}
+          <TabsContent value="clients" className="space-y-6">
+            <ClientNotificationConfig
+              companyId={activeCompany?.company_id}
+              triggers={triggers}
             />
           </TabsContent>
 
