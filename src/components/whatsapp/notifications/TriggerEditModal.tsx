@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Settings, Clock, MessageSquare, Info } from "lucide-react";
+import { Loader2, Settings, Clock, MessageSquare, Info, RotateCcw } from "lucide-react";
 import { NotificationTrigger, TriggerSchedule, TRIGGER_TYPES, TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS } from "@/hooks/useWhatsAppNotifications";
 import {
   Tooltip,
@@ -694,8 +694,108 @@ export function TriggerEditModal({
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="space-y-4 mt-4">
+            {/* Template Selector */}
+            <div className="p-4 border rounded-lg bg-card">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <Label className="text-base">Carregar Template Pronto</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Selecione um modelo pré-configurado para este tipo de gatilho
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const defaults = DEFAULT_TEMPLATES[triggerType as keyof typeof DEFAULT_TEMPLATES];
+                    if (defaults) {
+                      setGestorTemplate(defaults.gestor);
+                      setClienteTemplate(defaults.cliente);
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Restaurar Padrão
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3 px-4"
+                  onClick={() => {
+                    const defaults = DEFAULT_TEMPLATES[triggerType as keyof typeof DEFAULT_TEMPLATES];
+                    if (defaults) {
+                      setGestorTemplate(defaults.gestor);
+                      setClienteTemplate(defaults.cliente);
+                    }
+                  }}
+                >
+                  <div className="text-left">
+                    <div className="font-medium">📊 Completo</div>
+                    <div className="text-xs text-muted-foreground">Todas as métricas e variações</div>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3 px-4"
+                  onClick={() => {
+                    // Simplified templates
+                    const simplified: Record<string, { gestor: string; cliente: string }> = {
+                      high_cpa: {
+                        gestor: `⚠️ *CPA Alto - {cliente}*\n\n• CPA: R$ {cpa_atual}\n• Conversões: {conversoes}\n• Investimento: R$ {investimento}\n\n📊 {link_dashboard}`,
+                        cliente: `⚠️ Olá {cliente}!\n\nSua campanha precisa de atenção.\n\n📊 Acompanhe: {link_dashboard}`,
+                      },
+                      low_balance: {
+                        gestor: `💰 *Saldo Baixo - {cliente}*\n\n• Saldo: R$ {saldo}\n• Dias restantes: {dias_restantes}\n\n⚠️ Solicitar recarga`,
+                        cliente: `💰 Olá {cliente}!\n\nSeu saldo está em R$ {saldo}.\nPrevisão: {dias_restantes} dias.\n\nRecomendamos recarregar.`,
+                      },
+                      disabled_account: {
+                        gestor: `🚨 *Conta Desabilitada - {cliente}*\n\n{data} às {hora}\n\n❗ Ação imediata`,
+                        cliente: `🚨 Olá {cliente}!\n\nIdentificamos um problema com sua conta.\nJá estamos trabalhando nisso.`,
+                      },
+                      weekly_report: {
+                        gestor: `📅 *Semanal - {cliente}*\n\n💰 R$ {investimento}\n📈 {conversoes} conversões\n📊 CTR: {ctr}%\n\n{link_dashboard}`,
+                        cliente: `📅 Olá {cliente}!\n\n💰 Investimento: R$ {investimento}\n📈 Conversões: {conversoes}\n\n📊 {link_dashboard}`,
+                      },
+                      monthly_report: {
+                        gestor: `📆 *Mensal - {cliente}*\n\n💰 R$ {investimento} ({variacao_investimento})\n📈 {conversoes} conversões ({variacao_conversoes})\n\n{link_dashboard}`,
+                        cliente: `📆 Olá {cliente}!\n\n💰 Investimento: R$ {investimento}\n📈 Conversões: {conversoes}\n\n📊 {link_dashboard}`,
+                      },
+                      post_published: {
+                        gestor: `✅ Post publicado - {cliente}\n{data} às {hora}`,
+                        cliente: `✅ Olá {cliente}!\n\nSeu conteúdo foi publicado!`,
+                      },
+                      post_failed: {
+                        gestor: `❌ Falha na publicação - {cliente}\n{data} às {hora}`,
+                        cliente: `⚠️ Olá {cliente}!\n\nTivemos um problema. Estamos verificando.`,
+                      },
+                      presentation_summary: {
+                        gestor: `📊 Apresentação - {cliente}\n{data}\n\n📊 {link_dashboard}`,
+                        cliente: `📊 Olá {cliente}!\n\nResumo da reunião disponível.\n\n📊 {link_dashboard}`,
+                      },
+                      custom: {
+                        gestor: `📢 {cliente}\n{data}\n\n📊 {link_dashboard}`,
+                        cliente: `📢 Olá {cliente}!\n\n📊 {link_dashboard}`,
+                      },
+                    };
+                    const tpl = simplified[triggerType];
+                    if (tpl) {
+                      setGestorTemplate(tpl.gestor);
+                      setClienteTemplate(tpl.cliente);
+                    }
+                  }}
+                >
+                  <div className="text-left">
+                    <div className="font-medium">📝 Resumido</div>
+                    <div className="text-xs text-muted-foreground">Apenas informações essenciais</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+
             {/* Variable Groups */}
-            <div className="p-4 border rounded-lg bg-muted/50 max-h-[200px] overflow-y-auto">
+            <div className="p-4 border rounded-lg bg-muted/50 max-h-[180px] overflow-y-auto">
               <div className="flex items-center gap-2 mb-3">
                 <Info className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Variáveis Disponíveis</span>
