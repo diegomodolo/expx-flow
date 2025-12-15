@@ -223,8 +223,8 @@ export default function Tarefas() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tarefas Inteligentes</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-headline-lg text-foreground">Tarefas Inteligentes</h1>
+            <p className="text-muted-foreground mt-2">
               Gerencie tarefas automáticas e manuais do seu sistema de tráfego
             </p>
           </div>
@@ -257,11 +257,11 @@ export default function Tarefas() {
                       <div>
                          <div className="flex items-center justify-between mb-4">
                            <div className="flex items-center gap-2">
-                             <AlertTriangle className="w-5 h-5 text-red-500" />
-                             <h3 className="text-lg font-semibold text-gray-900">
+                             <AlertTriangle className="w-5 h-5 text-destructive" />
+                             <h3 className="text-lg font-semibold text-foreground">
                                Problemas Detectados
                              </h3>
-                             <span className="text-sm text-gray-500">
+                             <span className="text-sm text-muted-foreground">
                                {dangerAlerts.length} items
                              </span>
                            </div>
@@ -280,7 +280,7 @@ export default function Tarefas() {
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-48 p-0 bg-white" align="start">
+                                <PopoverContent className="w-48 p-0 bg-popover" align="start">
                                   <Command>
                                     <CommandInput placeholder="Buscar cliente..." />
                                     <CommandList>
@@ -328,7 +328,7 @@ export default function Tarefas() {
                                variant="outline"
                                size="sm"
                                onClick={handleAnalyzeCampaigns}
-                               className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                               className="flex items-center gap-2 text-primary border-primary/30 hover:bg-primary/10"
                                disabled={isAnalyzing}
                              >
                                <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
@@ -338,30 +338,30 @@ export default function Tarefas() {
                          </div>
                         <div className="space-y-3">
                           {dangerAlerts.map((alert, index) => (
-                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div key={index} className="bg-card border border-border rounded-lg p-4 shadow-google-sm hover:shadow-google-md transition-shadow">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                      alert.title.includes('CPA alto') ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                      alert.title.includes('CPA alto') ? 'bg-google-red-100 dark:bg-google-red-600/20 text-google-red-600' : 'bg-orange-100 dark:bg-orange-600/20 text-orange-600'
                                     }`}>
                                       {alert.title.includes('CPA alto') ? 'Crítico' : 'Alto'}
                                     </span>
-                                    <h4 className="font-medium text-gray-900 text-sm">
+                                    <h4 className="font-medium text-foreground text-sm">
                                       {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
                                     </h4>
                                   </div>
                                   <div className="mb-2">
-                                    <p className="font-semibold text-gray-900">
+                                    <p className="font-semibold text-foreground">
                                       {alert.title}: {alert.value}
                                     </p>
                                   </div>
-                                  <div className="text-sm text-gray-600">
+                                  <div className="text-sm text-muted-foreground">
                                     <span>Campanha: {alert.campaign || 'N/A'} • </span>
                                     <span>Criado há 2 horas</span>
                                   </div>
                                   {alert.recommendation && (
-                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                    <div className="mt-2 text-sm text-foreground bg-muted/50 p-2 rounded">
                                       {alert.recommendation}
                                     </div>
                                   )}
@@ -371,7 +371,7 @@ export default function Tarefas() {
                                      size="sm"
                                      variant="outline"
                                      onClick={() => handleDiscardAlert(alert)}
-                                     className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                     className="text-muted-foreground border-border hover:bg-muted"
                                    >
                                      Descartar
                                    </Button>
@@ -400,13 +400,13 @@ export default function Tarefas() {
                        <div>
                          <div className="flex items-center justify-between mb-4">
                            <div className="flex items-center gap-2">
-                             <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                             <div className="w-5 h-5 bg-google-green-100 dark:bg-google-green-600/20 rounded-full flex items-center justify-center">
+                               <div className="w-2 h-2 bg-google-green-500 rounded-full"></div>
                              </div>
-                             <h3 className="text-lg font-semibold text-gray-900">
+                             <h3 className="text-lg font-semibold text-foreground">
                                Oportunidades Detectadas
                              </h3>
-                             <span className="text-sm text-gray-500">
+                             <span className="text-sm text-muted-foreground">
                                {opportunityAlerts.length} items
                              </span>
                            </div>
@@ -425,7 +425,7 @@ export default function Tarefas() {
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-48 p-0 bg-white" align="start">
+                                <PopoverContent className="w-48 p-0 bg-popover" align="start">
                                   <Command>
                                     <CommandInput placeholder="Buscar cliente..." />
                                     <CommandList>
@@ -473,7 +473,7 @@ export default function Tarefas() {
                                variant="outline"
                                size="sm"
                                onClick={handleAnalyzeCampaigns}
-                               className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                               className="flex items-center gap-2 text-primary border-primary/30 hover:bg-primary/10"
                                disabled={isAnalyzing}
                              >
                                <RefreshCw className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
@@ -483,28 +483,28 @@ export default function Tarefas() {
                          </div>
                         <div className="space-y-3">
                           {opportunityAlerts.map((alert, index) => (
-                            <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div key={index} className="bg-card border border-border rounded-lg p-4 shadow-google-sm hover:shadow-google-md transition-shadow">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
-                                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-google-green-100 dark:bg-google-green-600/20 text-google-green-600 dark:text-google-green-400">
                                       Excelente
                                     </span>
-                                    <h4 className="font-medium text-gray-900 text-sm">
+                                    <h4 className="font-medium text-foreground text-sm">
                                       {alert.client}{alert.campaign ? ` - ${alert.campaign}` : ''}
                                     </h4>
                                   </div>
                                   <div className="mb-2">
-                                    <p className="font-semibold text-gray-900">
+                                    <p className="font-semibold text-foreground">
                                       {alert.title}: {alert.value}
                                     </p>
                                   </div>
-                                  <div className="text-sm text-gray-600">
+                                  <div className="text-sm text-muted-foreground">
                                     <span>ROI: 340% • CTR: 2.8% • </span>
                                     <span>Criado há 1 hora</span>
                                   </div>
                                   {alert.recommendation && (
-                                    <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                                    <div className="mt-2 text-sm text-foreground bg-muted/50 p-2 rounded">
                                       {alert.recommendation}
                                     </div>
                                   )}
@@ -514,7 +514,7 @@ export default function Tarefas() {
                                      size="sm"
                                      variant="outline"
                                      onClick={() => handleDiscardAlert(alert)}
-                                     className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                                     className="text-muted-foreground border-border hover:bg-muted"
                                    >
                                      Descartar
                                    </Button>
@@ -542,10 +542,10 @@ export default function Tarefas() {
                   <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center max-w-md mx-auto">
                       <div className="text-6xl mb-4">🎯</div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <h3 className="text-lg font-medium text-foreground mb-2">
                         Nenhum alerta encontrado
                       </h3>
-                      <p className="text-gray-500 mb-6">
+                      <p className="text-muted-foreground mb-6">
                         Selecione um cliente específico ou clique no botão abaixo para buscar novas sugestões de problemas e oportunidades nas suas campanhas.
                       </p>
                       
@@ -565,7 +565,7 @@ export default function Tarefas() {
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-64 p-0 bg-white" align="center">
+                          <PopoverContent className="w-64 p-0 bg-popover" align="center">
                             <Command>
                               <CommandInput placeholder="Buscar cliente..." />
                               <CommandList>
@@ -647,25 +647,11 @@ export default function Tarefas() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total</p>
-                    <p className="text-2xl font-bold">{taskStats.total_tasks}</p>
+                    <p className="text-sm text-muted-foreground">Total</p>
+                    <p className="text-2xl font-bold text-foreground">{taskStats.total_tasks}</p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Target className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Pendente</p>
-                    <p className="text-2xl font-bold">{taskStats.pending_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-gray-600" />
+                  <div className="w-10 h-10 bg-google-blue-100 dark:bg-google-blue-700/20 rounded-lg flex items-center justify-center">
+                    <Target className="w-5 h-5 text-google-blue-600 dark:text-google-blue-400" />
                   </div>
                 </div>
               </CardContent>
@@ -675,25 +661,11 @@ export default function Tarefas() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Em Andamento</p>
-                    <p className="text-2xl font-bold">{taskStats.in_progress_tasks}</p>
+                    <p className="text-sm text-muted-foreground">Pendente</p>
+                    <p className="text-2xl font-bold text-foreground">{taskStats.pending_tasks}</p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Concluídas</p>
-                    <p className="text-2xl font-bold">{taskStats.completed_tasks}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-muted-foreground" />
                   </div>
                 </div>
               </CardContent>
@@ -703,11 +675,11 @@ export default function Tarefas() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Atrasadas</p>
-                    <p className="text-2xl font-bold">{taskStats.overdue_tasks}</p>
+                    <p className="text-sm text-muted-foreground">Em Andamento</p>
+                    <p className="text-2xl font-bold text-foreground">{taskStats.in_progress_tasks}</p>
                   </div>
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <div className="w-10 h-10 bg-google-blue-100 dark:bg-google-blue-700/20 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-google-blue-600 dark:text-google-blue-400" />
                   </div>
                 </div>
               </CardContent>
@@ -717,13 +689,41 @@ export default function Tarefas() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Tempo Médio</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-sm text-muted-foreground">Concluídas</p>
+                    <p className="text-2xl font-bold text-foreground">{taskStats.completed_tasks}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-google-green-100 dark:bg-google-green-600/20 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-google-green-600 dark:text-google-green-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Atrasadas</p>
+                    <p className="text-2xl font-bold text-foreground">{taskStats.overdue_tasks}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-google-red-100 dark:bg-google-red-600/20 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-google-red-600 dark:text-google-red-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tempo Médio</p>
+                    <p className="text-2xl font-bold text-foreground">
                       {taskStats.avg_completion_days ? `${Math.round(taskStats.avg_completion_days)}d` : '-'}
                     </p>
                   </div>
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-600/20 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
               </CardContent>
@@ -737,7 +737,7 @@ export default function Tarefas() {
           {/* Filtros */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Buscar tarefas..."
                 value={searchTerm}
@@ -916,13 +916,13 @@ export default function Tarefas() {
                               <div className="flex items-center justify-between">
                                 <div>
                                   <h4 className="font-medium">{task.title}</h4>
-                                  <p className="text-sm text-gray-600">{task.responsible_name}</p>
+                                  <p className="text-sm text-muted-foreground">{task.responsible_name}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Badge className={
-                                    task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                                    task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-green-100 text-green-800'
+                                    task.priority === 'high' ? 'bg-google-red-100 dark:bg-google-red-600/20 text-google-red-600' :
+                                    task.priority === 'medium' ? 'bg-google-yellow-100 dark:bg-google-yellow-500/20 text-google-yellow-600' :
+                                    'bg-google-green-100 dark:bg-google-green-600/20 text-google-green-600'
                                   }>
                                     {task.priority === 'high' ? 'Alta' : 
                                      task.priority === 'medium' ? 'Média' : 'Baixa'}
@@ -940,7 +940,7 @@ export default function Tarefas() {
                           selectedDate && 
                           format(new Date(task.due_date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
                         ).length === 0 && (
-                          <p className="text-gray-500 text-center py-8">
+                          <p className="text-muted-foreground text-center py-8">
                             Nenhuma tarefa para este dia
                           </p>
                         )}
