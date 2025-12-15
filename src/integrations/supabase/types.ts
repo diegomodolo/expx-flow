@@ -5477,6 +5477,63 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_client_contacts: {
+        Row: {
+          client_id: string
+          company_id: string
+          contact_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          phone: string
+          profile_type: string
+          receives_alerts: boolean
+          receives_reports: boolean
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          contact_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          phone: string
+          profile_type?: string
+          receives_alerts?: boolean
+          receives_reports?: boolean
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          contact_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          phone?: string
+          profile_type?: string
+          receives_alerts?: boolean
+          receives_reports?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_client_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_client_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_configs: {
         Row: {
           client_token: string | null
@@ -5523,6 +5580,111 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_execution_log: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          execution_details: Json | null
+          execution_window: string
+          id: string
+          messages_failed: number
+          messages_sent: number
+          schedule_id: string | null
+          started_at: string | null
+          status: string
+          trigger_id: string | null
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          execution_details?: Json | null
+          execution_window?: string
+          id?: string
+          messages_failed?: number
+          messages_sent?: number
+          schedule_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          execution_details?: Json | null
+          execution_window?: string
+          id?: string
+          messages_failed?: number
+          messages_sent?: number
+          schedule_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_execution_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_execution_log_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_trigger_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_execution_log_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_notification_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_message_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          message_template: string
+          recipient_profile: string
+          trigger_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_template: string
+          recipient_profile: string
+          trigger_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          recipient_profile?: string
+          trigger_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_message_templates_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_notification_triggers"
             referencedColumns: ["id"]
           },
         ]
@@ -5639,6 +5801,50 @@ export type Database = {
           },
         ]
       }
+      whatsapp_notification_triggers: {
+        Row: {
+          company_id: string
+          conditions: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          trigger_name: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          trigger_name: string
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          trigger_name?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_notification_triggers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_recipients: {
         Row: {
           client_id: string | null
@@ -5689,6 +5895,62 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_trigger_schedules: {
+        Row: {
+          created_at: string
+          day_of_month: number | null
+          days_of_week: number[] | null
+          execution_hours: number[] | null
+          frequency_type: string
+          id: string
+          last_executed_at: string | null
+          next_execution_at: string | null
+          preferred_time: string | null
+          respect_quiet_hours: boolean
+          times_per_day: number | null
+          trigger_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_month?: number | null
+          days_of_week?: number[] | null
+          execution_hours?: number[] | null
+          frequency_type?: string
+          id?: string
+          last_executed_at?: string | null
+          next_execution_at?: string | null
+          preferred_time?: string | null
+          respect_quiet_hours?: boolean
+          times_per_day?: number | null
+          trigger_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_month?: number | null
+          days_of_week?: number[] | null
+          execution_hours?: number[] | null
+          frequency_type?: string
+          id?: string
+          last_executed_at?: string | null
+          next_execution_at?: string | null
+          preferred_time?: string | null
+          respect_quiet_hours?: boolean
+          times_per_day?: number | null
+          trigger_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_trigger_schedules_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_notification_triggers"
             referencedColumns: ["id"]
           },
         ]
