@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useWhatsAppNotifications } from "@/hooks/useWhatsAppNotifications";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { NotificationsDashboard } from "@/components/whatsapp/notifications/NotificationsDashboard";
 import { TriggersList } from "@/components/whatsapp/notifications/TriggersList";
 import { ClientContactsManager } from "@/components/whatsapp/notifications/ClientContactsManager";
