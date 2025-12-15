@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Users, Phone, Loader2, Search } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Plus, Pencil, Trash2, Users, Phone, Loader2, Search, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ClientContact } from "@/hooks/useWhatsAppNotifications";
 import { useClients } from "@/hooks/useClients";
 
@@ -46,6 +60,81 @@ const PROFILE_TYPES = [
   { value: 'cliente', label: 'Cliente', icon: '🏢', color: 'bg-green-500' },
   { value: 'financeiro', label: 'Financeiro', icon: '💰', color: 'bg-yellow-500' },
 ];
+
+// Combobox field for client selection with search
+function ClientComboboxField({
+  clients,
+  value,
+  onValueChange,
+}: {
+  clients: { id: string; name: string; company: string }[];
+  value: string;
+  onValueChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const sortedClients = useMemo(
+    () => [...clients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })),
+    [clients]
+  );
+
+  const selectedClient = sortedClients.find((c) => c.id === value);
+
+  return (
+    <div className="space-y-2">
+      <Label>Cliente</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-normal"
+          >
+            {selectedClient ? (
+              <span>{selectedClient.name}</span>
+            ) : (
+              <span className="text-muted-foreground">Selecione um cliente</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-[9999]" align="start">
+          <Command>
+            <CommandInput placeholder="Pesquisar cliente..." />
+            <CommandList className="max-h-[200px]">
+              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+              <CommandGroup>
+                {sortedClients.map((client) => (
+                  <CommandItem
+                    key={client.id}
+                    value={`${client.name} ${client.company}`}
+                    onSelect={() => {
+                      onValueChange(client.id);
+                      setOpen(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === client.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex items-center gap-2">
+                      <span>{client.name}</span>
+                      <span className="text-muted-foreground text-sm">({client.company})</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 export function ClientContactsManager({
   contacts,
@@ -261,21 +350,11 @@ export function ClientContactsManager({
 
           <div className="space-y-4">
             {!editingContact && (
-              <div className="space-y-2">
-                <Label>Cliente</Label>
-                <Select value={clientId} onValueChange={setClientId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ClientComboboxField
+                clients={clients}
+                value={clientId}
+                onValueChange={setClientId}
+              />
             )}
 
             <div className="space-y-2">
