@@ -43,6 +43,7 @@ interface Presentation {
   primary_color: string | null;
   secondary_color: string | null;
   status: string;
+  company_id: string;
   client: {
     name: string;
     company: string;
@@ -150,6 +151,7 @@ export default function ApresentacaoPublica() {
             primary_color,
             secondary_color,
             status,
+            company_id,
             clients!content_presentations_client_id_fkey (
               name,
               company,
@@ -567,6 +569,7 @@ export default function ApresentacaoPublica() {
             rejectionReason: a.rejectionReason,
           })),
           meetingDate: meetingDate.toISOString(),
+          companyId: presentation.company_id,
         },
       });
 
