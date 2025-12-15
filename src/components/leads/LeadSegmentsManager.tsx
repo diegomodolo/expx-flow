@@ -56,7 +56,7 @@ export const LeadSegmentsManager = () => {
       const { error } = await supabase.from('lead_segments').insert({ company_id: companyId, name: data.name, description: data.description || null, segment_type: data.segment_type });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['lead-segments'] }); resetForm(); toast.success("Segmento criado!"); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['lead-segments'] }); queryClient.invalidateQueries({ queryKey: ['sectors'] }); resetForm(); toast.success("Segmento criado!"); }
   });
 
   const updateMutation = useMutation({
@@ -64,12 +64,12 @@ export const LeadSegmentsManager = () => {
       const { error } = await supabase.from('lead_segments').update({ name: data.name, description: data.description || null, segment_type: data.segment_type }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['lead-segments'] }); resetForm(); toast.success("Segmento atualizado!"); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['lead-segments'] }); queryClient.invalidateQueries({ queryKey: ['sectors'] }); resetForm(); toast.success("Segmento atualizado!"); }
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from('lead_segments').delete().eq('id', id); if (error) throw error; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['lead-segments'] }); toast.success("Segmento removido!"); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['lead-segments'] }); queryClient.invalidateQueries({ queryKey: ['sectors'] }); toast.success("Segmento removido!"); }
   });
 
   const resetForm = () => { setFormData({ name: '', description: '', segment_type: 'custom' }); setEditingId(null); setIsDialogOpen(false); };
