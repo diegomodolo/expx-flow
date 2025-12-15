@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
-import { Search, RotateCcw, Shield } from "lucide-react";
+import { Search, RotateCcw, Shield, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const MENU_ITEMS: { key: MenuItemType; label: string; description: string }[] = [
@@ -20,18 +21,21 @@ const MENU_ITEMS: { key: MenuItemType; label: string; description: string }[] = 
   { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas' },
   { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários' },
   { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises' },
+  { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração' },
   { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Ferramenta de criação de campanhas' },
   { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Ferramenta de criação de conteúdo com IA' },
   { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Ferramenta de criação de criativos visuais com IA' },
   { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial' },
   { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA' },
   { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes de IA' },
+  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp' },
   { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema' },
 ];
 
 export function PermissionsSettings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   
   const {
@@ -46,6 +50,18 @@ export function PermissionsSettings() {
   useEffect(() => {
     fetchAllEmployeePermissions();
   }, []);
+
+  const toggleCardExpanded = (employeeId: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(employeeId)) {
+        next.delete(employeeId);
+      } else {
+        next.add(employeeId);
+      }
+      return next;
+    });
+  };
 
   const filteredEmployees = employeesWithPermissions.filter(employee => {
     const matchesSearch = 
@@ -66,6 +82,12 @@ export function PermissionsSettings() {
     const employee = employeesWithPermissions.find(emp => emp.id === employeeId);
     const permission = employee?.permissions.find(p => p.menu_item === menuItem);
     return permission?.is_enabled || false;
+  };
+
+  const getPermissionCount = (employeeId: string) => {
+    const employee = employeesWithPermissions.find(emp => emp.id === employeeId);
+    const enabledCount = employee?.permissions.filter(p => p.is_enabled).length || 0;
+    return enabledCount;
   };
 
   const handleTogglePermission = async (employeeId: string, menuItem: MenuItemType) => {
@@ -158,7 +180,7 @@ export function PermissionsSettings() {
           </div>
 
           {/* Lista de colaboradores */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {filteredEmployees.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
@@ -169,76 +191,102 @@ export function PermissionsSettings() {
                 </p>
               </div>
             ) : (
-              filteredEmployees.map((employee) => (
-                <Card key={employee.id} className="border border-border">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src="" alt={employee.name} />
-                          <AvatarFallback>
-                            {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-medium">{employee.name}</h3>
-                          <p className="text-sm text-muted-foreground">{employee.email}</p>
-                        </div>
-                        <Badge variant="secondary">{employee.role}</Badge>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleResetPermissions(employee.id, employee.name)}
-                        className="flex items-center gap-2"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        Resetar
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {MENU_ITEMS.map((menuItem) => {
-                        const isEnabled = getPermissionValue(employee.id, menuItem.key);
-                        const isDefaultPermission = menuItem.key === 'dashboard' || menuItem.key === 'tarefas';
-                        
-                        return (
-                          <div
-                            key={menuItem.key}
-                            className={`flex items-center justify-between p-3 rounded-lg border ${
-                              isDefaultPermission ? 'bg-muted/30' : ''
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <Label
-                                htmlFor={`${employee.id}-${menuItem.key}`}
-                                className="text-sm font-medium cursor-pointer"
-                              >
-                                {menuItem.label}
-                              </Label>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {menuItem.description}
-                              </p>
-                              {isDefaultPermission && (
-                                <Badge variant="outline" className="mt-1 text-xs">
-                                  Padrão
-                                </Badge>
+              filteredEmployees.map((employee) => {
+                const isExpanded = expandedCards.has(employee.id);
+                const permissionCount = getPermissionCount(employee.id);
+                
+                return (
+                  <Collapsible
+                    key={employee.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleCardExpanded(employee.id)}
+                  >
+                    <Card className="border border-border">
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="pb-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {isExpanded ? (
+                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
                               )}
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src="" alt={employee.name} />
+                                <AvatarFallback>
+                                  {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <h3 className="font-medium">{employee.name}</h3>
+                                <p className="text-sm text-muted-foreground">{employee.email}</p>
+                              </div>
+                              <Badge variant="secondary">{employee.role}</Badge>
+                              <Badge variant="outline" className="ml-2">
+                                {permissionCount} permissões ativas
+                              </Badge>
                             </div>
-                            <Switch
-                              id={`${employee.id}-${menuItem.key}`}
-                              checked={isEnabled}
-                              onCheckedChange={() => handleTogglePermission(employee.id, menuItem.key)}
-                              disabled={isDefaultPermission}
-                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleResetPermissions(employee.id, employee.name);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              Resetar
+                            </Button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {MENU_ITEMS.map((menuItem) => {
+                              const isEnabled = getPermissionValue(employee.id, menuItem.key);
+                              const isDefaultPermission = menuItem.key === 'dashboard' || menuItem.key === 'tarefas';
+                              
+                              return (
+                                <div
+                                  key={menuItem.key}
+                                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                                    isDefaultPermission ? 'bg-muted/30' : ''
+                                  }`}
+                                >
+                                  <div className="flex-1">
+                                    <Label
+                                      htmlFor={`${employee.id}-${menuItem.key}`}
+                                      className="text-sm font-medium cursor-pointer"
+                                    >
+                                      {menuItem.label}
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {menuItem.description}
+                                    </p>
+                                    {isDefaultPermission && (
+                                      <Badge variant="outline" className="mt-1 text-xs">
+                                        Padrão
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <Switch
+                                    id={`${employee.id}-${menuItem.key}`}
+                                    checked={isEnabled}
+                                    onCheckedChange={() => handleTogglePermission(employee.id, menuItem.key)}
+                                    disabled={isDefaultPermission}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })
             )}
           </div>
         </CardContent>
