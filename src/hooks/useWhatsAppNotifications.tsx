@@ -82,21 +82,89 @@ export const TRIGGER_TYPES = [
   { value: 'custom', label: 'Personalizado', icon: '⚙️', description: 'Gatilho customizado' },
 ];
 
-export const TEMPLATE_VARIABLES = [
-  { variable: '{cliente}', description: 'Nome do cliente' },
-  { variable: '{empresa}', description: 'Nome da empresa' },
-  { variable: '{campanha}', description: 'Nome da campanha' },
-  { variable: '{cpa_atual}', description: 'CPA atual' },
-  { variable: '{cpa_meta}', description: 'CPA meta/médio' },
-  { variable: '{variacao_cpa}', description: 'Variação % do CPA' },
-  { variable: '{saldo}', description: 'Saldo disponível' },
-  { variable: '{gasto_diario}', description: 'Gasto médio diário' },
-  { variable: '{dias_restantes}', description: 'Dias de saldo restante' },
-  { variable: '{data}', description: 'Data atual' },
-  { variable: '{hora}', description: 'Hora atual' },
-  { variable: '{gestor}', description: 'Nome do gestor' },
-  { variable: '{link_dashboard}', description: 'Link do dashboard' },
+// Grouped template variables for better organization
+export const TEMPLATE_VARIABLE_GROUPS = [
+  {
+    name: 'Identificação',
+    icon: '👤',
+    variables: [
+      { variable: '{cliente}', description: 'Nome do cliente' },
+      { variable: '{empresa}', description: 'Nome da empresa' },
+      { variable: '{gestor}', description: 'Nome do gestor' },
+    ],
+  },
+  {
+    name: 'Métricas de Performance',
+    icon: '📊',
+    variables: [
+      { variable: '{investimento}', description: 'Total investido no período (R$)' },
+      { variable: '{impressoes}', description: 'Total de impressões' },
+      { variable: '{cliques}', description: 'Total de cliques' },
+      { variable: '{alcance}', description: 'Pessoas alcançadas' },
+      { variable: '{conversoes}', description: 'Total de conversões/leads' },
+      { variable: '{frequencia}', description: 'Frequência média' },
+    ],
+  },
+  {
+    name: 'Indicadores de Custo',
+    icon: '💰',
+    variables: [
+      { variable: '{cpm}', description: 'Custo por mil impressões (R$)' },
+      { variable: '{cpc}', description: 'Custo por clique (R$)' },
+      { variable: '{cpa_atual}', description: 'Custo por aquisição atual (R$)' },
+      { variable: '{ctr}', description: 'Taxa de cliques (%)' },
+    ],
+  },
+  {
+    name: 'Comparações',
+    icon: '📈',
+    variables: [
+      { variable: '{variacao_investimento}', description: 'Variação % do investimento vs período anterior' },
+      { variable: '{variacao_conversoes}', description: 'Variação % das conversões' },
+      { variable: '{variacao_ctr}', description: 'Variação % do CTR' },
+      { variable: '{variacao_alcance}', description: 'Variação % do alcance' },
+      { variable: '{variacao_cpa}', description: 'Variação % do CPA' },
+    ],
+  },
+  {
+    name: 'Saldo e Conta',
+    icon: '🏦',
+    variables: [
+      { variable: '{saldo}', description: 'Saldo disponível na conta (R$)' },
+      { variable: '{gasto_diario}', description: 'Gasto médio diário (R$)' },
+      { variable: '{dias_restantes}', description: 'Dias de saldo restante' },
+    ],
+  },
+  {
+    name: 'Período e Data',
+    icon: '📅',
+    variables: [
+      { variable: '{data}', description: 'Data atual' },
+      { variable: '{hora}', description: 'Hora atual' },
+      { variable: '{periodo_inicio}', description: 'Data de início do período' },
+      { variable: '{periodo_fim}', description: 'Data de fim do período' },
+    ],
+  },
+  {
+    name: 'Campanhas',
+    icon: '🎯',
+    variables: [
+      { variable: '{campanha}', description: 'Nome da campanha' },
+      { variable: '{campanhas_ativas}', description: 'Número de campanhas ativas' },
+      { variable: '{melhor_campanha}', description: 'Campanha com mais conversões' },
+    ],
+  },
+  {
+    name: 'Links',
+    icon: '🔗',
+    variables: [
+      { variable: '{link_dashboard}', description: 'Link do dashboard público do cliente' },
+    ],
+  },
 ];
+
+// Flat array for backwards compatibility
+export const TEMPLATE_VARIABLES = TEMPLATE_VARIABLE_GROUPS.flatMap(g => g.variables);
 
 export function useWhatsAppNotifications(companyId: string | undefined) {
   const { toast } = useToast();
