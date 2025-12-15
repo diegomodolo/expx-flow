@@ -6,7 +6,9 @@ import { CreateAudienceModal } from "@/components/audiences/CreateAudienceModal"
 import { UploadLeadsModal } from "@/components/audiences/UploadLeadsModal";
 import { AudienceDetailsModal } from "@/components/audiences/AudienceDetailsModal";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, RefreshCw, Users, AlertCircle, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function ClientePublicos() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +20,7 @@ export function ClientePublicos() {
     deleteAudience,
     getAudienceDetails,
     addUsersToAudience,
+    error,
   } = useMetaAudiences(id || null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -27,7 +30,7 @@ export function ClientePublicos() {
 
   useEffect(() => {
     if (id) {
-      fetchAudiences(true); // sync on mount
+      fetchAudiences(true);
     }
   }, [id]);
 
@@ -51,6 +54,46 @@ export function ClientePublicos() {
   const handleDeleteAudience = async (audienceId: string) => {
     await deleteAudience(audienceId);
   };
+
+  // Check if error is about missing Facebook integration
+  const isFacebookNotConnected = error?.includes('Facebook integration not found') || 
+                                  error?.includes('ad account') ||
+                                  error?.includes('not have an ad account');
+
+  if (isFacebookNotConnected) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Públicos Personalizados
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Gerencie os públicos personalizados do Meta Ads para este cliente
+          </p>
+        </div>
+
+        <Card>
+          <CardContent className="py-12 flex flex-col items-center justify-center text-center">
+            <AlertCircle className="h-12 w-12 mb-4 text-amber-500" />
+            <h4 className="text-lg font-medium mb-2">Integração Meta não configurada</h4>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              Para gerenciar públicos personalizados, é necessário que a empresa tenha uma
+              integração ativa com o Meta (Facebook) e que o cliente tenha uma conta de anúncios vinculada.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link to="/configuracoes/integracoes">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Configurar Integração
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
