@@ -166,14 +166,42 @@ export const TEMPLATE_VARIABLE_GROUPS = [
 // Flat array for backwards compatibility
 export const TEMPLATE_VARIABLES = TEMPLATE_VARIABLE_GROUPS.flatMap(g => g.variables);
 
-// Calculate next execution time based on schedule
+// Get current time in São Paulo timezone (UTC-3)
+function getSaoPauloTime(): { hour: number; day: number; date: number; now: Date } {
+  const now = new Date();
+  // São Paulo = UTC-3
+  const saoPauloOffset = -3;
+  const utcHour = now.getUTCHours();
+  const utcDay = now.getUTCDay();
+  const utcDate = now.getUTCDate();
+  const utcMonth = now.getUTCMonth();
+  const utcYear = now.getUTCFullYear();
+  
+  // Ajustar para São Paulo
+  let spHour = utcHour + saoPauloOffset;
+  let spDay = utcDay;
+  let spDate = utcDate;
+  
+  // Se passar da meia-noite para trás
+  if (spHour < 0) {
+    spHour += 24;
+    const tempDate = new Date(Date.UTC(utcYear, utcMonth, utcDate - 1));
+    spDay = tempDate.getUTCDay();
+    spDate = tempDate.getUTCDate();
+  }
+  
+  return { hour: spHour, day: spDay, date: spDate, now };
+}
+
+// Calculate next execution time based on schedule (in São Paulo timezone)
 function calculateNextExecutionTime(schedule: {
   frequency_type: string;
   execution_hours: number[];
   days_of_week: number[];
   day_of_month: number | null;
 }): Date {
-  const now = new Date();
+  const sp = getSaoPauloTime();
+  const now = sp.now;
   const next = new Date(now);
   
   switch (schedule.frequency_type) {
@@ -188,27 +216,28 @@ function calculateNextExecutionTime(schedule: {
       break;
       
     case 'daily': {
-      const currentHour = now.getHours();
+      const currentHour = sp.hour;
       const hours = schedule.execution_hours || [9];
       const nextHour = hours.find(h => h > currentHour);
       
       if (nextHour !== undefined) {
-        next.setHours(nextHour, 0, 0, 0);
+        // Converter hora de São Paulo para UTC
+        next.setUTCHours(nextHour + 3, 0, 0, 0);
       } else {
         next.setDate(next.getDate() + 1);
-        next.setHours(hours[0] || 9, 0, 0, 0);
+        next.setUTCHours((hours[0] || 9) + 3, 0, 0, 0);
       }
       break;
     }
       
     case 'weekly': {
-      const currentDay = now.getDay();
-      const currentDayHour = now.getHours();
+      const currentDay = sp.day;
+      const currentDayHour = sp.hour;
       const execHour = (schedule.execution_hours || [9])[0] || 9;
       const daysOfWeek = schedule.days_of_week || [1, 2, 3, 4, 5];
       
       if (daysOfWeek.includes(currentDay) && currentDayHour < execHour) {
-        next.setHours(execHour, 0, 0, 0);
+        next.setUTCHours(execHour + 3, 0, 0, 0);
       } else {
         let daysToAdd = 1;
         for (let i = 1; i <= 7; i++) {
@@ -219,7 +248,7 @@ function calculateNextExecutionTime(schedule: {
           }
         }
         next.setDate(next.getDate() + daysToAdd);
-        next.setHours(execHour, 0, 0, 0);
+        next.setUTCHours(execHour + 3, 0, 0, 0);
       }
       break;
     }
@@ -228,13 +257,13 @@ function calculateNextExecutionTime(schedule: {
       const targetDay = schedule.day_of_month || 1;
       const monthExecHour = (schedule.execution_hours || [9])[0] || 9;
       
-      if (now.getDate() < targetDay || (now.getDate() === targetDay && now.getHours() < monthExecHour)) {
+      if (sp.date < targetDay || (sp.date === targetDay && sp.hour < monthExecHour)) {
         next.setDate(targetDay);
-        next.setHours(monthExecHour, 0, 0, 0);
+        next.setUTCHours(monthExecHour + 3, 0, 0, 0);
       } else {
         next.setMonth(next.getMonth() + 1);
         next.setDate(targetDay);
-        next.setHours(monthExecHour, 0, 0, 0);
+        next.setUTCHours(monthExecHour + 3, 0, 0, 0);
       }
       break;
     }

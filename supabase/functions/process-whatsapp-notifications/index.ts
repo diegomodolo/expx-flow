@@ -79,12 +79,44 @@ function replaceVariables(template: string, data: Record<string, any>): string {
   return result;
 }
 
+// Get current time in São Paulo timezone (UTC-3)
+function getSaoPauloTime(): { hour: number; day: number; date: number; month: number; year: number; now: Date } {
+  const now = new Date();
+  // São Paulo = UTC-3
+  const saoPauloOffset = -3;
+  const utcHour = now.getUTCHours();
+  const utcDay = now.getUTCDay();
+  const utcDate = now.getUTCDate();
+  const utcMonth = now.getUTCMonth();
+  const utcYear = now.getUTCFullYear();
+  
+  // Ajustar para São Paulo
+  let spHour = utcHour + saoPauloOffset;
+  let spDay = utcDay;
+  let spDate = utcDate;
+  let spMonth = utcMonth;
+  let spYear = utcYear;
+  
+  // Se passar da meia-noite para trás
+  if (spHour < 0) {
+    spHour += 24;
+    // Calcular o dia anterior corretamente
+    const tempDate = new Date(Date.UTC(utcYear, utcMonth, utcDate - 1));
+    spDay = tempDate.getUTCDay();
+    spDate = tempDate.getUTCDate();
+    spMonth = tempDate.getUTCMonth();
+    spYear = tempDate.getUTCFullYear();
+  }
+  
+  return { hour: spHour, day: spDay, date: spDate, month: spMonth, year: spYear, now };
+}
+
 // Check if current hour is in quiet hours
 function isQuietHour(quietHours: { start: string; end: string } | null): boolean {
   if (!quietHours) return false;
   
-  const now = new Date();
-  const currentHour = now.getHours();
+  const sp = getSaoPauloTime();
+  const currentHour = sp.hour;
   const startHour = parseInt(quietHours.start.split(':')[0]);
   const endHour = parseInt(quietHours.end.split(':')[0]);
   
@@ -292,11 +324,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentDay = now.getDay();
-    const currentDate = now.getDate();
+    const sp = getSaoPauloTime();
+    const currentHour = sp.hour;
+    const currentDay = sp.day;
+    const currentDate = sp.date;
     
-    console.log(`Current time: ${now.toISOString()}, hour: ${currentHour}, day: ${currentDay}, date: ${currentDate}`);
+    console.log(`Current UTC time: ${now.toISOString()}`);
+    console.log(`Current São Paulo time: hour=${currentHour}, day=${currentDay}, date=${currentDate}`);
     
     // Get all active triggers (separate query)
     const { data: triggers, error: triggersError } = await supabase
