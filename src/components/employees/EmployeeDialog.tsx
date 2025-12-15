@@ -32,32 +32,36 @@ export function EmployeeDialog({ open, onOpenChange, onSubmit, employee, title, 
   const [loading, setLoading] = useState(false);
   const { teams } = useTeams();
 
-  // Update form data when employee prop changes
+  // Update form data when employee prop changes or dialog opens
   useEffect(() => {
-    if (employee) {
-      setFormData({
-        name: employee.name || "",
-        email: employee.email || "",
-        phone: employee.phone || "",
-        role: employee.role || "",
-        team_id: employee.team_id || "",
-        status: employee.status || "active",
-        start_date: employee.start_date || "",
-        skills: employee.skills || "",
-        avatar: employee.avatar || ""
-      });
-    } else {
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        role: "",
-        team_id: "",
-        status: "active",
-        start_date: "",
-        skills: "",
-        avatar: ""
-      });
+    if (open) {
+      if (employee) {
+        console.log("EmployeeDialog: Loading employee data", employee);
+        setFormData({
+          name: employee.name || "",
+          email: employee.email || "",
+          phone: employee.phone || "",
+          role: employee.role || "",
+          team_id: employee.team_id || "",
+          status: employee.status || "active",
+          start_date: employee.start_date || "",
+          skills: employee.skills || "",
+          avatar: employee.avatar || ""
+        });
+      } else {
+        console.log("EmployeeDialog: Creating new employee (empty form)");
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          role: "",
+          team_id: "",
+          status: "active",
+          start_date: "",
+          skills: "",
+          avatar: ""
+        });
+      }
     }
   }, [employee, open]);
 
