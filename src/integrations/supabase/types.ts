@@ -6048,6 +6048,8 @@ export type Database = {
         | "agentes-ia"
         | "editar-agentes"
         | "editor-funil"
+        | "geradores"
+        | "whatsapp"
       payment_type: "prepaid" | "postpaid"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
@@ -6197,6 +6199,8 @@ export const Constants = {
         "agentes-ia",
         "editar-agentes",
         "editor-funil",
+        "geradores",
+        "whatsapp",
       ],
       payment_type: ["prepaid", "postpaid"],
       task_origin: ["dashboard", "manual", "automation"],
