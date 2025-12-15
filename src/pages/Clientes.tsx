@@ -1379,9 +1379,10 @@ const Clientes = () => {
         )}
 
         <ClientDialog
+          key={selectedClient?.id ?? dialogMode}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          client={selectedClient}
+          client={selectedClient ?? undefined}
           title={dialogMode === 'create' ? 'Adicionar Cliente' : 'Editar Cliente'}
           onSubmit={async (clientData) => {
             if (dialogMode === 'create') {
