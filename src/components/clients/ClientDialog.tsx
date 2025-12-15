@@ -144,7 +144,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   });
 
   useEffect(() => {
-    if (client && open) {
+    if (open && client) {
       setFormData({
         name: client.name || "",
         email: client.email || "",
@@ -177,8 +177,40 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       
       const rechargeDay = client.facebook_ad_accounts?.recharge_day;
       setRechargeDayValue(rechargeDay ? rechargeDay.toString() : "none");
+    } else if (open && !client) {
+      // Reset form for new client
+      setFormData({
+        name: "",
+        email: "",
+        company: "",
+        sector: "",
+        status: "excelente" as ClientStatus,
+        avatar: "",
+        monthly_budget: 0,
+        target_audience: "",
+        product_name: "",
+        voice_tone: "",
+        objectives: "",
+        preferred_platforms: [],
+        campaign_type: "",
+        notes: "",
+        ad_account_id: "",
+        google_account_id: "",
+        facebook_page_id: "",
+        instagram_account_id: "",
+        website_url: "",
+        inactive_reason: "",
+        team_id: "none",
+        payment_type: "prepaid" as 'prepaid' | 'postpaid',
+        presentation_logo: "",
+        presentation_bg_image: "",
+        presentation_overlay_color: "#1a73e8",
+        presentation_overlay_opacity: 0.7
+      });
+      setLocalClient(undefined);
+      setRechargeDayValue("none");
     }
-  }, [client?.id, open]);
+  }, [open, client]);
 
   useEffect(() => {
     if (open) {
