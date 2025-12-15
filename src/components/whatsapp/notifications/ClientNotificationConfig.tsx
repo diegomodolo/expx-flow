@@ -96,8 +96,10 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
     deleteSettings,
     upsertSubscription,
     createContact,
+    createContactAsync,
     isCreatingContact,
     updateContact,
+    updateContactAsync,
     deleteContact,
   } = useClientNotificationSettings(companyId);
 
@@ -313,41 +315,43 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
     setIsContactModalOpen(true);
   };
 
-  const handleSaveContact = () => {
+  const handleSaveContact = async () => {
     const settingsEntry = clientSettings.find(s => s.client_id === contactClientId);
     
-    if (editingContact) {
-      // Updating existing contact
-      updateContact({
-        id: editingContact.id,
-        contactName,
-        phone: contactPhone.replace(/\D/g, ''),
-        email: contactEmail || undefined,
-      });
-    } else if (contactMode === 'select' && selectedExistingContactId) {
-      // Selecting existing contact - no need to create, it's already in the DB
-      // Just refresh local data to show it
-    } else {
-      // Creating new contact
-      createContact({
-        clientId: contactClientId,
-        contactName,
-        phone: contactPhone.replace(/\D/g, ''),
-        email: contactEmail || undefined,
-      });
-    }
-    
-    setIsContactModalOpen(false);
-    
-    // Refresh local data
-    if (settingsEntry) {
-      fetchClientContacts(contactClientId).then(contacts => {
+    try {
+      if (editingContact) {
+        // Updating existing contact
+        await updateContactAsync({
+          id: editingContact.id,
+          contactName,
+          phone: contactPhone.replace(/\D/g, ''),
+          email: contactEmail || undefined,
+        });
+      } else if (contactMode === 'select' && selectedExistingContactId) {
+        // Selecting existing contact - it's already in the DB, just refresh
+      } else {
+        // Creating new contact
+        await createContactAsync({
+          clientId: contactClientId,
+          contactName,
+          phone: contactPhone.replace(/\D/g, ''),
+          email: contactEmail || undefined,
+        });
+      }
+      
+      // Refresh local data after mutation completes
+      if (settingsEntry) {
+        const contacts = await fetchClientContacts(contactClientId);
         setClientData(prev => ({
           ...prev,
           [settingsEntry.id]: { ...prev[settingsEntry.id], contacts },
         }));
-      });
+      }
+    } catch (error) {
+      console.error('Error saving contact:', error);
     }
+    
+    setIsContactModalOpen(false);
   };
 
   const handleDeleteContact = () => {
