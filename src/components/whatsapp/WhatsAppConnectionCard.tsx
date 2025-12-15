@@ -139,12 +139,12 @@ export function WhatsAppConnectionCard({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="client_token">Client-Token (Opcional)</Label>
+          <Label htmlFor="client_token">Client-Token</Label>
           <div className="relative">
             <Input
               id="client_token"
               type={showClientToken ? "text" : "password"}
-              placeholder="Token adicional para webhooks"
+              placeholder="Token de segurança da conta"
               value={clientToken}
               onChange={(e) => setClientToken(e.target.value)}
               className="pr-10"
@@ -160,7 +160,7 @@ export function WhatsAppConnectionCard({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Necessário apenas para receber webhooks
+            Encontre em Z-API → Segurança → Account Security Token
           </p>
         </div>
 
