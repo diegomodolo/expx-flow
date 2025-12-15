@@ -1,46 +1,48 @@
-import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useState } from "react";
 
 export interface Sector {
   id: string;
   name: string;
-  user_id: string;
+  description?: string | null;
   company_id: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
+/**
+ * Hook unificado para gerenciar setores/segmentos
+ * Usa a tabela lead_segments com segment_type = 'sector'
+ * para manter sincronização entre cadastro de clientes e Lead Intelligence Hub
+ */
 export const useSectors = () => {
-  const [sectors, setSectors] = useState<Sector[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { activeCompany } = useCompany();
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchSectors = async () => {
-    if (!user || !activeCompany) {
-      setLoading(false);
-      return;
-    }
+  const companyId = activeCompany?.company_id;
 
-    try {
-      setLoading(true);
+  const { data: sectors = [], isLoading: loading, refetch: fetchSectors } = useQuery({
+    queryKey: ['sectors', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
       const { data, error } = await supabase
-        .from("sectors")
-        .select("*")
-        .eq("company_id", activeCompany.company_id)
+        .from("lead_segments")
+        .select("id, name, description, company_id, created_at, updated_at")
+        .eq("company_id", companyId)
+        .eq("segment_type", "sector")
         .order("name", { ascending: true });
 
       if (error) throw error;
-      setSectors(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar setores");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (data || []) as Sector[];
+    },
+    enabled: !!user && !!companyId,
+  });
 
   const createSector = async (name: string): Promise<Sector | null> => {
     if (!user) {
@@ -48,34 +50,36 @@ export const useSectors = () => {
       return null;
     }
 
-    if (!activeCompany) {
+    if (!companyId) {
       setError("Nenhuma empresa selecionada");
       return null;
     }
 
     try {
       const { data, error } = await supabase
-        .from("sectors")
+        .from("lead_segments")
         .insert([
           {
             name: name.trim(),
-            user_id: user.id,
-            company_id: activeCompany.company_id,
+            company_id: companyId,
+            segment_type: "sector",
+            is_auto: false,
           },
         ])
-        .select()
+        .select("id, name, description, company_id, created_at, updated_at")
         .single();
 
       if (error) throw error;
 
       if (data) {
-        setSectors((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-        return data;
+        // Invalida ambas as queries para sincronizar
+        queryClient.invalidateQueries({ queryKey: ['sectors'] });
+        queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
+        return data as Sector;
       }
       return null;
     } catch (err: any) {
-      // Handle specific error cases
-      if (err.code === '23505' && err.message.includes('sectors_name_company_unique')) {
+      if (err.code === '23505') {
         setError(`O setor "${name.trim()}" já existe nesta empresa`);
       } else {
         setError(err instanceof Error ? err.message : "Erro ao criar setor");
@@ -92,20 +96,18 @@ export const useSectors = () => {
 
     try {
       const { data, error } = await supabase
-        .from("sectors")
-        .update(updates)
+        .from("lead_segments")
+        .update({ name: updates.name, description: updates.description })
         .eq("id", id)
-        .select()
+        .select("id, name, description, company_id, created_at, updated_at")
         .single();
 
       if (error) throw error;
 
       if (data) {
-        setSectors((prev) =>
-          prev.map((sector) => (sector.id === id ? data : sector))
-            .sort((a, b) => a.name.localeCompare(b.name))
-        );
-        return data;
+        queryClient.invalidateQueries({ queryKey: ['sectors'] });
+        queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
+        return data as Sector;
       }
       return null;
     } catch (err) {
@@ -121,21 +123,18 @@ export const useSectors = () => {
     }
 
     try {
-      const { error } = await supabase.from("sectors").delete().eq("id", id);
+      const { error } = await supabase.from("lead_segments").delete().eq("id", id);
 
       if (error) throw error;
 
-      setSectors((prev) => prev.filter((sector) => sector.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['sectors'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao excluir setor");
       return false;
     }
   };
-
-  useEffect(() => {
-    fetchSectors();
-  }, [user?.id, activeCompany?.company_id]);
 
   return {
     sectors,
