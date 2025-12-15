@@ -693,12 +693,12 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
 
             <div className="space-y-2">
               <Label>Gestor Responsável (Colaborador)</Label>
-              <Select value={selectedGestorId} onValueChange={setSelectedGestorId}>
+              <Select value={selectedGestorId || "__none__"} onValueChange={(v) => setSelectedGestorId(v === "__none__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um gestor (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
                   {sortedEmployees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.name}
@@ -734,12 +734,12 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Gestor Responsável (Colaborador)</Label>
-              <Select value={editGestorId} onValueChange={setEditGestorId}>
+              <Select value={editGestorId || "__none__"} onValueChange={(v) => setEditGestorId(v === "__none__" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um gestor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
                   {sortedEmployees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.name}
