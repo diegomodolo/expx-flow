@@ -122,15 +122,16 @@ serve(async (req) => {
 
     // Get client contacts if needed
     if (destination === 'cliente' || destination === 'ambos') {
-      const { data: contacts } = await supabase
+      // First try whatsapp_client_contacts
+      const { data: whatsappContacts } = await supabase
         .from("whatsapp_client_contacts")
         .select("*")
         .eq("company_id", companyId)
         .eq("client_id", clientId)
         .eq("is_active", true);
 
-      if (contacts) {
-        for (const contact of contacts) {
+      if (whatsappContacts && whatsappContacts.length > 0) {
+        for (const contact of whatsappContacts) {
           recipients.push({
             phone: contact.phone,
             profile: 'cliente',
@@ -138,11 +139,34 @@ serve(async (req) => {
           });
         }
       }
+
+      // Also check client_contacts table (centralized contacts)
+      const { data: clientContacts } = await supabase
+        .from("client_contacts")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true);
+
+      if (clientContacts) {
+        for (const contact of clientContacts) {
+          // Only add if phone exists and not already added
+          if (contact.phone && !recipients.some(r => r.phone.replace(/\D/g, '') === contact.phone.replace(/\D/g, ''))) {
+            recipients.push({
+              phone: contact.phone,
+              profile: 'cliente',
+              name: contact.name,
+            });
+          }
+        }
+      }
     }
 
     if (recipients.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: "Nenhum destinatário encontrado para este cliente" }),
+        JSON.stringify({ 
+          success: false, 
+          error: "Nenhum destinatário encontrado. Cadastre contatos para este cliente ou associe um gestor." 
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
