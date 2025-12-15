@@ -25,6 +25,7 @@ import {
   Zap,
   Loader2,
   Share2,
+  UsersRound,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -178,6 +179,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/leads-desqualificados`,
       icon: UserX,
       description: "Gerenciar leads desqualificados"
+    },
+    {
+      title: "Públicos Meta",
+      href: `/clientes/${clientId}/publicos`,
+      icon: UsersRound,
+      description: "Gerenciar públicos personalizados"
     },
     {
       title: "Redes Sociais",
