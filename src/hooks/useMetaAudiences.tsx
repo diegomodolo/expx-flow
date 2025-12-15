@@ -32,12 +32,14 @@ export interface UploadResult {
 export function useMetaAudiences(clientId: string | null) {
   const [loading, setLoading] = useState(false);
   const [audiences, setAudiences] = useState<MetaAudience[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchAudiences = useCallback(async (sync = false) => {
     if (!clientId) return;
 
     setLoading(true);
+    setError(null);
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
@@ -55,13 +57,18 @@ export function useMetaAudiences(clientId: string | null) {
       if (!data.success) throw new Error(data.error);
 
       setAudiences(data.audiences || []);
-    } catch (error: any) {
-      console.error('Error fetching audiences:', error);
-      toast({
-        title: 'Erro ao carregar públicos',
-        description: error.message,
-        variant: 'destructive',
-      });
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching audiences:', err);
+      setError(err.message);
+      // Only show toast for non-integration errors
+      if (!err.message?.includes('Facebook integration') && !err.message?.includes('ad account')) {
+        toast({
+          title: 'Erro ao carregar públicos',
+          description: err.message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -248,6 +255,7 @@ export function useMetaAudiences(clientId: string | null) {
   return {
     loading,
     audiences,
+    error,
     fetchAudiences,
     createAudience,
     deleteAudience,
