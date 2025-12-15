@@ -62,6 +62,8 @@ import {
   UserCog,
   Mail,
   Bell,
+  Play,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
@@ -70,6 +72,8 @@ import { useClientNotificationSettings, ClientNotificationSettings, ClientContac
 import { useClientContacts } from "@/hooks/useClientContacts";
 import { NotificationTrigger } from "@/hooks/useWhatsAppNotifications";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClientNotificationConfigProps {
   companyId: string | undefined;
@@ -83,6 +87,7 @@ const DESTINATION_OPTIONS = [
 ];
 
 export function ClientNotificationConfig({ companyId, triggers }: ClientNotificationConfigProps) {
+  const { toast } = useToast();
   const { clients } = useClients();
   const { employees } = useEmployees();
   const {
@@ -379,6 +384,71 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
     return phone;
   };
 
+  // Format trigger frequency for display
+  const formatTriggerFrequency = (trigger: NotificationTrigger) => {
+    const schedule = trigger.schedule;
+    if (!schedule) return null;
+
+    const frequencyLabels: Record<string, string> = {
+      'realtime': 'Tempo real',
+      'hourly': 'A cada hora',
+      'daily': 'Diário',
+      'weekly': 'Semanal',
+      'monthly': 'Mensal',
+    };
+
+    let frequencyText = frequencyLabels[schedule.frequency_type] || schedule.frequency_type;
+
+    if (schedule.frequency_type === 'daily' && schedule.execution_hours?.length > 0) {
+      const hours = schedule.execution_hours.map(h => `${h}h`).join(', ');
+      frequencyText += ` às ${hours}`;
+    } else if (schedule.frequency_type === 'weekly' && schedule.days_of_week?.length > 0) {
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const days = schedule.days_of_week.map(d => dayNames[d]).join(', ');
+      frequencyText += ` (${days})`;
+    } else if (schedule.frequency_type === 'monthly' && schedule.day_of_month) {
+      frequencyText += ` (dia ${schedule.day_of_month})`;
+    }
+
+    return frequencyText;
+  };
+
+  // State for test sending
+  const [testingSendTrigger, setTestingSendTrigger] = useState<string | null>(null);
+
+  // Handle test send
+  const handleTestSend = async (triggerId: string, clientId: string, destination: string) => {
+    setTestingSendTrigger(`${triggerId}-${clientId}`);
+    
+    try {
+      // Call edge function to test send the trigger
+      const { error } = await supabase.functions.invoke('test-send-notification', {
+        body: {
+          triggerId,
+          clientId,
+          destination,
+          companyId,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Teste enviado!',
+        description: 'O relatório de teste foi enviado com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Error sending test:', error);
+      toast({
+        title: 'Erro ao enviar teste',
+        description: error.message || 'Ocorreu um erro ao enviar o teste.',
+        variant: 'destructive',
+      });
+    } finally {
+      setTestingSendTrigger(null);
+    }
+  };
+
   if (isLoadingSettings) {
     return (
       <Card>
@@ -593,7 +663,7 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
 
                                 {triggers.length === 0 ? (
                                   <p className="text-sm text-muted-foreground text-center py-2">
-                                    Nenhum gatilho configurado
+                                    Nenhum relatório configurado
                                   </p>
                                 ) : (
                                   <div className="space-y-2">
@@ -603,50 +673,79 @@ export function ClientNotificationConfig({ companyId, triggers }: ClientNotifica
                                       );
                                       const isSubscribed = subscription?.is_active ?? false;
                                       const destination = subscription?.destination || 'ambos';
+                                      const frequencyText = formatTriggerFrequency(trigger);
+                                      const isTestingSend = testingSendTrigger === `${trigger.id}-${settings.client_id}`;
 
                                       return (
                                         <div
                                           key={trigger.id}
-                                          className="flex items-center justify-between p-2 rounded-md bg-muted/30"
+                                          className="flex flex-col gap-2 p-3 rounded-md bg-muted/30"
                                         >
-                                          <div className="flex items-center gap-3">
-                                            <Switch
-                                              checked={isSubscribed}
-                                              onCheckedChange={(checked) =>
-                                                handleSubscriptionChange(settings.id, trigger.id, destination, checked)
-                                              }
-                                            />
-                                            <div>
-                                              <span className="font-medium text-sm">{trigger.trigger_name}</span>
-                                              {trigger.description && (
-                                                <p className="text-xs text-muted-foreground">
-                                                  {trigger.description}
-                                                </p>
-                                              )}
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                              <Switch
+                                                checked={isSubscribed}
+                                                onCheckedChange={(checked) =>
+                                                  handleSubscriptionChange(settings.id, trigger.id, destination, checked)
+                                                }
+                                              />
+                                              <div>
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-medium text-sm">{trigger.trigger_name}</span>
+                                                  {frequencyText && (
+                                                    <Badge variant="outline" className="text-xs font-normal">
+                                                      <Clock className="h-3 w-3 mr-1" />
+                                                      {frequencyText}
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                {trigger.description && (
+                                                  <p className="text-xs text-muted-foreground">
+                                                    {trigger.description}
+                                                  </p>
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
 
                                           {isSubscribed && (
-                                            <Select
-                                              value={destination}
-                                              onValueChange={(value: 'gestor' | 'cliente' | 'ambos') =>
-                                                handleSubscriptionChange(settings.id, trigger.id, value, true)
-                                              }
-                                            >
-                                              <SelectTrigger className="w-48 h-8 text-xs">
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {DESTINATION_OPTIONS.map((opt) => (
-                                                  <SelectItem key={opt.value} value={opt.value}>
-                                                    <div className="flex items-center gap-2">
-                                                      <span>{opt.icon}</span>
-                                                      <span>{opt.label}</span>
-                                                    </div>
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
+                                            <div className="flex items-center gap-2 ml-9">
+                                              <Select
+                                                value={destination}
+                                                onValueChange={(value: 'gestor' | 'cliente' | 'ambos') =>
+                                                  handleSubscriptionChange(settings.id, trigger.id, value, true)
+                                                }
+                                              >
+                                                <SelectTrigger className="w-48 h-8 text-xs">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {DESTINATION_OPTIONS.map((opt) => (
+                                                    <SelectItem key={opt.value} value={opt.value}>
+                                                      <div className="flex items-center gap-2">
+                                                        <span>{opt.icon}</span>
+                                                        <span>{opt.label}</span>
+                                                      </div>
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleTestSend(trigger.id, settings.client_id, destination)}
+                                                disabled={isTestingSend}
+                                                className="h-8"
+                                              >
+                                                {isTestingSend ? (
+                                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                                ) : (
+                                                  <Play className="h-3 w-3 mr-1" />
+                                                )}
+                                                Testar
+                                              </Button>
+                                            </div>
                                           )}
                                         </div>
                                       );
