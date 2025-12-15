@@ -6316,9 +6316,13 @@ export type Database = {
       }
       whatsapp_notification_log: {
         Row: {
+          client_id: string | null
+          client_name: string | null
           company_id: string
+          contact_name: string | null
           delivered_at: string | null
           error_message: string | null
+          execution_log_id: string | null
           id: string
           message_content: string
           notification_type: string
@@ -6330,9 +6334,13 @@ export type Database = {
           zapi_message_id: string | null
         }
         Insert: {
+          client_id?: string | null
+          client_name?: string | null
           company_id: string
+          contact_name?: string | null
           delivered_at?: string | null
           error_message?: string | null
+          execution_log_id?: string | null
           id?: string
           message_content: string
           notification_type: string
@@ -6344,9 +6352,13 @@ export type Database = {
           zapi_message_id?: string | null
         }
         Update: {
+          client_id?: string | null
+          client_name?: string | null
           company_id?: string
+          contact_name?: string | null
           delivered_at?: string | null
           error_message?: string | null
+          execution_log_id?: string | null
           id?: string
           message_content?: string
           notification_type?: string
@@ -6363,6 +6375,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_notification_log_execution_log_id_fkey"
+            columns: ["execution_log_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_execution_log"
             referencedColumns: ["id"]
           },
         ]

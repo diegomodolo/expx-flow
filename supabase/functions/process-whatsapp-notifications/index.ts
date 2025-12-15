@@ -925,6 +925,26 @@ serve(async (req) => {
             message
           );
           
+          const messageStatus = success ? 'sent' : 'failed';
+          
+          // Save individual message to notification log
+          await supabase
+            .from('whatsapp_notification_log')
+            .insert({
+              company_id: trigger.company_id,
+              execution_log_id: logEntry.id,
+              client_id: clientId,
+              client_name: client.name,
+              contact_name: contact.contact_name,
+              recipient_phone: formattedPhone,
+              notification_type: trigger.trigger_type,
+              message_content: message,
+              status: messageStatus,
+              related_entity_type: 'trigger',
+              related_entity_id: trigger.id,
+              sent_at: new Date().toISOString(),
+            });
+          
           if (success) {
             messagesSent++;
             executionDetails.push({
