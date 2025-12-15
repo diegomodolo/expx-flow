@@ -370,6 +370,81 @@ serve(async (req) => {
 
     console.log(`Post ${postId} ${finalStatus}`, results);
 
+    // Send WhatsApp notification for post result
+    try {
+      const { data: whatsappConfig } = await supabase
+        .from('whatsapp_configs')
+        .select('*')
+        .eq('company_id', post.company_id)
+        .eq('is_active', true)
+        .eq('is_connected', true)
+        .maybeSingle();
+
+      if (whatsappConfig) {
+        const { data: prefs } = await supabase
+          .from('whatsapp_notification_preferences')
+          .select('notify_post_published, notify_post_failed')
+          .eq('company_id', post.company_id)
+          .maybeSingle();
+
+        const shouldNotify = allFailed 
+          ? (!prefs || prefs.notify_post_failed !== false)
+          : (prefs?.notify_post_published === true);
+
+        if (shouldNotify) {
+          const { data: recipients } = await supabase
+            .from('whatsapp_recipients')
+            .select('*')
+            .eq('company_id', post.company_id)
+            .eq('receive_alerts', true);
+
+          if (recipients && recipients.length > 0) {
+            const message = allFailed
+              ? `❌ *Falha na Publicação*
+
+Cliente: *${post.client?.name || 'N/A'}*
+Plataformas: ${post.platforms.join(', ')}
+Erro: ${errorMessages.join('; ') || 'Erro desconhecido'}
+
+📌 Verifique as configurações e tente novamente`
+              : `✅ *Post Publicado com Sucesso*
+
+Cliente: *${post.client?.name || 'N/A'}*
+Plataformas: ${post.platforms.join(', ')}
+Horário: ${new Date().toLocaleString('pt-BR')}
+
+${post.caption ? `📝 ${post.caption.substring(0, 80)}...` : ''}`;
+
+            for (const recipient of recipients) {
+              let phone = recipient.phone.replace(/\D/g, '');
+              if (!phone.startsWith('55')) {
+                phone = '55' + phone;
+              }
+
+              const zapiUrl = `https://api.z-api.io/instances/${whatsappConfig.instance_id}/token/${whatsappConfig.token}/send-text`;
+              
+              await fetch(zapiUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(whatsappConfig.client_token ? { 'Client-Token': whatsappConfig.client_token } : {}),
+                },
+                body: JSON.stringify({
+                  phone: phone,
+                  message: message,
+                }),
+              });
+
+              console.log(`WhatsApp notification sent to ${recipient.name} for post ${finalStatus}`);
+            }
+          }
+        }
+      }
+    } catch (whatsappError) {
+      console.error('Error sending WhatsApp notification:', whatsappError);
+      // Don't fail the request if WhatsApp fails
+    }
+
     return new Response(
       JSON.stringify({
         success: anySuccess,

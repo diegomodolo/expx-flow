@@ -1,5 +1,6 @@
 // Deno.serve is available natively in modern Deno
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0'
+import { sendWhatsAppAlerts, buildAlertMessage } from '../_shared/whatsapp-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1321,8 +1322,39 @@ async function processSync(
       clientStatus = 'red' // Emergencial
       if (updatedAdAccount.account_status !== 1) {
         statusReason = 'Conta de anúncios desabilitada'
+        
+        // Send WhatsApp alert for disabled account
+        console.log('📱 Sending WhatsApp alert for disabled account...')
+        sendWhatsAppAlerts(supabase, {
+          companyId: client.company_id,
+          notificationType: 'disabled_account',
+          message: buildAlertMessage('disabled_account', {
+            clientName: client.name,
+            accountName: updatedAdAccount.name || 'Conta Meta Ads',
+            reason: updatedAdAccount.disable_reason || 'Conta desabilitada pela Meta'
+          }),
+          relatedEntityType: 'client',
+          relatedEntityId: clientId,
+        }).catch(err => console.error('WhatsApp alert error:', err))
+        
       } else if (updatedAdAccount.is_prepaid && updatedAdAccount.balance <= 0) {
         statusReason = 'Sem fundos na conta de anúncios'
+        
+        // Send WhatsApp alert for low/zero balance
+        console.log('📱 Sending WhatsApp alert for zero balance...')
+        sendWhatsAppAlerts(supabase, {
+          companyId: client.company_id,
+          notificationType: 'low_balance',
+          message: buildAlertMessage('low_balance', {
+            clientName: client.name,
+            balance: 0,
+            dailySpend: totalActiveSpend > 0 ? totalActiveSpend / parseInt(period) : 0,
+            daysRemaining: 0
+          }),
+          relatedEntityType: 'client',
+          relatedEntityId: clientId,
+        }).catch(err => console.error('WhatsApp alert error:', err))
+        
       } else if (hasActiveCampaignsInDB && totalActiveSpend === 0) {
         statusReason = 'Sem fundos - campanhas ativas sem gastos'
       } else if (updatedAdAccount.disable_reason) {

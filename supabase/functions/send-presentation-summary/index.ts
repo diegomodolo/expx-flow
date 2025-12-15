@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -29,6 +30,7 @@ interface SummaryRequest {
   participants: Participant[];
   creatives: CreativeApproval[];
   meetingDate: string;
+  companyId?: string;
 }
 
 const CREATIVE_TYPE_LABELS: Record<string, string> = {
@@ -48,9 +50,10 @@ const handler = async (req: Request): Promise<Response> => {
       meetingId, 
       presentationName, 
       clientName, 
-      participants, 
-      creatives, 
-      meetingDate 
+      participants,
+      creatives,
+      meetingDate,
+      companyId,
     }: SummaryRequest = await req.json();
 
     console.log(`Enviando resumo da reunião ${meetingId} para ${participants.length} participantes`);
@@ -180,6 +183,86 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("Email de resumo enviado com sucesso:", emailResponse);
+
+    // Send WhatsApp summary if company has it configured
+    if (companyId) {
+      console.log("Attempting to send WhatsApp summary...");
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        // Check if company has WhatsApp configured
+        const { data: whatsappConfig } = await supabase
+          .from("whatsapp_configs")
+          .select("*")
+          .eq("company_id", companyId)
+          .eq("is_active", true)
+          .eq("is_connected", true)
+          .maybeSingle();
+
+        if (whatsappConfig) {
+          // Check if presentation summary notifications are enabled
+          const { data: prefs } = await supabase
+            .from("whatsapp_notification_preferences")
+            .select("notify_presentation_summary")
+            .eq("company_id", companyId)
+            .maybeSingle();
+
+          if (!prefs || prefs.notify_presentation_summary !== false) {
+            // Get recipients who receive reports
+            const { data: recipients } = await supabase
+              .from("whatsapp_recipients")
+              .select("*")
+              .eq("company_id", companyId)
+              .eq("receive_reports", true);
+
+            if (recipients && recipients.length > 0) {
+              const whatsappMessage = `✅ *Reunião de Aprovação Finalizada*
+
+Cliente: *${clientName}*
+Apresentação: ${presentationName}
+Data: ${new Date(meetingDate).toLocaleDateString("pt-BR")}
+
+📊 *Resultado:*
+• Aprovados: ${approved}
+• Reprovados: ${rejected}
+• Pendentes: ${pending}
+
+👥 Participantes: ${participants.map(p => p.name).join(", ")}
+
+_Resumo completo enviado por email_`;
+
+              for (const recipient of recipients) {
+                let phone = recipient.phone.replace(/\D/g, "");
+                if (!phone.startsWith("55")) {
+                  phone = "55" + phone;
+                }
+
+                const zapiUrl = `https://api.z-api.io/instances/${whatsappConfig.instance_id}/token/${whatsappConfig.token}/send-text`;
+                
+                await fetch(zapiUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(whatsappConfig.client_token ? { "Client-Token": whatsappConfig.client_token } : {}),
+                  },
+                  body: JSON.stringify({
+                    phone: phone,
+                    message: whatsappMessage,
+                  }),
+                });
+
+                console.log(`WhatsApp summary sent to ${recipient.name}`);
+              }
+            }
+          }
+        }
+      } catch (whatsappError) {
+        console.error("Error sending WhatsApp summary:", whatsappError);
+        // Don't fail the whole request if WhatsApp fails
+      }
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
