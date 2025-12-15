@@ -43,10 +43,10 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
   const columns = [
-    { id: 'todo', title: 'Pendente', color: 'bg-gray-50' },
-    { id: 'progress', title: 'Em Andamento', color: 'bg-blue-50' },
-    { id: 'review', title: 'Em Revisão', color: 'bg-purple-50' },
-    { id: 'done', title: 'Concluída', color: 'bg-green-50' },
+    { id: 'todo', title: 'Pendente', color: 'bg-muted/60', headerColor: 'text-muted-foreground', accentColor: 'border-l-gray-400' },
+    { id: 'progress', title: 'Em Andamento', color: 'bg-google-blue-50 dark:bg-google-blue-700/20', headerColor: 'text-google-blue-700 dark:text-google-blue-300', accentColor: 'border-l-google-blue-500' },
+    { id: 'review', title: 'Em Revisão', color: 'bg-purple-50 dark:bg-purple-900/20', headerColor: 'text-purple-700 dark:text-purple-300', accentColor: 'border-l-purple-500' },
+    { id: 'done', title: 'Concluída', color: 'bg-google-green-50 dark:bg-google-green-600/20', headerColor: 'text-google-green-600 dark:text-google-green-400', accentColor: 'border-l-google-green-500' },
   ];
 
   const priorityColors = {
@@ -126,16 +126,16 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
         
         return (
           <div key={column.id} className="flex flex-col">
-            <div className={`${column.color} p-4 rounded-t-lg border-b`}>
-              <h3 className="font-semibold text-gray-900 flex items-center justify-between">
+            <div className={`${column.color} p-4 rounded-t-lg border-b border-border`}>
+              <h3 className={`font-semibold ${column.headerColor} flex items-center justify-between`}>
                 {column.title}
-                <Badge variant="secondary">{columnTasks.length}</Badge>
+                <Badge variant="secondary" className="bg-background/80">{columnTasks.length}</Badge>
               </h3>
             </div>
             
             <div 
-              className={`flex-1 p-4 space-y-3 bg-gray-50/50 min-h-[500px] rounded-b-lg transition-colors ${
-                isDropTarget && canDrop ? 'bg-blue-100/50 border-2 border-blue-300 border-dashed' : ''
+              className={`flex-1 p-4 space-y-3 bg-muted/30 min-h-[500px] rounded-b-lg border border-t-0 border-border transition-colors ${
+                isDropTarget && canDrop ? 'bg-primary/10 border-2 border-primary border-dashed' : ''
               }`}
               onDragOver={handleDragOver}
               onDragEnter={() => handleDragEnter(column.id)}
@@ -145,7 +145,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               {columnTasks.map((task) => (
                 <Card 
                   key={task.id} 
-                  className={`p-4 shadow-sm hover:shadow-md transition-all cursor-move border-l-4 ${
+                  className={`p-4 shadow-google-sm hover:shadow-google-md transition-all cursor-move border-l-4 bg-card ${
                     draggedTask?.id === task.id ? 'opacity-50 rotate-3 scale-105' : ''
                   }`}
                   style={{ borderLeftColor: priorityColors[task.priority] }}
@@ -164,7 +164,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                         
                         <div className="flex-1 min-w-0">
                           {/* Título */}
-                          <h4 className="font-medium text-gray-900 text-sm leading-tight mb-2 line-clamp-2">
+                          <h4 className="font-medium text-foreground text-sm leading-tight mb-2 line-clamp-2">
                             {task.title}
                           </h4>
 
@@ -172,12 +172,12 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           {(task.client?.name || task.campaign?.name) && (
                             <div className="flex flex-wrap gap-1 mb-2">
                               {task.client?.name && (
-                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                <span className="text-xs bg-google-blue-100 dark:bg-google-blue-700/30 text-google-blue-700 dark:text-google-blue-300 px-2 py-0.5 rounded-full">
                                   👤 {task.client.name}
                                 </span>
                               )}
                               {task.campaign?.name && (
-                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                <span className="text-xs bg-google-green-100 dark:bg-google-green-600/30 text-google-green-600 dark:text-google-green-400 px-2 py-0.5 rounded-full">
                                   📊 {task.campaign.name}
                                 </span>
                               )}
@@ -186,7 +186,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           
                           {/* Descrição simplificada */}
                           {task.description && (
-                            <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                               {task.description}
                             </p>
                           )}
@@ -206,14 +206,14 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                                      {(task.responsible_name || 'U')?.charAt(0)?.toUpperCase()}
                                    </AvatarFallback>
                                  </Avatar>
-                                <span className="text-xs text-gray-600 font-medium">
+                                <span className="text-xs text-muted-foreground font-medium">
                                   {task.responsible_name}
                                 </span>
                               </div>
                               
                               {/* Data relativa */}
                               <p className={`text-xs font-medium ${
-                                isOverdue(task.due_date) ? 'text-red-500' : 'text-gray-400'
+                                isOverdue(task.due_date) ? 'text-destructive' : 'text-muted-foreground'
                               }`}>
                                 {formatDateRelative(task.due_date)}
                               </p>
@@ -228,7 +228,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="h-6 w-6 p-0 hover:bg-gray-100"
+                            className="h-6 w-6 p-0 hover:bg-muted"
                             onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking menu
                           >
                             <MoreHorizontal className="h-3 w-3" />
@@ -258,8 +258,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               
               {/* Drop zone indicator when column is empty */}
               {columnTasks.length === 0 && (
-                <div className={`text-center text-gray-400 py-8 rounded-lg border-2 border-dashed transition-colors ${
-                  isDropTarget && canDrop ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200'
+                <div className={`text-center text-muted-foreground py-8 rounded-lg border-2 border-dashed transition-colors ${
+                  isDropTarget && canDrop ? 'border-primary bg-primary/10 text-primary' : 'border-border'
                 }`}>
                   {isDropTarget && canDrop ? (
                     <>
@@ -277,8 +277,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               
               {/* Drop zone indicator when dragging over non-empty column */}
               {columnTasks.length > 0 && isDropTarget && canDrop && (
-                <div className="border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg p-4 text-center">
-                  <p className="text-sm font-medium text-blue-600">Solte aqui para mover</p>
+                <div className="border-2 border-dashed border-primary bg-primary/10 rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-primary">Solte aqui para mover</p>
                 </div>
               )}
             </div>
