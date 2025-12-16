@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
 import { QualificationRule, QualificationWeights, useLeadQualificationRules } from './useLeadQualificationRules';
 
-export type LeadClassification = 'ouro' | 'prata' | 'bronze';
+export type LeadClassification = 'ouro' | 'prata' | 'bronze' | 'descartado';
 
 export interface LeadScoreResult {
   globalScore: number;
@@ -223,6 +223,11 @@ function generateClassificationReason(
   globalScore: number,
   hasValidContact?: boolean
 ): string {
+  // Handle discarded leads first
+  if (classification === 'descartado') {
+    return `Lead DESCARTADO: E-mail e telefone inválidos ou suspeitos. Dados de contato insuficientes para trabalho comercial.`;
+  }
+
   const strongDimensions: string[] = [];
   const weakDimensions: string[] = [];
 
@@ -243,6 +248,8 @@ function generateClassificationReason(
       return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(', ')}.` : ''} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(', ')}.` : ''}${contactNote} Potencial com trabalho comercial.`;
     case 'bronze':
       return `Lead BRONZE (${globalScore} pts): ${weakDimensions.length > 0 ? `Pontos fracos em ${weakDimensions.join(', ')}.` : ''} Baixo valor comercial imediato.`;
+    default:
+      return `Lead não classificado.`;
   }
 }
 
@@ -274,10 +281,18 @@ export function useLeadScoring() {
     const hasValidPhone = isValidBrazilianPhone(leadData.phone || leadData.whatsapp);
     const hasValidContact = hasBusinessEmail && hasValidPhone;
 
+    // Check for invalid/fake contact data
+    const hasInvalidEmail = !hasBusinessEmail && leadData.email;
+    const hasInvalidPhone = !hasValidPhone && (leadData.phone || leadData.whatsapp);
+    const hasBothInvalidContacts = hasInvalidEmail && hasInvalidPhone;
+
     // Determine classification with authority validation
     let classification: LeadClassification = 'bronze';
     
-    if (globalScore >= weights.threshold_gold) {
+    // FIRST: Check if both email and phone are invalid/fake = DESCARTADO
+    if (hasBothInvalidContacts) {
+      classification = 'descartado';
+    } else if (globalScore >= weights.threshold_gold) {
       // Gold requires minimum authority score
       if (dimensionScores.authority >= 40) {
         classification = 'ouro';
@@ -289,6 +304,7 @@ export function useLeadScoring() {
     }
 
     // Valid contact guarantee: valid business email + valid phone = minimum prata
+    // (only applies if not already discarded)
     if (classification === 'bronze' && hasValidContact) {
       classification = 'prata';
     }
