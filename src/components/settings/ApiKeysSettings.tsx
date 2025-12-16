@@ -344,31 +344,234 @@ export const ApiKeysSettings = () => {
             Use estas endpoints para capturar e atualizar leads
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <h4 className="font-medium">Capturar Lead</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
 {`POST https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-capture-api
 Headers:
   X-API-Key: lih_xxxxx...
-  Content-Type: application/json
+  Content-Type: application/json`}
+            </pre>
+          </div>
 
-Body:
-{
-  "email": "lead@exemplo.com",      // obrigatório (email ou phone)
-  "phone": "+5511999999999",        // obrigatório (email ou phone)
-  "full_name": "Nome do Lead",
-  "city": "São Paulo",
-  "state": "SP",
-  "client_id": "uuid-do-cliente",   // obrigatório
-  "client_sector": "imobiliario",
-  "utm_source": "facebook",
-  "utm_campaign": "campanha-maio"
+          <div className="space-y-4">
+            <h4 className="font-medium">Campos do Body (JSON)</h4>
+            
+            {/* 1. Identificação do Lead */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">1. Identificação do Lead</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"full_name": "string",           // ✅ OBRIGATÓRIO - Nome completo
+"email": "string",               // ✅ OBRIGATÓRIO (email ou phone)
+"phone": "string",               // ✅ OBRIGATÓRIO (email ou phone)
+"lead_status": "string",         // Status: novo, qualificado, etc
+"primary_source": "string",      // Origem primária do lead
+"secondary_source": "string",    // Origem secundária / campanha
+"capture_url": "string",         // URL onde o lead foi capturado
+"capture_type": "string"         // ebook, webinar, oferta_direta, diagnostico`}
+              </pre>
+            </div>
+
+            {/* 2. Dados da Empresa */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">2. Dados da Empresa</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"company_name": "string",        // Nome da empresa
+"company_trade_name": "string",  // Nome fantasia
+"cnpj": "string",                // CNPJ
+"company_segment": "string",     // Segmento principal
+"company_subsegment": "string",  // Subsegmento
+"cnae": "string",                // CNAE (se disponível)
+"company_size": "string",        // ME, EPP, Média, Grande
+"monthly_revenue": "string",     // Faixa de faturamento mensal
+"annual_revenue": "string",      // Faixa de faturamento anual
+"employee_count": "string",      // Quantidade de funcionários (faixa)
+"years_in_market": number,       // Tempo de mercado (anos)
+"client_type": "string",         // B2B, B2C, B2B2C
+"company_website": "string",     // Site da empresa
+"company_linkedin": "string"     // LinkedIn da empresa`}
+              </pre>
+            </div>
+
+            {/* 3. Dados do Contato */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">3. Dados do Contato (Pessoa)</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"first_name": "string",          // Primeiro nome
+"last_name": "string",           // Sobrenome
+"job_title": "string",           // Cargo
+"job_level": "string",           // C-Level, Diretoria, Gestão, Operacional
+"department": "string",          // Departamento / Área
+"email_type": "string",          // corporativo, genérico
+"whatsapp": "string",            // WhatsApp
+"linkedin_profile": "string",    // LinkedIn do contato
+"city": "string",                // Cidade
+"state": "string",               // Estado (UF)
+"country": "string",             // País (default: BR)
+"zip_code": "string",            // CEP
+"date_of_birth": "string",       // Data de nascimento (YYYY-MM-DD)
+"gender": "string",              // m, f, o
+"facebook_id": "string",         // ID do Facebook
+"instagram": "string"            // Instagram`}
+              </pre>
+            </div>
+
+            {/* 4. Estrutura Organizacional */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">4. Estrutura Organizacional / Decisão</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"buying_role": "string",         // Decisor, Influenciador, Usuário, Financeiro
+"is_decision_maker": boolean,    // Participa da decisão de compra
+"influence_level": "string",     // baixa, média, alta
+"decision_makers_count": number  // Número de decisores envolvidos`}
+              </pre>
+            </div>
+
+            {/* 5. Stack Atual */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">5. Stack Atual / Contexto de Software</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"uses_software": boolean,        // Usa software atualmente
+"software_type": "string",       // Tipo de software utilizado
+"current_software": "string",    // Nome do software atual
+"current_vendor": "string",      // Fornecedor atual
+"software_usage_time": "string", // Tempo de uso do software
+"software_satisfaction": "string", // baixa, média, alta
+"main_pain_point": "string",     // Principal dor com o software atual
+"switch_reason": "string"        // Motivo de troca (se houver)`}
+              </pre>
+            </div>
+
+            {/* 6. Potencial de Compra */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">6. Potencial de Compra</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"estimated_users": number,       // Número estimado de usuários
+"license_type": "string",        // por usuário, por módulo, flat
+"budget_range": "string",        // Orçamento estimado (faixa)
+"purchase_timeline": "string",   // Prazo estimado para compra
+"urgency_level": "string"        // baixa, média, alta`}
+              </pre>
+            </div>
+
+            {/* 7. Comportamento e Engajamento */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">7. Comportamento e Engajamento</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"first_interaction_at": "string",  // ISO timestamp da primeira interação
+"last_interaction_at": "string",   // ISO timestamp da última interação
+"content_consumed": ["string"],    // Array de conteúdos consumidos
+"content_type": "string",          // topo, meio, fundo
+"pages_visited": ["string"],       // Array de páginas visitadas
+"visited_pricing": boolean,        // Visitou página de preços
+"attended_webinar": boolean,       // Participou de webinar
+"requested_demo": boolean          // Solicitou contato / demo`}
+              </pre>
+            </div>
+
+            {/* 8. Origem de Marketing */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">8. Origem de Marketing e Aquisição</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"acquisition_channel": "string",  // orgânico, pago, evento, indicação
+"specific_source": "string",      // Google, Meta, LinkedIn, YouTube
+"campaign": "string",             // Nome da campanha
+"ad_set": "string",               // Conjunto / público
+"creative": "string",             // Criativo
+"keyword": "string",              // Palavra-chave (se houver)
+"lead_cost": number,              // Custo do lead (R$)
+"utm_source": "string",           // UTM source
+"utm_medium": "string",           // UTM medium
+"utm_campaign": "string"          // UTM campaign`}
+              </pre>
+            </div>
+
+            {/* 9. Qualidade e Enriquecimento */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">9. Qualidade e Enriquecimento</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"lead_validated": boolean,       // Lead validado
+"company_validated": boolean,    // Empresa validada
+"email_verified": boolean,       // E-mail verificado
+"phone_verified": boolean,       // Telefone verificado
+"data_enriched": boolean,        // Dados enriquecidos automaticamente
+"enrichment_source": "string"    // Fonte do enriquecimento`}
+              </pre>
+            </div>
+
+            {/* 10. Consentimento e Compliance */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">10. Consentimento e Compliance (LGPD)</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"lgpd_consent": boolean,         // Consentimento LGPD
+"consent_date": "string",        // Data do consentimento (ISO)
+"consent_source": "string",      // Fonte do consentimento
+"data_purpose": "string",        // Finalidade declarada do uso
+"partner_sharing_consent": boolean // Aceite de compartilhamento`}
+              </pre>
+            </div>
+
+            {/* 11. Campos Técnicos */}
+            <div className="space-y-2">
+              <h5 className="text-sm font-medium text-primary">11. Campos Técnicos / Operacionais</h5>
+              <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
+{`"internal_classification": "string", // Classificação interna
+"internal_notes": "string",          // Observações internas
+"tags": ["string"],                  // Array de tags
+"assigned_to": "uuid",               // UUID do responsável interno
+"client_id": "string",               // UUID, email ou nome do cliente
+"client_sector": "string",           // Setor do cliente (fallback)
+"value": number,                     // Valor associado ao lead
+"extra_data": { }                    // Campos adicionais (JSON)`}
+              </pre>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-4 border-t">
+            <h4 className="font-medium">Exemplo Completo</h4>
+            <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto max-h-96">
+{`{
+  "full_name": "João Silva",
+  "email": "joao@techsolutions.com.br",
+  "phone": "+5511999998888",
+  "whatsapp": "+5511999998888",
+  
+  "company_name": "Tech Solutions Ltda",
+  "cnpj": "12.345.678/0001-90",
+  "company_segment": "Tecnologia",
+  "company_size": "EPP",
+  "employee_count": "11-50",
+  
+  "job_title": "Diretor de TI",
+  "job_level": "Diretoria",
+  "buying_role": "Decisor",
+  "is_decision_maker": true,
+  
+  "uses_software": true,
+  "current_software": "Competitor XYZ",
+  "software_satisfaction": "baixa",
+  "main_pain_point": "Falta integração com ERP",
+  
+  "budget_range": "R$ 5.000 - R$ 10.000",
+  "purchase_timeline": "1-3 meses",
+  "urgency_level": "alta",
+  
+  "acquisition_channel": "pago",
+  "specific_source": "Meta",
+  "campaign": "Campanha Black Friday",
+  
+  "lgpd_consent": true,
+  "consent_date": "2024-12-16",
+  "consent_source": "landing_page",
+  
+  "tags": ["hot-lead", "enterprise"],
+  "client_id": "cliente@email.com"
 }`}
             </pre>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 pt-4 border-t">
             <h4 className="font-medium">Atualizar Conversão</h4>
             <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
 {`PATCH https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/lead-conversion-api
