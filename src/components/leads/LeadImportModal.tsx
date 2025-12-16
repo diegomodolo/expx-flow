@@ -170,12 +170,18 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
             }
           });
           
-          // Generate hashes for deduplication
+          // Generate hashes for deduplication (MUST await async function)
           if (leadData.email) {
-            leadData.email_hash = hashValue(String(leadData.email));
+            leadData.email_hash = await hashValue(String(leadData.email));
           }
           if (leadData.phone) {
-            leadData.phone_hash = hashValue(String(leadData.phone));
+            leadData.phone_hash = await hashValue(String(leadData.phone));
+          }
+          
+          // Validate required field
+          if (!leadData.full_name && !leadData.email && !leadData.phone) {
+            console.warn("Skipping row - no identifiable data (name, email, or phone):", row);
+            continue;
           }
           
           // Check for duplicates
@@ -214,7 +220,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
             .single();
           
           if (error) {
-            console.error("Error inserting lead:", error);
+            console.error("Error inserting lead:", error, "Lead data:", JSON.stringify(leadData, null, 2));
             continue;
           }
           
