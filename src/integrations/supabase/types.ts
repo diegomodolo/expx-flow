@@ -4236,6 +4236,7 @@ export type Database = {
           capture_type: string | null
           capture_url: string | null
           city: string | null
+          classification_reason: string | null
           client_type: string | null
           cnae: string | null
           cnpj: string | null
@@ -4289,6 +4290,8 @@ export type Database = {
           keyword: string | null
           last_interaction_at: string | null
           last_name: string | null
+          last_scored_at: string | null
+          lead_classification: string | null
           lead_cost: number | null
           lead_status: string | null
           lead_validated: boolean | null
@@ -4306,6 +4309,11 @@ export type Database = {
           propensity_to_convert: number | null
           purchase_timeline: string | null
           requested_demo: boolean | null
+          score_authority: number | null
+          score_company_fit: number | null
+          score_contact_quality: number | null
+          score_digital_maturity: number | null
+          score_purchase_intent: number | null
           secondary_source: string | null
           software_satisfaction: string | null
           software_type: string | null
@@ -4337,6 +4345,7 @@ export type Database = {
           capture_type?: string | null
           capture_url?: string | null
           city?: string | null
+          classification_reason?: string | null
           client_type?: string | null
           cnae?: string | null
           cnpj?: string | null
@@ -4390,6 +4399,8 @@ export type Database = {
           keyword?: string | null
           last_interaction_at?: string | null
           last_name?: string | null
+          last_scored_at?: string | null
+          lead_classification?: string | null
           lead_cost?: number | null
           lead_status?: string | null
           lead_validated?: boolean | null
@@ -4407,6 +4418,11 @@ export type Database = {
           propensity_to_convert?: number | null
           purchase_timeline?: string | null
           requested_demo?: boolean | null
+          score_authority?: number | null
+          score_company_fit?: number | null
+          score_contact_quality?: number | null
+          score_digital_maturity?: number | null
+          score_purchase_intent?: number | null
           secondary_source?: string | null
           software_satisfaction?: string | null
           software_type?: string | null
@@ -4438,6 +4454,7 @@ export type Database = {
           capture_type?: string | null
           capture_url?: string | null
           city?: string | null
+          classification_reason?: string | null
           client_type?: string | null
           cnae?: string | null
           cnpj?: string | null
@@ -4491,6 +4508,8 @@ export type Database = {
           keyword?: string | null
           last_interaction_at?: string | null
           last_name?: string | null
+          last_scored_at?: string | null
+          lead_classification?: string | null
           lead_cost?: number | null
           lead_status?: string | null
           lead_validated?: boolean | null
@@ -4508,6 +4527,11 @@ export type Database = {
           propensity_to_convert?: number | null
           purchase_timeline?: string | null
           requested_demo?: boolean | null
+          score_authority?: number | null
+          score_company_fit?: number | null
+          score_contact_quality?: number | null
+          score_digital_maturity?: number | null
+          score_purchase_intent?: number | null
           secondary_source?: string | null
           software_satisfaction?: string | null
           software_type?: string | null
@@ -4540,6 +4564,106 @@ export type Database = {
             columns: ["first_client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_qualification_rules: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          dimension: string
+          field: string
+          id: string
+          is_active: boolean | null
+          operator: string
+          rule_order: number | null
+          score_contribution: number
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          dimension: string
+          field: string
+          id?: string
+          is_active?: boolean | null
+          operator: string
+          rule_order?: number | null
+          score_contribution?: number
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          dimension?: string
+          field?: string
+          id?: string
+          is_active?: boolean | null
+          operator?: string
+          rule_order?: number | null
+          score_contribution?: number
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_qualification_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_qualification_weights: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          threshold_gold: number | null
+          threshold_silver: number | null
+          updated_at: string | null
+          weight_authority: number | null
+          weight_company_fit: number | null
+          weight_contact_quality: number | null
+          weight_digital_maturity: number | null
+          weight_purchase_intent: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          threshold_gold?: number | null
+          threshold_silver?: number | null
+          updated_at?: string | null
+          weight_authority?: number | null
+          weight_company_fit?: number | null
+          weight_contact_quality?: number | null
+          weight_digital_maturity?: number | null
+          weight_purchase_intent?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          threshold_gold?: number | null
+          threshold_silver?: number | null
+          updated_at?: string | null
+          weight_authority?: number | null
+          weight_company_fit?: number | null
+          weight_contact_quality?: number | null
+          weight_digital_maturity?: number | null
+          weight_purchase_intent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_qualification_weights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

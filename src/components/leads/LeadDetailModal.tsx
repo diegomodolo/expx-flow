@@ -13,8 +13,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { 
   User, Building2, Briefcase, Monitor, ShoppingCart, 
-  Megaphone, TrendingUp, Shield, Save, Loader2 
+  Megaphone, TrendingUp, Shield, Save, Loader2, BarChart3 
 } from "lucide-react";
+import { LeadScoreCard } from "./LeadScoreCard";
+import { useLeadScoring, LeadClassification } from "@/hooks/useLeadScoring";
 
 interface LeadDetailModalProps {
   lead: Record<string, unknown> | null;
@@ -23,9 +25,10 @@ interface LeadDetailModalProps {
   companyId: string;
 }
 
-type SectionType = 'contato' | 'empresa' | 'decisao' | 'software' | 'compra' | 'marketing' | 'comportamento' | 'lgpd';
+type SectionType = 'score' | 'contato' | 'empresa' | 'decisao' | 'software' | 'compra' | 'marketing' | 'comportamento' | 'lgpd';
 
 const sections: { id: SectionType; label: string; icon: React.ElementType }[] = [
+  { id: 'score', label: 'Qualificação', icon: BarChart3 },
   { id: 'contato', label: 'Contato', icon: User },
   { id: 'empresa', label: 'Empresa', icon: Building2 },
   { id: 'decisao', label: 'Decisão', icon: Briefcase },
@@ -40,7 +43,8 @@ export const LeadDetailModal = ({ lead, open, onOpenChange, companyId }: LeadDet
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<SectionType>("contato");
+  const [activeSection, setActiveSection] = useState<SectionType>("score");
+  const { calculateScore, scoreAndSaveLead } = useLeadScoring();
 
   useEffect(() => {
     if (lead) {
@@ -50,7 +54,7 @@ export const LeadDetailModal = ({ lead, open, onOpenChange, companyId }: LeadDet
 
   useEffect(() => {
     if (open) {
-      setActiveSection('contato');
+      setActiveSection('score');
     }
   }, [open]);
 
@@ -92,6 +96,38 @@ export const LeadDetailModal = ({ lead, open, onOpenChange, companyId }: LeadDet
 
   const renderSectionContent = () => {
     switch (activeSection) {
+      case 'score':
+        const scoreResult = calculateScore(formData);
+        return (
+          <div className="space-y-6">
+            <LeadScoreCard
+              globalScore={scoreResult.globalScore}
+              classification={scoreResult.classification}
+              dimensionScores={scoreResult.dimensionScores}
+              reason={scoreResult.reason}
+            />
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={async () => {
+                  if (lead?.id) {
+                    try {
+                      await scoreAndSaveLead(lead.id as string, formData);
+                      toast.success("Score recalculado e salvo");
+                      queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
+                      queryClient.invalidateQueries({ queryKey: ['lead-classification-stats'] });
+                    } catch (error) {
+                      toast.error("Erro ao salvar score");
+                    }
+                  }
+                }}
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Recalcular e Salvar Score
+              </Button>
+            </div>
+          </div>
+        );
       case 'contato':
         return (
           <div className="space-y-6">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,13 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail, Tag, Upload } from "lucide-react";
+import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail, Tag, Upload, Calculator } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { LeadDetailModal } from "./LeadDetailModal";
 import { LeadImportModal } from "./LeadImportModal";
+import { LeadClassificationStats } from "./LeadClassificationStats";
+import { LeadQualificationBadge } from "./LeadQualificationBadge";
+import { useLeadScoring } from "@/hooks/useLeadScoring";
 
 export const LeadPoolDashboard = () => {
+  const queryClient = useQueryClient();
   const { activeCompany } = useCompany();
   const [searchTerm, setSearchTerm] = useState("");
   const [scoreFilter, setScoreFilter] = useState<string>("all");
@@ -134,8 +139,28 @@ export const LeadPoolDashboard = () => {
     setIsModalOpen(true);
   };
 
+  const { scoreAllCompanyLeads } = useLeadScoring();
+  const [isScoring, setIsScoring] = useState(false);
+
+  const handleRecalculateScores = async () => {
+    setIsScoring(true);
+    try {
+      const count = await scoreAllCompanyLeads();
+      toast.success(`${count} leads recalculados com sucesso`);
+      queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-classification-stats'] });
+    } catch (error) {
+      toast.error("Erro ao recalcular scores");
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Classification Stats */}
+      <LeadClassificationStats />
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total de Leads</p><p className="text-2xl font-bold">{stats?.totalLeads?.toLocaleString() || 0}</p></div><Users className="h-8 w-8 text-primary opacity-20" /></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Score Alto</p><p className="text-2xl font-bold">{stats?.highScoreLeads?.toLocaleString() || 0}</p></div><Star className="h-8 w-8 text-yellow-500 opacity-20" /></div></CardContent></Card>
@@ -149,10 +174,16 @@ export const LeadPoolDashboard = () => {
             <CardTitle>Pool de Leads</CardTitle>
             <CardDescription>Leads deduplicados de todos os clientes • Clique para ver detalhes</CardDescription>
           </div>
-          <Button onClick={() => setIsImportModalOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Importar Leads
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRecalculateScores} disabled={isScoring}>
+              <Calculator className="h-4 w-4 mr-2" />
+              {isScoring ? "Calculando..." : "Recalcular Scores"}
+            </Button>
+            <Button onClick={() => setIsImportModalOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importar Leads
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -165,7 +196,7 @@ export const LeadPoolDashboard = () => {
             <div className="flex items-center justify-center py-8"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : leads && leads.length > 0 ? (
             <Table>
-              <TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Contato</TableHead><TableHead>Local</TableHead><TableHead>Segmento</TableHead><TableHead>Score</TableHead><TableHead>Conversões</TableHead><TableHead>Valor</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Contato</TableHead><TableHead>Local</TableHead><TableHead>Segmento</TableHead><TableHead>Classificação</TableHead><TableHead>Score</TableHead><TableHead>Conversões</TableHead><TableHead>Valor</TableHead></TableRow></TableHeader>
               <TableBody>
                 {leads.map((lead) => {
                   const leadSegments = segmentAssignments?.[lead.id] || [];
@@ -196,6 +227,12 @@ export const LeadPoolDashboard = () => {
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <LeadQualificationBadge 
+                          classification={lead.lead_classification as 'ouro' | 'prata' | 'bronze' | null}
+                          size="sm"
+                        />
                       </TableCell>
                       <TableCell>{getScoreBadge(lead.global_score)}</TableCell>
                       <TableCell>{lead.total_conversions}</TableCell>
