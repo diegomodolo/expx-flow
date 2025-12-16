@@ -592,6 +592,47 @@ serve(async (req) => {
       
       console.log(`Processing trigger: ${trigger.trigger_name} (${trigger.trigger_type})`);
       
+      // Determine period days and labels based on trigger type
+      let periodDays = 7; // Default to weekly
+      let periodLabel = 'Semanal';
+
+      switch (trigger.trigger_type) {
+        case 'daily_report':
+          periodDays = 1;
+          periodLabel = 'Diário';
+          break;
+        case 'weekly_report':
+          periodDays = 7;
+          periodLabel = 'Semanal';
+          break;
+        case 'monthly_report':
+          periodDays = 30;
+          periodLabel = 'Mensal';
+          break;
+        default:
+          // For non-report triggers, use 7 days as default
+          periodDays = 7;
+          periodLabel = 'Últimos 7 dias';
+      }
+
+      // Get data source from trigger conditions
+      const dataSource = trigger.conditions?.data_source || 'meta';
+      let sourceLabel = 'Meta Ads';
+
+      switch (dataSource) {
+        case 'meta':
+          sourceLabel = 'Meta Ads';
+          break;
+        case 'google':
+          sourceLabel = 'Google Ads';
+          break;
+        case 'both':
+          sourceLabel = 'Meta Ads + Google Ads';
+          break;
+      }
+
+      console.log(`Report config: periodDays=${periodDays}, dataSource=${dataSource}`);
+      
       // Get WhatsApp config for this company
       const { data: config } = await supabase
         .from('whatsapp_configs')
