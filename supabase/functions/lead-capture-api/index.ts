@@ -248,43 +248,86 @@ serve(async (req) => {
       console.log(`New lead created: ${leadId}`);
     }
 
-    // Create client interaction if client_id provided and is a valid UUID
-    const hasValidClientId = body.client_id && isValidUUID(body.client_id);
+    // Create client interaction if client_id provided (can be UUID, email, or any identifier)
     let clientSector = body.client_sector; // Use directly provided sector as fallback
+    let resolvedClientId: string | null = null;
     
-    if (hasValidClientId) {
-      // Get client sector from database
-      const { data: client } = await supabase
-        .from('clients')
-        .select('sector')
-        .eq('id', body.client_id)
-        .single();
-
-      if (client?.sector) {
-        clientSector = client.sector;
+    if (body.client_id) {
+      let client = null;
+      
+      // Try to find client by different methods
+      if (isValidUUID(body.client_id)) {
+        // Search by UUID
+        const { data } = await supabase
+          .from('clients')
+          .select('id, sector')
+          .eq('id', body.client_id)
+          .eq('company_id', companyId)
+          .single();
+        client = data;
+      }
+      
+      if (!client) {
+        // Search by email
+        const { data } = await supabase
+          .from('clients')
+          .select('id, sector')
+          .eq('email', body.client_id)
+          .eq('company_id', companyId)
+          .single();
+        client = data;
+      }
+      
+      if (!client) {
+        // Search by name (case insensitive)
+        const { data } = await supabase
+          .from('clients')
+          .select('id, sector')
+          .ilike('name', body.client_id)
+          .eq('company_id', companyId)
+          .single();
+        client = data;
+      }
+      
+      if (!client) {
+        // Search by company name (case insensitive)
+        const { data } = await supabase
+          .from('clients')
+          .select('id, sector')
+          .ilike('company', body.client_id)
+          .eq('company_id', companyId)
+          .single();
+        client = data;
       }
 
-      const { error: interactionError } = await supabase
-        .from('lead_client_interactions')
-        .insert({
-          lead_id: leadId,
-          client_id: body.client_id,
-          company_id: companyId,
-          interaction_type: 'captured',
-          client_sector: clientSector,
-          value: body.value || 0,
-          source: body.source || 'api',
-          utm_source: body.utm_source,
-          utm_medium: body.utm_medium,
-          utm_campaign: body.utm_campaign
-        });
+      if (client) {
+        resolvedClientId = client.id;
+        if (client.sector) {
+          clientSector = client.sector;
+        }
+        console.log(`Client found: ${resolvedClientId} (searched by: "${body.client_id}")`);
 
-      if (interactionError) {
-        console.error('Error creating interaction:', interactionError);
+        const { error: interactionError } = await supabase
+          .from('lead_client_interactions')
+          .insert({
+            lead_id: leadId,
+            client_id: resolvedClientId,
+            company_id: companyId,
+            interaction_type: 'captured',
+            client_sector: clientSector,
+            value: body.value || 0,
+            source: body.source || 'api',
+            utm_source: body.utm_source,
+            utm_medium: body.utm_medium,
+            utm_campaign: body.utm_campaign
+          });
+
+        if (interactionError) {
+          console.error('Error creating interaction:', interactionError);
+        }
+      } else {
+        console.log(`No client found for identifier: "${body.client_id}". Lead captured without client association.`);
       }
-    } else if (body.client_id) {
-      // client_id provided but not a valid UUID - log for debugging
-      console.log(`client_id "${body.client_id}" is not a valid UUID, skipping client interaction. Use client_sector field directly.`);
     }
 
     // Auto-assign sector segment if we have a sector (from client or directly provided)
