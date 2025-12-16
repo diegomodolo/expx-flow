@@ -3996,6 +3996,60 @@ export type Database = {
           },
         ]
       }
+      lead_api_request_log: {
+        Row: {
+          api_key_id: string | null
+          capture_url: string | null
+          company_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          leads_processed: number
+          request_type: string
+          source_info: string | null
+          status: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          capture_url?: string | null
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          leads_processed?: number
+          request_type: string
+          source_info?: string | null
+          status?: string
+        }
+        Update: {
+          api_key_id?: string | null
+          capture_url?: string | null
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          leads_processed?: number
+          request_type?: string
+          source_info?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_api_request_log_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "company_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_api_request_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_client_interactions: {
         Row: {
           client_id: string
@@ -4219,6 +4273,66 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_import_history: {
+        Row: {
+          company_id: string
+          created_at: string
+          default_segment_id: string | null
+          error_message: string | null
+          file_name: string
+          id: string
+          imported_by: string
+          leads_duplicated: number
+          leads_failed: number
+          leads_imported: number
+          status: string
+          total_rows: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          default_segment_id?: string | null
+          error_message?: string | null
+          file_name: string
+          id?: string
+          imported_by: string
+          leads_duplicated?: number
+          leads_failed?: number
+          leads_imported?: number
+          status?: string
+          total_rows?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          default_segment_id?: string | null
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          imported_by?: string
+          leads_duplicated?: number
+          leads_failed?: number
+          leads_imported?: number
+          status?: string
+          total_rows?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_import_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_history_default_segment_id_fkey"
+            columns: ["default_segment_id"]
+            isOneToOne: false
+            referencedRelation: "lead_segments"
             referencedColumns: ["id"]
           },
         ]
@@ -4678,6 +4792,50 @@ export type Database = {
             foreignKeyName: "lead_qualification_weights_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_saved_filters: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          filter_config: Json
+          id: string
+          is_favorite: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          filter_config?: Json
+          id?: string
+          is_favorite?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          filter_config?: Json
+          id?: string
+          is_favorite?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_saved_filters_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
