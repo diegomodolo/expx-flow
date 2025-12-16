@@ -168,7 +168,7 @@ export function useLeadScoring() {
   }, [calculateScore]);
 
   const scoreMultipleLeads = useCallback(async (leadIds: string[]): Promise<number> => {
-    if (!activeCompany?.id) {
+    if (!activeCompany?.company_id) {
       console.warn("scoreMultipleLeads: No active company");
       return 0;
     }
@@ -179,14 +179,14 @@ export function useLeadScoring() {
     }
 
     console.log(`scoreMultipleLeads: Processing ${leadIds.length} leads`);
-    
+
     // Process in batches of 100 to avoid Supabase limits
     const BATCH_SIZE = 100;
     let totalProcessed = 0;
 
     for (let i = 0; i < leadIds.length; i += BATCH_SIZE) {
       const batchIds = leadIds.slice(i, i + BATCH_SIZE);
-      
+
       // Fetch leads data for this batch
       const { data: leads, error: fetchError } = await supabase
         .from('lead_master_pool')
@@ -197,7 +197,7 @@ export function useLeadScoring() {
         console.error("Error fetching leads batch:", fetchError);
         throw fetchError;
       }
-      
+
       if (!leads || leads.length === 0) {
         console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
         continue;
@@ -209,7 +209,7 @@ export function useLeadScoring() {
       for (const lead of leads) {
         try {
           const result = calculateScore(lead);
-          
+
           const { error: updateError } = await supabase
             .from('lead_master_pool')
             .update({
@@ -229,7 +229,7 @@ export function useLeadScoring() {
             console.error(`Error updating lead ${lead.id}:`, updateError);
             continue;
           }
-          
+
           totalProcessed++;
         } catch (err) {
           console.error(`Error scoring lead ${lead.id}:`, err);
@@ -239,15 +239,16 @@ export function useLeadScoring() {
 
     console.log(`scoreMultipleLeads: Completed. Processed ${totalProcessed} leads`);
     return totalProcessed;
-  }, [activeCompany?.id, calculateScore]);
+  }, [activeCompany?.company_id, calculateScore]);
 
   const scoreAllCompanyLeads = useCallback(async (): Promise<number> => {
-    if (!activeCompany?.id) {
+    const companyId = activeCompany?.company_id;
+    if (!companyId) {
       console.warn("scoreAllCompanyLeads: No active company");
       return 0;
     }
 
-    console.log(`scoreAllCompanyLeads: Fetching leads for company ${activeCompany.id}`);
+    console.log(`scoreAllCompanyLeads: Fetching leads for company ${companyId}`);
 
     // Fetch all lead IDs for company (handle pagination for large datasets)
     let allLeadIds: string[] = [];
@@ -258,7 +259,7 @@ export function useLeadScoring() {
       const { data: leads, error: fetchError } = await supabase
         .from('lead_master_pool')
         .select('id')
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', companyId)
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (fetchError) {
@@ -267,19 +268,19 @@ export function useLeadScoring() {
       }
 
       if (!leads || leads.length === 0) break;
-      
+
       allLeadIds = [...allLeadIds, ...leads.map(l => l.id)];
-      
+
       if (leads.length < PAGE_SIZE) break;
       page++;
     }
 
     console.log(`scoreAllCompanyLeads: Found ${allLeadIds.length} leads to score`);
-    
+
     if (allLeadIds.length === 0) return 0;
 
     return scoreMultipleLeads(allLeadIds);
-  }, [activeCompany?.id, scoreMultipleLeads]);
+  }, [activeCompany?.company_id, scoreMultipleLeads]);
 
   return {
     calculateScore,

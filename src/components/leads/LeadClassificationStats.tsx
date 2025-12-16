@@ -14,46 +14,42 @@ interface ClassificationCount {
 export function LeadClassificationStats() {
   const { activeCompany } = useCompany();
 
+  const companyId = activeCompany?.company_id;
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['lead-classification-stats', activeCompany?.id],
+    queryKey: ['lead-classification-stats', companyId],
     queryFn: async () => {
-      if (!activeCompany?.id) return null;
+      if (!companyId) return null;
 
       // Get total leads
       const { count: total } = await supabase
         .from('lead_master_pool')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id);
+        .eq('company_id', companyId);
 
       // Get classification counts
-      const { data: ouroData } = await supabase
+      const { count: prataCount } = await supabase
         .from('lead_master_pool')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id)
-        .eq('lead_classification', 'ouro');
-
-      const { data: prataData, count: prataCount } = await supabase
-        .from('lead_master_pool')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', companyId)
         .eq('lead_classification', 'prata');
 
-      const { data: bronzeData, count: bronzeCount } = await supabase
+      const { count: bronzeCount } = await supabase
         .from('lead_master_pool')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', companyId)
         .eq('lead_classification', 'bronze');
 
       const { count: ouroCount } = await supabase
         .from('lead_master_pool')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', companyId)
         .eq('lead_classification', 'ouro');
 
       const { count: naoClassificadoCount } = await supabase
         .from('lead_master_pool')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', companyId)
         .is('lead_classification', null);
 
       return {
@@ -64,7 +60,7 @@ export function LeadClassificationStats() {
         naoClassificado: naoClassificadoCount || 0,
       };
     },
-    enabled: !!activeCompany?.id,
+    enabled: !!companyId,
   });
 
   if (isLoading) {

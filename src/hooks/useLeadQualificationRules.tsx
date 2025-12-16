@@ -102,14 +102,14 @@ export function useLeadQualificationRules() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchRules = useCallback(async () => {
-    if (!activeCompany?.id) return;
+    if (!activeCompany?.company_id) return;
 
     try {
       setLoading(true);
       const { data, error: fetchError } = await supabase
         .from('lead_qualification_rules')
         .select('*')
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .order('dimension')
         .order('rule_order');
 
@@ -120,16 +120,16 @@ export function useLeadQualificationRules() {
     } finally {
       setLoading(false);
     }
-  }, [activeCompany?.id]);
+  }, [activeCompany?.company_id]);
 
   const fetchWeights = useCallback(async () => {
-    if (!activeCompany?.id) return;
+    if (!activeCompany?.company_id) return;
 
     try {
       const { data, error: fetchError } = await supabase
         .from('lead_qualification_weights')
         .select('*')
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
@@ -137,23 +137,23 @@ export function useLeadQualificationRules() {
     } catch (err: any) {
       setError(err.message);
     }
-  }, [activeCompany?.id]);
+  }, [activeCompany?.company_id]);
 
   const initializeDefaultRules = useCallback(async () => {
-    if (!activeCompany?.id) return;
+    if (!activeCompany?.company_id) return;
 
     try {
       // Check if rules exist
       const { count } = await supabase
         .from('lead_qualification_rules')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', activeCompany.id);
+        .eq('company_id', activeCompany.company_id);
 
       if (count === 0) {
         // Insert default rules
         const rulesToInsert = DEFAULT_RULES.map(rule => ({
           ...rule,
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
         }));
 
         const { error: insertError } = await supabase
@@ -167,14 +167,14 @@ export function useLeadQualificationRules() {
       const { data: existingWeights } = await supabase
         .from('lead_qualification_weights')
         .select('id')
-        .eq('company_id', activeCompany.id)
+        .eq('company_id', activeCompany.company_id)
         .single();
 
       if (!existingWeights) {
         const { error: insertError } = await supabase
           .from('lead_qualification_weights')
           .insert({
-            company_id: activeCompany.id,
+            company_id: activeCompany.company_id,
             ...DEFAULT_WEIGHTS,
           });
 
@@ -186,10 +186,10 @@ export function useLeadQualificationRules() {
     } catch (err: any) {
       setError(err.message);
     }
-  }, [activeCompany?.id, fetchRules, fetchWeights]);
+  }, [activeCompany?.company_id, fetchRules, fetchWeights]);
 
   const updateWeights = useCallback(async (newWeights: Partial<QualificationWeights>) => {
-    if (!activeCompany?.id || !weights?.id) return;
+    if (!activeCompany?.company_id || !weights?.id) return;
 
     try {
       const { error: updateError } = await supabase
@@ -202,17 +202,17 @@ export function useLeadQualificationRules() {
     } catch (err: any) {
       setError(err.message);
     }
-  }, [activeCompany?.id, weights?.id, fetchWeights]);
+  }, [activeCompany?.company_id, weights?.id, fetchWeights]);
 
   const createRule = useCallback(async (rule: Omit<QualificationRule, 'id' | 'company_id' | 'created_at' | 'updated_at'>) => {
-    if (!activeCompany?.id) return;
+    if (!activeCompany?.company_id) return;
 
     try {
       const { error: insertError } = await supabase
         .from('lead_qualification_rules')
         .insert({
           ...rule,
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
         });
 
       if (insertError) throw insertError;
@@ -220,7 +220,7 @@ export function useLeadQualificationRules() {
     } catch (err: any) {
       setError(err.message);
     }
-  }, [activeCompany?.id, fetchRules]);
+  }, [activeCompany?.company_id, fetchRules]);
 
   const updateRule = useCallback(async (id: string, updates: Partial<QualificationRule>) => {
     try {
@@ -251,10 +251,10 @@ export function useLeadQualificationRules() {
   }, [fetchRules]);
 
   useEffect(() => {
-    if (activeCompany?.id) {
+    if (activeCompany?.company_id) {
       initializeDefaultRules();
     }
-  }, [activeCompany?.id, initializeDefaultRules]);
+  }, [activeCompany?.company_id, initializeDefaultRules]);
 
   return {
     rules,
