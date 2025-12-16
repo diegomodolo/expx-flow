@@ -661,7 +661,7 @@ export const LeadDetailModal = ({ lead, open, onOpenChange, companyId }: LeadDet
           </div>
 
           {/* Content Area */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1" key={activeSection}>
             <div className="p-6">
               {renderSectionContent()}
             </div>
