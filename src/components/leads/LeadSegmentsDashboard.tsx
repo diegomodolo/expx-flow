@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
-import { Tag, Users, TrendingUp, Star, Trophy, Medal, Award, Trash2 } from "lucide-react";
-import { LeadClassificationStats } from "./LeadClassificationStats";
+import { Tag, Trophy, Medal, Award, Trash2 } from "lucide-react";
+
+interface LeadSegmentsDashboardProps {
+  companyId: string;
+}
 
 interface SegmentMetrics {
   id: string;
@@ -23,9 +25,7 @@ interface SegmentMetrics {
   last_lead_at: string | null;
 }
 
-export const LeadSegmentsDashboard = () => {
-  const { activeCompany } = useCompany();
-  const companyId = activeCompany?.company_id;
+export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps) => {
 
   const { data: segments, isLoading } = useQuery({
     queryKey: ['lead-segments-metrics', companyId],
@@ -105,33 +105,6 @@ export const LeadSegmentsDashboard = () => {
     enabled: !!companyId
   });
 
-  // Global stats
-  const { data: globalStats } = useQuery({
-    queryKey: ['lead-pool-global-stats', companyId],
-    queryFn: async () => {
-      if (!companyId) return null;
-
-      const { count: totalLeads } = await supabase
-        .from('lead_master_pool')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', companyId);
-
-      const { data: valueData } = await supabase
-        .from('lead_master_pool')
-        .select('global_score, total_value, total_conversions')
-        .eq('company_id', companyId);
-
-      const totalValue = valueData?.reduce((sum, l) => sum + (l.total_value || 0), 0) || 0;
-      const avgScore = valueData?.length 
-        ? Math.round(valueData.reduce((sum, l) => sum + (l.global_score || 0), 0) / valueData.length)
-        : 0;
-      const convertedLeads = valueData?.filter(l => (l.total_conversions || 0) > 0).length || 0;
-
-      return { totalLeads: totalLeads || 0, totalValue, avgScore, convertedLeads };
-    },
-    enabled: !!companyId
-  });
-
   const getClassificationPercent = (segment: SegmentMetrics, classification: string) => {
     if (segment.lead_count === 0) return 0;
     const count = classification === 'ouro' ? segment.ouro_count 
@@ -143,57 +116,6 @@ export const LeadSegmentsDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Global Classification Stats */}
-      <LeadClassificationStats />
-
-      {/* Global Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Leads</p>
-                <p className="text-2xl font-bold">{globalStats?.totalLeads?.toLocaleString() || 0}</p>
-              </div>
-              <Users className="h-8 w-8 text-primary opacity-20" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Score Médio</p>
-                <p className="text-2xl font-bold">{globalStats?.avgScore || 0}</p>
-              </div>
-              <Star className="h-8 w-8 text-yellow-500 opacity-20" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Convertidos</p>
-                <p className="text-2xl font-bold">{globalStats?.convertedLeads?.toLocaleString() || 0}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500 opacity-20" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Valor Total</p>
-                <p className="text-2xl font-bold">R$ {globalStats?.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 0}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-primary opacity-20" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Segments Grid */}
       <Card>
         <CardHeader>

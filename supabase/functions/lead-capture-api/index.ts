@@ -615,6 +615,23 @@ serve(async (req) => {
       })
       .eq('id', apiKeyRecord.id);
 
+    // Log API request to history (LGPD compliant - no personal data)
+    await supabase
+      .from('lead_api_request_log')
+      .insert({
+        company_id: companyId,
+        api_key_id: apiKeyRecord.id,
+        request_type: 'capture',
+        leads_processed: 1,
+        source_info: body.source || body.primary_source || 'api',
+        request_metadata: {
+          is_new: isNew,
+          segments_assigned: segmentsAssigned,
+          has_client_id: !!body.client_id,
+          has_segment: !!(clientSector || body.company_segment)
+        }
+      });
+
     return new Response(
       JSON.stringify({
         success: true,
