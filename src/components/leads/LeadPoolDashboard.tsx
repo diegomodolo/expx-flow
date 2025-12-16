@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail } from "lucide-react";
+import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadDetailModal } from "./LeadDetailModal";
@@ -85,6 +85,31 @@ export const LeadPoolDashboard = () => {
     enabled: !!companyId
   });
 
+  // Fetch segment assignments for all leads
+  const { data: segmentAssignments } = useQuery({
+    queryKey: ['lead-segments-assignments', companyId, leads?.map(l => l.id)],
+    queryFn: async () => {
+      if (!companyId || !leads?.length) return {};
+      
+      const leadIds = leads.map(l => l.id);
+      const { data } = await supabase
+        .from('lead_segment_assignments')
+        .select('lead_id, segment:lead_segments(id, name, color)')
+        .in('lead_id', leadIds);
+      
+      // Create a map of leadId -> segments array
+      const map: Record<string, { id: string; name: string; color: string }[]> = {};
+      data?.forEach(assignment => {
+        if (!map[assignment.lead_id]) map[assignment.lead_id] = [];
+        if (assignment.segment) {
+          map[assignment.lead_id].push(assignment.segment as { id: string; name: string; color: string });
+        }
+      });
+      return map;
+    },
+    enabled: !!companyId && !!leads?.length
+  });
+
   const { data: states } = useQuery({
     queryKey: ['lead-states', companyId],
     queryFn: async () => {
@@ -128,22 +153,44 @@ export const LeadPoolDashboard = () => {
             <div className="flex items-center justify-center py-8"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : leads && leads.length > 0 ? (
             <Table>
-              <TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Contato</TableHead><TableHead>Local</TableHead><TableHead>Score</TableHead><TableHead>Conversões</TableHead><TableHead>Valor</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Contato</TableHead><TableHead>Local</TableHead><TableHead>Segmento</TableHead><TableHead>Score</TableHead><TableHead>Conversões</TableHead><TableHead>Valor</TableHead></TableRow></TableHeader>
               <TableBody>
-                {leads.map((lead) => (
-                  <TableRow 
-                    key={lead.id} 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleLeadClick(lead as Record<string, unknown>)}
-                  >
-                    <TableCell><p className="font-medium">{lead.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground">Desde {format(new Date(lead.first_captured_at || lead.created_at), "dd/MM/yy", { locale: ptBR })}</p></TableCell>
-                    <TableCell><div className="space-y-1">{lead.email && <div className="flex items-center gap-1 text-sm"><Mail className="h-3 w-3" /><span className="truncate max-w-[120px]">{lead.email}</span></div>}{lead.phone && <div className="flex items-center gap-1 text-sm"><Phone className="h-3 w-3" /><span>{lead.phone}</span></div>}</div></TableCell>
-                    <TableCell>{(lead.city || lead.state) && <div className="flex items-center gap-1 text-sm"><MapPin className="h-3 w-3" /><span>{[lead.city, lead.state].filter(Boolean).join(", ")}</span></div>}</TableCell>
-                    <TableCell>{getScoreBadge(lead.global_score)}</TableCell>
-                    <TableCell>{lead.total_conversions}</TableCell>
-                    <TableCell>{lead.total_value > 0 ? `R$ ${lead.total_value.toLocaleString('pt-BR')}` : "-"}</TableCell>
-                  </TableRow>
-                ))}
+                {leads.map((lead) => {
+                  const leadSegments = segmentAssignments?.[lead.id] || [];
+                  return (
+                    <TableRow 
+                      key={lead.id} 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleLeadClick(lead as Record<string, unknown>)}
+                    >
+                      <TableCell><p className="font-medium">{lead.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground">Desde {format(new Date(lead.first_captured_at || lead.created_at), "dd/MM/yy", { locale: ptBR })}</p></TableCell>
+                      <TableCell><div className="space-y-1">{lead.email && <div className="flex items-center gap-1 text-sm"><Mail className="h-3 w-3" /><span className="truncate max-w-[120px]">{lead.email}</span></div>}{lead.phone && <div className="flex items-center gap-1 text-sm"><Phone className="h-3 w-3" /><span>{lead.phone}</span></div>}</div></TableCell>
+                      <TableCell>{(lead.city || lead.state) && <div className="flex items-center gap-1 text-sm"><MapPin className="h-3 w-3" /><span>{[lead.city, lead.state].filter(Boolean).join(", ")}</span></div>}</TableCell>
+                      <TableCell>
+                        {leadSegments.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {leadSegments.map(seg => (
+                              <Badge 
+                                key={seg.id} 
+                                variant="outline" 
+                                className="text-xs"
+                                style={{ borderColor: seg.color, color: seg.color }}
+                              >
+                                <Tag className="h-3 w-3 mr-1" />
+                                {seg.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{getScoreBadge(lead.global_score)}</TableCell>
+                      <TableCell>{lead.total_conversions}</TableCell>
+                      <TableCell>{lead.total_value > 0 ? `R$ ${lead.total_value.toLocaleString('pt-BR')}` : "-"}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
