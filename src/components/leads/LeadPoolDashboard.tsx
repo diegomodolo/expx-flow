@@ -10,12 +10,15 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { LeadDetailModal } from "./LeadDetailModal";
 
 export const LeadPoolDashboard = () => {
   const { activeCompany } = useCompany();
   const [searchTerm, setSearchTerm] = useState("");
   const [scoreFilter, setScoreFilter] = useState<string>("all");
   const [stateFilter, setStateFilter] = useState<string>("all");
+  const [selectedLead, setSelectedLead] = useState<Record<string, unknown> | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const companyId = activeCompany?.company_id;
 
@@ -98,6 +101,11 @@ export const LeadPoolDashboard = () => {
     return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Baixo ({score})</Badge>;
   };
 
+  const handleLeadClick = (lead: Record<string, unknown>) => {
+    setSelectedLead(lead);
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -108,10 +116,10 @@ export const LeadPoolDashboard = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Pool de Leads</CardTitle><CardDescription>Leads deduplicados de todos os clientes</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Pool de Leads</CardTitle><CardDescription>Leads deduplicados de todos os clientes • Clique para ver detalhes</CardDescription></CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
+            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar por nome, email ou telefone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
             <Select value={scoreFilter} onValueChange={setScoreFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Score" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="high">Alto</SelectItem><SelectItem value="medium">Médio</SelectItem><SelectItem value="low">Baixo</SelectItem></SelectContent></Select>
             <Select value={stateFilter} onValueChange={setStateFilter}><SelectTrigger className="w-[120px]"><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{states?.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
           </div>
@@ -123,7 +131,11 @@ export const LeadPoolDashboard = () => {
               <TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Contato</TableHead><TableHead>Local</TableHead><TableHead>Score</TableHead><TableHead>Conversões</TableHead><TableHead>Valor</TableHead></TableRow></TableHeader>
               <TableBody>
                 {leads.map((lead) => (
-                  <TableRow key={lead.id}>
+                  <TableRow 
+                    key={lead.id} 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleLeadClick(lead as Record<string, unknown>)}
+                  >
                     <TableCell><p className="font-medium">{lead.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground">Desde {format(new Date(lead.first_captured_at || lead.created_at), "dd/MM/yy", { locale: ptBR })}</p></TableCell>
                     <TableCell><div className="space-y-1">{lead.email && <div className="flex items-center gap-1 text-sm"><Mail className="h-3 w-3" /><span className="truncate max-w-[120px]">{lead.email}</span></div>}{lead.phone && <div className="flex items-center gap-1 text-sm"><Phone className="h-3 w-3" /><span>{lead.phone}</span></div>}</div></TableCell>
                     <TableCell>{(lead.city || lead.state) && <div className="flex items-center gap-1 text-sm"><MapPin className="h-3 w-3" /><span>{[lead.city, lead.state].filter(Boolean).join(", ")}</span></div>}</TableCell>
@@ -139,6 +151,13 @@ export const LeadPoolDashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      <LeadDetailModal
+        lead={selectedLead}
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        companyId={companyId || ""}
+      />
     </div>
   );
 };
