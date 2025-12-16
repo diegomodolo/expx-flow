@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail, Tag } from "lucide-react";
+import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail, Tag, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LeadDetailModal } from "./LeadDetailModal";
+import { LeadImportModal } from "./LeadImportModal";
 
 export const LeadPoolDashboard = () => {
   const { activeCompany } = useCompany();
@@ -19,6 +21,7 @@ export const LeadPoolDashboard = () => {
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [selectedLead, setSelectedLead] = useState<Record<string, unknown> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const companyId = activeCompany?.company_id;
 
@@ -141,7 +144,16 @@ export const LeadPoolDashboard = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Pool de Leads</CardTitle><CardDescription>Leads deduplicados de todos os clientes • Clique para ver detalhes</CardDescription></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Pool de Leads</CardTitle>
+            <CardDescription>Leads deduplicados de todos os clientes • Clique para ver detalhes</CardDescription>
+          </div>
+          <Button onClick={() => setIsImportModalOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar Leads
+          </Button>
+        </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar por nome, email ou telefone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
@@ -203,6 +215,12 @@ export const LeadPoolDashboard = () => {
         lead={selectedLead}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
+        companyId={companyId || ""}
+      />
+
+      <LeadImportModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
         companyId={companyId || ""}
       />
     </div>
