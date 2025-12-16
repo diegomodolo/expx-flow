@@ -21,14 +21,10 @@ function normalizeEmail(email: string): string {
 
 // Normalize phone for hashing (E.164 format)
 function normalizePhone(phone: string): string {
-  // Remove all non-numeric characters
   let cleaned = phone.replace(/\D/g, '');
-  
-  // If starts with 55 (Brazil), keep it; otherwise add 55
   if (!cleaned.startsWith('55') && cleaned.length <= 11) {
     cleaned = '55' + cleaned;
   }
-  
   return cleaned;
 }
 
@@ -39,11 +35,41 @@ function isValidUUID(str: string): boolean {
 }
 
 interface LeadCaptureRequest {
-  email?: string;
-  phone?: string;
+  // === 1. IDENTIFICAÇÃO DO LEAD ===
+  lead_status?: string;
+  primary_source?: string;
+  secondary_source?: string;
+  capture_url?: string;
+  capture_type?: string;
+  
+  // === 2. DADOS DA EMPRESA ===
+  company_name?: string;
+  company_trade_name?: string;
+  cnpj?: string;
+  company_segment?: string;
+  company_subsegment?: string;
+  cnae?: string;
+  company_size?: string;
+  monthly_revenue?: string;
+  annual_revenue?: string;
+  employee_count?: string;
+  years_in_market?: number;
+  client_type?: string;
+  company_website?: string;
+  company_linkedin?: string;
+  
+  // === 3. DADOS DO CONTATO (PESSOA) ===
   full_name: string;
   first_name?: string;
   last_name?: string;
+  job_title?: string;
+  job_level?: string;
+  department?: string;
+  email?: string;
+  email_type?: string;
+  phone?: string;
+  whatsapp?: string;
+  linkedin_profile?: string;
   city?: string;
   state?: string;
   country?: string;
@@ -52,25 +78,88 @@ interface LeadCaptureRequest {
   gender?: 'm' | 'f' | 'o';
   facebook_id?: string;
   instagram?: string;
-  client_id?: string; // Optional - must be valid UUID if provided, otherwise ignored
-  client_external_id?: string; // Optional - any string identifier for the client
-  client_sector?: string; // Optional - sector name directly, used if client_id not provided
-  source?: string;
+  
+  // === 4. ESTRUTURA ORGANIZACIONAL / DECISÃO ===
+  buying_role?: string;
+  is_decision_maker?: boolean;
+  influence_level?: string;
+  decision_makers_count?: number;
+  
+  // === 5. STACK ATUAL / CONTEXTO DE SOFTWARE ===
+  uses_software?: boolean;
+  software_type?: string;
+  current_software?: string;
+  current_vendor?: string;
+  software_usage_time?: string;
+  software_satisfaction?: string;
+  main_pain_point?: string;
+  switch_reason?: string;
+  
+  // === 6. POTENCIAL DE COMPRA ===
+  estimated_users?: number;
+  license_type?: string;
+  budget_range?: string;
+  purchase_timeline?: string;
+  urgency_level?: string;
+  
+  // === 7. COMPORTAMENTO E ENGAJAMENTO ===
+  first_interaction_at?: string;
+  last_interaction_at?: string;
+  content_consumed?: string[];
+  content_type?: string;
+  pages_visited?: string[];
+  visited_pricing?: boolean;
+  attended_webinar?: boolean;
+  requested_demo?: boolean;
+  
+  // === 8. ORIGEM DE MARKETING E AQUISIÇÃO ===
+  acquisition_channel?: string;
+  specific_source?: string;
+  campaign?: string;
+  ad_set?: string;
+  creative?: string;
+  keyword?: string;
+  lead_cost?: number;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
+  
+  // === 9. QUALIDADE E ENRIQUECIMENTO ===
+  lead_validated?: boolean;
+  company_validated?: boolean;
+  email_verified?: boolean;
+  phone_verified?: boolean;
+  data_enriched?: boolean;
+  enrichment_source?: string;
+  
+  // === 10. CONSENTIMENTO E COMPLIANCE (LGPD) ===
+  lgpd_consent?: boolean;
+  consent_date?: string;
+  consent_source?: string;
+  data_purpose?: string;
+  partner_sharing_consent?: boolean;
+  
+  // === 11. CAMPOS TÉCNICOS / OPERACIONAIS ===
+  internal_classification?: string;
+  internal_notes?: string;
+  tags?: string[];
+  assigned_to?: string;
+  
+  // === CAMPOS EXISTENTES/LEGADOS ===
+  client_id?: string;
+  client_external_id?: string;
+  client_sector?: string;
+  source?: string;
   value?: number;
   extra_data?: Record<string, unknown>;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Only allow POST
     if (req.method !== 'POST') {
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),
@@ -78,7 +167,6 @@ serve(async (req) => {
       );
     }
 
-    // Get API key from header
     const apiKey = req.headers.get('x-api-key');
     if (!apiKey) {
       return new Response(
@@ -87,15 +175,12 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Hash the API key for lookup
     const apiKeyHash = await sha256(apiKey);
 
-    // Validate API key and get company_id
     const { data: apiKeyRecord, error: apiKeyError } = await supabase
       .from('company_api_keys')
       .select('id, company_id, is_active, permissions')
@@ -117,7 +202,6 @@ serve(async (req) => {
       );
     }
 
-    // Check permissions
     const permissions = apiKeyRecord.permissions as { capture?: boolean };
     if (!permissions?.capture) {
       return new Response(
@@ -127,11 +211,8 @@ serve(async (req) => {
     }
 
     const companyId = apiKeyRecord.company_id;
-
-    // Parse request body
     const body: LeadCaptureRequest = await req.json();
 
-    // Validate required fields
     if (!body.full_name) {
       return new Response(
         JSON.stringify({ error: 'full_name is required' }),
@@ -146,11 +227,9 @@ serve(async (req) => {
       );
     }
 
-    // Generate hashes for deduplication
     const emailHash = body.email ? await sha256(normalizeEmail(body.email)) : null;
     const phoneHash = body.phone ? await sha256(normalizePhone(body.phone)) : null;
 
-    // Check for existing lead by email or phone hash
     let existingLead = null;
 
     if (emailHash) {
@@ -177,30 +256,169 @@ serve(async (req) => {
     let isNew = false;
     const segmentsAssigned: string[] = [];
 
+    // Build the lead data object with all fields
+    const buildLeadData = (existing?: Record<string, unknown>) => {
+      const firstClientId = body.client_id && isValidUUID(body.client_id) ? body.client_id : null;
+      const assignedToUUID = body.assigned_to && isValidUUID(body.assigned_to) ? body.assigned_to : null;
+      
+      const mergedExtraData: Record<string, unknown> = {
+        ...((existing?.extra_data as Record<string, unknown>) || {}),
+        ...(body.extra_data || {}),
+        ...(body.client_id && !isValidUUID(body.client_id) ? { client_identifier: body.client_id } : {}),
+      };
+
+      return {
+        // Existing fields
+        company_id: companyId,
+        email_hash: emailHash,
+        phone_hash: phoneHash,
+        email: body.email ?? existing?.email,
+        phone: body.phone ?? existing?.phone,
+        full_name: body.full_name ?? existing?.full_name,
+        first_name: body.first_name ?? existing?.first_name,
+        last_name: body.last_name ?? existing?.last_name,
+        city: body.city ?? existing?.city,
+        state: body.state ?? existing?.state,
+        country: body.country ?? existing?.country ?? 'BR',
+        zip_code: body.zip_code ?? existing?.zip_code,
+        date_of_birth: body.date_of_birth ?? existing?.date_of_birth,
+        gender: body.gender ?? existing?.gender,
+        facebook_id: body.facebook_id ?? existing?.facebook_id,
+        instagram: body.instagram ?? existing?.instagram,
+        original_source: body.source ?? body.primary_source ?? existing?.original_source ?? 'api',
+        first_client_id: existing ? existing.first_client_id : firstClientId,
+        extra_data: mergedExtraData,
+        
+        // === 2. DADOS DA EMPRESA ===
+        company_name: body.company_name ?? existing?.company_name,
+        company_trade_name: body.company_trade_name ?? existing?.company_trade_name,
+        cnpj: body.cnpj ?? existing?.cnpj,
+        company_segment: body.company_segment ?? existing?.company_segment,
+        company_subsegment: body.company_subsegment ?? existing?.company_subsegment,
+        cnae: body.cnae ?? existing?.cnae,
+        company_size: body.company_size ?? existing?.company_size,
+        monthly_revenue: body.monthly_revenue ?? existing?.monthly_revenue,
+        annual_revenue: body.annual_revenue ?? existing?.annual_revenue,
+        employee_count: body.employee_count ?? existing?.employee_count,
+        years_in_market: body.years_in_market ?? existing?.years_in_market,
+        client_type: body.client_type ?? existing?.client_type,
+        company_website: body.company_website ?? existing?.company_website,
+        company_linkedin: body.company_linkedin ?? existing?.company_linkedin,
+        
+        // === 3. DADOS DO CONTATO (PESSOA) - campos adicionais ===
+        job_title: body.job_title ?? existing?.job_title,
+        job_level: body.job_level ?? existing?.job_level,
+        department: body.department ?? existing?.department,
+        email_type: body.email_type ?? existing?.email_type,
+        whatsapp: body.whatsapp ?? existing?.whatsapp,
+        linkedin_profile: body.linkedin_profile ?? existing?.linkedin_profile,
+        
+        // === 4. ESTRUTURA ORGANIZACIONAL / DECISÃO ===
+        buying_role: body.buying_role ?? existing?.buying_role,
+        is_decision_maker: body.is_decision_maker ?? existing?.is_decision_maker,
+        influence_level: body.influence_level ?? existing?.influence_level,
+        decision_makers_count: body.decision_makers_count ?? existing?.decision_makers_count,
+        
+        // === 5. STACK ATUAL / CONTEXTO DE SOFTWARE ===
+        uses_software: body.uses_software ?? existing?.uses_software,
+        software_type: body.software_type ?? existing?.software_type,
+        current_software: body.current_software ?? existing?.current_software,
+        current_vendor: body.current_vendor ?? existing?.current_vendor,
+        software_usage_time: body.software_usage_time ?? existing?.software_usage_time,
+        software_satisfaction: body.software_satisfaction ?? existing?.software_satisfaction,
+        main_pain_point: body.main_pain_point ?? existing?.main_pain_point,
+        switch_reason: body.switch_reason ?? existing?.switch_reason,
+        
+        // === 6. POTENCIAL DE COMPRA ===
+        estimated_users: body.estimated_users ?? existing?.estimated_users,
+        license_type: body.license_type ?? existing?.license_type,
+        budget_range: body.budget_range ?? existing?.budget_range,
+        purchase_timeline: body.purchase_timeline ?? existing?.purchase_timeline,
+        urgency_level: body.urgency_level ?? existing?.urgency_level,
+        
+        // === 7. COMPORTAMENTO E ENGAJAMENTO ===
+        first_interaction_at: existing?.first_interaction_at ?? body.first_interaction_at ?? new Date().toISOString(),
+        last_interaction_at: body.last_interaction_at ?? new Date().toISOString(),
+        content_consumed: body.content_consumed ?? existing?.content_consumed ?? [],
+        content_type: body.content_type ?? existing?.content_type,
+        pages_visited: body.pages_visited ?? existing?.pages_visited ?? [],
+        visited_pricing: body.visited_pricing ?? existing?.visited_pricing,
+        attended_webinar: body.attended_webinar ?? existing?.attended_webinar,
+        requested_demo: body.requested_demo ?? existing?.requested_demo,
+        
+        // === 8. ORIGEM DE MARKETING E AQUISIÇÃO ===
+        acquisition_channel: body.acquisition_channel ?? existing?.acquisition_channel,
+        specific_source: body.specific_source ?? existing?.specific_source,
+        campaign: body.campaign ?? body.utm_campaign ?? existing?.campaign,
+        ad_set: body.ad_set ?? existing?.ad_set,
+        creative: body.creative ?? existing?.creative,
+        keyword: body.keyword ?? existing?.keyword,
+        lead_cost: body.lead_cost ?? existing?.lead_cost,
+        capture_url: body.capture_url ?? existing?.capture_url,
+        capture_type: body.capture_type ?? existing?.capture_type,
+        secondary_source: body.secondary_source ?? existing?.secondary_source,
+        
+        // === 9. QUALIDADE E ENRIQUECIMENTO ===
+        lead_validated: body.lead_validated ?? existing?.lead_validated,
+        company_validated: body.company_validated ?? existing?.company_validated,
+        email_verified: body.email_verified ?? existing?.email_verified,
+        phone_verified: body.phone_verified ?? existing?.phone_verified,
+        data_enriched: body.data_enriched ?? existing?.data_enriched,
+        enrichment_source: body.enrichment_source ?? existing?.enrichment_source,
+        
+        // === 10. CONSENTIMENTO E COMPLIANCE (LGPD) ===
+        lgpd_consent: body.lgpd_consent ?? existing?.lgpd_consent,
+        consent_date: body.consent_date ?? existing?.consent_date,
+        consent_source: body.consent_source ?? existing?.consent_source,
+        data_purpose: body.data_purpose ?? existing?.data_purpose,
+        partner_sharing_consent: body.partner_sharing_consent ?? existing?.partner_sharing_consent,
+        
+        // === 11. CAMPOS TÉCNICOS / OPERACIONAIS ===
+        lead_status: body.lead_status ?? existing?.lead_status ?? 'novo',
+        internal_classification: body.internal_classification ?? existing?.internal_classification,
+        internal_notes: body.internal_notes ?? existing?.internal_notes,
+        tags: body.tags ?? existing?.tags ?? [],
+        assigned_to: assignedToUUID ?? existing?.assigned_to,
+        
+        updated_at: new Date().toISOString()
+      };
+    };
+
     if (existingLead) {
-      // Update existing lead
       leadId = existingLead.id;
       
+      const updateData = buildLeadData(existingLead);
+      // Remove fields that shouldn't be updated
+      delete (updateData as Record<string, unknown>).company_id;
+      delete (updateData as Record<string, unknown>).email_hash;
+      delete (updateData as Record<string, unknown>).phone_hash;
+      delete (updateData as Record<string, unknown>).first_client_id;
+      
+      // Increment interactions
+      (updateData as Record<string, unknown>).total_interactions = (existingLead.total_interactions || 0) + 1;
+      
+      // Append to arrays instead of replacing
+      if (body.content_consumed && existingLead.content_consumed) {
+        const existingContent = existingLead.content_consumed as string[];
+        const newContent = body.content_consumed.filter((c: string) => !existingContent.includes(c));
+        (updateData as Record<string, unknown>).content_consumed = [...existingContent, ...newContent];
+      }
+      
+      if (body.pages_visited && existingLead.pages_visited) {
+        const existingPages = existingLead.pages_visited as string[];
+        const newPages = body.pages_visited.filter((p: string) => !existingPages.includes(p));
+        (updateData as Record<string, unknown>).pages_visited = [...existingPages, ...newPages];
+      }
+      
+      if (body.tags && existingLead.tags) {
+        const existingTags = existingLead.tags as string[];
+        const newTags = body.tags.filter((t: string) => !existingTags.includes(t));
+        (updateData as Record<string, unknown>).tags = [...existingTags, ...newTags];
+      }
+
       const { error: updateError } = await supabase
         .from('lead_master_pool')
-        .update({
-          total_interactions: existingLead.total_interactions + 1,
-          // Update fields only if provided and not already set
-          first_name: body.first_name || existingLead.first_name,
-          last_name: body.last_name || existingLead.last_name,
-          city: body.city || existingLead.city,
-          state: body.state || existingLead.state,
-          zip_code: body.zip_code || existingLead.zip_code,
-          date_of_birth: body.date_of_birth || existingLead.date_of_birth,
-          gender: body.gender || existingLead.gender,
-          facebook_id: body.facebook_id || existingLead.facebook_id,
-          instagram: body.instagram || existingLead.instagram,
-          extra_data: {
-            ...((existingLead.extra_data as Record<string, unknown>) || {}),
-            ...(body.extra_data || {})
-          },
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', leadId);
 
       if (updateError) {
@@ -208,43 +426,15 @@ serve(async (req) => {
         throw updateError;
       }
 
-      console.log(`Lead updated: ${leadId}, interactions: ${existingLead.total_interactions + 1}`);
+      console.log(`Lead updated: ${leadId}, interactions: ${(existingLead.total_interactions || 0) + 1}`);
     } else {
-      // Create new lead
       isNew = true;
-
-      // lead_master_pool.first_client_id is UUID in DB, so only set it when a UUID is provided.
-      const firstClientId = body.client_id && isValidUUID(body.client_id) ? body.client_id : null;
-
-      // Preserve the raw identifier (email/phone/etc) for traceability
-      const mergedExtraData: Record<string, unknown> = {
-        ...(body.extra_data || {}),
-        ...(body.client_id ? { client_identifier: body.client_id } : {}),
-      };
+      const insertData = buildLeadData();
+      (insertData as Record<string, unknown>).total_interactions = 1;
 
       const { data: newLead, error: insertError } = await supabase
         .from('lead_master_pool')
-        .insert({
-          company_id: companyId,
-          email_hash: emailHash,
-          phone_hash: phoneHash,
-          email: body.email,
-          phone: body.phone,
-          full_name: body.full_name,
-          first_name: body.first_name,
-          last_name: body.last_name,
-          city: body.city,
-          state: body.state,
-          country: body.country || 'BR',
-          zip_code: body.zip_code,
-          date_of_birth: body.date_of_birth,
-          gender: body.gender,
-          facebook_id: body.facebook_id,
-          instagram: body.instagram,
-          original_source: body.source || 'api',
-          first_client_id: firstClientId,
-          extra_data: mergedExtraData,
-        })
+        .insert(insertData)
         .select('id')
         .single();
 
@@ -257,16 +447,14 @@ serve(async (req) => {
       console.log(`New lead created: ${leadId}`);
     }
 
-    // Create client interaction if client_id provided (can be UUID, email, or any identifier)
-    let clientSector = body.client_sector; // Use directly provided sector as fallback
+    // Create client interaction if client_id provided
+    let clientSector = body.client_sector;
     let resolvedClientId: string | null = null;
     
     if (body.client_id) {
       let client = null;
       
-      // Try to find client by different methods
       if (isValidUUID(body.client_id)) {
-        // Search by UUID
         const { data } = await supabase
           .from('clients')
           .select('id, sector')
@@ -277,7 +465,6 @@ serve(async (req) => {
       }
       
       if (!client) {
-        // Search by email
         const { data } = await supabase
           .from('clients')
           .select('id, sector')
@@ -288,7 +475,6 @@ serve(async (req) => {
       }
       
       if (!client) {
-        // Search by name (case insensitive)
         const { data } = await supabase
           .from('clients')
           .select('id, sector')
@@ -299,7 +485,6 @@ serve(async (req) => {
       }
       
       if (!client) {
-        // Search by company name (case insensitive)
         const { data } = await supabase
           .from('clients')
           .select('id, sector')
@@ -325,10 +510,10 @@ serve(async (req) => {
             interaction_type: 'captured',
             client_sector: clientSector,
             value: body.value || 0,
-            source: body.source || 'api',
+            source: body.source || body.primary_source || 'api',
             utm_source: body.utm_source,
             utm_medium: body.utm_medium,
-            utm_campaign: body.utm_campaign
+            utm_campaign: body.utm_campaign || body.campaign
           });
 
         if (interactionError) {
@@ -339,14 +524,15 @@ serve(async (req) => {
       }
     }
 
-    // Auto-assign sector segment if we have a sector (from client or directly provided)
-    if (clientSector) {
+    // Auto-assign sector segment
+    if (clientSector || body.company_segment) {
+      const segmentName = clientSector || body.company_segment;
       const { data: sectorSegment } = await supabase
         .from('lead_segments')
         .select('id, name')
         .eq('company_id', companyId)
         .eq('segment_type', 'sector')
-        .ilike('name', clientSector)
+        .ilike('name', segmentName!)
         .single();
 
       if (sectorSegment) {
@@ -364,7 +550,7 @@ serve(async (req) => {
       }
     }
 
-    // Auto-assign location segment if state provided
+    // Auto-assign location segment
     if (body.state) {
       const { data: locationSegment } = await supabase
         .from('lead_segments')
