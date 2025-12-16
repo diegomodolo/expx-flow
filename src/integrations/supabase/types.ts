@@ -4328,6 +4328,11 @@ export type Database = {
           updated_at: string | null
           urgency_level: string | null
           uses_software: boolean | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           visited_pricing: boolean | null
           whatsapp: string | null
           years_in_market: number | null
@@ -4437,6 +4442,11 @@ export type Database = {
           updated_at?: string | null
           urgency_level?: string | null
           uses_software?: boolean | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           visited_pricing?: boolean | null
           whatsapp?: string | null
           years_in_market?: number | null
@@ -4546,6 +4556,11 @@ export type Database = {
           updated_at?: string | null
           urgency_level?: string | null
           uses_software?: boolean | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           visited_pricing?: boolean | null
           whatsapp?: string | null
           years_in_market?: number | null
