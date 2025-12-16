@@ -3,15 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
-import { History, Upload, Globe, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Upload, Globe, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export const LeadHistoryTab = () => {
-  const { activeCompany } = useCompany();
-  const companyId = activeCompany?.company_id;
+interface LeadHistoryTabProps {
+  companyId: string;
+}
 
+export const LeadHistoryTab = ({ companyId }: LeadHistoryTabProps) => {
   // Fetch import history
   const { data: imports, isLoading: loadingImports } = useQuery({
     queryKey: ['lead-import-history', companyId],

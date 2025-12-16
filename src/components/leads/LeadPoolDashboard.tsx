@@ -1,32 +1,24 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Users, Search, RefreshCw, TrendingUp, Star, MapPin, Phone, Mail, Tag, Upload, Calculator } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { Users, Upload, Calculator, History, Filter, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
-import { LeadDetailModal } from "./LeadDetailModal";
 import { LeadImportModal } from "./LeadImportModal";
 import { LeadClassificationStats } from "./LeadClassificationStats";
-import { LeadQualificationBadge } from "./LeadQualificationBadge";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
+import { LeadSegmentsDashboard } from "./LeadSegmentsDashboard";
+import { LeadHistoryTab } from "./LeadHistoryTab";
+import { LeadSavedFiltersTab } from "./LeadSavedFiltersTab";
 
 export const LeadPoolDashboard = () => {
   const queryClient = useQueryClient();
   const { activeCompany } = useCompany();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [scoreFilter, setScoreFilter] = useState<string>("all");
-  const [stateFilter, setStateFilter] = useState<string>("all");
-  const [selectedLead, setSelectedLead] = useState<Record<string, unknown> | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("segments");
 
   const companyId = activeCompany?.company_id;
 
@@ -64,81 +56,6 @@ export const LeadPoolDashboard = () => {
     enabled: !!companyId
   });
 
-  const { data: leads, isLoading } = useQuery({
-    queryKey: ['lead-pool', companyId, searchTerm, scoreFilter, stateFilter],
-    queryFn: async () => {
-      if (!companyId) return [];
-      
-      let query = supabase
-        .from('lead_master_pool')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('global_score', { ascending: false })
-        .limit(100);
-      
-      if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
-      }
-      
-      if (scoreFilter === 'high') query = query.gte('global_score', 70);
-      else if (scoreFilter === 'medium') query = query.gte('global_score', 40).lt('global_score', 70);
-      else if (scoreFilter === 'low') query = query.lt('global_score', 40);
-      
-      if (stateFilter !== 'all') query = query.eq('state', stateFilter);
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!companyId
-  });
-
-  // Fetch segment assignments for all leads
-  const { data: segmentAssignments } = useQuery({
-    queryKey: ['lead-segments-assignments', companyId, leads?.map(l => l.id)],
-    queryFn: async () => {
-      if (!companyId || !leads?.length) return {};
-      
-      const leadIds = leads.map(l => l.id);
-      const { data } = await supabase
-        .from('lead_segment_assignments')
-        .select('lead_id, segment:lead_segments(id, name, color)')
-        .in('lead_id', leadIds);
-      
-      // Create a map of leadId -> segments array
-      const map: Record<string, { id: string; name: string; color: string }[]> = {};
-      data?.forEach(assignment => {
-        if (!map[assignment.lead_id]) map[assignment.lead_id] = [];
-        if (assignment.segment) {
-          map[assignment.lead_id].push(assignment.segment as { id: string; name: string; color: string });
-        }
-      });
-      return map;
-    },
-    enabled: !!companyId && !!leads?.length
-  });
-
-  const { data: states } = useQuery({
-    queryKey: ['lead-states', companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      const { data } = await supabase.from('lead_master_pool').select('state').eq('company_id', companyId).not('state', 'is', null);
-      return [...new Set(data?.map(l => l.state).filter(Boolean))].sort() as string[];
-    },
-    enabled: !!companyId
-  });
-
-  const getScoreBadge = (score: number) => {
-    if (score >= 70) return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Alto ({score})</Badge>;
-    if (score >= 40) return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Médio ({score})</Badge>;
-    return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Baixo ({score})</Badge>;
-  };
-
-  const handleLeadClick = (lead: Record<string, unknown>) => {
-    setSelectedLead(lead);
-    setIsModalOpen(true);
-  };
-
   const { scoreAllCompanyLeads } = useLeadScoring();
   const [isScoring, setIsScoring] = useState(false);
 
@@ -149,6 +66,7 @@ export const LeadPoolDashboard = () => {
       toast.success(`${count} leads recalculados com sucesso`);
       queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
       queryClient.invalidateQueries({ queryKey: ['lead-classification-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
     } catch (error) {
       toast.error("Erro ao recalcular scores");
     } finally {
@@ -161,99 +79,103 @@ export const LeadPoolDashboard = () => {
       {/* Classification Stats */}
       <LeadClassificationStats />
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total de Leads</p><p className="text-2xl font-bold">{stats?.totalLeads?.toLocaleString() || 0}</p></div><Users className="h-8 w-8 text-primary opacity-20" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Score Alto</p><p className="text-2xl font-bold">{stats?.highScoreLeads?.toLocaleString() || 0}</p></div><Star className="h-8 w-8 text-yellow-500 opacity-20" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Convertidos</p><p className="text-2xl font-bold">{stats?.convertedLeads?.toLocaleString() || 0}</p></div><TrendingUp className="h-8 w-8 text-green-500 opacity-20" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Valor Total</p><p className="text-2xl font-bold">R$ {stats?.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 0}</p></div><TrendingUp className="h-8 w-8 text-primary opacity-20" /></div></CardContent></Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de Leads</p>
+                <p className="text-2xl font-bold">{stats?.totalLeads?.toLocaleString() || 0}</p>
+              </div>
+              <Users className="h-8 w-8 text-primary opacity-20" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Score Alto (≥70)</p>
+                <p className="text-2xl font-bold">{stats?.highScoreLeads?.toLocaleString() || 0}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <span className="text-yellow-600 font-bold text-sm">★</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Convertidos</p>
+                <p className="text-2xl font-bold">{stats?.convertedLeads?.toLocaleString() || 0}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm">✓</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-bold">
+                  R$ {stats?.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 0 }) || 0}
+                </p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-primary font-bold text-sm">$</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Pool de Leads</CardTitle>
-            <CardDescription>Leads deduplicados de todos os clientes • Clique para ver detalhes</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleRecalculateScores} disabled={isScoring}>
-              <Calculator className="h-4 w-4 mr-2" />
-              {isScoring ? "Calculando..." : "Recalcular Scores"}
-            </Button>
-            <Button onClick={() => setIsImportModalOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Importar Leads
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar por nome, email ou telefone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
-            <Select value={scoreFilter} onValueChange={setScoreFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Score" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="high">Alto</SelectItem><SelectItem value="medium">Médio</SelectItem><SelectItem value="low">Baixo</SelectItem></SelectContent></Select>
-            <Select value={stateFilter} onValueChange={setStateFilter}><SelectTrigger className="w-[120px]"><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="all">Todos</SelectItem>{states?.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
-          </div>
+      {/* Actions */}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleRecalculateScores} disabled={isScoring}>
+          <Calculator className="h-4 w-4 mr-2" />
+          {isScoring ? "Calculando..." : "Recalcular Scores"}
+        </Button>
+        <Button onClick={() => setIsImportModalOpen(true)}>
+          <Upload className="h-4 w-4 mr-2" />
+          Importar Leads
+        </Button>
+      </div>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : leads && leads.length > 0 ? (
-            <Table>
-              <TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Contato</TableHead><TableHead>Local</TableHead><TableHead>Segmento</TableHead><TableHead>Classificação</TableHead><TableHead>Score</TableHead><TableHead>Conversões</TableHead><TableHead>Valor</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {leads.map((lead) => {
-                  const leadSegments = segmentAssignments?.[lead.id] || [];
-                  return (
-                    <TableRow 
-                      key={lead.id} 
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleLeadClick(lead as Record<string, unknown>)}
-                    >
-                      <TableCell><p className="font-medium">{lead.full_name || "Sem nome"}</p><p className="text-xs text-muted-foreground">Desde {format(new Date(lead.first_captured_at || lead.created_at), "dd/MM/yy", { locale: ptBR })}</p></TableCell>
-                      <TableCell><div className="space-y-1">{lead.email && <div className="flex items-center gap-1 text-sm"><Mail className="h-3 w-3" /><span className="truncate max-w-[120px]">{lead.email}</span></div>}{lead.phone && <div className="flex items-center gap-1 text-sm"><Phone className="h-3 w-3" /><span>{lead.phone}</span></div>}</div></TableCell>
-                      <TableCell>{(lead.city || lead.state) && <div className="flex items-center gap-1 text-sm"><MapPin className="h-3 w-3" /><span>{[lead.city, lead.state].filter(Boolean).join(", ")}</span></div>}</TableCell>
-                      <TableCell>
-                        {leadSegments.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {leadSegments.map(seg => (
-                              <Badge 
-                                key={seg.id} 
-                                variant="outline" 
-                                className="text-xs"
-                                style={{ borderColor: seg.color, color: seg.color }}
-                              >
-                                <Tag className="h-3 w-3 mr-1" />
-                                {seg.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <LeadQualificationBadge 
-                          classification={lead.lead_classification as 'ouro' | 'prata' | 'bronze' | null}
-                          size="sm"
-                        />
-                      </TableCell>
-                      <TableCell>{getScoreBadge(lead.global_score)}</TableCell>
-                      <TableCell>{lead.total_conversions}</TableCell>
-                      <TableCell>{lead.total_value > 0 ? `R$ ${lead.total_value.toLocaleString('pt-BR')}` : "-"}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground"><Users className="h-12 w-12 mx-auto mb-4 opacity-20" /><p>Nenhum lead encontrado</p></div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="segments" className="flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            Segmentos
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Histórico
+          </TabsTrigger>
+          <TabsTrigger value="filters" className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filtros Salvos
+          </TabsTrigger>
+        </TabsList>
 
-      <LeadDetailModal
-        lead={selectedLead}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        companyId={companyId || ""}
-      />
+        <TabsContent value="segments" className="mt-6">
+          <LeadSegmentsDashboard companyId={companyId || ""} />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <LeadHistoryTab companyId={companyId || ""} />
+        </TabsContent>
+
+        <TabsContent value="filters" className="mt-6">
+          <LeadSavedFiltersTab companyId={companyId || ""} />
+        </TabsContent>
+      </Tabs>
 
       <LeadImportModal
         open={isImportModalOpen}

@@ -240,15 +240,46 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
         setImportProgress(Math.round(((i + 1) / batches) * 100));
       }
       
+      // Log import to history (LGPD compliant - no personal data)
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase
+        .from('lead_import_history')
+        .insert({
+          company_id: companyId,
+          imported_by: user?.id || '',
+          file_name: file?.name || 'unknown',
+          total_rows: rawData.length,
+          leads_imported: imported,
+          leads_duplicated: duplicates,
+          default_segment_id: segmentId || null,
+          status: 'completed'
+        });
+      
       setImportResult({ imported, duplicates });
       queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
       queryClient.invalidateQueries({ queryKey: ['lead-pool-stats'] });
       queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-import-history'] });
       
       toast.success(`${imported} leads importados com sucesso!`);
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Erro durante a importação");
+      
+      // Log failed import
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase
+        .from('lead_import_history')
+        .insert({
+          company_id: companyId,
+          imported_by: user?.id || '',
+          file_name: file?.name || 'unknown',
+          total_rows: rawData.length,
+          leads_imported: imported,
+          leads_duplicated: duplicates,
+          status: 'failed',
+          error_message: error instanceof Error ? error.message : 'Unknown error'
+        });
     } finally {
       setIsImporting(false);
     }

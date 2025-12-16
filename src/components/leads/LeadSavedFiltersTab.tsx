@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/contexts/CompanyContext";
 import { Filter, Plus, Trash2, Edit, Star, StarOff, Eye, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,6 +20,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+interface LeadSavedFiltersTabProps {
+  companyId: string;
+}
 
 interface FilterConfig {
   conditions: Array<{
@@ -41,10 +44,8 @@ interface SavedFilter {
   updated_at: string;
 }
 
-export const LeadSavedFiltersTab = () => {
+export const LeadSavedFiltersTab = ({ companyId }: LeadSavedFiltersTabProps) => {
   const queryClient = useQueryClient();
-  const { activeCompany } = useCompany();
-  const companyId = activeCompany?.company_id;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFilter, setEditingFilter] = useState<SavedFilter | null>(null);
