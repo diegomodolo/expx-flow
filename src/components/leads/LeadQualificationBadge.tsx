@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Medal, Trophy, Award } from "lucide-react";
+import { Medal, Trophy, Award, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type LeadClassification = 'ouro' | 'prata' | 'bronze' | null;
+type LeadClassification = 'ouro' | 'prata' | 'bronze' | 'descartado' | null;
 
 interface LeadQualificationBadgeProps {
   classification: LeadClassification;
@@ -36,6 +36,14 @@ const classificationConfig = {
     textColor: 'text-orange-700 dark:text-orange-400',
     iconColor: 'text-orange-500',
     borderColor: 'border-orange-300 dark:border-orange-700',
+  },
+  descartado: {
+    label: 'Descartado',
+    icon: Trash2,
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    textColor: 'text-red-700 dark:text-red-400',
+    iconColor: 'text-red-500',
+    borderColor: 'border-red-300 dark:border-red-700',
   },
 };
 

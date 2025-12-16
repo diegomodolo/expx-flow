@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Trophy, Medal, Award, Building2, UserCheck, ShieldCheck, Target, Monitor } from "lucide-react";
 import { LeadQualificationBadge } from "./LeadQualificationBadge";
 
-type LeadClassification = 'ouro' | 'prata' | 'bronze' | null;
+type LeadClassification = 'ouro' | 'prata' | 'bronze' | 'descartado' | null;
 
 interface DimensionScores {
   company_fit: number;

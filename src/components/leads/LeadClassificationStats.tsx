@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Trophy, Medal, Award, Users } from "lucide-react";
+import { Trophy, Medal, Award, Users, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -46,6 +46,12 @@ export function LeadClassificationStats() {
         .eq('company_id', companyId)
         .eq('lead_classification', 'ouro');
 
+      const { count: descartadoCount } = await supabase
+        .from('lead_master_pool')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('lead_classification', 'descartado');
+
       const { count: naoClassificadoCount } = await supabase
         .from('lead_master_pool')
         .select('*', { count: 'exact', head: true })
@@ -57,6 +63,7 @@ export function LeadClassificationStats() {
         ouro: ouroCount || 0,
         prata: prataCount || 0,
         bronze: bronzeCount || 0,
+        descartado: descartadoCount || 0,
         naoClassificado: naoClassificadoCount || 0,
       };
     },
@@ -65,8 +72,8 @@ export function LeadClassificationStats() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[...Array(5)].map((_, i) => (
           <Card key={i}>
             <CardContent className="pt-4">
               <Skeleton className="h-12 w-full" />
@@ -106,6 +113,15 @@ export function LeadClassificationStats() {
       iconColor: 'text-orange-500',
     },
     {
+      label: 'Descartado',
+      value: stats?.descartado || 0,
+      percentage: stats?.total ? Math.round((stats.descartado / stats.total) * 100) : 0,
+      icon: Trash2,
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
+      textColor: 'text-red-700 dark:text-red-400',
+      iconColor: 'text-red-500',
+    },
+    {
       label: 'Não Classificado',
       value: stats?.naoClassificado || 0,
       percentage: stats?.total ? Math.round((stats.naoClassificado / stats.total) * 100) : 0,
@@ -117,7 +133,7 @@ export function LeadClassificationStats() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       {classifications.map(({ label, value, percentage, icon: Icon, bgColor, textColor, iconColor }) => (
         <Card key={label} className={cn("border-0 shadow-sm", bgColor)}>
           <CardContent className="pt-4 pb-4">
