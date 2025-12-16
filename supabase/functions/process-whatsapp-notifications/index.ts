@@ -747,6 +747,9 @@ serve(async (req) => {
         
         if (!client) continue;
         
+        // Check if this is a report trigger
+        const isReportTrigger = ['daily_report', 'weekly_report', 'monthly_report'].includes(trigger.trigger_type);
+        
         // Fetch metrics for this client
         let metrics;
         
