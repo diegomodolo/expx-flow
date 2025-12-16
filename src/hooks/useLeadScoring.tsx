@@ -83,6 +83,23 @@ const GENERIC_EMAIL_DOMAINS = [
   'oi.com.br', 'r7.com', 'zipmail.com.br'
 ];
 
+// Test/fake email patterns to reject
+const FAKE_EMAIL_PATTERNS = [
+  /^teste?[0-9]*@/i,        // teste, test, teste1, test123
+  /^temp[0-9]*@/i,          // temp, temp1
+  /^fake[0-9]*@/i,          // fake, fake1
+  /^exemplo[0-9]*@/i,       // exemplo
+  /^sample[0-9]*@/i,        // sample
+  /^admin[0-9]*@/i,         // admin (common fake)
+  /^info[0-9]*@/i,          // info (generic)
+  /^contato[0-9]*@/i,       // contato (generic)
+  /^noreply@/i,             // noreply
+  /^no-reply@/i,            // no-reply
+];
+
+// Keyboard sequence patterns (qwerty, asdf, etc)
+const KEYBOARD_SEQUENCES = ['qwerty', 'asdfgh', 'zxcvbn', 'qazwsx', 'asdf', 'qwer', 'zxcv'];
+
 function isValidBusinessEmail(email: string | null | undefined): boolean {
   if (!email || typeof email !== 'string') return false;
   
@@ -92,19 +109,119 @@ function isValidBusinessEmail(email: string | null | undefined): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(emailLower)) return false;
   
-  // Extract domain
-  const domain = emailLower.split('@')[1];
-  if (!domain) return false;
+  // Extract local part and domain
+  const [localPart, domain] = emailLower.split('@');
+  if (!domain || !localPart) return false;
   
-  // Check if it's NOT a generic domain
-  return !GENERIC_EMAIL_DOMAINS.includes(domain);
+  // Check if it's a generic domain
+  if (GENERIC_EMAIL_DOMAINS.includes(domain)) return false;
+  
+  // Check for fake/test email patterns
+  for (const pattern of FAKE_EMAIL_PATTERNS) {
+    if (pattern.test(emailLower)) return false;
+  }
+  
+  // Local part too short (a@, ab@)
+  if (localPart.length < 3) return false;
+  
+  // Check for repeated characters (aaa@, bbb@, xxx@, 111@)
+  if (/^(.)\1{2,}$/.test(localPart)) return false;
+  
+  // Check for mostly repeated characters (aaab@, xxxy@)
+  if (/^(.)\1+.?$/.test(localPart) && localPart.length < 5) return false;
+  
+  // Check for keyboard sequences
+  for (const seq of KEYBOARD_SEQUENCES) {
+    if (localPart.includes(seq)) return false;
+  }
+  
+  // Check for only numbers (123456@)
+  if (/^\d+$/.test(localPart)) return false;
+  
+  // Check for random consonant clusters (no vowels = likely fake)
+  // Needs at least one vowel if local part is longer than 4 chars
+  if (localPart.length > 4 && !/[aeiou]/i.test(localPart)) return false;
+  
+  // Check for excessive numbers mixed with few letters (a1b2c3d4@)
+  const letterCount = (localPart.match(/[a-z]/gi) || []).length;
+  const numberCount = (localPart.match(/[0-9]/g) || []).length;
+  if (numberCount > letterCount && localPart.length > 5) return false;
+  
+  return true;
+}
+
+// Valid Brazilian DDD codes
+const VALID_DDDS = [
+  11, 12, 13, 14, 15, 16, 17, 18, 19, // São Paulo
+  21, 22, 24, // Rio de Janeiro
+  27, 28, // Espírito Santo
+  31, 32, 33, 34, 35, 37, 38, // Minas Gerais
+  41, 42, 43, 44, 45, 46, // Paraná
+  47, 48, 49, // Santa Catarina
+  51, 53, 54, 55, // Rio Grande do Sul
+  61, // Distrito Federal
+  62, 64, // Goiás
+  63, // Tocantins
+  65, 66, // Mato Grosso
+  67, // Mato Grosso do Sul
+  68, // Acre
+  69, // Rondônia
+  71, 73, 74, 75, 77, // Bahia
+  79, // Sergipe
+  81, 87, // Pernambuco
+  82, // Alagoas
+  83, // Paraíba
+  84, // Rio Grande do Norte
+  85, 88, // Ceará
+  86, 89, // Piauí
+  91, 93, 94, // Pará
+  92, 97, // Amazonas
+  95, // Roraima
+  96, // Amapá
+  98, 99, // Maranhão
+];
+
+function isValidBrazilianPhone(phone: string | null | undefined): boolean {
+  if (!phone || typeof phone !== 'string') return false;
+  
+  // Remove all non-numeric characters
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  // Must be 10 (landline) or 11 (mobile) digits
+  if (cleanPhone.length < 10 || cleanPhone.length > 11) return false;
+  
+  // Extract DDD
+  const ddd = parseInt(cleanPhone.substring(0, 2), 10);
+  if (!VALID_DDDS.includes(ddd)) return false;
+  
+  // Get the phone number without DDD
+  const phoneNumber = cleanPhone.substring(2);
+  
+  // Mobile phones (11 digits total) must start with 9 after DDD
+  if (cleanPhone.length === 11 && phoneNumber[0] !== '9') return false;
+  
+  // Check for obviously fake numbers (all same digit)
+  if (/^(\d)\1+$/.test(phoneNumber)) return false;
+  
+  // Check for sequential numbers (12345678, 87654321)
+  const sequentialUp = '123456789';
+  const sequentialDown = '987654321';
+  if (sequentialUp.includes(phoneNumber) || sequentialDown.includes(phoneNumber)) return false;
+  
+  // Check for common fake patterns
+  const fakePatterns = ['00000000', '11111111', '22222222', '99999999', '12345678', '98765432'];
+  for (const pattern of fakePatterns) {
+    if (phoneNumber.includes(pattern)) return false;
+  }
+  
+  return true;
 }
 
 function generateClassificationReason(
   classification: LeadClassification,
   dimensionScores: LeadScoreResult['dimensionScores'],
   globalScore: number,
-  hasBusinessEmail?: boolean
+  hasValidContact?: boolean
 ): string {
   const strongDimensions: string[] = [];
   const weakDimensions: string[] = [];
@@ -117,13 +234,13 @@ function generateClassificationReason(
     }
   });
 
-  const businessEmailNote = hasBusinessEmail ? ' E-mail empresarial válido.' : '';
+  const contactNote = hasValidContact ? ' E-mail empresarial e telefone válidos.' : '';
   
   switch (classification) {
     case 'ouro':
-      return `Lead OURO (${globalScore} pts): ${strongDimensions.length > 0 ? `Forte em ${strongDimensions.join(', ')}.` : ''} Alta probabilidade de conversão.${businessEmailNote}`;
+      return `Lead OURO (${globalScore} pts): ${strongDimensions.length > 0 ? `Forte em ${strongDimensions.join(', ')}.` : ''} Alta probabilidade de conversão.${contactNote}`;
     case 'prata':
-      return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(', ')}.` : ''} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(', ')}.` : ''}${businessEmailNote} Potencial com trabalho comercial.`;
+      return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(', ')}.` : ''} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(', ')}.` : ''}${contactNote} Potencial com trabalho comercial.`;
     case 'bronze':
       return `Lead BRONZE (${globalScore} pts): ${weakDimensions.length > 0 ? `Pontos fracos em ${weakDimensions.join(', ')}.` : ''} Baixo valor comercial imediato.`;
   }
@@ -152,8 +269,10 @@ export function useLeadScoring() {
       dimensionScores.digital_maturity * weights.weight_digital_maturity
     );
 
-    // Check if lead has valid business email
+    // Check if lead has valid business email AND valid phone
     const hasBusinessEmail = isValidBusinessEmail(leadData.email);
+    const hasValidPhone = isValidBrazilianPhone(leadData.phone || leadData.whatsapp);
+    const hasValidContact = hasBusinessEmail && hasValidPhone;
 
     // Determine classification with authority validation
     let classification: LeadClassification = 'bronze';
@@ -169,12 +288,12 @@ export function useLeadScoring() {
       classification = 'prata';
     }
 
-    // Business email guarantee: valid business email = minimum prata
-    if (classification === 'bronze' && hasBusinessEmail) {
+    // Valid contact guarantee: valid business email + valid phone = minimum prata
+    if (classification === 'bronze' && hasValidContact) {
       classification = 'prata';
     }
 
-    const reason = generateClassificationReason(classification, dimensionScores, globalScore, hasBusinessEmail);
+    const reason = generateClassificationReason(classification, dimensionScores, globalScore, hasValidContact);
 
     return {
       globalScore,
