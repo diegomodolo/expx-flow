@@ -142,7 +142,7 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="font-semibold text-lg flex items-center gap-2">
-                            <span>{segment.icon || '📁'}</span>
+                            <span>{segment.icon === 'tag' ? '🏷️' : (segment.icon || '📁')}</span>
                             {segment.name}
                           </h3>
                           {segment.description && (
