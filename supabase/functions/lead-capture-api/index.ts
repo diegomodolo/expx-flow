@@ -32,6 +32,12 @@ function normalizePhone(phone: string): string {
   return cleaned;
 }
 
+// Validate if string is a valid UUID
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 interface LeadCaptureRequest {
   email?: string;
   phone?: string;
@@ -46,7 +52,9 @@ interface LeadCaptureRequest {
   gender?: 'm' | 'f' | 'o';
   facebook_id?: string;
   instagram?: string;
-  client_id?: string;
+  client_id?: string; // Optional - must be valid UUID if provided, otherwise ignored
+  client_external_id?: string; // Optional - any string identifier for the client
+  client_sector?: string; // Optional - sector name directly, used if client_id not provided
   source?: string;
   utm_source?: string;
   utm_medium?: string;
@@ -240,14 +248,21 @@ serve(async (req) => {
       console.log(`New lead created: ${leadId}`);
     }
 
-    // Create client interaction if client_id provided
-    if (body.client_id) {
-      // Get client sector
+    // Create client interaction if client_id provided and is a valid UUID
+    const hasValidClientId = body.client_id && isValidUUID(body.client_id);
+    let clientSector = body.client_sector; // Use directly provided sector as fallback
+    
+    if (hasValidClientId) {
+      // Get client sector from database
       const { data: client } = await supabase
         .from('clients')
         .select('sector')
         .eq('id', body.client_id)
         .single();
+
+      if (client?.sector) {
+        clientSector = client.sector;
+      }
 
       const { error: interactionError } = await supabase
         .from('lead_client_interactions')
@@ -256,7 +271,7 @@ serve(async (req) => {
           client_id: body.client_id,
           company_id: companyId,
           interaction_type: 'captured',
-          client_sector: client?.sector,
+          client_sector: clientSector,
           value: body.value || 0,
           source: body.source || 'api',
           utm_source: body.utm_source,
@@ -267,29 +282,32 @@ serve(async (req) => {
       if (interactionError) {
         console.error('Error creating interaction:', interactionError);
       }
+    } else if (body.client_id) {
+      // client_id provided but not a valid UUID - log for debugging
+      console.log(`client_id "${body.client_id}" is not a valid UUID, skipping client interaction. Use client_sector field directly.`);
+    }
 
-      // Auto-assign sector segment if client has sector
-      if (client?.sector) {
-        const { data: sectorSegment } = await supabase
-          .from('lead_segments')
-          .select('id, name')
-          .eq('company_id', companyId)
-          .eq('segment_type', 'sector')
-          .eq('name', client.sector)
-          .single();
+    // Auto-assign sector segment if we have a sector (from client or directly provided)
+    if (clientSector) {
+      const { data: sectorSegment } = await supabase
+        .from('lead_segments')
+        .select('id, name')
+        .eq('company_id', companyId)
+        .eq('segment_type', 'sector')
+        .ilike('name', clientSector)
+        .single();
 
-        if (sectorSegment) {
-          const { error: assignError } = await supabase
-            .from('lead_segment_assignments')
-            .upsert({
-              lead_id: leadId,
-              segment_id: sectorSegment.id,
-              assigned_by: 'auto'
-            }, { onConflict: 'lead_id,segment_id' });
+      if (sectorSegment) {
+        const { error: assignError } = await supabase
+          .from('lead_segment_assignments')
+          .upsert({
+            lead_id: leadId,
+            segment_id: sectorSegment.id,
+            assigned_by: 'auto'
+          }, { onConflict: 'lead_id,segment_id' });
 
-          if (!assignError) {
-            segmentsAssigned.push(sectorSegment.name);
-          }
+        if (!assignError) {
+          segmentsAssigned.push(sectorSegment.name);
         }
       }
     }
