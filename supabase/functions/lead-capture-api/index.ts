@@ -213,6 +213,15 @@ serve(async (req) => {
       // Create new lead
       isNew = true;
 
+      // lead_master_pool.first_client_id is UUID in DB, so only set it when a UUID is provided.
+      const firstClientId = body.client_id && isValidUUID(body.client_id) ? body.client_id : null;
+
+      // Preserve the raw identifier (email/phone/etc) for traceability
+      const mergedExtraData: Record<string, unknown> = {
+        ...(body.extra_data || {}),
+        ...(body.client_id ? { client_identifier: body.client_id } : {}),
+      };
+
       const { data: newLead, error: insertError } = await supabase
         .from('lead_master_pool')
         .insert({
@@ -233,8 +242,8 @@ serve(async (req) => {
           facebook_id: body.facebook_id,
           instagram: body.instagram,
           original_source: body.source || 'api',
-          first_client_id: body.client_id,
-          extra_data: body.extra_data || {}
+          first_client_id: firstClientId,
+          extra_data: mergedExtraData,
         })
         .select('id')
         .single();
