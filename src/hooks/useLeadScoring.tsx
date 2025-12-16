@@ -167,62 +167,118 @@ export function useLeadScoring() {
     return result;
   }, [calculateScore]);
 
-  const scoreMultipleLeads = useCallback(async (leadIds: string[]) => {
-    if (!activeCompany?.id) return;
-
-    // Fetch leads data
-    const { data: leads, error: fetchError } = await supabase
-      .from('lead_master_pool')
-      .select('*')
-      .in('id', leadIds);
-
-    if (fetchError) throw fetchError;
-    if (!leads) return;
-
-    // Score each lead
-    const updates = leads.map(lead => {
-      const result = calculateScore(lead);
-      return {
-        id: lead.id,
-        score_company_fit: result.dimensionScores.company_fit,
-        score_authority: result.dimensionScores.authority,
-        score_contact_quality: result.dimensionScores.contact_quality,
-        score_purchase_intent: result.dimensionScores.purchase_intent,
-        score_digital_maturity: result.dimensionScores.digital_maturity,
-        global_score: result.globalScore,
-        lead_classification: result.classification,
-        classification_reason: result.reason,
-        last_scored_at: new Date().toISOString(),
-      };
-    });
-
-    // Batch update
-    for (const update of updates) {
-      const { error } = await supabase
-        .from('lead_master_pool')
-        .update(update)
-        .eq('id', update.id);
-      
-      if (error) throw error;
+  const scoreMultipleLeads = useCallback(async (leadIds: string[]): Promise<number> => {
+    if (!activeCompany?.id) {
+      console.warn("scoreMultipleLeads: No active company");
+      return 0;
     }
 
-    return updates.length;
+    if (leadIds.length === 0) {
+      console.log("scoreMultipleLeads: No leads to score");
+      return 0;
+    }
+
+    console.log(`scoreMultipleLeads: Processing ${leadIds.length} leads`);
+    
+    // Process in batches of 100 to avoid Supabase limits
+    const BATCH_SIZE = 100;
+    let totalProcessed = 0;
+
+    for (let i = 0; i < leadIds.length; i += BATCH_SIZE) {
+      const batchIds = leadIds.slice(i, i + BATCH_SIZE);
+      
+      // Fetch leads data for this batch
+      const { data: leads, error: fetchError } = await supabase
+        .from('lead_master_pool')
+        .select('*')
+        .in('id', batchIds);
+
+      if (fetchError) {
+        console.error("Error fetching leads batch:", fetchError);
+        throw fetchError;
+      }
+      
+      if (!leads || leads.length === 0) {
+        console.warn(`Batch ${i / BATCH_SIZE + 1}: No leads found`);
+        continue;
+      }
+
+      console.log(`Batch ${i / BATCH_SIZE + 1}: Scoring ${leads.length} leads`);
+
+      // Score and update each lead in the batch
+      for (const lead of leads) {
+        try {
+          const result = calculateScore(lead);
+          
+          const { error: updateError } = await supabase
+            .from('lead_master_pool')
+            .update({
+              score_company_fit: result.dimensionScores.company_fit,
+              score_authority: result.dimensionScores.authority,
+              score_contact_quality: result.dimensionScores.contact_quality,
+              score_purchase_intent: result.dimensionScores.purchase_intent,
+              score_digital_maturity: result.dimensionScores.digital_maturity,
+              global_score: result.globalScore,
+              lead_classification: result.classification,
+              classification_reason: result.reason,
+              last_scored_at: new Date().toISOString(),
+            })
+            .eq('id', lead.id);
+
+          if (updateError) {
+            console.error(`Error updating lead ${lead.id}:`, updateError);
+            continue;
+          }
+          
+          totalProcessed++;
+        } catch (err) {
+          console.error(`Error scoring lead ${lead.id}:`, err);
+        }
+      }
+    }
+
+    console.log(`scoreMultipleLeads: Completed. Processed ${totalProcessed} leads`);
+    return totalProcessed;
   }, [activeCompany?.id, calculateScore]);
 
-  const scoreAllCompanyLeads = useCallback(async () => {
-    if (!activeCompany?.id) return;
+  const scoreAllCompanyLeads = useCallback(async (): Promise<number> => {
+    if (!activeCompany?.id) {
+      console.warn("scoreAllCompanyLeads: No active company");
+      return 0;
+    }
 
-    // Fetch all leads for company
-    const { data: leads, error: fetchError } = await supabase
-      .from('lead_master_pool')
-      .select('id')
-      .eq('company_id', activeCompany.id);
+    console.log(`scoreAllCompanyLeads: Fetching leads for company ${activeCompany.id}`);
 
-    if (fetchError) throw fetchError;
-    if (!leads) return 0;
+    // Fetch all lead IDs for company (handle pagination for large datasets)
+    let allLeadIds: string[] = [];
+    let page = 0;
+    const PAGE_SIZE = 1000;
 
-    const leadIds = leads.map(l => l.id);
-    return scoreMultipleLeads(leadIds);
+    while (true) {
+      const { data: leads, error: fetchError } = await supabase
+        .from('lead_master_pool')
+        .select('id')
+        .eq('company_id', activeCompany.id)
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      if (fetchError) {
+        console.error("Error fetching lead IDs:", fetchError);
+        throw fetchError;
+      }
+
+      if (!leads || leads.length === 0) break;
+      
+      allLeadIds = [...allLeadIds, ...leads.map(l => l.id)];
+      
+      if (leads.length < PAGE_SIZE) break;
+      page++;
+    }
+
+    console.log(`scoreAllCompanyLeads: Found ${allLeadIds.length} leads to score`);
+    
+    if (allLeadIds.length === 0) return 0;
+
+    return scoreMultipleLeads(allLeadIds);
   }, [activeCompany?.id, scoreMultipleLeads]);
 
   return {
