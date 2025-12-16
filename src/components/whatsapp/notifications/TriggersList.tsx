@@ -42,10 +42,17 @@ function getFrequencyLabel(trigger: NotificationTrigger): { label: string; isRea
     case 'hourly':
       return { label: 'A cada hora', isRealtime: false };
     case 'daily':
-      if (schedule.times_per_day === 1) {
-        return { label: `Diário às ${schedule.execution_hours?.[0] || 9}h`, isRealtime: false };
+      const hours = schedule.execution_hours || [];
+      if (hours.length === 0) {
+        return { label: 'Diário (sem horário)', isRealtime: false };
       }
-      return { label: `${schedule.times_per_day}x por dia`, isRealtime: false };
+      if (hours.length === 1) {
+        return { label: `Diário às ${hours[0]}h`, isRealtime: false };
+      }
+      if (hours.length <= 3) {
+        return { label: `Diário às ${hours.map(h => `${h}h`).join(', ')}`, isRealtime: false };
+      }
+      return { label: `Diário (${hours.length}x): ${hours.slice(0, 3).map(h => `${h}h`).join(', ')}...`, isRealtime: false };
     case 'weekly':
       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       const selectedDays = (schedule.days_of_week || []).map(d => days[d]).join(', ');

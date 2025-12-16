@@ -491,7 +491,7 @@ export function TriggerEditModal({
       },
       schedule: {
         frequency_type: effectiveFrequencyType,
-        times_per_day: isRealtimeOnlyTrigger ? 1 : timesPerDay,
+        times_per_day: isRealtimeOnlyTrigger ? 1 : (frequencyType === 'daily' ? executionHours.length : timesPerDay),
         execution_hours: isRealtimeOnlyTrigger ? [] : executionHours,
         days_of_week: isRealtimeOnlyTrigger ? [] : daysOfWeek,
         day_of_month: isRealtimeOnlyTrigger ? null : dayOfMonth,
@@ -711,40 +711,29 @@ export function TriggerEditModal({
                 </div>
 
                 {frequencyType === 'daily' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Quantas vezes por dia?</Label>
-                      <Select value={String(timesPerDay)} onValueChange={(v) => setTimesPerDay(Number(v))}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 6, 8, 12, 24].map((n) => (
-                            <SelectItem key={n} value={String(n)}>{n}x por dia</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-2">
+                    <Label>Horários de execução</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Selecione os horários em que deseja enviar (cada horário = 1 envio)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {HOURS.map((hour) => (
+                        <Badge
+                          key={hour}
+                          variant={executionHours.includes(hour) ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => handleHourToggle(hour)}
+                        >
+                          {String(hour).padStart(2, '0')}h
+                        </Badge>
+                      ))}
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Horários de execução</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {HOURS.map((hour) => (
-                          <Badge
-                            key={hour}
-                            variant={executionHours.includes(hour) ? "default" : "outline"}
-                            className="cursor-pointer"
-                            onClick={() => handleHourToggle(hour)}
-                          >
-                            {String(hour).padStart(2, '0')}h
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Selecionados: {executionHours.map(h => `${h}h`).join(', ') || 'Nenhum'}
-                      </p>
-                    </div>
-                  </>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {executionHours.length > 0 
+                        ? `✓ ${executionHours.length} envio(s) por dia: ${executionHours.map(h => `${h}h`).join(', ')}`
+                        : '⚠️ Selecione pelo menos 1 horário'}
+                    </p>
+                  </div>
                 )}
 
                 {frequencyType === 'weekly' && (
