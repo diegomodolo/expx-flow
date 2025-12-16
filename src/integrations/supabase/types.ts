@@ -4225,93 +4225,306 @@ export type Database = {
       }
       lead_master_pool: {
         Row: {
+          acquisition_channel: string | null
+          ad_set: string | null
+          annual_revenue: string | null
+          assigned_to: string | null
+          attended_webinar: boolean | null
+          budget_range: string | null
+          buying_role: string | null
+          campaign: string | null
+          capture_type: string | null
+          capture_url: string | null
           city: string | null
+          client_type: string | null
+          cnae: string | null
+          cnpj: string | null
           company_id: string
+          company_linkedin: string | null
+          company_name: string | null
+          company_segment: string | null
+          company_size: string | null
+          company_subsegment: string | null
+          company_trade_name: string | null
+          company_validated: boolean | null
+          company_website: string | null
+          consent_date: string | null
+          consent_source: string | null
+          content_consumed: Json | null
+          content_type: string | null
           country: string | null
           created_at: string | null
+          creative: string | null
+          current_software: string | null
+          current_vendor: string | null
+          data_enriched: boolean | null
+          data_purpose: string | null
           date_of_birth: string | null
+          decision_makers_count: number | null
+          department: string | null
           email: string | null
           email_hash: string | null
+          email_type: string | null
+          email_verified: boolean | null
+          employee_count: string | null
+          enrichment_source: string | null
+          estimated_users: number | null
           extra_data: Json | null
           facebook_id: string | null
           first_captured_at: string | null
           first_client_id: string | null
+          first_interaction_at: string | null
           first_name: string | null
           full_name: string
           gender: string | null
           global_score: number | null
           id: string
+          influence_level: string | null
           instagram: string | null
+          internal_classification: string | null
+          internal_notes: string | null
+          is_decision_maker: boolean | null
+          job_level: string | null
+          job_title: string | null
+          keyword: string | null
+          last_interaction_at: string | null
           last_name: string | null
+          lead_cost: number | null
+          lead_status: string | null
+          lead_validated: boolean | null
+          lgpd_consent: boolean | null
+          license_type: string | null
+          linkedin_profile: string | null
+          main_pain_point: string | null
+          monthly_revenue: string | null
           original_source: string | null
+          pages_visited: Json | null
+          partner_sharing_consent: boolean | null
           phone: string | null
           phone_hash: string | null
+          phone_verified: boolean | null
           propensity_to_convert: number | null
+          purchase_timeline: string | null
+          requested_demo: boolean | null
+          secondary_source: string | null
+          software_satisfaction: string | null
+          software_type: string | null
+          software_usage_time: string | null
+          specific_source: string | null
           state: string | null
+          switch_reason: string | null
+          tags: Json | null
           total_conversions: number | null
           total_interactions: number | null
           total_value: number | null
           updated_at: string | null
+          urgency_level: string | null
+          uses_software: boolean | null
+          visited_pricing: boolean | null
+          whatsapp: string | null
+          years_in_market: number | null
           zip_code: string | null
         }
         Insert: {
+          acquisition_channel?: string | null
+          ad_set?: string | null
+          annual_revenue?: string | null
+          assigned_to?: string | null
+          attended_webinar?: boolean | null
+          budget_range?: string | null
+          buying_role?: string | null
+          campaign?: string | null
+          capture_type?: string | null
+          capture_url?: string | null
           city?: string | null
+          client_type?: string | null
+          cnae?: string | null
+          cnpj?: string | null
           company_id: string
+          company_linkedin?: string | null
+          company_name?: string | null
+          company_segment?: string | null
+          company_size?: string | null
+          company_subsegment?: string | null
+          company_trade_name?: string | null
+          company_validated?: boolean | null
+          company_website?: string | null
+          consent_date?: string | null
+          consent_source?: string | null
+          content_consumed?: Json | null
+          content_type?: string | null
           country?: string | null
           created_at?: string | null
+          creative?: string | null
+          current_software?: string | null
+          current_vendor?: string | null
+          data_enriched?: boolean | null
+          data_purpose?: string | null
           date_of_birth?: string | null
+          decision_makers_count?: number | null
+          department?: string | null
           email?: string | null
           email_hash?: string | null
+          email_type?: string | null
+          email_verified?: boolean | null
+          employee_count?: string | null
+          enrichment_source?: string | null
+          estimated_users?: number | null
           extra_data?: Json | null
           facebook_id?: string | null
           first_captured_at?: string | null
           first_client_id?: string | null
+          first_interaction_at?: string | null
           first_name?: string | null
           full_name: string
           gender?: string | null
           global_score?: number | null
           id?: string
+          influence_level?: string | null
           instagram?: string | null
+          internal_classification?: string | null
+          internal_notes?: string | null
+          is_decision_maker?: boolean | null
+          job_level?: string | null
+          job_title?: string | null
+          keyword?: string | null
+          last_interaction_at?: string | null
           last_name?: string | null
+          lead_cost?: number | null
+          lead_status?: string | null
+          lead_validated?: boolean | null
+          lgpd_consent?: boolean | null
+          license_type?: string | null
+          linkedin_profile?: string | null
+          main_pain_point?: string | null
+          monthly_revenue?: string | null
           original_source?: string | null
+          pages_visited?: Json | null
+          partner_sharing_consent?: boolean | null
           phone?: string | null
           phone_hash?: string | null
+          phone_verified?: boolean | null
           propensity_to_convert?: number | null
+          purchase_timeline?: string | null
+          requested_demo?: boolean | null
+          secondary_source?: string | null
+          software_satisfaction?: string | null
+          software_type?: string | null
+          software_usage_time?: string | null
+          specific_source?: string | null
           state?: string | null
+          switch_reason?: string | null
+          tags?: Json | null
           total_conversions?: number | null
           total_interactions?: number | null
           total_value?: number | null
           updated_at?: string | null
+          urgency_level?: string | null
+          uses_software?: boolean | null
+          visited_pricing?: boolean | null
+          whatsapp?: string | null
+          years_in_market?: number | null
           zip_code?: string | null
         }
         Update: {
+          acquisition_channel?: string | null
+          ad_set?: string | null
+          annual_revenue?: string | null
+          assigned_to?: string | null
+          attended_webinar?: boolean | null
+          budget_range?: string | null
+          buying_role?: string | null
+          campaign?: string | null
+          capture_type?: string | null
+          capture_url?: string | null
           city?: string | null
+          client_type?: string | null
+          cnae?: string | null
+          cnpj?: string | null
           company_id?: string
+          company_linkedin?: string | null
+          company_name?: string | null
+          company_segment?: string | null
+          company_size?: string | null
+          company_subsegment?: string | null
+          company_trade_name?: string | null
+          company_validated?: boolean | null
+          company_website?: string | null
+          consent_date?: string | null
+          consent_source?: string | null
+          content_consumed?: Json | null
+          content_type?: string | null
           country?: string | null
           created_at?: string | null
+          creative?: string | null
+          current_software?: string | null
+          current_vendor?: string | null
+          data_enriched?: boolean | null
+          data_purpose?: string | null
           date_of_birth?: string | null
+          decision_makers_count?: number | null
+          department?: string | null
           email?: string | null
           email_hash?: string | null
+          email_type?: string | null
+          email_verified?: boolean | null
+          employee_count?: string | null
+          enrichment_source?: string | null
+          estimated_users?: number | null
           extra_data?: Json | null
           facebook_id?: string | null
           first_captured_at?: string | null
           first_client_id?: string | null
+          first_interaction_at?: string | null
           first_name?: string | null
           full_name?: string
           gender?: string | null
           global_score?: number | null
           id?: string
+          influence_level?: string | null
           instagram?: string | null
+          internal_classification?: string | null
+          internal_notes?: string | null
+          is_decision_maker?: boolean | null
+          job_level?: string | null
+          job_title?: string | null
+          keyword?: string | null
+          last_interaction_at?: string | null
           last_name?: string | null
+          lead_cost?: number | null
+          lead_status?: string | null
+          lead_validated?: boolean | null
+          lgpd_consent?: boolean | null
+          license_type?: string | null
+          linkedin_profile?: string | null
+          main_pain_point?: string | null
+          monthly_revenue?: string | null
           original_source?: string | null
+          pages_visited?: Json | null
+          partner_sharing_consent?: boolean | null
           phone?: string | null
           phone_hash?: string | null
+          phone_verified?: boolean | null
           propensity_to_convert?: number | null
+          purchase_timeline?: string | null
+          requested_demo?: boolean | null
+          secondary_source?: string | null
+          software_satisfaction?: string | null
+          software_type?: string | null
+          software_usage_time?: string | null
+          specific_source?: string | null
           state?: string | null
+          switch_reason?: string | null
+          tags?: Json | null
           total_conversions?: number | null
           total_interactions?: number | null
           total_value?: number | null
           updated_at?: string | null
+          urgency_level?: string | null
+          uses_software?: boolean | null
+          visited_pricing?: boolean | null
+          whatsapp?: string | null
+          years_in_market?: number | null
           zip_code?: string | null
         }
         Relationships: [
