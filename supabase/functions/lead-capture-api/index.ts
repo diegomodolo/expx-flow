@@ -524,16 +524,44 @@ serve(async (req) => {
       }
     }
 
-    // Auto-assign sector segment
+    // Auto-assign sector segment (create if doesn't exist)
     if (clientSector || body.company_segment) {
       const segmentName = clientSector || body.company_segment;
-      const { data: sectorSegment } = await supabase
+      let sectorSegment = null;
+      
+      // Try to find existing segment
+      const { data: existingSegment } = await supabase
         .from('lead_segments')
         .select('id, name')
         .eq('company_id', companyId)
         .eq('segment_type', 'sector')
         .ilike('name', segmentName!)
         .single();
+
+      if (existingSegment) {
+        sectorSegment = existingSegment;
+      } else {
+        // Create new segment if it doesn't exist
+        console.log(`Segment "${segmentName}" not found, creating new segment...`);
+        const { data: newSegment, error: createSegmentError } = await supabase
+          .from('lead_segments')
+          .insert({
+            company_id: companyId,
+            name: segmentName,
+            segment_type: 'sector',
+            is_active: true,
+            auto_assign: true
+          })
+          .select('id, name')
+          .single();
+
+        if (createSegmentError) {
+          console.error('Error creating segment:', createSegmentError);
+        } else {
+          sectorSegment = newSegment;
+          console.log(`New segment created: "${segmentName}" (id: ${newSegment.id})`);
+        }
+      }
 
       if (sectorSegment) {
         const { error: assignError } = await supabase
