@@ -72,10 +72,39 @@ function calculateDimensionScore(
   return Math.max(0, Math.min(100, score));
 }
 
+// Generic email domains that should NOT qualify as business emails
+const GENERIC_EMAIL_DOMAINS = [
+  'gmail.com', 'gmail.com.br', 'googlemail.com',
+  'hotmail.com', 'hotmail.com.br', 'outlook.com', 'outlook.com.br', 'live.com', 'msn.com',
+  'yahoo.com', 'yahoo.com.br', 'ymail.com',
+  'icloud.com', 'me.com', 'mac.com',
+  'aol.com', 'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br', 'globo.com', 'globomail.com',
+  'protonmail.com', 'zoho.com', 'mail.com', 'email.com',
+  'oi.com.br', 'r7.com', 'zipmail.com.br'
+];
+
+function isValidBusinessEmail(email: string | null | undefined): boolean {
+  if (!email || typeof email !== 'string') return false;
+  
+  const emailLower = email.toLowerCase().trim();
+  
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(emailLower)) return false;
+  
+  // Extract domain
+  const domain = emailLower.split('@')[1];
+  if (!domain) return false;
+  
+  // Check if it's NOT a generic domain
+  return !GENERIC_EMAIL_DOMAINS.includes(domain);
+}
+
 function generateClassificationReason(
   classification: LeadClassification,
   dimensionScores: LeadScoreResult['dimensionScores'],
-  globalScore: number
+  globalScore: number,
+  hasBusinessEmail?: boolean
 ): string {
   const strongDimensions: string[] = [];
   const weakDimensions: string[] = [];
@@ -88,11 +117,13 @@ function generateClassificationReason(
     }
   });
 
+  const businessEmailNote = hasBusinessEmail ? ' E-mail empresarial válido.' : '';
+  
   switch (classification) {
     case 'ouro':
-      return `Lead OURO (${globalScore} pts): ${strongDimensions.length > 0 ? `Forte em ${strongDimensions.join(', ')}.` : ''} Alta probabilidade de conversão.`;
+      return `Lead OURO (${globalScore} pts): ${strongDimensions.length > 0 ? `Forte em ${strongDimensions.join(', ')}.` : ''} Alta probabilidade de conversão.${businessEmailNote}`;
     case 'prata':
-      return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(', ')}.` : ''} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(', ')}.` : ''} Potencial com trabalho comercial.`;
+      return `Lead PRATA (${globalScore} pts): ${strongDimensions.length > 0 ? `Destaque em ${strongDimensions.join(', ')}.` : ''} ${weakDimensions.length > 0 ? `Pode melhorar em ${weakDimensions.join(', ')}.` : ''}${businessEmailNote} Potencial com trabalho comercial.`;
     case 'bronze':
       return `Lead BRONZE (${globalScore} pts): ${weakDimensions.length > 0 ? `Pontos fracos em ${weakDimensions.join(', ')}.` : ''} Baixo valor comercial imediato.`;
   }
@@ -121,6 +152,9 @@ export function useLeadScoring() {
       dimensionScores.digital_maturity * weights.weight_digital_maturity
     );
 
+    // Check if lead has valid business email
+    const hasBusinessEmail = isValidBusinessEmail(leadData.email);
+
     // Determine classification with authority validation
     let classification: LeadClassification = 'bronze';
     
@@ -135,7 +169,12 @@ export function useLeadScoring() {
       classification = 'prata';
     }
 
-    const reason = generateClassificationReason(classification, dimensionScores, globalScore);
+    // Business email guarantee: valid business email = minimum prata
+    if (classification === 'bronze' && hasBusinessEmail) {
+      classification = 'prata';
+    }
+
+    const reason = generateClassificationReason(classification, dimensionScores, globalScore, hasBusinessEmail);
 
     return {
       globalScore,
