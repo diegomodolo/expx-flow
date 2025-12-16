@@ -633,6 +633,26 @@ serve(async (req) => {
 
       console.log(`Report config: periodDays=${periodDays}, dataSource=${dataSource}`);
       
+      // Create execution log entry BEFORE processing
+      const { data: logEntry, error: logError } = await supabase
+        .from('whatsapp_execution_log')
+        .insert({
+          company_id: trigger.company_id,
+          trigger_id: trigger.id,
+          trigger_name: trigger.trigger_name,
+          status: 'running',
+          started_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      
+      if (logError || !logEntry) {
+        console.error(`Failed to create execution log for trigger ${trigger.trigger_name}:`, logError);
+        continue;
+      }
+      
+      console.log(`Created execution log entry: ${logEntry.id}`);
+      
       // Get WhatsApp config for this company
       const { data: config } = await supabase
         .from('whatsapp_configs')
