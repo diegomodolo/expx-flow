@@ -549,8 +549,9 @@ serve(async (req) => {
             company_id: companyId,
             name: segmentName,
             segment_type: 'sector',
-            is_active: true,
-            auto_assign: true
+            is_auto: true,
+            color: '#3B82F6',
+            icon: 'tag'
           })
           .select('id, name')
           .single();
