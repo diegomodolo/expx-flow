@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { AccountHealthRadar } from "@/components/dashboard/AccountHealthRadar";
+import { DailyRoutinePanel } from "@/components/dashboard/DailyRoutinePanel";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -636,8 +637,14 @@ export default function NewDashboard() {
           </div>
         </div>
 
-        {/* Account Health Radar - Radar de Saúde das Contas */}
-        <AccountHealthRadar maxItems={8} showStats={true} />
+        {/* Painel de Rotinas e Saúde das Contas - Grid lado a lado */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Rotinas do Dia */}
+          <DailyRoutinePanel />
+          
+          {/* Account Health Radar - Radar de Saúde das Contas */}
+          <AccountHealthRadar maxItems={6} showStats={true} />
+        </div>
 
         {/* Alertas & Oportunidades - Google Style */}
         <div className="bg-card rounded-xl p-5 shadow-google-sm">
