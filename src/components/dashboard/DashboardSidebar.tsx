@@ -47,6 +47,7 @@ interface MenuCategory {
 }
 
 const menuCategories: MenuCategory[] = [
+  // Visão Geral sempre primeiro
   {
     title: "Visão Geral",
     icon: LayoutGrid,
@@ -55,54 +56,57 @@ const menuCategories: MenuCategory[] = [
       { title: "Dashboard", url: "/dashboard", icon: Home, permission: "dashboard" as MenuItemType },
       { title: "Radar de Saúde", url: "/radar-saude", icon: Activity, permission: "dashboard" as MenuItemType },
       { title: "Rotinas Diárias", url: "/rotinas", icon: ListChecks, permission: "dashboard" as MenuItemType },
-    ],
+    ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
   },
-  {
-    title: "Clientes & Leads",
-    icon: Users,
-    items: [
-      { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
-      { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
-      { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
-    ],
-  },
-  {
-    title: "Marketing & Tráfego",
-    icon: TrendingUp,
-    items: [
-      { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
-      { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
-      { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
-    ],
-  },
-  {
-    title: "Conteúdo & Social",
-    icon: Sparkles,
-    items: [
-      { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
-      { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
-      { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
-    ],
-  },
-  {
-    title: "Inteligência Artificial",
-    icon: Brain,
-    items: [
-      { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
-      { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
-    ],
-  },
-  {
-    title: "Equipe & Sistema",
-    icon: Building2,
-    items: [
-      { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
-      { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
-      { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
-      { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
-      { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
-    ],
-  },
+  // Demais categorias em ordem alfabética
+  ...[
+    {
+      title: "Clientes & Leads",
+      icon: Users,
+      items: [
+        { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
+        { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
+        { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+    {
+      title: "Conteúdo & Social",
+      icon: Sparkles,
+      items: [
+        { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
+        { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
+        { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+    {
+      title: "Equipe & Sistema",
+      icon: Building2,
+      items: [
+        { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
+        { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
+        { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
+        { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
+        { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+    {
+      title: "Inteligência Artificial",
+      icon: Brain,
+      items: [
+        { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
+        { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+    {
+      title: "Marketing & Tráfego",
+      icon: TrendingUp,
+      items: [
+        { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
+        { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
+        { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
+      ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
+    },
+  ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
 ];
 
 export function DashboardSidebar() {
