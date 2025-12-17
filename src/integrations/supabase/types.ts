@@ -6154,6 +6154,148 @@ export type Database = {
         }
         Relationships: []
       }
+      routine_executions: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          due_at: string
+          employee_id: string | null
+          id: string
+          notes: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status: Database["public"]["Enums"]["routine_execution_status"]
+          template_id: string
+          time_spent_minutes: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          due_at: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date: string
+          scheduled_time: string
+          status?: Database["public"]["Enums"]["routine_execution_status"]
+          template_id: string
+          time_spent_minutes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string
+          scheduled_time?: string
+          status?: Database["public"]["Enums"]["routine_execution_status"]
+          template_id?: string
+          time_spent_minutes?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_executions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_executions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_executions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_executions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "routine_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routine_templates: {
+        Row: {
+          category: Database["public"]["Enums"]["routine_category"]
+          company_id: string
+          created_at: string
+          day_of_month: number | null
+          day_of_week: number | null
+          default_time: string
+          description: string | null
+          frequency: Database["public"]["Enums"]["routine_frequency"]
+          id: string
+          is_active: boolean
+          is_system: boolean
+          priority: Database["public"]["Enums"]["task_priority"]
+          sla_minutes: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["routine_category"]
+          company_id: string
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          default_time?: string
+          description?: string | null
+          frequency?: Database["public"]["Enums"]["routine_frequency"]
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          priority?: Database["public"]["Enums"]["task_priority"]
+          sla_minutes?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["routine_category"]
+          company_id?: string
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          default_time?: string
+          description?: string | null
+          frequency?: Database["public"]["Enums"]["routine_frequency"]
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          priority?: Database["public"]["Enums"]["task_priority"]
+          sla_minutes?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_posts: {
         Row: {
           caption: string | null
@@ -7282,6 +7424,10 @@ export type Database = {
         Args: { executions: number }
         Returns: string[]
       }
+      create_daily_routine_executions: {
+        Args: { p_company_id: string; p_date?: string }
+        Returns: number
+      }
       create_default_board: {
         Args: { p_board_name: string; p_workspace_id: string }
         Returns: string
@@ -7341,6 +7487,21 @@ export type Database = {
         | "geradores"
         | "whatsapp"
       payment_type: "prepaid" | "postpaid"
+      routine_category:
+        | "saldo"
+        | "campanhas"
+        | "performance"
+        | "criativos"
+        | "alertas"
+        | "relatorios"
+        | "otimizacao"
+        | "outros"
+      routine_execution_status:
+        | "pending"
+        | "completed_on_time"
+        | "completed_late"
+        | "skipped"
+      routine_frequency: "daily" | "weekly" | "monthly"
       task_origin: "dashboard" | "manual" | "automation"
       task_priority: "high" | "medium" | "low"
       task_status: "todo" | "progress" | "review" | "done"
@@ -7493,6 +7654,23 @@ export const Constants = {
         "whatsapp",
       ],
       payment_type: ["prepaid", "postpaid"],
+      routine_category: [
+        "saldo",
+        "campanhas",
+        "performance",
+        "criativos",
+        "alertas",
+        "relatorios",
+        "otimizacao",
+        "outros",
+      ],
+      routine_execution_status: [
+        "pending",
+        "completed_on_time",
+        "completed_late",
+        "skipped",
+      ],
+      routine_frequency: ["daily", "weekly", "monthly"],
       task_origin: ["dashboard", "manual", "automation"],
       task_priority: ["high", "medium", "low"],
       task_status: ["todo", "progress", "review", "done"],
