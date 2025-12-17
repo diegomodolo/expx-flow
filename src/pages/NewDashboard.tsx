@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { AccountHealthRadar } from "@/components/dashboard/AccountHealthRadar";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -635,6 +636,8 @@ export default function NewDashboard() {
           </div>
         </div>
 
+        {/* Account Health Radar - Radar de Saúde das Contas */}
+        <AccountHealthRadar maxItems={8} showStats={true} />
 
         {/* Alertas & Oportunidades - Google Style */}
         <div className="bg-card rounded-xl p-5 shadow-google-sm">
