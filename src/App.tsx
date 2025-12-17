@@ -60,6 +60,8 @@ import Agendamento from "./pages/Agendamento";
 import ApresentacaoPublica from "./pages/ApresentacaoPublica";
 import NotificacoesWhatsApp from "./pages/NotificacoesWhatsApp";
 import LeadIntelligenceHub from "./pages/LeadIntelligenceHub";
+import RadarSaude from "./pages/RadarSaude";
+import Rotinas from "./pages/Rotinas";
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -100,6 +102,16 @@ const App = () => {
                <Route path="/dashboard" element={
                  <ProtectedRoute>
                    <DashboardPage />
+                 </ProtectedRoute>
+               } />
+               <Route path="/radar-saude" element={
+                 <ProtectedRoute>
+                   <RadarSaude />
+                 </ProtectedRoute>
+               } />
+               <Route path="/rotinas" element={
+                 <ProtectedRoute>
+                   <Rotinas />
                  </ProtectedRoute>
                } />
                <Route path="/ia" element={

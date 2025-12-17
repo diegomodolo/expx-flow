@@ -1,7 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Home,
-  LayoutDashboard,
   Users,
   Megaphone,
   UsersRound,
@@ -14,33 +13,96 @@ import {
   GitBranch,
   Wand2,
   Zap,
-  Activity,
   CalendarClock,
   MessageCircle,
   Database,
+  ChevronDown,
+  Activity,
+  ListChecks,
+  LayoutGrid,
+  TrendingUp,
+  Sparkles,
+  Building2,
+  LucideIcon,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
 import { useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const items = [
-  { title: "Dashboard", url: "/dashboard", icon: Home, permission: "dashboard" as MenuItemType },
-  { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
-  { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
-  { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
-  { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
-  { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
-  { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
-  { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
-  { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
-  { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
-  { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
-  { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
-  { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
-  { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
-  { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
-  { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  permission: MenuItemType;
+  badge?: number;
+}
+
+interface MenuCategory {
+  title: string;
+  icon: LucideIcon;
+  items: MenuItem[];
+  defaultOpen?: boolean;
+}
+
+const menuCategories: MenuCategory[] = [
+  {
+    title: "Visão Geral",
+    icon: LayoutGrid,
+    defaultOpen: true,
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: Home, permission: "dashboard" as MenuItemType },
+      { title: "Radar de Saúde", url: "/radar-saude", icon: Activity, permission: "dashboard" as MenuItemType },
+      { title: "Rotinas Diárias", url: "/rotinas", icon: ListChecks, permission: "dashboard" as MenuItemType },
+    ],
+  },
+  {
+    title: "Clientes & Leads",
+    icon: Users,
+    items: [
+      { title: "Clientes", url: "/clientes", icon: Users, permission: "clientes" as MenuItemType },
+      { title: "Lead Intelligence", url: "/lead-intelligence", icon: Database, permission: "configuracoes" as MenuItemType },
+      { title: "Funis", url: "/editor-funil", icon: GitBranch, permission: "editor-funil" as MenuItemType },
+    ],
+  },
+  {
+    title: "Marketing & Tráfego",
+    icon: TrendingUp,
+    items: [
+      { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
+      { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
+      { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
+    ],
+  },
+  {
+    title: "Conteúdo & Social",
+    icon: Sparkles,
+    items: [
+      { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
+      { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
+      { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
+    ],
+  },
+  {
+    title: "Inteligência Artificial",
+    icon: Brain,
+    items: [
+      { title: "IA", url: "/ia", icon: Brain, permission: "ia" as MenuItemType },
+      { title: "Agentes de IA", url: "/ia/agents", icon: Bot, permission: "agentes-ia" as MenuItemType },
+    ],
+  },
+  {
+    title: "Equipe & Sistema",
+    icon: Building2,
+    items: [
+      { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
+      { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
+      { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
+      { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
+      { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
+    ],
+  },
 ];
 
 export function DashboardSidebar() {
@@ -48,22 +110,49 @@ export function DashboardSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { hasPermission, permissionsLoading, isOwner } = useEmployeePermissions();
+  
+  // Track which categories are expanded
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    menuCategories.forEach(cat => {
+      initial[cat.title] = cat.defaultOpen || false;
+    });
+    return initial;
+  });
 
-  const isActive = (path: string) => currentPath === path;
+  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
 
-  // Filter items based on permissions
-  const visibleItems = useMemo(() => {
-    if (isOwner) {
-      return items;
-    }
-    
-    if (permissionsLoading) {
-      return items.filter(item => item.permission === 'dashboard' || item.permission === 'tarefas');
-    }
-    
-    const filtered = items.filter(item => hasPermission(item.permission));
-    return filtered;
+  // Filter categories and items based on permissions
+  const visibleCategories = useMemo(() => {
+    return menuCategories.map(category => {
+      const filteredItems = category.items.filter(item => {
+        if (isOwner) return true;
+        if (permissionsLoading) {
+          return item.permission === 'dashboard' || item.permission === 'tarefas';
+        }
+        return hasPermission(item.permission);
+      });
+      
+      return { ...category, items: filteredItems };
+    }).filter(category => category.items.length > 0);
   }, [permissionsLoading, isOwner, hasPermission]);
+
+  // Auto-expand category containing active route
+  React.useEffect(() => {
+    visibleCategories.forEach(category => {
+      const hasActiveItem = category.items.some(item => isActive(item.url));
+      if (hasActiveItem && !expandedCategories[category.title]) {
+        setExpandedCategories(prev => ({ ...prev, [category.title]: true }));
+      }
+    });
+  }, [currentPath]);
+
+  const toggleCategory = (categoryTitle: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryTitle]: !prev[categoryTitle],
+    }));
+  };
 
   return (
     <>
@@ -77,14 +166,15 @@ export function DashboardSidebar() {
       
       {/* Google-style Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full z-50 transition-all duration-200 ease-in-out bg-card shadow-google-sm ${
-          open ? 'w-[280px]' : 'w-[72px]'
-        }`}
+        className={cn(
+          "fixed left-0 top-0 h-full z-50 transition-all duration-200 ease-in-out bg-card shadow-google-sm flex flex-col",
+          open ? "w-[280px]" : "w-[72px]"
+        )}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
       >
         {/* Logo area */}
-        <div className="h-16 flex items-center px-5">
+        <div className="h-16 flex items-center px-5 flex-shrink-0">
           <img 
             src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
             alt="Logo" 
@@ -98,36 +188,90 @@ export function DashboardSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 py-2 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
-          {visibleItems.map((item) => (
-            <NavLink 
-              key={item.title}
-              to={item.url} 
-              end 
-              className={({ isActive: active }) =>
-                `flex items-center ${open ? 'gap-4 px-4' : 'justify-center px-0'} py-2.5 rounded-full transition-all duration-150 ${
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50"
-                }`
-              }
-              title={!open ? item.title : ''}
-            >
-              <item.icon 
-                className={`w-5 h-5 flex-shrink-0 transition-colors duration-150 ${
-                  isActive(item.url) ? "text-primary" : "text-muted-foreground"
-                }`} 
-                strokeWidth={isActive(item.url) ? 2 : 1.5}
-              />
-              {open && (
-                <span className={`text-sm font-medium tracking-wide whitespace-nowrap ${
-                  isActive(item.url) ? "text-primary" : "text-foreground"
-                }`}>
-                  {item.title}
-                </span>
-              )}
-            </NavLink>
-          ))}
+        <nav className="flex-1 px-3 py-2 overflow-y-auto overflow-x-hidden">
+          <div className="space-y-1">
+            {visibleCategories.map((category) => (
+              <Collapsible
+                key={category.title}
+                open={open ? expandedCategories[category.title] : false}
+                onOpenChange={() => open && toggleCategory(category.title)}
+              >
+                {/* Category Header */}
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={cn(
+                      "w-full flex items-center gap-3 py-2.5 rounded-full transition-all duration-150",
+                      open ? "px-4 hover:bg-muted/50" : "px-0 justify-center",
+                      "text-muted-foreground"
+                    )}
+                    title={!open ? category.title : undefined}
+                  >
+                    <category.icon 
+                      className="w-5 h-5 flex-shrink-0 text-muted-foreground" 
+                      strokeWidth={1.5}
+                    />
+                    {open && (
+                      <>
+                        <span className="text-sm font-medium tracking-wide whitespace-nowrap flex-1 text-left text-foreground">
+                          {category.title}
+                        </span>
+                        <ChevronDown 
+                          className={cn(
+                            "w-4 h-4 transition-transform duration-200 text-muted-foreground",
+                            expandedCategories[category.title] && "rotate-180"
+                          )}
+                        />
+                      </>
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+
+                {/* Category Items */}
+                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                  <div className={cn("space-y-0.5", open ? "ml-4 mt-1" : "mt-1")}>
+                    {category.items.map((item) => (
+                      <NavLink 
+                        key={item.url}
+                        to={item.url} 
+                        end={item.url === "/dashboard"}
+                        className={({ isActive: active }) =>
+                          cn(
+                            "flex items-center py-2 rounded-full transition-all duration-150",
+                            open ? "gap-3 px-4" : "justify-center px-0",
+                            active
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-muted/50"
+                          )
+                        }
+                        title={!open ? item.title : undefined}
+                      >
+                        <item.icon 
+                          className={cn(
+                            "w-4 h-4 flex-shrink-0 transition-colors duration-150",
+                            isActive(item.url) ? "text-primary" : "text-muted-foreground"
+                          )} 
+                          strokeWidth={isActive(item.url) ? 2 : 1.5}
+                        />
+                        {open && (
+                          <span className={cn(
+                            "text-sm tracking-wide whitespace-nowrap",
+                            isActive(item.url) ? "text-primary font-medium" : "text-foreground"
+                          )}>
+                            {item.title}
+                          </span>
+                        )}
+                        {item.badge && item.badge > 0 && open && (
+                          <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+          </div>
         </nav>
       </div>
     </>
