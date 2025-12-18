@@ -123,7 +123,7 @@ serve(async (req) => {
     }
 
     const campaignResponse = await fetch(
-      `https://graph.facebook.com/v21.0/act_${adAccountId}/campaigns`,
+      `https://graph.facebook.com/v21.0/${adAccountId}/campaigns`,
       { method: "POST", body: campaignParams }
     );
 
@@ -210,7 +210,7 @@ serve(async (req) => {
       }
 
       const adSetResponse = await fetch(
-        `https://graph.facebook.com/v21.0/act_${adAccountId}/adsets`,
+        `https://graph.facebook.com/v21.0/${adAccountId}/adsets`,
         { method: "POST", body: adSetParams }
       );
 
@@ -272,7 +272,7 @@ serve(async (req) => {
           });
 
           const adResponse = await fetch(
-            `https://graph.facebook.com/v21.0/act_${adAccountId}/ads`,
+            `https://graph.facebook.com/v21.0/${adAccountId}/ads`,
             { method: "POST", body: adParams }
           );
 
@@ -424,7 +424,7 @@ async function createAdCreative(
   });
 
   const response = await fetch(
-    `https://graph.facebook.com/v21.0/act_${adAccountId}/adcreatives`,
+    `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
     { method: "POST", body: creativeParams }
   );
 
