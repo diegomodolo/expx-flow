@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientContext } from "./ClienteContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { Loader2, Eye, ChevronDown, BarChart3, RefreshCw, Plus } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
@@ -9,6 +10,7 @@ import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsD
 import { CampaignBuilderModal } from "@/components/campaigns/CampaignBuilderModal";
 export function ClienteCampanhas() {
   const { client, refetchClient } = useClientContext();
+  const { activeCompany } = useCompany();
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -342,6 +344,7 @@ export function ClienteCampanhas() {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         clientId={client?.id || ''}
+        companyId={activeCompany?.company_id || ''}
         clientName={client?.name || ''}
         onSuccess={handleRefresh}
       />

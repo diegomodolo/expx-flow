@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface UrlParameters {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  customParams?: string;
+}
+
 interface Creative {
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   media_urls: string[];
@@ -14,6 +23,8 @@ interface Creative {
   description?: string;
   link_url: string;
   call_to_action: string;
+  pixel_id?: string;
+  url_parameters?: UrlParameters;
 }
 
 interface AdSet {
@@ -327,6 +338,20 @@ function getOptimizationGoal(objective: string): string {
   return mapping[objective] || 'LINK_CLICKS';
 }
 
+function buildUrlTags(params?: UrlParameters): string | undefined {
+  if (!params) return undefined;
+  
+  const parts: string[] = [];
+  if (params.utm_source) parts.push(`utm_source=${encodeURIComponent(params.utm_source)}`);
+  if (params.utm_medium) parts.push(`utm_medium=${encodeURIComponent(params.utm_medium)}`);
+  if (params.utm_campaign) parts.push(`utm_campaign=${encodeURIComponent(params.utm_campaign)}`);
+  if (params.utm_content) parts.push(`utm_content=${encodeURIComponent(params.utm_content)}`);
+  if (params.utm_term) parts.push(`utm_term=${encodeURIComponent(params.utm_term)}`);
+  if (params.customParams) parts.push(params.customParams);
+  
+  return parts.length > 0 ? parts.join('&') : undefined;
+}
+
 async function createAdCreative(
   adAccountId: string,
   accessToken: string,
@@ -337,8 +362,9 @@ async function createAdCreative(
     page_id: pageId,
   };
 
+  const urlTags = buildUrlTags(creative.url_parameters);
+
   if (creative.type === 'VIDEO') {
-    // For video, we need to upload to Meta first or use URL
     objectStorySpec.video_data = {
       video_url: creative.media_urls[0],
       message: creative.body,
@@ -364,8 +390,8 @@ async function createAdCreative(
         },
       })),
     };
+    if (urlTags) objectStorySpec.link_data.url_tags = urlTags;
   } else {
-    // Single image
     objectStorySpec.link_data = {
       picture: creative.media_urls[0],
       link: creative.link_url,
@@ -377,6 +403,7 @@ async function createAdCreative(
         value: { link: creative.link_url },
       },
     };
+    if (urlTags) objectStorySpec.link_data.url_tags = urlTags;
   }
 
   const creativeParams = new URLSearchParams({

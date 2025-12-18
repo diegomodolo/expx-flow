@@ -2,6 +2,15 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface UrlParameters {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  customParams?: string;
+}
+
 export interface CreativeData {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
@@ -11,6 +20,8 @@ export interface CreativeData {
   description: string;
   linkUrl: string;
   callToAction: string;
+  pixelId?: string;
+  urlParameters: UrlParameters;
 }
 
 export interface AdSetData {
@@ -49,6 +60,8 @@ const defaultCreative = (): CreativeData => ({
   description: '',
   linkUrl: '',
   callToAction: 'LEARN_MORE',
+  pixelId: undefined,
+  urlParameters: {},
 });
 
 const defaultAdSet = (): AdSetData => ({
@@ -244,6 +257,8 @@ export function useCampaignBuilder(clientId: string) {
               description: creative.description,
               link_url: creative.linkUrl,
               call_to_action: creative.callToAction,
+              pixel_id: creative.pixelId,
+              url_parameters: creative.urlParameters,
             })),
           })),
         },

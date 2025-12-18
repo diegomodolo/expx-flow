@@ -4,10 +4,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreativeData } from "@/hooks/useCampaignBuilder";
 import { MediaUploader } from "./MediaUploader";
+import { PixelSelector } from "./PixelSelector";
+import { UrlParametersEditor } from "./UrlParametersEditor";
+import { Separator } from "@/components/ui/separator";
 
 interface CreativeEditorProps {
   creative: CreativeData;
   onChange: (updates: Partial<CreativeData>) => void;
+  clientId: string;
+  companyId: string;
 }
 
 const CREATIVE_TYPES = [
@@ -31,7 +36,7 @@ const CTA_OPTIONS = [
   { value: 'GET_OFFER', label: 'Obter Oferta' },
 ];
 
-export function CreativeEditor({ creative, onChange }: CreativeEditorProps) {
+export function CreativeEditor({ creative, onChange, clientId, companyId }: CreativeEditorProps) {
   const handleTypeChange = (type: CreativeData['type']) => {
     // Clear media when changing type
     onChange({ type, mediaUrls: [] });
@@ -138,6 +143,26 @@ export function CreativeEditor({ creative, onChange }: CreativeEditorProps) {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Tracking Section */}
+      <div className="space-y-4">
+        <h4 className="text-sm font-medium text-muted-foreground">📊 Rastreamento</h4>
+        
+        <PixelSelector
+          clientId={clientId}
+          companyId={companyId}
+          value={creative.pixelId}
+          onChange={(pixelId) => onChange({ pixelId: pixelId || undefined })}
+        />
+
+        <UrlParametersEditor
+          value={creative.urlParameters}
+          onChange={(urlParameters) => onChange({ urlParameters })}
+          baseUrl={creative.linkUrl}
+        />
       </div>
     </div>
   );

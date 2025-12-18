@@ -25,6 +25,7 @@ interface CampaignBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
   clientId: string;
+  companyId: string;
   clientName: string;
   onSuccess?: () => void;
 }
@@ -33,6 +34,7 @@ export function CampaignBuilderModal({
   isOpen,
   onClose,
   clientId,
+  companyId,
   clientName,
   onSuccess,
 }: CampaignBuilderModalProps) {
@@ -234,6 +236,7 @@ export function CampaignBuilderModal({
                   <AdSetSection
                     adSet={currentAdSet}
                     clientId={clientId}
+                    companyId={companyId}
                     onChange={(updates) => updateAdSet(state.currentAdSetIndex, updates)}
                     onAddCreative={() => addCreative(state.currentAdSetIndex)}
                     onRemoveCreative={(index) => removeCreative(state.currentAdSetIndex, index)}
