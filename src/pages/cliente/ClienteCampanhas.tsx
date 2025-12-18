@@ -1,18 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientContext } from "./ClienteContext";
-import { Loader2, Eye, ChevronDown, BarChart3 } from "lucide-react";
+import { Loader2, Eye, ChevronDown, BarChart3, RefreshCw } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
+import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
 
 export function ClienteCampanhas() {
-  const { client, setSelectedCampaignId } = useClientContext();
+  const { client, refetchClient } = useClientContext();
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const campaigns = client?.campaigns || [];
 
@@ -60,13 +62,39 @@ export function ClienteCampanhas() {
   };
 
   const handleCampaignClick = (campaignId: string) => {
-    setSelectedCampaignId(campaignId);
+    // Can be used for campaign selection in future
   };
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    refetchClient?.();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [refetchClient]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Campanhas do Cliente</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Campanhas do Cliente</h3>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="h-8 w-8 p-0"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Atualizar dados</p>
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
         <div className="flex items-center space-x-2">
           <Button
             variant={campaignFilter === 'all' ? 'default' : 'outline'}
@@ -222,26 +250,40 @@ export function ClienteCampanhas() {
                     R$ {campaign.spend.toFixed(2)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm">
-                    <TooltipProvider>
-                      <UITooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewMetrics(campaign);
-                            }}
-                            className="h-8 w-8 p-0"
-                          >
-                            <BarChart3 className="w-3 h-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Ver Indicadores</p>
-                        </TooltipContent>
-                      </UITooltip>
-                    </TooltipProvider>
+                    <div className="flex items-center gap-1">
+                      <TooltipProvider>
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewMetrics(campaign);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <BarChart3 className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ver Indicadores</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      </TooltipProvider>
+                      
+                      <CampaignActionsDropdown 
+                        campaign={{
+                          id: campaign.id,
+                          client_id: client?.id || '',
+                          name: campaign.name,
+                          status: campaign.status,
+                          facebook_id: campaign.facebook_id,
+                          spend: campaign.spend
+                        }}
+                        onRefresh={handleRefresh}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))
