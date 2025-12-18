@@ -1058,12 +1058,14 @@ export type Database = {
           cpc: number
           created_at: string
           ctr: number
+          daily_budget: number | null
           engagement_rate_ranking: string | null
           facebook_id: string | null
           frequency: number | null
           id: string
           impressions: number | null
           is_active: boolean
+          lifetime_budget: number | null
           name: string
           objective: string | null
           period: string
@@ -1086,12 +1088,14 @@ export type Database = {
           cpc?: number
           created_at?: string
           ctr?: number
+          daily_budget?: number | null
           engagement_rate_ranking?: string | null
           facebook_id?: string | null
           frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
+          lifetime_budget?: number | null
           name: string
           objective?: string | null
           period: string
@@ -1114,12 +1118,14 @@ export type Database = {
           cpc?: number
           created_at?: string
           ctr?: number
+          daily_budget?: number | null
           engagement_rate_ranking?: string | null
           facebook_id?: string | null
           frequency?: number | null
           id?: string
           impressions?: number | null
           is_active?: boolean
+          lifetime_budget?: number | null
           name?: string
           objective?: string | null
           period?: string

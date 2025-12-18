@@ -181,6 +181,9 @@ export function ClienteCampanhas() {
                   )}
                 </div>
               </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                Orçamento
+              </th>
               <th 
                 className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('spend')}
@@ -247,6 +250,24 @@ export function ClienteCampanhas() {
                     {campaign.conversions}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-card-foreground">
+                    <TooltipProvider>
+                      <UITooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help">
+                            {campaign.daily_budget 
+                              ? `R$ ${campaign.daily_budget.toFixed(2)}/dia`
+                              : campaign.lifetime_budget
+                              ? `R$ ${campaign.lifetime_budget.toFixed(2)}`
+                              : '-'}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{campaign.daily_budget ? 'Orçamento Diário' : campaign.lifetime_budget ? 'Orçamento Vitalício' : 'Sem orçamento definido'}</p>
+                        </TooltipContent>
+                      </UITooltip>
+                    </TooltipProvider>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-card-foreground">
                     R$ {campaign.spend.toFixed(2)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm">
@@ -289,7 +310,7 @@ export function ClienteCampanhas() {
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                   <div>
                     <p className="mb-2">Nenhuma campanha encontrada</p>
                     <p className="text-sm">As campanhas sincronizadas aparecerão aqui</p>
