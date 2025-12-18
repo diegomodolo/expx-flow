@@ -6,7 +6,7 @@ import { Loader2, Eye, ChevronDown, BarChart3, RefreshCw, Plus } from "lucide-re
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
-import { CreateCampaignModal } from "@/components/campaigns/CreateCampaignModal";
+import { CampaignBuilderModal } from "@/components/campaigns/CampaignBuilderModal";
 export function ClienteCampanhas() {
   const { client, refetchClient } = useClientContext();
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -338,12 +338,11 @@ export function ClienteCampanhas() {
         onClose={() => setMetricsModalOpen(false)}
       />
 
-      <CreateCampaignModal
+      <CampaignBuilderModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         clientId={client?.id || ''}
         clientName={client?.name || ''}
-        hasAdAccount={!!client?.ad_account_id}
         onSuccess={handleRefresh}
       />
     </div>
