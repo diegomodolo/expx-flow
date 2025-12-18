@@ -18,9 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Info } from 'lucide-react';
 import { useCampaignCreation, CampaignObjective } from '@/hooks/useCampaignCreation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+type BudgetType = 'daily' | 'lifetime';
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -51,13 +53,33 @@ export function CreateCampaignModal({
   const [name, setName] = useState('');
   const [objective, setObjective] = useState<CampaignObjective>('OUTCOME_TRAFFIC');
   const [startActive, setStartActive] = useState(false);
+  const [budgetType, setBudgetType] = useState<BudgetType>('daily');
+  const [budgetValue, setBudgetValue] = useState('');
   
   const { createCampaign, loading } = useCampaignCreation();
+
+  const formatCurrency = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    const amount = parseInt(numbers || '0') / 100;
+    return amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const parseCurrency = (value: string): number => {
+    const numbers = value.replace(/\D/g, '');
+    return parseInt(numbers || '0') / 100;
+  };
+
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrency(e.target.value);
+    setBudgetValue(formatted);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) {
+    const budget = parseCurrency(budgetValue);
+    
+    if (!name.trim() || budget < 1) {
       return;
     }
 
@@ -66,12 +88,16 @@ export function CreateCampaignModal({
       name: name.trim(),
       objective,
       status: startActive ? 'ACTIVE' : 'PAUSED',
+      dailyBudget: budgetType === 'daily' ? budget : undefined,
+      lifetimeBudget: budgetType === 'lifetime' ? budget : undefined,
     });
 
     if (result.success) {
       setName('');
       setObjective('OUTCOME_TRAFFIC');
       setStartActive(false);
+      setBudgetType('daily');
+      setBudgetValue('');
       onClose();
       onSuccess?.();
     }
@@ -82,9 +108,13 @@ export function CreateCampaignModal({
       setName('');
       setObjective('OUTCOME_TRAFFIC');
       setStartActive(false);
+      setBudgetType('daily');
+      setBudgetValue('');
       onClose();
     }
   };
+
+  const budgetAmount = parseCurrency(budgetValue);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -141,6 +171,54 @@ export function CreateCampaignModal({
               </Select>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="budgetType">Tipo de Orçamento *</Label>
+                <Select
+                  value={budgetType}
+                  onValueChange={(value) => setBudgetType(value as BudgetType)}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Orçamento Diário</SelectItem>
+                    <SelectItem value="lifetime">Orçamento Vitalício</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="budget">Valor (R$) *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    R$
+                  </span>
+                  <Input
+                    id="budget"
+                    value={budgetValue}
+                    onChange={handleBudgetChange}
+                    placeholder="0,00"
+                    className="pl-9"
+                    disabled={loading}
+                  />
+                </div>
+                {budgetValue && budgetAmount < 1 && (
+                  <p className="text-xs text-destructive">Valor mínimo: R$ 1,00</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+              <Info className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>
+                {budgetType === 'daily' 
+                  ? 'O orçamento diário será gasto por dia nos conjuntos de anúncios.'
+                  : 'O orçamento vitalício será distribuído durante toda a vida da campanha.'}
+              </span>
+            </div>
+
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
                 <Label htmlFor="startActive">Iniciar campanha ativa</Label>
@@ -160,7 +238,7 @@ export function CreateCampaignModal({
               <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading || !name.trim()}>
+              <Button type="submit" disabled={loading || !name.trim() || budgetAmount < 1}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
