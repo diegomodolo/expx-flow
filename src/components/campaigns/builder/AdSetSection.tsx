@@ -10,12 +10,15 @@ import { Plus, Trash2, ChevronDown, Image, Film, Images } from 'lucide-react';
 import { AdSetData, CreativeData } from "@/hooks/useCampaignBuilder";
 import { AudienceMultiSelect } from "./AudienceMultiSelect";
 import { CreativeEditor } from "./CreativeEditor";
+import { PixelSelector } from "./PixelSelector";
+import { ConversionEventSelector } from "./ConversionEventSelector";
 import { cn } from "@/lib/utils";
 
 interface AdSetSectionProps {
   adSet: AdSetData;
   clientId: string;
   companyId: string;
+  campaignObjective: string;
   onChange: (updates: Partial<AdSetData>) => void;
   onAddCreative: () => void;
   onRemoveCreative: (index: number) => void;
@@ -26,6 +29,7 @@ export function AdSetSection({
   adSet,
   clientId,
   companyId,
+  campaignObjective,
   onChange,
   onAddCreative,
   onRemoveCreative,
@@ -89,6 +93,34 @@ export function AdSetSection({
             onChange={(ids) => onChange({ excludedAudiences: ids })}
             label="🚫 Públicos de Exclusão"
             placeholder="Selecione públicos para excluir..."
+          />
+        </CardContent>
+      </Card>
+
+      {/* Conversion Tracking */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">📊 Rastreamento de Conversão</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <PixelSelector
+            clientId={clientId}
+            companyId={companyId}
+            value={adSet.pixelId}
+            onChange={(pixelId) => {
+              onChange({ pixelId: pixelId || undefined });
+              // Limpa evento se pixel for removido
+              if (!pixelId) {
+                onChange({ pixelId: undefined, conversionEvent: undefined });
+              }
+            }}
+          />
+
+          <ConversionEventSelector
+            value={adSet.conversionEvent}
+            onChange={(conversionEvent) => onChange({ conversionEvent: conversionEvent || undefined })}
+            disabled={!adSet.pixelId}
+            campaignObjective={campaignObjective}
           />
         </CardContent>
       </Card>
@@ -220,8 +252,6 @@ export function AdSetSection({
                     <CreativeEditor
                       creative={creative}
                       onChange={(updates) => onUpdateCreative(index, updates)}
-                      clientId={clientId}
-                      companyId={companyId}
                     />
                   </CardContent>
                 </CollapsibleContent>
