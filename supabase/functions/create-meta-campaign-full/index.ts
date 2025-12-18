@@ -76,7 +76,7 @@ serve(async (req) => {
       .select(`
         *,
         facebook_ad_accounts!clients_ad_account_id_fkey (
-          facebook_account_id
+          account_id
         )
       `)
       .eq("id", clientId)
@@ -90,7 +90,7 @@ serve(async (req) => {
       throw new Error("Client does not have an associated Meta Ads account");
     }
 
-    const adAccountId = client.facebook_ad_accounts.facebook_account_id;
+    const adAccountId = client.facebook_ad_accounts.account_id;
 
     // Get Facebook integration for access token
     const { data: integration, error: integrationError } = await supabaseClient
