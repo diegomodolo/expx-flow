@@ -21,12 +21,15 @@ interface RequestBody {
   clientId: string;
   companyId: string;
   briefing: string;
-  monthlyBudget: number;
+  monthlyBudget: number; // This is now the AVAILABLE budget
+  currentSpend?: number;
+  totalMonthlyBudget?: number;
   websiteUrl?: string;
   productName?: string;
   targetAudience?: string;
   sector?: string;
   preferredObjective?: string;
+  creativesCount?: number;
   availableAudiences: Audience[];
   availablePixels: Pixel[];
 }
@@ -45,12 +48,15 @@ serve(async (req) => {
     const body: RequestBody = await req.json();
     const {
       briefing,
-      monthlyBudget,
+      monthlyBudget, // This is the AVAILABLE budget now
+      currentSpend = 0,
+      totalMonthlyBudget = 0,
       websiteUrl,
       productName,
       targetAudience,
       sector,
       preferredObjective,
+      creativesCount = 1,
       availableAudiences,
       availablePixels,
     } = body;
@@ -62,10 +68,13 @@ serve(async (req) => {
       );
     }
 
-    // Calculate suggested daily budget (allocate ~80% of monthly budget over 30 days)
+    // Use the available budget (monthlyBudget is already the remaining amount)
+    // Calculate daily budget from available monthly budget (divide by 30 days)
     const suggestedDailyBudget = monthlyBudget > 0 
-      ? Math.round((monthlyBudget * 0.8) / 30) 
-      : 50;
+      ? Math.round(monthlyBudget / 30) 
+      : 10; // Minimum fallback
+
+    console.log(`Budget calculation: Available=${monthlyBudget}, CurrentSpend=${currentSpend}, TotalMonthly=${totalMonthlyBudget}, SuggestedDaily=${suggestedDailyBudget}`);
 
     // Build the prompt
     const systemPrompt = `Você é um especialista em marketing digital e Meta Ads com vasta experiência em criar campanhas de alta performance. Seu objetivo é analisar o briefing do cliente e gerar uma campanha completa e otimizada.
@@ -88,8 +97,11 @@ DADOS ADICIONAIS:
 - Setor: ${sector || "Não especificado"}
 - Público-alvo: ${targetAudience || "Ver briefing"}
 - Website: ${websiteUrl || "Não informado"}
-- Orçamento mensal: R$ ${monthlyBudget || 0}
+- Orçamento mensal TOTAL: R$ ${totalMonthlyBudget || 0}
+- Orçamento já COMPROMETIDO em campanhas ativas: R$ ${currentSpend}
+- Orçamento DISPONÍVEL para esta campanha: R$ ${monthlyBudget}
 - Orçamento diário sugerido: R$ ${suggestedDailyBudget}
+- QUANTIDADE DE CRIATIVOS PARA GERAR: ${creativesCount}
 ${preferredObjective ? `- Objetivo preferido: ${preferredObjective}` : "- Objetivo: A IA deve decidir o melhor"}
 
 PÚBLICOS DISPONÍVEIS PARA INCLUSÃO:
@@ -122,26 +134,31 @@ Gere uma campanha completa no seguinte formato JSON:
     "pixelId": "ID do pixel se disponível",
     "conversionEvent": "PURCHASE | LEAD | COMPLETE_REGISTRATION | ADD_TO_CART | INITIATE_CHECKOUT | SEARCH | VIEW_CONTENT | CONTACT | CUSTOMIZE_PRODUCT | DONATE | FIND_LOCATION | SCHEDULE | START_TRIAL | SUBMIT_APPLICATION | SUBSCRIBE"
   },
-  "creative": {
-    "body": "Texto principal do anúncio (máximo 500 caracteres, ideal 125)",
-    "title": "Título chamativo (máximo 40 caracteres)",
-    "description": "Descrição complementar",
-    "callToAction": "LEARN_MORE | SHOP_NOW | SIGN_UP | SUBSCRIBE | CONTACT_US | GET_OFFER | BOOK_TRAVEL | DOWNLOAD | APPLY_NOW | WHATSAPP_MESSAGE",
-    "urlParameters": {
-      "utm_source": "facebook",
-      "utm_medium": "paid",
-      "utm_campaign": "nome-da-campanha"
-    }
-  },
+  "creatives": [
+    ${Array.from({ length: creativesCount }, (_, i) => `{
+      "body": "Texto principal do anúncio ${i + 1} (máximo 500 caracteres, ideal 125)",
+      "title": "Título chamativo ${i + 1} (máximo 40 caracteres)",
+      "description": "Descrição complementar ${i + 1}",
+      "callToAction": "LEARN_MORE | SHOP_NOW | SIGN_UP | SUBSCRIBE | CONTACT_US | GET_OFFER | BOOK_TRAVEL | DOWNLOAD | APPLY_NOW | WHATSAPP_MESSAGE",
+      "urlParameters": {
+        "utm_source": "facebook",
+        "utm_medium": "paid",
+        "utm_campaign": "nome-da-campanha"
+      }
+    }`).join(',\n    ')}
+  ],
   "imagePrompt": "Descrição detalhada para gerar uma imagem de anúncio profissional"
 }
 
 IMPORTANTE: 
+- O orçamento diário DEVE ser no máximo R$ ${suggestedDailyBudget} (baseado no orçamento DISPONÍVEL do cliente)
+- NÃO use o orçamento total do cliente, use APENAS o orçamento disponível informado acima
 - Retorne APENAS o JSON, sem explicações adicionais
 - Use IDs reais dos públicos e pixels fornecidos
 - Para genders: [0] = todos, [1] = masculino, [2] = feminino, [1,2] = ambos especificamente
 - Escolha o conversionEvent baseado no objetivo da campanha
-- O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço`;
+- O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço
+- GERE EXATAMENTE ${creativesCount} criativos diferentes no array "creatives", cada um com texto e título únicos`;
 
     console.log("Calling Lovable AI for campaign generation...");
 
@@ -222,6 +239,41 @@ IMPORTANTE:
     }
 
     // Transform to the expected format
+    // Handle both old format (single creative) and new format (creatives array)
+    const creativesArray = parsedData.creatives || (parsedData.creative ? [parsedData.creative] : []);
+    
+    const generatedCreatives = creativesArray.length > 0 
+      ? creativesArray.map((creative: any) => ({
+          id: crypto.randomUUID(),
+          type: "IMAGE" as const,
+          mediaUrls: [],
+          body: creative?.body || "",
+          title: creative?.title || "",
+          description: creative?.description || "",
+          linkUrl: websiteUrl || "",
+          callToAction: creative?.callToAction || "LEARN_MORE",
+          urlParameters: creative?.urlParameters || {
+            utm_source: "facebook",
+            utm_medium: "paid",
+            utm_campaign: parsedData.campaign?.name?.toLowerCase().replace(/\s+/g, "-") || "campanha-ia",
+          },
+        }))
+      : [{
+          id: crypto.randomUUID(),
+          type: "IMAGE" as const,
+          mediaUrls: [],
+          body: "",
+          title: "",
+          description: "",
+          linkUrl: websiteUrl || "",
+          callToAction: "LEARN_MORE",
+          urlParameters: {
+            utm_source: "facebook",
+            utm_medium: "paid",
+            utm_campaign: parsedData.campaign?.name?.toLowerCase().replace(/\s+/g, "-") || "campanha-ia",
+          },
+        }];
+
     const generatedData = {
       campaign: {
         name: parsedData.campaign?.name || "Campanha gerada por IA",
@@ -241,28 +293,12 @@ IMPORTANTE:
           genders: parsedData.adSet?.genders || [0],
           pixelId: parsedData.adSet?.pixelId || (availablePixels[0]?.id) || undefined,
           conversionEvent: parsedData.adSet?.conversionEvent || undefined,
-          creatives: [
-            {
-              id: crypto.randomUUID(),
-              type: "IMAGE" as const,
-              mediaUrls: [],
-              body: parsedData.creative?.body || "",
-              title: parsedData.creative?.title || "",
-              description: parsedData.creative?.description || "",
-              linkUrl: websiteUrl || "",
-              callToAction: parsedData.creative?.callToAction || "LEARN_MORE",
-              urlParameters: parsedData.creative?.urlParameters || {
-                utm_source: "facebook",
-                utm_medium: "paid",
-                utm_campaign: parsedData.campaign?.name?.toLowerCase().replace(/\s+/g, "-") || "campanha-ia",
-              },
-            },
-          ],
+          creatives: generatedCreatives,
         },
       ],
     };
 
-    console.log("Campaign generated successfully");
+    console.log(`Campaign generated successfully with ${generatedCreatives.length} creatives`);
 
     return new Response(
       JSON.stringify({
