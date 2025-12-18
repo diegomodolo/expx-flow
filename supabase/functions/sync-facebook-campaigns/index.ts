@@ -686,7 +686,7 @@ async function processSync(
 
     // Fetch campaigns from Facebook API with enhanced insights - using 7d_click + 1d_view attribution windows
     console.log('Using attribution windows: 7d_click + 1d_view')
-    const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"])` +
+    const baseCampaignsUrl = `https://graph.facebook.com/v20.0/${accountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,insights${dateParam}.action_report_time(conversion).action_attribution_windows(["7d_click","1d_view"])` +
       `{impressions,clicks,spend,actions,conversions,conversion_values,action_values,reach,frequency,quality_ranking,engagement_rate_ranking,conversion_rate_ranking}&effective_status=["ACTIVE","PAUSED"]&limit=100&access_token=${accessToken}`
     console.log('Facebook API URL (without token):', baseCampaignsUrl.replace(accessToken, '[REDACTED]'))
 
@@ -872,6 +872,12 @@ async function processSync(
         }
 
         // Save campaign to database
+        // Budget values come from Facebook in cents, convert to real currency
+        const dailyBudget = campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : null
+        const lifetimeBudget = campaign.lifetime_budget ? parseFloat(campaign.lifetime_budget) / 100 : null
+        
+        console.log(`Campaign budget for ${campaign.name}: daily=${dailyBudget}, lifetime=${lifetimeBudget}`)
+        
         const campaignData = {
           facebook_id: campaign.id,
           name: campaign.name,
@@ -891,6 +897,8 @@ async function processSync(
           quality_ranking: qualityRanking,
           engagement_rate_ranking: engagementRateRanking,
           conversion_rate_ranking: conversionRateRanking,
+          daily_budget: dailyBudget,
+          lifetime_budget: lifetimeBudget,
           client_id: clientId,
           user_id: client.user_id,
           company_id: client.company_id,
