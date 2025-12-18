@@ -905,18 +905,22 @@ async function processSync(
           period: '30 dias'
         }
 
-        const { data: insertedCampaign, error: campaignError } = await supabase
+        // Use upsert to avoid duplicates - update if facebook_id + client_id exists
+        const { data: upsertedCampaign, error: campaignError } = await supabase
           .from('campaigns')
-          .insert(campaignData)
+          .upsert(campaignData, { 
+            onConflict: 'facebook_id,client_id',
+            ignoreDuplicates: false 
+          })
           .select()
           .single()
 
         if (campaignError) {
-          console.error('Error inserting campaign:', campaignError)
+          console.error('Error upserting campaign:', campaignError)
           continue
         } else {
-          console.log('Campaign saved:', campaign.name)
-          savedCampaign = insertedCampaign
+          console.log('Campaign saved/updated:', campaign.name)
+          savedCampaign = upsertedCampaign
         }
       } else {
         // If not syncing campaigns, try to find existing campaign for ad sets/ads sync
