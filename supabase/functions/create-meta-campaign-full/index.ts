@@ -66,6 +66,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Get user from auth header
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabaseClient.auth.getUser(token);
+      userId = user?.id || null;
+    }
+
     const { clientId, campaign, adSets } = await req.json() as RequestBody;
 
     console.log(`Creating full campaign for client ${clientId}:`, { campaign, adSetCount: adSets.length });
@@ -137,12 +147,15 @@ serve(async (req) => {
     const metaCampaignId = campaignResult.id;
 
     // Save campaign to local database
+    // Use authenticated user ID if available, otherwise use client's user_id
+    const effectiveUserId = userId || client.user_id;
+    
     const { data: savedCampaign, error: saveCampaignError } = await supabaseClient
       .from("campaigns")
       .insert({
         client_id: clientId,
         company_id: client.company_id,
-        user_id: client.user_id,
+        user_id: effectiveUserId,
         name: campaign.name,
         objective: campaign.objective,
         facebook_id: metaCampaignId,
@@ -162,6 +175,7 @@ serve(async (req) => {
 
     if (saveCampaignError) {
       console.error("Error saving campaign:", saveCampaignError);
+      // Don't throw - campaign was created in Meta, just log the error
     }
 
     // 2. Create Ad Sets and Ads
@@ -188,7 +202,7 @@ serve(async (req) => {
         targeting.excluded_custom_audiences = adSet.targeting.excluded_audiences.map(id => ({ id }));
       }
 
-      // Create Ad Set
+      // Create Ad Set - use LOWEST_COST_WITHOUT_CAP only (no bid_amount needed)
       const adSetParams = new URLSearchParams({
         campaign_id: metaCampaignId,
         name: adSet.name,
@@ -196,7 +210,6 @@ serve(async (req) => {
         targeting: JSON.stringify(targeting),
         billing_event: "IMPRESSIONS",
         optimization_goal: getOptimizationGoal(campaign.objective),
-        bid_strategy: "LOWEST_COST_WITHOUT_CAP",
         access_token: accessToken,
       });
 
@@ -231,7 +244,7 @@ serve(async (req) => {
           campaign_id: savedCampaign?.id,
           client_id: clientId,
           company_id: client.company_id,
-          user_id: client.user_id,
+          user_id: effectiveUserId,
           name: adSet.name,
           facebook_id: metaAdSetId,
           status: campaign.status === 'ACTIVE' ? 'active' : 'paused',
@@ -292,7 +305,7 @@ serve(async (req) => {
               campaign_id: savedCampaign?.id,
               client_id: clientId,
               company_id: client.company_id,
-              user_id: client.user_id,
+              user_id: effectiveUserId,
               name: creative.title || `${adSet.name} - Ad ${i + 1}`,
               facebook_id: adResult.id,
               status: campaign.status === 'ACTIVE' ? 'active' : 'paused',
