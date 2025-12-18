@@ -29,6 +29,8 @@ interface Creative {
 
 interface AdSet {
   name: string;
+  pixel_id?: string;
+  conversion_event?: string;
   targeting: {
     custom_audiences?: string[];
     excluded_audiences?: string[];
@@ -197,6 +199,15 @@ serve(async (req) => {
         bid_strategy: "LOWEST_COST_WITHOUT_CAP",
         access_token: accessToken,
       });
+
+      // Add promoted_object for conversion campaigns with pixel
+      if (adSet.pixel_id && adSet.conversion_event) {
+        adSetParams.append("promoted_object", JSON.stringify({
+          pixel_id: adSet.pixel_id,
+          custom_event_type: adSet.conversion_event,
+        }));
+        console.log(`Adding promoted_object with pixel ${adSet.pixel_id} and event ${adSet.conversion_event}`);
+      }
 
       const adSetResponse = await fetch(
         `https://graph.facebook.com/v21.0/act_${adAccountId}/adsets`,

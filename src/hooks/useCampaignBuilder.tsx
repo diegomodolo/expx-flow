@@ -20,7 +20,6 @@ export interface CreativeData {
   description: string;
   linkUrl: string;
   callToAction: string;
-  pixelId?: string;
   urlParameters: UrlParameters;
 }
 
@@ -32,6 +31,8 @@ export interface AdSetData {
   ageMin: number;
   ageMax: number;
   genders: number[]; // 0 = all, 1 = male, 2 = female
+  pixelId?: string;
+  conversionEvent?: string;
   creatives: CreativeData[];
 }
 
@@ -60,7 +61,6 @@ const defaultCreative = (): CreativeData => ({
   description: '',
   linkUrl: '',
   callToAction: 'LEARN_MORE',
-  pixelId: undefined,
   urlParameters: {},
 });
 
@@ -72,6 +72,8 @@ const defaultAdSet = (): AdSetData => ({
   ageMin: 18,
   ageMax: 65,
   genders: [0],
+  pixelId: undefined,
+  conversionEvent: undefined,
   creatives: [defaultCreative()],
 });
 
@@ -242,6 +244,8 @@ export function useCampaignBuilder(clientId: string) {
           },
           adSets: state.adSets.map(adSet => ({
             name: adSet.name,
+            pixel_id: adSet.pixelId,
+            conversion_event: adSet.conversionEvent,
             targeting: {
               custom_audiences: adSet.includedAudiences,
               excluded_audiences: adSet.excludedAudiences,
@@ -257,7 +261,6 @@ export function useCampaignBuilder(clientId: string) {
               description: creative.description,
               link_url: creative.linkUrl,
               call_to_action: creative.callToAction,
-              pixel_id: creative.pixelId,
               url_parameters: creative.urlParameters,
             })),
           })),
