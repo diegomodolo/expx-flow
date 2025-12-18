@@ -905,22 +905,43 @@ async function processSync(
           period: '30 dias'
         }
 
-        // Use upsert to avoid duplicates - update if facebook_id + client_id exists
-        const { data: upsertedCampaign, error: campaignError } = await supabase
+        // Check if campaign already exists for this client
+        const { data: existingCampaign } = await supabase
           .from('campaigns')
-          .upsert(campaignData, { 
-            onConflict: 'facebook_id,client_id',
-            ignoreDuplicates: false 
-          })
-          .select()
-          .single()
+          .select('id')
+          .eq('facebook_id', campaign.id)
+          .eq('client_id', clientId)
+          .maybeSingle()
 
-        if (campaignError) {
-          console.error('Error upserting campaign:', campaignError)
-          continue
+        if (existingCampaign) {
+          // Update existing campaign
+          const { data: updatedCampaign, error: updateError } = await supabase
+            .from('campaigns')
+            .update(campaignData)
+            .eq('id', existingCampaign.id)
+            .select()
+            .single()
+
+          if (updateError) {
+            console.error('Error updating campaign:', updateError)
+            continue
+          }
+          console.log('Campaign updated:', campaign.name)
+          savedCampaign = updatedCampaign
         } else {
-          console.log('Campaign saved/updated:', campaign.name)
-          savedCampaign = upsertedCampaign
+          // Insert new campaign
+          const { data: insertedCampaign, error: insertError } = await supabase
+            .from('campaigns')
+            .insert(campaignData)
+            .select()
+            .single()
+
+          if (insertError) {
+            console.error('Error inserting campaign:', insertError)
+            continue
+          }
+          console.log('Campaign created:', campaign.name)
+          savedCampaign = insertedCampaign
         }
       } else {
         // If not syncing campaigns, try to find existing campaign for ad sets/ads sync
