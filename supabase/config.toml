@@ -175,3 +175,9 @@ verify_jwt = true
 
 [functions.create-meta-campaign-full]
 verify_jwt = true
+
+[functions.generate-ai-campaign]
+verify_jwt = true
+
+[functions.generate-ai-campaign-image]
+verify_jwt = true
