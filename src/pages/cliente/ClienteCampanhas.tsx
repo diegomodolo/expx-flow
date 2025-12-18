@@ -2,11 +2,11 @@ import { useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientContext } from "./ClienteContext";
-import { Loader2, Eye, ChevronDown, BarChart3, RefreshCw } from "lucide-react";
+import { Loader2, Eye, ChevronDown, BarChart3, RefreshCw, Plus } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
-
+import { CreateCampaignModal } from "@/components/campaigns/CreateCampaignModal";
 export function ClienteCampanhas() {
   const { client, refetchClient } = useClientContext();
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
@@ -14,6 +14,7 @@ export function ClienteCampanhas() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const campaigns = client?.campaigns || [];
@@ -96,6 +97,15 @@ export function ClienteCampanhas() {
           </TooltipProvider>
         </div>
         <div className="flex items-center space-x-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setCreateModalOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Nova Campanha
+          </Button>
+          <div className="h-6 w-px bg-border" />
           <Button
             variant={campaignFilter === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -326,6 +336,15 @@ export function ClienteCampanhas() {
         campaign={selectedCampaign}
         isOpen={metricsModalOpen}
         onClose={() => setMetricsModalOpen(false)}
+      />
+
+      <CreateCampaignModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        clientId={client?.id || ''}
+        clientName={client?.name || ''}
+        hasAdAccount={!!client?.ad_account_id}
+        onSuccess={handleRefresh}
       />
     </div>
   );
