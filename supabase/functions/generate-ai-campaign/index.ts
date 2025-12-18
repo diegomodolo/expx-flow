@@ -190,17 +190,34 @@ IMPORTANTE:
     console.log("AI response received, parsing JSON...");
 
     // Extract JSON from the response (handle markdown code blocks)
-    let jsonString = content;
+    let jsonString = content.trim();
+    
+    // Try to extract from markdown code blocks
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       jsonString = jsonMatch[1].trim();
     }
+    
+    // If still starts with ```, try to clean it up
+    if (jsonString.startsWith('```')) {
+      jsonString = jsonString.replace(/^```(?:json)?[\s\n]*/, '').replace(/```$/, '').trim();
+    }
+    
+    // Try to find JSON object boundaries
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+    }
+
+    console.log("Cleaned JSON string (first 500 chars):", jsonString.substring(0, 500));
 
     let parsedData;
     try {
       parsedData = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
+      console.error("Failed to parse AI response:", content.substring(0, 1000));
+      console.error("Cleaned JSON that failed:", jsonString.substring(0, 1000));
       throw new Error("Resposta da IA em formato inválido");
     }
 
