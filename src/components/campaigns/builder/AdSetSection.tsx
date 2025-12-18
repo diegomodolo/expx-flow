@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 interface AdSetSectionProps {
   adSet: AdSetData;
   clientId: string;
+  companyId: string;
   onChange: (updates: Partial<AdSetData>) => void;
   onAddCreative: () => void;
   onRemoveCreative: (index: number) => void;
@@ -24,6 +25,7 @@ interface AdSetSectionProps {
 export function AdSetSection({
   adSet,
   clientId,
+  companyId,
   onChange,
   onAddCreative,
   onRemoveCreative,
@@ -218,6 +220,8 @@ export function AdSetSection({
                     <CreativeEditor
                       creative={creative}
                       onChange={(updates) => onUpdateCreative(index, updates)}
+                      clientId={clientId}
+                      companyId={companyId}
                     />
                   </CardContent>
                 </CollapsibleContent>
