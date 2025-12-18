@@ -123,13 +123,20 @@ serve(async (req) => {
       campaignParams.special_ad_categories = JSON.stringify([])
     }
 
-    // Note: Budget is set at ad set level in Meta, not campaign level
-    // But we can store it for reference
+    // Add campaign budget optimization (CBO) with budget at campaign level
+    if (dailyBudget && dailyBudget > 0) {
+      campaignParams.daily_budget = String(Math.round(dailyBudget * 100)) // Meta uses cents
+    }
+    if (lifetimeBudget && lifetimeBudget > 0) {
+      campaignParams.lifetime_budget = String(Math.round(lifetimeBudget * 100)) // Meta uses cents
+    }
 
     console.log('Creating campaign on Meta:', { 
       adAccountId: adAccount.facebook_account_id,
       name,
-      objective 
+      objective,
+      dailyBudget,
+      lifetimeBudget
     })
 
     // Create campaign on Meta
