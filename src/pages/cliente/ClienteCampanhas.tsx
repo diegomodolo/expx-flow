@@ -3,11 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientContext } from "./ClienteContext";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Loader2, Eye, ChevronDown, BarChart3, RefreshCw, Plus } from "lucide-react";
+import { ChevronDown, BarChart3, RefreshCw, Plus } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModal";
 import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
 import { CampaignBuilderModal } from "@/components/campaigns/CampaignBuilderModal";
+import { BudgetProjectionIndicator } from "@/components/campaigns/BudgetProjectionIndicator";
+
 export function ClienteCampanhas() {
   const { client, refetchClient } = useClientContext();
   const { activeCompany } = useCompany();
@@ -138,6 +140,11 @@ export function ClienteCampanhas() {
           </Button>
         </div>
       </div>
+
+      <BudgetProjectionIndicator 
+        campaigns={campaigns} 
+        monthlyBudget={client?.monthly_budget} 
+      />
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="min-w-full divide-y divide-border">
