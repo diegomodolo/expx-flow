@@ -24,6 +24,8 @@ export interface ClientCampaign {
   clicks?: number;
   objective?: string; // Objetivo da campanha (LEAD_GENERATION, REACH, etc.)
   facebook_id?: string; // ID da campanha no Facebook/Meta
+  daily_budget?: number; // Orçamento diário
+  lifetime_budget?: number; // Orçamento vitalício
   created_at: string;
 }
 
