@@ -29,15 +29,15 @@ export function PixelSelector({ clientId, companyId, value, onChange }: PixelSel
         Pixel de Conversão
       </Label>
       <Select
-        value={value || ""}
-        onValueChange={onChange}
+        value={value || "none"}
+        onValueChange={(v) => onChange(v === "none" ? "" : v)}
         disabled={loading}
       >
         <SelectTrigger>
           <SelectValue placeholder={loading ? "Carregando pixels..." : "Selecione um pixel"} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Nenhum pixel</SelectItem>
+          <SelectItem value="none">Nenhum pixel</SelectItem>
           {pixels?.map((pixel) => (
             <SelectItem key={pixel.id} value={pixel.pixel_id}>
               {pixel.pixel_name} {pixel.is_primary && "(Principal)"} - {pixel.pixel_id}
