@@ -23,6 +23,7 @@ export interface ClientCampaign {
   conversion_rate_ranking?: string;
   clicks?: number;
   objective?: string; // Objetivo da campanha (LEAD_GENERATION, REACH, etc.)
+  facebook_id?: string; // ID da campanha no Facebook/Meta
   created_at: string;
 }
 

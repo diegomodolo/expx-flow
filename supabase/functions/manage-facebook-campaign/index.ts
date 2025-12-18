@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface RequestBody {
+  campaignId: string;
+  clientId: string;
+  action?: 'toggle' | 'rename' | 'budget' | 'duplicate';
+  status?: string;
+  name?: string;
+  budgetType?: 'daily' | 'lifetime';
+  amount?: number;
+  newName?: string;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -21,11 +32,12 @@ Deno.serve(async (req) => {
       }
     );
 
-    const { campaignId, status, clientId } = await req.json();
+    const body: RequestBody = await req.json();
+    const { campaignId, clientId, action = 'toggle', status, name, budgetType, amount, newName } = body;
     
-    if (!campaignId || !status || !clientId) {
+    if (!campaignId || !clientId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: campaignId, status, clientId' }),
+        JSON.stringify({ error: 'Missing required parameters: campaignId, clientId' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -33,7 +45,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Managing Facebook campaign ${campaignId} - Setting status to: ${status}`);
+    console.log(`Managing Facebook campaign ${campaignId} - Action: ${action}`);
 
     // Get client and integration data
     const { data: client, error: clientError } = await supabase
@@ -83,21 +95,123 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Convert status to Facebook API format
-    const facebookStatus = status === 'active' ? 'ACTIVE' : 'PAUSED';
-    
-    // Update campaign status via Facebook API
-    const facebookUrl = `https://graph.facebook.com/v20.0/${campaignId}`;
-    const facebookResponse = await fetch(facebookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        status: facebookStatus,
-        access_token: integration.access_token,
-      }),
-    });
+    // Get the campaign's facebook_id
+    const { data: campaign, error: campaignError } = await supabase
+      .from('campaigns')
+      .select('facebook_id')
+      .eq('id', campaignId)
+      .single();
+
+    const facebookCampaignId = campaign?.facebook_id || campaignId;
+
+    let facebookResponse: Response;
+    let updateData: Record<string, any> = {};
+    let successMessage = '';
+
+    switch (action) {
+      case 'toggle': {
+        if (!status) {
+          return new Response(
+            JSON.stringify({ error: 'Missing status parameter for toggle action' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const facebookStatus = status === 'active' ? 'ACTIVE' : 'PAUSED';
+        
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: facebookStatus,
+            access_token: integration.access_token,
+          }),
+        });
+
+        updateData = { 
+          status,
+          is_active: status === 'active',
+          updated_at: new Date().toISOString()
+        };
+        successMessage = `Campaign ${status === 'active' ? 'activated' : 'paused'} successfully`;
+        break;
+      }
+
+      case 'rename': {
+        if (!name) {
+          return new Response(
+            JSON.stringify({ error: 'Missing name parameter for rename action' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            access_token: integration.access_token,
+          }),
+        });
+
+        updateData = { 
+          name,
+          updated_at: new Date().toISOString()
+        };
+        successMessage = 'Campaign renamed successfully';
+        break;
+      }
+
+      case 'budget': {
+        if (!budgetType || !amount) {
+          return new Response(
+            JSON.stringify({ error: 'Missing budgetType or amount for budget action' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const budgetField = budgetType === 'daily' ? 'daily_budget' : 'lifetime_budget';
+        
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            [budgetField]: amount, // amount already in cents
+            access_token: integration.access_token,
+          }),
+        });
+
+        successMessage = 'Budget updated successfully';
+        break;
+      }
+
+      case 'duplicate': {
+        // Facebook API for campaign duplication
+        const duplicateName = newName || `Copy of campaign`;
+        
+        facebookResponse = await fetch(`https://graph.facebook.com/v20.0/${facebookCampaignId}/copies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deep_copy: true,
+            rename_options: {
+              rename_strategy: 'DEEP_RENAME',
+              rename_prefix: '',
+              rename_suffix: ' - Cópia',
+            },
+            access_token: integration.access_token,
+          }),
+        });
+
+        successMessage = 'Campaign duplicated successfully';
+        break;
+      }
+
+      default:
+        return new Response(
+          JSON.stringify({ error: `Unknown action: ${action}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+    }
 
     if (!facebookResponse.ok) {
       const errorData = await facebookResponse.json();
@@ -117,38 +231,32 @@ Deno.serve(async (req) => {
     const facebookResult = await facebookResponse.json();
     console.log('Facebook API response:', facebookResult);
 
-    // Update local database to sync with Facebook
-    const { error: updateError } = await supabase
-      .from('campaigns')
-      .update({ 
-        status,
-        is_active: status === 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', campaignId);
+    // Update local database to sync with Facebook (for toggle and rename)
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateError } = await supabase
+        .from('campaigns')
+        .update(updateData)
+        .eq('id', campaignId);
 
-    if (updateError) {
-      console.error('Error updating local campaign:', updateError);
-      // Facebook was updated successfully, but local sync failed
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          warning: 'Campaign updated on Facebook but local sync failed. Please refresh to see changes.' 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      if (updateError) {
+        console.error('Error updating local campaign:', updateError);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            warning: 'Campaign updated on Facebook but local sync failed. Please refresh to see changes.' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Campaign ${status === 'active' ? 'activated' : 'paused'} successfully on Facebook` 
+        message: successMessage,
+        data: facebookResult
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
