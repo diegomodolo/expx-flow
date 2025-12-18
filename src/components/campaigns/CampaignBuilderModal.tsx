@@ -13,12 +13,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Rocket,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useCampaignBuilder } from '@/hooks/useCampaignBuilder';
 import { CampaignSection } from './builder/CampaignSection';
 import { AdSetSection } from './builder/AdSetSection';
 import { ReviewSection } from './builder/ReviewSection';
+import { AIGeneratorSection, AIGeneratedData } from './builder/AIGeneratorSection';
 import { cn } from '@/lib/utils';
 
 interface CampaignBuilderModalProps {
@@ -53,7 +55,15 @@ export function CampaignBuilderModal({
     validateCampaign,
     validateAll,
     submitCampaign,
+    applyAIGeneratedData,
   } = useCampaignBuilder(clientId);
+
+  const handleAIGenerated = (data: AIGeneratedData) => {
+    applyAIGeneratedData({
+      campaign: data.campaign,
+      adSets: data.adSets,
+    });
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +84,7 @@ export function CampaignBuilderModal({
   };
 
   const canGoNext = useMemo(() => {
+    if (state.currentSection === 'ai-generator') return false;
     if (state.currentSection === 'campaign') {
       return !validateCampaign();
     }
@@ -81,7 +92,9 @@ export function CampaignBuilderModal({
   }, [state.currentSection, validateCampaign]);
 
   const handleNext = () => {
-    if (state.currentSection === 'campaign') {
+    if (state.currentSection === 'ai-generator') {
+      setCurrentSection('campaign');
+    } else if (state.currentSection === 'campaign') {
       setCurrentSection('adsets');
     } else if (state.currentSection === 'adsets') {
       setCurrentSection('review');
@@ -93,6 +106,8 @@ export function CampaignBuilderModal({
       setCurrentSection('adsets');
     } else if (state.currentSection === 'adsets') {
       setCurrentSection('campaign');
+    } else if (state.currentSection === 'campaign') {
+      setCurrentSection('ai-generator');
     }
   };
 
@@ -120,6 +135,24 @@ export function CampaignBuilderModal({
           <div className="w-64 border-r bg-muted/20 flex flex-col">
             <ScrollArea className="flex-1">
               <div className="p-4 space-y-1">
+                {/* AI Generator Section */}
+                <button
+                  onClick={() => setCurrentSection('ai-generator')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left',
+                    state.currentSection === 'ai-generator'
+                      ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground'
+                      : 'hover:bg-muted border border-dashed border-primary/30 text-primary'
+                  )}
+                >
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  <span>Gerar com IA</span>
+                </button>
+
+                <div className="py-2">
+                  <Separator />
+                </div>
+
                 {/* Campaign Section */}
                 <button
                   onClick={() => setCurrentSection('campaign')}
@@ -225,6 +258,15 @@ export function CampaignBuilderModal({
           <div className="flex-1 flex flex-col overflow-hidden">
             <ScrollArea className="flex-1">
               <div className="p-6 max-w-3xl">
+                {state.currentSection === 'ai-generator' && (
+                  <AIGeneratorSection
+                    clientId={clientId}
+                    companyId={companyId}
+                    onGenerated={handleAIGenerated}
+                    onNavigateToSection={setCurrentSection}
+                  />
+                )}
+
                 {state.currentSection === 'campaign' && (
                   <CampaignSection
                     campaign={state.campaign}

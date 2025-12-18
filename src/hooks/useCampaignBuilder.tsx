@@ -47,7 +47,7 @@ export interface CampaignData {
 export interface CampaignBuilderState {
   campaign: CampaignData;
   adSets: AdSetData[];
-  currentSection: 'campaign' | 'adsets' | 'review';
+  currentSection: 'ai-generator' | 'campaign' | 'adsets' | 'review';
   currentAdSetIndex: number;
   isSubmitting: boolean;
 }
@@ -289,6 +289,19 @@ export function useCampaignBuilder(clientId: string) {
     }
   }, [clientId, state, validateAll, toast]);
 
+  const applyAIGeneratedData = useCallback((data: {
+    campaign: CampaignData;
+    adSets: AdSetData[];
+  }) => {
+    setState(prev => ({
+      ...prev,
+      campaign: data.campaign,
+      adSets: data.adSets,
+      currentSection: 'campaign',
+      currentAdSetIndex: 0,
+    }));
+  }, []);
+
   return {
     state,
     resetState,
@@ -305,5 +318,6 @@ export function useCampaignBuilder(clientId: string) {
     validateAdSets,
     validateAll,
     submitCampaign,
+    applyAIGeneratedData,
   };
 }
