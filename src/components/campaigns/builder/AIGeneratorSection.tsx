@@ -73,6 +73,10 @@ interface ClientData {
   sector: string | null;
 }
 
+interface CampaignSpend {
+  totalSpend: number;
+}
+
 type GenerationStep = 'idle' | 'fetching' | 'analyzing' | 'generating' | 'image' | 'done' | 'error';
 
 const OBJECTIVE_OPTIONS = [
@@ -115,8 +119,10 @@ export function AIGeneratorSection({
   const { audiences, fetchAudiences } = useMetaAudiences(clientId);
   
   const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [currentSpend, setCurrentSpend] = useState<number>(0);
   const [selectedObjective, setSelectedObjective] = useState('auto');
   const [generateImage, setGenerateImage] = useState(true);
+  const [creativesCount, setCreativesCount] = useState<number>(1);
   const [step, setStep] = useState<GenerationStep>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -133,13 +139,35 @@ export function AIGeneratorSection({
         setClientData(data);
       }
     }
+    
+    async function fetchCurrentSpend() {
+      // Get total spend from active campaigns for this client
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('daily_budget')
+        .eq('client_id', clientId)
+        .eq('is_active', true);
+
+      if (!error && data) {
+        // Calculate monthly spend from daily budgets (daily * 30)
+        const totalMonthlySpend = data.reduce((sum, campaign) => {
+          return sum + ((campaign.daily_budget || 0) * 30);
+        }, 0);
+        setCurrentSpend(totalMonthlySpend);
+      }
+    }
+    
     fetchClientData();
+    fetchCurrentSpend();
     fetchPixels();
     fetchAudiences();
   }, [clientId, fetchPixels, fetchAudiences]);
 
   const hasBriefing = !!clientData?.ai_briefing;
   const monthlyBudget = clientData?.monthly_budget || 0;
+  
+  // Calculate available budget (monthly budget - current spend from active campaigns)
+  const availableBudget = Math.max(0, monthlyBudget - currentSpend);
 
   const handleGenerate = async () => {
     if (!hasBriefing) {
@@ -172,18 +200,21 @@ export function AIGeneratorSection({
 
       setStep('generating');
 
-      // Call the AI generation edge function
+      // Call the AI generation edge function with AVAILABLE budget (not total monthly)
       const { data: aiData, error: aiError } = await supabase.functions.invoke('generate-ai-campaign', {
         body: {
           clientId,
           companyId,
           briefing: clientData?.ai_briefing,
-          monthlyBudget,
+          monthlyBudget: availableBudget, // Use available budget, not total
+          currentSpend,
+          totalMonthlyBudget: monthlyBudget,
           websiteUrl: clientData?.website_url,
           productName: clientData?.product_name,
           targetAudience: clientData?.target_audience,
           sector: clientData?.sector,
           preferredObjective: selectedObjective !== 'auto' ? selectedObjective : undefined,
+          creativesCount,
           availableAudiences,
           availablePixels,
         },
@@ -332,6 +363,34 @@ export function AIGeneratorSection({
         </div>
       </div>
 
+      {/* Creatives Count */}
+      <div className="space-y-3">
+        <Label className="text-base">Quantidade de Criativos</Label>
+        <p className="text-xs text-muted-foreground">
+          Quantos criativos diferentes a IA deve gerar para esta campanha?
+        </p>
+        <RadioGroup
+          value={String(creativesCount)}
+          onValueChange={(value) => setCreativesCount(Number(value))}
+          disabled={isGenerating}
+          className="flex gap-3"
+        >
+          {[1, 2, 3, 4, 5].map((count) => (
+            <label
+              key={count}
+              className={`flex items-center justify-center w-12 h-12 rounded-lg border cursor-pointer transition-colors ${
+                creativesCount === count
+                  ? 'border-primary bg-primary/10 text-primary font-bold'
+                  : 'border-border hover:bg-muted/50'
+              } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <RadioGroupItem value={String(count)} className="sr-only" />
+              {count}
+            </label>
+          ))}
+        </RadioGroup>
+      </div>
+
       {/* Data Summary */}
       <div className="p-4 rounded-lg border bg-muted/20 space-y-3">
         <p className="font-medium text-sm flex items-center gap-2">
@@ -348,9 +407,23 @@ export function AIGeneratorSection({
           </div>
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-muted-foreground" />
-            <span>Orçamento mensal:</span>
+            <span>Orçamento total:</span>
             <span className="font-medium">
               {monthlyBudget > 0 ? `R$ ${monthlyBudget.toLocaleString('pt-BR')}` : 'Não definido'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-muted-foreground" />
+            <span>Já comprometido:</span>
+            <span className="font-medium text-amber-600">
+              R$ {currentSpend.toLocaleString('pt-BR')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-muted-foreground" />
+            <span>Disponível:</span>
+            <span className={`font-medium ${availableBudget > 0 ? 'text-green-600' : 'text-destructive'}`}>
+              R$ {availableBudget.toLocaleString('pt-BR')}
             </span>
           </div>
           <div className="flex items-center gap-2">

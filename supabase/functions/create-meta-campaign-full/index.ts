@@ -116,6 +116,8 @@ serve(async (req) => {
     const accessToken = integration.access_token;
 
     // 1. Create Campaign in Meta
+    // Note: Budget will be set at ad set level (ABO - Ad Set Budget Optimization)
+    // This is more flexible for conversion campaigns
     console.log("Creating campaign in Meta...");
     const campaignParams = new URLSearchParams({
       name: campaign.name,
@@ -124,13 +126,7 @@ serve(async (req) => {
       special_ad_categories: "[]",
       access_token: accessToken,
     });
-
-    if (campaign.daily_budget) {
-      campaignParams.append("daily_budget", String(Math.round(campaign.daily_budget * 100)));
-    }
-    if (campaign.lifetime_budget) {
-      campaignParams.append("lifetime_budget", String(Math.round(campaign.lifetime_budget * 100)));
-    }
+    // Don't set budget at campaign level - we'll set it at ad set level
 
     const campaignResponse = await fetch(
       `https://graph.facebook.com/v21.0/${adAccountId}/campaigns`,
@@ -202,7 +198,8 @@ serve(async (req) => {
         targeting.excluded_custom_audiences = adSet.targeting.excluded_audiences.map(id => ({ id }));
       }
 
-      // Create Ad Set - use LOWEST_COST_WITHOUT_CAP only (no bid_amount needed)
+      // Create Ad Set - the budget is set at campaign level (CBO)
+      // For conversion campaigns, we need to add the daily budget at adset level instead
       const adSetParams = new URLSearchParams({
         campaign_id: metaCampaignId,
         name: adSet.name,
@@ -212,6 +209,15 @@ serve(async (req) => {
         optimization_goal: getOptimizationGoal(campaign.objective),
         access_token: accessToken,
       });
+
+      // Add daily budget at ad set level if campaign has daily budget
+      // This is needed because we're not using CBO (Campaign Budget Optimization)
+      if (campaign.daily_budget) {
+        adSetParams.append("daily_budget", String(Math.round(campaign.daily_budget * 100)));
+      }
+      if (campaign.lifetime_budget) {
+        adSetParams.append("lifetime_budget", String(Math.round(campaign.lifetime_budget * 100)));
+      }
 
       // Add promoted_object for conversion campaigns with pixel
       if (adSet.pixel_id && adSet.conversion_event) {
