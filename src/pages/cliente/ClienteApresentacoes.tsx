@@ -87,7 +87,7 @@ export function ClienteApresentacoes() {
   // Create presentation mutation
   const createPresentationMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id || !activeCompany?.id || !client.id) {
+      if (!user?.id || !client?.id || !activeCompany?.company_id) {
         throw new Error('Missing required data');
       }
 
@@ -99,7 +99,7 @@ export function ClienteApresentacoes() {
         .from('campaign_presentations')
         .insert({
           client_id: client.id,
-          company_id: activeCompany.id,
+          company_id: activeCompany.company_id,
           user_id: user.id,
           name: presentationName || `Relatório ${format(start, 'dd/MM')} - ${format(end, 'dd/MM/yyyy')}`,
           period_start: format(start, 'yyyy-MM-dd'),
@@ -137,7 +137,7 @@ export function ClienteApresentacoes() {
         body: {
           presentationId,
           clientId: client.id,
-          companyId: activeCompany?.id,
+          companyId: activeCompany?.company_id,
         },
       });
 
