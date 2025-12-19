@@ -194,6 +194,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Gerenciar públicos personalizados"
     },
     {
+      title: "Apresentações",
+      href: `/clientes/${clientId}/apresentacoes`,
+      icon: TrendingUp,
+      description: "Apresentações de resultados"
+    },
+    {
       title: "Redes Sociais",
       href: `/clientes/${clientId}/redes-sociais`,
       icon: Share2,

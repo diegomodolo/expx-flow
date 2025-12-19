@@ -1046,6 +1046,84 @@ export type Database = {
           },
         ]
       }
+      campaign_presentations: {
+        Row: {
+          action_plan: string | null
+          campaign_analyses: Json | null
+          client_id: string
+          company_id: string
+          created_at: string | null
+          executive_summary: string | null
+          id: string
+          metrics_snapshot: Json | null
+          name: string
+          period_end: string
+          period_start: string
+          primary_color: string | null
+          public_token: string | null
+          secondary_color: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          action_plan?: string | null
+          campaign_analyses?: Json | null
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          executive_summary?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          name: string
+          period_end: string
+          period_start: string
+          primary_color?: string | null
+          public_token?: string | null
+          secondary_color?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          action_plan?: string | null
+          campaign_analyses?: Json | null
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          executive_summary?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          name?: string
+          period_end?: string
+          period_start?: string
+          primary_color?: string | null
+          public_token?: string | null
+          secondary_color?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_presentations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_presentations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           average_ticket: number | null
