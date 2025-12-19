@@ -18,12 +18,14 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 import { ClientContactsTab } from "./ClientContactsTab";
+import { ReferenceSelectionDialog } from "./ReferenceSelectionDialog";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface ClientDialogProps {
   open: boolean;
@@ -55,8 +57,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const { adAccounts: googleAdAccounts } = useGoogleAdsIntegration();
   const { clients } = useClients();
   const { teams } = useTeams();
+  const { activeCompany } = useCompany();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState<SectionType>('cadastro');
+  const [referenceDialogOpen, setReferenceDialogOpen] = useState(false);
   const [formData, setFormData] = useState(() => {
     if (client) {
       return {
@@ -1531,6 +1535,35 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             </div>
 
+            {/* Botão de importar do Meta/Instagram */}
+            {client && (client.ad_account_id || client.instagram_account_id) && !readOnly && (
+              <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm">
+                      <ImageIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Importar imagens existentes</p>
+                      <p className="text-xs text-muted-foreground">
+                        Selecione imagens dos seus anúncios{client.instagram_account_id ? ' ou posts do Instagram' : ''}.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setReferenceDialogOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Selecionar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Dicas */}
             <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
               <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">💡 Dicas para melhores resultados:</p>
@@ -1627,6 +1660,29 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             )}
           </DialogFooter>
         </form>
+
+        {/* Reference Selection Dialog */}
+        {client && activeCompany && (
+          <ReferenceSelectionDialog
+            open={referenceDialogOpen}
+            onOpenChange={setReferenceDialogOpen}
+            clientId={client.id}
+            companyId={activeCompany.company_id}
+            onSelect={(images) => {
+              // Fill in the reference images
+              const newFormData = { ...formData };
+              if (images[0]) newFormData.ai_reference_image_1 = images[0];
+              if (images[1]) newFormData.ai_reference_image_2 = images[1];
+              if (images[2]) newFormData.ai_reference_image_3 = images[2];
+              setFormData(newFormData);
+              toast({
+                title: "Imagens importadas",
+                description: `${images.length} imagem(ns) de referência adicionada(s).`,
+              });
+            }}
+            maxSelections={3}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

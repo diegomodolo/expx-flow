@@ -181,3 +181,6 @@ verify_jwt = true
 
 [functions.generate-ai-campaign-image]
 verify_jwt = true
+
+[functions.fetch-creative-references]
+verify_jwt = true
