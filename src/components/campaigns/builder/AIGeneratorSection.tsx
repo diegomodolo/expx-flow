@@ -93,7 +93,7 @@ const STEP_MESSAGES: Record<GenerationStep, string> = {
   fetching: 'Buscando dados do cliente...',
   analyzing: 'Analisando briefing e estratégias...',
   generating: 'Gerando campanha otimizada...',
-  image: 'Criando imagem do criativo...',
+  image: 'Criando imagens dos criativos...',
   done: 'Campanha gerada com sucesso!',
   error: 'Erro na geração',
 };
@@ -225,37 +225,55 @@ export function AIGeneratorSection({
 
       let generatedData: AIGeneratedData = aiData.data;
 
-      // Generate image if requested
-      if (generateImage && generatedData.adSets[0]?.creatives[0]) {
+      // Generate images for ALL creatives if requested
+      if (generateImage && generatedData.adSets[0]?.creatives?.length > 0) {
         setStep('image');
 
-        const { data: imageData, error: imageError } = await supabase.functions.invoke('generate-ai-campaign-image', {
-          body: {
-            clientId,
-            prompt: aiData.imagePrompt || `Imagem de anúncio para ${clientData?.product_name || 'produto'}`,
-            productName: clientData?.product_name,
-            sector: clientData?.sector,
-          },
+        const allCreatives = generatedData.adSets[0].creatives;
+        const imagePromises = allCreatives.map(async (creative, index) => {
+          try {
+            // Create a unique prompt for each creative based on its content
+            const creativePrompt = `${aiData.imagePrompt || `Imagem de anúncio para ${clientData?.product_name || 'produto'}`}. Variação ${index + 1}: foco em "${creative.title || creative.body?.substring(0, 50) || 'produto'}"`;
+            
+            const { data: imageData, error: imageError } = await supabase.functions.invoke('generate-ai-campaign-image', {
+              body: {
+                clientId,
+                prompt: creativePrompt,
+                productName: clientData?.product_name,
+                sector: clientData?.sector,
+              },
+            });
+
+            if (!imageError && imageData?.success && imageData?.imageUrl) {
+              return { index, imageUrl: imageData.imageUrl };
+            }
+            return { index, imageUrl: null };
+          } catch (err) {
+            console.error(`Error generating image for creative ${index}:`, err);
+            return { index, imageUrl: null };
+          }
         });
 
-        if (!imageError && imageData?.success && imageData?.imageUrl) {
-          // Add the generated image to the first creative
-          generatedData = {
-            ...generatedData,
-            adSets: generatedData.adSets.map((adSet, index) => 
-              index === 0 
-                ? {
-                    ...adSet,
-                    creatives: adSet.creatives.map((creative, cIndex) =>
-                      cIndex === 0
-                        ? { ...creative, mediaUrls: [imageData.imageUrl] }
-                        : creative
-                    ),
-                  }
-                : adSet
-            ),
-          };
-        }
+        // Wait for all images to be generated
+        const imageResults = await Promise.all(imagePromises);
+
+        // Apply all images to their respective creatives
+        generatedData = {
+          ...generatedData,
+          adSets: generatedData.adSets.map((adSet, adSetIndex) => 
+            adSetIndex === 0 
+              ? {
+                  ...adSet,
+                  creatives: adSet.creatives.map((creative, cIndex) => {
+                    const result = imageResults.find(r => r.index === cIndex);
+                    return result?.imageUrl 
+                      ? { ...creative, mediaUrls: [result.imageUrl] }
+                      : creative;
+                  }),
+                }
+              : adSet
+          ),
+        };
       }
 
       setStep('done');
@@ -369,26 +387,27 @@ export function AIGeneratorSection({
         <p className="text-xs text-muted-foreground">
           Quantos criativos diferentes a IA deve gerar para esta campanha?
         </p>
-        <RadioGroup
-          value={String(creativesCount)}
-          onValueChange={(value) => setCreativesCount(Number(value))}
-          disabled={isGenerating}
-          className="flex gap-3"
-        >
-          {[1, 2, 3, 4, 5].map((count) => (
-            <label
-              key={count}
-              className={`flex items-center justify-center w-12 h-12 rounded-lg border cursor-pointer transition-colors ${
-                creativesCount === count
-                  ? 'border-primary bg-primary/10 text-primary font-bold'
-                  : 'border-border hover:bg-muted/50'
-              } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <RadioGroupItem value={String(count)} className="sr-only" />
-              {count}
-            </label>
-          ))}
-        </RadioGroup>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={creativesCount}
+            onChange={(e) => setCreativesCount(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
+            disabled={isGenerating}
+            className={`w-20 h-12 text-center rounded-lg border font-bold text-lg ${
+              isGenerating ? 'opacity-50 cursor-not-allowed bg-muted' : 'bg-background'
+            }`}
+          />
+          <span className="text-sm text-muted-foreground">
+            (máximo 30)
+          </span>
+        </div>
+        {creativesCount > 5 && generateImage && (
+          <p className="text-xs text-amber-600">
+            ⚠️ Gerar imagens para {creativesCount} criativos pode demorar alguns minutos
+          </p>
+        )}
       </div>
 
       {/* Data Summary */}
