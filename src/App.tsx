@@ -58,6 +58,7 @@ import DashboardOrcamento from "./pages/DashboardOrcamento";
 import ClientDashboardPublic from "./pages/ClientDashboardPublic";
 import Agendamento from "./pages/Agendamento";
 import ApresentacaoPublica from "./pages/ApresentacaoPublica";
+import ApresentacaoResultadosPublica from "./pages/ApresentacaoResultadosPublica";
 import NotificacoesWhatsApp from "./pages/NotificacoesWhatsApp";
 import LeadIntelligenceHub from "./pages/LeadIntelligenceHub";
 import RadarSaude from "./pages/RadarSaude";
@@ -95,6 +96,7 @@ const App = () => {
               <Route path="/report-lead-desqualificado/:token" element={<ReportLeadDesqualificado />} />
               <Route path="/dashboard-publico/:token" element={<ClientDashboardPublic />} />
               <Route path="/apresentacao/:token" element={<ApresentacaoPublica />} />
+              <Route path="/resultados/:token" element={<ApresentacaoResultadosPublica />} />
               <Route path="/crm/:token/login" element={<CRMLogin />} />
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
               
