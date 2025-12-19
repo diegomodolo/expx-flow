@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,15 @@ interface RequestBody {
   prompt: string;
   productName?: string;
   sector?: string;
+  placement?: 'feed' | 'stories' | 'reels'; // Novo parâmetro para formato
 }
+
+// Dimensões padrão do Meta Ads
+const META_DIMENSIONS = {
+  feed: { width: 1080, height: 1080, ratio: '1:1' },
+  stories: { width: 1080, height: 1920, ratio: '9:16' },
+  reels: { width: 1080, height: 1920, ratio: '9:16' },
+} as const;
 
 // Helper function to fetch image and convert to base64
 async function imageUrlToBase64(url: string): Promise<string | null> {
@@ -41,6 +50,66 @@ async function imageUrlToBase64(url: string): Promise<string | null> {
   }
 }
 
+// Função para redimensionar imagem para o tamanho correto do Meta
+async function resizeImageToMetaStandard(
+  imageBytes: Uint8Array,
+  targetWidth: number,
+  targetHeight: number
+): Promise<Uint8Array> {
+  try {
+    console.log(`Resizing image to ${targetWidth}x${targetHeight}...`);
+    
+    const image = await Image.decode(imageBytes);
+    const originalWidth = image.width;
+    const originalHeight = image.height;
+    
+    console.log(`Original image size: ${originalWidth}x${originalHeight}`);
+    
+    // Calcular a proporção de destino
+    const targetRatio = targetWidth / targetHeight;
+    const originalRatio = originalWidth / originalHeight;
+    
+    let resizedImage: Image;
+    
+    if (Math.abs(originalRatio - targetRatio) < 0.01) {
+      // Proporção já está correta, apenas redimensionar
+      resizedImage = image.resize(targetWidth, targetHeight);
+    } else {
+      // Precisa fazer crop para ajustar a proporção
+      let cropWidth = originalWidth;
+      let cropHeight = originalHeight;
+      let cropX = 0;
+      let cropY = 0;
+      
+      if (originalRatio > targetRatio) {
+        // Imagem é mais larga que o necessário, cortar as laterais
+        cropWidth = Math.round(originalHeight * targetRatio);
+        cropX = Math.round((originalWidth - cropWidth) / 2);
+      } else {
+        // Imagem é mais alta que o necessário, cortar em cima e embaixo
+        cropHeight = Math.round(originalWidth / targetRatio);
+        cropY = Math.round((originalHeight - cropHeight) / 2);
+      }
+      
+      console.log(`Cropping to ${cropWidth}x${cropHeight} from position (${cropX}, ${cropY})`);
+      
+      // Crop e depois redimensionar
+      const croppedImage = image.crop(cropX, cropY, cropWidth, cropHeight);
+      resizedImage = croppedImage.resize(targetWidth, targetHeight);
+    }
+    
+    console.log(`Final image size: ${resizedImage.width}x${resizedImage.height}`);
+    
+    // Encode como PNG para manter qualidade
+    const outputBytes = await resizedImage.encode();
+    return outputBytes;
+  } catch (error) {
+    console.error("Error resizing image:", error);
+    // Retornar a imagem original se o resize falhar
+    return imageBytes;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -56,7 +125,11 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { clientId, prompt, productName, sector } = body;
+    const { clientId, prompt, productName, sector, placement = 'feed' } = body;
+
+    // Obter dimensões baseado no placement
+    const dimensions = META_DIMENSIONS[placement] || META_DIMENSIONS.feed;
+    console.log(`Generating image for placement: ${placement} (${dimensions.width}x${dimensions.height})`);
 
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
@@ -83,32 +156,43 @@ serve(async (req) => {
     const effectiveProductName = productName || clientData?.product_name || 'a product';
     const effectiveSector = sector || clientData?.sector || 'business';
 
-    // Build the prompt with reference image instructions
-    let imagePrompt = prompt || `Create a professional, high-quality advertisement image for ${effectiveProductName} in the ${effectiveSector} sector. 
-The image should be:
-- Clean and modern design
-- Professional color scheme
-- Suitable for Facebook/Instagram ads
+    // Build the prompt with EXPLICIT dimension requirements for Meta Ads
+    let imagePrompt = prompt || `Create a professional, high-quality advertisement image for ${effectiveProductName} in the ${effectiveSector} sector.
+
+=== CRITICAL IMAGE DIMENSION REQUIREMENTS ===
+You MUST generate an image with these EXACT specifications:
+- Dimensions: EXACTLY ${dimensions.width} pixels wide × ${dimensions.height} pixels tall
+- Aspect ratio: MUST be ${dimensions.ratio} (${placement === 'feed' ? 'square' : 'vertical/portrait'})
+- This is for Meta Ads (Facebook/Instagram) - dimensions are NON-NEGOTIABLE
+
+=== DESIGN REQUIREMENTS ===
+- Clean, modern, professional design
+- High-quality, crisp imagery suitable for digital advertising
 - Eye-catching but not cluttered
-- High resolution, 1080x1080 aspect ratio
-- No text overlays (text will be added separately)
+- Professional color scheme that matches the brand/sector
 - Lifestyle or product-focused imagery
-Ultra high resolution`;
+- No text overlays (text will be added separately)
+- Ultra high resolution with sharp details
+
+Generate the image at EXACTLY ${dimensions.width}x${dimensions.height} pixels.`;
 
     // If there are reference images, add style instructions
     if (referenceImages.length > 0) {
-      imagePrompt += `\n\nIMPORTANT: Use the provided reference images as style inspiration. Match the following aspects from the reference images:
+      imagePrompt += `
+
+=== STYLE REFERENCE ===
+Use the provided reference images as style inspiration. Match:
 - Color palette and color scheme
-- Typography style and font choices
 - Overall visual aesthetic and mood
 - Design elements and layout patterns
 - Brand identity elements visible in the references
 
-Generate a NEW image that follows the same visual identity and style as the reference images.`;
+Generate a NEW image that follows the same visual identity while maintaining the EXACT ${dimensions.width}x${dimensions.height} dimensions required.`;
     }
 
     console.log("Generating image with prompt:", imagePrompt);
     console.log("Reference images count:", referenceImages.length);
+    console.log("Target dimensions:", `${dimensions.width}x${dimensions.height}`);
 
     // Build the messages array with reference images
     const messageContent: any[] = [
@@ -132,7 +216,7 @@ Generate a NEW image that follows the same visual identity and style as the refe
       }
     }
 
-    // Use Nano Banana (Gemini 2.5 Flash Image Preview) to generate the image
+    // Use Gemini 3 Pro Image Preview to generate the image
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -191,23 +275,29 @@ Generate a NEW image that follows the same visual identity and style as the refe
       throw new Error("Formato de imagem inválido");
     }
 
-    const imageFormat = base64Match[1];
     const base64Data = base64Match[2];
 
     // Convert base64 to Uint8Array
     const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
+    let bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Generate unique filename
-    const fileName = `ai-generated/${clientId}/${Date.now()}-campaign.${imageFormat}`;
+    // PÓS-PROCESSAMENTO: Redimensionar para garantir tamanho correto do Meta
+    console.log("Starting post-processing to ensure Meta Ads dimensions...");
+    const resizedBytes = await resizeImageToMetaStandard(bytes, dimensions.width, dimensions.height);
+    
+    // Usar PNG para a imagem final (melhor qualidade)
+    const imageFormat = 'png';
+
+    // Generate unique filename with placement info
+    const fileName = `ai-generated/${clientId}/${Date.now()}-${placement}-${dimensions.width}x${dimensions.height}.${imageFormat}`;
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("campaign-creatives")
-      .upload(fileName, bytes, {
+      .upload(fileName, resizedBytes, {
         contentType: `image/${imageFormat}`,
         upsert: false,
       });
@@ -225,7 +315,7 @@ Generate a NEW image that follows the same visual identity and style as the refe
 
         const { error: retryError } = await supabase.storage
           .from("campaign-creatives")
-          .upload(fileName, bytes, {
+          .upload(fileName, resizedBytes, {
             contentType: `image/${imageFormat}`,
             upsert: false,
           });
@@ -244,11 +334,18 @@ Generate a NEW image that follows the same visual identity and style as the refe
       .getPublicUrl(fileName);
 
     console.log("Image uploaded successfully:", urlData.publicUrl);
+    console.log(`Final image dimensions: ${dimensions.width}x${dimensions.height} (${placement})`);
 
     return new Response(
       JSON.stringify({
         success: true,
         imageUrl: urlData.publicUrl,
+        dimensions: {
+          width: dimensions.width,
+          height: dimensions.height,
+          placement: placement,
+          ratio: dimensions.ratio,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
