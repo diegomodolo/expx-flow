@@ -11,6 +11,11 @@ interface MediaUploaderProps {
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   maxFiles?: number;
   clientId?: string;
+  creativeContext?: {
+    title?: string;
+    description?: string;
+    body?: string;
+  };
 }
 
 export function MediaUploader({
@@ -19,6 +24,7 @@ export function MediaUploader({
   type,
   maxFiles = type === 'CAROUSEL' ? 10 : 1,
   clientId,
+  creativeContext,
 }: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -41,8 +47,23 @@ export function MediaUploader({
 
     setGeneratingAI(true);
     try {
+      // Build context-aware prompt from creative data
+      let contextPrompt = '';
+      if (creativeContext) {
+        const parts = [];
+        if (creativeContext.title) parts.push(`Título: "${creativeContext.title}"`);
+        if (creativeContext.body) parts.push(`Texto: "${creativeContext.body}"`);
+        if (creativeContext.description) parts.push(`Descrição: "${creativeContext.description}"`);
+        if (parts.length > 0) {
+          contextPrompt = `Crie uma imagem para um anúncio com o seguinte conteúdo: ${parts.join('. ')}. A imagem deve complementar e reforçar a mensagem do anúncio.`;
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-ai-campaign-image', {
-        body: { clientId },
+        body: { 
+          clientId,
+          prompt: contextPrompt || undefined,
+        },
       });
 
       if (error) throw error;

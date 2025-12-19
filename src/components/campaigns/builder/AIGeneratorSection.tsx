@@ -5,6 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Sparkles, 
   Loader2, 
@@ -14,7 +16,10 @@ import {
   Image as ImageIcon,
   Target,
   Users,
-  FileText
+  FileText,
+  ChevronDown,
+  Pencil,
+  Palette
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -125,6 +130,12 @@ export function AIGeneratorSection({
   const [creativesCount, setCreativesCount] = useState<number>(1);
   const [step, setStep] = useState<GenerationStep>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Custom prompts for AI generation
+  const [useCustomPrompts, setUseCustomPrompts] = useState(false);
+  const [copyPrompt, setCopyPrompt] = useState('');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [customPromptsOpen, setCustomPromptsOpen] = useState(false);
 
   // Fetch client data and resources on mount
   useEffect(() => {
@@ -217,6 +228,9 @@ export function AIGeneratorSection({
           creativesCount,
           availableAudiences,
           availablePixels,
+          // Custom prompts
+          customCopyPrompt: useCustomPrompts && copyPrompt.trim() ? copyPrompt.trim() : undefined,
+          customImagePrompt: useCustomPrompts && imagePrompt.trim() ? imagePrompt.trim() : undefined,
         },
       });
 
@@ -232,8 +246,17 @@ export function AIGeneratorSection({
         const allCreatives = generatedData.adSets[0].creatives;
         const imagePromises = allCreatives.map(async (creative, index) => {
           try {
-            // Create a unique prompt for each creative based on its content
-            const creativePrompt = `${aiData.imagePrompt || `Imagem de anúncio para ${clientData?.product_name || 'produto'}`}. Variação ${index + 1}: foco em "${creative.title || creative.body?.substring(0, 50) || 'produto'}"`;
+            // Build prompt for image generation
+            // Priority: custom image prompt > AI generated prompt > default
+            let creativePrompt = '';
+            
+            if (useCustomPrompts && imagePrompt.trim()) {
+              // User provided custom image prompt
+              creativePrompt = `${imagePrompt.trim()}. Variação ${index + 1} para o criativo: "${creative.title || creative.body?.substring(0, 50) || 'produto'}"`;
+            } else {
+              // Use AI-generated prompt or default
+              creativePrompt = `${aiData.imagePrompt || `Imagem de anúncio para ${clientData?.product_name || 'produto'}`}. Variação ${index + 1}: foco em "${creative.title || creative.body?.substring(0, 50) || 'produto'}"`;
+            }
             
             const { data: imageData, error: imageError } = await supabase.functions.invoke('generate-ai-campaign-image', {
               body: {
@@ -362,6 +385,81 @@ export function AIGeneratorSection({
           ))}
         </RadioGroup>
       </div>
+
+      {/* Custom Prompts Section */}
+      <Collapsible
+        open={customPromptsOpen}
+        onOpenChange={setCustomPromptsOpen}
+        className="border rounded-lg"
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="useCustomPrompts"
+                  checked={useCustomPrompts}
+                  onCheckedChange={(checked) => {
+                    setUseCustomPrompts(!!checked);
+                    if (checked) setCustomPromptsOpen(true);
+                  }}
+                  disabled={isGenerating}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <Label htmlFor="useCustomPrompts" className="font-medium cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  Usar instruções personalizadas
+                </Label>
+              </div>
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${customPromptsOpen ? 'rotate-180' : ''}`} />
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-4 border-t pt-4">
+            <p className="text-xs text-muted-foreground">
+              Forneça instruções específicas para guiar a IA. O briefing do cliente será sempre considerado como contexto base.
+            </p>
+            
+            {/* Copy/Text Prompt */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <Pencil className="h-4 w-4" />
+                Orientações para Textos (Copy)
+              </Label>
+              <Textarea
+                placeholder="Ex: Foco em urgência e escassez. Usar linguagem informal e direta. Destacar desconto de 30%..."
+                value={copyPrompt}
+                onChange={(e) => setCopyPrompt(e.target.value)}
+                disabled={isGenerating || !useCustomPrompts}
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Descreva o tom, estilo e elementos que deseja nos títulos e textos dos anúncios.
+              </p>
+            </div>
+
+            {/* Image Prompt */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <Palette className="h-4 w-4" />
+                Orientações para Imagens
+              </Label>
+              <Textarea
+                placeholder="Ex: Mostrar uma pessoa usando o produto. Incluir texto promocional na imagem. Cores vibrantes..."
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                disabled={isGenerating || !useCustomPrompts || !generateImage}
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Descreva como você quer que as imagens dos criativos sejam. As imagens de referência do cliente serão usadas como base visual.
+              </p>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Generate Image Option */}
       <div className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
