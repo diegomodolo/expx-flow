@@ -190,6 +190,7 @@ serve(async (req) => {
     // 2. Create Ad Sets and Ads
     const createdAdSets = [];
     const createdAds = [];
+    const adSetCreationErrors: string[] = [];
 
     for (const adSet of adSets) {
       console.log(`Creating ad set: ${adSet.name}`);
@@ -212,7 +213,8 @@ serve(async (req) => {
       }
 
       // Create Ad Set with budget at ad set level (ABO mode)
-      const optimizationGoal = getOptimizationGoal(campaign.objective);
+      const hasPixelConversion = !!(adSet.pixel_id && adSet.conversion_event);
+      const optimizationGoal = getOptimizationGoalForAdSet(campaign.objective, hasPixelConversion);
       
       const adSetParams = new URLSearchParams({
         campaign_id: metaCampaignId,
@@ -221,6 +223,7 @@ serve(async (req) => {
         targeting: JSON.stringify(targeting),
         billing_event: "IMPRESSIONS",
         optimization_goal: optimizationGoal,
+        bid_strategy: "LOWEST_COST_WITHOUT_CAP",
         access_token: accessToken,
       });
 
@@ -232,18 +235,19 @@ serve(async (req) => {
         adSetParams.append("lifetime_budget", String(Math.round(campaign.lifetime_budget * 100)));
       }
 
-      // For conversion campaigns (LEAD_GENERATION, OFFSITE_CONVERSIONS), we need promoted_object
-      // But we should NOT add bid_strategy - let Meta use the default LOWEST_COST_WITHOUT_CAP
-      if (adSet.pixel_id && adSet.conversion_event && 
-          ['OFFSITE_CONVERSIONS', 'VALUE'].includes(optimizationGoal)) {
+      // promoted_object depends on the lead type:
+      // - Website leads (pixel): OFFSITE_CONVERSIONS + pixel_id + custom_event_type
+      // - Instant forms leads (no pixel): LEAD_GENERATION + page_id
+      if (hasPixelConversion && optimizationGoal === 'OFFSITE_CONVERSIONS') {
         adSetParams.append("promoted_object", JSON.stringify({
           pixel_id: adSet.pixel_id,
           custom_event_type: adSet.conversion_event,
         }));
         console.log(`Adding promoted_object with pixel ${adSet.pixel_id} and event ${adSet.conversion_event}`);
       } else if (optimizationGoal === 'LEAD_GENERATION') {
-        // For lead generation, we need the page_id as promoted_object
-        if (client.facebook_page_id) {
+        if (!client.facebook_page_id) {
+          console.warn('Missing facebook_page_id for LEAD_GENERATION ad set; Meta may reject this ad set.');
+        } else {
           adSetParams.append("promoted_object", JSON.stringify({
             page_id: client.facebook_page_id,
           }));
@@ -261,6 +265,7 @@ serve(async (req) => {
 
       if (adSetResult.error) {
         console.error(`Failed to create ad set ${adSet.name}:`, adSetResult.error);
+        adSetCreationErrors.push(`${adSet.name}: ${adSetResult.error.message}`);
         continue;
       }
 
@@ -358,6 +363,13 @@ serve(async (req) => {
       }
     }
 
+    // If none of the ad sets were created, surface an error (campaign may exist in Meta already)
+    if (adSets.length > 0 && createdAdSets.length === 0) {
+      throw new Error(
+        `Campanha criada no Meta, mas falhou ao criar o(s) conjunto(s) de anúncio. ${adSetCreationErrors[0] || ''}`.trim()
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -389,6 +401,17 @@ function getOptimizationGoal(objective: string): string {
     'OUTCOME_APP_PROMOTION': 'APP_INSTALLS',
   };
   return mapping[objective] || 'LINK_CLICKS';
+}
+
+function getOptimizationGoalForAdSet(objective: string, hasPixelConversion: boolean): string {
+  // For OUTCOME_LEADS we support two modes:
+  // - Website conversion leads (pixel): OFFSITE_CONVERSIONS
+  // - Instant form leads (no pixel): LEAD_GENERATION
+  if (objective === 'OUTCOME_LEADS') {
+    return hasPixelConversion ? 'OFFSITE_CONVERSIONS' : 'LEAD_GENERATION';
+  }
+
+  return getOptimizationGoal(objective);
 }
 
 function buildUrlTags(params?: UrlParameters): string | undefined {
