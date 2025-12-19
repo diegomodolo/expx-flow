@@ -547,7 +547,6 @@ async function createAdCreative(
         },
       })),
     };
-    if (urlTags) objectStorySpec.link_data.url_tags = urlTags;
   } else {
     objectStorySpec.link_data = {
       picture: creative.media_urls[0],
@@ -560,7 +559,6 @@ async function createAdCreative(
         value: { link: creative.link_url },
       },
     };
-    if (urlTags) objectStorySpec.link_data.url_tags = urlTags;
   }
 
   const creativeParams = new URLSearchParams({
@@ -568,6 +566,10 @@ async function createAdCreative(
     object_story_spec: JSON.stringify(objectStorySpec),
     access_token: accessToken,
   });
+
+  // Meta error: url_tags is NOT allowed inside object_story_spec.link_data.
+  // It must be a top-level param for the creative.
+  if (urlTags) creativeParams.append('url_tags', urlTags);
 
   const response = await fetch(
     `https://graph.facebook.com/v21.0/${adAccountId}/adcreatives`,
