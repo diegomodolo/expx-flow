@@ -18,7 +18,7 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 import { ClientContactsTab } from "./ClientContactsTab";
@@ -34,7 +34,7 @@ interface ClientDialogProps {
   readOnly?: boolean;
 }
 
-type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'apresentacao' | 'contatos' | 'briefing';
+type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'apresentacao' | 'identidade_ia' | 'contatos' | 'briefing';
 
 const sections: { id: SectionType; label: string; icon: React.ElementType; editOnly?: boolean }[] = [
   { id: 'cadastro', label: 'Cadastro', icon: User },
@@ -43,6 +43,7 @@ const sections: { id: SectionType; label: string; icon: React.ElementType; editO
   { id: 'copywriting', label: 'Copywriting', icon: Pencil },
   { id: 'produto', label: 'Produto & Público', icon: Package },
   { id: 'apresentacao', label: 'Apresentação', icon: Presentation },
+  { id: 'identidade_ia', label: 'Identidade Visual IA', icon: Sparkles },
   { id: 'contatos', label: 'Contatos', icon: Users, editOnly: true },
   { id: 'briefing', label: 'Briefing', icon: FileText, editOnly: true },
 ];
@@ -84,7 +85,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         presentation_logo: (client as any).presentation_logo || "",
         presentation_bg_image: (client as any).presentation_bg_image || "",
         presentation_overlay_color: (client as any).presentation_overlay_color || "#1a73e8",
-        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7
+        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7,
+        ai_reference_image_1: (client as any).ai_reference_image_1 || "",
+        ai_reference_image_2: (client as any).ai_reference_image_2 || "",
+        ai_reference_image_3: (client as any).ai_reference_image_3 || ""
       };
     }
     return {
@@ -113,7 +117,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       presentation_logo: "",
       presentation_bg_image: "",
       presentation_overlay_color: "#1a73e8",
-      presentation_overlay_opacity: 0.7
+      presentation_overlay_opacity: 0.7,
+      ai_reference_image_1: "",
+      ai_reference_image_2: "",
+      ai_reference_image_3: ""
     };
   });
   const [loading, setLoading] = useState(false);
@@ -129,8 +136,12 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const fileInputRef = useRef<HTMLInputElement>(null);
   const presentationLogoInputRef = useRef<HTMLInputElement>(null);
   const presentationBgInputRef = useRef<HTMLInputElement>(null);
+  const aiRefImage1InputRef = useRef<HTMLInputElement>(null);
+  const aiRefImage2InputRef = useRef<HTMLInputElement>(null);
+  const aiRefImage3InputRef = useRef<HTMLInputElement>(null);
   const [uploadingPresentationLogo, setUploadingPresentationLogo] = useState(false);
   const [uploadingPresentationBg, setUploadingPresentationBg] = useState(false);
+  const [uploadingAiRefImage, setUploadingAiRefImage] = useState<1 | 2 | 3 | null>(null);
 
   const platforms = ["Google Ads", "Meta Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
@@ -171,7 +182,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         presentation_logo: (client as any).presentation_logo || "",
         presentation_bg_image: (client as any).presentation_bg_image || "",
         presentation_overlay_color: (client as any).presentation_overlay_color || "#1a73e8",
-        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7
+        presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7,
+        ai_reference_image_1: (client as any).ai_reference_image_1 || "",
+        ai_reference_image_2: (client as any).ai_reference_image_2 || "",
+        ai_reference_image_3: (client as any).ai_reference_image_3 || ""
       });
       setLocalClient(client);
       
@@ -205,7 +219,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         presentation_logo: "",
         presentation_bg_image: "",
         presentation_overlay_color: "#1a73e8",
-        presentation_overlay_opacity: 0.7
+        presentation_overlay_opacity: 0.7,
+        ai_reference_image_1: "",
+        ai_reference_image_2: "",
+        ai_reference_image_3: ""
       });
       setLocalClient(undefined);
       setRechargeDayValue("none");
@@ -389,6 +406,42 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       });
     } finally {
       setUploadingPresentationBg(false);
+    }
+  };
+
+  const handleAiReferenceImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2 | 3) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAiRefImage(imageNumber);
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const fileName = `ai-reference-${imageNumber}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('client-avatars')
+        .upload(fileName, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-avatars')
+        .getPublicUrl(fileName);
+
+      const fieldName = `ai_reference_image_${imageNumber}` as 'ai_reference_image_1' | 'ai_reference_image_2' | 'ai_reference_image_3';
+      setFormData({ ...formData, [fieldName]: publicUrl });
+      toast({
+        title: "Sucesso",
+        description: `Imagem de referência ${imageNumber} enviada com sucesso!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao enviar imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAiRefImage(null);
     }
   };
 
@@ -1314,6 +1367,179 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                 disabled={readOnly}
                 className="w-full max-w-xs"
               />
+            </div>
+          </div>
+        );
+
+      case 'identidade_ia':
+        return (
+          <div className="space-y-6">
+            <div className="bg-muted/50 rounded-lg p-4 border">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-amber-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Imagens de Referência para IA</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Faça upload de até 3 imagens que servirão como inspiração para a IA gerar criativos 
+                    seguindo o padrão visual da sua marca (cores, fontes, estilo).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid de 3 imagens de referência */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Imagem 1 */}
+              <div className="space-y-2">
+                <Label>Referência 1</Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center bg-muted/30">
+                  {formData.ai_reference_image_1 ? (
+                    <div className="relative w-full">
+                      <img 
+                        src={formData.ai_reference_image_1} 
+                        alt="Referência 1" 
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                      {!readOnly && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                          onClick={() => setFormData({ ...formData, ai_reference_image_1: "" })}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => aiRefImage1InputRef.current?.click()}
+                        disabled={uploadingAiRefImage === 1 || readOnly}
+                      >
+                        {uploadingAiRefImage === 1 ? "Enviando..." : "Upload"}
+                      </Button>
+                    </>
+                  )}
+                  <Input
+                    ref={aiRefImage1InputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleAiReferenceImageUpload(e, 1)}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Imagem 2 */}
+              <div className="space-y-2">
+                <Label>Referência 2</Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center bg-muted/30">
+                  {formData.ai_reference_image_2 ? (
+                    <div className="relative w-full">
+                      <img 
+                        src={formData.ai_reference_image_2} 
+                        alt="Referência 2" 
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                      {!readOnly && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                          onClick={() => setFormData({ ...formData, ai_reference_image_2: "" })}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => aiRefImage2InputRef.current?.click()}
+                        disabled={uploadingAiRefImage === 2 || readOnly}
+                      >
+                        {uploadingAiRefImage === 2 ? "Enviando..." : "Upload"}
+                      </Button>
+                    </>
+                  )}
+                  <Input
+                    ref={aiRefImage2InputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleAiReferenceImageUpload(e, 2)}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Imagem 3 */}
+              <div className="space-y-2">
+                <Label>Referência 3</Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center bg-muted/30">
+                  {formData.ai_reference_image_3 ? (
+                    <div className="relative w-full">
+                      <img 
+                        src={formData.ai_reference_image_3} 
+                        alt="Referência 3" 
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                      {!readOnly && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                          onClick={() => setFormData({ ...formData, ai_reference_image_3: "" })}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => aiRefImage3InputRef.current?.click()}
+                        disabled={uploadingAiRefImage === 3 || readOnly}
+                      >
+                        {uploadingAiRefImage === 3 ? "Enviando..." : "Upload"}
+                      </Button>
+                    </>
+                  )}
+                  <Input
+                    ref={aiRefImage3InputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleAiReferenceImageUpload(e, 3)}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dicas */}
+            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">💡 Dicas para melhores resultados:</p>
+              <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
+                <li>Use imagens com as cores e fontes características da marca</li>
+                <li>Inclua exemplos de campanhas anteriores que tiveram bom resultado</li>
+                <li>Prefira imagens em alta qualidade e com boa iluminação</li>
+                <li>Evite imagens com muito texto sobreposto</li>
+              </ul>
             </div>
           </div>
         );

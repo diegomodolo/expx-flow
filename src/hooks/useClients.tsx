@@ -93,6 +93,9 @@ export interface Client {
   };
   inactive_reason?: string;
   payment_type?: 'prepaid' | 'postpaid';
+  ai_reference_image_1?: string;
+  ai_reference_image_2?: string;
+  ai_reference_image_3?: string;
 }
 
 // Helper function to get all client metrics for rule evaluation
@@ -589,7 +592,8 @@ export function useClients() {
         'google_account_id', 'facebook_page_id', 'instagram_account_id',
         'website_url', 'inactive_reason', 'team_id',
         'ai_briefing', 'briefing_generated_at', 'offline_event_set_id', 'payment_type',
-        'presentation_logo', 'presentation_bg_image', 'presentation_overlay_color', 'presentation_overlay_opacity'
+        'presentation_logo', 'presentation_bg_image', 'presentation_overlay_color', 'presentation_overlay_opacity',
+        'ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3'
       ];
       
       // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs
