@@ -61,20 +61,33 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Use the anon key client first to authenticate the user
+    const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
-    // Get user from auth header
+    // Get user from auth header and authenticate
     const authHeader = req.headers.get("Authorization");
     let userId: string | null = null;
     
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabaseClient.auth.getUser(token);
+      const { data: { user } } = await anonClient.auth.getUser(token);
       userId = user?.id || null;
     }
+
+    // Now create service role client for database operations
+    // But we'll set the auth context to the user so audit triggers work
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        global: {
+          headers: authHeader ? { Authorization: authHeader } : {}
+        }
+      }
+    );
 
     const { clientId, campaign, adSets } = await req.json() as RequestBody;
 
@@ -198,20 +211,20 @@ serve(async (req) => {
         targeting.excluded_custom_audiences = adSet.targeting.excluded_audiences.map(id => ({ id }));
       }
 
-      // Create Ad Set - the budget is set at campaign level (CBO)
-      // For conversion campaigns, we need to add the daily budget at adset level instead
+      // Create Ad Set with budget at ad set level (ABO mode)
+      const optimizationGoal = getOptimizationGoal(campaign.objective);
+      
       const adSetParams = new URLSearchParams({
         campaign_id: metaCampaignId,
         name: adSet.name,
         status: campaign.status,
         targeting: JSON.stringify(targeting),
         billing_event: "IMPRESSIONS",
-        optimization_goal: getOptimizationGoal(campaign.objective),
+        optimization_goal: optimizationGoal,
         access_token: accessToken,
       });
 
-      // Add daily budget at ad set level if campaign has daily budget
-      // This is needed because we're not using CBO (Campaign Budget Optimization)
+      // Add daily budget at ad set level
       if (campaign.daily_budget) {
         adSetParams.append("daily_budget", String(Math.round(campaign.daily_budget * 100)));
       }
@@ -219,13 +232,23 @@ serve(async (req) => {
         adSetParams.append("lifetime_budget", String(Math.round(campaign.lifetime_budget * 100)));
       }
 
-      // Add promoted_object for conversion campaigns with pixel
-      if (adSet.pixel_id && adSet.conversion_event) {
+      // For conversion campaigns (LEAD_GENERATION, OFFSITE_CONVERSIONS), we need promoted_object
+      // But we should NOT add bid_strategy - let Meta use the default LOWEST_COST_WITHOUT_CAP
+      if (adSet.pixel_id && adSet.conversion_event && 
+          ['OFFSITE_CONVERSIONS', 'VALUE'].includes(optimizationGoal)) {
         adSetParams.append("promoted_object", JSON.stringify({
           pixel_id: adSet.pixel_id,
           custom_event_type: adSet.conversion_event,
         }));
         console.log(`Adding promoted_object with pixel ${adSet.pixel_id} and event ${adSet.conversion_event}`);
+      } else if (optimizationGoal === 'LEAD_GENERATION') {
+        // For lead generation, we need the page_id as promoted_object
+        if (client.facebook_page_id) {
+          adSetParams.append("promoted_object", JSON.stringify({
+            page_id: client.facebook_page_id,
+          }));
+          console.log(`Adding promoted_object with page_id ${client.facebook_page_id} for lead generation`);
+        }
       }
 
       const adSetResponse = await fetch(
