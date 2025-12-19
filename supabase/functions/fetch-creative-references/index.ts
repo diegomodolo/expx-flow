@@ -95,65 +95,63 @@ serve(async (req) => {
       console.log(`Fetching ads for account: ${accountId}`);
 
       try {
-        // Fetch ads with their creatives - get image_url from adcreatives
-        const adsResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${accountId}/ads?fields=id,name,creative{id,image_url,thumbnail_url,object_story_spec}&limit=50&access_token=${accessToken}`
+        // Fetch adcreatives directly to filter by type - only IMAGE creatives
+        const creativesResponse = await fetch(
+          `https://graph.facebook.com/v20.0/${accountId}/adcreatives?fields=id,name,image_url,object_story_spec,object_type&limit=100&access_token=${accessToken}`
         );
         
-        const adsData = await adsResponse.json();
+        const creativesData = await creativesResponse.json();
         
-        if (adsData.error) {
-          console.error("Error fetching ads:", adsData.error);
-        } else if (adsData.data) {
-          console.log(`Found ${adsData.data.length} ads`);
+        if (creativesData.error) {
+          console.error("Error fetching creatives:", creativesData.error);
+        } else if (creativesData.data) {
+          console.log(`Found ${creativesData.data.length} creatives`);
           
-          for (const ad of adsData.data) {
-            const creative = ad.creative;
-            if (!creative) continue;
+          for (const creative of creativesData.data) {
+            // Check if it's an image-based creative
+            const spec = creative.object_story_spec;
             
-            // Try to get image from creative
-            let imageUrl = creative.image_url || creative.thumbnail_url;
+            // Skip if it's a video creative
+            if (spec?.video_data) {
+              console.log(`Skipping video creative: ${creative.id}`);
+              continue;
+            }
             
-            // If no direct image, try to get from object_story_spec
-            if (!imageUrl && creative.object_story_spec) {
-              const spec = creative.object_story_spec;
-              if (spec.link_data?.image_hash || spec.link_data?.picture) {
-                imageUrl = spec.link_data.picture;
-              } else if (spec.photo_data?.url) {
-                imageUrl = spec.photo_data.url;
-              } else if (spec.video_data?.image_url) {
-                imageUrl = spec.video_data.image_url;
-              }
+            // Only include if it has photo_data or link_data with image (not video)
+            let imageUrl: string | null = null;
+            let isImageCreative = false;
+            
+            if (spec?.photo_data?.url) {
+              // Pure image post
+              imageUrl = spec.photo_data.url;
+              isImageCreative = true;
+            } else if (spec?.link_data?.picture && !spec?.link_data?.video_id) {
+              // Link ad with image (not video)
+              imageUrl = spec.link_data.picture;
+              isImageCreative = true;
+            } else if (creative.image_url && !spec?.video_data) {
+              // Direct image_url without video
+              imageUrl = creative.image_url;
+              isImageCreative = true;
             }
-
-            // If still no image, fetch the creative directly
-            if (!imageUrl && creative.id) {
-              try {
-                const creativeResponse = await fetch(
-                  `https://graph.facebook.com/v20.0/${creative.id}?fields=image_url,thumbnail_url&access_token=${accessToken}`
-                );
-                const creativeData = await creativeResponse.json();
-                imageUrl = creativeData.image_url || creativeData.thumbnail_url;
-              } catch (e) {
-                console.error(`Error fetching creative ${creative.id}:`, e);
-              }
-            }
-
-            if (imageUrl) {
+            
+            if (isImageCreative && imageUrl) {
               // Avoid duplicates
               if (!adCreatives.some(c => c.imageUrl === imageUrl)) {
                 adCreatives.push({
-                  id: ad.id,
+                  id: creative.id,
                   imageUrl: imageUrl,
-                  name: ad.name || 'Anúncio',
+                  name: creative.name || 'Criativo',
                   type: 'ad'
                 });
               }
             }
           }
+          
+          console.log(`Filtered to ${adCreatives.length} image-only creatives`);
         }
       } catch (e) {
-        console.error("Error in ads fetch:", e);
+        console.error("Error in creatives fetch:", e);
       }
     }
 
