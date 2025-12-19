@@ -134,10 +134,10 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Fetch client reference images
+    // Fetch client reference images AND logo
     const { data: clientData, error: clientError } = await supabase
       .from("clients")
-      .select("ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, product_name, sector")
+      .select("ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, product_name, sector, presentation_logo, avatar, company")
       .eq("id", clientId)
       .single();
 
@@ -152,6 +152,11 @@ serve(async (req) => {
       if (clientData.ai_reference_image_2) referenceImages.push(clientData.ai_reference_image_2);
       if (clientData.ai_reference_image_3) referenceImages.push(clientData.ai_reference_image_3);
     }
+
+    // Get client logo (prioritize presentation_logo, fallback to avatar)
+    const clientLogo = clientData?.presentation_logo || clientData?.avatar || null;
+    const clientCompanyName = clientData?.company || 'a brand';
+    console.log("Client logo URL:", clientLogo ? "Found" : "Not found");
 
     const effectiveProductName = productName || clientData?.product_name || 'a product';
     const effectiveSector = sector || clientData?.sector || 'business';
@@ -176,6 +181,19 @@ You MUST generate an image with these EXACT specifications:
 
 Generate the image at EXACTLY ${dimensions.width}x${dimensions.height} pixels.`;
 
+    // Add LOGO instructions if client has a logo
+    if (clientLogo) {
+      imagePrompt += `
+
+=== CRITICAL LOGO INSTRUCTIONS ===
+IMPORTANT: The client's OFFICIAL LOGO is provided as a reference image below.
+- If the design includes a logo, you MUST use the EXACT logo provided - DO NOT invent, modify, or create a new logo
+- The logo provided is the official "${clientCompanyName}" logo - use it exactly as shown
+- Preserve the logo's exact colors, proportions, and design elements
+- If including the logo in the image, place it appropriately (corner or subtle placement)
+- DO NOT generate any text that tries to replicate the brand name - use the actual logo image instead`;
+    }
+
     // If there are reference images, add style instructions
     if (referenceImages.length > 0) {
       imagePrompt += `
@@ -192,6 +210,7 @@ Generate a NEW image that follows the same visual identity while maintaining the
 
     console.log("Generating image with prompt:", imagePrompt);
     console.log("Reference images count:", referenceImages.length);
+    console.log("Client logo included:", !!clientLogo);
     console.log("Target dimensions:", `${dimensions.width}x${dimensions.height}`);
 
     // Build the messages array with reference images
@@ -202,7 +221,21 @@ Generate a NEW image that follows the same visual identity while maintaining the
       }
     ];
 
-    // Add reference images to the message if available
+    // Add CLIENT LOGO as the FIRST reference image (priority)
+    if (clientLogo) {
+      const logoBase64 = await imageUrlToBase64(clientLogo);
+      if (logoBase64) {
+        messageContent.push({
+          type: "image_url",
+          image_url: {
+            url: logoBase64
+          }
+        });
+        console.log("Added client logo as reference");
+      }
+    }
+
+    // Add style reference images
     for (let i = 0; i < referenceImages.length; i++) {
       const base64Image = await imageUrlToBase64(referenceImages[i]);
       if (base64Image) {
