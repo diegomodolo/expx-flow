@@ -93,13 +93,18 @@ serve(async (req) => {
 
     console.log(`Creating full campaign for client ${clientId}:`, { campaign, adSetCount: adSets.length });
 
-    // Get client with ad account and Facebook integration
+    // Get client with ad account and Facebook Page context
     const { data: client, error: clientError } = await supabaseClient
       .from("clients")
       .select(`
         *,
         facebook_ad_accounts!clients_ad_account_id_fkey (
           account_id
+        ),
+        facebook_pages!clients_facebook_page_id_fkey (
+          id,
+          page_id,
+          page_name
         )
       `)
       .eq("id", clientId)
@@ -114,6 +119,37 @@ serve(async (req) => {
     }
 
     const adAccountId = client.facebook_ad_accounts.account_id;
+
+    // Resolve Meta Page ID (required for ad creatives / ads)
+    let metaPageId: string | null = client.facebook_pages?.page_id ?? null;
+
+    // If client has no page configured, try a safe fallback: if company has exactly one active page, use it.
+    if (!metaPageId && client.company_id) {
+      const { data: pages, error: pagesError } = await supabaseClient
+        .from("facebook_pages")
+        .select("id,page_id,page_name")
+        .eq("company_id", client.company_id)
+        .eq("is_active", true);
+
+      if (pagesError) {
+        console.warn("Failed to fetch facebook pages for company:", pagesError);
+      } else if (pages && pages.length === 1) {
+        metaPageId = pages[0].page_id;
+        console.log(`Using fallback Facebook Page for creatives: ${pages[0].page_name} (${pages[0].page_id})`);
+      }
+    }
+
+    // If any creatives were requested, we must have a Facebook Page ID.
+    const totalCreativesRequested = adSets.reduce(
+      (sum, s) => sum + (s.creatives?.length ?? 0),
+      0
+    );
+
+    if (totalCreativesRequested > 0 && !metaPageId) {
+      throw new Error(
+        "Para subir criativos no Meta, este cliente precisa ter uma Página do Facebook vinculada (Facebook Page)."
+      );
+    }
 
     // Get Facebook integration for access token
     const { data: integration, error: integrationError } = await supabaseClient
@@ -191,7 +227,7 @@ serve(async (req) => {
     const createdAdSets = [];
     const createdAds = [];
     const adSetCreationErrors: string[] = [];
-
+    const adCreationErrors: string[] = [];
     for (const adSet of adSets) {
       console.log(`Creating ad set: ${adSet.name}`);
 
@@ -249,13 +285,13 @@ serve(async (req) => {
         }));
         console.log(`Adding promoted_object with pixel ${adSet.pixel_id} and event ${adSet.conversion_event}`);
       } else if (optimizationGoal === 'LEAD_GENERATION') {
-        if (!client.facebook_page_id) {
-          console.warn('Missing facebook_page_id for LEAD_GENERATION ad set; Meta may reject this ad set.');
+        if (!metaPageId) {
+          console.warn('Missing Facebook Page (page_id) for LEAD_GENERATION ad set; Meta may reject this ad set.');
         } else {
           adSetParams.append("promoted_object", JSON.stringify({
-            page_id: client.facebook_page_id,
+            page_id: metaPageId,
           }));
-          console.log(`Adding promoted_object with page_id ${client.facebook_page_id} for lead generation`);
+          console.log(`Adding promoted_object with page_id ${metaPageId} for lead generation`);
         }
       }
 
@@ -301,23 +337,26 @@ serve(async (req) => {
 
         try {
           // First, create the ad creative
-          console.log(`Creating ad creative with page_id: ${client.facebook_page_id}`);
+          console.log(`Creating ad creative with page_id: ${metaPageId}`);
           const creativeData = await createAdCreative(
             adAccountId,
             accessToken,
             creative,
-            client.facebook_page_id
+            metaPageId ?? undefined
           );
 
           console.log("Ad creative creation result:", creativeData);
 
           if (creativeData?.error) {
+            const msg = creativeData.error?.message || "Erro ao criar criativo";
             console.error("Failed to create ad creative:", creativeData.error);
+            adCreationErrors.push(`${adSet.name}: ${msg}`);
             continue;
           }
 
           if (!creativeData?.id) {
             console.error("Failed to create ad creative - no ID returned");
+            adCreationErrors.push(`${adSet.name}: Criativo criado sem ID (resposta inválida do Meta)`);
             continue;
           }
 
@@ -340,6 +379,7 @@ serve(async (req) => {
 
           if (adResult.error) {
             console.error(`Failed to create ad:`, adResult.error);
+            adCreationErrors.push(`${adSet.name}: ${adResult.error.message || 'Erro ao criar anúncio'}`);
             continue;
           }
 
@@ -371,6 +411,7 @@ serve(async (req) => {
           createdAds.push({ ...creative, metaId: adResult.id, localId: savedAd?.id });
         } catch (adError: any) {
           console.error(`Error creating ad:`, adError);
+          adCreationErrors.push(`${adSet.name}: ${adError?.message || 'Erro inesperado ao criar anúncio/criativo'}`);
         }
       }
     }
@@ -382,6 +423,12 @@ serve(async (req) => {
       );
     }
 
+    // If creatives were requested but no ads were created, surface a clear error
+    if (totalCreativesRequested > 0 && createdAds.length === 0) {
+      throw new Error(
+        `Campanha e conjunto(s) criados no Meta, mas falhou ao criar os criativos/anúncios. ${adCreationErrors[0] || ''}`.trim()
+      );
+    }
     return new Response(
       JSON.stringify({
         success: true,
@@ -446,6 +493,16 @@ async function createAdCreative(
   creative: Creative,
   pageId?: string
 ): Promise<any> {
+  if (!pageId) {
+    return {
+      error: {
+        message: "Missing Facebook Page (page_id). Vincule uma Página do Facebook ao cliente antes de criar criativos.",
+        type: "ValidationError",
+        code: 0,
+      },
+    };
+  }
+
   const objectStorySpec: any = {
     page_id: pageId,
   };
