@@ -116,21 +116,22 @@ export function CampaignBuilderModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[95vw] w-[1200px] h-[90vh] p-0 gap-0 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30">
+      <DialogContent className="max-w-[95vw] w-[1200px] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col" hideCloseButton>
+        {/* Header - Fixed height */}
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b bg-muted/30">
           <div>
             <h1 className="text-lg font-semibold">Nova Campanha no Meta</h1>
             <p className="text-sm text-muted-foreground">
               Cliente: {clientName}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleClose}>
+          <Button variant="outline" size="icon" onClick={handleClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        {/* Content area - Takes remaining space */}
+        <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Sidebar */}
           <div className="w-64 border-r bg-muted/20 flex flex-col">
             <ScrollArea className="flex-1">
