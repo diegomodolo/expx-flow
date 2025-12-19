@@ -107,7 +107,7 @@ export function ClienteCampanhas() {
       const jobId = await syncCampaigns(
         client.id, 
         syncPeriod, 
-        { campaigns: true, adsets: true, ads: true },
+        { campaigns: true, adsets: false, ads: false }, // Only sync campaigns for speed
         false, // not silent
         false  // don't include inactive
       );
