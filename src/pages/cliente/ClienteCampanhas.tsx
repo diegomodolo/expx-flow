@@ -19,7 +19,7 @@ export function ClienteCampanhas() {
   const { toast } = useToast();
   const { syncCampaigns, syncing } = useFacebookCampaignSync();
   
-  const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
+  const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('active');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -211,34 +211,17 @@ export function ClienteCampanhas() {
             Nova Campanha
           </Button>
           <div className="h-6 w-px bg-border" />
-          <Button
-            variant={campaignFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setCampaignFilter('all')}
-          >
-            Todas
-          </Button>
-          <Button
-            variant={campaignFilter === 'active' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setCampaignFilter('active')}
-          >
-            Ativas
-          </Button>
-          <Button
-            variant={campaignFilter === 'paused' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setCampaignFilter('paused')}
-          >
-            Pausadas
-          </Button>
-          <Button
-            variant={campaignFilter === 'finished' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setCampaignFilter('finished')}
-          >
-            Finalizadas
-          </Button>
+          <Select value={campaignFilter} onValueChange={(value: 'all' | 'active' | 'paused' | 'finished') => setCampaignFilter(value)}>
+            <SelectTrigger className="w-[140px] h-8">
+              <SelectValue placeholder="Filtrar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Ativas</SelectItem>
+              <SelectItem value="paused">Pausadas</SelectItem>
+              <SelectItem value="finished">Finalizadas</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
