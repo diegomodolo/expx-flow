@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, X, Image, Film, Loader2 } from 'lucide-react';
+import { Upload, X, Image, Film, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ interface MediaUploaderProps {
   onChange: (urls: string[]) => void;
   type: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   maxFiles?: number;
+  clientId?: string;
 }
 
 export function MediaUploader({
@@ -17,14 +18,61 @@ export function MediaUploader({
   onChange,
   type,
   maxFiles = type === 'CAROUSEL' ? 10 : 1,
+  clientId,
 }: MediaUploaderProps) {
   const [uploading, setUploading] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const { toast } = useToast();
 
   const acceptTypes = type === 'VIDEO' 
     ? 'video/mp4,video/mov,video/avi'
     : 'image/jpeg,image/png,image/webp,image/gif';
+
+  const handleGenerateAIImage = useCallback(async () => {
+    if (!clientId) {
+      toast({
+        title: 'Erro',
+        description: 'Cliente não identificado',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ai-campaign-image', {
+        body: { clientId },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.imageUrl) {
+        // Replace the first image or add if empty
+        if (type === 'CAROUSEL') {
+          onChange([...mediaUrls, data.imageUrl]);
+        } else {
+          onChange([data.imageUrl]);
+        }
+        
+        toast({
+          title: 'Imagem gerada!',
+          description: 'A imagem foi criada com base na identidade visual do cliente.',
+        });
+      } else {
+        throw new Error(data?.error || 'Erro ao gerar imagem');
+      }
+    } catch (err: any) {
+      console.error('AI generation error:', err);
+      toast({
+        title: 'Erro na geração',
+        description: err.message || 'Não foi possível gerar a imagem',
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingAI(false);
+    }
+  }, [clientId, mediaUrls, onChange, toast, type]);
 
   const handleUpload = useCallback(async (files: FileList) => {
     if (files.length === 0) return;
@@ -102,6 +150,7 @@ export function MediaUploader({
   };
 
   const canAddMore = mediaUrls.length < maxFiles;
+  const showAIButton = type !== 'VIDEO' && clientId;
 
   return (
     <div className="space-y-3">
@@ -154,13 +203,18 @@ export function MediaUploader({
           className={cn(
             'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
             dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25',
-            uploading && 'opacity-50 pointer-events-none'
+            (uploading || generatingAI) && 'opacity-50 pointer-events-none'
           )}
         >
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Enviando...</p>
+            </div>
+          ) : generatingAI ? (
+            <div className="flex flex-col items-center gap-2">
+              <Sparkles className="h-8 w-8 animate-pulse text-primary" />
+              <p className="text-sm text-muted-foreground">Gerando imagem com IA...</p>
             </div>
           ) : (
             <>
@@ -174,25 +228,38 @@ export function MediaUploader({
               <p className="text-sm text-muted-foreground mb-2">
                 Arraste {type === 'VIDEO' ? 'vídeos' : 'imagens'} aqui ou
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = acceptTypes;
-                  input.multiple = type === 'CAROUSEL';
-                  input.onchange = (e) => {
-                    const files = (e.target as HTMLInputElement).files;
-                    if (files) handleUpload(files);
-                  };
-                  input.click();
-                }}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Selecionar arquivo
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = acceptTypes;
+                    input.multiple = type === 'CAROUSEL';
+                    input.onchange = (e) => {
+                      const files = (e.target as HTMLInputElement).files;
+                      if (files) handleUpload(files);
+                    };
+                    input.click();
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Selecionar arquivo
+                </Button>
+                {showAIButton && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleGenerateAIImage}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Gerar com IA
+                  </Button>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-2">
                 {type === 'CAROUSEL' 
                   ? `${mediaUrls.length}/${maxFiles} arquivos`
@@ -203,6 +270,30 @@ export function MediaUploader({
             </>
           )}
         </div>
+      )}
+
+      {/* Regenerate AI button when image exists */}
+      {showAIButton && mediaUrls.length > 0 && type !== 'CAROUSEL' && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          onClick={handleGenerateAIImage}
+          disabled={generatingAI}
+        >
+          {generatingAI ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Gerando...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Gerar outra imagem com IA
+            </>
+          )}
+        </Button>
       )}
     </div>
   );

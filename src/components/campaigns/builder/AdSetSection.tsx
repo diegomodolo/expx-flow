@@ -252,6 +252,7 @@ export function AdSetSection({
                     <CreativeEditor
                       creative={creative}
                       onChange={(updates) => onUpdateCreative(index, updates)}
+                      clientId={clientId}
                     />
                   </CardContent>
                 </CollapsibleContent>
