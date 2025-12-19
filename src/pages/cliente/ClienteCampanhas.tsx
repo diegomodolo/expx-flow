@@ -9,17 +9,26 @@ import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModa
 import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
 import { CampaignBuilderModal } from "@/components/campaigns/CampaignBuilderModal";
 import { BudgetProjectionIndicator } from "@/components/campaigns/BudgetProjectionIndicator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
+import { useToast } from "@/hooks/use-toast";
 
 export function ClienteCampanhas() {
   const { client, refetchClient } = useClientContext();
   const { activeCompany } = useCompany();
+  const { toast } = useToast();
+  const { syncCampaigns, syncing } = useFacebookCampaignSync();
+  
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('all');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [syncPeriod, setSyncPeriod] = useState<string>(() => {
+    return localStorage.getItem('campaignSyncPeriod') || '30';
+  });
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const campaigns = client?.campaigns || [];
 
@@ -70,32 +79,124 @@ export function ClienteCampanhas() {
     // Can be used for campaign selection in future
   };
 
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    refetchClient?.();
-    setTimeout(() => setRefreshing(false), 1000);
-  }, [refetchClient]);
+  const handlePeriodChange = (value: string) => {
+    setSyncPeriod(value);
+    localStorage.setItem('campaignSyncPeriod', value);
+  };
+
+  const handleSyncFromMeta = useCallback(async () => {
+    if (!client?.id) {
+      toast({
+        title: "Erro",
+        description: "Cliente não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    
+    const periodLabel = syncPeriod === 'lifetime' ? 'máximo' : `${syncPeriod} dias`;
+    
+    toast({
+      title: "Sincronizando do Meta",
+      description: `Buscando dados do período: ${periodLabel}. Campanhas excluídas no Meta serão removidas do sistema.`,
+    });
+
+    try {
+      const jobId = await syncCampaigns(
+        client.id, 
+        syncPeriod, 
+        { campaigns: true, adsets: true, ads: true },
+        false, // not silent
+        false  // don't include inactive
+      );
+      
+      if (jobId) {
+        // Poll for job completion
+        const checkJob = async () => {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data: job } = await supabase
+            .from('sync_jobs')
+            .select('status, error_message')
+            .eq('id', jobId)
+            .single();
+          
+          if (job?.status === 'completed') {
+            toast({
+              title: "✅ Sincronização concluída",
+              description: `Dados atualizados do Meta (${periodLabel}). Campanhas excluídas no Meta foram removidas.`,
+            });
+            refetchClient?.();
+            setIsSyncing(false);
+          } else if (job?.status === 'error') {
+            toast({
+              title: "❌ Erro na sincronização",
+              description: job.error_message || "Ocorreu um erro ao sincronizar.",
+              variant: "destructive",
+            });
+            setIsSyncing(false);
+          } else if (job?.status === 'processing' || job?.status === 'pending') {
+            // Still processing, check again in 2 seconds
+            setTimeout(checkJob, 2000);
+          } else {
+            // Unknown status, stop polling
+            setIsSyncing(false);
+          }
+        };
+        
+        // Start polling after a brief delay
+        setTimeout(checkJob, 1500);
+      } else {
+        setIsSyncing(false);
+      }
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast({
+        title: "Erro na sincronização",
+        description: error.message || "Não foi possível sincronizar os dados.",
+        variant: "destructive",
+      });
+      setIsSyncing(false);
+    }
+  }, [client?.id, syncPeriod, syncCampaigns, refetchClient, toast]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">Campanhas do Cliente</h3>
+          
+          {/* Period selector */}
+          <Select value={syncPeriod} onValueChange={handlePeriodChange}>
+            <SelectTrigger className="w-[120px] h-8">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 dias</SelectItem>
+              <SelectItem value="14">14 dias</SelectItem>
+              <SelectItem value="30">30 dias</SelectItem>
+              <SelectItem value="90">90 dias</SelectItem>
+              <SelectItem value="lifetime">Máximo</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <TooltipProvider>
             <UITooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="h-8 w-8 p-0"
+                  onClick={handleSyncFromMeta}
+                  disabled={isSyncing || syncing}
+                  className="h-8 gap-2"
                 >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${isSyncing || syncing ? 'animate-spin' : ''}`} />
+                  {isSyncing || syncing ? 'Sincronizando...' : 'Sincronizar do Meta'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Atualizar dados</p>
+                <p>Buscar dados diretamente do Meta Ads para o período selecionado. Campanhas excluídas no Meta serão removidas.</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -321,7 +422,7 @@ export function ClienteCampanhas() {
                           facebook_id: campaign.facebook_id,
                           spend: campaign.spend
                         }}
-                        onRefresh={handleRefresh}
+                        onRefresh={() => refetchClient?.()}
                       />
                     </div>
                   </td>
@@ -332,7 +433,7 @@ export function ClienteCampanhas() {
                 <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                   <div>
                     <p className="mb-2">Nenhuma campanha encontrada</p>
-                    <p className="text-sm">As campanhas sincronizadas aparecerão aqui</p>
+                    <p className="text-sm">Clique em "Sincronizar do Meta" para buscar campanhas diretamente do Meta Ads</p>
                   </div>
                 </td>
               </tr>
@@ -353,7 +454,7 @@ export function ClienteCampanhas() {
         clientId={client?.id || ''}
         companyId={activeCompany?.company_id || ''}
         clientName={client?.name || ''}
-        onSuccess={handleRefresh}
+        onSuccess={() => refetchClient?.()}
       />
     </div>
   );
