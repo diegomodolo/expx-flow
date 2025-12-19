@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 interface CreativeEditorProps {
   creative: CreativeData;
   onChange: (updates: Partial<CreativeData>) => void;
+  clientId?: string;
 }
 
 const CREATIVE_TYPES = [
@@ -33,7 +34,7 @@ const CTA_OPTIONS = [
   { value: 'GET_OFFER', label: 'Obter Oferta' },
 ];
 
-export function CreativeEditor({ creative, onChange }: CreativeEditorProps) {
+export function CreativeEditor({ creative, onChange, clientId }: CreativeEditorProps) {
   const handleTypeChange = (type: CreativeData['type']) => {
     // Clear media when changing type
     onChange({ type, mediaUrls: [] });
@@ -68,6 +69,7 @@ export function CreativeEditor({ creative, onChange }: CreativeEditorProps) {
           mediaUrls={creative.mediaUrls}
           onChange={(urls) => onChange({ mediaUrls: urls })}
           type={creative.type}
+          clientId={clientId}
         />
       </div>
 
