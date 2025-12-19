@@ -301,6 +301,7 @@ serve(async (req) => {
 
         try {
           // First, create the ad creative
+          console.log(`Creating ad creative with page_id: ${client.facebook_page_id}`);
           const creativeData = await createAdCreative(
             adAccountId,
             accessToken,
@@ -308,8 +309,15 @@ serve(async (req) => {
             client.facebook_page_id
           );
 
+          console.log("Ad creative creation result:", creativeData);
+
+          if (creativeData?.error) {
+            console.error("Failed to create ad creative:", creativeData.error);
+            continue;
+          }
+
           if (!creativeData?.id) {
-            console.error("Failed to create ad creative");
+            console.error("Failed to create ad creative - no ID returned");
             continue;
           }
 
