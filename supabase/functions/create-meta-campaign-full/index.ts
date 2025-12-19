@@ -123,7 +123,7 @@ serve(async (req) => {
     // Resolve Meta Page ID (required for ad creatives / ads)
     let metaPageId: string | null = client.facebook_pages?.page_id ?? null;
 
-    // If client has no page configured, try a safe fallback: if company has exactly one active page, use it.
+    // If client has no page configured, try smart fallbacks
     if (!metaPageId && client.company_id) {
       const { data: pages, error: pagesError } = await supabaseClient
         .from("facebook_pages")
@@ -133,9 +133,21 @@ serve(async (req) => {
 
       if (pagesError) {
         console.warn("Failed to fetch facebook pages for company:", pagesError);
-      } else if (pages && pages.length === 1) {
-        metaPageId = pages[0].page_id;
-        console.log(`Using fallback Facebook Page for creatives: ${pages[0].page_name} (${pages[0].page_id})`);
+      } else if (pages && pages.length > 0) {
+        // Fallback 1: Try to find a page with the same name as the client
+        const clientName = client.name?.toLowerCase().trim() || "";
+        const matchingPage = pages.find(
+          (p) => p.page_name?.toLowerCase().trim() === clientName
+        );
+
+        if (matchingPage) {
+          metaPageId = matchingPage.page_id;
+          console.log(`Using matching Facebook Page by name: ${matchingPage.page_name} (${matchingPage.page_id})`);
+        } else if (pages.length === 1) {
+          // Fallback 2: If only one page exists, use it
+          metaPageId = pages[0].page_id;
+          console.log(`Using only available Facebook Page: ${pages[0].page_name} (${pages[0].page_id})`);
+        }
       }
     }
 
