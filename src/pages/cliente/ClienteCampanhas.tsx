@@ -113,35 +113,74 @@ export function ClienteCampanhas() {
       );
       
       if (jobId) {
+        let pollCount = 0;
+        const maxPolls = 60; // Max 2 minutes of polling (60 * 2s)
+        
         // Poll for job completion
         const checkJob = async () => {
-          const { supabase } = await import('@/integrations/supabase/client');
-          const { data: job } = await supabase
-            .from('sync_jobs')
-            .select('status, error_message')
-            .eq('id', jobId)
-            .single();
+          pollCount++;
           
-          if (job?.status === 'completed') {
+          // Timeout safety - stop after max polls
+          if (pollCount >= maxPolls) {
             toast({
-              title: "✅ Sincronização concluída",
-              description: `Dados atualizados do Meta (${periodLabel}). Campanhas excluídas no Meta foram removidas.`,
-            });
-            refetchClient?.();
-            setIsSyncing(false);
-          } else if (job?.status === 'error') {
-            toast({
-              title: "❌ Erro na sincronização",
-              description: job.error_message || "Ocorreu um erro ao sincronizar.",
+              title: "⚠️ Sincronização demorada",
+              description: "A sincronização está demorando mais que o esperado. Atualize a página para verificar.",
               variant: "destructive",
             });
             setIsSyncing(false);
-          } else if (job?.status === 'processing' || job?.status === 'pending') {
-            // Still processing, check again in 2 seconds
-            setTimeout(checkJob, 2000);
-          } else {
-            // Unknown status, stop polling
+            refetchClient?.();
+            return;
+          }
+          
+          try {
+            const { supabase } = await import('@/integrations/supabase/client');
+            const { data: job, error: jobError } = await supabase
+              .from('sync_jobs')
+              .select('status, error_message')
+              .eq('id', jobId)
+              .single();
+            
+            // Handle query error
+            if (jobError) {
+              console.error('Error checking sync job:', jobError);
+              setIsSyncing(false);
+              refetchClient?.();
+              return;
+            }
+            
+            const status = job?.status?.toLowerCase();
+            
+            if (status === 'completed' || status === 'success') {
+              toast({
+                title: "✅ Sincronização concluída",
+                description: `Dados atualizados do Meta (${periodLabel}). Campanhas excluídas no Meta foram removidas.`,
+              });
+              refetchClient?.();
+              setIsSyncing(false);
+            } else if (status === 'error' || status === 'failed') {
+              toast({
+                title: "❌ Erro na sincronização",
+                description: job?.error_message || "Ocorreu um erro ao sincronizar.",
+                variant: "destructive",
+              });
+              setIsSyncing(false);
+            } else if (status === 'processing' || status === 'pending') {
+              // Still processing, check again in 2 seconds
+              setTimeout(checkJob, 2000);
+            } else {
+              // Unknown or null status - check a few more times then stop
+              if (pollCount < 5) {
+                setTimeout(checkJob, 2000);
+              } else {
+                console.log('Unknown job status after retries:', job?.status);
+                setIsSyncing(false);
+                refetchClient?.();
+              }
+            }
+          } catch (pollError) {
+            console.error('Poll error:', pollError);
             setIsSyncing(false);
+            refetchClient?.();
           }
         };
         
