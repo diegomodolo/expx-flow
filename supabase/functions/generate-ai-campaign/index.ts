@@ -32,6 +32,9 @@ interface RequestBody {
   creativesCount?: number;
   availableAudiences: Audience[];
   availablePixels: Pixel[];
+  // Custom prompts from user
+  customCopyPrompt?: string;
+  customImagePrompt?: string;
 }
 
 serve(async (req) => {
@@ -59,6 +62,8 @@ serve(async (req) => {
       creativesCount = 1,
       availableAudiences,
       availablePixels,
+      customCopyPrompt,
+      customImagePrompt,
     } = body;
 
     if (!briefing) {
@@ -76,7 +81,7 @@ serve(async (req) => {
 
     console.log(`Budget calculation: Available=${monthlyBudget}, CurrentSpend=${currentSpend}, TotalMonthly=${totalMonthlyBudget}, SuggestedDaily=${suggestedDailyBudget}`);
 
-    // Build the prompt
+    // Build the prompt with custom instructions if provided
     const systemPrompt = `Você é um especialista em marketing digital e Meta Ads com vasta experiência em criar campanhas de alta performance. Seu objetivo é analisar o briefing do cliente e gerar uma campanha completa e otimizada.
 
 REGRAS IMPORTANTES:
@@ -87,7 +92,15 @@ REGRAS IMPORTANTES:
 5. Sempre inclua parâmetros UTM
 6. Mantenha textos dentro dos limites: título (40 chars), texto principal (125 chars recomendado, max 500)
 7. Se houver pixel disponível, sempre use
-8. Escolha o evento de conversão adequado ao objetivo`;
+8. Escolha o evento de conversão adequado ao objetivo
+${customCopyPrompt ? `
+INSTRUÇÕES ESPECÍFICAS DO USUÁRIO PARA TEXTOS/COPY:
+${customCopyPrompt}
+(Aplique essas instruções aos títulos, textos principais e descrições dos criativos)` : ''}
+${customImagePrompt ? `
+INSTRUÇÕES ESPECÍFICAS DO USUÁRIO PARA IMAGENS:
+${customImagePrompt}
+(Use essas instruções ao gerar o imagePrompt)` : ''}`;
 
     const userPrompt = `BRIEFING DO CLIENTE:
 ${briefing}
@@ -147,7 +160,7 @@ Gere uma campanha completa no seguinte formato JSON:
       }
     }`).join(',\n    ')}
   ],
-  "imagePrompt": "Descrição detalhada para gerar uma imagem de anúncio profissional"
+  "imagePrompt": "Descrição detalhada para gerar uma imagem de anúncio profissional${customImagePrompt ? ` seguindo as instruções do usuário: ${customImagePrompt}` : ''}"
 }
 
 IMPORTANTE: 
@@ -157,7 +170,7 @@ IMPORTANTE:
 - Use IDs reais dos públicos e pixels fornecidos
 - Para genders: [0] = todos, [1] = masculino, [2] = feminino, [1,2] = ambos especificamente
 - Escolha o conversionEvent baseado no objetivo da campanha
-- O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço
+- O imagePrompt deve descrever uma imagem de anúncio profissional que represente o produto/serviço${customImagePrompt ? ' E seguir as instruções específicas do usuário' : ''}
 - GERE EXATAMENTE ${creativesCount} criativos diferentes no array "creatives", cada um com texto e título únicos`;
 
     console.log("Calling Lovable AI for campaign generation...");

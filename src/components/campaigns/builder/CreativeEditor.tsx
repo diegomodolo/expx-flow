@@ -70,6 +70,11 @@ export function CreativeEditor({ creative, onChange, clientId }: CreativeEditorP
           onChange={(urls) => onChange({ mediaUrls: urls })}
           type={creative.type}
           clientId={clientId}
+          creativeContext={{
+            title: creative.title,
+            description: creative.description,
+            body: creative.body,
+          }}
         />
       </div>
 
