@@ -198,6 +198,10 @@ serve(async (req) => {
       // Build targeting object
       const targeting: any = {
         geo_locations: { countries: ["BR"] }, // Default to Brazil
+        // Disable Advantage+ audience expansion (required by Meta API)
+        targeting_automation: {
+          advantage_audience: 0, // 0 = disabled, 1 = enabled
+        },
       };
 
       if (adSet.targeting.age_min) targeting.age_min = adSet.targeting.age_min;
