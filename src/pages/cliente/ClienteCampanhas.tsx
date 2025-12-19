@@ -253,17 +253,6 @@ export function ClienteCampanhas() {
               </th>
               <th 
                 className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
-                onClick={() => handleSort('cpc')}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>CPC</span>
-                  {sortField === 'cpc' && (
-                    <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
-                  )}
-                </div>
-              </th>
-              <th 
-                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase cursor-pointer hover:bg-muted select-none"
                 onClick={() => handleSort('cpa')}
               >
                 <div className="flex items-center space-x-1">
@@ -278,7 +267,7 @@ export function ClienteCampanhas() {
                 onClick={() => handleSort('conversions')}
               >
                 <div className="flex items-center space-x-1">
-                  <span>Conversões</span>
+                  <span>Conv.</span>
                   {sortField === 'conversions' && (
                     <ChevronDown className={`w-3 h-3 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
                   )}
@@ -343,11 +332,8 @@ export function ClienteCampanhas() {
                       {campaign.status === 'active' ? 'Ativa' : campaign.status === 'paused' ? 'Pausada' : 'Finalizada'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
-                    R$ {campaign.cpc.toFixed(2)}
-                  </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
-                    R$ {campaign.cpa.toFixed(2)}
+                    R$ {campaign.cpa?.toFixed(2) || '0.00'}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-card-foreground">
                     {campaign.conversions}
