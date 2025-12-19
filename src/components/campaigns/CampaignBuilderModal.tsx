@@ -280,6 +280,7 @@ export function CampaignBuilderModal({
                     clientId={clientId}
                     companyId={companyId}
                     campaignObjective={state.campaign.objective}
+                    clientName={clientName}
                     onChange={(updates) => updateAdSet(state.currentAdSetIndex, updates)}
                     onAddCreative={() => addCreative(state.currentAdSetIndex)}
                     onRemoveCreative={(index) => removeCreative(state.currentAdSetIndex, index)}

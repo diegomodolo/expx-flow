@@ -19,6 +19,8 @@ interface AdSetSectionProps {
   clientId: string;
   companyId: string;
   campaignObjective: string;
+  clientName?: string;
+  clientAvatar?: string;
   onChange: (updates: Partial<AdSetData>) => void;
   onAddCreative: () => void;
   onRemoveCreative: (index: number) => void;
@@ -30,6 +32,8 @@ export function AdSetSection({
   clientId,
   companyId,
   campaignObjective,
+  clientName,
+  clientAvatar,
   onChange,
   onAddCreative,
   onRemoveCreative,
@@ -253,6 +257,8 @@ export function AdSetSection({
                       creative={creative}
                       onChange={(updates) => onUpdateCreative(index, updates)}
                       clientId={clientId}
+                      clientName={clientName}
+                      clientAvatar={clientAvatar}
                     />
                   </CardContent>
                 </CollapsibleContent>
