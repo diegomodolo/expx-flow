@@ -45,138 +45,136 @@ export function CreativeEditor({ creative, onChange, clientId, clientName, clien
 
   return (
     <div className="space-y-6 pt-4">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Left Column - Form Fields */}
-        <div className="space-y-4">
-          {/* Type Selection */}
+      {/* Form Fields */}
+      <div className="space-y-4">
+        {/* Type Selection */}
+        <div className="space-y-2">
+          <Label>Tipo de Criativo</Label>
+          <Select
+            value={creative.type}
+            onValueChange={(value) => handleTypeChange(value as CreativeData['type'])}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CREATIVE_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Media Upload */}
+        <div className="space-y-2">
+          <Label>Mídia *</Label>
+          <MediaUploader
+            mediaUrls={creative.mediaUrls}
+            onChange={(urls) => onChange({ mediaUrls: urls })}
+            type={creative.type}
+            clientId={clientId}
+            creativeContext={{
+              title: creative.title,
+              description: creative.description,
+              body: creative.body,
+            }}
+          />
+        </div>
+
+        {/* Text Content */}
+        <div className="space-y-2">
+          <Label htmlFor="creative-body">Texto Principal *</Label>
+          <Textarea
+            id="creative-body"
+            placeholder="Escreva o texto do seu anúncio..."
+            value={creative.body}
+            onChange={(e) => onChange({ body: e.target.value })}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">
+            {creative.body.length}/125 caracteres (recomendado)
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Tipo de Criativo</Label>
+            <Label htmlFor="creative-title">Título</Label>
+            <Input
+              id="creative-title"
+              placeholder="Título do anúncio"
+              value={creative.title}
+              onChange={(e) => onChange({ title: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">Máx: 40 caracteres</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="creative-description">Descrição</Label>
+            <Input
+              id="creative-description"
+              placeholder="Descrição adicional"
+              value={creative.description}
+              onChange={(e) => onChange({ description: e.target.value })}
+            />
+          </div>
+        </div>
+
+        {/* Link & CTA */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="creative-link">URL de Destino *</Label>
+            <Input
+              id="creative-link"
+              type="url"
+              placeholder="https://seusite.com.br"
+              value={creative.linkUrl}
+              onChange={(e) => onChange({ linkUrl: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Botão de Ação</Label>
             <Select
-              value={creative.type}
-              onValueChange={(value) => handleTypeChange(value as CreativeData['type'])}
+              value={creative.callToAction}
+              onValueChange={(value) => onChange({ callToAction: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CREATIVE_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                {CTA_OPTIONS.map((cta) => (
+                  <SelectItem key={cta.value} value={cta.value}>
+                    {cta.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {/* Media Upload */}
-          <div className="space-y-2">
-            <Label>Mídia *</Label>
-            <MediaUploader
-              mediaUrls={creative.mediaUrls}
-              onChange={(urls) => onChange({ mediaUrls: urls })}
-              type={creative.type}
-              clientId={clientId}
-              creativeContext={{
-                title: creative.title,
-                description: creative.description,
-                body: creative.body,
-              }}
-            />
-          </div>
-
-          {/* Text Content */}
-          <div className="space-y-2">
-            <Label htmlFor="creative-body">Texto Principal *</Label>
-            <Textarea
-              id="creative-body"
-              placeholder="Escreva o texto do seu anúncio..."
-              value={creative.body}
-              onChange={(e) => onChange({ body: e.target.value })}
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground">
-              {creative.body.length}/125 caracteres (recomendado)
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="creative-title">Título</Label>
-              <Input
-                id="creative-title"
-                placeholder="Título do anúncio"
-                value={creative.title}
-                onChange={(e) => onChange({ title: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">Máx: 40 caracteres</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="creative-description">Descrição</Label>
-              <Input
-                id="creative-description"
-                placeholder="Descrição adicional"
-                value={creative.description}
-                onChange={(e) => onChange({ description: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {/* Link & CTA */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="creative-link">URL de Destino *</Label>
-              <Input
-                id="creative-link"
-                type="url"
-                placeholder="https://seusite.com.br"
-                value={creative.linkUrl}
-                onChange={(e) => onChange({ linkUrl: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Botão de Ação</Label>
-              <Select
-                value={creative.callToAction}
-                onValueChange={(value) => onChange({ callToAction: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CTA_OPTIONS.map((cta) => (
-                    <SelectItem key={cta.value} value={cta.value}>
-                      {cta.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Separator className="my-4" />
-
-          {/* URL Parameters */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">🔗 Parâmetros de URL</h4>
-            
-            <UrlParametersEditor
-              value={creative.urlParameters}
-              onChange={(urlParameters) => onChange({ urlParameters })}
-              baseUrl={creative.linkUrl}
-            />
-          </div>
         </div>
 
-        {/* Right Column - Feed Preview */}
-        <div className="xl:sticky xl:top-4">
-          <FeedPreview
-            creative={creative}
-            clientName={clientName}
-            clientAvatar={clientAvatar}
+        <Separator className="my-4" />
+
+        {/* URL Parameters */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-muted-foreground">🔗 Parâmetros de URL</h4>
+          
+          <UrlParametersEditor
+            value={creative.urlParameters}
+            onChange={(urlParameters) => onChange({ urlParameters })}
+            baseUrl={creative.linkUrl}
           />
         </div>
+      </div>
+
+      {/* Feed Preview - Always below */}
+      <div>
+        <FeedPreview
+          creative={creative}
+          clientName={clientName}
+          clientAvatar={clientAvatar}
+        />
       </div>
     </div>
   );
