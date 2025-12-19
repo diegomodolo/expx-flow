@@ -1456,6 +1456,9 @@ export type Database = {
           active_campaigns: number
           ad_account_id: string | null
           ai_briefing: string | null
+          ai_reference_image_1: string | null
+          ai_reference_image_2: string | null
+          ai_reference_image_3: string | null
           avatar: string | null
           avg_cpl: number
           briefing_generated_at: string | null
@@ -1501,6 +1504,9 @@ export type Database = {
           active_campaigns?: number
           ad_account_id?: string | null
           ai_briefing?: string | null
+          ai_reference_image_1?: string | null
+          ai_reference_image_2?: string | null
+          ai_reference_image_3?: string | null
           avatar?: string | null
           avg_cpl?: number
           briefing_generated_at?: string | null
@@ -1546,6 +1552,9 @@ export type Database = {
           active_campaigns?: number
           ad_account_id?: string | null
           ai_briefing?: string | null
+          ai_reference_image_1?: string | null
+          ai_reference_image_2?: string | null
+          ai_reference_image_3?: string | null
           avatar?: string | null
           avg_cpl?: number
           briefing_generated_at?: string | null

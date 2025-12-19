@@ -13,6 +13,34 @@ interface RequestBody {
   sector?: string;
 }
 
+// Helper function to fetch image and convert to base64
+async function imageUrlToBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Failed to fetch image: ${response.status}`);
+      return null;
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    const base64 = btoa(binaryString);
+    
+    // Detect content type from response headers or URL
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const mimeType = contentType.split(';')[0].trim();
+    
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.error(`Error converting image to base64:`, error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,8 +58,33 @@ serve(async (req) => {
     const body: RequestBody = await req.json();
     const { clientId, prompt, productName, sector } = body;
 
-    // Build a professional ad image prompt
-    const imagePrompt = prompt || `Create a professional, high-quality advertisement image for ${productName || 'a product'} in the ${sector || 'business'} sector. 
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // Fetch client reference images
+    const { data: clientData, error: clientError } = await supabase
+      .from("clients")
+      .select("ai_reference_image_1, ai_reference_image_2, ai_reference_image_3, product_name, sector")
+      .eq("id", clientId)
+      .single();
+
+    if (clientError) {
+      console.error("Error fetching client:", clientError);
+    }
+
+    // Get reference images
+    const referenceImages: string[] = [];
+    if (clientData) {
+      if (clientData.ai_reference_image_1) referenceImages.push(clientData.ai_reference_image_1);
+      if (clientData.ai_reference_image_2) referenceImages.push(clientData.ai_reference_image_2);
+      if (clientData.ai_reference_image_3) referenceImages.push(clientData.ai_reference_image_3);
+    }
+
+    const effectiveProductName = productName || clientData?.product_name || 'a product';
+    const effectiveSector = sector || clientData?.sector || 'business';
+
+    // Build the prompt with reference image instructions
+    let imagePrompt = prompt || `Create a professional, high-quality advertisement image for ${effectiveProductName} in the ${effectiveSector} sector. 
 The image should be:
 - Clean and modern design
 - Professional color scheme
@@ -42,7 +95,42 @@ The image should be:
 - Lifestyle or product-focused imagery
 Ultra high resolution`;
 
+    // If there are reference images, add style instructions
+    if (referenceImages.length > 0) {
+      imagePrompt += `\n\nIMPORTANT: Use the provided reference images as style inspiration. Match the following aspects from the reference images:
+- Color palette and color scheme
+- Typography style and font choices
+- Overall visual aesthetic and mood
+- Design elements and layout patterns
+- Brand identity elements visible in the references
+
+Generate a NEW image that follows the same visual identity and style as the reference images.`;
+    }
+
     console.log("Generating image with prompt:", imagePrompt);
+    console.log("Reference images count:", referenceImages.length);
+
+    // Build the messages array with reference images
+    const messageContent: any[] = [
+      {
+        type: "text",
+        text: imagePrompt,
+      }
+    ];
+
+    // Add reference images to the message if available
+    for (let i = 0; i < referenceImages.length; i++) {
+      const base64Image = await imageUrlToBase64(referenceImages[i]);
+      if (base64Image) {
+        messageContent.push({
+          type: "image_url",
+          image_url: {
+            url: base64Image
+          }
+        });
+        console.log(`Added reference image ${i + 1}`);
+      }
+    }
 
     // Use Nano Banana (Gemini 2.5 Flash Image Preview) to generate the image
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -56,7 +144,7 @@ Ultra high resolution`;
         messages: [
           {
             role: "user",
-            content: imagePrompt,
+            content: messageContent,
           },
         ],
         modalities: ["image", "text"],
@@ -112,9 +200,6 @@ Ultra high resolution`;
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-
-    // Initialize Supabase client
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     // Generate unique filename
     const fileName = `ai-generated/${clientId}/${Date.now()}-campaign.${imageFormat}`;
