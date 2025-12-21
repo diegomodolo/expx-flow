@@ -61,6 +61,11 @@ import ApresentacaoPublica from "./pages/ApresentacaoPublica";
 import ApresentacaoResultadosPublica from "./pages/ApresentacaoResultadosPublica";
 import NotificacoesWhatsApp from "./pages/NotificacoesWhatsApp";
 import LeadIntelligenceHub from "./pages/LeadIntelligenceHub";
+import LeadIntelligenceSegmentsView from "./pages/LeadIntelligenceSegmentsView";
+import LeadIntelligenceSegments from "./pages/LeadIntelligenceSegments";
+import LeadIntelligenceHistory from "./pages/LeadIntelligenceHistory";
+import LeadIntelligenceFilters from "./pages/LeadIntelligenceFilters";
+import LeadIntelligenceApiKeys from "./pages/LeadIntelligenceApiKeys";
 import RadarSaude from "./pages/RadarSaude";
 import Rotinas from "./pages/Rotinas";
 // Context providers
@@ -357,6 +362,31 @@ const App = () => {
                  <Route path="/lead-intelligence" element={
                    <ProtectedRoute>
                      <LeadIntelligenceHub />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/lead-intelligence/segments-view" element={
+                   <ProtectedRoute>
+                     <LeadIntelligenceSegmentsView />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/lead-intelligence/segments" element={
+                   <ProtectedRoute>
+                     <LeadIntelligenceSegments />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/lead-intelligence/history" element={
+                   <ProtectedRoute>
+                     <LeadIntelligenceHistory />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/lead-intelligence/filters" element={
+                   <ProtectedRoute>
+                     <LeadIntelligenceFilters />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/lead-intelligence/api-keys" element={
+                   <ProtectedRoute>
+                     <LeadIntelligenceApiKeys />
                    </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={
