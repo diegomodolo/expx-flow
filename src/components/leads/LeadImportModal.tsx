@@ -150,6 +150,54 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
+  // Data sanitization functions for Brazilian formats
+  const parseBoolean = (value: unknown): boolean | null => {
+    if (!value || value === '-' || value === '') return null;
+    const str = String(value).toLowerCase().trim();
+    return str === 'sim' || str === 's' || str === 'yes' || str === 'y' || str === '1' || str === 'true';
+  };
+
+  const parseDate = (value: unknown): string | null => {
+    if (!value || value === '-' || value === '') return null;
+    const str = String(value).trim();
+    // Try DD/MM/YYYY format
+    const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (brMatch) {
+      const day = brMatch[1].padStart(2, '0');
+      const month = brMatch[2].padStart(2, '0');
+      const year = brMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+    // Try YYYY-MM-DD format (already correct)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return str;
+    }
+    return null;
+  };
+
+  const parseCurrency = (value: unknown): number | null => {
+    if (!value || value === '-' || value === '') return null;
+    const str = String(value)
+      .replace(/R\$\s*/gi, '')
+      .replace(/\./g, '')      // Remove thousand separators
+      .replace(',', '.')       // Convert decimal comma to dot
+      .trim();
+    const num = parseFloat(str);
+    return isNaN(num) ? null : num;
+  };
+
+  const sanitizeValue = (value: unknown): unknown => {
+    if (value === '-' || value === '' || value === null || value === undefined) {
+      return null;
+    }
+    return value;
+  };
+
+  // Fields that need special parsing
+  const BOOLEAN_FIELDS = ['simples_option', 'mei_option'];
+  const DATE_FIELDS = ['registration_status_date', 'activity_start_date', 'simples_option_date', 'simples_exclusion_date'];
+  const CURRENCY_FIELDS = ['share_capital'];
+
   const handleImport = async () => {
     if (!companyId) return;
     
@@ -183,7 +231,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
 
       setImportProgress(5);
 
-      // STEP 1: Pre-process all leads and calculate hashes in parallel
+      // STEP 1: Pre-process all leads with data sanitization
       const leadsWithMappedData = rawData.map(row => {
         const leadData: Record<string, unknown> = {
           company_id: companyId,
@@ -195,8 +243,22 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
         };
         
         Object.entries(fieldMapping).forEach(([column, field]) => {
-          if (row[column] !== undefined && row[column] !== null && row[column] !== '') {
-            leadData[field] = row[column];
+          const rawValue = row[column];
+          
+          // Skip empty values
+          if (rawValue === undefined || rawValue === null || rawValue === '' || rawValue === '-') {
+            return;
+          }
+          
+          // Apply appropriate parsing based on field type
+          if (BOOLEAN_FIELDS.includes(field)) {
+            leadData[field] = parseBoolean(rawValue);
+          } else if (DATE_FIELDS.includes(field)) {
+            leadData[field] = parseDate(rawValue);
+          } else if (CURRENCY_FIELDS.includes(field)) {
+            leadData[field] = parseCurrency(rawValue);
+          } else {
+            leadData[field] = sanitizeValue(rawValue);
           }
         });
         
