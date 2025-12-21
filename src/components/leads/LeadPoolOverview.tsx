@@ -1,19 +1,12 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Users, Upload, Calculator } from "lucide-react";
-import { toast } from "sonner";
-import { LeadImportModal } from "./LeadImportModal";
+import { Users } from "lucide-react";
 import { LeadClassificationStats } from "./LeadClassificationStats";
-import { useLeadScoring } from "@/hooks/useLeadScoring";
 
 export const LeadPoolOverview = () => {
-  const queryClient = useQueryClient();
   const { activeCompany } = useCompany();
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const companyId = activeCompany?.company_id;
 
@@ -50,24 +43,6 @@ export const LeadPoolOverview = () => {
     },
     enabled: !!companyId
   });
-
-  const { scoreAllCompanyLeads } = useLeadScoring();
-  const [isScoring, setIsScoring] = useState(false);
-
-  const handleRecalculateScores = async () => {
-    setIsScoring(true);
-    try {
-      const count = await scoreAllCompanyLeads();
-      toast.success(`${count} leads recalculados com sucesso`);
-      queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
-      queryClient.invalidateQueries({ queryKey: ['lead-classification-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
-    } catch (error) {
-      toast.error("Erro ao recalcular scores");
-    } finally {
-      setIsScoring(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -134,24 +109,6 @@ export const LeadPoolOverview = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Actions */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={handleRecalculateScores} disabled={isScoring}>
-          <Calculator className="h-4 w-4 mr-2" />
-          {isScoring ? "Calculando..." : "Recalcular Scores"}
-        </Button>
-        <Button onClick={() => setIsImportModalOpen(true)}>
-          <Upload className="h-4 w-4 mr-2" />
-          Importar Leads
-        </Button>
-      </div>
-
-      <LeadImportModal
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        companyId={companyId || ""}
-      />
     </div>
   );
 };
