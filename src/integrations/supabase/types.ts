@@ -5083,6 +5083,7 @@ export type Database = {
       lead_segments: {
         Row: {
           auto_rules: Json | null
+          cnaes: string[] | null
           color: string | null
           company_id: string
           created_at: string | null
@@ -5098,6 +5099,7 @@ export type Database = {
         }
         Insert: {
           auto_rules?: Json | null
+          cnaes?: string[] | null
           color?: string | null
           company_id: string
           created_at?: string | null
@@ -5113,6 +5115,7 @@ export type Database = {
         }
         Update: {
           auto_rules?: Json | null
+          cnaes?: string[] | null
           color?: string | null
           company_id?: string
           created_at?: string | null
