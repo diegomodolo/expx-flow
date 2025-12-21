@@ -67,7 +67,7 @@ async function fetchAllAssignments(segmentId: string): Promise<string[]> {
 export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps) => {
   const queryClient = useQueryClient();
   const { scoreAndSaveLead } = useLeadScoring();
-  const [recalculateProgress, setRecalculateProgress] = useState<RecalculateProgress | null>(null);
+  const [recalculateProgressMap, setRecalculateProgressMap] = useState<Map<string, RecalculateProgress>>(new Map());
 
   const { data: segments, isLoading } = useQuery({
     queryKey: ['lead-segments-metrics', companyId],
@@ -152,6 +152,12 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
   });
 
   const handleRecalculateSegmentScores = async (segmentId: string, segmentName: string) => {
+    // Check if already recalculating this segment
+    if (recalculateProgressMap.has(segmentId)) {
+      toast.info(`Segmento "${segmentName}" já está sendo recalculado.`);
+      return;
+    }
+
     try {
       // Fetch all lead IDs in this segment
       const leadIds = await fetchAllAssignments(segmentId);
@@ -161,12 +167,16 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         return;
       }
 
-      // Initialize progress
-      setRecalculateProgress({
-        segmentId,
-        segmentName,
-        total: leadIds.length,
-        processed: 0
+      // Initialize progress for this segment
+      setRecalculateProgressMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(segmentId, {
+          segmentId,
+          segmentName,
+          total: leadIds.length,
+          processed: 0
+        });
+        return newMap;
       });
 
       // Process in batches to avoid memory issues
@@ -191,7 +201,15 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
           
           // Update progress every 10 leads to avoid too many re-renders
           if (processed % 10 === 0 || processed === leadIds.length) {
-            setRecalculateProgress(prev => prev ? { ...prev, processed } : null);
+            const currentProcessed = processed;
+            setRecalculateProgressMap(prev => {
+              const newMap = new Map(prev);
+              const existing = newMap.get(segmentId);
+              if (existing) {
+                newMap.set(segmentId, { ...existing, processed: currentProcessed });
+              }
+              return newMap;
+            });
           }
         }
       }
@@ -201,9 +219,14 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
       queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
     } catch (error) {
       console.error('Error recalculating segment scores:', error);
-      toast.error('Erro ao recalcular scores do segmento');
+      toast.error(`Erro ao recalcular scores do segmento "${segmentName}"`);
     } finally {
-      setRecalculateProgress(null);
+      // Remove this segment from progress map
+      setRecalculateProgressMap(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(segmentId);
+        return newMap;
+      });
     }
   };
 
@@ -221,24 +244,31 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         </CardHeader>
 
         <CardContent>
-          {/* Progress bar when recalculating */}
-          {recalculateProgress && (
-            <div className="mb-6 p-4 border rounded-lg bg-muted/50 animate-fade-in">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">
-                  Recalculando scores: {recalculateProgress.segmentName}
-                </span>
-                <span className="text-sm text-muted-foreground tabular-nums">
-                  {recalculateProgress.processed} / {recalculateProgress.total}
-                </span>
-              </div>
-              <Progress 
-                value={(recalculateProgress.processed / recalculateProgress.total) * 100} 
-                className="h-2"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                {Math.round((recalculateProgress.processed / recalculateProgress.total) * 100)}% concluído
-              </p>
+          {/* Progress cards when recalculating (supports multiple in parallel) */}
+          {recalculateProgressMap.size > 0 && (
+            <div className="mb-6 space-y-3">
+              {Array.from(recalculateProgressMap.values()).map((progress) => (
+                <div 
+                  key={progress.segmentId} 
+                  className="p-4 border rounded-lg bg-muted/50 animate-fade-in"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">
+                      Recalculando scores: {progress.segmentName}
+                    </span>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {progress.processed} / {progress.total}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(progress.processed / progress.total) * 100} 
+                    className="h-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {Math.round((progress.processed / progress.total) * 100)}% concluído
+                  </p>
+                </div>
+              ))}
             </div>
           )}
 
@@ -337,10 +367,10 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRecalculateSegmentScores(segment.id, segment.name)}
-                          disabled={recalculateProgress?.segmentId === segment.id}
+                          disabled={recalculateProgressMap.has(segment.id)}
                           title="Recalcular scores deste segmento"
                         >
-                          <RefreshCw className={`h-4 w-4 ${recalculateProgress?.segmentId === segment.id ? 'animate-spin' : ''}`} />
+                          <RefreshCw className={`h-4 w-4 ${recalculateProgressMap.has(segment.id) ? 'animate-spin' : ''}`} />
                         </Button>
                       </TableCell>
                     </TableRow>
