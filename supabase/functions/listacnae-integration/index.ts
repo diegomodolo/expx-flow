@@ -319,9 +319,10 @@ serve(async (req) => {
         const result = await response.json();
         console.log("ListaCNAE search result:", JSON.stringify(result).substring(0, 500));
         
+        // API returns: dados (array), quantidade_encontrada (total)
         return new Response(JSON.stringify({
-          empresas: result.empresas || result.data || [],
-          total: result.total || result.totalRegistros || 0,
+          empresas: result.dados || result.empresas || result.data || [],
+          total: result.quantidade_encontrada || result.total || result.totalRegistros || 0,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -377,7 +378,7 @@ serve(async (req) => {
           }
 
           const result = await response.json();
-          const empresas: ListaCnaeEmpresa[] = result.empresas || result.data || [];
+          const empresas: ListaCnaeEmpresa[] = result.dados || result.empresas || result.data || [];
 
           if (empresas.length === 0) {
             hasMore = false;
@@ -466,7 +467,7 @@ serve(async (req) => {
           }
 
           // Check if there are more results
-          const totalFromApi = result.total || result.totalRegistros || 0;
+          const totalFromApi = result.quantidade_encontrada || result.total || result.totalRegistros || 0;
           if (inicio + empresas.length >= totalFromApi) {
             hasMore = false;
           }
