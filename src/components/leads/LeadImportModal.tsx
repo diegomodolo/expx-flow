@@ -55,15 +55,50 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       const workbook = XLSX.read(data, { type: "array" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
+      
+      // Get the range to find actual data boundaries
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      
+      // Try to find the header row (first row with multiple non-empty cells)
+      let headerRowIndex = 0;
+      for (let r = range.s.r; r <= Math.min(range.s.r + 10, range.e.r); r++) {
+        let nonEmptyCells = 0;
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const cellAddress = XLSX.utils.encode_cell({ r, c });
+          const cell = worksheet[cellAddress];
+          if (cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== '') {
+            nonEmptyCells++;
+          }
+        }
+        // Consider a row as header if it has at least 2 non-empty cells
+        if (nonEmptyCells >= 2) {
+          headerRowIndex = r;
+          break;
+        }
+      }
+      
+      // Parse with the detected header row
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+        range: headerRowIndex,
+        defval: '',
+        raw: false
+      });
       
       if (jsonData.length === 0) {
         toast.error("Arquivo vazio ou formato inválido");
         return;
       }
 
-      const cols = Object.keys(jsonData[0]);
-      setColumns(cols);
+      // Filter out columns that are empty or have generic names like "__EMPTY"
+      const cols = Object.keys(jsonData[0]).filter(col => {
+        const normalizedCol = col.trim().toLowerCase();
+        return normalizedCol && !normalizedCol.startsWith('__empty') && col.trim() !== '';
+      });
+      
+      // If no valid columns found, try getting all non-empty keys
+      const validCols = cols.length > 0 ? cols : Object.keys(jsonData[0]).filter(col => col.trim() !== '');
+      
+      setColumns(validCols);
       setRawData(jsonData);
       
       // Auto-map columns based on similarity
