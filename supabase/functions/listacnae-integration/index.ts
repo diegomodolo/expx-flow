@@ -116,7 +116,8 @@ serve(async (req) => {
           return new Response(JSON.stringify({ 
             error: "Token da ListaCNAE não configurado",
             credits: null,
-            configured: false
+            configured: false,
+            hasToken: false
           }), {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,17 +137,38 @@ serve(async (req) => {
           return new Response(JSON.stringify({ 
             error: "Erro ao consultar créditos. Verifique se o token é válido.",
             credits: null,
-            configured: true
+            configured: true,
+            hasToken: true
           }), {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        const credits = await response.json();
+        const creditsResponse = await response.json();
+        console.log("ListaCNAE credits response:", JSON.stringify(creditsResponse));
+        
+        // Extract the numeric credits value from the response
+        // The API might return: { creditos: 123 } or just a number
+        let creditsValue: number | null = null;
+        
+        if (typeof creditsResponse === 'number') {
+          creditsValue = creditsResponse;
+        } else if (typeof creditsResponse === 'object' && creditsResponse !== null) {
+          // Try common field names
+          creditsValue = creditsResponse.creditos ?? 
+                        creditsResponse.credits ?? 
+                        creditsResponse.saldo ?? 
+                        creditsResponse.balance ??
+                        creditsResponse.quantidade ??
+                        null;
+        }
+        
         return new Response(JSON.stringify({ 
-          credits,
-          configured: true
+          credits: creditsValue,
+          creditsRaw: creditsResponse, // Include raw response for debugging
+          configured: true,
+          hasToken: true
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
