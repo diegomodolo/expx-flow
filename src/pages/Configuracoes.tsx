@@ -12,6 +12,7 @@ import { PlannerSettings } from "@/components/planner/PlannerSettings";
 import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProtectedRoute";
 import ParametrosPerformance from "./ParametrosPerformance";
 import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
+import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
 
 const Configuracoes = () => {
   return (
@@ -38,6 +39,7 @@ const Configuracoes = () => {
             <Route path="parametros-performance" element={<ParametrosPerformance />} />
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
             <Route path="whatsapp" element={<WhatsAppSettings />} />
+            <Route path="listacnae" element={<ListaCnaeSettings />} />
           </Routes>
         </SettingsLayout>
       </div>

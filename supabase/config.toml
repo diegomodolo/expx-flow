@@ -187,3 +187,6 @@ verify_jwt = true
 
 [functions.fetch-creative-references]
 verify_jwt = true
+
+[functions.listacnae-integration]
+verify_jwt = true
