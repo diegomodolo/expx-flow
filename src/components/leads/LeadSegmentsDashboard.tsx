@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Tag, Trophy, Medal, Award, Trash2 } from "lucide-react";
 
@@ -65,13 +65,21 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
           } as SegmentMetrics;
         }
 
-        // Get aggregated data
-        const { data: leadsData } = await supabase
-          .from('lead_master_pool')
-          .select('global_score, total_value, lead_classification, created_at')
-          .in('id', leadIds);
+        // Get aggregated data (batch to avoid URL limits with large IN lists)
+        const leads: Array<{ global_score: number | null; total_value: number | null; lead_classification: string | null; created_at: string }> = [];
+        const chunkSize = 500;
 
-        const leads = leadsData || [];
+        for (let i = 0; i < leadIds.length; i += chunkSize) {
+          const chunkIds = leadIds.slice(i, i + chunkSize);
+          const { data: chunkData, error } = await supabase
+            .from('lead_master_pool')
+            .select('global_score, total_value, lead_classification, created_at')
+            .eq('company_id', companyId)
+            .in('id', chunkIds);
+
+          if (error) throw error;
+          if (chunkData?.length) leads.push(...chunkData);
+        }
         const avgScore = leads.length > 0 
           ? Math.round(leads.reduce((sum, l) => sum + (l.global_score || 0), 0) / leads.length)
           : 0;
@@ -116,7 +124,6 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
 
   return (
     <div className="space-y-6">
-      {/* Segments Grid */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -127,104 +134,100 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
             Métricas agregadas por segmento de leads
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
             </div>
           ) : segments && segments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {segments.map((segment) => (
-                <Card key={segment.id} className="border-l-4" style={{ borderLeftColor: segment.color }}>
-                  <CardContent className="pt-4">
-                    <div className="space-y-4">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-lg flex items-center gap-2">
-                            <span>{segment.icon === 'tag' ? '🏷️' : (segment.icon || '📁')}</span>
-                            {segment.name}
-                          </h3>
-                          {segment.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{segment.description}</p>
-                          )}
-                        </div>
-                        <Badge variant="secondary" className="text-lg px-3 py-1">
-                          {segment.lead_count}
-                        </Badge>
-                      </div>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Segmento</TableHead>
+                    <TableHead className="text-right">Leads</TableHead>
+                    <TableHead className="text-right">Score médio</TableHead>
+                    <TableHead className="text-right">Valor total</TableHead>
+                    <TableHead className="text-right">Ouro</TableHead>
+                    <TableHead className="text-right">Prata</TableHead>
+                    <TableHead className="text-right">Bronze</TableHead>
+                    <TableHead className="text-right">Descartado</TableHead>
+                    <TableHead className="text-right">Último lead</TableHead>
+                  </TableRow>
+                </TableHeader>
 
-                      {/* Metrics */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Score Médio</p>
-                          <p className="font-semibold text-lg">{segment.avg_score}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Valor Total</p>
-                          <p className="font-semibold text-lg">
-                            R$ {segment.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Classification Distribution */}
-                      {segment.lead_count > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground font-medium">Distribuição por Classificação</p>
-                          
-                          <div className="space-y-1.5">
-                            {/* Ouro */}
-                            <div className="flex items-center gap-2">
-                              <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                              <div className="flex-1">
-                                <Progress value={getClassificationPercent(segment, 'ouro')} className="h-2 bg-muted [&>div]:bg-yellow-500" />
-                              </div>
-                              <span className="text-xs w-14 text-right">{segment.ouro_count} ({getClassificationPercent(segment, 'ouro')}%)</span>
+                <TableBody>
+                  {segments.map((segment) => (
+                    <TableRow key={segment.id}>
+                      <TableCell>
+                        <div className="flex items-start gap-3">
+                          <span
+                            className="mt-1 h-2.5 w-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: segment.color }}
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0">
+                            <div className="font-medium flex items-center gap-2">
+                              <span aria-hidden="true">{segment.icon === 'tag' ? '🏷️' : (segment.icon || '📁')}</span>
+                              <span className="truncate">{segment.name}</span>
                             </div>
-                            
-                            {/* Prata */}
-                            <div className="flex items-center gap-2">
-                              <Medal className="h-3.5 w-3.5 text-slate-400" />
-                              <div className="flex-1">
-                                <Progress value={getClassificationPercent(segment, 'prata')} className="h-2 bg-muted [&>div]:bg-slate-400" />
-                              </div>
-                              <span className="text-xs w-14 text-right">{segment.prata_count} ({getClassificationPercent(segment, 'prata')}%)</span>
-                            </div>
-                            
-                            {/* Bronze */}
-                            <div className="flex items-center gap-2">
-                              <Award className="h-3.5 w-3.5 text-amber-600" />
-                              <div className="flex-1">
-                                <Progress value={getClassificationPercent(segment, 'bronze')} className="h-2 bg-muted [&>div]:bg-amber-600" />
-                              </div>
-                              <span className="text-xs w-14 text-right">{segment.bronze_count} ({getClassificationPercent(segment, 'bronze')}%)</span>
-                            </div>
-                            
-                            {/* Descartado */}
-                            {segment.descartado_count > 0 && (
-                              <div className="flex items-center gap-2">
-                                <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                                <div className="flex-1">
-                                  <Progress value={getClassificationPercent(segment, 'descartado')} className="h-2 bg-muted [&>div]:bg-red-500" />
-                                </div>
-                                <span className="text-xs w-14 text-right">{segment.descartado_count} ({getClassificationPercent(segment, 'descartado')}%)</span>
+                            {segment.description && (
+                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                {segment.description}
                               </div>
                             )}
                           </div>
                         </div>
-                      )}
+                      </TableCell>
 
-                      {/* Last activity */}
-                      {segment.last_lead_at && (
-                        <p className="text-xs text-muted-foreground">
-                          Último lead: {new Date(segment.last_lead_at).toLocaleDateString('pt-BR')}
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <TableCell className="text-right">
+                        <Badge variant="secondary" className="tabular-nums">
+                          {segment.lead_count}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell className="text-right tabular-nums">{segment.avg_score}</TableCell>
+
+                      <TableCell className="text-right tabular-nums">
+                        R$ {segment.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                      </TableCell>
+
+                      <TableCell className="text-right tabular-nums">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                          {segment.ouro_count}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right tabular-nums">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <Medal className="h-3.5 w-3.5 text-slate-400" />
+                          {segment.prata_count}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right tabular-nums">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <Award className="h-3.5 w-3.5 text-amber-600" />
+                          {segment.bronze_count}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right tabular-nums">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          {segment.descartado_count}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {segment.last_lead_at ? new Date(segment.last_lead_at).toLocaleDateString('pt-BR') : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
