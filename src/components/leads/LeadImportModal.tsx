@@ -409,6 +409,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
               columns={columns}
               fieldMapping={fieldMapping}
               onMappingChange={setFieldMapping}
+              sampleRow={rawData[0]}
             />
 
             <div className="flex justify-between pt-4">
