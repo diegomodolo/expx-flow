@@ -1,9 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trophy, Medal, Award, Trash2 } from "lucide-react";
+import { Tag, Trophy, Medal, Award, Trash2, RefreshCw } from "lucide-react";
+import { useLeadScoring } from "@/hooks/useLeadScoring";
+import { toast } from "sonner";
 
 interface LeadSegmentsDashboardProps {
   companyId: string;
@@ -25,7 +29,37 @@ interface SegmentMetrics {
   last_lead_at: string | null;
 }
 
+// Helper to fetch ALL assignments (paginated to avoid 1000 limit)
+async function fetchAllAssignments(segmentId: string): Promise<string[]> {
+  const allLeadIds: string[] = [];
+  const pageSize = 1000;
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('lead_segment_assignments')
+      .select('lead_id')
+      .eq('segment_id', segmentId)
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      allLeadIds.push(...data.map(a => a.lead_id));
+      from += pageSize;
+      hasMore = data.length === pageSize;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allLeadIds;
+}
+
 export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps) => {
+  const queryClient = useQueryClient();
+  const { scoreAndSaveLead } = useLeadScoring();
+  const [recalculatingSegmentId, setRecalculatingSegmentId] = useState<string | null>(null);
 
   const { data: segments, isLoading } = useQuery({
     queryKey: ['lead-segments-metrics', companyId],
@@ -43,13 +77,8 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
 
       // For each segment, fetch aggregated metrics
       const metricsPromises = segmentsData.map(async (segment) => {
-        // Get lead IDs in this segment
-        const { data: assignments } = await supabase
-          .from('lead_segment_assignments')
-          .select('lead_id')
-          .eq('segment_id', segment.id);
-
-        const leadIds = assignments?.map(a => a.lead_id) || [];
+        // Get ALL lead IDs in this segment (paginated)
+        const leadIds = await fetchAllAssignments(segment.id);
         
         if (leadIds.length === 0) {
           return {
@@ -80,6 +109,7 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
           if (error) throw error;
           if (chunkData?.length) leads.push(...chunkData);
         }
+
         const avgScore = leads.length > 0 
           ? Math.round(leads.reduce((sum, l) => sum + (l.global_score || 0), 0) / leads.length)
           : 0;
@@ -113,13 +143,50 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
     enabled: !!companyId
   });
 
-  const getClassificationPercent = (segment: SegmentMetrics, classification: string) => {
-    if (segment.lead_count === 0) return 0;
-    const count = classification === 'ouro' ? segment.ouro_count 
-      : classification === 'prata' ? segment.prata_count 
-      : classification === 'bronze' ? segment.bronze_count 
-      : segment.descartado_count;
-    return Math.round((count / segment.lead_count) * 100);
+  const handleRecalculateSegmentScores = async (segmentId: string, segmentName: string) => {
+    setRecalculatingSegmentId(segmentId);
+    try {
+      // Fetch all lead IDs in this segment
+      const leadIds = await fetchAllAssignments(segmentId);
+
+      if (leadIds.length === 0) {
+        toast.info(`Segmento "${segmentName}" não possui leads para recalcular.`);
+        return;
+      }
+
+      toast.info(`Recalculando scores de ${leadIds.length} leads...`);
+
+      // Process in batches to avoid memory issues
+      const batchSize = 100;
+      let processed = 0;
+
+      for (let i = 0; i < leadIds.length; i += batchSize) {
+        const batchIds = leadIds.slice(i, i + batchSize);
+
+        // Fetch lead data for this batch
+        const { data: leadsData, error } = await supabase
+          .from('lead_master_pool')
+          .select('*')
+          .in('id', batchIds);
+
+        if (error) throw error;
+
+        // Score each lead
+        for (const lead of leadsData || []) {
+          await scoreAndSaveLead(lead.id, lead);
+          processed++;
+        }
+      }
+
+      toast.success(`${processed} leads do segmento "${segmentName}" recalculados!`);
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
+    } catch (error) {
+      console.error('Error recalculating segment scores:', error);
+      toast.error('Erro ao recalcular scores do segmento');
+    } finally {
+      setRecalculatingSegmentId(null);
+    }
   };
 
   return (
@@ -154,6 +221,7 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                     <TableHead className="text-right">Bronze</TableHead>
                     <TableHead className="text-right">Descartado</TableHead>
                     <TableHead className="text-right">Último lead</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -223,6 +291,18 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
 
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {segment.last_lead_at ? new Date(segment.last_lead_at).toLocaleDateString('pt-BR') : '—'}
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRecalculateSegmentScores(segment.id, segment.name)}
+                          disabled={recalculatingSegmentId === segment.id}
+                          title="Recalcular scores deste segmento"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${recalculatingSegmentId === segment.id ? 'animate-spin' : ''}`} />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
