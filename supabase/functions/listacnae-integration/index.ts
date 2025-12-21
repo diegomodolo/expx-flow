@@ -49,59 +49,63 @@ interface ListaCnaeEmpresa {
   natureza_juridica: string;
 }
 
-// Helper to build ListaCNAE request body according to API docs
-function buildListaCnaeRequestBody(filters: ListaCnaeSearchParams, inicio: number, quantidade: number) {
-  const requestBody: Record<string, any> = {
-    inicio,
-    quantidade,
-  };
+// Helper to build ListaCNAE query string for GET request
+// API docs say GET /buscar with parameters passed as query string
+function buildListaCnaeQueryString(filters: ListaCnaeSearchParams, inicio: number, quantidade: number): string {
+  const params = new URLSearchParams();
+  
+  // Required params
+  params.set("inicio", inicio.toString());
+  params.set("quantidade", quantidade.toString());
 
-  // CNAEs as numeric array
+  // CNAEs as JSON array of numbers
   if (filters.cnaes?.length) {
-    requestBody.cnaes = filters.cnaes.map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
+    const cnaesNumeric = filters.cnaes.map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
+    params.set("cnaes", JSON.stringify(cnaesNumeric));
   }
 
-  // Estados as string array
+  // Estados as JSON array
   if (filters.estados?.length) {
-    requestBody.estados = filters.estados;
+    params.set("estados", JSON.stringify(filters.estados));
   }
 
-  // Municipios as numeric array
+  // Municipios as JSON array of numbers
   if (filters.municipios?.length) {
-    requestBody.municipios = filters.municipios.map(m => parseInt(m, 10)).filter(n => !isNaN(n));
+    const munNumeric = filters.municipios.map(m => parseInt(m, 10)).filter(n => !isNaN(n));
+    params.set("municipios", JSON.stringify(munNumeric));
   }
 
   // Boolean filters
   if (filters.telefone_obrigatorio) {
-    requestBody.telefone_obrigatorio = true;
+    params.set("telefone_obrigatorio", "true");
   }
   if (filters.email_obrigatorio) {
-    requestBody.email_obrigatorio = true;
+    params.set("email_obrigatorio", "true");
   }
   if (filters.simples_nacional !== undefined) {
-    requestBody.simples_nacional = filters.simples_nacional;
+    params.set("simples_nacional", filters.simples_nacional.toString());
   }
   if (filters.mei !== undefined) {
-    requestBody.mei = filters.mei;
+    params.set("mei", filters.mei.toString());
   }
 
   // Capital social
   if (filters.capital_social_min !== undefined) {
-    requestBody.capital_social_minimo = filters.capital_social_min;
+    params.set("capital_social_minimo", filters.capital_social_min.toString());
   }
   if (filters.capital_social_max !== undefined) {
-    requestBody.capital_social_maximo = filters.capital_social_max;
+    params.set("capital_social_maximo", filters.capital_social_max.toString());
   }
 
   // Data abertura
   if (filters.data_abertura_inicio) {
-    requestBody.data_inicio = filters.data_abertura_inicio;
+    params.set("data_inicio", filters.data_abertura_inicio);
   }
   if (filters.data_abertura_fim) {
-    requestBody.data_fim = filters.data_abertura_fim;
+    params.set("data_fim", filters.data_abertura_fim);
   }
 
-  return requestBody;
+  return params.toString();
 }
 
 serve(async (req) => {
@@ -210,11 +214,9 @@ serve(async (req) => {
         if (typeof creditsResponse === 'number') {
           creditsValue = creditsResponse;
         } else if (typeof creditsResponse === 'object' && creditsResponse !== null) {
-          // Check for nested structure: creditos.disponivel
           if (creditsResponse.creditos?.disponivel !== undefined) {
             creditsValue = creditsResponse.creditos.disponivel;
           } else {
-            // Try common field names as fallback
             creditsValue = creditsResponse.creditos ?? 
                           creditsResponse.credits ?? 
                           creditsResponse.saldo ?? 
@@ -227,7 +229,7 @@ serve(async (req) => {
         
         return new Response(JSON.stringify({ 
           credits: creditsValue,
-          creditsRaw: creditsResponse, // Include raw response for debugging
+          creditsRaw: creditsResponse,
           configured: true,
           hasToken: true
         }), {
@@ -236,7 +238,7 @@ serve(async (req) => {
       }
 
       case "cnaes": {
-        // List all CNAEs - free endpoint, doesn't need token
+        // List all CNAEs - free endpoint
         const response = await fetch(`${LISTACNAE_API_URL}/todosCnaes`, {
           headers: {
             "Content-Type": "application/json",
@@ -285,22 +287,21 @@ serve(async (req) => {
         const searchParams: ListaCnaeSearchParams = body.filters || {};
         const preview = body.preview || false;
 
-        // Build request body according to ListaCNAE API docs
-        // GET /buscar with JSON body
+        // Build query string
         const quantidade = preview ? 10 : (searchParams.per_page || 100);
         const inicio = ((searchParams.page || 1) - 1) * quantidade;
         
-        const requestBody = buildListaCnaeRequestBody(searchParams, inicio, quantidade);
+        const queryString = buildListaCnaeQueryString(searchParams, inicio, quantidade);
+        const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
 
-        console.log("ListaCNAE search request:", JSON.stringify(requestBody));
+        console.log("ListaCNAE search URL:", searchUrl);
 
-        const response = await fetch(`${LISTACNAE_API_URL}/buscar`, {
-          method: "POST",
+        const response = await fetch(searchUrl, {
+          method: "GET",
           headers: {
             "Authorization": `Bearer ${listacnaeToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -318,7 +319,6 @@ serve(async (req) => {
         const result = await response.json();
         console.log("ListaCNAE search result:", JSON.stringify(result).substring(0, 500));
         
-        // API returns { empresas: [...], total: number }
         return new Response(JSON.stringify({
           empresas: result.empresas || result.data || [],
           total: result.total || result.totalRegistros || 0,
@@ -357,17 +357,17 @@ serve(async (req) => {
         const batchSize = Math.min(1000, maxLeads);
 
         while (hasMore && totalImported + totalDuplicates < maxLeads) {
-          const requestBody = buildListaCnaeRequestBody(filters, inicio, batchSize);
+          const queryString = buildListaCnaeQueryString(filters, inicio, batchSize);
+          const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
           
           console.log(`Fetching batch from ListaCNAE (inicio=${inicio})...`);
           
-          const response = await fetch(`${LISTACNAE_API_URL}/buscar`, {
-            method: "POST",
+          const response = await fetch(searchUrl, {
+            method: "GET",
             headers: {
               "Authorization": `Bearer ${listacnaeToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(requestBody),
           });
 
           if (!response.ok) {
@@ -429,7 +429,7 @@ serve(async (req) => {
                 lead_status: "novo",
                 primary_source: "ListaCNAE",
                 country: "BR",
-                full_name: empresa.razao_social, // Use company name as fallback
+                full_name: empresa.razao_social,
               };
 
               const { data: newLead, error: insertError } = await supabase
