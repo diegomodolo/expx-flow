@@ -13,9 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Tags, Plus, Trash2, Users, RefreshCw, Edit, X, Building2 } from "lucide-react";
+import { Tags, Plus, Trash2, Users, RefreshCw, Edit, X, Building2, Database } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ListaCnaeSegmentModal } from "./ListaCnaeSegmentModal";
 
 const SEGMENT_TYPES = [
   { value: 'sector', label: 'Setor' },
@@ -36,6 +37,7 @@ export const LeadSegmentsManager = () => {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isListaCnaeModalOpen, setIsListaCnaeModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({ name: '', description: '', segment_type: 'custom', cnaes: [] });
   const [cnaeInput, setCnaeInput] = useState('');
@@ -183,11 +185,16 @@ export const LeadSegmentsManager = () => {
             </CardTitle>
             <CardDescription>Organize leads por características</CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsDialogOpen(o); }}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Novo Segmento</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsListaCnaeModalOpen(true)}>
+              <Database className="h-4 w-4 mr-2" />
+              Novo Segmento com CNAE
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsDialogOpen(o); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Novo Segmento</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Editar" : "Criar"} Segmento</DialogTitle>
                 <DialogDescription>Segmentos organizam leads por características.</DialogDescription>
@@ -285,8 +292,17 @@ export const LeadSegmentsManager = () => {
                   {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar"}
                 </Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {companyId && (
+            <ListaCnaeSegmentModal
+              open={isListaCnaeModalOpen}
+              onOpenChange={setIsListaCnaeModalOpen}
+              companyId={companyId}
+            />
+          )}
         </div>
       </CardHeader>
       <CardContent>
