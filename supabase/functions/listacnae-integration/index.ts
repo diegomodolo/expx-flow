@@ -49,6 +49,61 @@ interface ListaCnaeEmpresa {
   natureza_juridica: string;
 }
 
+// Helper to build ListaCNAE request body according to API docs
+function buildListaCnaeRequestBody(filters: ListaCnaeSearchParams, inicio: number, quantidade: number) {
+  const requestBody: Record<string, any> = {
+    inicio,
+    quantidade,
+  };
+
+  // CNAEs as numeric array
+  if (filters.cnaes?.length) {
+    requestBody.cnaes = filters.cnaes.map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
+  }
+
+  // Estados as string array
+  if (filters.estados?.length) {
+    requestBody.estados = filters.estados;
+  }
+
+  // Municipios as numeric array
+  if (filters.municipios?.length) {
+    requestBody.municipios = filters.municipios.map(m => parseInt(m, 10)).filter(n => !isNaN(n));
+  }
+
+  // Boolean filters
+  if (filters.telefone_obrigatorio) {
+    requestBody.telefone_obrigatorio = true;
+  }
+  if (filters.email_obrigatorio) {
+    requestBody.email_obrigatorio = true;
+  }
+  if (filters.simples_nacional !== undefined) {
+    requestBody.simples_nacional = filters.simples_nacional;
+  }
+  if (filters.mei !== undefined) {
+    requestBody.mei = filters.mei;
+  }
+
+  // Capital social
+  if (filters.capital_social_min !== undefined) {
+    requestBody.capital_social_minimo = filters.capital_social_min;
+  }
+  if (filters.capital_social_max !== undefined) {
+    requestBody.capital_social_maximo = filters.capital_social_max;
+  }
+
+  // Data abertura
+  if (filters.data_abertura_inicio) {
+    requestBody.data_inicio = filters.data_abertura_inicio;
+  }
+  if (filters.data_abertura_fim) {
+    requestBody.data_fim = filters.data_abertura_fim;
+  }
+
+  return requestBody;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -230,59 +285,22 @@ serve(async (req) => {
         const searchParams: ListaCnaeSearchParams = body.filters || {};
         const preview = body.preview || false;
 
-        // Build query params
-        const queryParams = new URLSearchParams();
+        // Build request body according to ListaCNAE API docs
+        // GET /buscar with JSON body
+        const quantidade = preview ? 10 : (searchParams.per_page || 100);
+        const inicio = ((searchParams.page || 1) - 1) * quantidade;
         
-        if (searchParams.cnaes?.length) {
-          queryParams.set("cnaes", searchParams.cnaes.join(","));
-        }
-        if (searchParams.estados?.length) {
-          queryParams.set("estados", searchParams.estados.join(","));
-        }
-        if (searchParams.municipios?.length) {
-          queryParams.set("municipios", searchParams.municipios.join(","));
-        }
-        if (searchParams.termo_busca) {
-          queryParams.set("termo", searchParams.termo_busca);
-        }
-        if (searchParams.capital_social_min) {
-          queryParams.set("capitalMin", searchParams.capital_social_min.toString());
-        }
-        if (searchParams.capital_social_max) {
-          queryParams.set("capitalMax", searchParams.capital_social_max.toString());
-        }
-        if (searchParams.simples_nacional !== undefined) {
-          queryParams.set("simples", searchParams.simples_nacional ? "1" : "0");
-        }
-        if (searchParams.mei !== undefined) {
-          queryParams.set("mei", searchParams.mei ? "1" : "0");
-        }
-        if (searchParams.data_abertura_inicio) {
-          queryParams.set("dataAberturaInicio", searchParams.data_abertura_inicio);
-        }
-        if (searchParams.data_abertura_fim) {
-          queryParams.set("dataAberturaFim", searchParams.data_abertura_fim);
-        }
-        if (searchParams.telefone_obrigatorio) {
-          queryParams.set("telefoneObrigatorio", "1");
-        }
-        if (searchParams.email_obrigatorio) {
-          queryParams.set("emailObrigatorio", "1");
-        }
+        const requestBody = buildListaCnaeRequestBody(searchParams, inicio, quantidade);
 
-        // For preview, limit to 10 results
-        queryParams.set("limite", preview ? "10" : (searchParams.per_page?.toString() || "1000"));
-        if (searchParams.page) {
-          queryParams.set("pagina", searchParams.page.toString());
-        }
+        console.log("ListaCNAE search request:", JSON.stringify(requestBody));
 
-        console.log("ListaCNAE search params:", queryParams.toString());
-
-        const response = await fetch(`${LISTACNAE_API_URL}/empresas?${queryParams.toString()}`, {
+        const response = await fetch(`${LISTACNAE_API_URL}/buscar`, {
+          method: "GET",
           headers: {
             "Authorization": `Bearer ${listacnaeToken}`,
             "Content-Type": "application/json",
           },
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -298,7 +316,13 @@ serve(async (req) => {
         }
 
         const result = await response.json();
-        return new Response(JSON.stringify(result), {
+        console.log("ListaCNAE search result:", JSON.stringify(result).substring(0, 500));
+        
+        // API returns { empresas: [...], total: number }
+        return new Response(JSON.stringify({
+          empresas: result.empresas || result.data || [],
+          total: result.total || result.totalRegistros || 0,
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -325,62 +349,25 @@ serve(async (req) => {
           });
         }
 
-        // Build query params same as search
-        const queryParams = new URLSearchParams();
-        
-        if (filters.cnaes?.length) {
-          queryParams.set("cnaes", filters.cnaes.join(","));
-        }
-        if (filters.estados?.length) {
-          queryParams.set("estados", filters.estados.join(","));
-        }
-        if (filters.municipios?.length) {
-          queryParams.set("municipios", filters.municipios.join(","));
-        }
-        if (filters.termo_busca) {
-          queryParams.set("termo", filters.termo_busca);
-        }
-        if (filters.capital_social_min) {
-          queryParams.set("capitalMin", filters.capital_social_min.toString());
-        }
-        if (filters.capital_social_max) {
-          queryParams.set("capitalMax", filters.capital_social_max.toString());
-        }
-        if (filters.simples_nacional !== undefined) {
-          queryParams.set("simples", filters.simples_nacional ? "1" : "0");
-        }
-        if (filters.mei !== undefined) {
-          queryParams.set("mei", filters.mei ? "1" : "0");
-        }
-        if (filters.data_abertura_inicio) {
-          queryParams.set("dataAberturaInicio", filters.data_abertura_inicio);
-        }
-        if (filters.data_abertura_fim) {
-          queryParams.set("dataAberturaFim", filters.data_abertura_fim);
-        }
-        if (filters.telefone_obrigatorio) {
-          queryParams.set("telefoneObrigatorio", "1");
-        }
-        if (filters.email_obrigatorio) {
-          queryParams.set("emailObrigatorio", "1");
-        }
-        queryParams.set("limite", "1000");
-
-        let page = 1;
+        const maxLeads = filters.per_page || 100;
+        let inicio = 0;
         let totalImported = 0;
         let totalDuplicates = 0;
         let hasMore = true;
+        const batchSize = Math.min(1000, maxLeads);
 
-        while (hasMore) {
-          queryParams.set("pagina", page.toString());
+        while (hasMore && totalImported + totalDuplicates < maxLeads) {
+          const requestBody = buildListaCnaeRequestBody(filters, inicio, batchSize);
           
-          console.log(`Fetching page ${page} from ListaCNAE...`);
+          console.log(`Fetching batch from ListaCNAE (inicio=${inicio})...`);
           
-          const response = await fetch(`${LISTACNAE_API_URL}/empresas?${queryParams.toString()}`, {
+          const response = await fetch(`${LISTACNAE_API_URL}/buscar`, {
+            method: "GET",
             headers: {
               "Authorization": `Bearer ${listacnaeToken}`,
               "Content-Type": "application/json",
             },
+            body: JSON.stringify(requestBody),
           });
 
           if (!response.ok) {
@@ -399,6 +386,11 @@ serve(async (req) => {
 
           // Process batch
           for (const empresa of empresas) {
+            if (totalImported + totalDuplicates >= maxLeads) {
+              hasMore = false;
+              break;
+            }
+
             // Check if CNPJ already exists
             const { data: existing } = await supabase
               .from("lead_master_pool")
@@ -473,16 +465,16 @@ serve(async (req) => {
             }
           }
 
-          // Check if there are more pages
-          const totalFromApi = result.total || result.totalRegistros;
-          if (totalFromApi && (page * 1000) >= totalFromApi) {
+          // Check if there are more results
+          const totalFromApi = result.total || result.totalRegistros || 0;
+          if (inicio + empresas.length >= totalFromApi) {
             hasMore = false;
           }
           
-          page++;
+          inicio += batchSize;
 
           // Rate limit: 50 requests per minute
-          if (page % 45 === 0) {
+          if (inicio > 0 && inicio % 45000 === 0) {
             console.log("Approaching rate limit, waiting 60 seconds...");
             await new Promise(resolve => setTimeout(resolve, 60000));
           }
