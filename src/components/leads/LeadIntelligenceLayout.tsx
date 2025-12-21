@@ -58,10 +58,7 @@ export function LeadIntelligenceLayout({ children }: LeadIntelligenceLayoutProps
   const location = useLocation();
 
   const isActiveRoute = (href: string) => {
-    if (href === "/lead-intelligence") {
-      return location.pathname === href;
-    }
-    return location.pathname.startsWith(href);
+    return location.pathname === href;
   };
 
   return (
