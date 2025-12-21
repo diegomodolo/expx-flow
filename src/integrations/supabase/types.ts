@@ -4433,7 +4433,11 @@ export type Database = {
       lead_master_pool: {
         Row: {
           acquisition_channel: string | null
+          activity_start_date: string | null
           ad_set: string | null
+          address_complement: string | null
+          address_number: string | null
+          address_type: string | null
           annual_revenue: string | null
           assigned_to: string | null
           attended_webinar: boolean | null
@@ -4446,6 +4450,8 @@ export type Database = {
           classification_reason: string | null
           client_type: string | null
           cnae: string | null
+          cnae_code: string | null
+          cnae_description: string | null
           cnpj: string | null
           company_id: string
           company_linkedin: string | null
@@ -4472,6 +4478,7 @@ export type Database = {
           department: string | null
           email: string | null
           email_hash: string | null
+          email_relevance: string | null
           email_type: string | null
           email_verified: boolean | null
           employee_count: string | null
@@ -4502,31 +4509,49 @@ export type Database = {
           lead_cost: number | null
           lead_status: string | null
           lead_validated: boolean | null
+          legal_nature_code: string | null
+          legal_nature_description: string | null
           lgpd_consent: boolean | null
           license_type: string | null
           linkedin_profile: string | null
           main_pain_point: string | null
+          matriz_filial: string | null
+          mei_option: boolean | null
           monthly_revenue: string | null
+          municipality_code: string | null
+          neighborhood: string | null
           original_source: string | null
           pages_visited: Json | null
           partner_sharing_consent: boolean | null
+          partners: string | null
           phone: string | null
+          phone_2: string | null
           phone_hash: string | null
+          phone_relevance: string | null
           phone_verified: boolean | null
           propensity_to_convert: number | null
           purchase_timeline: string | null
+          registration_status_date: string | null
           requested_demo: boolean | null
+          responsible_federative_entity: string | null
           score_authority: number | null
           score_company_fit: number | null
           score_contact_quality: number | null
           score_digital_maturity: number | null
           score_purchase_intent: number | null
+          secondary_cnaes: string | null
           secondary_source: string | null
+          share_capital: number | null
+          simples_exclusion_date: string | null
+          simples_option: boolean | null
+          simples_option_date: string | null
           software_satisfaction: string | null
           software_type: string | null
           software_usage_time: string | null
           specific_source: string | null
           state: string | null
+          state_full_name: string | null
+          street: string | null
           switch_reason: string | null
           tags: Json | null
           total_conversions: number | null
@@ -4547,7 +4572,11 @@ export type Database = {
         }
         Insert: {
           acquisition_channel?: string | null
+          activity_start_date?: string | null
           ad_set?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          address_type?: string | null
           annual_revenue?: string | null
           assigned_to?: string | null
           attended_webinar?: boolean | null
@@ -4560,6 +4589,8 @@ export type Database = {
           classification_reason?: string | null
           client_type?: string | null
           cnae?: string | null
+          cnae_code?: string | null
+          cnae_description?: string | null
           cnpj?: string | null
           company_id: string
           company_linkedin?: string | null
@@ -4586,6 +4617,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           email_hash?: string | null
+          email_relevance?: string | null
           email_type?: string | null
           email_verified?: boolean | null
           employee_count?: string | null
@@ -4616,31 +4648,49 @@ export type Database = {
           lead_cost?: number | null
           lead_status?: string | null
           lead_validated?: boolean | null
+          legal_nature_code?: string | null
+          legal_nature_description?: string | null
           lgpd_consent?: boolean | null
           license_type?: string | null
           linkedin_profile?: string | null
           main_pain_point?: string | null
+          matriz_filial?: string | null
+          mei_option?: boolean | null
           monthly_revenue?: string | null
+          municipality_code?: string | null
+          neighborhood?: string | null
           original_source?: string | null
           pages_visited?: Json | null
           partner_sharing_consent?: boolean | null
+          partners?: string | null
           phone?: string | null
+          phone_2?: string | null
           phone_hash?: string | null
+          phone_relevance?: string | null
           phone_verified?: boolean | null
           propensity_to_convert?: number | null
           purchase_timeline?: string | null
+          registration_status_date?: string | null
           requested_demo?: boolean | null
+          responsible_federative_entity?: string | null
           score_authority?: number | null
           score_company_fit?: number | null
           score_contact_quality?: number | null
           score_digital_maturity?: number | null
           score_purchase_intent?: number | null
+          secondary_cnaes?: string | null
           secondary_source?: string | null
+          share_capital?: number | null
+          simples_exclusion_date?: string | null
+          simples_option?: boolean | null
+          simples_option_date?: string | null
           software_satisfaction?: string | null
           software_type?: string | null
           software_usage_time?: string | null
           specific_source?: string | null
           state?: string | null
+          state_full_name?: string | null
+          street?: string | null
           switch_reason?: string | null
           tags?: Json | null
           total_conversions?: number | null
@@ -4661,7 +4711,11 @@ export type Database = {
         }
         Update: {
           acquisition_channel?: string | null
+          activity_start_date?: string | null
           ad_set?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          address_type?: string | null
           annual_revenue?: string | null
           assigned_to?: string | null
           attended_webinar?: boolean | null
@@ -4674,6 +4728,8 @@ export type Database = {
           classification_reason?: string | null
           client_type?: string | null
           cnae?: string | null
+          cnae_code?: string | null
+          cnae_description?: string | null
           cnpj?: string | null
           company_id?: string
           company_linkedin?: string | null
@@ -4700,6 +4756,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           email_hash?: string | null
+          email_relevance?: string | null
           email_type?: string | null
           email_verified?: boolean | null
           employee_count?: string | null
@@ -4730,31 +4787,49 @@ export type Database = {
           lead_cost?: number | null
           lead_status?: string | null
           lead_validated?: boolean | null
+          legal_nature_code?: string | null
+          legal_nature_description?: string | null
           lgpd_consent?: boolean | null
           license_type?: string | null
           linkedin_profile?: string | null
           main_pain_point?: string | null
+          matriz_filial?: string | null
+          mei_option?: boolean | null
           monthly_revenue?: string | null
+          municipality_code?: string | null
+          neighborhood?: string | null
           original_source?: string | null
           pages_visited?: Json | null
           partner_sharing_consent?: boolean | null
+          partners?: string | null
           phone?: string | null
+          phone_2?: string | null
           phone_hash?: string | null
+          phone_relevance?: string | null
           phone_verified?: boolean | null
           propensity_to_convert?: number | null
           purchase_timeline?: string | null
+          registration_status_date?: string | null
           requested_demo?: boolean | null
+          responsible_federative_entity?: string | null
           score_authority?: number | null
           score_company_fit?: number | null
           score_contact_quality?: number | null
           score_digital_maturity?: number | null
           score_purchase_intent?: number | null
+          secondary_cnaes?: string | null
           secondary_source?: string | null
+          share_capital?: number | null
+          simples_exclusion_date?: string | null
+          simples_option?: boolean | null
+          simples_option_date?: string | null
           software_satisfaction?: string | null
           software_type?: string | null
           software_usage_time?: string | null
           specific_source?: string | null
           state?: string | null
+          state_full_name?: string | null
+          street?: string | null
           switch_reason?: string | null
           tags?: Json | null
           total_conversions?: number | null
