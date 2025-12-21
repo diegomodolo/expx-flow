@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { Tag, Trophy, Medal, Award, Trash2, RefreshCw } from "lucide-react";
@@ -27,6 +28,13 @@ interface SegmentMetrics {
   bronze_count: number;
   descartado_count: number;
   last_lead_at: string | null;
+}
+
+interface RecalculateProgress {
+  segmentId: string;
+  segmentName: string;
+  total: number;
+  processed: number;
 }
 
 // Helper to fetch ALL assignments (paginated to avoid 1000 limit)
@@ -59,7 +67,7 @@ async function fetchAllAssignments(segmentId: string): Promise<string[]> {
 export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps) => {
   const queryClient = useQueryClient();
   const { scoreAndSaveLead } = useLeadScoring();
-  const [recalculatingSegmentId, setRecalculatingSegmentId] = useState<string | null>(null);
+  const [recalculateProgress, setRecalculateProgress] = useState<RecalculateProgress | null>(null);
 
   const { data: segments, isLoading } = useQuery({
     queryKey: ['lead-segments-metrics', companyId],
@@ -144,7 +152,6 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
   });
 
   const handleRecalculateSegmentScores = async (segmentId: string, segmentName: string) => {
-    setRecalculatingSegmentId(segmentId);
     try {
       // Fetch all lead IDs in this segment
       const leadIds = await fetchAllAssignments(segmentId);
@@ -154,7 +161,13 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         return;
       }
 
-      toast.info(`Recalculando scores de ${leadIds.length} leads...`);
+      // Initialize progress
+      setRecalculateProgress({
+        segmentId,
+        segmentName,
+        total: leadIds.length,
+        processed: 0
+      });
 
       // Process in batches to avoid memory issues
       const batchSize = 100;
@@ -175,6 +188,11 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         for (const lead of leadsData || []) {
           await scoreAndSaveLead(lead.id, lead);
           processed++;
+          
+          // Update progress every 10 leads to avoid too many re-renders
+          if (processed % 10 === 0 || processed === leadIds.length) {
+            setRecalculateProgress(prev => prev ? { ...prev, processed } : null);
+          }
         }
       }
 
@@ -185,7 +203,7 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
       console.error('Error recalculating segment scores:', error);
       toast.error('Erro ao recalcular scores do segmento');
     } finally {
-      setRecalculatingSegmentId(null);
+      setRecalculateProgress(null);
     }
   };
 
@@ -203,6 +221,27 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         </CardHeader>
 
         <CardContent>
+          {/* Progress bar when recalculating */}
+          {recalculateProgress && (
+            <div className="mb-6 p-4 border rounded-lg bg-muted/50 animate-fade-in">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">
+                  Recalculando scores: {recalculateProgress.segmentName}
+                </span>
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {recalculateProgress.processed} / {recalculateProgress.total}
+                </span>
+              </div>
+              <Progress 
+                value={(recalculateProgress.processed / recalculateProgress.total) * 100} 
+                className="h-2"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {Math.round((recalculateProgress.processed / recalculateProgress.total) * 100)}% concluído
+              </p>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
@@ -298,10 +337,10 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRecalculateSegmentScores(segment.id, segment.name)}
-                          disabled={recalculatingSegmentId === segment.id}
+                          disabled={recalculateProgress?.segmentId === segment.id}
                           title="Recalcular scores deste segmento"
                         >
-                          <RefreshCw className={`h-4 w-4 ${recalculatingSegmentId === segment.id ? 'animate-spin' : ''}`} />
+                          <RefreshCw className={`h-4 w-4 ${recalculateProgress?.segmentId === segment.id ? 'animate-spin' : ''}`} />
                         </Button>
                       </TableCell>
                     </TableRow>
