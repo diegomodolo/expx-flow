@@ -72,9 +72,10 @@ interface LeadFieldMapperProps {
   columns: string[];
   fieldMapping: Record<string, string>;
   onMappingChange: (mapping: Record<string, string>) => void;
+  sampleRow?: Record<string, unknown>;
 }
 
-export const LeadFieldMapper = ({ columns, fieldMapping, onMappingChange }: LeadFieldMapperProps) => {
+export const LeadFieldMapper = ({ columns, fieldMapping, onMappingChange, sampleRow }: LeadFieldMapperProps) => {
   const handleFieldChange = (column: string, field: string) => {
     const newMapping = { ...fieldMapping };
     if (field === "__none__") {
@@ -111,10 +112,21 @@ export const LeadFieldMapper = ({ columns, fieldMapping, onMappingChange }: Lead
       
       <ScrollArea className="h-[400px] pr-4">
         <div className="space-y-3">
-          {columns.map(column => (
+          {columns.map(column => {
+            const sampleValue = sampleRow?.[column];
+            const displayValue = sampleValue !== undefined && sampleValue !== null && sampleValue !== '' 
+              ? String(sampleValue) 
+              : null;
+            
+            return (
             <div key={column} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{column}</p>
+                {displayValue && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5" title={displayValue}>
+                    {displayValue.length > 50 ? displayValue.substring(0, 50) + '...' : displayValue}
+                  </p>
+                )}
               </div>
               
               <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -160,7 +172,8 @@ export const LeadFieldMapper = ({ columns, fieldMapping, onMappingChange }: Lead
                 </Button>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       </ScrollArea>
     </div>
