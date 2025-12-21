@@ -107,7 +107,11 @@ export const ListaCnaeSettings = () => {
   };
 
   const isConfigured = creditsData?.configured === true;
+  const hasToken = creditsData?.hasToken === true;
   const credits = creditsData?.credits;
+  
+  // Debug log to understand credits structure
+  console.log("Credits data:", creditsData);
 
   return (
     <div className="space-y-6">
@@ -187,18 +191,20 @@ export const ListaCnaeSettings = () => {
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 Carregando...
               </div>
-            ) : credits ? (
+            ) : credits !== null && credits !== undefined ? (
               <div className="space-y-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold text-primary">
-                    {credits.creditos?.toLocaleString('pt-BR') || credits.saldo?.toLocaleString('pt-BR') || '0'}
+                    {typeof credits === 'number' 
+                      ? credits.toLocaleString('pt-BR') 
+                      : '0'}
                   </span>
                   <span className="text-muted-foreground">créditos</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Cada empresa capturada consome 1 crédito. Consultas de CNAEs e Municípios são gratuitas.
                 </p>
-                {(credits.creditos || credits.saldo) < 100 && (
+                {typeof credits === 'number' && credits < 100 && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
@@ -249,13 +255,27 @@ export const ListaCnaeSettings = () => {
             </Alert>
           )}
 
+          {hasToken && (
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 mb-4">
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-sm font-medium">Token já configurado</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Um token já está salvo. Insira um novo token abaixo apenas se quiser substituí-lo.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="token">Token da API</Label>
+            <Label htmlFor="token">
+              {hasToken ? "Novo Token (opcional)" : "Token da API"}
+            </Label>
             <div className="flex gap-2">
               <Input
                 id="token"
                 type={showToken ? "text" : "password"}
-                placeholder="Cole seu token aqui..."
+                placeholder={hasToken ? "Cole um novo token para substituir..." : "Cole seu token aqui..."}
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 className="font-mono"
