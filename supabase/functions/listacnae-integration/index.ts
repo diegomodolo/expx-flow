@@ -295,7 +295,7 @@ serve(async (req) => {
         console.log("ListaCNAE search request:", JSON.stringify(requestBody));
 
         const response = await fetch(`${LISTACNAE_API_URL}/buscar`, {
-          method: "GET",
+          method: "POST",
           headers: {
             "Authorization": `Bearer ${listacnaeToken}`,
             "Content-Type": "application/json",
@@ -362,7 +362,7 @@ serve(async (req) => {
           console.log(`Fetching batch from ListaCNAE (inicio=${inicio})...`);
           
           const response = await fetch(`${LISTACNAE_API_URL}/buscar`, {
-            method: "GET",
+            method: "POST",
             headers: {
               "Authorization": `Bearer ${listacnaeToken}`,
               "Content-Type": "application/json",
