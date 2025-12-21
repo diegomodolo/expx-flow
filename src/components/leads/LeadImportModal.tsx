@@ -164,7 +164,6 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       let segmentId = selectedSegmentId;
       
       if (newSegmentName && !selectedSegmentId) {
-        // Create new segment
         const { data: newSegment, error } = await supabase
           .from('lead_segments')
           .insert({
@@ -181,101 +180,194 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
         if (error) throw error;
         segmentId = newSegment.id;
       }
-      
-      const batchSize = 50;
-      const batches = Math.ceil(rawData.length / batchSize);
-      
-      for (let i = 0; i < batches; i++) {
-        const batch = rawData.slice(i * batchSize, (i + 1) * batchSize);
+
+      setImportProgress(5);
+
+      // STEP 1: Pre-process all leads and calculate hashes in parallel
+      const leadsWithMappedData = rawData.map(row => {
+        const leadData: Record<string, unknown> = {
+          company_id: companyId,
+          created_at: new Date().toISOString(),
+          first_captured_at: new Date().toISOString(),
+          global_score: 0,
+          total_conversions: 0,
+          total_value: 0
+        };
         
-        for (const row of batch) {
-          const leadData: Record<string, unknown> = {
-            company_id: companyId,
-            created_at: new Date().toISOString(),
-            first_captured_at: new Date().toISOString(),
-            global_score: 0,
-            total_conversions: 0,
-            total_value: 0
-          };
-          
-          // Map fields
-          Object.entries(fieldMapping).forEach(([column, field]) => {
-            if (row[column] !== undefined && row[column] !== null && row[column] !== '') {
-              leadData[field] = row[column];
-            }
-          });
-          
-          // Generate hashes for deduplication (MUST await async function)
-          if (leadData.email) {
-            leadData.email_hash = await hashValue(String(leadData.email));
+        Object.entries(fieldMapping).forEach(([column, field]) => {
+          if (row[column] !== undefined && row[column] !== null && row[column] !== '') {
+            leadData[field] = row[column];
           }
-          if (leadData.phone) {
-            leadData.phone_hash = await hashValue(String(leadData.phone));
+        });
+        
+        return leadData;
+      });
+
+      // Filter out leads without identifiable data
+      const validLeads = leadsWithMappedData.filter(
+        lead => lead.full_name || lead.email || lead.phone
+      );
+
+      setImportProgress(10);
+
+      // STEP 2: Calculate all hashes in parallel
+      const leadsWithHashes = await Promise.all(
+        validLeads.map(async (lead) => {
+          const leadWithHash = { ...lead };
+          if (lead.email) {
+            leadWithHash.email_hash = await hashValue(String(lead.email));
           }
-          
-          // Validate required field
-          if (!leadData.full_name && !leadData.email && !leadData.phone) {
-            console.warn("Skipping row - no identifiable data (name, email, or phone):", row);
-            continue;
+          if (lead.phone) {
+            leadWithHash.phone_hash = await hashValue(String(lead.phone));
           }
-          
-          // Check for duplicates
-          let isDuplicate = false;
-          if (leadData.email_hash) {
-            const { data: existing } = await supabase
-              .from('lead_master_pool')
-              .select('id')
-              .eq('company_id', companyId)
-              .eq('email_hash', String(leadData.email_hash))
-              .maybeSingle();
-            if (existing) isDuplicate = true;
-          }
-          
-          if (!isDuplicate && leadData.phone_hash) {
-            const { data: existing } = await supabase
-              .from('lead_master_pool')
-              .select('id')
-              .eq('company_id', companyId)
-              .eq('phone_hash', String(leadData.phone_hash))
-              .maybeSingle();
-            if (existing) isDuplicate = true;
-          }
-          
-          if (isDuplicate) {
-            duplicates++;
-            continue;
-          }
-          
-          // Insert lead
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: newLead, error } = await supabase
+          return leadWithHash;
+        })
+      );
+
+      setImportProgress(20);
+
+      // STEP 3: Fetch ALL existing hashes from database in one query
+      const emailHashes = leadsWithHashes
+        .map(l => l.email_hash)
+        .filter((h): h is string => !!h);
+      
+      const phoneHashes = leadsWithHashes
+        .map(l => l.phone_hash)
+        .filter((h): h is string => !!h);
+
+      // Batch fetch existing hashes (max 1000 per query for performance)
+      const existingEmailHashes = new Set<string>();
+      const existingPhoneHashes = new Set<string>();
+
+      // Fetch email hashes in batches
+      const emailBatchSize = 500;
+      for (let i = 0; i < emailHashes.length; i += emailBatchSize) {
+        const batch = emailHashes.slice(i, i + emailBatchSize);
+        if (batch.length > 0) {
+          const { data: existingEmails } = await supabase
             .from('lead_master_pool')
-            .insert(leadData as any)
-            .select()
-            .single();
+            .select('email_hash')
+            .eq('company_id', companyId)
+            .in('email_hash', batch);
           
-          if (error) {
-            console.error("Error inserting lead:", error, "Lead data:", JSON.stringify(leadData, null, 2));
-            continue;
-          }
+          existingEmails?.forEach(e => {
+            if (e.email_hash) existingEmailHashes.add(e.email_hash);
+          });
+        }
+      }
+
+      // Fetch phone hashes in batches
+      for (let i = 0; i < phoneHashes.length; i += emailBatchSize) {
+        const batch = phoneHashes.slice(i, i + emailBatchSize);
+        if (batch.length > 0) {
+          const { data: existingPhones } = await supabase
+            .from('lead_master_pool')
+            .select('phone_hash')
+            .eq('company_id', companyId)
+            .in('phone_hash', batch);
           
-          imported++;
-          
-          // Assign to segment
-          if (segmentId && newLead) {
-            await supabase
-              .from('lead_segment_assignments')
-              .insert({
-                lead_id: newLead.id,
-                segment_id: segmentId
-              });
-          }
+          existingPhones?.forEach(p => {
+            if (p.phone_hash) existingPhoneHashes.add(p.phone_hash);
+          });
+        }
+      }
+
+      setImportProgress(30);
+
+      // STEP 4: Filter out duplicates locally (no DB queries)
+      const newLeads: Record<string, unknown>[] = [];
+      const seenHashes = new Set<string>();
+
+      for (const lead of leadsWithHashes) {
+        const emailHash = lead.email_hash as string | undefined;
+        const phoneHash = lead.phone_hash as string | undefined;
+        
+        // Check if duplicate in database
+        if (emailHash && existingEmailHashes.has(emailHash)) {
+          duplicates++;
+          continue;
+        }
+        if (phoneHash && existingPhoneHashes.has(phoneHash)) {
+          duplicates++;
+          continue;
         }
         
-        setImportProgress(Math.round(((i + 1) / batches) * 100));
+        // Check if duplicate within this import (same file)
+        const uniqueKey = emailHash || phoneHash || '';
+        if (uniqueKey && seenHashes.has(uniqueKey)) {
+          duplicates++;
+          continue;
+        }
+        if (uniqueKey) seenHashes.add(uniqueKey);
+        
+        newLeads.push(lead);
       }
-      
-      // Log import to history (LGPD compliant - no personal data)
+
+      setImportProgress(40);
+
+      // STEP 5: Batch insert leads
+      const insertBatchSize = 100;
+      const insertedLeadIds: string[] = [];
+      const totalBatches = Math.ceil(newLeads.length / insertBatchSize);
+
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = newLeads.slice(i * insertBatchSize, (i + 1) * insertBatchSize);
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: insertedBatch, error } = await supabase
+          .from('lead_master_pool')
+          .insert(batch as any)
+          .select('id');
+        
+        if (error) {
+          console.error("Batch insert error:", error);
+          // Try inserting one by one for this failed batch
+          for (const lead of batch) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: single, error: singleError } = await supabase
+              .from('lead_master_pool')
+              .insert(lead as any)
+              .select('id')
+              .single();
+            
+            if (!singleError && single) {
+              insertedLeadIds.push(single.id);
+              imported++;
+            } else {
+              console.error("Single insert error:", singleError, lead);
+            }
+          }
+        } else if (insertedBatch) {
+          insertedBatch.forEach(l => insertedLeadIds.push(l.id));
+          imported += insertedBatch.length;
+        }
+        
+        // Update progress (40% to 80%)
+        const progress = 40 + Math.round((i + 1) / totalBatches * 40);
+        setImportProgress(progress);
+      }
+
+      setImportProgress(85);
+
+      // STEP 6: Batch assign to segment
+      if (segmentId && insertedLeadIds.length > 0) {
+        const segmentAssignments = insertedLeadIds.map(leadId => ({
+          lead_id: leadId,
+          segment_id: segmentId
+        }));
+
+        // Insert segment assignments in batches
+        for (let i = 0; i < segmentAssignments.length; i += insertBatchSize) {
+          const batch = segmentAssignments.slice(i, i + insertBatchSize);
+          await supabase
+            .from('lead_segment_assignments')
+            .insert(batch);
+        }
+      }
+
+      setImportProgress(95);
+
+      // Log import to history
       const { data: { user } } = await supabase.auth.getUser();
       await supabase
         .from('lead_import_history')
@@ -290,6 +382,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
           status: 'completed'
         });
       
+      setImportProgress(100);
       setImportResult({ imported, duplicates });
       queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
       queryClient.invalidateQueries({ queryKey: ['lead-pool-stats'] });
@@ -301,7 +394,6 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       console.error("Import error:", error);
       toast.error("Erro durante a importação");
       
-      // Log failed import
       const { data: { user } } = await supabase.auth.getUser();
       await supabase
         .from('lead_import_history')
