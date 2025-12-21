@@ -149,19 +149,25 @@ serve(async (req) => {
         console.log("ListaCNAE credits response:", JSON.stringify(creditsResponse));
         
         // Extract the numeric credits value from the response
-        // The API might return: { creditos: 123 } or just a number
+        // API returns: { mensagem: "...", creditos: { disponivel: 7018, detalhamento: [...] } }
         let creditsValue: number | null = null;
         
         if (typeof creditsResponse === 'number') {
           creditsValue = creditsResponse;
         } else if (typeof creditsResponse === 'object' && creditsResponse !== null) {
-          // Try common field names
-          creditsValue = creditsResponse.creditos ?? 
-                        creditsResponse.credits ?? 
-                        creditsResponse.saldo ?? 
-                        creditsResponse.balance ??
-                        creditsResponse.quantidade ??
-                        null;
+          // Check for nested structure: creditos.disponivel
+          if (creditsResponse.creditos?.disponivel !== undefined) {
+            creditsValue = creditsResponse.creditos.disponivel;
+          } else {
+            // Try common field names as fallback
+            creditsValue = creditsResponse.creditos ?? 
+                          creditsResponse.credits ?? 
+                          creditsResponse.saldo ?? 
+                          creditsResponse.balance ??
+                          creditsResponse.disponivel ??
+                          creditsResponse.quantidade ??
+                          null;
+          }
         }
         
         return new Response(JSON.stringify({ 
