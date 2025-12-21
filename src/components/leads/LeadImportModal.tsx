@@ -449,6 +449,7 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
       queryClient.invalidateQueries({ queryKey: ['lead-pool-stats'] });
       queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['lead-import-history'] });
       
       toast.success(`${imported} leads importados com sucesso!`);
