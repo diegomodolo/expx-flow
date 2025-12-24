@@ -1,17 +1,29 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trophy, Medal, Award, Trash2, RefreshCw } from "lucide-react";
+import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Database, Search, LayoutGrid } from "lucide-react";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ListaCnaeSegmentModal } from "./ListaCnaeSegmentModal";
+import { ListaCnaeImportModal } from "./ListaCnaeImportModal";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface LeadSegmentsDashboardProps {
-  companyId: string;
+  companyId?: string;
 }
 
 interface SegmentMetrics {
@@ -20,6 +32,8 @@ interface SegmentMetrics {
   color: string;
   icon: string;
   description: string | null;
+  segment_type: string;
+  cnaes: string[];
   lead_count: number;
   avg_score: number;
   total_value: number;
@@ -28,6 +42,7 @@ interface SegmentMetrics {
   bronze_count: number;
   descartado_count: number;
   last_lead_at: string | null;
+  created_at: string;
 }
 
 interface RecalculateProgress {
@@ -36,6 +51,21 @@ interface RecalculateProgress {
   total: number;
   processed: number;
 }
+
+interface FormData {
+  name: string;
+  description: string;
+  segment_type: string;
+  cnaes: string[];
+}
+
+const SEGMENT_TYPES = [
+  { value: 'sector', label: 'Setor' },
+  { value: 'behavior', label: 'Comportamento' },
+  { value: 'location', label: 'Localização' },
+  { value: 'value', label: 'Valor' },
+  { value: 'custom', label: 'Personalizado' },
+];
 
 // Helper to fetch ALL assignments (paginated to avoid 1000 limit)
 async function fetchAllAssignments(segmentId: string): Promise<string[]> {
@@ -64,13 +94,26 @@ async function fetchAllAssignments(segmentId: string): Promise<string[]> {
   return allLeadIds;
 }
 
-export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps) => {
+export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegmentsDashboardProps) => {
+  const { activeCompany } = useCompany();
+  const companyId = propCompanyId || activeCompany?.company_id;
+  
   const queryClient = useQueryClient();
   const { scoreAndSaveLead } = useLeadScoring();
   const [recalculateProgressMap, setRecalculateProgressMap] = useState<Map<string, RecalculateProgress>>(new Map());
 
+  // Form state for create/edit dialog
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<FormData>({ name: '', description: '', segment_type: 'custom', cnaes: [] });
+  const [cnaeInput, setCnaeInput] = useState('');
+
+  // Modal states
+  const [isListaCnaeModalOpen, setIsListaCnaeModalOpen] = useState(false);
+  const [importModalSegment, setImportModalSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
+
   const { data: segments, isLoading } = useQuery({
-    queryKey: ['lead-segments-metrics', companyId],
+    queryKey: ['lead-segments-dashboard', companyId],
     queryFn: async () => {
       if (!companyId) return [];
 
@@ -91,6 +134,7 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         if (leadIds.length === 0) {
           return {
             ...segment,
+            cnaes: segment.cnaes || [],
             lead_count: 0,
             avg_score: 0,
             total_value: 0,
@@ -135,6 +179,7 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
 
         return {
           ...segment,
+          cnaes: segment.cnaes || [],
           lead_count: leads.length,
           avg_score: avgScore,
           total_value: totalValue,
@@ -151,15 +196,116 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
     enabled: !!companyId
   });
 
+  // Mutations for CRUD
+  const createMutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      if (!companyId) throw new Error("Empresa não encontrada");
+      const { error } = await supabase
+        .from('lead_segments')
+        .insert({ 
+          company_id: companyId, 
+          name: data.name, 
+          description: data.description || null, 
+          segment_type: data.segment_type,
+          cnaes: data.cnaes
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] }); 
+      resetForm(); 
+      toast.success("Segmento criado!"); 
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: FormData }) => {
+      const { error } = await supabase
+        .from('lead_segments')
+        .update({ 
+          name: data.name, 
+          description: data.description || null, 
+          segment_type: data.segment_type,
+          cnaes: data.cnaes
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] }); 
+      resetForm(); 
+      toast.success("Segmento atualizado!"); 
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => { 
+      const { error } = await supabase.from('lead_segments').delete().eq('id', id); 
+      if (error) throw error; 
+    },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] }); 
+      toast.success("Segmento removido!"); 
+    }
+  });
+
+  const resetForm = () => { 
+    setFormData({ name: '', description: '', segment_type: 'custom', cnaes: [] }); 
+    setCnaeInput('');
+    setEditingId(null); 
+    setIsDialogOpen(false); 
+  };
+
+  const handleEdit = (seg: SegmentMetrics) => { 
+    setEditingId(seg.id); 
+    setFormData({ 
+      name: seg.name, 
+      description: seg.description || '', 
+      segment_type: seg.segment_type,
+      cnaes: seg.cnaes || []
+    }); 
+    setCnaeInput('');
+    setIsDialogOpen(true); 
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name.trim()) { toast.error("Digite um nome"); return; }
+    if (editingId) updateMutation.mutate({ id: editingId, data: formData });
+    else createMutation.mutate(formData);
+  };
+
+  const handleAddCnae = () => {
+    const cnae = cnaeInput.trim().replace(/\D/g, '');
+    if (!cnae) return;
+    if (formData.cnaes.includes(cnae)) {
+      toast.error("CNAE já adicionado");
+      return;
+    }
+    setFormData(prev => ({ ...prev, cnaes: [...prev.cnaes, cnae] }));
+    setCnaeInput('');
+  };
+
+  const handleRemoveCnae = (cnaeToRemove: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      cnaes: prev.cnaes.filter(c => c !== cnaeToRemove) 
+    }));
+  };
+
+  const handleCnaeKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCnae();
+    }
+  };
+
   const handleRecalculateSegmentScores = async (segmentId: string, segmentName: string) => {
-    // Check if already recalculating this segment
     if (recalculateProgressMap.has(segmentId)) {
       toast.info(`Segmento "${segmentName}" já está sendo recalculado.`);
       return;
     }
 
     try {
-      // Fetch all lead IDs in this segment
       const leadIds = await fetchAllAssignments(segmentId);
 
       if (leadIds.length === 0) {
@@ -167,7 +313,6 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         return;
       }
 
-      // Initialize progress for this segment
       setRecalculateProgressMap(prev => {
         const newMap = new Map(prev);
         newMap.set(segmentId, {
@@ -179,14 +324,11 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
         return newMap;
       });
 
-      // Process in batches to avoid memory issues
       const batchSize = 100;
       let processed = 0;
 
       for (let i = 0; i < leadIds.length; i += batchSize) {
         const batchIds = leadIds.slice(i, i + batchSize);
-
-        // Fetch lead data for this batch
         const { data: leadsData, error } = await supabase
           .from('lead_master_pool')
           .select('*')
@@ -194,12 +336,10 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
 
         if (error) throw error;
 
-        // Score each lead
         for (const lead of leadsData || []) {
           await scoreAndSaveLead(lead.id, lead);
           processed++;
           
-          // Update progress every 10 leads to avoid too many re-renders
           if (processed % 10 === 0 || processed === leadIds.length) {
             const currentProcessed = processed;
             setRecalculateProgressMap(prev => {
@@ -215,13 +355,12 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
       }
 
       toast.success(`${processed} leads do segmento "${segmentName}" recalculados!`);
-      queryClient.invalidateQueries({ queryKey: ['lead-segments-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
     } catch (error) {
       console.error('Error recalculating segment scores:', error);
       toast.error(`Erro ao recalcular scores do segmento "${segmentName}"`);
     } finally {
-      // Remove this segment from progress map
       setRecalculateProgressMap(prev => {
         const newMap = new Map(prev);
         newMap.delete(segmentId);
@@ -234,17 +373,130 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5" />
-            Visão por Segmentos
-          </CardTitle>
-          <CardDescription>
-            Métricas agregadas por segmento de leads
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutGrid className="h-5 w-5" />
+                Visão por Segmentos
+              </CardTitle>
+              <CardDescription>
+                Métricas agregadas e gerenciamento de segmentos
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsListaCnaeModalOpen(true)}>
+                <Database className="h-4 w-4 mr-2" />
+                Novo Segmento com CNAE
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsDialogOpen(o); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="h-4 w-4 mr-2" />Novo Segmento</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>{editingId ? "Editar" : "Criar"} Segmento</DialogTitle>
+                    <DialogDescription>Segmentos organizam leads por características.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Nome</Label>
+                      <Input 
+                        placeholder="Ex: Leads Quentes" 
+                        value={formData.name} 
+                        onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Tipo</Label>
+                      <Select 
+                        value={formData.segment_type} 
+                        onValueChange={(v) => setFormData(p => ({ ...p, segment_type: v }))}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {SEGMENT_TYPES.map(t => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Descrição</Label>
+                      <Textarea 
+                        placeholder="Descreva..." 
+                        value={formData.description} 
+                        onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} 
+                        rows={2} 
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        CNAEs (para integração ListaCNAE)
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Digite o código CNAE (ex: 6201501)"
+                          value={cnaeInput}
+                          onChange={(e) => setCnaeInput(e.target.value)}
+                          onKeyDown={handleCnaeKeyDown}
+                          className="font-mono"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleAddCnae}
+                          disabled={!cnaeInput.trim()}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Adicione os CNAEs relacionados a este segmento para usar na importação via ListaCNAE
+                      </p>
+                      
+                      {formData.cnaes.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.cnaes.map((cnae) => (
+                            <Badge 
+                              key={cnae} 
+                              variant="secondary" 
+                              className="flex items-center gap-1 font-mono"
+                            >
+                              {cnae}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCnae(cnae)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={resetForm}>Cancelar</Button>
+                    <Button 
+                      onClick={handleSubmit} 
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                    >
+                      {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
-          {/* Progress cards when recalculating (supports multiple in parallel) */}
+          {/* Progress cards when recalculating */}
           {recalculateProgressMap.size > 0 && (
             <div className="mb-6 space-y-3">
               {Array.from(recalculateProgressMap.values()).map((progress) => (
@@ -282,14 +534,21 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                 <TableHeader>
                   <TableRow>
                     <TableHead>Segmento</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-center">CNAEs</TableHead>
                     <TableHead className="text-right">Leads</TableHead>
                     <TableHead className="text-right">Score médio</TableHead>
                     <TableHead className="text-right">Valor total</TableHead>
-                    <TableHead className="text-right">Ouro</TableHead>
-                    <TableHead className="text-right">Prata</TableHead>
-                    <TableHead className="text-right">Bronze</TableHead>
-                    <TableHead className="text-right">Descartado</TableHead>
-                    <TableHead className="text-right">Último lead</TableHead>
+                    <TableHead className="text-right">
+                      <Trophy className="h-4 w-4 inline text-yellow-500" />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <Medal className="h-4 w-4 inline text-slate-400" />
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <Award className="h-4 w-4 inline text-amber-600" />
+                    </TableHead>
+                    <TableHead className="text-right">Criado</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -318,6 +577,23 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                         </div>
                       </TableCell>
 
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {SEGMENT_TYPES.find(t => t.value === segment.segment_type)?.label || segment.segment_type}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        {segment.cnaes && segment.cnaes.length > 0 ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <Building2 className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">{segment.cnaes.length}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+
                       <TableCell className="text-right">
                         <Badge variant="secondary" className="tabular-nums">
                           {segment.lead_count}
@@ -330,48 +606,82 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
                         R$ {segment.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                       </TableCell>
 
-                      <TableCell className="text-right tabular-nums">
-                        <span className="inline-flex items-center justify-end gap-1">
-                          <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                          {segment.ouro_count}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="text-right tabular-nums">
-                        <span className="inline-flex items-center justify-end gap-1">
-                          <Medal className="h-3.5 w-3.5 text-slate-400" />
-                          {segment.prata_count}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="text-right tabular-nums">
-                        <span className="inline-flex items-center justify-end gap-1">
-                          <Award className="h-3.5 w-3.5 text-amber-600" />
-                          {segment.bronze_count}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="text-right tabular-nums">
-                        <span className="inline-flex items-center justify-end gap-1">
-                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                          {segment.descartado_count}
-                        </span>
-                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{segment.ouro_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{segment.prata_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{segment.bronze_count}</TableCell>
 
                       <TableCell className="text-right text-sm text-muted-foreground">
-                        {segment.last_lead_at ? new Date(segment.last_lead_at).toLocaleDateString('pt-BR') : '—'}
+                        {format(new Date(segment.created_at), "dd/MM/yy", { locale: ptBR })}
                       </TableCell>
 
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRecalculateSegmentScores(segment.id, segment.name)}
-                          disabled={recalculateProgressMap.has(segment.id)}
-                          title="Recalcular scores deste segmento"
-                        >
-                          <RefreshCw className={`h-4 w-4 ${recalculateProgressMap.has(segment.id) ? 'animate-spin' : ''}`} />
-                        </Button>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <TooltipProvider delayDuration={300}>
+                            {segment.cnaes && segment.cnaes.length > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost"
+                                    onClick={() => setImportModalSegment({ id: segment.id, name: segment.name, cnaes: segment.cnaes })}
+                                  >
+                                    <Search className="h-4 w-4 text-primary" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Buscar leads na ListaCNAE</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRecalculateSegmentScores(segment.id, segment.name)}
+                                  disabled={recalculateProgressMap.has(segment.id)}
+                                >
+                                  <RefreshCw className={`h-4 w-4 ${recalculateProgressMap.has(segment.id) ? 'animate-spin' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Recalcular scores</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" onClick={() => handleEdit(segment)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Editar segmento</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover segmento?</AlertDialogTitle>
+                                <AlertDialogDescription>Os leads não serão removidos, apenas o segmento.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteMutation.mutate(segment.id)} 
+                                  className="bg-destructive text-destructive-foreground"
+                                >
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -382,11 +692,30 @@ export const LeadSegmentsDashboard = ({ companyId }: LeadSegmentsDashboardProps)
             <div className="text-center py-8 text-muted-foreground">
               <Tag className="h-12 w-12 mx-auto mb-4 opacity-20" />
               <p>Nenhum segmento encontrado</p>
-              <p className="text-sm">Crie segmentos na aba "Segmentos" para visualizar métricas agregadas</p>
+              <p className="text-sm">Crie segmentos usando os botões acima</p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* ListaCNAE Segment Modal */}
+      {companyId && (
+        <ListaCnaeSegmentModal
+          open={isListaCnaeModalOpen}
+          onOpenChange={setIsListaCnaeModalOpen}
+          companyId={companyId}
+        />
+      )}
+
+      {/* Import Modal for existing segment */}
+      {companyId && importModalSegment && (
+        <ListaCnaeImportModal
+          open={!!importModalSegment}
+          onOpenChange={(open) => !open && setImportModalSegment(null)}
+          companyId={companyId}
+          segment={importModalSegment}
+        />
+      )}
     </div>
   );
 };
