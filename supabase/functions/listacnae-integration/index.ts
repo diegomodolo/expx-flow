@@ -353,46 +353,42 @@ serve(async (req) => {
         }
 
         const maxLeads = filters.per_page || 100;
-        let inicio = 0;
         let totalImported = 0;
         let totalDuplicates = 0;
-        let hasMore = true;
-        // Use smaller batch size to avoid timeout
-        const batchSize = Math.min(100, maxLeads);
+        
+        // IMPORTANT: Request exactly the amount needed in ONE request to avoid multiple API calls
+        // Each API call consumes credits, so we should minimize the number of calls
+        const queryString = buildListaCnaeQueryString(filters, 0, maxLeads);
+        const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
+        
+        console.log(`Fetching ${maxLeads} leads from ListaCNAE in single request...`);
+        
+        const response = await fetch(searchUrl, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${listacnaeToken}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-        while (hasMore && totalImported + totalDuplicates < maxLeads) {
-          const remainingLeads = maxLeads - (totalImported + totalDuplicates);
-          const currentBatchSize = Math.min(batchSize, remainingLeads);
-          
-          const queryString = buildListaCnaeQueryString(filters, inicio, currentBatchSize);
-          const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
-          
-          console.log(`Fetching batch from ListaCNAE (inicio=${inicio}, quantidade=${currentBatchSize})...`);
-          
-          const response = await fetch(searchUrl, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${listacnaeToken}`,
-              "Content-Type": "application/json",
-            },
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("ListaCNAE import error:", errorText);
+          return new Response(JSON.stringify({ 
+            error: "Erro ao buscar empresas na ListaCNAE",
+            details: errorText
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
+        }
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("ListaCNAE import error:", errorText);
-            break;
-          }
+        const result = await response.json();
+        const empresas: ListaCnaeEmpresa[] = result.dados || result.empresas || result.data || [];
+        
+        console.log(`Received ${empresas.length} companies from API`);
 
-          const result = await response.json();
-          const empresas: ListaCnaeEmpresa[] = result.dados || result.empresas || result.data || [];
-
-          if (empresas.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          console.log(`Processing ${empresas.length} companies...`);
-
+        if (empresas.length > 0) {
           // Get all CNPJs to check for duplicates in one query
           const cnpjs = empresas.map(e => e.cnpj);
           const { data: existingLeads } = await supabase
@@ -451,6 +447,7 @@ serve(async (req) => {
           // Batch insert new leads
           let newLeadIds: string[] = [];
           if (newLeadsData.length > 0) {
+            console.log(`Inserting ${newLeadsData.length} new leads...`);
             const { data: insertedLeads, error: insertError } = await supabase
               .from("lead_master_pool")
               .insert(newLeadsData)
@@ -460,14 +457,15 @@ serve(async (req) => {
               console.error("Error batch inserting leads:", insertError);
             } else {
               newLeadIds = (insertedLeads || []).map(l => l.id);
-              totalImported += newLeadIds.length;
-              console.log(`Inserted ${newLeadIds.length} new leads`);
+              totalImported = newLeadIds.length;
+              console.log(`Inserted ${totalImported} new leads`);
             }
           }
 
           // Batch create segment assignments for all leads (new + existing)
           const allLeadIds = [...newLeadIds, ...existingLeadIds];
           if (allLeadIds.length > 0) {
+            console.log(`Creating ${allLeadIds.length} segment assignments...`);
             const assignmentsData = allLeadIds.map(leadId => ({
               lead_id: leadId,
               segment_id,
@@ -486,14 +484,6 @@ serve(async (req) => {
               console.error("Error batch assigning to segment:", assignError);
             }
           }
-
-          // Check if there are more results
-          const totalFromApi = result.quantidade_encontrada || result.total || result.totalRegistros || 0;
-          if (inicio + empresas.length >= totalFromApi || inicio + empresas.length >= maxLeads) {
-            hasMore = false;
-          }
-          
-          inicio += currentBatchSize;
         }
 
         console.log(`Import complete: ${totalImported} imported, ${totalDuplicates} duplicates`);
