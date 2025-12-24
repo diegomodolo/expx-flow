@@ -100,7 +100,9 @@ const FAKE_EMAIL_PATTERNS = [
 // Keyboard sequence patterns (qwerty, asdf, etc)
 const KEYBOARD_SEQUENCES = ['qwerty', 'asdfgh', 'zxcvbn', 'qazwsx', 'asdf', 'qwer', 'zxcv'];
 
-function isValidBusinessEmail(email: string | null | undefined): boolean {
+// Validação de email FLEXÍVEL - aceita qualquer email válido (incluindo genéricos)
+// Apenas rejeita emails claramente falsos/teste
+function isValidEmail(email: string | null | undefined): boolean {
   if (!email || typeof email !== 'string') return false;
   
   const emailLower = email.toLowerCase().trim();
@@ -113,39 +115,16 @@ function isValidBusinessEmail(email: string | null | undefined): boolean {
   const [localPart, domain] = emailLower.split('@');
   if (!domain || !localPart) return false;
   
-  // Check if it's a generic domain
-  if (GENERIC_EMAIL_DOMAINS.includes(domain)) return false;
-  
-  // Check for fake/test email patterns
+  // Check for fake/test email patterns ONLY
   for (const pattern of FAKE_EMAIL_PATTERNS) {
     if (pattern.test(emailLower)) return false;
   }
   
   // Local part too short (a@, ab@)
-  if (localPart.length < 3) return false;
+  if (localPart.length < 2) return false;
   
   // Check for repeated characters (aaa@, bbb@, xxx@, 111@)
   if (/^(.)\1{2,}$/.test(localPart)) return false;
-  
-  // Check for mostly repeated characters (aaab@, xxxy@)
-  if (/^(.)\1+.?$/.test(localPart) && localPart.length < 5) return false;
-  
-  // Check for keyboard sequences
-  for (const seq of KEYBOARD_SEQUENCES) {
-    if (localPart.includes(seq)) return false;
-  }
-  
-  // Check for only numbers (123456@)
-  if (/^\d+$/.test(localPart)) return false;
-  
-  // Check for random consonant clusters (no vowels = likely fake)
-  // Needs at least one vowel if local part is longer than 4 chars
-  if (localPart.length > 4 && !/[aeiou]/i.test(localPart)) return false;
-  
-  // Check for excessive numbers mixed with few letters (a1b2c3d4@)
-  const letterCount = (localPart.match(/[a-z]/gi) || []).length;
-  const numberCount = (localPart.match(/[0-9]/g) || []).length;
-  if (numberCount > letterCount && localPart.length > 5) return false;
   
   return true;
 }
@@ -276,13 +255,13 @@ export function useLeadScoring() {
       dimensionScores.digital_maturity * weights.weight_digital_maturity
     );
 
-    // Check if lead has valid business email AND valid phone
-    const hasBusinessEmail = isValidBusinessEmail(leadData.email);
+    // Check if lead has valid email AND valid phone (flexível para ListaCNAE)
+    const hasValidEmailData = isValidEmail(leadData.email);
     const hasValidPhone = isValidBrazilianPhone(leadData.phone || leadData.whatsapp);
-    const hasValidContact = hasBusinessEmail && hasValidPhone;
+    const hasValidContact = hasValidEmailData && hasValidPhone;
 
     // Check for invalid/fake contact data
-    const hasInvalidEmail = !hasBusinessEmail && leadData.email;
+    const hasInvalidEmail = !hasValidEmailData && leadData.email;
     const hasInvalidPhone = !hasValidPhone && (leadData.phone || leadData.whatsapp);
     const hasBothInvalidContacts = hasInvalidEmail && hasInvalidPhone;
 
