@@ -2,8 +2,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
-const ideogramApiKey = Deno.env.get('IDEOGRAM_API_KEY')!;
+
+// Brasília timezone offset (UTC-3)
+const BRASILIA_OFFSET_MS = -3 * 60 * 60 * 1000;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -12,15 +15,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to calculate next post time
+// Helper to get current time in Brasília
+function getNowInBrasilia(): Date {
+  const now = new Date();
+  // Convert UTC to Brasília time
+  return new Date(now.getTime() + BRASILIA_OFFSET_MS);
+}
+
+// Helper to convert Brasília time to UTC for storage
+function brasiliaToUTC(brasiliaDate: Date): Date {
+  return new Date(brasiliaDate.getTime() - BRASILIA_OFFSET_MS);
+}
+
+// Helper function to calculate next post time (in Brasília, returns UTC)
 function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[]): Date {
   if (!scheduledDays.length || !scheduledHours.length) {
     throw new Error('No scheduled days or hours configured');
   }
 
-  const now = new Date();
-  const currentDay = now.getDay(); // 0 = Sunday
-  const currentHour = now.getHours();
+  // Get current time in Brasília
+  const nowBrasilia = getNowInBrasilia();
+  const currentDay = nowBrasilia.getDay(); // 0 = Sunday
+  const currentHour = nowBrasilia.getHours();
+
+  console.log(`Current Brasília time: ${nowBrasilia.toISOString()}, day: ${currentDay}, hour: ${currentHour}`);
 
   // Sort hours for proper iteration
   const sortedHours = [...scheduledHours].sort((a, b) => a - b);
@@ -29,9 +47,10 @@ function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[]
   if (scheduledDays.includes(currentDay)) {
     for (const hour of sortedHours) {
       if (hour > currentHour) {
-        const nextPost = new Date(now);
+        const nextPost = new Date(nowBrasilia);
         nextPost.setHours(hour, 0, 0, 0);
-        return nextPost;
+        console.log(`Next post in Brasília: ${nextPost.toISOString()}`);
+        return brasiliaToUTC(nextPost); // Return UTC for storage
       }
     }
   }
@@ -40,10 +59,11 @@ function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[]
   for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
     const futureDay = (currentDay + daysAhead) % 7;
     if (scheduledDays.includes(futureDay)) {
-      const nextPost = new Date(now);
-      nextPost.setDate(now.getDate() + daysAhead);
+      const nextPost = new Date(nowBrasilia);
+      nextPost.setDate(nowBrasilia.getDate() + daysAhead);
       nextPost.setHours(sortedHours[0], 0, 0, 0);
-      return nextPost;
+      console.log(`Next post in Brasília: ${nextPost.toISOString()}`);
+      return brasiliaToUTC(nextPost); // Return UTC for storage
     }
   }
 
@@ -157,65 +177,96 @@ Responda APENAS com o prompt em inglês para geração de imagem.`
     const imagePrompt = imagePromptData.choices[0].message.content.trim();
     console.log('Generated image prompt:', imagePrompt.substring(0, 100) + '...');
 
-    // Generate image with Ideogram
-    const ideogramRequestBody: any = {
-      image_request: {
-        prompt: imagePrompt + ' Professional photography, high quality, Instagram-ready, square format, no text, ultra detailed.',
-        aspect_ratio: 'ASPECT_1_1',
-        model: 'V_2_TURBO',
-        magic_prompt_option: 'ON',
-        negative_prompt: 'text, watermark, logo, words, letters, blurry, low quality, distorted',
-        style_type: 'REALISTIC'
-      }
-    };
+    // Generate image with Gemini Nano Banana (google/gemini-2.5-flash-image)
+    console.log('Generating image with Gemini Nano Banana...');
+    
+    const geminiPrompt = `${imagePrompt}
 
-    // Add style references if available
-    if (referenceImages.length > 0) {
-      console.log('Adding reference images to Ideogram request');
-      
-      // Fetch and convert reference images to base64
-      const styleReferences = [];
-      for (const imageUrl of referenceImages.slice(0, 2)) { // Max 2 references
-        try {
-          const imageResponse = await fetch(imageUrl);
-          if (imageResponse.ok) {
-            const imageBuffer = await imageResponse.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-            styleReferences.push({
-              weight: 0.5,
-              image_base64: base64
-            });
-          }
-        } catch (e) {
-          console.warn('Failed to fetch reference image:', e);
-        }
-      }
+Create a professional, high-quality Instagram post image. Format: square 1:1 aspect ratio. 
+Style: Professional photography, vibrant colors, engaging visual composition.
+Important: Do NOT include any text, watermarks, or logos in the image.`;
 
-      if (styleReferences.length > 0) {
-        ideogramRequestBody.image_request.style_reference_images = styleReferences;
-      }
-    }
-
-    const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
+    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Api-Key': ideogramApiKey,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(ideogramRequestBody),
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image',
+        messages: [
+          {
+            role: 'user',
+            content: geminiPrompt
+          }
+        ]
+      }),
     });
 
-    if (!ideogramResponse.ok) {
-      const errorText = await ideogramResponse.text();
-      console.error('Ideogram error:', errorText);
-      throw new Error(`Ideogram API error: ${ideogramResponse.status}`);
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error('Gemini Nano Banana error:', errorText);
+      throw new Error(`Gemini API error: ${geminiResponse.status}`);
     }
 
-    const ideogramData = await ideogramResponse.json();
-    const imageUrl = ideogramData.data?.[0]?.url;
+    const geminiData = await geminiResponse.json();
+    console.log('Gemini response structure:', JSON.stringify(Object.keys(geminiData)));
+    
+    // Extract image from Gemini response
+    let imageUrl: string | null = null;
+    
+    // Check for inline_data (base64 image) in the response
+    const content = geminiData.choices?.[0]?.message?.content;
+    if (content && typeof content === 'object' && content.parts) {
+      for (const part of content.parts) {
+        if (part.inline_data?.mime_type?.startsWith('image/')) {
+          // Upload base64 to Supabase Storage
+          const base64Data = part.inline_data.data;
+          const mimeType = part.inline_data.mime_type;
+          const extension = mimeType.split('/')[1] || 'png';
+          const fileName = `instagram-auto-posts/${configId}/${Date.now()}.${extension}`;
+          
+          // Decode base64 and upload
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('ai-generated-images')
+            .upload(fileName, bytes, {
+              contentType: mimeType,
+              upsert: true
+            });
+          
+          if (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            throw new Error('Failed to upload generated image');
+          }
+          
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('ai-generated-images')
+            .getPublicUrl(fileName);
+          
+          imageUrl = urlData.publicUrl;
+          break;
+        }
+      }
+    }
+    
+    // Fallback: check if response contains URL directly
+    if (!imageUrl && typeof content === 'string' && content.includes('http')) {
+      const urlMatch = content.match(/https?:\/\/[^\s"']+\.(png|jpg|jpeg|webp)/i);
+      if (urlMatch) {
+        imageUrl = urlMatch[0];
+      }
+    }
 
     if (!imageUrl) {
-      throw new Error('No image URL returned from Ideogram');
+      console.error('Full Gemini response:', JSON.stringify(geminiData));
+      throw new Error('No image generated from Gemini Nano Banana');
     }
 
     console.log('Image generated:', imageUrl);
