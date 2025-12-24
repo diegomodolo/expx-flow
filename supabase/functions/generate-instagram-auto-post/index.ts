@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
 
     console.log('Reference images count:', referenceImages.length);
 
-    // Generate image prompt based on briefings
+    // Generate image prompt based on post briefing ONLY (ignoring client ai_briefing)
     const imagePromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -169,14 +169,11 @@ REGRAS OBRIGATÓRIAS:
             role: 'user',
             content: `Crie UM prompt para gerar uma imagem (sem texto) de post Instagram com base nestes dados:
 
-CLIENTE:
-- Nome: ${client.name}
-- Setor: ${client.sector}
-- Público-alvo: ${client.target_audience || 'Geral'}
-- Briefing: ${client.ai_briefing || 'Sem briefing específico'}
-
-TEMA DO POST:
+BRIEFING DA POSTAGEM:
 ${config.post_briefing}
+
+SETOR: ${client.sector}
+PÚBLICO-ALVO: ${client.target_audience || 'Geral'}
 
 Requisitos:
 - Formato quadrado 1:1 para Instagram feed
@@ -201,15 +198,35 @@ Responda APENAS com o prompt em inglês.`
 
     // Generate image with Gemini Nano Banana (google/gemini-2.5-flash-image-preview)
     console.log('Generating image with Gemini Nano Banana...');
+    console.log('Reference images to send:', referenceImages.length);
     
+    // Build message content with reference images
+    const messageContent: any[] = [];
+    
+    // Add reference images first so Gemini uses them as style reference
+    for (const refImageUrl of referenceImages) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: { url: refImageUrl }
+      });
+    }
+    
+    // Add the text prompt
     const geminiPrompt = `Generate a square 1:1 Instagram feed image.
 
 ${imagePrompt}
+
+${referenceImages.length > 0 ? 'IMPORTANT: Use the reference images above as style guide. Match their visual identity, color palette, and aesthetic style.' : ''}
 
 STRICT RULES:
 - DO NOT include any text, letters, numbers, symbols, typography, quotes, watermarks, logos, or @handles.
 - If the prompt above mentions any text/quotes/typography/@handles, IGNORE those parts.
 - Return an image only.`;
+
+    messageContent.push({
+      type: 'text',
+      text: geminiPrompt
+    });
 
     const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -222,7 +239,7 @@ STRICT RULES:
         messages: [
           {
             role: 'user',
-            content: geminiPrompt
+            content: messageContent
           }
         ],
         modalities: ['image', 'text']
@@ -330,7 +347,7 @@ STRICT RULES:
     const imageUrl = urlData.publicUrl;
     console.log('Image uploaded to storage:', imageUrl);
 
-    // Generate caption with GPT
+    // Generate caption with GPT (using ONLY post briefing, not client briefing)
     const captionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -348,14 +365,11 @@ STRICT RULES:
             role: 'user',
             content: `Crie uma legenda para post do Instagram:
 
-CLIENTE:
-- Nome: ${client.name}
-- Setor: ${client.sector}
-- Público-alvo: ${client.target_audience || 'Geral'}
-- Briefing: ${client.ai_briefing || 'Sem briefing específico'}
-
-TEMA DO POST:
+BRIEFING DA POSTAGEM:
 ${config.post_briefing}
+
+SETOR: ${client.sector}
+PÚBLICO-ALVO: ${client.target_audience || 'Geral'}
 
 REQUISITOS:
 - 150-280 caracteres
