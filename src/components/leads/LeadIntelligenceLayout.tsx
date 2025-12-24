@@ -3,7 +3,6 @@ import { useLocation, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { 
   Users, 
-  Tags, 
   Key, 
   LayoutGrid, 
   History, 
@@ -26,13 +25,7 @@ const navItems = [
     title: "Visão por Segmento",
     href: "/lead-intelligence/segments-view",
     icon: LayoutGrid,
-    description: "Dashboard por segmento"
-  },
-  {
-    title: "Gerenciar Segmentos",
-    href: "/lead-intelligence/segments",
-    icon: Tags,
-    description: "Criar e editar segmentos"
+    description: "Dashboard e gerenciamento"
   },
   {
     title: "Histórico",
