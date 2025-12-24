@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
+import { useLeadScoring } from "@/hooks/useLeadScoring";
 
 interface LeadImportModalProps {
   open: boolean;
@@ -24,6 +25,7 @@ type Step = "upload" | "mapping" | "confirm";
 
 export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportModalProps) => {
   const queryClient = useQueryClient();
+  const { scoreAllCompanyLeads } = useLeadScoring();
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [rawData, setRawData] = useState<Record<string, unknown>[]>([]);
@@ -453,6 +455,22 @@ export const LeadImportModal = ({ open, onOpenChange, companyId }: LeadImportMod
       queryClient.invalidateQueries({ queryKey: ['lead-import-history'] });
       
       toast.success(`${imported} leads importados com sucesso!`);
+      
+      // Recalcular scores em segundo plano após importação
+      if (imported > 0) {
+        toast.info("Recalculando scores dos leads em segundo plano...");
+        scoreAllCompanyLeads()
+          .then((scoredCount) => {
+            queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
+            queryClient.invalidateQueries({ queryKey: ['lead-classification-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
+            toast.success(`${scoredCount} leads recalculados com sucesso!`);
+          })
+          .catch((err) => {
+            console.error("Error recalculating scores:", err);
+            toast.error("Erro ao recalcular scores dos leads");
+          });
+      }
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Erro durante a importação");
