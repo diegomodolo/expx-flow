@@ -177,7 +177,7 @@ Responda APENAS com o prompt em inglês para geração de imagem.`
     const imagePrompt = imagePromptData.choices[0].message.content.trim();
     console.log('Generated image prompt:', imagePrompt.substring(0, 100) + '...');
 
-    // Generate image with Gemini Nano Banana (google/gemini-2.5-flash-image)
+    // Generate image with Gemini Nano Banana (google/gemini-2.5-flash-image-preview)
     console.log('Generating image with Gemini Nano Banana...');
     
     const geminiPrompt = `${imagePrompt}
@@ -193,13 +193,14 @@ Important: Do NOT include any text, watermarks, or logos in the image.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
+        model: 'google/gemini-2.5-flash-image-preview',
         messages: [
           {
             role: 'user',
             content: geminiPrompt
           }
-        ]
+        ],
+        modalities: ['image', 'text']
       }),
     });
 
@@ -210,20 +211,23 @@ Important: Do NOT include any text, watermarks, or logos in the image.`;
     }
 
     const geminiData = await geminiResponse.json();
-    console.log('Gemini response structure:', JSON.stringify(Object.keys(geminiData)));
+    console.log('Gemini response keys:', JSON.stringify(Object.keys(geminiData)));
     
-    // Extract image from Gemini response
+    // Extract image from Gemini response - format: message.images[0].image_url.url
     let imageUrl: string | null = null;
+    const message = geminiData.choices?.[0]?.message;
     
-    // Check for inline_data (base64 image) in the response
-    const content = geminiData.choices?.[0]?.message?.content;
-    if (content && typeof content === 'object' && content.parts) {
-      for (const part of content.parts) {
-        if (part.inline_data?.mime_type?.startsWith('image/')) {
-          // Upload base64 to Supabase Storage
-          const base64Data = part.inline_data.data;
-          const mimeType = part.inline_data.mime_type;
-          const extension = mimeType.split('/')[1] || 'png';
+    if (message?.images && message.images.length > 0) {
+      const base64Url = message.images[0]?.image_url?.url;
+      
+      if (base64Url && base64Url.startsWith('data:image/')) {
+        console.log('Got base64 image, uploading to storage...');
+        
+        // Parse base64 data
+        const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (matches) {
+          const extension = matches[1] || 'png';
+          const base64Data = matches[2];
           const fileName = `instagram-auto-posts/${configId}/${Date.now()}.${extension}`;
           
           // Decode base64 and upload
@@ -236,7 +240,7 @@ Important: Do NOT include any text, watermarks, or logos in the image.`;
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('ai-generated-images')
             .upload(fileName, bytes, {
-              contentType: mimeType,
+              contentType: `image/${extension}`,
               upsert: true
             });
           
@@ -251,21 +255,13 @@ Important: Do NOT include any text, watermarks, or logos in the image.`;
             .getPublicUrl(fileName);
           
           imageUrl = urlData.publicUrl;
-          break;
+          console.log('Image uploaded to storage:', imageUrl);
         }
-      }
-    }
-    
-    // Fallback: check if response contains URL directly
-    if (!imageUrl && typeof content === 'string' && content.includes('http')) {
-      const urlMatch = content.match(/https?:\/\/[^\s"']+\.(png|jpg|jpeg|webp)/i);
-      if (urlMatch) {
-        imageUrl = urlMatch[0];
       }
     }
 
     if (!imageUrl) {
-      console.error('Full Gemini response:', JSON.stringify(geminiData));
+      console.error('Full Gemini response:', JSON.stringify(geminiData).substring(0, 1000));
       throw new Error('No image generated from Gemini Nano Banana');
     }
 
