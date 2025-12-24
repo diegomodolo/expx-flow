@@ -155,11 +155,19 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Você é um especialista em marketing visual para Instagram. Gere prompts CURTOS (máximo 150 palavras) para criação de imagens profissionais.`
+            content: `Você é um especialista em direção de arte para Instagram.
+
+Gere um prompt em INGLÊS focado 100% em elementos VISUAIS.
+
+REGRAS OBRIGATÓRIAS:
+- NUNCA peça para colocar texto, frases, letras, números, tipografia, "quotes" ou @usuários na imagem
+- NUNCA descreva palavras que devem aparecer na arte
+- Descreva apenas: cenário/objetos, iluminação, cores, estilo, mood e composição
+- O resultado deve funcionar em 1:1 (quadrado) e ser Instagram-ready`
           },
           {
             role: 'user',
-            content: `Crie um prompt para gerar uma imagem de post Instagram baseado nestes dados:
+            content: `Crie UM prompt para gerar uma imagem (sem texto) de post Instagram com base nestes dados:
 
 CLIENTE:
 - Nome: ${client.name}
@@ -174,14 +182,12 @@ Requisitos:
 - Formato quadrado 1:1 para Instagram feed
 - Visual profissional e atraente
 - Cores e estilo alinhados ao setor ${client.sector}
-- SEM texto na imagem (a legenda será separada)
-- Foco em elementos visuais que engajam
+- SEM texto/letters/numbers/symbols na imagem
 
-Responda APENAS com o prompt em inglês para geração de imagem.`
+Responda APENAS com o prompt em inglês.`
           }
         ],
-        temperature: 0.8,
-        max_tokens: 200,
+        max_completion_tokens: 220
       }),
     });
 
@@ -196,11 +202,14 @@ Responda APENAS com o prompt em inglês para geração de imagem.`
     // Generate image with Gemini Nano Banana (google/gemini-2.5-flash-image-preview)
     console.log('Generating image with Gemini Nano Banana...');
     
-    const geminiPrompt = `${imagePrompt}
+    const geminiPrompt = `Generate a square 1:1 Instagram feed image.
 
-Create a professional, high-quality Instagram post image. Format: square 1:1 aspect ratio. 
-Style: Professional photography, vibrant colors, engaging visual composition.
-Important: Do NOT include any text, watermarks, or logos in the image.`;
+${imagePrompt}
+
+STRICT RULES:
+- DO NOT include any text, letters, numbers, symbols, typography, quotes, watermarks, logos, or @handles.
+- If the prompt above mentions any text/quotes/typography/@handles, IGNORE those parts.
+- Return an image only.`;
 
     const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -230,58 +239,96 @@ Important: Do NOT include any text, watermarks, or logos in the image.`;
     console.log('Gemini response keys:', JSON.stringify(Object.keys(geminiData)));
     
     // Extract image from Gemini response - format: message.images[0].image_url.url
-    let imageUrl: string | null = null;
-    const message = geminiData.choices?.[0]?.message;
-    
-    if (message?.images && message.images.length > 0) {
-      const base64Url = message.images[0]?.image_url?.url;
-      
-      if (base64Url && base64Url.startsWith('data:image/')) {
-        console.log('Got base64 image, uploading to storage...');
-        
-        // Parse base64 data
-        const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (matches) {
-          const extension = matches[1] || 'png';
-          const base64Data = matches[2];
-          const fileName = `instagram-auto-posts/${configId}/${Date.now()}.${extension}`;
-          
-          // Decode base64 and upload
-          const binaryString = atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('ai-generated-images')
-            .upload(fileName, bytes, {
-              contentType: `image/${extension}`,
-              upsert: true
-            });
-          
-          if (uploadError) {
-            console.error('Error uploading image:', uploadError);
-            throw new Error('Failed to upload generated image');
-          }
-          
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from('ai-generated-images')
-            .getPublicUrl(fileName);
-          
-          imageUrl = urlData.publicUrl;
-          console.log('Image uploaded to storage:', imageUrl);
-        }
+    const getBase64Url = (d: any) => d?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
+
+    let base64Url = getBase64Url(geminiData);
+
+    // If Gemini returned only text (no images), retry once with an even stricter prompt
+    if (!base64Url) {
+      const msg = geminiData?.choices?.[0]?.message;
+      console.warn('Gemini returned no images. Content was:', typeof msg?.content === 'string' ? msg.content.slice(0, 500) : msg?.content);
+
+      const retryPrompt = `Generate a square 1:1 Instagram feed image.
+
+Theme: ${config.post_briefing}
+Industry: ${client.sector}
+Audience: ${client.target_audience || 'General'}
+
+STRICT RULES:
+- Image only. No text/letters/numbers/symbols.
+- No logos, no watermarks.
+- Photo-realistic, professional, Instagram-ready.`;
+
+      const retryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [{ role: 'user', content: retryPrompt }],
+          modalities: ['image', 'text']
+        }),
+      });
+
+      if (!retryResponse.ok) {
+        const errorText = await retryResponse.text();
+        console.error('Gemini retry error:', errorText);
+        throw new Error(`Gemini retry API error: ${retryResponse.status}`);
+      }
+
+      const retryData = await retryResponse.json();
+      base64Url = getBase64Url(retryData);
+
+      if (!base64Url) {
+        console.error('Full Gemini response (retry):', JSON.stringify(retryData).substring(0, 2000));
+        throw new Error('No image generated from Gemini Nano Banana');
       }
     }
 
-    if (!imageUrl) {
-      console.error('Full Gemini response:', JSON.stringify(geminiData).substring(0, 1000));
-      throw new Error('No image generated from Gemini Nano Banana');
+    if (!base64Url.startsWith('data:image/')) {
+      console.error('Unexpected image url format from Gemini:', base64Url.slice(0, 60));
+      throw new Error('Gemini returned an unsupported image format');
     }
 
-    console.log('Image generated:', imageUrl);
+    console.log('Got base64 image, uploading to storage...');
+
+    // Parse base64 data
+    const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      throw new Error('Failed to parse base64 image data');
+    }
+
+    const extension = matches[1] || 'png';
+    const base64Data = matches[2];
+    const fileName = `instagram-auto-posts/${configId}/${Date.now()}.${extension}`;
+
+    // Decode base64 and upload
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('ai-generated-images')
+      .upload(fileName, bytes, {
+        contentType: `image/${extension}`,
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      throw new Error('Failed to upload generated image');
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('ai-generated-images')
+      .getPublicUrl(fileName);
+
+    const imageUrl = urlData.publicUrl;
+    console.log('Image uploaded to storage:', imageUrl);
 
     // Generate caption with GPT
     const captionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -321,8 +368,7 @@ REQUISITOS:
 Responda APENAS com a legenda pronta.`
           }
         ],
-        temperature: 0.7,
-        max_tokens: 300,
+        max_completion_tokens: 320
       }),
     });
 
