@@ -357,13 +357,17 @@ serve(async (req) => {
         let totalImported = 0;
         let totalDuplicates = 0;
         let hasMore = true;
-        const batchSize = Math.min(1000, maxLeads);
+        // Use smaller batch size to avoid timeout
+        const batchSize = Math.min(100, maxLeads);
 
         while (hasMore && totalImported + totalDuplicates < maxLeads) {
-          const queryString = buildListaCnaeQueryString(filters, inicio, batchSize);
+          const remainingLeads = maxLeads - (totalImported + totalDuplicates);
+          const currentBatchSize = Math.min(batchSize, remainingLeads);
+          
+          const queryString = buildListaCnaeQueryString(filters, inicio, currentBatchSize);
           const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
           
-          console.log(`Fetching batch from ListaCNAE (inicio=${inicio})...`);
+          console.log(`Fetching batch from ListaCNAE (inicio=${inicio}, quantidade=${currentBatchSize})...`);
           
           const response = await fetch(searchUrl, {
             method: "GET",
@@ -387,29 +391,33 @@ serve(async (req) => {
             break;
           }
 
-          // Process batch
+          console.log(`Processing ${empresas.length} companies...`);
+
+          // Get all CNPJs to check for duplicates in one query
+          const cnpjs = empresas.map(e => e.cnpj);
+          const { data: existingLeads } = await supabase
+            .from("lead_master_pool")
+            .select("id, cnpj")
+            .eq("company_id", companyId)
+            .in("cnpj", cnpjs);
+
+          const existingCnpjMap = new Map<string, string>();
+          (existingLeads || []).forEach(lead => {
+            existingCnpjMap.set(lead.cnpj, lead.id);
+          });
+
+          // Prepare batch data for new leads
+          const newLeadsData: any[] = [];
+          const existingLeadIds: string[] = [];
+
           for (const empresa of empresas) {
-            if (totalImported + totalDuplicates >= maxLeads) {
-              hasMore = false;
-              break;
-            }
-
-            // Check if CNPJ already exists
-            const { data: existing } = await supabase
-              .from("lead_master_pool")
-              .select("id")
-              .eq("company_id", companyId)
-              .eq("cnpj", empresa.cnpj)
-              .maybeSingle();
-
-            let leadId: string;
-
-            if (existing) {
-              leadId = existing.id;
+            const existingId = existingCnpjMap.get(empresa.cnpj);
+            if (existingId) {
+              existingLeadIds.push(existingId);
               totalDuplicates++;
             } else {
-              // Map ListaCNAE data to lead_master_pool (use correct column names)
-              const leadData = {
+              // Map ListaCNAE data to lead_master_pool (use correct column names and types)
+              newLeadsData.push({
                 company_id: companyId,
                 first_client_id: client_id,
                 cnpj: empresa.cnpj,
@@ -428,63 +436,67 @@ serve(async (req) => {
                 address_complement: empresa.complemento || null,
                 neighborhood: empresa.bairro || null,
                 share_capital: empresa.capital_social || null,
-                simples_option: empresa.simples_nacional ? "Sim" : "Não",
-                mei_option: empresa.mei ? "Sim" : "Não",
+                simples_option: empresa.simples_nacional === true,
+                mei_option: empresa.mei === true,
                 activity_start_date: empresa.data_abertura || null,
                 company_size: empresa.porte || null,
                 lead_status: "novo",
                 original_source: "ListaCNAE",
                 country: "BR",
                 full_name: empresa.razao_social,
-              };
-
-              const { data: newLead, error: insertError } = await supabase
-                .from("lead_master_pool")
-                .insert(leadData)
-                .select("id")
-                .single();
-
-              if (insertError) {
-                console.error("Error inserting lead:", insertError);
-                continue;
-              }
-
-              leadId = newLead.id;
-              totalImported++;
+              });
             }
+          }
 
-            // Create segment assignment if not exists
+          // Batch insert new leads
+          let newLeadIds: string[] = [];
+          if (newLeadsData.length > 0) {
+            const { data: insertedLeads, error: insertError } = await supabase
+              .from("lead_master_pool")
+              .insert(newLeadsData)
+              .select("id");
+
+            if (insertError) {
+              console.error("Error batch inserting leads:", insertError);
+            } else {
+              newLeadIds = (insertedLeads || []).map(l => l.id);
+              totalImported += newLeadIds.length;
+              console.log(`Inserted ${newLeadIds.length} new leads`);
+            }
+          }
+
+          // Batch create segment assignments for all leads (new + existing)
+          const allLeadIds = [...newLeadIds, ...existingLeadIds];
+          if (allLeadIds.length > 0) {
+            const assignmentsData = allLeadIds.map(leadId => ({
+              lead_id: leadId,
+              segment_id,
+              company_id: companyId,
+              assigned_at: new Date().toISOString(),
+            }));
+
             const { error: assignError } = await supabase
               .from("lead_segment_assignments")
-              .upsert({
-                lead_id: leadId,
-                segment_id,
-                company_id: companyId,
-                assigned_at: new Date().toISOString(),
-              }, { 
+              .upsert(assignmentsData, { 
                 onConflict: "lead_id,segment_id",
                 ignoreDuplicates: true 
               });
 
             if (assignError) {
-              console.error("Error assigning to segment:", assignError);
+              console.error("Error batch assigning to segment:", assignError);
             }
           }
 
           // Check if there are more results
           const totalFromApi = result.quantidade_encontrada || result.total || result.totalRegistros || 0;
-          if (inicio + empresas.length >= totalFromApi) {
+          if (inicio + empresas.length >= totalFromApi || inicio + empresas.length >= maxLeads) {
             hasMore = false;
           }
           
-          inicio += batchSize;
-
-          // Rate limit: 50 requests per minute
-          if (inicio > 0 && inicio % 45000 === 0) {
-            console.log("Approaching rate limit, waiting 60 seconds...");
-            await new Promise(resolve => setTimeout(resolve, 60000));
-          }
+          inicio += currentBatchSize;
         }
+
+        console.log(`Import complete: ${totalImported} imported, ${totalDuplicates} duplicates`);
 
         // Update segment count
         const { count } = await supabase
