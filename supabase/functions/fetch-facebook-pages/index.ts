@@ -45,27 +45,44 @@ serve(async (req) => {
 
     const accessToken = integration.access_token;
 
-    // Fetch Facebook pages the user manages
-    const pagesResponse = await fetch(
-      `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,category,instagram_business_account&access_token=${accessToken}`
-    );
+    // Fetch ALL Facebook pages the user manages (with pagination)
+    let allPagesData: any[] = [];
+    let nextUrl: string | null = `https://graph.facebook.com/v20.0/me/accounts?fields=id,name,access_token,category,instagram_business_account&limit=100&access_token=${accessToken}`;
 
-    if (!pagesResponse.ok) {
-      const error = await pagesResponse.json();
-      console.error('Facebook API error:', error);
-      return new Response(
-        JSON.stringify({ success: false, error: error.error?.message || 'Failed to fetch pages' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    while (nextUrl) {
+      console.log(`Fetching pages batch... (current total: ${allPagesData.length})`);
+      
+      const pagesResponse = await fetch(nextUrl);
+
+      if (!pagesResponse.ok) {
+        const error = await pagesResponse.json();
+        console.error('Facebook API error:', error);
+        return new Response(
+          JSON.stringify({ success: false, error: error.error?.message || 'Failed to fetch pages' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      const pagesData = await pagesResponse.json();
+      const batchPages = pagesData.data || [];
+      console.log(`Received ${batchPages.length} pages in this batch`);
+      
+      allPagesData = allPagesData.concat(batchPages);
+      
+      // Check if there's a next page
+      nextUrl = pagesData.paging?.next || null;
+      
+      if (nextUrl) {
+        console.log('More pages available, fetching next batch...');
+      }
     }
 
-    const pagesData = await pagesResponse.json();
-    console.log(`Found ${pagesData.data?.length || 0} Facebook pages`);
+    console.log(`Found ${allPagesData.length} Facebook pages total`);
 
     const pages = [];
     const instagramAccounts = [];
 
-    for (const page of pagesData.data || []) {
+    for (const page of allPagesData) {
       // Insert/update Facebook page
       const { data: fbPage, error: pageError } = await supabase
         .from('facebook_pages')
