@@ -53,14 +53,14 @@ export default function InstagramAutoPostsPage() {
   const { user } = useAuth();
 
   const { config, isLoading: configLoading, createConfig, updateConfig, deleteConfig, isCreating, isUpdating } = useInstagramAutoPostConfig(clientId!);
-  const { nextPost, publishedPosts, isLoading: postsLoading, regeneratePost, updateCaption, isRegenerating, isUpdatingCaption } = useInstagramAutoPosts(clientId!);
+  const { pendingPosts, nextPost, publishedPosts, isLoading: postsLoading, regeneratePost, generateNextPost, deletePost, updateCaption, isRegenerating, isGeneratingNext, isDeleting, isUpdatingCaption } = useInstagramAutoPosts(clientId!);
 
   // Form state for new config
   const [briefing, setBriefing] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [selectedHours, setSelectedHours] = useState<number[]>([12, 18]);
-  const [editingCaption, setEditingCaption] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [captionText, setCaptionText] = useState('');
 
   // Fetch Instagram accounts
@@ -120,19 +120,6 @@ export default function InstagramAutoPostsPage() {
     );
   };
 
-  const handleSaveCaption = () => {
-    if (nextPost && captionText.trim()) {
-      updateCaption({ postId: nextPost.id, caption: captionText });
-      setEditingCaption(false);
-    }
-  };
-
-  const handleStartEditCaption = () => {
-    if (nextPost) {
-      setCaptionText(nextPost.caption);
-      setEditingCaption(true);
-    }
-  };
 
   if (configLoading || postsLoading) {
     return (
@@ -349,77 +336,131 @@ export default function InstagramAutoPostsPage() {
         </CardContent>
       </Card>
 
-      {/* Next Post Preview */}
-      {nextPost && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Próxima Postagem
-              <Badge variant="outline" className="ml-auto">
-                <Clock className="w-3 h-3 mr-1" />
-                {format(new Date(nextPost.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6">
-              {/* Image Preview */}
-              <div className="w-64 h-64 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                <img
-                  src={nextPost.image_url}
-                  alt="Preview do post"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+      {/* Pending Posts Queue */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Postagens Agendadas
+              </CardTitle>
+              <CardDescription>
+                {pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} na fila
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => generateNextPost({ configId: config.id, companyId: config.company_id })}
+              disabled={isGeneratingNext}
+            >
+              {isGeneratingNext ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <Image className="w-4 h-4 mr-2" />
+                  Gerar Próxima
+                </>
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {pendingPosts.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              Nenhuma postagem agendada. Clique em "Gerar Próxima" para criar.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {pendingPosts.map((post, index) => (
+                <div key={post.id} className={`p-4 rounded-lg border ${index === 0 ? 'border-primary bg-primary/5' : 'bg-muted/30'}`}>
+                  <div className="flex gap-4">
+                    {/* Image Preview */}
+                    <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      <img
+                        src={post.image_url}
+                        alt="Preview do post"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
 
-              {/* Caption */}
-              <div className="flex-1 space-y-4">
-                {editingCaption ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={captionText}
-                      onChange={(e) => setCaptionText(e.target.value)}
-                      className="min-h-[150px]"
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleSaveCaption} disabled={isUpdatingCaption}>
-                        {isUpdatingCaption ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingCaption(false)}>
-                        Cancelar
-                      </Button>
+                    {/* Content */}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Badge variant={index === 0 ? 'default' : 'secondary'}>
+                          <Clock className="w-3 h-3 mr-1" />
+                          {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </Badge>
+                        {index === 0 && (
+                          <Badge variant="outline" className="text-xs">Próxima</Badge>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm line-clamp-3">{post.caption}</p>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => regeneratePost({ configId: config.id, postId: post.id })}
+                          disabled={isRegenerating}
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Regenerar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setCaptionText(post.caption);
+                            setEditingPostId(post.id);
+                          }}
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => deletePost(post.id)}
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <p className="text-sm whitespace-pre-wrap">{nextPost.caption}</p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => regeneratePost(config.id)}
-                        disabled={isRegenerating}
-                      >
-                        {isRegenerating ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                        )}
-                        Regenerar
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleStartEditCaption}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar Legenda
-                      </Button>
+
+                  {/* Edit Caption Inline */}
+                  {editingPostId === post.id && (
+                    <div className="mt-4 space-y-2 border-t pt-4">
+                      <Textarea
+                        value={captionText}
+                        onChange={(e) => setCaptionText(e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => {
+                          updateCaption({ postId: post.id, caption: captionText });
+                          setEditingPostId(null);
+                        }} disabled={isUpdatingCaption}>
+                          {isUpdatingCaption ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingPostId(null)}>
+                          Cancelar
+                        </Button>
+                      </div>
                     </div>
-                  </>
-                )}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Post History */}
       <Card>

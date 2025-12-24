@@ -27,18 +27,18 @@ function brasiliaToUTC(brasiliaDate: Date): Date {
   return new Date(brasiliaDate.getTime() - BRASILIA_OFFSET_MS);
 }
 
-// Helper function to calculate next post time (in Brasília, returns UTC)
-function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[]): Date {
+// Helper function to calculate next post time after a given date (in Brasília, returns UTC)
+function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[], afterDate?: Date): Date {
   if (!scheduledDays.length || !scheduledHours.length) {
     throw new Error('No scheduled days or hours configured');
   }
 
-  // Get current time in Brasília
-  const nowBrasilia = getNowInBrasilia();
+  // Get current time in Brasília or use afterDate if provided
+  const nowBrasilia = afterDate ? new Date(afterDate.getTime() + BRASILIA_OFFSET_MS) : getNowInBrasilia();
   const currentDay = nowBrasilia.getDay(); // 0 = Sunday
   const currentHour = nowBrasilia.getHours();
 
-  console.log(`Current Brasília time: ${nowBrasilia.toISOString()}, day: ${currentDay}, hour: ${currentHour}`);
+  console.log(`Calculating next post after Brasília time: ${nowBrasilia.toISOString()}, day: ${currentDay}, hour: ${currentHour}`);
 
   // Sort hours for proper iteration
   const sortedHours = [...scheduledHours].sort((a, b) => a - b);
@@ -115,8 +115,24 @@ Deno.serve(async (req) => {
 
     console.log('Config loaded for client:', client.name);
 
-    // Calculate next post time
-    const scheduledAt = calculateNextPostTime(config.scheduled_days, config.scheduled_hours);
+    // Find the last scheduled post (pending or published) to calculate next available slot
+    const { data: existingPosts } = await supabase
+      .from('instagram_auto_posts')
+      .select('scheduled_at')
+      .eq('config_id', configId)
+      .in('status', ['pending', 'publishing'])
+      .order('scheduled_at', { ascending: false })
+      .limit(1);
+
+    let afterDate: Date | undefined;
+    if (existingPosts && existingPosts.length > 0) {
+      // Calculate next slot after the last scheduled post
+      afterDate = new Date(existingPosts[0].scheduled_at);
+      console.log('Last scheduled post at:', afterDate.toISOString());
+    }
+
+    // Calculate next post time (after existing posts if any)
+    const scheduledAt = calculateNextPostTime(config.scheduled_days, config.scheduled_hours, afterDate);
     console.log('Next post scheduled at:', scheduledAt.toISOString());
 
     // Collect reference images
