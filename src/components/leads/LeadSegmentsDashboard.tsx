@@ -371,9 +371,111 @@ export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegments
 
   return (
     <div className="space-y-6">
+      {/* Create/Edit Dialog - kept separate to open from multiple places */}
+      <Dialog open={isDialogOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsDialogOpen(o); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar" : "Criar"} Segmento</DialogTitle>
+            <DialogDescription>Segmentos organizam leads por características.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input 
+                placeholder="Ex: Leads Quentes" 
+                value={formData.name} 
+                onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select 
+                value={formData.segment_type} 
+                onValueChange={(v) => setFormData(p => ({ ...p, segment_type: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SEGMENT_TYPES.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea 
+                placeholder="Descreva..." 
+                value={formData.description} 
+                onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} 
+                rows={2} 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                CNAEs (para integração ListaCNAE)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Digite o código CNAE (ex: 6201501)"
+                  value={cnaeInput}
+                  onChange={(e) => setCnaeInput(e.target.value)}
+                  onKeyDown={handleCnaeKeyDown}
+                  className="font-mono"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleAddCnae}
+                  disabled={!cnaeInput.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Adicione os CNAEs relacionados a este segmento para usar na importação via ListaCNAE
+              </p>
+              
+              {formData.cnaes.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.cnaes.map((cnae) => (
+                    <Badge 
+                      key={cnae} 
+                      variant="secondary" 
+                      className="flex items-center gap-1 font-mono"
+                    >
+                      {cnae}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCnae(cnae)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm}>Cancelar</Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <LayoutGrid className="h-5 w-5" />
@@ -383,114 +485,15 @@ export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegments
                 Métricas agregadas e gerenciamento de segmentos
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setIsListaCnaeModalOpen(true)}>
                 <Database className="h-4 w-4 mr-2" />
-                Novo Segmento com CNAE
+                Novo com CNAE
               </Button>
-              <Dialog open={isDialogOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsDialogOpen(o); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="h-4 w-4 mr-2" />Novo Segmento</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>{editingId ? "Editar" : "Criar"} Segmento</DialogTitle>
-                    <DialogDescription>Segmentos organizam leads por características.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Nome</Label>
-                      <Input 
-                        placeholder="Ex: Leads Quentes" 
-                        value={formData.name} 
-                        onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Tipo</Label>
-                      <Select 
-                        value={formData.segment_type} 
-                        onValueChange={(v) => setFormData(p => ({ ...p, segment_type: v }))}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {SEGMENT_TYPES.map(t => (
-                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Descrição</Label>
-                      <Textarea 
-                        placeholder="Descreva..." 
-                        value={formData.description} 
-                        onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} 
-                        rows={2} 
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        CNAEs (para integração ListaCNAE)
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Digite o código CNAE (ex: 6201501)"
-                          value={cnaeInput}
-                          onChange={(e) => setCnaeInput(e.target.value)}
-                          onKeyDown={handleCnaeKeyDown}
-                          className="font-mono"
-                        />
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={handleAddCnae}
-                          disabled={!cnaeInput.trim()}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Adicione os CNAEs relacionados a este segmento para usar na importação via ListaCNAE
-                      </p>
-                      
-                      {formData.cnaes.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {formData.cnaes.map((cnae) => (
-                            <Badge 
-                              key={cnae} 
-                              variant="secondary" 
-                              className="flex items-center gap-1 font-mono"
-                            >
-                              {cnae}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCnae(cnae)}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={resetForm}>Cancelar</Button>
-                    <Button 
-                      onClick={handleSubmit} 
-                      disabled={createMutation.isPending || updateMutation.isPending}
-                    >
-                      {createMutation.isPending || updateMutation.isPending ? "Salvando..." : "Salvar"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Segmento
+              </Button>
             </div>
           </div>
         </CardHeader>
