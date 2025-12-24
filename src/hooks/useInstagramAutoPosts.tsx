@@ -185,8 +185,8 @@ export function useInstagramAutoPosts(clientId: string) {
         .from('instagram_auto_posts')
         .select('*')
         .eq('client_id', clientId)
-        .order('scheduled_at', { ascending: false })
-        .limit(50);
+        .order('scheduled_at', { ascending: true })
+        .limit(100);
 
       if (error) throw error;
       return data as InstagramAutoPost[];
@@ -194,18 +194,23 @@ export function useInstagramAutoPosts(clientId: string) {
     enabled: !!clientId
   });
 
-  const nextPost = posts?.find(p => p.status === 'pending');
-  const publishedPosts = posts?.filter(p => p.status === 'published') || [];
+  // Get all pending posts sorted by scheduled_at
+  const pendingPosts = posts?.filter(p => p.status === 'pending').sort((a, b) => 
+    new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+  ) || [];
+  
+  const nextPost = pendingPosts[0] || null;
+  const publishedPosts = posts?.filter(p => p.status === 'published').sort((a, b) => 
+    new Date(b.published_at || b.scheduled_at).getTime() - new Date(a.published_at || a.scheduled_at).getTime()
+  ) || [];
 
   const regeneratePostMutation = useMutation({
-    mutationFn: async (configId: string) => {
-      // Delete current pending post
-      if (nextPost) {
-        await supabase
-          .from('instagram_auto_posts')
-          .delete()
-          .eq('id', nextPost.id);
-      }
+    mutationFn: async ({ configId, postId }: { configId: string; postId: string }) => {
+      // Delete the specific pending post
+      await supabase
+        .from('instagram_auto_posts')
+        .delete()
+        .eq('id', postId);
 
       // Get company_id from config
       const { data: config } = await supabase
@@ -214,7 +219,7 @@ export function useInstagramAutoPosts(clientId: string) {
         .eq('id', configId)
         .single();
 
-      // Generate new post
+      // Generate new post for the same slot
       const { error } = await supabase.functions.invoke('generate-instagram-auto-post', {
         body: {
           configId,
@@ -235,6 +240,60 @@ export function useInstagramAutoPosts(clientId: string) {
     onError: (error: any) => {
       toast({
         title: 'Erro ao regenerar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Generate next post for the next available slot
+  const generateNextPostMutation = useMutation({
+    mutationFn: async ({ configId, companyId }: { configId: string; companyId: string }) => {
+      const { error } = await supabase.functions.invoke('generate-instagram-auto-post', {
+        body: {
+          configId,
+          clientId,
+          companyId
+        }
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      toast({
+        title: 'Post gerado!',
+        description: 'Nova postagem gerada para o próximo horário.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao gerar post',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Delete a pending post
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const { error } = await supabase
+        .from('instagram_auto_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      toast({
+        title: 'Post removido',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao remover',
         description: error.message,
         variant: 'destructive',
       });
@@ -267,13 +326,18 @@ export function useInstagramAutoPosts(clientId: string) {
 
   return {
     posts,
+    pendingPosts,
     nextPost,
     publishedPosts,
     isLoading,
     error,
     regeneratePost: regeneratePostMutation.mutate,
+    generateNextPost: generateNextPostMutation.mutate,
+    deletePost: deletePostMutation.mutate,
     updateCaption: updateCaptionMutation.mutate,
     isRegenerating: regeneratePostMutation.isPending,
+    isGeneratingNext: generateNextPostMutation.isPending,
+    isDeleting: deletePostMutation.isPending,
     isUpdatingCaption: updateCaptionMutation.isPending
   };
 }
