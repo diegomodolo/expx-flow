@@ -4121,6 +4121,143 @@ export type Database = {
           },
         ]
       }
+      instagram_auto_post_configs: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          instagram_account_id: string
+          is_enabled: boolean | null
+          last_post_at: string | null
+          next_post_at: string | null
+          post_briefing: string
+          scheduled_days: number[]
+          scheduled_hours: number[]
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          instagram_account_id: string
+          is_enabled?: boolean | null
+          last_post_at?: string | null
+          next_post_at?: string | null
+          post_briefing: string
+          scheduled_days?: number[]
+          scheduled_hours?: number[]
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          instagram_account_id?: string
+          is_enabled?: boolean | null
+          last_post_at?: string | null
+          next_post_at?: string | null
+          post_briefing?: string
+          scheduled_days?: number[]
+          scheduled_hours?: number[]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_auto_post_configs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_auto_post_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_auto_post_configs_instagram_account_id_fkey"
+            columns: ["instagram_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_auto_posts: {
+        Row: {
+          caption: string
+          client_id: string
+          company_id: string
+          config_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          image_url: string
+          instagram_media_id: string | null
+          published_at: string | null
+          scheduled_at: string
+          status: string | null
+        }
+        Insert: {
+          caption: string
+          client_id: string
+          company_id: string
+          config_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_url: string
+          instagram_media_id?: string | null
+          published_at?: string | null
+          scheduled_at: string
+          status?: string | null
+        }
+        Update: {
+          caption?: string
+          client_id?: string
+          company_id?: string
+          config_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_url?: string
+          instagram_media_id?: string | null
+          published_at?: string | null
+          scheduled_at?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_auto_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_auto_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_auto_posts_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_api_request_log: {
         Row: {
           api_key_id: string | null
