@@ -13,10 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Tags, Plus, Trash2, Users, RefreshCw, Edit, X, Building2, Database } from "lucide-react";
+import { Tags, Plus, Trash2, Users, RefreshCw, Edit, X, Building2, Database, Search } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ListaCnaeSegmentModal } from "./ListaCnaeSegmentModal";
+import { ListaCnaeImportModal } from "./ListaCnaeImportModal";
 
 const SEGMENT_TYPES = [
   { value: 'sector', label: 'Setor' },
@@ -38,6 +40,7 @@ export const LeadSegmentsManager = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isListaCnaeModalOpen, setIsListaCnaeModalOpen] = useState(false);
+  const [importModalSegment, setImportModalSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({ name: '', description: '', segment_type: 'custom', cnaes: [] });
   const [cnaeInput, setCnaeInput] = useState('');
@@ -358,9 +361,34 @@ export const LeadSegmentsManager = () => {
                     {format(new Date(seg.created_at), "dd/MM/yy", { locale: ptBR })}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => handleEdit(seg)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider delayDuration={300}>
+                      {seg.cnaes && seg.cnaes.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="icon" 
+                              variant="ghost"
+                              onClick={() => setImportModalSegment({ id: seg.id, name: seg.name, cnaes: seg.cnaes })}
+                            >
+                              <Search className="h-4 w-4 text-primary" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Buscar leads na ListaCNAE</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" onClick={() => handleEdit(seg)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Editar segmento</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="icon" variant="ghost" className="text-destructive">
@@ -395,6 +423,16 @@ export const LeadSegmentsManager = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Import Modal for existing segment */}
+      {companyId && importModalSegment && (
+        <ListaCnaeImportModal
+          open={!!importModalSegment}
+          onOpenChange={(open) => !open && setImportModalSegment(null)}
+          companyId={companyId}
+          segment={importModalSegment}
+        />
+      )}
     </Card>
   );
 };
