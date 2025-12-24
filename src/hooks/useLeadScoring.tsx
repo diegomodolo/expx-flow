@@ -286,19 +286,16 @@ export function useLeadScoring() {
     const hasInvalidPhone = !hasValidPhone && (leadData.phone || leadData.whatsapp);
     const hasBothInvalidContacts = hasInvalidEmail && hasInvalidPhone;
 
-    // Determine classification with authority validation
+    // Determine classification - AJUSTADO: removido requisito de authority mínimo
     let classification: LeadClassification = 'bronze';
     
     // FIRST: Check if both email and phone are invalid/fake = DESCARTADO
+    // Mas só descarta se AMBOS existem e são inválidos (não penaliza campos ausentes)
     if (hasBothInvalidContacts) {
       classification = 'descartado';
     } else if (globalScore >= weights.threshold_gold) {
-      // Gold requires minimum authority score
-      if (dimensionScores.authority >= 40) {
-        classification = 'ouro';
-      } else {
-        classification = 'prata'; // Downgraded due to lack of authority
-      }
+      // AJUSTADO: Removido requisito de authority >= 40 (não temos esses dados do ListaCNAE)
+      classification = 'ouro';
     } else if (globalScore >= weights.threshold_silver) {
       classification = 'prata';
     }
