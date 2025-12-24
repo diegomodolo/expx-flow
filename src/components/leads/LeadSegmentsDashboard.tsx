@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,17 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Database, Search, LayoutGrid } from "lucide-react";
+import { Tag, Trophy, Medal, Award, Trash2, RefreshCw, Plus, Edit, X, Building2, Search, LayoutGrid } from "lucide-react";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ListaCnaeSegmentModal } from "./ListaCnaeSegmentModal";
 import { ListaCnaeImportModal } from "./ListaCnaeImportModal";
 import { useCompany } from "@/contexts/CompanyContext";
 
 interface LeadSegmentsDashboardProps {
   companyId?: string;
+  openCreateDialog?: boolean;
+  onCreateDialogChange?: (open: boolean) => void;
 }
 
 interface SegmentMetrics {
@@ -94,7 +95,11 @@ async function fetchAllAssignments(segmentId: string): Promise<string[]> {
   return allLeadIds;
 }
 
-export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegmentsDashboardProps) => {
+export const LeadSegmentsDashboard = ({ 
+  companyId: propCompanyId,
+  openCreateDialog,
+  onCreateDialogChange 
+}: LeadSegmentsDashboardProps) => {
   const { activeCompany } = useCompany();
   const companyId = propCompanyId || activeCompany?.company_id;
   
@@ -109,8 +114,21 @@ export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegments
   const [cnaeInput, setCnaeInput] = useState('');
 
   // Modal states
-  const [isListaCnaeModalOpen, setIsListaCnaeModalOpen] = useState(false);
   const [importModalSegment, setImportModalSegment] = useState<{ id: string; name: string; cnaes: string[] } | null>(null);
+
+  // Sync dialog state with external prop
+  useEffect(() => {
+    if (openCreateDialog && !editingId) {
+      setIsDialogOpen(true);
+    }
+  }, [openCreateDialog, editingId]);
+
+  // Notify parent when dialog closes
+  const handleDialogChange = (open: boolean) => {
+    if (!open) resetForm();
+    setIsDialogOpen(open);
+    onCreateDialogChange?.(open);
+  };
 
   const { data: segments, isLoading } = useQuery({
     queryKey: ['lead-segments-dashboard', companyId],
@@ -372,7 +390,7 @@ export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegments
   return (
     <div className="space-y-6">
       {/* Create/Edit Dialog - kept separate to open from multiple places */}
-      <Dialog open={isDialogOpen} onOpenChange={(o) => { if (!o) resetForm(); setIsDialogOpen(o); }}>
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar" : "Criar"} Segmento</DialogTitle>
@@ -475,27 +493,13 @@ export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegments
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <LayoutGrid className="h-5 w-5" />
-                Visão por Segmentos
-              </CardTitle>
-              <CardDescription>
-                Métricas agregadas e gerenciamento de segmentos
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setIsListaCnaeModalOpen(true)}>
-                <Database className="h-4 w-4 mr-2" />
-                Novo com CNAE
-              </Button>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Segmento
-              </Button>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5" />
+            Visão por Segmentos
+          </CardTitle>
+          <CardDescription>
+            Métricas agregadas e gerenciamento de segmentos
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -701,14 +705,6 @@ export const LeadSegmentsDashboard = ({ companyId: propCompanyId }: LeadSegments
         </CardContent>
       </Card>
 
-      {/* ListaCNAE Segment Modal */}
-      {companyId && (
-        <ListaCnaeSegmentModal
-          open={isListaCnaeModalOpen}
-          onOpenChange={setIsListaCnaeModalOpen}
-          companyId={companyId}
-        />
-      )}
 
       {/* Import Modal for existing segment */}
       {companyId && importModalSegment && (
