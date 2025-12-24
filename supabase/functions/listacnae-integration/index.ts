@@ -367,37 +367,64 @@ serve(async (req) => {
         let totalImported = 0;
         let totalDuplicates = 0;
         
-        // IMPORTANT: Request exactly the amount needed in ONE request to avoid multiple API calls
-        // Each API call consumes credits, so we should minimize the number of calls
-        const queryString = buildListaCnaeQueryString(filters, 0, maxLeads);
-        const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
+        // ListaCNAE API has a limit of 1000 leads per request
+        // We need to paginate if requesting more than 1000
+        const API_LIMIT = 1000;
+        let allEmpresas: ListaCnaeEmpresa[] = [];
+        let offset = 0;
+        let remaining = maxLeads;
         
-        console.log(`Fetching ${maxLeads} leads from ListaCNAE in single request...`);
+        console.log(`Starting import of up to ${maxLeads} leads from ListaCNAE...`);
         
-        const response = await fetch(searchUrl, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${listacnaeToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("ListaCNAE import error:", errorText);
-          return new Response(JSON.stringify({ 
-            error: "Erro ao buscar empresas na ListaCNAE",
-            details: errorText
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        while (remaining > 0) {
+          const batchSize = Math.min(remaining, API_LIMIT);
+          const queryString = buildListaCnaeQueryString(filters, offset, batchSize);
+          const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
+          
+          console.log(`Fetching batch: offset=${offset}, size=${batchSize}`);
+          
+          const response = await fetch(searchUrl, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${listacnaeToken}`,
+              "Content-Type": "application/json",
+            },
           });
-        }
 
-        const result = await response.json();
-        const empresas: ListaCnaeEmpresa[] = result.dados || result.empresas || result.data || [];
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("ListaCNAE import error:", errorText);
+            return new Response(JSON.stringify({ 
+              error: "Erro ao buscar empresas na ListaCNAE",
+              details: errorText
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          const result = await response.json();
+          const batchEmpresas: ListaCnaeEmpresa[] = result.dados || result.empresas || result.data || [];
+          
+          console.log(`Received ${batchEmpresas.length} companies in this batch`);
+          
+          if (batchEmpresas.length === 0) {
+            // No more data available
+            break;
+          }
+          
+          allEmpresas = allEmpresas.concat(batchEmpresas);
+          offset += batchEmpresas.length;
+          remaining -= batchEmpresas.length;
+          
+          // If we got less than requested, there's no more data
+          if (batchEmpresas.length < batchSize) {
+            break;
+          }
+        }
         
-        console.log(`Received ${empresas.length} companies from API`);
+        const empresas = allEmpresas;
+        console.log(`Total received: ${empresas.length} companies from API`);
 
         if (empresas.length > 0) {
           // Get all CNPJs to check for duplicates in one query
