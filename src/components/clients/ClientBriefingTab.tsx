@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Sparkles, RefreshCw, Save, Edit } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Save, Edit, PenLine } from "lucide-react";
 import { Client } from "@/hooks/useClients";
 
 interface ClientBriefingTabProps {
@@ -270,21 +270,68 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
             </div>
           )}
         </div>
+      ) : isEditing ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-md font-medium">Briefing do Cliente</h4>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelEdit}
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={saveBriefing}
+                disabled={saving || !briefingContent.trim()}
+                className="flex items-center gap-2"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+          <Textarea
+            value={briefingContent}
+            onChange={(e) => setBriefingContent(e.target.value)}
+            placeholder="Digite o briefing do cliente..."
+            className="min-h-[400px] p-4 font-mono text-sm"
+            disabled={saving}
+          />
+          <p className="text-xs text-muted-foreground">
+            💡 Dica: Use formatação Markdown para melhor organização do conteúdo.
+          </p>
+        </div>
       ) : (
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
             <Sparkles className="w-8 h-8 text-blue-600" />
           </div>
-          <h4 className="text-lg font-medium mb-2">Nenhum briefing gerado ainda</h4>
+          <h4 className="text-lg font-medium mb-2">Nenhum briefing ainda</h4>
           <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-            Gere um briefing inteligente baseado na análise completa do website do cliente para criar campanhas mais eficazes.
+            Gere um briefing inteligente via IA ou escreva manualmente as informações do cliente.
           </p>
-          {formData.website_url && client?.id && (
-            <Button onClick={generateBriefing} disabled={generating}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Gerar Briefing via IA
-            </Button>
-          )}
+          <div className="flex items-center justify-center gap-3">
+            {formData.website_url && client?.id && (
+              <Button onClick={generateBriefing} disabled={generating}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Gerar via IA
+              </Button>
+            )}
+            {client?.id && (
+              <Button variant="outline" onClick={() => setIsEditing(true)}>
+                <PenLine className="w-4 h-4 mr-2" />
+                Escrever Manualmente
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>
