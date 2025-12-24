@@ -40,7 +40,7 @@ interface ListaCnaeEmpresa {
   complemento: string;
   bairro: string;
   cep: string;
-  capital_social: number;
+  capital_social: number | string | null;
   simples_nacional: boolean;
   mei: boolean;
   data_abertura: string;
@@ -106,6 +106,17 @@ function buildListaCnaeQueryString(filters: ListaCnaeSearchParams, inicio: numbe
   }
 
   return params.toString();
+}
+
+function parseBRNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+
+  // Examples: "1000,00", "1.000,00", "1000.00"
+  const cleaned = value.trim().replace(/\./g, "").replace(/,/g, ".");
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : null;
 }
 
 serve(async (req) => {
@@ -431,7 +442,7 @@ serve(async (req) => {
                 address_number: empresa.numero || null,
                 address_complement: empresa.complemento || null,
                 neighborhood: empresa.bairro || null,
-                share_capital: empresa.capital_social || null,
+                share_capital: parseBRNumber(empresa.capital_social),
                 simples_option: empresa.simples_nacional === true,
                 mei_option: empresa.mei === true,
                 activity_start_date: empresa.data_abertura || null,
@@ -469,7 +480,6 @@ serve(async (req) => {
             const assignmentsData = allLeadIds.map(leadId => ({
               lead_id: leadId,
               segment_id,
-              company_id: companyId,
               assigned_at: new Date().toISOString(),
             }));
 
