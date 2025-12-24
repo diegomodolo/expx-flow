@@ -190,3 +190,12 @@ verify_jwt = true
 
 [functions.listacnae-integration]
 verify_jwt = true
+
+[functions.generate-instagram-auto-post]
+verify_jwt = true
+
+[functions.publish-instagram-auto-post]
+verify_jwt = true
+
+[functions.instagram-auto-post-scheduler]
+verify_jwt = false

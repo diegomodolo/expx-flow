@@ -27,6 +27,7 @@ import {
   Share2,
   UsersRound,
   Activity,
+  Instagram,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -204,6 +205,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/redes-sociais`,
       icon: Share2,
       description: "Análise de redes sociais"
+    },
+    {
+      title: "Posts Automáticos",
+      href: `/clientes/${clientId}/auto-posts`,
+      icon: Instagram,
+      description: "Postagens automáticas no Instagram"
     },
     {
       title: "Relatório Semanal",

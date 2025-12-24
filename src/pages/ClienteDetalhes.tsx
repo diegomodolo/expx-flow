@@ -24,6 +24,7 @@ import { ClienteRedesSociais } from "./cliente/ClienteRedesSociais";
 import { ClientePublicos } from "./cliente/ClientePublicos";
 import { ClienteApresentacoes } from "./cliente/ClienteApresentacoes";
 import ClientePixels from "./ClientePixels";
+import InstagramAutoPostsPage from "./clients/InstagramAutoPostsPage";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useAdSets } from "@/hooks/useAdSets";
 import { useAds } from "@/hooks/useAds";
@@ -238,6 +239,7 @@ const ClienteDetalhes = () => {
             <Route path="publicos" element={<ClientePublicos />} />
             <Route path="apresentacoes" element={<ClienteApresentacoes />} />
             <Route path="pixels" element={<ClientePixels />} />
+            <Route path="auto-posts" element={<InstagramAutoPostsPage />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </ClientDetailsLayout>
