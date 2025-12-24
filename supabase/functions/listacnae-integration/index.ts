@@ -287,12 +287,14 @@ serve(async (req) => {
         const searchParams: ListaCnaeSearchParams = body.filters || {};
         const preview = body.preview || false;
 
-        // Build query string
-        const quantidade = preview ? 10 : (searchParams.per_page || 100);
+        // Build query string - use per_page from filters (respect user's preview count)
+        const quantidade = searchParams.per_page || (preview ? 10 : 100);
         const inicio = ((searchParams.page || 1) - 1) * quantidade;
         
         const queryString = buildListaCnaeQueryString(searchParams, inicio, quantidade);
         const searchUrl = `${LISTACNAE_API_URL}/buscar?${queryString}`;
+        
+        console.log("ListaCNAE search - preview:", preview, "quantidade:", quantidade);
 
         console.log("ListaCNAE search URL:", searchUrl);
 
@@ -406,29 +408,32 @@ serve(async (req) => {
               leadId = existing.id;
               totalDuplicates++;
             } else {
-              // Map ListaCNAE data to lead_master_pool
+              // Map ListaCNAE data to lead_master_pool (use correct column names)
               const leadData = {
                 company_id: companyId,
-                client_id,
+                first_client_id: client_id,
                 cnpj: empresa.cnpj,
                 company_name: empresa.razao_social,
                 company_trade_name: empresa.nome_fantasia || null,
                 cnae: empresa.cnae_principal,
+                cnae_code: empresa.cnae_principal,
+                cnae_description: empresa.cnae_descricao || null,
                 phone: empresa.telefone || null,
                 email: empresa.email || null,
                 state: empresa.uf,
                 city: empresa.municipio,
                 zip_code: empresa.cep || null,
-                address: empresa.logradouro ? 
-                  `${empresa.logradouro}, ${empresa.numero}${empresa.complemento ? ` - ${empresa.complemento}` : ''} - ${empresa.bairro}` 
-                  : null,
+                street: empresa.logradouro || null,
+                address_number: empresa.numero || null,
+                address_complement: empresa.complemento || null,
+                neighborhood: empresa.bairro || null,
                 share_capital: empresa.capital_social || null,
                 simples_option: empresa.simples_nacional ? "Sim" : "Não",
                 mei_option: empresa.mei ? "Sim" : "Não",
                 activity_start_date: empresa.data_abertura || null,
                 company_size: empresa.porte || null,
                 lead_status: "novo",
-                primary_source: "ListaCNAE",
+                original_source: "ListaCNAE",
                 country: "BR",
                 full_name: empresa.razao_social,
               };
