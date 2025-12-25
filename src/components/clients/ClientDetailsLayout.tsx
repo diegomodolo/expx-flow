@@ -2,9 +2,12 @@ import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncJobStatus } from "@/hooks/useSyncJobStatus";
+import { useClients, Client } from "@/hooks/useClients";
+import { ClientDialog } from "@/components/clients/ClientDialog";
 import {
   LayoutDashboard,
   Megaphone,
@@ -28,6 +31,7 @@ import {
   UsersRound,
   Activity,
   Instagram,
+  Pencil,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -39,7 +43,12 @@ interface ClientDetailsLayoutProps {
 export function ClientDetailsLayout({ children, clientId, clientName }: ClientDetailsLayoutProps) {
   const location = useLocation();
   const [activeSyncJobId, setActiveSyncJobId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { job, progressPercentage } = useSyncJobStatus(activeSyncJobId);
+  const { clients, updateClient } = useClients();
+  
+  // Find the current client from the clients list
+  const currentClient = clients.find(c => c.id === clientId);
 
   // Check for active sync jobs for this client
   useEffect(() => {
@@ -84,6 +93,13 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       return () => clearInterval(interval);
     }
   }, [clientId]);
+
+  const handleEditClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
+    await updateClient(clientId, clientData);
+    setEditDialogOpen(false);
+    // Dispatch event to refresh client details across the page
+    window.dispatchEvent(new CustomEvent('refreshClientDetails'));
+  };
 
   const navItems = [
     {
@@ -229,9 +245,20 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
             <h3 className="font-semibold text-sm text-muted-foreground mb-1">
               Cliente
             </h3>
-            <p className="font-medium truncate" title={clientName}>
-              {clientName}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium truncate flex-1" title={clientName}>
+                {clientName}
+              </p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setEditDialogOpen(true)}
+                title="Editar cliente"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
             {job && (job.status === 'processing' || job.status === 'pending') && (
               <Badge variant="outline" className="mt-2 w-full justify-center animate-pulse">
                 <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -271,6 +298,15 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       <div className="flex-1 min-w-0">
         {children}
       </div>
+
+      {/* Edit Client Dialog */}
+      <ClientDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSubmit={handleEditClient}
+        client={currentClient}
+        title="Editar Cliente"
+      />
     </div>
   );
 }
