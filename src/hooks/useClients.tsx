@@ -614,7 +614,13 @@ export function useClients() {
         'website_url', 'inactive_reason', 'team_id',
         'ai_briefing', 'briefing_generated_at', 'offline_event_set_id', 'payment_type',
         'presentation_logo', 'presentation_bg_image', 'presentation_overlay_color', 'presentation_overlay_opacity',
-        'ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3'
+        'ai_reference_image_1', 'ai_reference_image_2', 'ai_reference_image_3',
+        // Platform-specific financial fields
+        'meta_monthly_budget', 'meta_payment_type', 'meta_recharge_day',
+        'google_monthly_budget', 'google_payment_type', 'google_recharge_day',
+        'linkedin_monthly_budget', 'linkedin_payment_type', 'linkedin_recharge_day',
+        'tiktok_monthly_budget', 'tiktok_payment_type', 'tiktok_recharge_day',
+        'twitter_monthly_budget', 'twitter_payment_type', 'twitter_recharge_day'
       ];
       
       // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs
