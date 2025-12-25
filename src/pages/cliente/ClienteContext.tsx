@@ -8,8 +8,8 @@ interface ClientContextValue {
   selectedAdSetId: string | null;
   setSelectedAdSetId: (id: string | null) => void;
   refetchClient: () => void;
-  refetchAdSets: () => void;
-  refetchAds: () => void;
+  refetchAdSets?: () => void;
+  refetchAds?: () => void;
 }
 
 const ClientContext = createContext<ClientContextValue | null>(null);

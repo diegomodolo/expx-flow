@@ -29,32 +29,34 @@ import {
   List,
   Play,
   Film,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from "lucide-react";
-import { useAds } from "@/hooks/useAds";
-import { useCampaigns } from "@/hooks/useCampaigns";
-import { useAdSets } from "@/hooks/useAdSets";
+import { useUnifiedAdsMetrics, Platform } from "@/hooks/useUnifiedAds";
+import { useUnifiedCampaigns } from "@/hooks/useUnifiedCampaigns";
+import { useUnifiedAdGroups } from "@/hooks/useUnifiedAdGroups";
 import { useClientContext } from "./ClienteContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { AdCreativeMetricsModal } from "@/components/ads/AdCreativeMetricsModal";
+import { PlatformFilter } from "@/components/campaigns/PlatformFilter";
+import { PlatformBadge } from "@/components/campaigns/PlatformBadge";
 
-// Função para determinar a prioridade do tipo de criativo
+// Function to determine creative type priority
 const getCreativeTypePriority = (creativeType?: string): number => {
-  if (!creativeType) return 999; // Sem tipo vai pro final
+  if (!creativeType) return 999;
   
   const type = creativeType.toUpperCase();
   
   if (type.includes('IMAGE')) return 1;
   if (type.includes('VIDEO')) return 2;
-  // TEXT, CAROUSEL e outros tipos ficam por último
   return 3;
 };
 
 export function ClienteCriativos() {
   const { client, selectedCampaignId, setSelectedCampaignId, selectedAdSetId, setSelectedAdSetId } = useClientContext();
-  const { ads, loading, refetch } = useAds(client.id);
-  const { campaigns } = useCampaigns(client.id);
-  const { adSets } = useAdSets(client.id);
+  const { activeCompany } = useCompany();
   
+  const [platformFilter, setPlatformFilter] = useState<Platform>('all');
   const [selectedAd, setSelectedAd] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -63,78 +65,77 @@ export function ClienteCriativos() {
   const [sortBy, setSortBy] = useState<string>("conversions");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // Filtrar criativos
+  // Use unified ads hook
+  const { ads, metrics, isLoading, refetch } = useUnifiedAdsMetrics({
+    clientId: client.id,
+    companyId: activeCompany?.company_id,
+    campaignId: selectedCampaignId || undefined,
+    adGroupId: selectedAdSetId || undefined,
+    platform: platformFilter,
+    includeInactive: true,
+  });
+
+  // Fetch unified campaigns for the dropdown
+  const { data: campaigns = [] } = useUnifiedCampaigns({
+    clientId: client.id,
+    companyId: activeCompany?.company_id,
+    platform: platformFilter,
+    includeInactive: true,
+  });
+
+  // Fetch unified ad groups for the dropdown
+  const { data: adGroups = [] } = useUnifiedAdGroups({
+    clientId: client.id,
+    companyId: activeCompany?.company_id,
+    campaignId: selectedCampaignId || undefined,
+    platform: platformFilter,
+    includeInactive: true,
+  });
+
+  // Filter ads
   const filteredAds = useMemo(() => {
-    let filtered = ads || [];
+    let filtered = ads;
     
-    // Filtro por campanha
-    if (selectedCampaignId) {
-      filtered = filtered.filter(ad => ad.campaign_id === selectedCampaignId);
-    }
-    
-    // Filtro por ad set
-    if (selectedAdSetId) {
-      filtered = filtered.filter(ad => ad.ad_set_id === selectedAdSetId);
-    }
-    
-    // Filtro por status
+    // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter(ad => 
         statusFilter === "active" ? ad.is_active : !ad.is_active
       );
     }
     
-    // Filtro por tipo
+    // Filter by type
     if (typeFilter !== "all") {
       filtered = filtered.filter(ad => ad.creative_type?.toUpperCase() === typeFilter);
     }
     
-    // Ordenação
+    // Sort
     filtered = [...filtered].sort((a, b) => {
-      // 1. PRIMEIRA ORDENAÇÃO: Por tipo de criativo (prioridade)
+      // First sort by creative type priority
       const priorityA = getCreativeTypePriority(a.creative_type);
       const priorityB = getCreativeTypePriority(b.creative_type);
       
       if (priorityA !== priorityB) {
-        return priorityA - priorityB; // Sempre ascendente (menor prioridade = primeiro)
+        return priorityA - priorityB;
       }
       
-      // 2. SEGUNDA ORDENAÇÃO: Por métrica selecionada (dentro do mesmo tipo)
-      const aVal = a[sortBy] || 0;
-      const bVal = b[sortBy] || 0;
+      // Then by selected metric
+      const aVal = (a as any)[sortBy] || 0;
+      const bVal = (b as any)[sortBy] || 0;
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
     
     return filtered;
-  }, [ads, selectedCampaignId, selectedAdSetId, statusFilter, typeFilter, sortBy, sortOrder]);
+  }, [ads, statusFilter, typeFilter, sortBy, sortOrder]);
 
-  // Ad sets filtrados por campanha (para o dropdown de ad set)
-  const availableAdSets = useMemo(() => {
-    if (!selectedCampaignId) return adSets || [];
-    return (adSets || []).filter(as => as.campaign_id === selectedCampaignId);
-  }, [adSets, selectedCampaignId]);
+  // Count by platform
+  const metaCount = ads.filter(ad => ad.platform === 'meta').length;
+  const googleCount = ads.filter(ad => ad.platform === 'google').length;
 
-  // Métricas resumidas
-  const summary = useMemo(() => {
-    const active = filteredAds.filter(ad => ad.is_active).length;
-    const totalClicks = filteredAds.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
-    const totalImpressions = filteredAds.reduce((sum, ad) => sum + (ad.impressions || 0), 0);
-    const totalConversions = filteredAds.reduce((sum, ad) => sum + (ad.conversions || 0), 0);
-    const totalReach = filteredAds.reduce((sum, ad) => sum + (ad.reach || 0), 0);
-    const totalEngagement = filteredAds.reduce((sum, ad) => 
-      sum + (ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0), 0
-    );
-    
-    const avgCTR = totalImpressions > 0 
-      ? (totalClicks / totalImpressions) * 100 
-      : 0;
-    
-    const avgEngagement = totalReach > 0
-      ? (totalEngagement / totalReach) * 100
-      : 0;
-    
-    return { active, avgCTR, avgEngagement, totalConversions };
-  }, [filteredAds]);
+  // Available ad groups for current campaign
+  const availableAdGroups = useMemo(() => {
+    if (!selectedCampaignId) return adGroups;
+    return adGroups.filter(ag => ag.campaign_id === selectedCampaignId);
+  }, [adGroups, selectedCampaignId]);
 
   const handleViewDetails = (ad: any) => {
     setSelectedAd(ad);
@@ -154,11 +155,12 @@ export function ClienteCriativos() {
     return campaigns.find(c => c.id === campaignId)?.name || "N/A";
   };
 
-  const getAdSetName = (adSetId: string) => {
-    return (adSets || []).find(as => as.id === adSetId)?.name || "N/A";
+  const getAdGroupName = (adGroupId: string) => {
+    return adGroups.find(ag => ag.id === adGroupId)?.name || "N/A";
   };
 
-  const getCreativeIcon = (type?: string) => {
+  const getCreativeIcon = (type?: string, platform?: string) => {
+    if (platform === 'google') return <FileText className="w-4 h-4" />;
     if (!type) return <Image className="w-4 h-4" />;
     const upperType = type.toUpperCase();
     if (upperType.includes('VIDEO')) return <Play className="w-4 h-4" />;
@@ -166,7 +168,7 @@ export function ClienteCriativos() {
     return <Image className="w-4 h-4" />;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
@@ -189,7 +191,7 @@ export function ClienteCriativos() {
               <Badge variant="secondary">{filteredAds.length}</Badge>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Toggle Grid/Table */}
+              {/* View Toggle */}
               <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as any)}>
                 <ToggleGroupItem value="grid" aria-label="Visualizar em grade">
                   <Grid3x3 className="w-4 h-4" />
@@ -199,10 +201,18 @@ export function ClienteCriativos() {
                 </ToggleGroupItem>
               </ToggleGroup>
 
-              {/* Filtro por campanha */}
+              {/* Platform filter */}
+              <PlatformFilter
+                value={platformFilter}
+                onChange={setPlatformFilter}
+                metaCount={metaCount}
+                googleCount={googleCount}
+              />
+
+              {/* Campaign filter */}
               <Select value={selectedCampaignId || "all"} onValueChange={(v) => {
                 setSelectedCampaignId(v === "all" ? null : v);
-                setSelectedAdSetId(null); // Reset ad set quando muda campanha
+                setSelectedAdSetId(null);
               }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Todas as campanhas" />
@@ -215,7 +225,7 @@ export function ClienteCriativos() {
                 </SelectContent>
               </Select>
 
-              {/* Filtro por ad set */}
+              {/* Ad group filter */}
               <Select 
                 value={selectedAdSetId || "all"} 
                 onValueChange={(v) => setSelectedAdSetId(v === "all" ? null : v)}
@@ -226,13 +236,13 @@ export function ClienteCriativos() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os ad sets</SelectItem>
-                  {availableAdSets.map(as => (
-                    <SelectItem key={as.id} value={as.id}>{as.name}</SelectItem>
+                  {availableAdGroups.map(ag => (
+                    <SelectItem key={ag.id} value={ag.id}>{ag.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              {/* Filtro por tipo */}
+              {/* Type filter */}
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
@@ -242,10 +252,11 @@ export function ClienteCriativos() {
                   <SelectItem value="IMAGE">Imagem</SelectItem>
                   <SelectItem value="VIDEO">Vídeo</SelectItem>
                   <SelectItem value="CAROUSEL">Carrossel</SelectItem>
+                  <SelectItem value="TEXT">Texto</SelectItem>
                 </SelectContent>
               </Select>
 
-              {/* Filtro por status */}
+              {/* Status filter */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
@@ -257,8 +268,8 @@ export function ClienteCriativos() {
                 </SelectContent>
               </Select>
 
-              {/* Botão atualizar */}
-              <Button variant="outline" size="sm" onClick={refetch}>
+              {/* Refresh button */}
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Atualizar
               </Button>
@@ -267,14 +278,18 @@ export function ClienteCriativos() {
         </CardHeader>
       </Card>
 
-      {/* Cards de Resumo */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Criativos Ativos</p>
-                <p className="text-2xl font-bold">{summary.active}</p>
+                <p className="text-2xl font-bold">{metrics.active}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Meta: {ads.filter(ad => ad.platform === 'meta' && ad.is_active).length} | 
+                  Google: {ads.filter(ad => ad.platform === 'google' && ad.is_active).length}
+                </p>
               </div>
               <Image className="w-8 h-8 text-primary" />
             </div>
@@ -286,7 +301,7 @@ export function ClienteCriativos() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Taxa de Engajamento</p>
-                <p className="text-2xl font-bold">{summary.avgEngagement.toFixed(2)}%</p>
+                <p className="text-2xl font-bold">{metrics.avgEngagement.toFixed(2)}%</p>
               </div>
               <Heart className="w-8 h-8 text-primary" />
             </div>
@@ -298,7 +313,7 @@ export function ClienteCriativos() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">CTR Médio</p>
-                <p className="text-2xl font-bold">{summary.avgCTR.toFixed(2)}%</p>
+                <p className="text-2xl font-bold">{metrics.avgCTR.toFixed(2)}%</p>
               </div>
               <Eye className="w-8 h-8 text-primary" />
             </div>
@@ -310,7 +325,11 @@ export function ClienteCriativos() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Conversões Totais</p>
-                <p className="text-2xl font-bold">{summary.totalConversions}</p>
+                <p className="text-2xl font-bold">{metrics.totalConversions}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Meta: {ads.filter(ad => ad.platform === 'meta').reduce((s, ad) => s + ad.conversions, 0)} | 
+                  Google: {ads.filter(ad => ad.platform === 'google').reduce((s, ad) => s + ad.conversions, 0)}
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-primary" />
             </div>
@@ -318,7 +337,7 @@ export function ClienteCriativos() {
         </Card>
       </div>
 
-      {/* Conteúdo: Grid ou Tabela */}
+      {/* Content: Grid or Table */}
       {filteredAds.length === 0 ? (
         <Card>
           <CardContent className="p-12">
@@ -328,7 +347,7 @@ export function ClienteCriativos() {
               <p className="text-sm text-muted-foreground mt-2">
                 {selectedCampaignId || selectedAdSetId
                   ? "Tente selecionar filtros diferentes"
-                  : "Sincronize suas campanhas do Facebook para ver os criativos"}
+                  : "Sincronize suas campanhas para ver os criativos"}
               </p>
             </div>
           </CardContent>
@@ -338,9 +357,22 @@ export function ClienteCriativos() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAds.map((ad) => (
             <Card key={ad.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              {/* Preview do Criativo */}
+              {/* Creative Preview */}
               <div className="relative h-48 bg-muted">
-                {ad.image_url ? (
+                {ad.platform === 'google' ? (
+                  // Google Ads - Text preview
+                  <div className="w-full h-full flex flex-col justify-center p-4 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-background">
+                    <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 line-clamp-2">
+                      {ad.creative_title || ad.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-3">
+                      {ad.creative_body || ad.creative_description || 'Anúncio de texto do Google Ads'}
+                    </p>
+                    {ad.link_url && (
+                      <p className="text-xs text-green-600 mt-2 truncate">{ad.link_url}</p>
+                    )}
+                  </div>
+                ) : ad.image_url ? (
                   <img 
                     src={ad.image_url} 
                     alt={ad.name} 
@@ -359,19 +391,12 @@ export function ClienteCriativos() {
                   </div>
                 )}
                 
-                {/* Badges no canto */}
+                {/* Badges */}
                 <div className="absolute top-2 right-2 flex gap-2">
+                  <PlatformBadge platform={ad.platform} showIcon={false} />
                   <Badge variant={ad.is_active ? "default" : "secondary"}>
                     {ad.is_active ? "Ativo" : "Pausado"}
                   </Badge>
-                  {ad.creative_type && (
-                    <Badge variant="outline" className="bg-background">
-                      <span className="flex items-center gap-1">
-                        {getCreativeIcon(ad.creative_type)}
-                        {ad.creative_type}
-                      </span>
-                    </Badge>
-                  )}
                 </div>
               </div>
 
@@ -380,65 +405,71 @@ export function ClienteCriativos() {
                   {ad.name}
                 </h4>
                 
-                {/* Texto do criativo */}
-                {ad.creative_body && (
+                {/* Creative text */}
+                {ad.creative_body && ad.platform === 'meta' && (
                   <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
                     {ad.creative_body}
                   </p>
                 )}
 
-                {/* Métricas */}
+                {/* Metrics */}
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <div>
                     <p className="text-xs text-muted-foreground">CTR</p>
-                    <p className="text-sm font-bold">{(ad.ctr || 0).toFixed(2)}%</p>
+                    <p className="text-sm font-bold">{ad.ctr.toFixed(2)}%</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">CPC</p>
-                    <p className="text-sm font-bold">R$ {(ad.cpc || 0).toFixed(2)}</p>
+                    <p className="text-sm font-bold">R$ {ad.cpc.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Conversões</p>
-                    <p className="text-sm font-bold">{ad.conversions || 0}</p>
+                    <p className="text-sm font-bold">{ad.conversions}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Engajamento</p>
+                    <p className="text-xs text-muted-foreground">
+                      {ad.platform === 'meta' ? 'Engajamento' : 'Cliques'}
+                    </p>
                     <p className="text-sm font-bold">
-                      {(ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0)}
+                      {ad.platform === 'meta' 
+                        ? (ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0)
+                        : ad.clicks}
                     </p>
                   </div>
                 </div>
 
-                {/* Engajamento detalhado */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 pt-3 border-t">
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-3 h-3" />
-                    <span>{ad.likes || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-3 h-3" />
-                    <span>{ad.comments || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Share2 className="w-3 h-3" />
-                    <span>{ad.shares || 0}</span>
-                  </div>
-                  {ad.video_views > 0 && (
+                {/* Engagement details (Meta only) */}
+                {ad.platform === 'meta' && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 pt-3 border-t">
                     <div className="flex items-center gap-1">
-                      <Play className="w-3 h-3" />
-                      <span>{ad.video_views}</span>
+                      <Heart className="w-3 h-3" />
+                      <span>{ad.likes || 0}</span>
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3" />
+                      <span>{ad.comments || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Share2 className="w-3 h-3" />
+                      <span>{ad.shares || 0}</span>
+                    </div>
+                    {ad.video_views && ad.video_views > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Play className="w-3 h-3" />
+                        <span>{ad.video_views}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                {/* Call to Action */}
+                {/* CTA */}
                 {ad.call_to_action && ad.call_to_action !== '{}' && (
                   <Badge variant="outline" className="w-full justify-center mb-3">
                     {ad.call_to_action}
                   </Badge>
                 )}
 
-                {/* Botão Ver Detalhes */}
+                {/* View Details Button */}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -460,12 +491,16 @@ export function ClienteCriativos() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Preview</TableHead>
                     <TableHead>Nome</TableHead>
+                    <TableHead>Plataforma</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Campanha</TableHead>
-                    <TableHead>Ad Set</TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:text-primary" 
+                      onClick={() => handleSort("clicks")}
+                    >
+                      Cliques {sortBy === "clicks" && (sortOrder === "desc" ? "↓" : "↑")}
+                    </TableHead>
                     <TableHead 
                       className="text-right cursor-pointer hover:text-primary" 
                       onClick={() => handleSort("ctr")}
@@ -479,33 +514,21 @@ export function ClienteCriativos() {
                     >
                       Conversões {sortBy === "conversions" && (sortOrder === "desc" ? "↓" : "↑")}
                     </TableHead>
-                    <TableHead className="text-right">Engajamento</TableHead>
+                    <TableHead className="text-right">CPA</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAds.map((ad) => (
                     <TableRow key={ad.id}>
-                      <TableCell>
-                        <div className="w-16 h-16 bg-muted rounded overflow-hidden">
-                          {ad.image_url ? (
-                            <img 
-                              src={ad.image_url} 
-                              alt={ad.name} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              {getCreativeIcon(ad.creative_type)}
-                            </div>
-                          )}
-                        </div>
+                      <TableCell 
+                        className="font-medium cursor-pointer hover:text-primary" 
+                        onClick={() => handleViewDetails(ad)}
+                      >
+                        {ad.name}
                       </TableCell>
-                      <TableCell className="font-medium max-w-[200px]">
-                        <div className="line-clamp-2" title={ad.name}>{ad.name}</div>
+                      <TableCell>
+                        <PlatformBadge platform={ad.platform} />
                       </TableCell>
                       <TableCell>
                         <Badge variant={ad.is_active ? "default" : "secondary"}>
@@ -513,35 +536,25 @@ export function ClienteCriativos() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          {getCreativeIcon(ad.creative_type)}
-                          <span className="text-sm">{ad.creative_type || "N/A"}</span>
-                        </div>
+                        <Badge variant="outline" className="gap-1">
+                          {getCreativeIcon(ad.creative_type, ad.platform)}
+                          {ad.creative_type || (ad.platform === 'google' ? 'TEXT' : 'N/A')}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {getCampaignName(ad.campaign_id)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {getAdSetName(ad.ad_set_id)}
-                      </TableCell>
-                      <TableCell className="text-right">{(ad.ctr || 0).toFixed(2)}%</TableCell>
-                      <TableCell className="text-right">R$ {(ad.cpc || 0).toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-medium">{ad.conversions || 0}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2 text-xs">
-                          <div className="flex items-center gap-1">
-                            <Heart className="w-3 h-3" />
-                            {ad.likes || 0}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MessageCircle className="w-3 h-3" />
-                            {ad.comments || 0}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Share2 className="w-3 h-3" />
-                            {ad.shares || 0}
-                          </div>
-                        </div>
+                        {ad.clicks.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {ad.ctr.toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-right">
+                        R$ {ad.cpc.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {ad.conversions}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        R$ {ad.cpa.toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Button 
@@ -562,7 +575,7 @@ export function ClienteCriativos() {
         </Card>
       )}
 
-      {/* Modal de Métricas */}
+      {/* Metrics Modal */}
       <AdCreativeMetricsModal
         ad={selectedAd}
         isOpen={showModal}
