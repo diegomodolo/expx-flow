@@ -42,16 +42,25 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
       if (data.references && data.references.length > 0) {
         console.log('Converting reference images to base64...');
         references = await Promise.all(
-          data.references.map(async (file: File) => {
-            return new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
+          data.references.map(async (item) => {
+            // Se for URL, usar diretamente
+            if (item.type === 'url' && item.url) {
+              return item.url;
+            }
+            // Se for arquivo, converter para base64
+            if (item.type === 'file' && item.file) {
+              return new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(item.file!);
+              });
+            }
+            return '';
           })
         );
-        console.log(`Converted ${references.length} reference images`);
+        references = references.filter(r => r !== '');
+        console.log(`Processed ${references.length} reference images`);
       }
 
       const requestBody = {

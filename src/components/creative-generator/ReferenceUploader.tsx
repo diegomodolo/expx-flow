@@ -1,18 +1,30 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Upload, X, Image as ImageIcon, AlertCircle, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
+import { useCompany } from "@/contexts/CompanyContext";
 
-interface ReferenceUploaderProps {
-  references: File[];
-  onReferencesChange: (files: File[]) => void;
+export interface ReferenceItem {
+  type: 'file' | 'url';
+  file?: File;
+  url?: string;
+  name: string;
 }
 
-export function ReferenceUploader({ references, onReferencesChange }: ReferenceUploaderProps) {
+interface ReferenceUploaderProps {
+  references: ReferenceItem[];
+  onReferencesChange: (items: ReferenceItem[]) => void;
+  clientId?: string;
+}
+
+export function ReferenceUploader({ references, onReferencesChange, clientId }: ReferenceUploaderProps) {
   const { toast } = useToast();
+  const { activeCompany } = useCompany();
+  const [showInstagramDialog, setShowInstagramDialog] = useState(false);
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -20,7 +32,7 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
     if (references.length + files.length > 3) {
       toast({
         title: "Limite excedido",
-        description: "Você pode fazer upload de no máximo 3 imagens de referência.",
+        description: "Você pode adicionar no máximo 3 imagens de referência.",
         variant: "destructive",
       });
       return;
@@ -52,7 +64,12 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
     });
 
     if (validFiles.length > 0) {
-      onReferencesChange([...references, ...validFiles]);
+      const newItems: ReferenceItem[] = validFiles.map(file => ({
+        type: 'file',
+        file,
+        name: file.name
+      }));
+      onReferencesChange([...references, ...newItems]);
       toast({
         title: "Upload realizado",
         description: `${validFiles.length} imagem(ns) adicionada(s) com sucesso.`,
@@ -70,7 +87,7 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
     if (references.length + files.length > 3) {
       toast({
         title: "Limite excedido",
-        description: "Você pode fazer upload de no máximo 3 imagens de referência.",
+        description: "Você pode adicionar no máximo 3 imagens de referência.",
         variant: "destructive",
       });
       return;
@@ -79,7 +96,12 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
     const validFiles = files.filter(file => file.type.startsWith('image/'));
     
     if (validFiles.length > 0) {
-      onReferencesChange([...references, ...validFiles]);
+      const newItems: ReferenceItem[] = validFiles.map(file => ({
+        type: 'file',
+        file,
+        name: file.name
+      }));
+      onReferencesChange([...references, ...newItems]);
       toast({
         title: "Upload realizado",
         description: `${validFiles.length} imagem(ns) adicionada(s) com sucesso.`,
@@ -91,13 +113,44 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
     event.preventDefault();
   }, []);
 
+  const handleInstagramSelect = (imageUrls: string[]) => {
+    const availableSlots = 3 - references.length;
+    const urlsToAdd = imageUrls.slice(0, availableSlots);
+    
+    const newItems: ReferenceItem[] = urlsToAdd.map((url, index) => ({
+      type: 'url',
+      url,
+      name: `Instagram ${references.length + index + 1}`
+    }));
+    
+    onReferencesChange([...references, ...newItems]);
+    
+    toast({
+      title: "Referências importadas",
+      description: `${newItems.length} imagem(ns) do Instagram adicionada(s).`,
+    });
+  };
+
   const removeReference = (index: number) => {
     const newReferences = references.filter((_, i) => i !== index);
     onReferencesChange(newReferences);
   };
 
-  const getImagePreview = (file: File): string => {
-    return URL.createObjectURL(file);
+  const getImagePreview = (item: ReferenceItem): string => {
+    if (item.type === 'url' && item.url) {
+      return item.url;
+    }
+    if (item.type === 'file' && item.file) {
+      return URL.createObjectURL(item.file);
+    }
+    return '';
+  };
+
+  const getItemSize = (item: ReferenceItem): string => {
+    if (item.type === 'file' && item.file) {
+      return `${(item.file.size / 1024 / 1024).toFixed(1)} MB`;
+    }
+    return 'URL externa';
   };
 
   return (
@@ -105,7 +158,7 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
       <div>
         <h3 className="text-lg font-medium mb-2">Imagens de Referência (Opcional)</h3>
         <p className="text-muted-foreground">
-          Faça upload de até 3 imagens que podem inspirar seu criativo (campanhas passadas, concorrentes, inspirações)
+          Faça upload de até 3 imagens ou importe do Instagram do cliente (campanhas passadas, inspirações)
         </p>
       </div>
 
@@ -127,14 +180,14 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
               <div className="space-y-2">
                 <h4 className="font-medium">Adicionar Imagens de Referência</h4>
                 <p className="text-sm text-muted-foreground">
-                  Arraste e solte ou clique para selecionar imagens
+                  Arraste e solte ou escolha uma das opções abaixo
                 </p>
                 <p className="text-xs text-muted-foreground">
                   JPG, PNG, WEBP até 10MB cada
                 </p>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
                 <Button variant="outline" asChild>
                   <label className="cursor-pointer">
                     <input
@@ -144,13 +197,25 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
                       onChange={handleFileUpload}
                       className="hidden"
                     />
+                    <Upload className="w-4 h-4 mr-2" />
                     Selecionar Arquivos
                   </label>
                 </Button>
-                <Badge variant="secondary">
-                  {references.length}/3 imagens
-                </Badge>
+                
+                {clientId && activeCompany?.id && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowInstagramDialog(true)}
+                  >
+                    <Instagram className="w-4 h-4 mr-2" />
+                    Buscar do Instagram
+                  </Button>
+                )}
               </div>
+              
+              <Badge variant="secondary">
+                {references.length}/3 imagens
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -164,12 +229,12 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {references.map((file, index) => (
+            {references.map((item, index) => (
               <Card key={index} className="overflow-hidden">
                 <CardContent className="p-0">
                   <div className="relative aspect-video">
                     <img
-                      src={getImagePreview(file)}
+                      src={getImagePreview(item)}
                       alt={`Referência ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -181,17 +246,26 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
                     >
                       <X className="w-3 h-3" />
                     </Button>
+                    
+                    {item.type === 'url' && (
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="secondary" className="text-xs">
+                          <Instagram className="w-3 h-3 mr-1" />
+                          Instagram
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="p-3">
                     <div className="flex items-center gap-2">
                       <ImageIcon className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm font-medium truncate">
-                        {file.name}
+                        {item.name}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {(file.size / 1024 / 1024).toFixed(1)} MB
+                      {getItemSize(item)}
                     </p>
                   </div>
                 </CardContent>
@@ -215,6 +289,18 @@ export function ReferenceUploader({ references, onReferencesChange }: ReferenceU
           </div>
         </div>
       </div>
+
+      {/* Dialog para buscar do Instagram */}
+      {clientId && activeCompany?.id && (
+        <ReferenceSelectionDialog
+          open={showInstagramDialog}
+          onOpenChange={setShowInstagramDialog}
+          clientId={clientId}
+          companyId={activeCompany.id}
+          onSelect={handleInstagramSelect}
+          maxSelections={3 - references.length}
+        />
+      )}
     </div>
   );
 }

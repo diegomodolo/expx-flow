@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { Sparkles, Lightbulb, Wand2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ReferenceItem } from "./ReferenceUploader";
 
 interface ThemeSuggestion {
   title: string;
@@ -19,7 +20,7 @@ interface ThemeSuggestion {
 interface ThemeSuggestionGeneratorProps {
   clientId: string;
   creativeType: string;
-  references: File[];
+  references: ReferenceItem[];
   selectedTheme: string;
   onThemeSelect: (theme: string) => void;
 }
