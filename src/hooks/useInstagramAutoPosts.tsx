@@ -17,6 +17,9 @@ interface InstagramAutoPostConfig {
   created_at: string;
   updated_at: string;
   created_by: string;
+  reference_image_1: string | null;
+  reference_image_2: string | null;
+  reference_image_3: string | null;
 }
 
 interface InstagramAutoPost {
@@ -61,6 +64,9 @@ export function useInstagramAutoPostConfig(clientId: string) {
       scheduled_hours: number[];
       company_id: string;
       created_by: string;
+      reference_image_1?: string | null;
+      reference_image_2?: string | null;
+      reference_image_3?: string | null;
     }) => {
       // First create the config
       const { data, error } = await supabase

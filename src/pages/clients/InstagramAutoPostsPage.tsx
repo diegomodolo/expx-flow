@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstagramPostPreviewModal } from '@/components/instagram/InstagramPostPreviewModal';
+import { AutoPostReferenceImages } from '@/components/instagram/AutoPostReferenceImages';
 import { 
   Instagram, 
   Calendar, 
@@ -70,6 +71,11 @@ export default function InstagramAutoPostsPage() {
   const [editBriefing, setEditBriefing] = useState('');
   const [editDays, setEditDays] = useState<number[]>([]);
   const [editHours, setEditHours] = useState<number[]>([]);
+  const [newConfigRefImages, setNewConfigRefImages] = useState<{
+    reference_image_1?: string | null;
+    reference_image_2?: string | null;
+    reference_image_3?: string | null;
+  }>({});
 
   // Fetch Instagram accounts
   const { data: instagramAccounts } = useQuery({
@@ -104,7 +110,10 @@ export default function InstagramAutoPostsPage() {
       scheduled_days: selectedDays,
       scheduled_hours: selectedHours,
       company_id: activeCompany?.company_id!,
-      created_by: user?.id!
+      created_by: user?.id!,
+      reference_image_1: newConfigRefImages.reference_image_1,
+      reference_image_2: newConfigRefImages.reference_image_2,
+      reference_image_3: newConfigRefImages.reference_image_3
     });
   };
 
@@ -242,6 +251,18 @@ export default function InstagramAutoPostsPage() {
                 Selecione os horários em que deseja publicar. Máximo recomendado: 3 por dia.
               </p>
             </div>
+
+            {/* Reference Images for new config */}
+            {activeCompany && (
+              <AutoPostReferenceImages
+                clientId={clientId!}
+                companyId={activeCompany.company_id}
+                referenceImage1={newConfigRefImages.reference_image_1 || null}
+                referenceImage2={newConfigRefImages.reference_image_2 || null}
+                referenceImage3={newConfigRefImages.reference_image_3 || null}
+                onImagesChange={(updates) => setNewConfigRefImages(prev => ({ ...prev, ...updates }))}
+              />
+            )}
 
             <Button
               onClick={handleCreateConfig}
@@ -445,6 +466,18 @@ export default function InstagramAutoPostsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reference Images Section */}
+      <AutoPostReferenceImages
+        configId={config.id}
+        clientId={clientId!}
+        companyId={config.company_id}
+        referenceImage1={config.reference_image_1}
+        referenceImage2={config.reference_image_2}
+        referenceImage3={config.reference_image_3}
+        onImagesChange={(updates) => updateConfig(updates)}
+        disabled={isUpdating}
+      />
 
       {/* Pending Posts Queue */}
       <Card>

@@ -4133,6 +4133,9 @@ export type Database = {
           last_post_at: string | null
           next_post_at: string | null
           post_briefing: string
+          reference_image_1: string | null
+          reference_image_2: string | null
+          reference_image_3: string | null
           scheduled_days: number[]
           scheduled_hours: number[]
           updated_at: string | null
@@ -4148,6 +4151,9 @@ export type Database = {
           last_post_at?: string | null
           next_post_at?: string | null
           post_briefing: string
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
           scheduled_days?: number[]
           scheduled_hours?: number[]
           updated_at?: string | null
@@ -4163,6 +4169,9 @@ export type Database = {
           last_post_at?: string | null
           next_post_at?: string | null
           post_briefing?: string
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
           scheduled_days?: number[]
           scheduled_hours?: number[]
           updated_at?: string | null
