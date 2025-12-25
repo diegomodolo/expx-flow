@@ -220,6 +220,16 @@ const ClienteDetalhes = () => {
                   funnelCompletenessScore={funnelCompletenessScore}
                   cplByCampaignData={cplByCampaignData}
                   investmentDistributionData={investmentDistributionData}
+                  metaMetrics={{
+                    spend: unifiedMetrics.meta.spend,
+                    conversions: unifiedMetrics.meta.conversions,
+                    campaigns: unifiedMetrics.meta.campaigns,
+                  }}
+                  googleMetrics={{
+                    spend: unifiedMetrics.google.spend,
+                    conversions: unifiedMetrics.google.conversions,
+                    campaigns: unifiedMetrics.google.campaigns,
+                  }}
                 />
               } 
             />
