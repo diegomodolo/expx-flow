@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ClientDetailsLayout } from "@/components/clients/ClientDetailsLayout";
@@ -26,11 +26,9 @@ import { ClienteApresentacoes } from "./cliente/ClienteApresentacoes";
 import ClientePixels from "./ClientePixels";
 import InstagramAutoPostsPage from "./clients/InstagramAutoPostsPage";
 import { useClientDetails } from "@/hooks/useClientDetails";
-import { useAdSets } from "@/hooks/useAdSets";
-import { useAds } from "@/hooks/useAds";
+import { useUnifiedCampaigns, useUnifiedMetrics } from "@/hooks/useUnifiedCampaigns";
 import { Loader2 } from "lucide-react";
 import { useOfflineConversions } from "@/hooks/useOfflineConversions";
-import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { UnifiedSyncButton } from "@/components/clients/UnifiedSyncButton";
 
@@ -38,19 +36,28 @@ const ClienteDetalhes = () => {
   const { id } = useParams<{ id: string }>();
   const { activeCompany } = useCompany();
   const { client, loading, error, refetch } = useClientDetails(id || "");
-  const { adSets, loading: adSetsLoading, refetch: refetchAdSets } = useAdSets(id || "");
-  const { ads, loading: adsLoading, refetch: refetchAds } = useAds(id || "");
   const { conversions } = useOfflineConversions(id || "");
   
+  // Use unified campaigns hook
+  const { 
+    metrics: unifiedMetrics, 
+    isLoading: campaignsLoading,
+    campaigns: unifiedCampaigns 
+  } = useUnifiedMetrics({
+    clientId: id,
+    companyId: activeCompany?.company_id,
+    includeInactive: true,
+  });
+
   // Estados para filtros de navegação entre abas
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedAdSetId, setSelectedAdSetId] = useState<string | null>(null);
 
-  // Calculate campaign metrics (with safe access)
-  const totalCampaigns = client?.campaigns?.length || 0;
-  const activeCampaigns = client?.campaigns?.filter(c => c.status === 'active' || c.is_active === true).length || 0;
+  // Calculate campaign metrics from unified data
+  const totalCampaigns = unifiedMetrics.meta.campaigns + unifiedMetrics.google.campaigns;
+  const activeCampaigns = unifiedMetrics.active_campaigns;
   const totalLeadsGenerated = client?.leads_generated || 0;
-  const totalInvested = client?.campaigns?.reduce((total, campaign) => total + (campaign.spend || 0), 0) || 0;
+  const totalInvested = unifiedMetrics.total_spend;
 
   // Calculate sync period in days
   const syncPeriodDays = useMemo(() => {
@@ -97,27 +104,24 @@ const ClienteDetalhes = () => {
   // Handle sync complete
   const handleSyncComplete = () => {
     refetch();
-    refetchAdSets();
-    refetchAds();
   };
 
-  // Calculate funnel completeness score
+  // Calculate funnel completeness score from unified campaigns
   const funnelCompletenessScore = useMemo(() => {
-    if (!client?.campaigns || client.campaigns.length === 0) return 0;
+    if (!unifiedCampaigns || unifiedCampaigns.length === 0) return 0;
     
-    const totalCampaigns = client.campaigns.length;
-    const campaignsWithConversions = client.campaigns.filter(c => (c.conversions || 0) > 0).length;
+    const campaignsWithConversions = unifiedCampaigns.filter(c => (c.conversions || 0) > 0).length;
     
-    return Math.round((campaignsWithConversions / totalCampaigns) * 100);
-  }, [client?.campaigns]);
+    return Math.round((campaignsWithConversions / unifiedCampaigns.length) * 100);
+  }, [unifiedCampaigns]);
 
-  // Data for CPL by Campaign chart (horizontal bar chart)
+  // Data for CPL by Campaign chart (horizontal bar chart) - using unified campaigns
   const cplByCampaignData = useMemo(() => {
-    if (!client?.campaigns || client.campaigns.length === 0) {
+    if (!unifiedCampaigns || unifiedCampaigns.length === 0) {
       return [];
     }
 
-    return client.campaigns
+    return unifiedCampaigns
       .filter(campaign => (campaign.cpa || 0) > 0)
       .map(campaign => ({
         name: campaign.name.length > 25 ? campaign.name.substring(0, 25) + '...' : campaign.name,
@@ -125,34 +129,36 @@ const ClienteDetalhes = () => {
         cpl: campaign.cpa || 0,
         status: campaign.status,
         conversions: campaign.conversions,
-        spend: campaign.spend || 0
+        spend: campaign.spend || 0,
+        platform: campaign.platform,
       }))
       .sort((a, b) => a.cpl - b.cpl)
       .slice(0, 8);
-  }, [client?.campaigns]);
+  }, [unifiedCampaigns]);
 
-  // Data for Investment Distribution chart (pie chart)
+  // Data for Investment Distribution chart (pie chart) - using unified campaigns
   const investmentDistributionData = useMemo(() => {
-    if (!client?.campaigns || client.campaigns.length === 0) {
+    if (!unifiedCampaigns || unifiedCampaigns.length === 0) {
       return [];
     }
 
     const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#0088fe', '#ff0088', '#8800ff'];
     
-    return client.campaigns
+    return unifiedCampaigns
       .filter(campaign => (campaign.spend || 0) > 0)
       .map((campaign, index) => ({
         name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
         fullName: campaign.name,
         value: campaign.spend || 0,
         conversions: campaign.conversions || 0,
-        color: colors[index % colors.length]
+        color: colors[index % colors.length],
+        platform: campaign.platform,
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
-  }, [client?.campaigns]);
+  }, [unifiedCampaigns]);
 
-  if (loading) {
+  if (loading || campaignsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-screen">
@@ -182,8 +188,6 @@ const ClienteDetalhes = () => {
     selectedAdSetId,
     setSelectedAdSetId,
     refetchClient: refetch,
-    refetchAdSets,
-    refetchAds,
   };
 
   return (

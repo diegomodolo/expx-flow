@@ -18,66 +18,66 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Layers, RefreshCw, Eye, DollarSign, Target, TrendingUp } from "lucide-react";
-import { useAdSets } from "@/hooks/useAdSets";
-import { useCampaigns } from "@/hooks/useCampaigns";
+import { useUnifiedAdGroupsMetrics, Platform } from "@/hooks/useUnifiedAdGroups";
+import { useUnifiedCampaigns } from "@/hooks/useUnifiedCampaigns";
 import { useClientContext } from "./ClienteContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { AdSetMetricsModal } from "@/components/adsets/AdSetMetricsModal";
+import { PlatformFilter } from "@/components/campaigns/PlatformFilter";
+import { PlatformBadge } from "@/components/campaigns/PlatformBadge";
 
 export function ClienteConjuntos() {
   const { client, selectedCampaignId, setSelectedCampaignId } = useClientContext();
-  const { adSets, loading, refetch } = useAdSets(client.id);
-  const { campaigns } = useCampaigns();
+  const { activeCompany } = useCompany();
   
+  const [platformFilter, setPlatformFilter] = useState<Platform>('all');
   const [selectedAdSet, setSelectedAdSet] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("spend");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // Filtrar ad sets
-  const filteredAdSets = useMemo(() => {
-    let filtered = adSets || [];
+  // Use unified ad groups hook
+  const { adGroups, metrics, isLoading, refetch } = useUnifiedAdGroupsMetrics({
+    clientId: client.id,
+    companyId: activeCompany?.company_id,
+    campaignId: selectedCampaignId || undefined,
+    platform: platformFilter,
+    includeInactive: true,
+  });
+
+  // Fetch unified campaigns for the dropdown
+  const { data: campaigns = [] } = useUnifiedCampaigns({
+    clientId: client.id,
+    companyId: activeCompany?.company_id,
+    platform: platformFilter,
+    includeInactive: true,
+  });
+
+  // Filter and sort ad groups
+  const filteredAdGroups = useMemo(() => {
+    let filtered = adGroups;
     
-    // Filtro por campanha
-    if (selectedCampaignId) {
-      filtered = filtered.filter(as => as.campaign_id === selectedCampaignId);
-    }
-    
-    // Filtro por status
+    // Filter by status
     if (statusFilter !== "all") {
-      filtered = filtered.filter(as => 
-        statusFilter === "active" ? as.is_active : !as.is_active
+      filtered = filtered.filter(ag => 
+        statusFilter === "active" ? ag.is_active : !ag.is_active
       );
     }
     
-    // Ordenação
+    // Sort
     filtered = [...filtered].sort((a, b) => {
-      const aVal = a[sortBy] || 0;
-      const bVal = b[sortBy] || 0;
+      const aVal = (a as any)[sortBy] || 0;
+      const bVal = (b as any)[sortBy] || 0;
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
     
     return filtered;
-  }, [adSets, selectedCampaignId, statusFilter, sortBy, sortOrder]);
+  }, [adGroups, statusFilter, sortBy, sortOrder]);
 
-  // Métricas resumidas
-  const summary = useMemo(() => {
-    const active = filteredAdSets.filter(as => as.is_active).length;
-    const totalSpend = filteredAdSets.reduce((sum, as) => sum + (as.spend || 0), 0);
-    const totalClicks = filteredAdSets.reduce((sum, as) => sum + (as.clicks || 0), 0);
-    const totalImpressions = filteredAdSets.reduce((sum, as) => sum + (as.impressions || 0), 0);
-    const totalConversions = filteredAdSets.reduce((sum, as) => sum + (as.conversions || 0), 0);
-    
-    const avgCTR = totalImpressions > 0 
-      ? (totalClicks / totalImpressions) * 100 
-      : 0;
-    
-    const avgCPA = totalConversions > 0
-      ? totalSpend / totalConversions
-      : 0;
-    
-    return { active, totalSpend, avgCTR, avgCPA };
-  }, [filteredAdSets]);
+  // Count by platform
+  const metaCount = adGroups.filter(ag => ag.platform === 'meta').length;
+  const googleCount = adGroups.filter(ag => ag.platform === 'google').length;
 
   const handleViewDetails = (adSet: any) => {
     setSelectedAdSet(adSet);
@@ -97,7 +97,7 @@ export function ClienteConjuntos() {
     return campaigns.find(c => c.id === campaignId)?.name || "N/A";
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
@@ -117,10 +117,18 @@ export function ClienteConjuntos() {
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5" />
               <CardTitle>Conjuntos de Anúncios</CardTitle>
-              <Badge variant="secondary">{filteredAdSets.length}</Badge>
+              <Badge variant="secondary">{filteredAdGroups.length}</Badge>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Filtro por campanha */}
+              {/* Platform filter */}
+              <PlatformFilter
+                value={platformFilter}
+                onChange={setPlatformFilter}
+                metaCount={metaCount}
+                googleCount={googleCount}
+              />
+              
+              {/* Campaign filter */}
               <Select 
                 value={selectedCampaignId || "all"} 
                 onValueChange={(v) => setSelectedCampaignId(v === "all" ? null : v)}
@@ -136,7 +144,7 @@ export function ClienteConjuntos() {
                 </SelectContent>
               </Select>
 
-              {/* Filtro por status */}
+              {/* Status filter */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue />
@@ -148,8 +156,8 @@ export function ClienteConjuntos() {
                 </SelectContent>
               </Select>
 
-              {/* Botão atualizar */}
-              <Button variant="outline" size="sm" onClick={refetch}>
+              {/* Refresh button */}
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Atualizar
               </Button>
@@ -158,14 +166,18 @@ export function ClienteConjuntos() {
         </CardHeader>
       </Card>
 
-      {/* Cards de Resumo */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Ad Sets Ativos</p>
-                <p className="text-2xl font-bold">{summary.active}</p>
+                <p className="text-2xl font-bold">{metrics.active}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Meta: {adGroups.filter(ag => ag.platform === 'meta' && ag.is_active).length} | 
+                  Google: {adGroups.filter(ag => ag.platform === 'google' && ag.is_active).length}
+                </p>
               </div>
               <Target className="w-8 h-8 text-primary" />
             </div>
@@ -177,7 +189,10 @@ export function ClienteConjuntos() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Investimento Total</p>
-                <p className="text-2xl font-bold">R$ {summary.totalSpend.toFixed(2)}</p>
+                <p className="text-2xl font-bold">R$ {metrics.totalSpend.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Meta: R$ {metrics.meta.spend.toFixed(0)} | Google: R$ {metrics.google.spend.toFixed(0)}
+                </p>
               </div>
               <DollarSign className="w-8 h-8 text-primary" />
             </div>
@@ -189,7 +204,7 @@ export function ClienteConjuntos() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">CTR Médio</p>
-                <p className="text-2xl font-bold">{summary.avgCTR.toFixed(2)}%</p>
+                <p className="text-2xl font-bold">{metrics.avgCTR.toFixed(2)}%</p>
               </div>
               <Eye className="w-8 h-8 text-primary" />
             </div>
@@ -201,7 +216,7 @@ export function ClienteConjuntos() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">CPA Médio</p>
-                <p className="text-2xl font-bold">R$ {summary.avgCPA.toFixed(2)}</p>
+                <p className="text-2xl font-bold">R$ {metrics.avgCPA.toFixed(2)}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-primary" />
             </div>
@@ -209,17 +224,17 @@ export function ClienteConjuntos() {
         </Card>
       </div>
 
-      {/* Tabela de Ad Sets */}
+      {/* Ad Sets Table */}
       <Card>
         <CardContent className="p-6">
-          {filteredAdSets.length === 0 ? (
+          {filteredAdGroups.length === 0 ? (
             <div className="text-center py-12">
               <Layers className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground">Nenhum conjunto de anúncios encontrado</p>
               <p className="text-sm text-muted-foreground mt-2">
                 {selectedCampaignId 
                   ? "Tente selecionar uma campanha diferente ou limpar os filtros"
-                  : "Sincronize suas campanhas do Facebook para ver os conjuntos de anúncios"}
+                  : "Sincronize suas campanhas para ver os conjuntos de anúncios"}
               </p>
             </div>
           ) : (
@@ -228,6 +243,7 @@ export function ClienteConjuntos() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
+                    <TableHead>Plataforma</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Campanha</TableHead>
                     <TableHead>Orçamento</TableHead>
@@ -256,50 +272,54 @@ export function ClienteConjuntos() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAdSets.map((adSet) => (
-                    <TableRow key={adSet.id}>
+                  {filteredAdGroups.map((adGroup) => (
+                    <TableRow key={adGroup.id}>
                       <TableCell 
                         className="font-medium cursor-pointer hover:text-primary" 
-                        onClick={() => handleViewDetails(adSet)}
+                        onClick={() => handleViewDetails(adGroup)}
                       >
-                        {adSet.name}
+                        {adGroup.name}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={adSet.is_active ? "default" : "secondary"}>
-                          {adSet.is_active ? "Ativo" : "Pausado"}
+                        <PlatformBadge platform={adGroup.platform} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={adGroup.is_active ? "default" : "secondary"}>
+                          {adGroup.is_active ? "Ativo" : "Pausado"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {getCampaignName(adSet.campaign_id)}
+                        {getCampaignName(adGroup.campaign_id)}
                       </TableCell>
                       <TableCell>
-                        {adSet.daily_budget > 0 && `R$ ${adSet.daily_budget.toFixed(2)}/dia`}
-                        {adSet.lifetime_budget > 0 && `R$ ${adSet.lifetime_budget.toFixed(2)} total`}
-                        {adSet.daily_budget === 0 && adSet.lifetime_budget === 0 && "N/A"}
+                        {adGroup.daily_budget && adGroup.daily_budget > 0 && `R$ ${adGroup.daily_budget.toFixed(2)}/dia`}
+                        {adGroup.lifetime_budget && adGroup.lifetime_budget > 0 && `R$ ${adGroup.lifetime_budget.toFixed(2)} total`}
+                        {(!adGroup.daily_budget || adGroup.daily_budget === 0) && 
+                         (!adGroup.lifetime_budget || adGroup.lifetime_budget === 0) && "N/A"}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        R$ {(adSet.spend || 0).toFixed(2)}
+                        R$ {adGroup.spend.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {(adSet.impressions || 0).toLocaleString()}
+                        {adGroup.impressions.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        {(adSet.ctr || 0).toFixed(2)}%
+                        {adGroup.ctr.toFixed(2)}%
                       </TableCell>
                       <TableCell className="text-right">
-                        R$ {(adSet.cpc || 0).toFixed(2)}
+                        R$ {adGroup.cpc.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {adSet.conversions || 0}
+                        {adGroup.conversions}
                       </TableCell>
                       <TableCell className="text-right">
-                        R$ {(adSet.cpa || 0).toFixed(2)}
+                        R$ {adGroup.cpa.toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => handleViewDetails(adSet)}
+                          onClick={() => handleViewDetails(adGroup)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
                           Detalhes
@@ -314,7 +334,7 @@ export function ClienteConjuntos() {
         </CardContent>
       </Card>
 
-      {/* Modal de Métricas */}
+      {/* Metrics Modal */}
       <AdSetMetricsModal
         adSet={selectedAdSet}
         isOpen={showModal}
