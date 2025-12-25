@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Stepper } from "@/components/ui/stepper";
 import { CreativeTypeSelector } from "./CreativeTypeSelector";
 import { ClientSelectorForCreatives } from "./ClientSelectorForCreatives";
-import { ReferenceUploader } from "./ReferenceUploader";
+import { ReferenceUploader, ReferenceItem } from "./ReferenceUploader";
 import { ThemeSuggestionGenerator } from "./ThemeSuggestionGenerator";
 import { CreativeContextValidator } from "./CreativeContextValidator";
 import { VisualCreativeGenerator } from "./VisualCreativeGenerator";
@@ -13,7 +13,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 export interface CreativeData {
   creativeType: string;
   clientId: string;
-  references: File[];
+  references: ReferenceItem[];
   theme: string;
   context: {
     title: string;
@@ -134,7 +134,8 @@ export function CreativeGenerator() {
           {currentStep === 3 && (
             <ReferenceUploader
               references={data.references}
-              onReferencesChange={(files) => updateData("references", files)}
+              onReferencesChange={(items) => updateData("references", items)}
+              clientId={data.clientId}
             />
           )}
 
