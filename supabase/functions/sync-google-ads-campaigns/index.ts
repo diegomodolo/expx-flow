@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Updated to v18 - stable version as of late 2024/2025
-const GOOGLE_ADS_API_VERSION = 'v18';
+// Updated to latest supported Google Ads API version
+const GOOGLE_ADS_API_VERSION = 'v22';
 
 interface SyncOptions {
   clientId: string;
@@ -49,7 +49,7 @@ function getDateRange(days: number): { startDate: string; endDate: string } {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
   
-  const formatDate = (d: Date) => d.toISOString().split('T')[0].replace(/-/g, '');
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
   
   return {
     startDate: formatDate(startDate),
