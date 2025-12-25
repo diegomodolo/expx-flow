@@ -9,16 +9,22 @@ import { CampaignMetricsModal } from "@/components/campaigns/CampaignMetricsModa
 import { CampaignActionsDropdown } from "@/components/campaigns/CampaignActionsDropdown";
 import { CampaignBuilderModal } from "@/components/campaigns/CampaignBuilderModal";
 import { BudgetProjectionIndicator } from "@/components/campaigns/BudgetProjectionIndicator";
+import { PlatformFilter } from "@/components/campaigns/PlatformFilter";
+import { PlatformBadge } from "@/components/campaigns/PlatformBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
+import { useGoogleAdsCampaignSync } from "@/hooks/useGoogleAdsCampaignSync";
+import { useUnifiedCampaigns, Platform } from "@/hooks/useUnifiedCampaigns";
 import { useToast } from "@/hooks/use-toast";
 
 export function ClienteCampanhas() {
   const { client, refetchClient } = useClientContext();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
-  const { syncCampaigns, syncing } = useFacebookCampaignSync();
+  const { syncCampaigns: syncMetaCampaigns, syncing: syncingMeta } = useFacebookCampaignSync();
+  const { syncCampaigns: syncGoogleCampaigns, syncing: syncingGoogle } = useGoogleAdsCampaignSync();
   
+  const [platformFilter, setPlatformFilter] = useState<Platform>('all');
   const [campaignFilter, setCampaignFilter] = useState<'all' | 'active' | 'paused' | 'finished'>('active');
   const [sortField, setSortField] = useState<'name' | 'cpc' | 'cpa' | 'spend' | 'conversions' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -30,13 +36,29 @@ export function ClienteCampanhas() {
   });
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const campaigns = client?.campaigns || [];
+  // Use unified campaigns hook
+  const { data: unifiedCampaigns = [], isLoading, refetch: refetchCampaigns } = useUnifiedCampaigns({
+    clientId: client?.id,
+    companyId: activeCompany?.company_id,
+    platform: platformFilter,
+    includeInactive: true,
+  });
+
+  // Count by platform
+  const metaCount = useMemo(() => 
+    unifiedCampaigns.filter(c => c.platform === 'meta').length, 
+    [unifiedCampaigns]
+  );
+  const googleCount = useMemo(() => 
+    unifiedCampaigns.filter(c => c.platform === 'google').length, 
+    [unifiedCampaigns]
+  );
 
   const filteredAndSortedCampaigns = useMemo(() => {
-    let filtered = campaigns;
+    let filtered = unifiedCampaigns;
     
     if (campaignFilter !== 'all') {
-      filtered = campaigns.filter(campaign => {
+      filtered = filtered.filter(campaign => {
         if (campaignFilter === 'active') return campaign.status === 'active' || campaign.is_active === true;
         if (campaignFilter === 'paused') return campaign.status === 'paused' || campaign.is_active === false;
         if (campaignFilter === 'finished') return campaign.status === 'finished';
@@ -46,8 +68,8 @@ export function ClienteCampanhas() {
     
     if (sortField) {
       filtered = [...filtered].sort((a, b) => {
-        let aVal = a[sortField];
-        let bVal = b[sortField];
+        let aVal = a[sortField as keyof typeof a];
+        let bVal = b[sortField as keyof typeof b];
         
         if (typeof aVal === 'string') aVal = aVal.toLowerCase();
         if (typeof bVal === 'string') bVal = bVal.toLowerCase();
@@ -59,7 +81,7 @@ export function ClienteCampanhas() {
     }
     
     return filtered;
-  }, [campaigns, campaignFilter, sortField, sortDirection]);
+  }, [unifiedCampaigns, campaignFilter, sortField, sortDirection]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -73,10 +95,6 @@ export function ClienteCampanhas() {
   const handleViewMetrics = (campaign: any) => {
     setSelectedCampaign(campaign);
     setMetricsModalOpen(true);
-  };
-
-  const handleCampaignClick = (campaignId: string) => {
-    // Can be used for campaign selection in future
   };
 
   const handlePeriodChange = (value: string) => {
@@ -100,34 +118,33 @@ export function ClienteCampanhas() {
     
     toast({
       title: "Sincronizando do Meta",
-      description: `Buscando dados do período: ${periodLabel}. Campanhas excluídas no Meta serão removidas do sistema.`,
+      description: `Buscando dados do período: ${periodLabel}`,
     });
 
     try {
-      const jobId = await syncCampaigns(
+      const jobId = await syncMetaCampaigns(
         client.id, 
         syncPeriod, 
-        { campaigns: true, adsets: false, ads: false }, // Only sync campaigns for speed
-        false, // not silent
-        false  // don't include inactive
+        { campaigns: true, adsets: false, ads: false },
+        false,
+        false
       );
       
       if (jobId) {
         let pollCount = 0;
-        const maxPolls = 60; // Max 2 minutes of polling (60 * 2s)
+        const maxPolls = 60;
         
-        // Poll for job completion
         const checkJob = async () => {
           pollCount++;
           
-          // Timeout safety - stop after max polls
           if (pollCount >= maxPolls) {
             toast({
               title: "⚠️ Sincronização demorada",
-              description: "A sincronização está demorando mais que o esperado. Atualize a página para verificar.",
+              description: "Atualize a página para verificar.",
               variant: "destructive",
             });
             setIsSyncing(false);
+            refetchCampaigns();
             refetchClient?.();
             return;
           }
@@ -140,10 +157,10 @@ export function ClienteCampanhas() {
               .eq('id', jobId)
               .single();
             
-            // Handle query error
             if (jobError) {
               console.error('Error checking sync job:', jobError);
               setIsSyncing(false);
+              refetchCampaigns();
               refetchClient?.();
               return;
             }
@@ -153,8 +170,9 @@ export function ClienteCampanhas() {
             if (status === 'completed' || status === 'success') {
               toast({
                 title: "✅ Sincronização concluída",
-                description: `Dados atualizados do Meta (${periodLabel}). Campanhas excluídas no Meta foram removidas.`,
+                description: `Dados atualizados do Meta (${periodLabel}).`,
               });
+              refetchCampaigns();
               refetchClient?.();
               setIsSyncing(false);
             } else if (status === 'error' || status === 'failed') {
@@ -165,26 +183,24 @@ export function ClienteCampanhas() {
               });
               setIsSyncing(false);
             } else if (status === 'processing' || status === 'pending') {
-              // Still processing, check again in 2 seconds
               setTimeout(checkJob, 2000);
             } else {
-              // Unknown or null status - check a few more times then stop
               if (pollCount < 5) {
                 setTimeout(checkJob, 2000);
               } else {
-                console.log('Unknown job status after retries:', job?.status);
                 setIsSyncing(false);
+                refetchCampaigns();
                 refetchClient?.();
               }
             }
           } catch (pollError) {
             console.error('Poll error:', pollError);
             setIsSyncing(false);
+            refetchCampaigns();
             refetchClient?.();
           }
         };
         
-        // Start polling after a brief delay
         setTimeout(checkJob, 1500);
       } else {
         setIsSyncing(false);
@@ -198,12 +214,124 @@ export function ClienteCampanhas() {
       });
       setIsSyncing(false);
     }
-  }, [client?.id, syncPeriod, syncCampaigns, refetchClient, toast]);
+  }, [client?.id, syncPeriod, syncMetaCampaigns, refetchClient, refetchCampaigns, toast]);
+
+  const handleSyncFromGoogle = useCallback(async () => {
+    if (!client?.id) {
+      toast({
+        title: "Erro",
+        description: "Cliente não encontrado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!client?.google_account_id) {
+      toast({
+        title: "Conta Google não configurada",
+        description: "Este cliente não possui conta Google Ads vinculada.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    
+    const periodLabel = syncPeriod === 'lifetime' ? 'máximo' : `${syncPeriod} dias`;
+    
+    toast({
+      title: "Sincronizando do Google Ads",
+      description: `Buscando dados do período: ${periodLabel}`,
+    });
+
+    try {
+      await syncGoogleCampaigns({
+        clientId: client.id,
+        companyId: activeCompany?.company_id || '',
+        period: syncPeriod,
+      });
+      toast({
+        title: "✅ Sincronização concluída",
+        description: `Dados atualizados do Google Ads (${periodLabel}).`,
+      });
+      refetchCampaigns();
+      refetchClient?.();
+    } catch (error: any) {
+      console.error('Google sync error:', error);
+      toast({
+        title: "Erro na sincronização",
+        description: error.message || "Não foi possível sincronizar os dados do Google.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [client?.id, client?.google_account_id, syncPeriod, syncGoogleCampaigns, refetchClient, refetchCampaigns, toast]);
+
+  const handleSyncAll = useCallback(async () => {
+    setIsSyncing(true);
+    const periodLabel = syncPeriod === 'lifetime' ? 'máximo' : `${syncPeriod} dias`;
+    
+    toast({
+      title: "Sincronizando todas as plataformas",
+      description: `Buscando dados do período: ${periodLabel}`,
+    });
+
+    const promises = [];
+    
+    // Sync Meta if has ad account
+    if (client?.ad_account_id) {
+      promises.push(
+        syncMetaCampaigns(client.id, syncPeriod, { campaigns: true, adsets: false, ads: false }, true, false)
+          .catch(err => console.error('Meta sync error:', err))
+      );
+    }
+    
+    // Sync Google if has google account
+    if (client?.google_account_id) {
+      promises.push(
+        syncGoogleCampaigns({
+          clientId: client.id,
+          companyId: activeCompany?.company_id || '',
+          period: syncPeriod,
+          silent: true,
+        }).catch(err => console.error('Google sync error:', err))
+      );
+    }
+
+    await Promise.all(promises);
+    
+    toast({
+      title: "✅ Sincronização concluída",
+      description: `Dados atualizados de todas as plataformas (${periodLabel}).`,
+    });
+    
+    refetchCampaigns();
+    refetchClient?.();
+    setIsSyncing(false);
+  }, [client?.id, client?.ad_account_id, client?.google_account_id, syncPeriod, syncMetaCampaigns, syncGoogleCampaigns, refetchClient, refetchCampaigns, toast]);
+
+  // Get budget from campaign (Meta uses daily_budget/lifetime_budget, need to adapt for google)
+  const getCampaignBudget = (campaign: any) => {
+    if (campaign.daily_budget) {
+      return `R$ ${campaign.daily_budget.toFixed(2)}/dia`;
+    }
+    if (campaign.lifetime_budget) {
+      return `R$ ${campaign.lifetime_budget.toFixed(2)}`;
+    }
+    return '-';
+  };
+
+  const getBudgetTooltip = (campaign: any) => {
+    if (campaign.daily_budget) return 'Orçamento Diário';
+    if (campaign.lifetime_budget) return 'Orçamento Vitalício';
+    return 'Sem orçamento definido';
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h3 className="text-lg font-semibold">Campanhas do Cliente</h3>
           
           {/* Period selector */}
@@ -220,27 +348,37 @@ export function ClienteCampanhas() {
             </SelectContent>
           </Select>
           
+          {/* Sync button with dropdown for platform selection */}
           <TooltipProvider>
             <UITooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleSyncFromMeta}
-                  disabled={isSyncing || syncing}
+                  onClick={handleSyncAll}
+                  disabled={isSyncing || syncingMeta || syncingGoogle || isLoading}
                   className="h-8 gap-2"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isSyncing || syncing ? 'animate-spin' : ''}`} />
-                  {isSyncing || syncing ? 'Sincronizando...' : 'Sincronizar do Meta'}
+                  <RefreshCw className={`h-4 w-4 ${isSyncing || syncingMeta || syncingGoogle ? 'animate-spin' : ''}`} />
+                  {isSyncing || syncingMeta || syncingGoogle ? 'Sincronizando...' : 'Sincronizar'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Buscar dados diretamente do Meta Ads para o período selecionado. Campanhas excluídas no Meta serão removidas.</p>
+                <p>Sincronizar campanhas de todas as plataformas configuradas</p>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <PlatformFilter
+            value={platformFilter}
+            onChange={setPlatformFilter}
+            metaCount={metaCount}
+            googleCount={googleCount}
+          />
+          
+          <div className="h-6 w-px bg-border" />
+          
           <Button
             variant="default"
             size="sm"
@@ -249,7 +387,6 @@ export function ClienteCampanhas() {
             <Plus className="w-4 h-4 mr-1" />
             Nova Campanha
           </Button>
-          <div className="h-6 w-px bg-border" />
           <Select value={campaignFilter} onValueChange={(value: 'all' | 'active' | 'paused' | 'finished') => setCampaignFilter(value)}>
             <SelectTrigger className="w-[140px] h-8">
               <SelectValue placeholder="Filtrar" />
@@ -265,7 +402,7 @@ export function ClienteCampanhas() {
       </div>
 
       <BudgetProjectionIndicator 
-        campaigns={campaigns} 
+        campaigns={unifiedCampaigns} 
         monthlyBudget={client?.monthly_budget} 
       />
 
@@ -332,12 +469,18 @@ export function ClienteCampanhas() {
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
-            {filteredAndSortedCampaigns.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p>Carregando campanhas...</p>
+                </td>
+              </tr>
+            ) : filteredAndSortedCampaigns.length > 0 ? (
               filteredAndSortedCampaigns.map((campaign) => (
                 <tr 
                   key={campaign.id}
                   className="hover:bg-muted/30 cursor-pointer"
-                  onClick={() => handleCampaignClick(campaign.id)}
                 >
                   <td className="px-4 py-4 whitespace-nowrap">
                     <TooltipProvider>
@@ -358,7 +501,7 @@ export function ClienteCampanhas() {
                     </TooltipProvider>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <Badge variant="outline">{campaign.platforms}</Badge>
+                    <PlatformBadge platform={campaign.platform} />
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <Badge className={
@@ -382,15 +525,11 @@ export function ClienteCampanhas() {
                       <UITooltip>
                         <TooltipTrigger asChild>
                           <span className="cursor-help">
-                            {campaign.daily_budget 
-                              ? `R$ ${campaign.daily_budget.toFixed(2)}/dia`
-                              : campaign.lifetime_budget
-                              ? `R$ ${campaign.lifetime_budget.toFixed(2)}`
-                              : '-'}
+                            {getCampaignBudget(campaign)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{campaign.daily_budget ? 'Orçamento Diário' : campaign.lifetime_budget ? 'Orçamento Vitalício' : 'Sem orçamento definido'}</p>
+                          <p>{getBudgetTooltip(campaign)}</p>
                         </TooltipContent>
                       </UITooltip>
                     </TooltipProvider>
@@ -421,27 +560,33 @@ export function ClienteCampanhas() {
                         </UITooltip>
                       </TooltipProvider>
                       
-                      <CampaignActionsDropdown 
-                        campaign={{
-                          id: campaign.id,
-                          client_id: client?.id || '',
-                          name: campaign.name,
-                          status: campaign.status,
-                          facebook_id: campaign.facebook_id,
-                          spend: campaign.spend
-                        }}
-                        onRefresh={() => refetchClient?.()}
-                      />
+                      {/* Only show actions dropdown for Meta campaigns */}
+                      {campaign.platform === 'meta' && (
+                        <CampaignActionsDropdown 
+                          campaign={{
+                            id: campaign.id,
+                            client_id: client?.id || '',
+                            name: campaign.name,
+                            status: campaign.status as 'active' | 'paused' | 'finished',
+                            facebook_id: (campaign as any).facebook_id,
+                            spend: campaign.spend
+                          }}
+                          onRefresh={() => {
+                            refetchCampaigns();
+                            refetchClient?.();
+                          }}
+                        />
+                      )}
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                   <div>
                     <p className="mb-2">Nenhuma campanha encontrada</p>
-                    <p className="text-sm">Clique em "Sincronizar do Meta" para buscar campanhas diretamente do Meta Ads</p>
+                    <p className="text-sm">Clique em "Sincronizar" para buscar campanhas do Meta Ads e Google Ads</p>
                   </div>
                 </td>
               </tr>
@@ -462,7 +607,10 @@ export function ClienteCampanhas() {
         clientId={client?.id || ''}
         companyId={activeCompany?.company_id || ''}
         clientName={client?.name || ''}
-        onSuccess={() => refetchClient?.()}
+        onSuccess={() => {
+          refetchCampaigns();
+          refetchClient?.();
+        }}
       />
     </div>
   );
