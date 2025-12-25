@@ -411,7 +411,10 @@ export function ClienteCampanhas() {
 
       <BudgetProjectionIndicator 
         campaigns={unifiedCampaigns} 
-        monthlyBudget={client?.monthly_budget} 
+        monthlyBudget={client?.monthly_budget}
+        metaMonthlyBudget={client?.meta_monthly_budget}
+        googleMonthlyBudget={client?.google_monthly_budget}
+        platformFilter={platformFilter}
       />
 
       <div className="overflow-x-auto rounded-lg border">

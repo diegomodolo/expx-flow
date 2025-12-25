@@ -9,17 +9,52 @@ interface Campaign {
   is_active?: boolean;
   daily_budget?: number | null;
   lifetime_budget?: number | null;
+  platform?: 'meta' | 'google';
 }
 
 interface BudgetProjectionIndicatorProps {
   campaigns: Campaign[];
   monthlyBudget: number | null | undefined;
+  metaMonthlyBudget?: number | null;
+  googleMonthlyBudget?: number | null;
+  platformFilter?: 'all' | 'meta' | 'google';
 }
 
-export function BudgetProjectionIndicator({ campaigns, monthlyBudget }: BudgetProjectionIndicatorProps) {
+export function BudgetProjectionIndicator({ 
+  campaigns, 
+  monthlyBudget,
+  metaMonthlyBudget,
+  googleMonthlyBudget,
+  platformFilter = 'all'
+}: BudgetProjectionIndicatorProps) {
   const projection = useMemo(() => {
-    if (!monthlyBudget || monthlyBudget <= 0) {
+    // Calculate the effective monthly budget based on platform filter
+    let effectiveMonthlyBudget = 0;
+    
+    if (platformFilter === 'all') {
+      // Sum both platform budgets, fallback to general monthly_budget if specific ones not set
+      const metaBudget = metaMonthlyBudget ?? 0;
+      const googleBudget = googleMonthlyBudget ?? 0;
+      effectiveMonthlyBudget = metaBudget + googleBudget;
+      
+      // If no platform-specific budgets, use general monthly budget
+      if (effectiveMonthlyBudget === 0 && monthlyBudget) {
+        effectiveMonthlyBudget = monthlyBudget;
+      }
+    } else if (platformFilter === 'meta') {
+      effectiveMonthlyBudget = metaMonthlyBudget ?? monthlyBudget ?? 0;
+    } else if (platformFilter === 'google') {
+      effectiveMonthlyBudget = googleMonthlyBudget ?? 0;
+    }
+
+    if (!effectiveMonthlyBudget || effectiveMonthlyBudget <= 0) {
       return null;
+    }
+
+    // Filter campaigns by platform if needed
+    let filteredCampaigns = campaigns;
+    if (platformFilter !== 'all') {
+      filteredCampaigns = campaigns.filter(c => c.platform === platformFilter);
     }
 
     // Get current month's remaining days
@@ -28,17 +63,17 @@ export function BudgetProjectionIndicator({ campaigns, monthlyBudget }: BudgetPr
     const daysInMonth = lastDayOfMonth.getDate();
     
     // Sum daily budgets from active campaigns only
-    const activeCampaigns = campaigns.filter(c => 
+    const activeCampaigns = filteredCampaigns.filter(c => 
       c.status === 'active' || c.is_active === true
     );
 
     const totalDailyBudget = activeCampaigns.reduce((sum, campaign) => {
-      return sum + (campaign.daily_budget || 0);
+      return sum + (Number(campaign.daily_budget) || 0);
     }, 0);
 
     // Project monthly spend
     const projectedMonthlySpend = totalDailyBudget * daysInMonth;
-    const percentage = (projectedMonthlySpend / monthlyBudget) * 100;
+    const percentage = (projectedMonthlySpend / effectiveMonthlyBudget) * 100;
 
     return {
       totalDailyBudget,
@@ -47,9 +82,10 @@ export function BudgetProjectionIndicator({ campaigns, monthlyBudget }: BudgetPr
       actualPercentage: percentage,
       activeCampaignsCount: activeCampaigns.length,
       daysInMonth,
-      monthlyBudget
+      monthlyBudget: effectiveMonthlyBudget,
+      platformFilter
     };
-  }, [campaigns, monthlyBudget]);
+  }, [campaigns, monthlyBudget, metaMonthlyBudget, googleMonthlyBudget, platformFilter]);
 
   if (!projection) {
     return (
