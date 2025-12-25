@@ -3835,6 +3835,7 @@ export type Database = {
           cpc: number | null
           created_at: string
           ctr: number | null
+          daily_budget: number | null
           frequency: number | null
           google_account_id: string
           google_id: string
@@ -3859,6 +3860,7 @@ export type Database = {
           cpc?: number | null
           created_at?: string
           ctr?: number | null
+          daily_budget?: number | null
           frequency?: number | null
           google_account_id: string
           google_id: string
@@ -3883,6 +3885,7 @@ export type Database = {
           cpc?: number | null
           created_at?: string
           ctr?: number | null
+          daily_budget?: number | null
           frequency?: number | null
           google_account_id?: string
           google_id?: string
