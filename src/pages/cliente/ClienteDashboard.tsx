@@ -272,7 +272,7 @@ export function ClienteDashboard({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total de Leads Gerados</p>
+                <p className="text-sm font-medium text-muted-foreground">Total de Conversões</p>
                 <p className="text-2xl font-bold text-card-foreground">{totalLeadsGenerated}</p>
                 <div className="flex items-center space-x-1 mt-1">
                   <TrendingUp className="w-3 h-3 text-green-500" />
