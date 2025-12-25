@@ -476,7 +476,9 @@ serve(async (req) => {
           campaign.name,
           campaign.status,
           campaign.advertising_channel_type,
+          campaign.campaign_budget,
           campaign_budget.amount_micros,
+          campaign_budget.total_amount_micros,
           metrics.impressions,
           metrics.clicks,
           metrics.conversions,
@@ -522,17 +524,22 @@ serve(async (req) => {
           for (const result of campaignsData.results) {
             const campaign = result.campaign;
             const metrics = result.metrics || {};
-            const campaignBudget = result.campaignBudget || {};
+            const campaignBudget = (result.campaignBudget ?? result.campaign_budget ?? {}) as any;
 
             const spend = microsToCurrency(metrics.costMicros || 0);
             const cpc = microsToCurrency(metrics.averageCpc || 0);
             const conversions = parseFloat(metrics.conversions || '0');
             const cpa = conversions > 0 ? spend / conversions : 0;
             
+            const amountMicros = campaignBudget.amountMicros ?? campaignBudget.amount_micros;
+            const totalAmountMicros = campaignBudget.totalAmountMicros ?? campaignBudget.total_amount_micros;
+
             // Convert budget from micros to currency (daily budget)
-            const dailyBudget = campaignBudget.amountMicros 
-              ? microsToCurrency(campaignBudget.amountMicros) 
-              : null;
+            const dailyBudget = amountMicros ? microsToCurrency(amountMicros) : null;
+
+            console.log(
+              `   Campaign ${campaign.name}: budget_daily=${dailyBudget}, amountMicros=${amountMicros}, totalAmountMicros=${totalAmountMicros}`
+            );
 
             console.log(`   Campaign ${campaign.name}: budget=${dailyBudget}, amountMicros=${campaignBudget.amountMicros}`);
 

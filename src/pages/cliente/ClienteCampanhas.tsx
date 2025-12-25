@@ -311,20 +311,28 @@ export function ClienteCampanhas() {
     setIsSyncing(false);
   }, [client?.id, client?.ad_account_id, client?.google_account_id, syncPeriod, syncMetaCampaigns, syncGoogleCampaigns, refetchClient, refetchCampaigns, toast]);
 
-  // Get budget from campaign (Meta uses daily_budget/lifetime_budget, need to adapt for google)
+  // Get budget from campaign (Meta uses daily_budget/lifetime_budget; Google sync stores daily_budget)
   const getCampaignBudget = (campaign: any) => {
-    if (campaign.daily_budget) {
-      return `R$ ${campaign.daily_budget.toFixed(2)}/dia`;
+    const daily = campaign?.daily_budget != null ? Number(campaign.daily_budget) : NaN;
+    if (Number.isFinite(daily) && daily > 0) {
+      return `R$ ${daily.toFixed(2)}/dia`;
     }
-    if (campaign.lifetime_budget) {
-      return `R$ ${campaign.lifetime_budget.toFixed(2)}`;
+
+    const lifetime = campaign?.lifetime_budget != null ? Number(campaign.lifetime_budget) : NaN;
+    if (Number.isFinite(lifetime) && lifetime > 0) {
+      return `R$ ${lifetime.toFixed(2)}`;
     }
+
     return '-';
   };
 
   const getBudgetTooltip = (campaign: any) => {
-    if (campaign.daily_budget) return 'Orçamento Diário';
-    if (campaign.lifetime_budget) return 'Orçamento Vitalício';
+    const daily = campaign?.daily_budget != null ? Number(campaign.daily_budget) : NaN;
+    if (Number.isFinite(daily) && daily > 0) return 'Orçamento Diário';
+
+    const lifetime = campaign?.lifetime_budget != null ? Number(campaign.lifetime_budget) : NaN;
+    if (Number.isFinite(lifetime) && lifetime > 0) return 'Orçamento Vitalício';
+
     return 'Sem orçamento definido';
   };
 
