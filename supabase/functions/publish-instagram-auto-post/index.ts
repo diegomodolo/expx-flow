@@ -36,8 +36,9 @@ Deno.serve(async (req) => {
           scheduled_hours,
           instagram_accounts (
             id,
-            facebook_account_id,
-            instagram_id
+            facebook_page_id,
+            instagram_id,
+            username
           )
         )
       `)
@@ -45,11 +46,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (postError || !post) {
-      console.error('Error fetching post:', postError);
-      throw new Error('Post not found');
+      console.error('Error fetching post:', postError, 'Post ID:', postId);
+      throw new Error(`Post not found: ${postError?.message || 'Unknown error'}`);
     }
 
-    console.log('Post loaded:', post.id, 'Status:', post.status);
+    console.log('Post loaded:', post.id, 'Status:', post.status, 'Image URL:', post.image_url?.substring(0, 50));
 
     // Update status to publishing
     await supabase
