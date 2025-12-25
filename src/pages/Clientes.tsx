@@ -81,7 +81,7 @@ const statusConfig = {
   },
 };
 
-type SortField = 'name' | 'status' | 'active_campaigns' | 'avg_cpl' | 'leads_generated' | 'monthly_budget' | 'spend' | 'balance';
+type SortField = 'name' | 'status' | 'active_campaigns' | 'avg_cpl' | 'conversions' | 'monthly_budget' | 'spend' | 'balance';
 type SortDirection = 'asc' | 'desc';
 
 // Função para gerar a explicação do status baseada nas métricas do cliente
@@ -104,9 +104,10 @@ const getBudgetStatus = (client: Client): {
   percentage: number;
   expectedSpend: number;
 } => {
-  const monthlyBudget = client.monthly_budget || 0;
+  // Use consolidated budget if available
+  const monthlyBudget = client.consolidated_budget || client.monthly_budget || 0;
   const syncPeriod = parseInt(client.last_sync_period || '0');
-  const actualSpend = client.spend || 0;
+  const actualSpend = client.consolidated_spend || client.spend || 0;
   
   // Se não tem orçamento configurado, retorna status especial
   if (monthlyBudget === 0) {
@@ -480,10 +481,22 @@ const Clientes = () => {
       bValue = statusOrder[b.status];
     }
     
-    // Handle spend field
+    // Handle spend field (use consolidated)
     if (sortField === 'spend') {
-      aValue = a.spend || 0;
-      bValue = b.spend || 0;
+      aValue = a.consolidated_spend || a.spend || 0;
+      bValue = b.consolidated_spend || b.spend || 0;
+    }
+    
+    // Handle conversions field (use consolidated)
+    if (sortField === 'conversions') {
+      aValue = a.consolidated_conversions || a.leads_generated || 0;
+      bValue = b.consolidated_conversions || b.leads_generated || 0;
+    }
+    
+    // Handle monthly_budget field (use consolidated)
+    if (sortField === 'monthly_budget') {
+      aValue = a.consolidated_budget || a.monthly_budget || 0;
+      bValue = b.consolidated_budget || b.monthly_budget || 0;
     }
     
     // Handle balance field
@@ -520,20 +533,42 @@ const Clientes = () => {
 
   
   const exportToCSV = () => {
-    const headers = ["Nome", "Email", "Empresa", "Setor", "Status", "Campanhas Ativas", "CPL Médio", "Leads Gerados", "Orçamento Mensal", "Gasto Estimado", "Saldo"];
-    const csvData = filteredAndSortedClients.map(client => [
-      client.name,
-      client.email,
-      client.company,
-      client.sector,
-      getStatusConfig(client.status).label,
-      client.active_campaigns,
-      `R$ ${client.avg_cpl.toFixed(2)}`,
-      client.leads_generated,
-      `R$ ${(client.monthly_budget || 0).toFixed(2)}`,
-      `R$ ${(client.spend || 0).toFixed(2)}`,
-      client.facebook_ad_accounts?.balance !== undefined ? `R$ ${client.facebook_ad_accounts.balance.toFixed(2)}` : '-'
-    ]);
+    const headers = [
+      "Nome", "Email", "Empresa", "Setor", "Status", "Plataformas",
+      "Campanhas Ativas", "Campanhas Meta", "Campanhas Google",
+      "CPA Médio", "Conversões", "Conversões Meta", "Conversões Google",
+      "Orçamento Total", "Orçamento Meta", "Orçamento Google",
+      "Gasto Total", "Gasto Meta", "Gasto Google", "Saldo"
+    ];
+    const csvData = filteredAndSortedClients.map(client => {
+      const platforms = [
+        client.has_meta ? 'Meta' : '',
+        client.has_google ? 'Google' : ''
+      ].filter(Boolean).join(', ') || '-';
+      
+      return [
+        client.name,
+        client.email,
+        client.company,
+        client.sector,
+        getStatusConfig(client.status).label,
+        platforms,
+        client.consolidated_active_campaigns || client.active_campaigns || 0,
+        client.meta_active_campaigns || 0,
+        client.google_active_campaigns || 0,
+        `R$ ${(client.consolidated_cpa || client.avg_cpl || 0).toFixed(2)}`,
+        client.consolidated_conversions || client.leads_generated || 0,
+        client.meta_conversions || 0,
+        client.google_conversions || 0,
+        `R$ ${(client.consolidated_budget || client.monthly_budget || 0).toFixed(2)}`,
+        `R$ ${(client.meta_monthly_budget || 0).toFixed(2)}`,
+        `R$ ${(client.google_monthly_budget || 0).toFixed(2)}`,
+        `R$ ${(client.consolidated_spend || client.spend || 0).toFixed(2)}`,
+        `R$ ${(client.meta_spend || 0).toFixed(2)}`,
+        `R$ ${(client.google_spend || 0).toFixed(2)}`,
+        client.facebook_ad_accounts?.balance !== undefined ? `R$ ${client.facebook_ad_accounts.balance.toFixed(2)}` : '-'
+      ];
+    });
     
     const csvContent = [headers, ...csvData]
       .map(row => row.map(field => `"${field}"`).join(","))
@@ -1002,11 +1037,11 @@ const Clientes = () => {
                            </th>
                            <th 
                              className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                             onClick={() => handleSort('leads_generated')}
+                             onClick={() => handleSort('conversions')}
                            >
                              <div className="flex items-center space-x-1">
-                               <span>Leads</span>
-                               {getSortIcon('leads_generated')}
+                               <span>Conversões</span>
+                               {getSortIcon('conversions')}
                              </div>
                            </th>
                            <th 
@@ -1074,38 +1109,104 @@ const Clientes = () => {
                               </Tooltip>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-card-foreground">
-                                {client.active_campaigns}
-                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-card-foreground">
+                                      {client.consolidated_active_campaigns || client.active_campaigns || 0}
+                                    </span>
+                                    {(client.has_meta || client.has_google) && (
+                                      <div className="flex gap-0.5">
+                                        {client.has_meta && <span className="text-[10px]">📘</span>}
+                                        {client.has_google && <span className="text-[10px]">🔍</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-xs space-y-1">
+                                    <p className="font-medium">Campanhas Ativas</p>
+                                    {client.has_meta && <p>📘 Meta: {client.meta_active_campaigns || 0}</p>}
+                                    {client.has_google && <p>🔍 Google: {client.google_active_campaigns || 0}</p>}
+                                    {!client.has_meta && !client.has_google && <p className="text-muted-foreground">Nenhuma plataforma configurada</p>}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </td>
                             <td className="hidden lg:table-cell px-3 py-3 whitespace-nowrap">
-                              <div className="text-sm text-card-foreground">
-                                R$ {client.avg_cpl.toFixed(2)}
-                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-sm text-card-foreground cursor-help">
+                                    R$ {(client.consolidated_cpa || client.avg_cpl || 0).toFixed(2)}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-xs">
+                                    <p className="font-medium">CPA Médio Consolidado</p>
+                                    <p className="text-muted-foreground">Gasto Total / Conversões</p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </td>
                              <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
-                               <div className="text-sm text-card-foreground">
-                                 {client.leads_generated}
-                               </div>
+                               <Tooltip>
+                                 <TooltipTrigger asChild>
+                                   <div className="text-sm text-card-foreground cursor-help">
+                                     {client.consolidated_conversions || client.leads_generated || 0}
+                                   </div>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                   <div className="text-xs space-y-1">
+                                     <p className="font-medium">Conversões</p>
+                                     {client.has_meta && <p>📘 Meta: {client.meta_conversions || 0}</p>}
+                                     {client.has_google && <p>🔍 Google: {client.google_conversions || 0}</p>}
+                                   </div>
+                                 </TooltipContent>
+                               </Tooltip>
                              </td>
                              <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap">
-                               <div className="text-sm text-card-foreground">
-                                 R$ {(client.monthly_budget || 0).toLocaleString('pt-BR', { 
-                                   minimumFractionDigits: 2, 
-                                   maximumFractionDigits: 2 
-                                 })}
-                               </div>
+                               <Tooltip>
+                                 <TooltipTrigger asChild>
+                                   <div className="text-sm text-card-foreground cursor-help">
+                                     R$ {(client.consolidated_budget || client.monthly_budget || 0).toLocaleString('pt-BR', { 
+                                       minimumFractionDigits: 2, 
+                                       maximumFractionDigits: 2 
+                                     })}
+                                   </div>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                   <div className="text-xs space-y-1">
+                                     <p className="font-medium">Orçamento Mensal</p>
+                                     {client.meta_monthly_budget ? <p>📘 Meta: R$ {client.meta_monthly_budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p> : null}
+                                     {client.google_monthly_budget ? <p>🔍 Google: R$ {client.google_monthly_budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p> : null}
+                                     {!client.meta_monthly_budget && !client.google_monthly_budget && client.monthly_budget ? (
+                                       <p className="text-muted-foreground">Orçamento geral (não especificado por plataforma)</p>
+                                     ) : null}
+                                   </div>
+                                 </TooltipContent>
+                               </Tooltip>
                              </td>
                               <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                  <div className="text-sm text-card-foreground">
-                                    R$ {(client.spend || 0).toLocaleString('pt-BR', { 
-                                      minimumFractionDigits: 2, 
-                                      maximumFractionDigits: 2 
-                                    })}
-                                  </div>
-                                  <BudgetStatusIcon client={client} />
-                                </div>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-2 cursor-help">
+                                      <div className="text-sm text-card-foreground">
+                                        R$ {(client.consolidated_spend || client.spend || 0).toLocaleString('pt-BR', { 
+                                          minimumFractionDigits: 2, 
+                                          maximumFractionDigits: 2 
+                                        })}
+                                      </div>
+                                      <BudgetStatusIcon client={client} />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs space-y-1">
+                                      <p className="font-medium">Gasto Total</p>
+                                      {client.has_meta && <p>📘 Meta: R$ {(client.meta_spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>}
+                                      {client.has_google && <p>🔍 Google: R$ {(client.google_spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
                               </td>
                               <td className="hidden 2xl:table-cell px-3 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
@@ -1262,19 +1363,28 @@ const Clientes = () => {
                       </div>
                     </div>
 
+                     {/* Platform Badges */}
+                     {(client.has_meta || client.has_google) && (
+                       <div className="flex items-center gap-2 text-xs">
+                         <span className="text-muted-foreground">Plataformas:</span>
+                         {client.has_meta && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">📘 Meta</span>}
+                         {client.has_google && <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">🔍 Google</span>}
+                       </div>
+                     )}
+
                      {/* Metrics Grid */}
                      <div className="grid grid-cols-2 gap-3 text-sm">
                        <div>
                          <span className="text-muted-foreground">Campanhas:</span>
-                         <span className="ml-1 font-medium">{client.active_campaigns}</span>
+                         <span className="ml-1 font-medium">{client.consolidated_active_campaigns || client.active_campaigns || 0}</span>
                        </div>
                        <div>
-                         <span className="text-muted-foreground">Leads:</span>
-                         <span className="ml-1 font-medium">{client.leads_generated}</span>
+                         <span className="text-muted-foreground">Conversões:</span>
+                         <span className="ml-1 font-medium">{client.consolidated_conversions || client.leads_generated || 0}</span>
                        </div>
                        <div>
-                         <span className="text-muted-foreground">CPL Médio:</span>
-                         <span className="ml-1 font-medium">R$ {client.avg_cpl.toFixed(2)}</span>
+                         <span className="text-muted-foreground">CPA Médio:</span>
+                         <span className="ml-1 font-medium">R$ {(client.consolidated_cpa || client.avg_cpl || 0).toFixed(2)}</span>
                        </div>
                        <div>
                          <span className="text-muted-foreground">Setor:</span>
@@ -1282,7 +1392,7 @@ const Clientes = () => {
                        </div>
                        <div>
                          <span className="text-muted-foreground">Orçamento:</span>
-                         <span className="ml-1 font-medium">R$ {(client.monthly_budget || 0).toLocaleString('pt-BR', { 
+                         <span className="ml-1 font-medium">R$ {(client.consolidated_budget || client.monthly_budget || 0).toLocaleString('pt-BR', { 
                            minimumFractionDigits: 0, 
                            maximumFractionDigits: 0 
                          })}</span>
@@ -1290,7 +1400,7 @@ const Clientes = () => {
                        <div className="flex items-center gap-2">
                           <div>
                             <span className="text-muted-foreground">Gasto:</span>
-                            <span className="ml-1 font-medium">R$ {(client.spend || 0).toLocaleString('pt-BR', { 
+                            <span className="ml-1 font-medium">R$ {(client.consolidated_spend || client.spend || 0).toLocaleString('pt-BR', { 
                               minimumFractionDigits: 0, 
                               maximumFractionDigits: 0 
                             })}</span>
@@ -1300,10 +1410,10 @@ const Clientes = () => {
                       </div>
 
                      {/* Additional Info */}
-                     {client.monthly_budget > 0 && (
+                     {(client.consolidated_budget || client.monthly_budget || 0) > 0 && (
                        <div className="pt-2 border-t border-border">
                          <div className="text-sm text-muted-foreground">
-                           <span className="font-medium">Orçamento Mensal:</span> R$ {client.monthly_budget.toLocaleString('pt-BR', {
+                           <span className="font-medium">Orçamento Mensal:</span> R$ {(client.consolidated_budget || client.monthly_budget || 0).toLocaleString('pt-BR', {
                             minimumFractionDigits: 2, 
                             maximumFractionDigits: 2 
                           })}
