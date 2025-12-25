@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   Edit,
-  MoreHorizontal,
   Mail,
   Building,
   User,
@@ -23,6 +23,8 @@ import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { ClientSocialAccounts } from "@/components/clients/ClientSocialAccounts";
+import { ClientDialog } from "@/components/clients/ClientDialog";
+import { useClients, Client } from "@/hooks/useClients";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { ClientDetailsData } from "@/hooks/useClientDetails";
 
@@ -67,6 +69,19 @@ export function ClienteDashboard({
   metaMetrics,
   googleMetrics,
 }: ClienteDashboardProps) {
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const { clients, updateClient } = useClients();
+  
+  // Find the current client from the clients list for the dialog
+  const currentClient = clients.find(c => c.id === client.id);
+
+  const handleEditClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
+    await updateClient(client.id, clientData);
+    setEditDialogOpen(false);
+    // Dispatch event to refresh client details across the page
+    window.dispatchEvent(new CustomEvent('refreshClientDetails'));
+  };
+
   const statusConfig: Record<string, { label: string; color: string }> = {
     em_dia: { label: "Em Dia", color: "bg-green-100 text-green-800" },
     atencao: { label: "Atenção", color: "bg-yellow-100 text-yellow-800" },
@@ -137,12 +152,9 @@ export function ClienteDashboard({
               </div>
             </div>
             <div className="flex items-center space-x-2 w-full lg:w-auto">
-              <Button size="sm" className="flex-1 lg:flex-none">
+              <Button size="sm" className="flex-1 lg:flex-none" onClick={() => setEditDialogOpen(true)}>
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
-              </Button>
-              <Button variant="outline" size="icon">
-                <MoreHorizontal className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -532,6 +544,15 @@ export function ClienteDashboard({
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Client Dialog */}
+      <ClientDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSubmit={handleEditClient}
+        client={currentClient}
+        title="Editar Cliente"
+      />
     </div>
   );
 }
