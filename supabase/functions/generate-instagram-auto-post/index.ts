@@ -119,13 +119,6 @@ Deno.serve(async (req) => {
     const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
     console.log('Using config reference images:', hasConfigRefImages);
 
-    const client = config.clients;
-    if (!client) {
-      throw new Error('Client data not found');
-    }
-
-    console.log('Config loaded for client:', client.name);
-
     // Find the last scheduled post (pending or published) to calculate next available slot
     const { data: existingPosts } = await supabase
       .from('instagram_auto_posts')
