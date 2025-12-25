@@ -115,6 +115,17 @@ Deno.serve(async (req) => {
 
     console.log('Config loaded for client:', client.name);
 
+    // Use config reference images first, fallback to client images
+    const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
+    console.log('Using config reference images:', hasConfigRefImages);
+
+    const client = config.clients;
+    if (!client) {
+      throw new Error('Client data not found');
+    }
+
+    console.log('Config loaded for client:', client.name);
+
     // Find the last scheduled post (pending or published) to calculate next available slot
     const { data: existingPosts } = await supabase
       .from('instagram_auto_posts')
@@ -135,13 +146,22 @@ Deno.serve(async (req) => {
     const scheduledAt = calculateNextPostTime(config.scheduled_days, config.scheduled_hours, afterDate);
     console.log('Next post scheduled at:', scheduledAt.toISOString());
 
-    // Collect reference images
+    // Collect reference images - prefer config images, fallback to client images
     const referenceImages: string[] = [];
-    if (client.ai_reference_image_1) referenceImages.push(client.ai_reference_image_1);
-    if (client.ai_reference_image_2) referenceImages.push(client.ai_reference_image_2);
-    if (client.ai_reference_image_3) referenceImages.push(client.ai_reference_image_3);
-
-    console.log('Reference images count:', referenceImages.length);
+    
+    if (hasConfigRefImages) {
+      // Use config-specific reference images for auto-posts
+      if (config.reference_image_1) referenceImages.push(config.reference_image_1);
+      if (config.reference_image_2) referenceImages.push(config.reference_image_2);
+      if (config.reference_image_3) referenceImages.push(config.reference_image_3);
+      console.log('Using AUTO-POST config reference images, count:', referenceImages.length);
+    } else {
+      // Fallback to client's general reference images
+      if (client.ai_reference_image_1) referenceImages.push(client.ai_reference_image_1);
+      if (client.ai_reference_image_2) referenceImages.push(client.ai_reference_image_2);
+      if (client.ai_reference_image_3) referenceImages.push(client.ai_reference_image_3);
+      console.log('Using CLIENT reference images (fallback), count:', referenceImages.length);
+    }
 
     // Generate image prompt based on post briefing ONLY (ignoring client ai_briefing)
     const imagePromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
