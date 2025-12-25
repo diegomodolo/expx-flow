@@ -109,6 +109,37 @@ async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<st
   return integration.access_token;
 }
 
+class GoogleAdsApiError extends Error {
+  status: number;
+  raw: string;
+  parsed?: any;
+
+  constructor(status: number, raw: string, parsed?: any) {
+    super(`Google Ads API error (${status}): ${raw}`);
+    this.status = status;
+    this.raw = raw;
+    this.parsed = parsed;
+  }
+}
+
+function isUserPermissionDenied(err: unknown): boolean {
+  if (!(err instanceof GoogleAdsApiError)) return false;
+  if (err.status !== 403) return false;
+
+  const details = err.parsed?.error?.details;
+  if (!Array.isArray(details)) return false;
+
+  for (const d of details) {
+    const errors = d?.errors;
+    if (!Array.isArray(errors)) continue;
+    for (const e of errors) {
+      if (e?.errorCode?.authorizationError === 'USER_PERMISSION_DENIED') return true;
+    }
+  }
+
+  return false;
+}
+
 async function makeGoogleAdsRequest(
   customerId: string,
   accessToken: string,
@@ -117,14 +148,13 @@ async function makeGoogleAdsRequest(
   loginCustomerId?: string
 ): Promise<any> {
   const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:search`;
-  
+
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${accessToken}`,
     'developer-token': developerToken,
     'Content-Type': 'application/json',
   };
 
-  // If the account is managed by an MCC, we need to specify the login-customer-id
   if (loginCustomerId && loginCustomerId !== customerId) {
     headers['login-customer-id'] = loginCustomerId;
   }
@@ -144,21 +174,125 @@ async function makeGoogleAdsRequest(
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`❌ Google Ads API error (${response.status}):`, errorText);
-    
-    // Try to parse the error for more details
+
+    let parsed: any | undefined;
     try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error?.details) {
-        console.error('   Error details:', JSON.stringify(errorJson.error.details, null, 2));
+      parsed = JSON.parse(errorText);
+      if (parsed?.error?.details) {
+        console.error('   Error details:', JSON.stringify(parsed.error.details, null, 2));
       }
-    } catch (e) {
-      // Not JSON, log as-is
+    } catch {
+      // ignore
     }
-    
-    throw new Error(`Google Ads API error (${response.status}): ${errorText}`);
+
+    throw new GoogleAdsApiError(response.status, errorText, parsed);
   }
 
   return response.json();
+}
+
+async function listAccessibleCustomerIds(accessToken: string, developerToken: string): Promise<string[]> {
+  const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers:listAccessibleCustomers`;
+
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    console.warn(`⚠️ Failed to listAccessibleCustomers (${resp.status}):`, text);
+    return [];
+  }
+
+  const json = await resp.json();
+  const resourceNames: string[] = json?.resourceNames || [];
+  return resourceNames
+    .map((r) => (typeof r === 'string' ? r.split('/').pop() : null))
+    .filter((x): x is string => Boolean(x));
+}
+
+async function makeGoogleAdsRequestWithFallback(args: {
+  customerId: string;
+  accessToken: string;
+  developerToken: string;
+  query: string;
+  loginCustomerIds: Array<string | undefined>;
+}): Promise<{ data: any; usedLoginCustomerId?: string }> {
+  const uniq: Array<string | undefined> = [];
+  const seen = new Set<string>();
+  let lastErr: unknown;
+
+  for (const id of args.loginCustomerIds) {
+    if (!id) {
+      uniq.push(undefined);
+      continue;
+    }
+    if (seen.has(id)) continue;
+    seen.add(id);
+    uniq.push(id);
+  }
+
+  // Always try without login-customer-id first (covers direct-access accounts)
+  if (!uniq.includes(undefined)) uniq.unshift(undefined);
+
+  for (const loginCustomerId of uniq) {
+    try {
+      const data = await makeGoogleAdsRequest(
+        args.customerId,
+        args.accessToken,
+        args.developerToken,
+        args.query,
+        loginCustomerId
+      );
+      return { data, usedLoginCustomerId: loginCustomerId };
+    } catch (err) {
+      lastErr = err;
+      if (isUserPermissionDenied(err)) {
+        console.warn(
+          `⚠️ USER_PERMISSION_DENIED for customer ${args.customerId} with login-customer-id=${loginCustomerId ?? 'none'}. Trying next...`
+        );
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  // If all candidates failed with USER_PERMISSION_DENIED, try using every accessible customer
+  // as login-customer-id (covers multi-level manager hierarchies).
+  if (isUserPermissionDenied(lastErr)) {
+    const accessible = await listAccessibleCustomerIds(args.accessToken, args.developerToken);
+    const extras = accessible
+      .map((id) => id.replace(/-/g, ''))
+      .filter((id) => id && id !== args.customerId && !seen.has(id))
+      .slice(0, 25);
+
+    if (extras.length) {
+      console.log(`🔍 Retrying with accessible customer IDs as login-customer-id (max 25): ${extras.join(', ')}`);
+      for (const loginCustomerId of extras) {
+        try {
+          const data = await makeGoogleAdsRequest(
+            args.customerId,
+            args.accessToken,
+            args.developerToken,
+            args.query,
+            loginCustomerId
+          );
+          return { data, usedLoginCustomerId: loginCustomerId };
+        } catch (err) {
+          lastErr = err;
+          if (isUserPermissionDenied(err)) continue;
+          throw err;
+        }
+      }
+    }
+  }
+
+  throw lastErr;
 }
 
 serve(async (req) => {
@@ -256,28 +390,35 @@ serve(async (req) => {
     }
 
     const customerId = googleAccount.google_customer_id.replace(/-/g, '');
-    
-    // Get MCC login customer ID if available
-    // First check parent_customer_id, then look for a manager account in the same integration
-    let loginCustomerId: string | undefined;
-    
+
+    // Determine login-customer-id candidates.
+    // Some client accounts require the correct manager CID in the header.
+    const loginCustomerIdCandidates: string[] = [];
+
     if (googleAccount.parent_customer_id) {
-      loginCustomerId = googleAccount.parent_customer_id.replace(/-/g, '');
-      console.log(`🏢 Using parent_customer_id as login-customer-id: ${loginCustomerId}`);
+      loginCustomerIdCandidates.push(googleAccount.parent_customer_id.replace(/-/g, ''));
+      console.log(`🏢 Found parent_customer_id candidate: ${loginCustomerIdCandidates[0]}`);
+    }
+
+    const { data: mccAccounts, error: mccAccountsError } = await supabase
+      .from('google_ads_accounts')
+      .select('google_customer_id')
+      .eq('integration_id', googleAccount.integration_id)
+      .eq('is_manager', true);
+
+    if (mccAccountsError) {
+      console.warn('⚠️ Could not load MCC accounts for integration:', mccAccountsError);
     } else {
-      // Look for a manager account in the same integration
-      const { data: mccAccount } = await supabase
-        .from('google_ads_accounts')
-        .select('google_customer_id')
-        .eq('integration_id', googleAccount.integration_id)
-        .eq('is_manager', true)
-        .single();
-      
-      if (mccAccount && mccAccount.google_customer_id !== googleAccount.google_customer_id) {
-        loginCustomerId = mccAccount.google_customer_id.replace(/-/g, '');
-        console.log(`🏢 Using MCC from integration as login-customer-id: ${loginCustomerId}`);
+      for (const acc of mccAccounts || []) {
+        const cid = (acc.google_customer_id || '').replace(/-/g, '');
+        if (cid && cid !== customerId) loginCustomerIdCandidates.push(cid);
       }
     }
+
+    // We'll learn the correct login-customer-id by trying candidates.
+    let resolvedLoginCustomerId: string | undefined;
+
+    console.log(`🏢 login-customer-id candidates: ${[...new Set(loginCustomerIdCandidates)].join(', ') || '(none)'}`);
 
     // Build date range
     const days = getPeriodDays(period);
@@ -315,13 +456,30 @@ serve(async (req) => {
       console.log('   Query:', campaignQuery.replace(/\s+/g, ' ').trim());
 
       try {
-        const campaignsData = await makeGoogleAdsRequest(
+        const { data: campaignsData, usedLoginCustomerId } = await makeGoogleAdsRequestWithFallback({
           customerId,
           accessToken,
           developerToken,
-          campaignQuery,
-          loginCustomerId
-        );
+          query: campaignQuery,
+          loginCustomerIds: [resolvedLoginCustomerId, ...loginCustomerIdCandidates],
+        });
+
+        if (usedLoginCustomerId) {
+          resolvedLoginCustomerId = usedLoginCustomerId;
+
+          if (!googleAccount.parent_customer_id) {
+            const { error: parentUpdateError } = await supabase
+              .from('google_ads_accounts')
+              .update({ parent_customer_id: usedLoginCustomerId })
+              .eq('id', googleAccount.id);
+
+            if (parentUpdateError) {
+              console.warn('⚠️ Failed to persist parent_customer_id:', parentUpdateError);
+            } else {
+              console.log(`✅ Saved parent_customer_id=${usedLoginCustomerId} for account ${googleAccount.google_customer_id}`);
+            }
+          }
+        }
         
         console.log(`   Found ${campaignsData.results?.length || 0} campaigns`);
 
@@ -398,13 +556,13 @@ serve(async (req) => {
       `;
 
       try {
-        const adGroupsData = await makeGoogleAdsRequest(
+        const { data: adGroupsData } = await makeGoogleAdsRequestWithFallback({
           customerId,
           accessToken,
           developerToken,
-          adGroupQuery,
-          loginCustomerId
-        );
+          query: adGroupQuery,
+          loginCustomerIds: [resolvedLoginCustomerId, ...loginCustomerIdCandidates],
+        });
 
         console.log(`   Found ${adGroupsData.results?.length || 0} ad groups`);
 
@@ -498,13 +656,13 @@ serve(async (req) => {
       `;
 
       try {
-        const adsData = await makeGoogleAdsRequest(
+        const { data: adsData } = await makeGoogleAdsRequestWithFallback({
           customerId,
           accessToken,
           developerToken,
-          adsQuery,
-          loginCustomerId
-        );
+          query: adsQuery,
+          loginCustomerIds: [resolvedLoginCustomerId, ...loginCustomerIdCandidates],
+        });
 
         console.log(`   Found ${adsData.results?.length || 0} ads`);
 
