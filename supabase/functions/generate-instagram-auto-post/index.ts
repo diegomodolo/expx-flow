@@ -156,6 +156,11 @@ Deno.serve(async (req) => {
       console.log('Using CLIENT reference images (fallback), count:', referenceImages.length);
     }
 
+    // Format current date in Brazilian Portuguese (DD/MM/YYYY) for use in prompts
+    const nowBrasilia = getNowInBrasilia();
+    const currentDateFormatted = `${String(nowBrasilia.getDate()).padStart(2, '0')}/${String(nowBrasilia.getMonth() + 1).padStart(2, '0')}/${nowBrasilia.getFullYear()}`;
+    console.log('Current date for image generation:', currentDateFormatted);
+
     // Generate image prompt based on post briefing ONLY (ignoring client ai_briefing)
     // The AI analyzes the briefing to determine if it should generate typographic or visual content
     const imagePromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -187,7 +192,8 @@ REGRAS:
 - Gere o prompt em INGLÊS
 - Formato quadrado 1:1 para Instagram
 - Adapte-se 100% ao que o briefing pede
-- Seja específico sobre cores, estilos e composição`
+- Seja específico sobre cores, estilos e composição
+- Se o briefing mencionar uso de data atual, use EXATAMENTE: ${currentDateFormatted}`
           },
           {
             role: 'user',
@@ -199,7 +205,11 @@ ${config.post_briefing}
 SETOR: ${client.sector}
 PÚBLICO-ALVO: ${client.target_audience || 'Geral'}
 
+DATA ATUAL (caso o briefing mencione uso de data): ${currentDateFormatted}
+
 Analise o briefing acima e gere o prompt adequado (tipográfico se pede frases/textos, visual se pede fotos/imagens).
+Se o briefing mencionar para incluir data na imagem, use EXATAMENTE: ${currentDateFormatted}
+NÃO copie datas de imagens de referência - use sempre a data atual fornecida quando aplicável.
 
 Responda APENAS com o prompt em inglês.`
           }
@@ -231,17 +241,22 @@ Responda APENAS com o prompt em inglês.`
       });
     }
     
-    // Add the text prompt - flexible based on what GPT determined
+    // Add the text prompt - flexible based on what GPT determined, with current date context
     const geminiPrompt = `Generate a square 1:1 Instagram feed image.
 
 ${imagePrompt}
+
+IMPORTANT - CURRENT DATE: ${currentDateFormatted}
+If the image should contain a date (as indicated in the prompt or reference images layout), use EXACTLY this date: ${currentDateFormatted}
+Do NOT copy dates from reference images - always use the current date provided above when a date is needed.
 
 ${referenceImages.length > 0 ? `CRITICAL - REFERENCE IMAGES PROVIDED:
 Study the reference images above carefully and match their EXACT visual style:
 - If references contain text/typography → include text with same style (fonts, colors, layout)
 - If references are photographs → create similar photographic content
 - Match their color palette, aesthetic, and overall design language
-- The generated image should look like it belongs to the same visual brand` : ''}
+- The generated image should look like it belongs to the same visual brand
+- If reference images show a date in a specific position, put the CURRENT DATE (${currentDateFormatted}) in that same position` : ''}
 
 Generate the image now. Return image only.`;
 
@@ -287,12 +302,15 @@ Generate the image now. Return image only.`;
       const msg = geminiData?.choices?.[0]?.message;
       console.warn('Gemini returned no images. Content was:', typeof msg?.content === 'string' ? msg.content.slice(0, 500) : msg?.content);
 
-      // Retry with a simpler prompt but still flexible
+      // Retry with a simpler prompt but still flexible, with current date
       const retryPrompt = `Generate a square 1:1 Instagram feed image.
 
 Theme/Briefing: ${config.post_briefing}
 Industry: ${client.sector}
 Audience: ${client.target_audience || 'General'}
+
+CURRENT DATE: ${currentDateFormatted}
+If a date should appear in the image, use EXACTLY: ${currentDateFormatted}
 
 Create a professional, Instagram-ready image based on the theme above.
 If the theme mentions quotes/phrases/text, include readable text in the image.
