@@ -92,9 +92,6 @@ async function getClientMetrics(
   companyId: string
 ): Promise<ClientMetrics> {
   const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   // Fetch client data including funding, manual status, and Google account
   const { data: clientData } = await supabase
@@ -185,8 +182,8 @@ async function getClientMetrics(
   const accountBalance = adAccount?.balance || 0;
   const accountStatus = adAccount?.account_status || 0;
 
-  // Extract manual status
-  const manualInactiveStatus = clientData?.status === 'red' && !!clientData?.inactive_reason;
+  // Check if client has inactive_reason set (automatic or manual)
+  const hasInactiveReason = clientData?.status === 'red' && !!clientData?.inactive_reason;
 
   if (allCampaigns.length === 0) {
     console.log(`[Client ${clientId}] No campaigns found on any platform`);
@@ -210,44 +207,41 @@ async function getClientMetrics(
       account_balance: accountBalance,
       account_status: accountStatus,
       days_without_changes: 999,
-      manual_inactive_status: manualInactiveStatus,
+      manual_inactive_status: hasInactiveReason,
     };
   }
 
-  // Calculate metrics from consolidated campaigns
-  const activeCampaigns = allCampaigns.filter((c: any) => 
-    c.is_active && new Date(c.updated_at) >= sevenDaysAgo
-  );
+  // ============================================================
+  // IMPORTANT: Calculate metrics based on TOTAL 30-day data
+  // The campaigns store cumulative data for their period (usually 30 days)
+  // We estimate weekly metrics from these 30-day totals
+  // ============================================================
 
-  const recentCampaigns = allCampaigns.filter((c: any) => 
-    new Date(c.updated_at) >= thirtyDaysAgo
-  );
+  // Total conversions and spend from ALL campaigns (30-day period data)
+  const metaLeads30d = normalizedMetaCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+  const googleLeads30d = normalizedGoogleCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+  const leads30Days = metaLeads30d + googleLeads30d;
 
-  // Calculate leads by period
-  const currentWeekCampaigns = allCampaigns.filter((c: any) => new Date(c.updated_at) >= sevenDaysAgo);
-  const currentWeekLeads = currentWeekCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
-  const metaLeadsThisWeek = currentWeekCampaigns.filter((c: any) => c.platform === 'meta').reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
-  const googleLeadsThisWeek = currentWeekCampaigns.filter((c: any) => c.platform === 'google').reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+  const metaSpend30d = normalizedMetaCampaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
+  const googleSpend30d = normalizedGoogleCampaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
+  const spend30Days = metaSpend30d + googleSpend30d;
 
-  const previousWeekCampaigns = allCampaigns.filter((c: any) => 
-    new Date(c.updated_at) >= fourteenDaysAgo && new Date(c.updated_at) < sevenDaysAgo
-  );
-  const previousWeekLeads = previousWeekCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+  // Estimate weekly values from 30-day totals: (30d_value / 30) * 7
+  const estimatedWeeklyLeads = Math.round((leads30Days / 30) * 7);
+  const estimatedWeeklySpend = (spend30Days / 30) * 7;
+  const estimatedWeeklyCPA = estimatedWeeklyLeads > 0 ? estimatedWeeklySpend / estimatedWeeklyLeads : 0;
 
-  const last30DaysCampaigns = allCampaigns.filter((c: any) => new Date(c.updated_at) >= thirtyDaysAgo);
-  const leads30Days = last30DaysCampaigns.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+  // Count active campaigns (is_active flag, regardless of updated_at)
+  const activeCampaigns = allCampaigns.filter((c: any) => c.is_active);
+  
+  // Count recent campaigns (those with any data)
+  const recentCampaigns = allCampaigns;
 
-  // Calculate CTR
+  // Calculate average CTR from active campaigns
   const totalCTR = activeCampaigns.reduce((sum: number, c: any) => sum + (c.ctr || 0), 0);
   const averageCTR = activeCampaigns.length > 0 ? totalCTR / activeCampaigns.length : 0;
 
-  // Calculate spend
-  const currentWeekSpend = currentWeekCampaigns.reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
-  const metaSpendThisWeek = currentWeekCampaigns.filter((c: any) => c.platform === 'meta').reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
-  const googleSpendThisWeek = currentWeekCampaigns.filter((c: any) => c.platform === 'google').reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
-  
-  const currentWeekCPA = currentWeekLeads > 0 ? currentWeekSpend / currentWeekLeads : 0;
-
+  // Days since last optimization
   const lastOptimizationDate = lastOptimization?.[0]?.performed_at 
     ? new Date(lastOptimization[0].performed_at)
     : lastChange?.[0]?.created_at 
@@ -258,6 +252,7 @@ async function getClientMetrics(
     ? Math.floor((now.getTime() - lastOptimizationDate.getTime()) / (24 * 60 * 60 * 1000))
     : 999;
 
+  // Quality issues from ads
   const hasQualityIssues = ads?.some((ad: any) => 
     ad.quality_ranking === 'BELOW_AVERAGE' || 
     ad.engagement_rate_ranking === 'BELOW_AVERAGE' ||
@@ -266,33 +261,34 @@ async function getClientMetrics(
 
   const hasReprovedAds = ads?.some((ad: any) => ad.status === 'disapproved') || false;
 
-  const leadDropPercentage = previousWeekLeads > 0 
-    ? ((previousWeekLeads - currentWeekLeads) / previousWeekLeads) * 100 
-    : 0;
+  // Lead drop: we can't calculate real week-over-week without historical snapshots
+  // For now, set to 0 to prevent false positives
+  const leadDropPercentage = 0;
 
-  console.log(`[Client ${clientId}] Consolidated metrics:`, {
-    current_week_leads: currentWeekLeads,
-    meta_leads: metaLeadsThisWeek,
-    google_leads: googleLeadsThisWeek,
-    current_week_spend: currentWeekSpend,
-    meta_spend: metaSpendThisWeek,
-    google_spend: googleSpendThisWeek,
+  console.log(`[Client ${clientId}] Consolidated metrics (30-day based):`, {
+    leads_30_days: leads30Days,
+    meta_leads_30d: metaLeads30d,
+    google_leads_30d: googleLeads30d,
+    spend_30_days: spend30Days,
+    meta_spend_30d: metaSpend30d,
+    google_spend_30d: googleSpend30d,
+    estimated_weekly_leads: estimatedWeeklyLeads,
+    estimated_weekly_spend: estimatedWeeklySpend,
+    estimated_weekly_cpa: estimatedWeeklyCPA,
     active_campaigns_count: activeCampaigns.length,
-    current_week_cpa: currentWeekCPA,
     has_funding_issues: hasFundingIssues,
-    lead_drop_percentage: leadDropPercentage,
   });
 
   return {
-    current_week_leads: currentWeekLeads,
-    previous_week_leads: previousWeekLeads,
-    leads_last_7_days: currentWeekLeads,
+    current_week_leads: estimatedWeeklyLeads,
+    previous_week_leads: estimatedWeeklyLeads, // Same as current to avoid false drops
+    leads_last_7_days: estimatedWeeklyLeads,
     leads_last_30_days: leads30Days,
     average_cpl: 0,
     average_ctr: averageCTR,
-    average_cpa: 0,
-    current_week_cpa: currentWeekCPA,
-    current_week_spend: currentWeekSpend,
+    average_cpa: leads30Days > 0 ? spend30Days / leads30Days : 0,
+    current_week_cpa: estimatedWeeklyCPA,
+    current_week_spend: estimatedWeeklySpend,
     active_campaigns_count: activeCampaigns.length,
     recent_campaigns_count: recentCampaigns.length,
     days_since_last_optimization: daysSinceLastOptimization,
@@ -303,7 +299,7 @@ async function getClientMetrics(
     account_balance: accountBalance,
     account_status: accountStatus,
     days_without_changes: daysSinceLastOptimization,
-    manual_inactive_status: manualInactiveStatus,
+    manual_inactive_status: hasInactiveReason,
   };
 }
 
@@ -364,19 +360,19 @@ function generateExplanation(status: string, metrics: ClientMetrics, ruleName?: 
     explanation += `\n\nRegra aplicada: ${ruleName}`;
   }
   
-  // Add relevant metrics
+  // Add relevant metrics - show 30-day totals and weekly estimates
   explanation += `\n\nMétricas principais:`;
+  if (metrics.leads_last_30_days !== undefined) {
+    explanation += `\n• Conversões (30 dias): ${metrics.leads_last_30_days}`;
+  }
   if (metrics.current_week_leads !== undefined) {
-    explanation += `\n• Leads esta semana: ${metrics.current_week_leads}`;
+    explanation += `\n• Conversões estimadas/semana: ${metrics.current_week_leads}`;
   }
-  if (metrics.previous_week_leads !== undefined) {
-    explanation += `\n• Leads semana anterior: ${metrics.previous_week_leads}`;
-  }
-  if (metrics.average_ctr !== undefined) {
+  if (metrics.average_ctr !== undefined && metrics.average_ctr > 0) {
     explanation += `\n• CTR médio: ${metrics.average_ctr.toFixed(2)}%`;
   }
   if (metrics.current_week_cpa !== undefined && metrics.current_week_cpa > 0) {
-    explanation += `\n• CPA esta semana: R$ ${metrics.current_week_cpa.toFixed(2)}`;
+    explanation += `\n• CPA estimado/semana: R$ ${metrics.current_week_cpa.toFixed(2)}`;
   }
   if (metrics.active_campaigns_count !== undefined) {
     explanation += `\n• Campanhas ativas: ${metrics.active_campaigns_count}`;
@@ -396,7 +392,7 @@ function generateExplanation(status: string, metrics: ClientMetrics, ruleName?: 
     explanation += `\n⚠️ Problemas de qualidade detectados`;
   }
   if (metrics.manual_inactive_status) {
-    explanation += `\n⚠️ Cliente marcado como inativo manualmente`;
+    explanation += `\n⚠️ Motivo de inatividade registrado`;
   }
 
   explanation += `\n\n${emoji} Status calculado pela regra: ${ruleName || 'Sistema'}`;
