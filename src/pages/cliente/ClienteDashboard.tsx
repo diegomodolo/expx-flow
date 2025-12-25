@@ -311,18 +311,18 @@ export function ClienteDashboard({
           </CardContent>
         </Card>
 
-        {/* CPL Médio Card - DESTAQUE */}
+        {/* CPL Médio Card - Calculado a partir dos totais consolidados */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">CPL Médio</p>
+                <p className="text-sm font-medium text-muted-foreground">CPA Médio</p>
                 <p className="text-2xl font-bold text-green-600">
-                  R$ {client.avg_cpl.toFixed(2)}
+                  R$ {totalLeadsGenerated > 0 ? (totalInvested / totalLeadsGenerated).toFixed(2) : '0.00'}
                 </p>
                 <div className="flex items-center space-x-1 mt-1">
                   <TrendingDown className="w-3 h-3 text-green-500" />
-                  <span className="text-xs text-green-500">vs mês anterior</span>
+                  <span className="text-xs text-green-500">investido / conversões</span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
