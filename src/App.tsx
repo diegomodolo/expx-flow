@@ -68,6 +68,9 @@ import LeadIntelligenceFilters from "./pages/LeadIntelligenceFilters";
 import LeadIntelligenceApiKeys from "./pages/LeadIntelligenceApiKeys";
 import RadarSaude from "./pages/RadarSaude";
 import Rotinas from "./pages/Rotinas";
+import AutomatizadoresHub from "./pages/AutomatizadoresHub";
+import AutomatizadoresInstagram from "./pages/AutomatizadoresInstagram";
+import AutomatizadorInstagramDetalhes from "./pages/AutomatizadorInstagramDetalhes";
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -350,11 +353,26 @@ const App = () => {
                    </ProtectedRoute>
                  } />
                  <Route path="/agendamento" element={
-                   <ProtectedRoute>
-                     <Agendamento />
-                   </ProtectedRoute>
-                 } />
-                 <Route path="/notificacoes/whatsapp" element={
+                    <ProtectedRoute>
+                      <Agendamento />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/automatizadores" element={
+                    <ProtectedRoute>
+                      <AutomatizadoresHub />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/automatizadores/instagram" element={
+                    <ProtectedRoute>
+                      <AutomatizadoresInstagram />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/automatizadores/instagram/:configId" element={
+                    <ProtectedRoute>
+                      <AutomatizadorInstagramDetalhes />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/notificacoes/whatsapp" element={
                    <ProtectedRoute>
                      <NotificacoesWhatsApp />
                    </ProtectedRoute>
