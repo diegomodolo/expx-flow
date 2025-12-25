@@ -69,6 +69,12 @@ export const UnifiedSyncDialog: React.FC<UnifiedSyncDialogProps> = ({
     }
   }, []);
 
+  // Helper to check if client is considered inactive (same logic as sync hooks)
+  const isClientInactive = (client: { status: string | null; inactive_reason: string | null }) => {
+    // Meta uses: status === 'red' && inactive_reason is not null/empty
+    return client.status === 'red' && !!client.inactive_reason;
+  };
+
   // Fetch client counts
   useEffect(() => {
     const fetchCounts = async () => {
@@ -76,17 +82,22 @@ export const UnifiedSyncDialog: React.FC<UnifiedSyncDialogProps> = ({
 
       const { data } = await supabase
         .from('clients')
-        .select('ad_account_id, google_account_id')
+        .select('ad_account_id, google_account_id, status, inactive_reason')
         .eq('company_id', companyId);
 
-      const meta = data?.filter(c => c.ad_account_id).length || 0;
-      const google = data?.filter(c => c.google_account_id).length || 0;
+      // Filter based on includeInactive setting (same logic as useFacebookCampaignSync)
+      const activeClients = includeInactive 
+        ? data 
+        : data?.filter(c => !isClientInactive(c));
+
+      const meta = activeClients?.filter(c => c.ad_account_id).length || 0;
+      const google = activeClients?.filter(c => c.google_account_id).length || 0;
 
       setClientCounts({ meta, google });
     };
 
     fetchCounts();
-  }, [open, companyId]);
+  }, [open, companyId, includeInactive]);
 
   const getAdSetsLabel = () => {
     if (platform === 'google') return 'Grupos de Anúncios';
@@ -95,13 +106,14 @@ export const UnifiedSyncDialog: React.FC<UnifiedSyncDialogProps> = ({
   };
 
   const getClientCountMessage = () => {
+    const suffix = includeInactive ? '' : ' ativos';
     if (platform === 'meta') {
-      return `Serão sincronizados ${clientCounts.meta} cliente${clientCounts.meta !== 1 ? 's' : ''} com Meta Ads`;
+      return `Serão sincronizados ${clientCounts.meta} cliente${clientCounts.meta !== 1 ? 's' : ''}${suffix} com Meta Ads`;
     }
     if (platform === 'google') {
-      return `Serão sincronizados ${clientCounts.google} cliente${clientCounts.google !== 1 ? 's' : ''} com Google Ads`;
+      return `Serão sincronizados ${clientCounts.google} cliente${clientCounts.google !== 1 ? 's' : ''}${suffix} com Google Ads`;
     }
-    return `Serão sincronizados ${clientCounts.meta} cliente${clientCounts.meta !== 1 ? 's' : ''} Meta e ${clientCounts.google} cliente${clientCounts.google !== 1 ? 's' : ''} Google`;
+    return `Serão sincronizados ${clientCounts.meta} cliente${clientCounts.meta !== 1 ? 's' : ''}${suffix} Meta e ${clientCounts.google} cliente${clientCounts.google !== 1 ? 's' : ''}${suffix} Google`;
   };
 
   const canSync = () => {
