@@ -73,6 +73,7 @@ import AutomatizadoresInstagram from "./pages/AutomatizadoresInstagram";
 import AutomatizadorInstagramDetalhes from "./pages/AutomatizadorInstagramDetalhes";
 import AutomatizadoresWordpress from "./pages/AutomatizadoresWordpress";
 import AutomatizadorWordpressDetalhes from "./pages/AutomatizadorWordpressDetalhes";
+import AlertasDoSistema from "./pages/AlertasDoSistema";
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -418,12 +419,17 @@ const App = () => {
                    <ProtectedRoute>
                      <LeadIntelligenceApiKeys />
                    </ProtectedRoute>
+                  } />
+                 <Route path="/alertas" element={
+                   <ProtectedRoute>
+                     <AlertasDoSistema />
+                   </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={
-                  <ProtectedRoute>
-                    <Configuracoes />
-                  </ProtectedRoute>
-                } />
+                   <ProtectedRoute>
+                     <Configuracoes />
+                   </ProtectedRoute>
+                 } />
                 <Route path="/perfil/*" element={
                   <ProtectedRoute>
                     <Perfil />

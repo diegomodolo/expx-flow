@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendWhatsAppAlerts, buildAlertMessage } from '../_shared/whatsapp-alerts.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -9,6 +10,96 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Classify error type for proper alert handling
+function classifyError(errorText: string): { alertType: string; severity: 'warning' | 'critical' } {
+  const lowerError = errorText.toLowerCase();
+  
+  if (lowerError.includes('user access is restricted') || lowerError.includes('restringida') || lowerError.includes('restricted')) {
+    return { alertType: 'account_restricted', severity: 'critical' };
+  }
+  if (lowerError.includes('token') || lowerError.includes('oauth') || lowerError.includes('expired') || lowerError.includes('invalid session')) {
+    return { alertType: 'token_expired', severity: 'critical' };
+  }
+  if (lowerError.includes('rate limit') || lowerError.includes('too many')) {
+    return { alertType: 'rate_limit', severity: 'warning' };
+  }
+  
+  return { alertType: 'post_failed', severity: 'warning' };
+}
+
+// Create system alert and send WhatsApp notification
+async function createAlertAndNotify(
+  post: any,
+  instagramAccount: any,
+  clientName: string,
+  errorText: string
+) {
+  const { alertType, severity } = classifyError(errorText);
+  
+  // Get alert title based on type
+  const alertTitles: Record<string, string> = {
+    account_restricted: '🚨 Conta do Instagram Restrita',
+    token_expired: '🔑 Token do Facebook Expirado',
+    rate_limit: '⏱️ Limite de Requisições Excedido',
+    post_failed: '❌ Falha na Publicação do Instagram',
+  };
+
+  const alertMessages: Record<string, string> = {
+    account_restricted: `A conta @${instagramAccount?.username || 'desconhecida'} está restrita pelo Instagram. Verifique a conta no aplicativo.`,
+    token_expired: `O token de acesso do Facebook expirou. Reconecte a integração nas configurações.`,
+    rate_limit: `Muitas requisições enviadas. Aguarde alguns minutos e tente novamente.`,
+    post_failed: `Não foi possível publicar o post automático para @${instagramAccount?.username || 'desconhecida'}.`,
+  };
+
+  try {
+    // 1. Create system alert in database
+    const { error: alertError } = await supabase
+      .from('system_alerts')
+      .insert({
+        company_id: post.company_id,
+        client_id: post.client_id,
+        alert_type: alertType,
+        severity: severity,
+        title: alertTitles[alertType] || 'Falha na Publicação',
+        message: alertMessages[alertType] || errorText,
+        details: {
+          error_message: errorText,
+          post_id: post.id,
+          instagram_username: instagramAccount?.username,
+          config_id: post.config_id,
+        },
+        related_entity_type: 'instagram_auto_post',
+        related_entity_id: post.id,
+      });
+
+    if (alertError) {
+      console.error('[Alert] Error creating system alert:', alertError);
+    } else {
+      console.log('[Alert] System alert created:', alertType, severity);
+    }
+
+    // 2. Send WhatsApp notification
+    const message = buildAlertMessage('post_failed', {
+      clientName: clientName,
+      platforms: `Instagram Auto Post (@${instagramAccount?.username || 'desconhecido'})`,
+      error: errorText,
+    });
+
+    const whatsappResult = await sendWhatsAppAlerts(supabase, {
+      companyId: post.company_id,
+      notificationType: 'post_failed',
+      message: message,
+      relatedEntityType: 'instagram_auto_post',
+      relatedEntityId: post.id,
+    });
+
+    console.log('[Alert] WhatsApp notification result:', whatsappResult);
+
+  } catch (err) {
+    console.error('[Alert] Error in createAlertAndNotify:', err);
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,6 +131,10 @@ Deno.serve(async (req) => {
             instagram_id,
             username
           )
+        ),
+        clients (
+          name,
+          company
         )
       `)
       .eq('id', postId)
@@ -60,9 +155,12 @@ Deno.serve(async (req) => {
 
     const config = post.instagram_auto_post_configs;
     const instagramAccount = config?.instagram_accounts;
+    const clientName = post.clients?.name || 'Cliente';
 
     if (!instagramAccount?.instagram_id) {
-      throw new Error('Instagram account not configured');
+      const errorMsg = 'Instagram account not configured';
+      await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
+      throw new Error(errorMsg);
     }
 
     // Get Facebook access token
@@ -75,7 +173,9 @@ Deno.serve(async (req) => {
 
     if (integrationError || !integration?.access_token) {
       console.error('Error fetching Facebook integration:', integrationError);
-      throw new Error('Facebook integration not found');
+      const errorMsg = 'Facebook integration not found or inactive';
+      await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
+      throw new Error(errorMsg);
     }
 
     const accessToken = integration.access_token;
@@ -108,6 +208,9 @@ Deno.serve(async (req) => {
         })
         .eq('id', postId);
 
+      // Create alert and notify
+      await createAlertAndNotify(post, instagramAccount, clientName, errorText);
+
       throw new Error(`Failed to create media container: ${errorText}`);
     }
 
@@ -135,7 +238,9 @@ Deno.serve(async (req) => {
         if (statusData.status_code === 'FINISHED') {
           containerReady = true;
         } else if (statusData.status_code === 'ERROR') {
-          throw new Error('Container processing failed');
+          const errorMsg = 'Container processing failed - Instagram rejected the media';
+          await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
+          throw new Error(errorMsg);
         }
       }
       
@@ -143,7 +248,9 @@ Deno.serve(async (req) => {
     }
 
     if (!containerReady) {
-      throw new Error('Container not ready after maximum attempts');
+      const errorMsg = 'Container not ready after maximum attempts - timeout';
+      await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
+      throw new Error(errorMsg);
     }
 
     // Step 3: Publish the container
@@ -169,6 +276,9 @@ Deno.serve(async (req) => {
           error_message: `Publish failed: ${errorText}`
         })
         .eq('id', postId);
+
+      // Create alert and notify
+      await createAlertAndNotify(post, instagramAccount, clientName, errorText);
 
       throw new Error(`Failed to publish: ${errorText}`);
     }
