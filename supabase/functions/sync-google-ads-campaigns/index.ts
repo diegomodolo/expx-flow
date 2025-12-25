@@ -358,6 +358,26 @@ serve(async (req) => {
 
     console.log(`📦 Client: ${client.name}`);
 
+    // IMPORTANT: use the client's company_id (source of truth) to satisfy FK constraints
+    const effectiveCompanyId = (client.company_id || companyId) as string | undefined;
+    if (!effectiveCompanyId) {
+      throw new Error('Client is missing company_id and no companyId was provided');
+    }
+
+    if (effectiveCompanyId !== companyId) {
+      console.log(`🏢 Using client.company_id as company_id (requested=${companyId}, resolved=${effectiveCompanyId})`);
+    }
+
+    const { data: companyRow, error: companyLookupError } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('id', effectiveCompanyId)
+      .maybeSingle();
+
+    if (companyLookupError || !companyRow) {
+      throw new Error(`Company not found for company_id=${effectiveCompanyId}`);
+    }
+
     if (!client.google_account_id) {
       throw new Error('Client does not have a Google Ads account configured');
     }
@@ -499,7 +519,7 @@ serve(async (req) => {
                 google_id: campaign.id.toString(),
                 google_account_id: googleAccount.id,
                 client_id: clientId,
-                company_id: companyId,
+                company_id: effectiveCompanyId,
                 user_id: user.id,
                 name: campaign.name,
                 status: mapGoogleStatus(campaign.status),
@@ -580,7 +600,7 @@ serve(async (req) => {
               .from('google_campaigns')
               .select('id')
               .eq('google_id', campaignGoogleId)
-              .eq('company_id', companyId)
+              .eq('company_id', effectiveCompanyId)
               .eq('period', period)
               .single();
 
@@ -597,7 +617,7 @@ serve(async (req) => {
                   campaign_id: campaignData.id,
                   google_account_id: googleAccount.id,
                   client_id: clientId,
-                  company_id: companyId,
+                  company_id: effectiveCompanyId,
                   user_id: user.id,
                   name: adGroup.name,
                   status: mapGoogleStatus(adGroup.status),
@@ -684,14 +704,14 @@ serve(async (req) => {
               .from('google_ad_groups')
               .select('id')
               .eq('google_id', adGroupGoogleId)
-              .eq('company_id', companyId)
+              .eq('company_id', effectiveCompanyId)
               .single();
 
             const { data: campaignData } = await supabase
               .from('google_campaigns')
               .select('id')
               .eq('google_id', campaign.id.toString())
-              .eq('company_id', companyId)
+              .eq('company_id', effectiveCompanyId)
               .eq('period', period)
               .single();
 
@@ -709,7 +729,7 @@ serve(async (req) => {
                   campaign_id: campaignData.id,
                   google_account_id: googleAccount.id,
                   client_id: clientId,
-                  company_id: companyId,
+                  company_id: effectiveCompanyId,
                   user_id: user.id,
                   name: ad.name || `Ad ${ad.id}`,
                   status: mapGoogleStatus(adGroupAd.status),
