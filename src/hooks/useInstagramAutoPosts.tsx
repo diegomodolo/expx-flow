@@ -324,6 +324,34 @@ export function useInstagramAutoPosts(clientId: string) {
     }
   });
 
+  // Publish a post immediately
+  const publishNowMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const { data, error } = await supabase.functions.invoke('publish-instagram-auto-post', {
+        body: { postId }
+      });
+
+      if (error) throw error;
+      if (data && !data.success) throw new Error(data.error || 'Erro ao publicar');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      toast({
+        title: 'Post publicado!',
+        description: 'O post foi publicado no Instagram com sucesso.',
+      });
+    },
+    onError: (error: any) => {
+      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts', clientId] });
+      toast({
+        title: 'Erro ao publicar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
   return {
     posts,
     pendingPosts,
@@ -335,9 +363,11 @@ export function useInstagramAutoPosts(clientId: string) {
     generateNextPost: generateNextPostMutation.mutate,
     deletePost: deletePostMutation.mutate,
     updateCaption: updateCaptionMutation.mutate,
+    publishNow: publishNowMutation.mutate,
     isRegenerating: regeneratePostMutation.isPending,
     isGeneratingNext: generateNextPostMutation.isPending,
     isDeleting: deletePostMutation.isPending,
-    isUpdatingCaption: updateCaptionMutation.isPending
+    isUpdatingCaption: updateCaptionMutation.isPending,
+    isPublishing: publishNowMutation.isPending
   };
 }

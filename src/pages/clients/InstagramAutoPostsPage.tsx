@@ -26,7 +26,8 @@ import {
   ArrowLeft,
   Trash2,
   Settings,
-  History
+  History,
+  Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -53,7 +54,7 @@ export default function InstagramAutoPostsPage() {
   const { user } = useAuth();
 
   const { config, isLoading: configLoading, createConfig, updateConfig, deleteConfig, isCreating, isUpdating } = useInstagramAutoPostConfig(clientId!);
-  const { pendingPosts, nextPost, publishedPosts, isLoading: postsLoading, regeneratePost, generateNextPost, deletePost, updateCaption, isRegenerating, isGeneratingNext, isDeleting, isUpdatingCaption } = useInstagramAutoPosts(clientId!);
+  const { pendingPosts, nextPost, publishedPosts, isLoading: postsLoading, regeneratePost, generateNextPost, deletePost, updateCaption, publishNow, isRegenerating, isGeneratingNext, isDeleting, isUpdatingCaption, isPublishing } = useInstagramAutoPosts(clientId!);
 
   // Form state for new config
   const [briefing, setBriefing] = useState('');
@@ -400,7 +401,19 @@ export default function InstagramAutoPostsPage() {
                       
                       <p className="text-sm line-clamp-3">{post.caption}</p>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          onClick={() => publishNow(post.id)}
+                          disabled={isPublishing}
+                        >
+                          {isPublishing ? (
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          ) : (
+                            <Send className="w-3 h-3 mr-1" />
+                          )}
+                          Publicar Agora
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
