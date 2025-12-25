@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       throw new Error('Config ID is required');
     }
 
-    // Fetch config with client data
+    // Fetch config with optional client data
     const { data: config, error: configError } = await supabase
       .from('instagram_auto_post_configs')
       .select(`
@@ -108,14 +108,17 @@ Deno.serve(async (req) => {
       throw new Error('Config not found');
     }
 
+    // Client is now optional - can be null for standalone automations
     const client = config.clients;
-    if (!client) {
-      throw new Error('Client data not found');
-    }
+    
+    // Use defaults when no client is linked
+    const clientName = client?.name || config.name || 'Automação';
+    const clientSector = client?.sector || 'Geral';
+    const clientTargetAudience = client?.target_audience || 'Geral';
 
-    console.log('Config loaded for client:', client.name);
+    console.log('Config loaded:', clientName, '| Has client:', !!client);
 
-    // Use config reference images first, fallback to client images
+    // Use config reference images first, fallback to client images (if client exists)
     const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
     console.log('Using config reference images:', hasConfigRefImages);
 
@@ -139,7 +142,7 @@ Deno.serve(async (req) => {
     const scheduledAt = calculateNextPostTime(config.scheduled_days, config.scheduled_hours, afterDate);
     console.log('Next post scheduled at:', scheduledAt.toISOString());
 
-    // Collect reference images - prefer config images, fallback to client images
+    // Collect reference images - prefer config images, fallback to client images if available
     const referenceImages: string[] = [];
     
     if (hasConfigRefImages) {
@@ -148,12 +151,14 @@ Deno.serve(async (req) => {
       if (config.reference_image_2) referenceImages.push(config.reference_image_2);
       if (config.reference_image_3) referenceImages.push(config.reference_image_3);
       console.log('Using AUTO-POST config reference images, count:', referenceImages.length);
-    } else {
-      // Fallback to client's general reference images
+    } else if (client) {
+      // Fallback to client's general reference images only if client exists
       if (client.ai_reference_image_1) referenceImages.push(client.ai_reference_image_1);
       if (client.ai_reference_image_2) referenceImages.push(client.ai_reference_image_2);
       if (client.ai_reference_image_3) referenceImages.push(client.ai_reference_image_3);
       console.log('Using CLIENT reference images (fallback), count:', referenceImages.length);
+    } else {
+      console.log('No reference images available (standalone automation without config images)');
     }
 
     // Format current date in Brazilian Portuguese (DD/MM/YYYY) for use in prompts
@@ -202,8 +207,8 @@ REGRAS:
 BRIEFING DA POSTAGEM:
 ${config.post_briefing}
 
-SETOR: ${client.sector}
-PÚBLICO-ALVO: ${client.target_audience || 'Geral'}
+SETOR: ${clientSector}
+PÚBLICO-ALVO: ${clientTargetAudience}
 
 DATA ATUAL (caso o briefing mencione uso de data): ${currentDateFormatted}
 
@@ -306,8 +311,8 @@ Generate the image now. Return image only.`;
       const retryPrompt = `Generate a square 1:1 Instagram feed image.
 
 Theme/Briefing: ${config.post_briefing}
-Industry: ${client.sector}
-Audience: ${client.target_audience || 'General'}
+Industry: ${clientSector}
+Audience: ${clientTargetAudience}
 
 CURRENT DATE: ${currentDateFormatted}
 If a date should appear in the image, use EXACTLY: ${currentDateFormatted}
@@ -408,8 +413,8 @@ If the theme is about products/photos/visuals, create that without text.`;
 BRIEFING DA POSTAGEM:
 ${config.post_briefing}
 
-SETOR: ${client.sector}
-PÚBLICO-ALVO: ${client.target_audience || 'Geral'}
+SETOR: ${clientSector}
+PÚBLICO-ALVO: ${clientTargetAudience}
 
 REQUISITOS:
 - 150-280 caracteres
