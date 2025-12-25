@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Updated to v18 - stable version as of late 2024/2025
+const GOOGLE_ADS_API_VERSION = 'v18';
+
 interface SyncOptions {
   clientId: string;
   companyId: string;
@@ -17,8 +20,9 @@ interface SyncOptions {
   silent?: boolean;
 }
 
-function microsToCurrency(micros: number): number {
-  return micros / 1_000_000;
+function microsToCurrency(micros: number | string): number {
+  const value = typeof micros === 'string' ? parseInt(micros) : micros;
+  return value / 1_000_000;
 }
 
 function mapGoogleStatus(status: string): string {
@@ -40,16 +44,33 @@ function getPeriodDays(period: string): number {
   return periodMap[period] || 30;
 }
 
+function getDateRange(days: number): { startDate: string; endDate: string } {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const formatDate = (d: Date) => d.toISOString().split('T')[0].replace(/-/g, '');
+  
+  return {
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+  };
+}
+
 async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<string> {
   const now = new Date();
   const expiresAt = new Date(integration.expires_at);
 
   // Refresh if token expires in less than 5 minutes
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
-    console.log('Refreshing access token...');
+    console.log('🔄 Refreshing access token...');
 
     const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('Missing GOOGLE_ADS_CLIENT_ID or GOOGLE_ADS_CLIENT_SECRET');
+    }
 
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -58,14 +79,16 @@ async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<st
       },
       body: new URLSearchParams({
         refresh_token: integration.refresh_token,
-        client_id: clientId!,
-        client_secret: clientSecret!,
+        client_id: clientId,
+        client_secret: clientSecret,
         grant_type: 'refresh_token',
       }),
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to refresh token');
+      const errorText = await tokenResponse.text();
+      console.error('❌ Token refresh failed:', errorText);
+      throw new Error(`Failed to refresh token: ${errorText}`);
     }
 
     const tokens = await tokenResponse.json();
@@ -79,10 +102,63 @@ async function refreshTokenIfNeeded(supabase: any, integration: any): Promise<st
       })
       .eq('id', integration.id);
 
+    console.log('✅ Token refreshed successfully');
     return tokens.access_token;
   }
 
   return integration.access_token;
+}
+
+async function makeGoogleAdsRequest(
+  customerId: string,
+  accessToken: string,
+  developerToken: string,
+  query: string,
+  loginCustomerId?: string
+): Promise<any> {
+  const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${customerId}/googleAds:search`;
+  
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${accessToken}`,
+    'developer-token': developerToken,
+    'Content-Type': 'application/json',
+  };
+
+  // If the account is managed by an MCC, we need to specify the login-customer-id
+  if (loginCustomerId && loginCustomerId !== customerId) {
+    headers['login-customer-id'] = loginCustomerId;
+  }
+
+  console.log(`📡 Making request to Google Ads API ${GOOGLE_ADS_API_VERSION}`);
+  console.log(`   Customer ID: ${customerId}`);
+  if (loginCustomerId) {
+    console.log(`   Login Customer ID: ${loginCustomerId}`);
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ query }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`❌ Google Ads API error (${response.status}):`, errorText);
+    
+    // Try to parse the error for more details
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.error?.details) {
+        console.error('   Error details:', JSON.stringify(errorJson.error.details, null, 2));
+      }
+    } catch (e) {
+      // Not JSON, log as-is
+    }
+    
+    throw new Error(`Google Ads API error (${response.status}): ${errorText}`);
+  }
+
+  return response.json();
 }
 
 serve(async (req) => {
@@ -91,6 +167,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 Starting Google Ads sync...');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -104,8 +182,11 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
+      console.error('❌ Auth error:', userError);
       throw new Error('Unauthorized');
     }
+
+    console.log(`👤 User authenticated: ${user.id}`);
 
     const options: SyncOptions = await req.json();
     const {
@@ -119,7 +200,15 @@ serve(async (req) => {
       silent = false,
     } = options;
 
-    console.log('Starting Google Ads sync for client:', clientId);
+    console.log(`📋 Sync options:`, {
+      clientId,
+      companyId,
+      period,
+      syncCampaigns,
+      syncAdGroups,
+      syncAds,
+      includeInactive,
+    });
 
     // Get client info
     const { data: client, error: clientError } = await supabase
@@ -129,14 +218,17 @@ serve(async (req) => {
       .single();
 
     if (clientError || !client) {
+      console.error('❌ Client error:', clientError);
       throw new Error('Client not found');
     }
+
+    console.log(`📦 Client: ${client.name}`);
 
     if (!client.google_account_id) {
       throw new Error('Client does not have a Google Ads account configured');
     }
 
-    // Get Google Ads account
+    // Get Google Ads account with integration
     const { data: googleAccount, error: accountError } = await supabase
       .from('google_ads_accounts')
       .select('*, google_ads_integrations(*)')
@@ -144,8 +236,11 @@ serve(async (req) => {
       .single();
 
     if (accountError || !googleAccount) {
+      console.error('❌ Google account error:', accountError);
       throw new Error('Google Ads account not found');
     }
+
+    console.log(`🔗 Google Account: ${googleAccount.account_name} (${googleAccount.google_customer_id})`);
 
     const integration = googleAccount.google_ads_integrations;
     if (!integration || !integration.is_active) {
@@ -155,19 +250,44 @@ serve(async (req) => {
     // Refresh token if needed
     const accessToken = await refreshTokenIfNeeded(supabase, integration);
     const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
-    const customerId = googleAccount.google_customer_id;
+    
+    if (!developerToken) {
+      throw new Error('Missing GOOGLE_ADS_DEVELOPER_TOKEN secret');
+    }
+
+    const customerId = googleAccount.google_customer_id.replace(/-/g, '');
+    
+    // Get MCC login customer ID if available
+    let loginCustomerId: string | undefined;
+    if (googleAccount.parent_mcc_id) {
+      const { data: mccAccount } = await supabase
+        .from('google_ads_accounts')
+        .select('google_customer_id')
+        .eq('id', googleAccount.parent_mcc_id)
+        .single();
+      
+      if (mccAccount) {
+        loginCustomerId = mccAccount.google_customer_id.replace(/-/g, '');
+        console.log(`🏢 Using MCC as login-customer-id: ${loginCustomerId}`);
+      }
+    }
 
     // Build date range
     const days = getPeriodDays(period);
-    const dateCondition = `segments.date DURING LAST_${days}_DAYS`;
+    const { startDate, endDate } = getDateRange(days);
+    const dateCondition = `segments.date BETWEEN '${startDate}' AND '${endDate}'`;
+
+    console.log(`📅 Date range: ${startDate} to ${endDate} (${days} days)`);
 
     let totalCampaigns = 0;
     let totalAdGroups = 0;
     let totalAds = 0;
 
     if (syncCampaigns) {
-      console.log('Syncing campaigns...');
+      console.log('📊 Syncing campaigns...');
 
+      const statusFilter = includeInactive ? '' : "AND campaign.status = 'ENABLED'";
+      
       const campaignQuery = `
         SELECT 
           campaign.id,
@@ -182,73 +302,77 @@ serve(async (req) => {
           metrics.average_cpc
         FROM campaign
         WHERE ${dateCondition}
-        ${includeInactive ? '' : 'AND campaign.status = "ENABLED"'}
+        ${statusFilter}
       `;
 
-      const campaignsResponse = await fetch(
-        `https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'developer-token': developerToken!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: campaignQuery }),
+      console.log('   Query:', campaignQuery.replace(/\s+/g, ' ').trim());
+
+      try {
+        const campaignsData = await makeGoogleAdsRequest(
+          customerId,
+          accessToken,
+          developerToken,
+          campaignQuery,
+          loginCustomerId
+        );
+        
+        console.log(`   Found ${campaignsData.results?.length || 0} campaigns`);
+
+        if (campaignsData.results && campaignsData.results.length > 0) {
+          for (const result of campaignsData.results) {
+            const campaign = result.campaign;
+            const metrics = result.metrics || {};
+
+            const spend = microsToCurrency(metrics.costMicros || 0);
+            const cpc = microsToCurrency(metrics.averageCpc || 0);
+            const conversions = parseFloat(metrics.conversions || '0');
+            const cpa = conversions > 0 ? spend / conversions : 0;
+
+            const { error: upsertError } = await supabase
+              .from('google_campaigns')
+              .upsert({
+                google_id: campaign.id.toString(),
+                google_account_id: googleAccount.id,
+                client_id: clientId,
+                company_id: companyId,
+                user_id: user.id,
+                name: campaign.name,
+                status: mapGoogleStatus(campaign.status),
+                campaign_type: campaign.advertisingChannelType,
+                spend,
+                impressions: parseInt(metrics.impressions || '0'),
+                clicks: parseInt(metrics.clicks || '0'),
+                conversions: Math.round(conversions),
+                ctr: parseFloat(metrics.ctr || '0') * 100, // Convert to percentage
+                cpc,
+                cpa,
+                period,
+                is_active: campaign.status === 'ENABLED',
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'google_id,company_id,period',
+              });
+
+            if (upsertError) {
+              console.error(`   ⚠️ Error upserting campaign ${campaign.name}:`, upsertError);
+            } else {
+              totalCampaigns++;
+            }
+          }
         }
-      );
 
-      if (!campaignsResponse.ok) {
-        const errorText = await campaignsResponse.text();
-        console.error('Failed to fetch campaigns:', errorText);
-        throw new Error(`Failed to fetch campaigns: ${errorText}`);
+        console.log(`   ✅ Synced ${totalCampaigns} campaigns`);
+      } catch (error: any) {
+        console.error('   ❌ Error syncing campaigns:', error.message);
+        throw error;
       }
-
-      const campaignsData = await campaignsResponse.json();
-      
-      if (campaignsData.results) {
-        for (const result of campaignsData.results) {
-          const campaign = result.campaign;
-          const metrics = result.metrics;
-
-          const spend = microsToCurrency(parseInt(metrics.costMicros || '0'));
-          const cpc = microsToCurrency(parseInt(metrics.averageCpc || '0'));
-          const cpa = metrics.conversions > 0 ? spend / metrics.conversions : 0;
-
-          await supabase
-            .from('google_campaigns')
-            .upsert({
-              google_id: campaign.id,
-              google_account_id: googleAccount.id,
-              client_id: clientId,
-              company_id: companyId,
-              user_id: user.id,
-              name: campaign.name,
-              status: mapGoogleStatus(campaign.status),
-              campaign_type: campaign.advertisingChannelType,
-              spend,
-              impressions: parseInt(metrics.impressions || '0'),
-              clicks: parseInt(metrics.clicks || '0'),
-              conversions: parseInt(metrics.conversions || '0'),
-              ctr: parseFloat(metrics.ctr || '0'),
-              cpc,
-              cpa,
-              period,
-              is_active: campaign.status === 'ENABLED',
-            }, {
-              onConflict: 'google_id,company_id,period',
-            });
-
-          totalCampaigns++;
-        }
-      }
-
-      console.log(`Synced ${totalCampaigns} campaigns`);
     }
 
     if (syncAdGroups) {
-      console.log('Syncing ad groups...');
+      console.log('📊 Syncing ad groups...');
 
+      const statusFilter = includeInactive ? '' : "AND ad_group.status = 'ENABLED'";
+      
       const adGroupQuery = `
         SELECT 
           ad_group.id,
@@ -263,48 +387,48 @@ serve(async (req) => {
           metrics.average_cpc
         FROM ad_group
         WHERE ${dateCondition}
-        ${includeInactive ? '' : 'AND ad_group.status = "ENABLED"'}
+        ${statusFilter}
       `;
 
-      const adGroupsResponse = await fetch(
-        `https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'developer-token': developerToken!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: adGroupQuery }),
-        }
-      );
+      try {
+        const adGroupsData = await makeGoogleAdsRequest(
+          customerId,
+          accessToken,
+          developerToken,
+          adGroupQuery,
+          loginCustomerId
+        );
 
-      if (adGroupsResponse.ok) {
-        const adGroupsData = await adGroupsResponse.json();
-        
-        if (adGroupsData.results) {
+        console.log(`   Found ${adGroupsData.results?.length || 0} ad groups`);
+
+        if (adGroupsData.results && adGroupsData.results.length > 0) {
           for (const result of adGroupsData.results) {
             const adGroup = result.adGroup;
-            const metrics = result.metrics;
+            const metrics = result.metrics || {};
+
+            // Extract campaign ID from resource name (customers/123/campaigns/456)
+            const campaignResourceName = adGroup.campaign;
+            const campaignGoogleId = campaignResourceName.split('/').pop();
 
             // Get campaign_id from our database
             const { data: campaignData } = await supabase
               .from('google_campaigns')
               .select('id')
-              .eq('google_id', adGroup.campaign.split('/').pop())
+              .eq('google_id', campaignGoogleId)
               .eq('company_id', companyId)
               .eq('period', period)
               .single();
 
             if (campaignData) {
-              const spend = microsToCurrency(parseInt(metrics.costMicros || '0'));
-              const cpc = microsToCurrency(parseInt(metrics.averageCpc || '0'));
-              const cpa = metrics.conversions > 0 ? spend / metrics.conversions : 0;
+              const spend = microsToCurrency(metrics.costMicros || 0);
+              const cpc = microsToCurrency(metrics.averageCpc || 0);
+              const conversions = parseFloat(metrics.conversions || '0');
+              const cpa = conversions > 0 ? spend / conversions : 0;
 
-              await supabase
+              const { error: upsertError } = await supabase
                 .from('google_ad_groups')
                 .upsert({
-                  google_id: adGroup.id,
+                  google_id: adGroup.id.toString(),
                   campaign_id: campaignData.id,
                   google_account_id: googleAccount.id,
                   client_id: clientId,
@@ -315,34 +439,42 @@ serve(async (req) => {
                   spend,
                   impressions: parseInt(metrics.impressions || '0'),
                   clicks: parseInt(metrics.clicks || '0'),
-                  conversions: parseInt(metrics.conversions || '0'),
-                  ctr: parseFloat(metrics.ctr || '0'),
+                  conversions: Math.round(conversions),
+                  ctr: parseFloat(metrics.ctr || '0') * 100,
                   cpc,
                   cpa,
                   is_active: adGroup.status === 'ENABLED',
+                  updated_at: new Date().toISOString(),
                 }, {
                   onConflict: 'google_id,company_id',
                 });
 
-              totalAdGroups++;
+              if (upsertError) {
+                console.error(`   ⚠️ Error upserting ad group ${adGroup.name}:`, upsertError);
+              } else {
+                totalAdGroups++;
+              }
             }
           }
         }
-      }
 
-      console.log(`Synced ${totalAdGroups} ad groups`);
+        console.log(`   ✅ Synced ${totalAdGroups} ad groups`);
+      } catch (error: any) {
+        console.error('   ❌ Error syncing ad groups:', error.message);
+        // Don't throw, continue with other sync operations
+      }
     }
 
     if (syncAds) {
-      console.log('Syncing ads...');
+      console.log('📊 Syncing ads...');
 
+      const statusFilter = includeInactive ? '' : "AND ad_group_ad.status = 'ENABLED'";
+      
       const adsQuery = `
         SELECT 
           ad_group_ad.ad.id,
           ad_group_ad.ad.name,
           ad_group_ad.ad.type,
-          ad_group_ad.ad.responsive_search_ad.headlines,
-          ad_group_ad.ad.responsive_search_ad.descriptions,
           ad_group_ad.ad.final_urls,
           ad_group_ad.status,
           ad_group_ad.ad_group,
@@ -355,57 +487,59 @@ serve(async (req) => {
           metrics.average_cpc
         FROM ad_group_ad
         WHERE ${dateCondition}
-        ${includeInactive ? '' : 'AND ad_group_ad.status = "ENABLED"'}
+        ${statusFilter}
       `;
 
-      const adsResponse = await fetch(
-        `https://googleads.googleapis.com/v15/customers/${customerId}/googleAds:search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'developer-token': developerToken!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: adsQuery }),
-        }
-      );
+      try {
+        const adsData = await makeGoogleAdsRequest(
+          customerId,
+          accessToken,
+          developerToken,
+          adsQuery,
+          loginCustomerId
+        );
 
-      if (adsResponse.ok) {
-        const adsData = await adsResponse.json();
-        
-        if (adsData.results) {
+        console.log(`   Found ${adsData.results?.length || 0} ads`);
+
+        if (adsData.results && adsData.results.length > 0) {
           for (const result of adsData.results) {
-            const ad = result.adGroupAd.ad;
+            const ad = result.adGroupAd?.ad;
             const adGroupAd = result.adGroupAd;
-            const metrics = result.metrics;
+            const metrics = result.metrics || {};
             const campaign = result.campaign;
+
+            if (!ad || !adGroupAd) continue;
+
+            // Extract ad_group ID from resource name
+            const adGroupResourceName = adGroupAd.adGroup;
+            const adGroupGoogleId = adGroupResourceName.split('/').pop();
 
             // Get ad_group_id and campaign_id from our database
             const { data: adGroupData } = await supabase
               .from('google_ad_groups')
               .select('id')
-              .eq('google_id', adGroupAd.adGroup.split('/').pop())
+              .eq('google_id', adGroupGoogleId)
               .eq('company_id', companyId)
               .single();
 
             const { data: campaignData } = await supabase
               .from('google_campaigns')
               .select('id')
-              .eq('google_id', campaign.id)
+              .eq('google_id', campaign.id.toString())
               .eq('company_id', companyId)
               .eq('period', period)
               .single();
 
             if (adGroupData && campaignData) {
-              const spend = microsToCurrency(parseInt(metrics.costMicros || '0'));
-              const cpc = microsToCurrency(parseInt(metrics.averageCpc || '0'));
-              const cpa = metrics.conversions > 0 ? spend / metrics.conversions : 0;
+              const spend = microsToCurrency(metrics.costMicros || 0);
+              const cpc = microsToCurrency(metrics.averageCpc || 0);
+              const conversions = parseFloat(metrics.conversions || '0');
+              const cpa = conversions > 0 ? spend / conversions : 0;
 
-              await supabase
+              const { error: upsertError } = await supabase
                 .from('google_ads')
                 .upsert({
-                  google_id: ad.id,
+                  google_id: ad.id.toString(),
                   ad_group_id: adGroupData.id,
                   campaign_id: campaignData.id,
                   google_account_id: googleAccount.id,
@@ -415,28 +549,34 @@ serve(async (req) => {
                   name: ad.name || `Ad ${ad.id}`,
                   status: mapGoogleStatus(adGroupAd.status),
                   ad_type: ad.type,
-                  headlines: ad.responsiveSearchAd?.headlines || null,
-                  descriptions: ad.responsiveSearchAd?.descriptions || null,
                   final_url: ad.finalUrls?.[0] || null,
                   spend,
                   impressions: parseInt(metrics.impressions || '0'),
                   clicks: parseInt(metrics.clicks || '0'),
-                  conversions: parseInt(metrics.conversions || '0'),
-                  ctr: parseFloat(metrics.ctr || '0'),
+                  conversions: Math.round(conversions),
+                  ctr: parseFloat(metrics.ctr || '0') * 100,
                   cpc,
                   cpa,
                   is_active: adGroupAd.status === 'ENABLED',
+                  updated_at: new Date().toISOString(),
                 }, {
                   onConflict: 'google_id,company_id',
                 });
 
-              totalAds++;
+              if (upsertError) {
+                console.error(`   ⚠️ Error upserting ad:`, upsertError);
+              } else {
+                totalAds++;
+              }
             }
           }
         }
-      }
 
-      console.log(`Synced ${totalAds} ads`);
+        console.log(`   ✅ Synced ${totalAds} ads`);
+      } catch (error: any) {
+        console.error('   ❌ Error syncing ads:', error.message);
+        // Don't throw, continue
+      }
     }
 
     // Update client's last sync
@@ -448,7 +588,8 @@ serve(async (req) => {
       })
       .eq('id', clientId);
 
-    console.log('Sync completed successfully');
+    console.log('🎉 Sync completed successfully!');
+    console.log(`   Campaigns: ${totalCampaigns}, Ad Groups: ${totalAdGroups}, Ads: ${totalAds}`);
 
     return new Response(
       JSON.stringify({
@@ -463,11 +604,12 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
-    console.error('Error in sync-google-ads-campaigns:', error);
+  } catch (error: any) {
+    console.error('💥 Error in sync-google-ads-campaigns:', error);
     return new Response(
       JSON.stringify({
         error: error.message,
+        stack: error.stack,
       }),
       {
         status: 400,
