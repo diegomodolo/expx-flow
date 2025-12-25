@@ -179,46 +179,59 @@ serve(async (req) => {
       console.log(`Fetching Instagram posts for account: ${instagramId}`);
 
       try {
-        // Fetch recent media from Instagram Business Account
-        const mediaResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink&limit=20&access_token=${accessToken}`
-        );
-        
-        const mediaData = await mediaResponse.json();
-        
-        if (mediaData.error) {
-          console.error("Error fetching Instagram media:", mediaData.error);
-        } else if (mediaData.data) {
-          console.log(`Found ${mediaData.data.length} Instagram posts from API`);
-          
-          for (const post of mediaData.data) {
-            console.log(`Processing post ${post.id}: media_type=${post.media_type}, has_media_url=${!!post.media_url}, has_thumbnail=${!!post.thumbnail_url}`);
-            
-            // Only include IMAGE and CAROUSEL_ALBUM (skip VIDEO and REELS)
-            // Note: Some posts may have undefined media_type
-            const mediaType = post.media_type?.toUpperCase();
-            const isImagePost = mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM';
-            
-            if (isImagePost) {
-              const imageUrl = post.media_url || post.thumbnail_url;
-              if (imageUrl) {
-                instagramPosts.push({
-                  id: post.id,
-                  imageUrl: imageUrl,
-                  caption: post.caption ? post.caption.substring(0, 100) + (post.caption.length > 100 ? '...' : '') : 'Post do Instagram',
-                  type: 'instagram'
-                });
-                console.log(`Added Instagram post ${post.id} to results`);
-              } else {
-                console.log(`Skipped post ${post.id}: no image URL available`);
-              }
-            } else {
-              console.log(`Skipped post ${post.id}: media_type is ${post.media_type} (not IMAGE or CAROUSEL_ALBUM)`);
-            }
+        // We paginate because the latest 20 posts might be all videos/reels.
+        // We'll keep fetching until we collect up to 20 IMAGE/CAROUSEL posts or we hit a hard cap.
+        const targetCount = 20;
+        const maxPages = 10;
+
+        let page = 0;
+        let nextUrl:
+          | string
+          | null = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,product_type&limit=50&access_token=${accessToken}`;
+
+        while (nextUrl && instagramPosts.length < targetCount && page < maxPages) {
+          page += 1;
+          console.log(`Instagram pagination: fetching page ${page}`);
+
+          const mediaResponse = await fetch(nextUrl);
+          const mediaData = await mediaResponse.json();
+
+          if (mediaData.error) {
+            console.error("Error fetching Instagram media:", mediaData.error);
+            break;
           }
-          
-          console.log(`Filtered to ${instagramPosts.length} Instagram image posts`);
+
+          const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
+          console.log(`Found ${items.length} Instagram posts from API (page ${page})`);
+
+          for (const post of items) {
+            // Only include IMAGE and CAROUSEL_ALBUM (skip VIDEO/REELS)
+            const mediaType = post.media_type?.toUpperCase();
+            const isImagePost = mediaType === "IMAGE" || mediaType === "CAROUSEL_ALBUM";
+
+            if (!isImagePost) continue;
+
+            const imageUrl = post.media_url || post.thumbnail_url;
+            if (!imageUrl) continue;
+
+            instagramPosts.push({
+              id: post.id,
+              imageUrl,
+              caption: post.caption
+                ? post.caption.substring(0, 100) + (post.caption.length > 100 ? "..." : "")
+                : "Post do Instagram",
+              type: "instagram",
+            });
+
+            if (instagramPosts.length >= targetCount) break;
+          }
+
+          nextUrl = mediaData?.paging?.next ?? null;
         }
+
+        console.log(
+          `Filtered to ${instagramPosts.length} Instagram image posts (after pagination)`
+        );
       } catch (e) {
         console.error("Error in Instagram fetch:", e);
       }
