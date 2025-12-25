@@ -3780,6 +3780,66 @@ export type Database = {
           },
         ]
       }
+      google_ads_sync_execution_logs: {
+        Row: {
+          clients_processed: number
+          clients_total: number
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          execution_details: Json | null
+          id: string
+          schedule_id: string | null
+          started_at: string
+          status: string
+          sync_options: Json | null
+        }
+        Insert: {
+          clients_processed?: number
+          clients_total?: number
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_details?: Json | null
+          id?: string
+          schedule_id?: string | null
+          started_at?: string
+          status?: string
+          sync_options?: Json | null
+        }
+        Update: {
+          clients_processed?: number
+          clients_total?: number
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_details?: Json | null
+          id?: string
+          schedule_id?: string | null
+          started_at?: string
+          status?: string
+          sync_options?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_sync_execution_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_sync_execution_logs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "google_ads_sync_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_ads_sync_schedules: {
         Row: {
           company_id: string
@@ -3790,6 +3850,7 @@ export type Database = {
           last_execution_at: string | null
           next_execution_at: string | null
           scheduled_times: string[]
+          sync_options: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -3801,6 +3862,7 @@ export type Database = {
           last_execution_at?: string | null
           next_execution_at?: string | null
           scheduled_times?: string[]
+          sync_options?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -3812,6 +3874,7 @@ export type Database = {
           last_execution_at?: string | null
           next_execution_at?: string | null
           scheduled_times?: string[]
+          sync_options?: Json | null
           updated_at?: string | null
         }
         Relationships: [

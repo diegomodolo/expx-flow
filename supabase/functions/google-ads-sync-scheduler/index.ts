@@ -6,12 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface SyncOptions {
+  period: string;
+  campaigns: boolean;
+  adGroups: boolean;
+  ads: boolean;
+  includeInactive: boolean;
+}
+
 interface SyncSchedule {
   id: string;
   company_id: string;
   is_enabled: boolean;
   executions_per_day: number;
   scheduled_times: string[];
+  sync_options: SyncOptions;
   last_execution_at: string | null;
   next_execution_at: string | null;
 }
@@ -72,7 +81,7 @@ serve(async (req) => {
 
     console.log('Google Ads Sync Scheduler: Starting execution');
 
-    // Get all enabled schedules
+    // Get all enabled schedules with sync_options
     const { data: schedules, error: schedulesError } = await supabase
       .from('google_ads_sync_schedules')
       .select('*')
@@ -106,13 +115,31 @@ serve(async (req) => {
         continue;
       }
 
-      // Get all clients with Google Ads for this company
-      const { data: clients, error: clientsError } = await supabase
+      // Get sync options from schedule (with defaults)
+      const syncOptions: SyncOptions = schedule.sync_options || {
+        period: 'last_30_days',
+        campaigns: true,
+        adGroups: false,
+        ads: false,
+        includeInactive: false,
+      };
+
+      console.log(`Sync options for company ${schedule.company_id}:`, syncOptions);
+
+      // Build client query based on includeInactive option
+      let clientQuery = supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, status, inactive_reason')
         .eq('company_id', schedule.company_id)
-        .not('google_account_id', 'is', null)
-        .neq('status', 'inativo' as any);
+        .not('google_account_id', 'is', null);
+
+      // If not including inactive clients, filter them out
+      if (!syncOptions.includeInactive) {
+        // Exclude clients with status='red' and inactive_reason set
+        clientQuery = clientQuery.or('status.neq.red,inactive_reason.is.null');
+      }
+
+      const { data: clients, error: clientsError } = await clientQuery;
 
       if (clientsError) {
         console.error(`Error fetching clients for company ${schedule.company_id}:`, clientsError);
@@ -126,6 +153,28 @@ serve(async (req) => {
 
       console.log(`Found ${clients.length} clients to sync`);
 
+      // Create execution log
+      const { data: executionLog, error: logError } = await supabase
+        .from('google_ads_sync_execution_logs')
+        .insert({
+          company_id: schedule.company_id,
+          schedule_id: schedule.id,
+          status: 'running',
+          clients_processed: 0,
+          clients_total: clients.length,
+          sync_options: syncOptions,
+        })
+        .select()
+        .single();
+
+      if (logError) {
+        console.error('Error creating execution log:', logError);
+      }
+
+      let clientsProcessed = 0;
+      let failedClients = 0;
+      const clientResults = [];
+
       // Sync each client
       for (const client of clients) {
         try {
@@ -135,18 +184,19 @@ serve(async (req) => {
             body: {
               clientId: client.id,
               companyId: schedule.company_id,
-              period: 'last_30_days',
-              syncCampaigns: true,
-              syncAdGroups: false,
-              syncAds: false,
-              includeInactive: false,
+              period: syncOptions.period,
+              syncCampaigns: syncOptions.campaigns,
+              syncAdGroups: syncOptions.adGroups,
+              syncAds: syncOptions.ads,
+              includeInactive: syncOptions.includeInactive,
               silent: true,
             },
           });
 
           if (syncError) {
             console.error(`Error syncing client ${client.name}:`, syncError);
-            results.push({
+            failedClients++;
+            clientResults.push({
               client_id: client.id,
               client_name: client.name,
               status: 'error',
@@ -154,21 +204,53 @@ serve(async (req) => {
             });
           } else {
             console.log(`Successfully synced client ${client.name}`);
-            results.push({
+            clientsProcessed++;
+            clientResults.push({
               client_id: client.id,
               client_name: client.name,
               status: 'success',
             });
           }
+
+          // Update execution log progress
+          if (executionLog) {
+            await supabase
+              .from('google_ads_sync_execution_logs')
+              .update({ clients_processed: clientsProcessed })
+              .eq('id', executionLog.id);
+          }
         } catch (error) {
           console.error(`Exception syncing client ${client.name}:`, error);
-          results.push({
+          failedClients++;
+          clientResults.push({
             client_id: client.id,
             client_name: client.name,
             status: 'error',
             error: error.message,
           });
         }
+      }
+
+      // Determine final status
+      let finalStatus = 'completed';
+      if (failedClients === clients.length) {
+        finalStatus = 'failed';
+      } else if (failedClients > 0) {
+        finalStatus = 'partial';
+      }
+
+      // Update execution log with final status
+      if (executionLog) {
+        await supabase
+          .from('google_ads_sync_execution_logs')
+          .update({
+            status: finalStatus,
+            clients_processed: clientsProcessed,
+            completed_at: new Date().toISOString(),
+            execution_details: { clients: clientResults },
+            error_message: failedClients > 0 ? `${failedClients} client(s) failed to sync` : null,
+          })
+          .eq('id', executionLog.id);
       }
 
       // Update schedule
@@ -182,6 +264,13 @@ serve(async (req) => {
         .eq('id', schedule.id);
 
       executionCount++;
+      results.push({
+        company_id: schedule.company_id,
+        clients_synced: clientsProcessed,
+        clients_failed: failedClients,
+        status: finalStatus,
+      });
+
       console.log(`Updated schedule - next execution at ${nextExecution.toISOString()}`);
     }
 
