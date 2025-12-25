@@ -7739,6 +7739,223 @@ export type Database = {
           },
         ]
       }
+      wordpress_auto_post_configs: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_enabled: boolean | null
+          last_post_at: string | null
+          name: string | null
+          next_post_at: string | null
+          post_briefing: string
+          post_category: string | null
+          post_status: string | null
+          post_type: string | null
+          reference_image_1: string | null
+          reference_image_2: string | null
+          reference_image_3: string | null
+          scheduled_days: number[]
+          scheduled_hours: number[]
+          updated_at: string | null
+          wordpress_site_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_enabled?: boolean | null
+          last_post_at?: string | null
+          name?: string | null
+          next_post_at?: string | null
+          post_briefing: string
+          post_category?: string | null
+          post_status?: string | null
+          post_type?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          scheduled_days?: number[]
+          scheduled_hours?: number[]
+          updated_at?: string | null
+          wordpress_site_id: string
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_enabled?: boolean | null
+          last_post_at?: string | null
+          name?: string | null
+          next_post_at?: string | null
+          post_briefing?: string
+          post_category?: string | null
+          post_status?: string | null
+          post_type?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          scheduled_days?: number[]
+          scheduled_hours?: number[]
+          updated_at?: string | null
+          wordpress_site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordpress_auto_post_configs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_auto_post_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_auto_post_configs_wordpress_site_id_fkey"
+            columns: ["wordpress_site_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wordpress_auto_posts: {
+        Row: {
+          client_id: string | null
+          company_id: string
+          config_id: string
+          content: string
+          created_at: string | null
+          error_message: string | null
+          excerpt: string | null
+          featured_image_url: string | null
+          id: string
+          meta_description: string | null
+          published_at: string | null
+          scheduled_at: string
+          status: string | null
+          title: string
+          wordpress_post_id: string | null
+          wordpress_post_url: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          company_id: string
+          config_id: string
+          content: string
+          created_at?: string | null
+          error_message?: string | null
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string
+          meta_description?: string | null
+          published_at?: string | null
+          scheduled_at: string
+          status?: string | null
+          title: string
+          wordpress_post_id?: string | null
+          wordpress_post_url?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          company_id?: string
+          config_id?: string
+          content?: string
+          created_at?: string | null
+          error_message?: string | null
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string
+          meta_description?: string | null
+          published_at?: string | null
+          scheduled_at?: string
+          status?: string | null
+          title?: string
+          wordpress_post_id?: string | null
+          wordpress_post_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordpress_auto_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_auto_posts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_auto_posts_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wordpress_sites: {
+        Row: {
+          app_password: string
+          company_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          name: string
+          site_url: string
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          app_password: string
+          company_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          site_url: string
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          app_password?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          site_url?: string
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordpress_sites_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       task_stats: {
