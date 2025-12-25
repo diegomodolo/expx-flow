@@ -26,6 +26,12 @@ import { ClientSocialAccounts } from "@/components/clients/ClientSocialAccounts"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { ClientDetailsData } from "@/hooks/useClientDetails";
 
+interface PlatformMetrics {
+  spend: number;
+  conversions: number;
+  campaigns: number;
+}
+
 interface ClienteDashboardProps {
   client: ClientDetailsData;
   syncButton: React.ReactNode;
@@ -40,6 +46,8 @@ interface ClienteDashboardProps {
   funnelCompletenessScore: number;
   cplByCampaignData: any[];
   investmentDistributionData: any[];
+  metaMetrics?: PlatformMetrics;
+  googleMetrics?: PlatformMetrics;
 }
 
 export function ClienteDashboard({
@@ -56,6 +64,8 @@ export function ClienteDashboard({
   funnelCompletenessScore,
   cplByCampaignData,
   investmentDistributionData,
+  metaMetrics,
+  googleMetrics,
 }: ClienteDashboardProps) {
   const statusConfig: Record<string, { label: string; color: string }> = {
     em_dia: { label: "Em Dia", color: "bg-green-100 text-green-800" },
@@ -151,28 +161,78 @@ export function ClienteDashboard({
         />
       )}
 
-      {/* Account Balance Card */}
-      {client.facebook_ad_accounts && (
-        <AccountBalanceCard
-          balance={client.facebook_ad_accounts.balance}
-          currency={client.facebook_ad_accounts.currency}
-          accountStatus={client.facebook_ad_accounts.account_status}
-          disableReason={client.facebook_ad_accounts.disable_reason}
-          hasFundingIssues={client.facebook_ad_accounts.has_funding_issues}
-          accountName={client.facebook_ad_accounts.account_name}
-          lastBalanceCheck={client.facebook_ad_accounts.last_balance_check}
-          accountId={client.facebook_ad_accounts.id}
-          clientId={client.id}
-          paymentType={client.payment_type}
-        />
-      )}
+      {/* Account Balance & Social Accounts - Compact Row */}
+      {(client.facebook_ad_accounts || client.facebook_page || client.instagram_account) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* Account Balance - Compact */}
+          {client.facebook_ad_accounts && (
+            <Card className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    client.payment_type === 'postpaid' ? 'bg-blue-100' :
+                    client.facebook_ad_accounts.balance <= 0 ? 'bg-red-100' :
+                    client.facebook_ad_accounts.balance < 100 ? 'bg-yellow-100' : 'bg-green-100'
+                  }`}>
+                    <DollarSign className={`w-4 h-4 ${
+                      client.payment_type === 'postpaid' ? 'text-blue-600' :
+                      client.facebook_ad_accounts.balance <= 0 ? 'text-red-600' :
+                      client.facebook_ad_accounts.balance < 100 ? 'text-yellow-600' : 'text-green-600'
+                    }`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Saldo Meta</p>
+                    <p className="font-semibold">
+                      {client.payment_type === 'postpaid' 
+                        ? 'Pós-pago' 
+                        : `R$ ${client.facebook_ad_accounts.balance.toFixed(2)}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
-      {/* Social Accounts Card */}
-      {(client.facebook_page || client.instagram_account) && (
-        <ClientSocialAccounts
-          facebookPage={client.facebook_page}
-          instagramAccount={client.instagram_account}
-        />
+          {/* Instagram - Compact */}
+          {client.instagram_account && (
+            <Card className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px] flex-shrink-0">
+                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                    {client.instagram_account.profile_picture_url ? (
+                      <img 
+                        src={client.instagram_account.profile_picture_url} 
+                        alt="" 
+                        className="w-6 h-6 rounded-full"
+                      />
+                    ) : (
+                      <Users className="w-3 h-3 text-pink-500" />
+                    )}
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Instagram</p>
+                  <p className="font-semibold truncate text-sm">@{client.instagram_account.username}</p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Facebook - Compact */}
+          {client.facebook_page && (
+            <Card className="p-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                  <Building className="w-4 h-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Facebook</p>
+                  <p className="font-semibold truncate text-sm">{client.facebook_page.page_name}</p>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Performance Metrics - First Row */}
@@ -253,24 +313,20 @@ export function ClienteDashboard({
         </Card>
       </div>
 
-      {/* Financial Metrics - Second Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      {/* Financial Metrics - Second Row - Total + Platform Breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* CPL Médio Card */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">CPL Médio</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xs font-medium text-muted-foreground">CPL Médio</p>
+                <p className="text-xl font-bold text-green-600">
                   R$ {client.avg_cpl.toFixed(2)}
                 </p>
-                <div className="flex items-center space-x-1 mt-1">
-                  <TrendingDown className="w-3 h-3 text-green-500" />
-                  <span className="text-xs text-green-500">vs mês anterior</span>
-                </div>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -278,41 +334,71 @@ export function ClienteDashboard({
 
         {/* Valor Total Investido Card */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Valor Total Investido</p>
-                <p className="text-2xl font-bold text-card-foreground">
+                <p className="text-xs font-medium text-muted-foreground">Total Investido</p>
+                <p className="text-xl font-bold text-card-foreground">
                   R$ {totalInvested.toFixed(2)}
                 </p>
-                <div className="flex items-center space-x-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-blue-500" />
-                  <span className="text-xs text-blue-500">{syncPeriodDays} dias</span>
-                </div>
+                <p className="text-xs text-muted-foreground">{syncPeriodDays} dias</p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-purple-600" />
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-purple-600" />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Meta Ads Card */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Meta Ads
+              </p>
+              <p className="text-xl font-bold text-blue-600">
+                R$ {(metaMetrics?.spend || 0).toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {metaMetrics?.conversions || 0} conversões
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Google Ads Card */}
+        <Card className="border-l-4 border-l-red-500">
+          <CardContent className="p-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                Google Ads
+              </p>
+              <p className="text-xl font-bold text-red-600">
+                R$ {(googleMetrics?.spend || 0).toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {googleMetrics?.conversions || 0} conversões
+              </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Total de Vendas Realizadas Card */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total em Vendas Realizadas</p>
-                <p className="text-2xl font-bold text-card-foreground">
+                <p className="text-xs font-medium text-muted-foreground">Vendas</p>
+                <p className="text-xl font-bold text-card-foreground">
                   R$ {totalSales.toFixed(2)}
                 </p>
-                <div className="flex items-center space-x-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-500" />
-                  <span className="text-xs text-green-500">{conversionsInPeriod.length} conversões</span>
-                </div>
+                <p className="text-xs text-muted-foreground">{conversionsInPeriod.length} conv.</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -320,33 +406,20 @@ export function ClienteDashboard({
 
         {/* ROI Card */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">ROI</p>
-                <p className={`text-2xl font-bold ${
+                <p className="text-xs font-medium text-muted-foreground">ROI</p>
+                <p className={`text-xl font-bold ${
                   roi >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {roi >= 0 ? '+' : ''}{roi.toFixed(1)}%
                 </p>
-                <div className="flex items-center space-x-1 mt-1">
-                  {roi >= 0 ? (
-                    <>
-                      <TrendingUp className="w-3 h-3 text-green-500" />
-                      <span className="text-xs text-green-500">positivo</span>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="w-3 h-3 text-red-500" />
-                      <span className="text-xs text-red-500">negativo</span>
-                    </>
-                  )}
-                </div>
               </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                 roi >= 0 ? 'bg-green-100' : 'bg-red-100'
               }`}>
-                <TrendingUp className={`w-6 h-6 ${
+                <TrendingUp className={`w-5 h-5 ${
                   roi >= 0 ? 'text-green-600' : 'text-red-600'
                 }`} />
               </div>
