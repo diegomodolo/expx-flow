@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Sparkles,
   Building2,
+  Bell,
   LucideIcon,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -30,6 +31,7 @@ import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermiss
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useSystemAlerts } from "@/hooks/useSystemAlerts";
 
 interface MenuItem {
   title: string;
@@ -83,6 +85,7 @@ const menuCategories: MenuCategory[] = [
       title: "Equipe & Sistema",
       icon: Building2,
       items: [
+        { title: "Alertas", url: "/alertas", icon: Bell, permission: "dashboard" as MenuItemType },
         { title: "Colaboradores", url: "/colaboradores", icon: UserCheck, permission: "colaboradores" as MenuItemType },
         { title: "Configurações", url: "/configuracoes", icon: Settings, permission: "configuracoes" as MenuItemType },
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
@@ -115,6 +118,7 @@ export function DashboardSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { hasPermission, permissionsLoading, isOwner } = useEmployeePermissions();
+  const { unresolvedCriticalCount } = useSystemAlerts();
   
   // Track which categories are expanded
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
@@ -127,7 +131,7 @@ export function DashboardSidebar() {
 
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
 
-  // Filter categories and items based on permissions
+  // Filter categories and items based on permissions and add dynamic badges
   const visibleCategories = useMemo(() => {
     return menuCategories.map(category => {
       const filteredItems = category.items.filter(item => {
@@ -136,11 +140,17 @@ export function DashboardSidebar() {
           return item.permission === 'dashboard' || item.permission === 'tarefas';
         }
         return hasPermission(item.permission);
+      }).map(item => {
+        // Add dynamic badge for Alertas
+        if (item.url === '/alertas' && unresolvedCriticalCount > 0) {
+          return { ...item, badge: unresolvedCriticalCount };
+        }
+        return item;
       });
       
       return { ...category, items: filteredItems };
     }).filter(category => category.items.length > 0);
-  }, [permissionsLoading, isOwner, hasPermission]);
+  }, [permissionsLoading, isOwner, hasPermission, unresolvedCriticalCount]);
 
   // Auto-expand category containing active route
   React.useEffect(() => {
