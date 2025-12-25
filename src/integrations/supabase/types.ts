@@ -1549,12 +1549,21 @@ export type Database = {
           email: string
           facebook_page_id: string | null
           google_account_id: string | null
+          google_monthly_budget: number | null
+          google_payment_type: string | null
+          google_recharge_day: number | null
           id: string
           inactive_reason: string | null
           instagram_account_id: string | null
           last_sync_at: string | null
           last_sync_period: string | null
           leads_generated: number | null
+          linkedin_monthly_budget: number | null
+          linkedin_payment_type: string | null
+          linkedin_recharge_day: number | null
+          meta_monthly_budget: number | null
+          meta_payment_type: string | null
+          meta_recharge_day: number | null
           monthly_budget: number | null
           name: string
           notes: string | null
@@ -1573,6 +1582,12 @@ export type Database = {
           status_explanation: string | null
           target_audience: string | null
           team_id: string | null
+          tiktok_monthly_budget: number | null
+          tiktok_payment_type: string | null
+          tiktok_recharge_day: number | null
+          twitter_monthly_budget: number | null
+          twitter_payment_type: string | null
+          twitter_recharge_day: number | null
           updated_at: string
           user_id: string
           voice_tone: string | null
@@ -1597,12 +1612,21 @@ export type Database = {
           email: string
           facebook_page_id?: string | null
           google_account_id?: string | null
+          google_monthly_budget?: number | null
+          google_payment_type?: string | null
+          google_recharge_day?: number | null
           id?: string
           inactive_reason?: string | null
           instagram_account_id?: string | null
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
+          linkedin_monthly_budget?: number | null
+          linkedin_payment_type?: string | null
+          linkedin_recharge_day?: number | null
+          meta_monthly_budget?: number | null
+          meta_payment_type?: string | null
+          meta_recharge_day?: number | null
           monthly_budget?: number | null
           name: string
           notes?: string | null
@@ -1621,6 +1645,12 @@ export type Database = {
           status_explanation?: string | null
           target_audience?: string | null
           team_id?: string | null
+          tiktok_monthly_budget?: number | null
+          tiktok_payment_type?: string | null
+          tiktok_recharge_day?: number | null
+          twitter_monthly_budget?: number | null
+          twitter_payment_type?: string | null
+          twitter_recharge_day?: number | null
           updated_at?: string
           user_id: string
           voice_tone?: string | null
@@ -1645,12 +1675,21 @@ export type Database = {
           email?: string
           facebook_page_id?: string | null
           google_account_id?: string | null
+          google_monthly_budget?: number | null
+          google_payment_type?: string | null
+          google_recharge_day?: number | null
           id?: string
           inactive_reason?: string | null
           instagram_account_id?: string | null
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
+          linkedin_monthly_budget?: number | null
+          linkedin_payment_type?: string | null
+          linkedin_recharge_day?: number | null
+          meta_monthly_budget?: number | null
+          meta_payment_type?: string | null
+          meta_recharge_day?: number | null
           monthly_budget?: number | null
           name?: string
           notes?: string | null
@@ -1669,6 +1708,12 @@ export type Database = {
           status_explanation?: string | null
           target_audience?: string | null
           team_id?: string | null
+          tiktok_monthly_budget?: number | null
+          tiktok_payment_type?: string | null
+          tiktok_recharge_day?: number | null
+          twitter_monthly_budget?: number | null
+          twitter_payment_type?: string | null
+          twitter_recharge_day?: number | null
           updated_at?: string
           user_id?: string
           voice_tone?: string | null
