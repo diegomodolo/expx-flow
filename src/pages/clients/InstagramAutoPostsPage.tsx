@@ -13,6 +13,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { InstagramPostPreviewModal } from '@/components/instagram/InstagramPostPreviewModal';
 import { 
   Instagram, 
   Calendar, 
@@ -27,7 +28,8 @@ import {
   Trash2,
   Settings,
   History,
-  Send
+  Send,
+  Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -63,6 +65,7 @@ export default function InstagramAutoPostsPage() {
   const [selectedHours, setSelectedHours] = useState<number[]>([12, 18]);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [captionText, setCaptionText] = useState('');
+  const [previewPost, setPreviewPost] = useState<{ imageUrl: string; caption: string } | null>(null);
 
   // Fetch Instagram accounts
   const { data: instagramAccounts } = useQuery({
@@ -404,6 +407,14 @@ export default function InstagramAutoPostsPage() {
                       <div className="flex gap-2 flex-wrap">
                         <Button
                           size="sm"
+                          variant="secondary"
+                          onClick={() => setPreviewPost({ imageUrl: post.image_url, caption: post.caption })}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
                           onClick={() => publishNow(post.id)}
                           disabled={isPublishing}
                         >
@@ -527,6 +538,16 @@ export default function InstagramAutoPostsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Instagram Preview Modal */}
+      <InstagramPostPreviewModal
+        open={!!previewPost}
+        onOpenChange={(open) => !open && setPreviewPost(null)}
+        imageUrl={previewPost?.imageUrl || ''}
+        caption={previewPost?.caption || ''}
+        username={instagramAccounts?.[0]?.username || 'usuario'}
+        profilePicture={instagramAccounts?.[0]?.profile_picture_url}
+      />
     </div>
   );
 }
