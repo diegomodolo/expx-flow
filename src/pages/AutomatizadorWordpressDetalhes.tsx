@@ -5,15 +5,15 @@ import { useCompany } from '@/contexts/CompanyContext';
 
 export default function AutomatizadorWordpressDetalhes() {
   const { configId } = useParams<{ configId: string }>();
-  const { currentCompany } = useCompany();
+  const { activeCompany } = useCompany();
 
-  if (!configId || !currentCompany?.id) {
+  if (!configId || !activeCompany?.company_id) {
     return null;
   }
 
   return (
     <DashboardLayout>
-      <WordpressAutoPostsManager configId={configId} companyId={currentCompany.id} />
+      <WordpressAutoPostsManager configId={configId} companyId={activeCompany.company_id} />
     </DashboardLayout>
   );
 }

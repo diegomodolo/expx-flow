@@ -31,7 +31,7 @@ const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export default function AutomatizadoresWordpress() {
   const navigate = useNavigate();
-  const { currentCompany } = useCompany();
+  const { activeCompany } = useCompany();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -49,11 +49,11 @@ export default function AutomatizadoresWordpress() {
     scheduled_hours: [10] as number[],
   });
 
-  const { sites, isLoading: sitesLoading } = useWordpressSites(currentCompany?.id || '');
+  const { sites, isLoading: sitesLoading } = useWordpressSites(activeCompany?.company_id || '');
 
   // Fetch all wordpress configs
   const { data: configs, isLoading: configsLoading } = useQuery({
-    queryKey: ['wordpress-auto-post-configs', currentCompany?.id],
+    queryKey: ['wordpress-auto-post-configs', activeCompany?.company_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('wordpress_auto_post_configs')
@@ -65,13 +65,13 @@ export default function AutomatizadoresWordpress() {
             site_url
           )
         `)
-        .eq('company_id', currentCompany!.id)
+        .eq('company_id', activeCompany!.company_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!currentCompany?.id,
+    enabled: !!activeCompany?.company_id,
   });
 
   const createConfigMutation = useMutation({
@@ -81,7 +81,7 @@ export default function AutomatizadoresWordpress() {
         .from('wordpress_auto_post_configs')
         .insert({
           ...newConfig,
-          company_id: currentCompany!.id,
+          company_id: activeCompany!.company_id,
           created_by: user!.id,
         })
         .select()
@@ -94,7 +94,7 @@ export default function AutomatizadoresWordpress() {
         await supabase.functions.invoke('generate-wordpress-auto-post', {
           body: {
             configId: config.id,
-            companyId: currentCompany!.id,
+            companyId: activeCompany!.company_id,
           },
         });
       } catch (e) {
@@ -254,7 +254,7 @@ export default function AutomatizadoresWordpress() {
       <AddWordpressSiteDialog
         open={showAddSiteDialog}
         onOpenChange={setShowAddSiteDialog}
-        companyId={currentCompany?.id || ''}
+        companyId={activeCompany?.company_id || ''}
       />
 
       {/* Create Automation Dialog */}

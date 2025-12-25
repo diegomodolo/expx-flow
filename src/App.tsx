@@ -71,6 +71,8 @@ import Rotinas from "./pages/Rotinas";
 import AutomatizadoresHub from "./pages/AutomatizadoresHub";
 import AutomatizadoresInstagram from "./pages/AutomatizadoresInstagram";
 import AutomatizadorInstagramDetalhes from "./pages/AutomatizadorInstagramDetalhes";
+import AutomatizadoresWordpress from "./pages/AutomatizadoresWordpress";
+import AutomatizadorWordpressDetalhes from "./pages/AutomatizadorWordpressDetalhes";
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -370,6 +372,16 @@ const App = () => {
                   <Route path="/automatizadores/instagram/:configId" element={
                     <ProtectedRoute>
                       <AutomatizadorInstagramDetalhes />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/automatizadores/wordpress" element={
+                    <ProtectedRoute>
+                      <AutomatizadoresWordpress />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/automatizadores/wordpress/:configId" element={
+                    <ProtectedRoute>
+                      <AutomatizadorWordpressDetalhes />
                     </ProtectedRoute>
                   } />
                   <Route path="/notificacoes/whatsapp" element={

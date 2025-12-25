@@ -199,3 +199,15 @@ verify_jwt = true
 
 [functions.instagram-auto-post-scheduler]
 verify_jwt = false
+
+[functions.test-wordpress-connection]
+verify_jwt = true
+
+[functions.generate-wordpress-auto-post]
+verify_jwt = true
+
+[functions.publish-wordpress-auto-post]
+verify_jwt = true
+
+[functions.wordpress-auto-post-scheduler]
+verify_jwt = false
