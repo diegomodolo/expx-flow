@@ -189,11 +189,17 @@ serve(async (req) => {
         if (mediaData.error) {
           console.error("Error fetching Instagram media:", mediaData.error);
         } else if (mediaData.data) {
-          console.log(`Found ${mediaData.data.length} Instagram posts`);
+          console.log(`Found ${mediaData.data.length} Instagram posts from API`);
           
           for (const post of mediaData.data) {
+            console.log(`Processing post ${post.id}: media_type=${post.media_type}, has_media_url=${!!post.media_url}, has_thumbnail=${!!post.thumbnail_url}`);
+            
             // Only include IMAGE and CAROUSEL_ALBUM (skip VIDEO and REELS)
-            if (post.media_type === 'IMAGE' || post.media_type === 'CAROUSEL_ALBUM') {
+            // Note: Some posts may have undefined media_type
+            const mediaType = post.media_type?.toUpperCase();
+            const isImagePost = mediaType === 'IMAGE' || mediaType === 'CAROUSEL_ALBUM';
+            
+            if (isImagePost) {
               const imageUrl = post.media_url || post.thumbnail_url;
               if (imageUrl) {
                 instagramPosts.push({
@@ -202,9 +208,16 @@ serve(async (req) => {
                   caption: post.caption ? post.caption.substring(0, 100) + (post.caption.length > 100 ? '...' : '') : 'Post do Instagram',
                   type: 'instagram'
                 });
+                console.log(`Added Instagram post ${post.id} to results`);
+              } else {
+                console.log(`Skipped post ${post.id}: no image URL available`);
               }
+            } else {
+              console.log(`Skipped post ${post.id}: media_type is ${post.media_type} (not IMAGE or CAROUSEL_ALBUM)`);
             }
           }
+          
+          console.log(`Filtered to ${instagramPosts.length} Instagram image posts`);
         }
       } catch (e) {
         console.error("Error in Instagram fetch:", e);
