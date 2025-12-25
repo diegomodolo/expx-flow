@@ -258,17 +258,24 @@ serve(async (req) => {
     const customerId = googleAccount.google_customer_id.replace(/-/g, '');
     
     // Get MCC login customer ID if available
+    // First check parent_customer_id, then look for a manager account in the same integration
     let loginCustomerId: string | undefined;
-    if (googleAccount.parent_mcc_id) {
+    
+    if (googleAccount.parent_customer_id) {
+      loginCustomerId = googleAccount.parent_customer_id.replace(/-/g, '');
+      console.log(`🏢 Using parent_customer_id as login-customer-id: ${loginCustomerId}`);
+    } else {
+      // Look for a manager account in the same integration
       const { data: mccAccount } = await supabase
         .from('google_ads_accounts')
         .select('google_customer_id')
-        .eq('id', googleAccount.parent_mcc_id)
+        .eq('integration_id', googleAccount.integration_id)
+        .eq('is_manager', true)
         .single();
       
-      if (mccAccount) {
+      if (mccAccount && mccAccount.google_customer_id !== googleAccount.google_customer_id) {
         loginCustomerId = mccAccount.google_customer_id.replace(/-/g, '');
-        console.log(`🏢 Using MCC as login-customer-id: ${loginCustomerId}`);
+        console.log(`🏢 Using MCC from integration as login-customer-id: ${loginCustomerId}`);
       }
     }
 
