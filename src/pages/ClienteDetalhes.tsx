@@ -231,6 +231,7 @@ const ClienteDetalhes = () => {
                     conversions: unifiedMetrics.google.conversions,
                     campaigns: unifiedMetrics.google.campaigns,
                   }}
+                  unifiedCampaigns={unifiedCampaigns || []}
                 />
               } 
             />
