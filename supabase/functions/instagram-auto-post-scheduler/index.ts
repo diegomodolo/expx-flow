@@ -60,14 +60,22 @@ Deno.serve(async (req) => {
         });
 
         if (publishResponse.error) {
-          console.error('Error publishing post', post.id, ':', publishResponse.error);
+          console.error('Error publishing post', post.id, ':', {
+            error: publishResponse.error,
+            message: publishResponse.error?.message,
+            context: publishResponse.error?.context
+          });
           results.push({ id: post.id, success: false, error: publishResponse.error.message });
+        } else if (publishResponse.data && !publishResponse.data.success) {
+          // Function returned 200 but with success: false
+          console.error('Publish function returned failure for post', post.id, ':', publishResponse.data);
+          results.push({ id: post.id, success: false, error: publishResponse.data.error || 'Unknown error' });
         } else {
-          console.log('Post published successfully:', post.id);
+          console.log('Post published successfully:', post.id, 'Response:', publishResponse.data);
           results.push({ id: post.id, success: true });
         }
       } catch (e: any) {
-        console.error('Exception publishing post', post.id, ':', e);
+        console.error('Exception publishing post', post.id, ':', e.message, e.stack);
         results.push({ id: post.id, success: false, error: e.message });
       }
 
