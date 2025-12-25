@@ -367,120 +367,120 @@ export default function InstagramAutoPostsPage() {
           <CollapsibleContent>
             <CardContent className="space-y-4">
               {isEditingConfig ? (
-            <>
-              {/* Edit Briefing */}
-              <div className="space-y-2">
-                <Label>Briefing das Postagens</Label>
-                <Textarea
-                  value={editBriefing}
-                  onChange={(e) => setEditBriefing(e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              {/* Edit Days */}
-              <div className="space-y-2">
-                <Label>Dias da Semana</Label>
-                <div className="flex flex-wrap gap-2">
-                  {DAYS_OF_WEEK.map(day => (
-                    <button
-                      key={day.value}
-                      onClick={() => setEditDays(prev => 
-                        prev.includes(day.value) 
-                          ? prev.filter(d => d !== day.value)
-                          : [...prev, day.value].sort((a, b) => a - b)
-                      )}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        editDays.includes(day.value)
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
-                    >
-                      {day.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Edit Hours */}
-              <div className="space-y-2">
-                <Label>Horários de Publicação</Label>
-                <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
-                  {HOURS.map(hour => (
-                    <button
-                      key={hour.value}
-                      onClick={() => setEditHours(prev => 
-                        prev.includes(hour.value) 
-                          ? prev.filter(h => h !== hour.value)
-                          : [...prev, hour.value].sort((a, b) => a - b)
-                      )}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                        editHours.includes(hour.value)
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted hover:bg-muted/80'
-                      }`}
-                    >
-                      {hour.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Save/Cancel buttons */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  onClick={() => {
-                    updateConfig({
-                      post_briefing: editBriefing,
-                      scheduled_days: editDays,
-                      scheduled_hours: editHours
-                    });
-                    setIsEditingConfig(false);
-                  }}
-                  disabled={isUpdating || editDays.length === 0 || editHours.length === 0 || !editBriefing.trim()}
-                >
-                  {isUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Salvar Alterações
-                </Button>
-                <Button variant="outline" onClick={() => setIsEditingConfig(false)}>
-                  Cancelar
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <Label className="text-muted-foreground text-xs">Briefing</Label>
-                <p className="text-sm">{config.post_briefing}</p>
-              </div>
-              <div className="flex gap-6">
-                <div>
-                  <Label className="text-muted-foreground text-xs">Dias</Label>
-                  <div className="flex gap-1 mt-1">
-                    {DAYS_OF_WEEK.map(day => (
-                      <Badge
-                        key={day.value}
-                        variant={config.scheduled_days.includes(day.value) ? 'default' : 'outline'}
-                        className="text-xs"
-                      >
-                        {day.label}
-                      </Badge>
-                    ))}
+                <>
+                  {/* Edit Briefing */}
+                  <div className="space-y-2">
+                    <Label>Briefing das Postagens</Label>
+                    <Textarea
+                      value={editBriefing}
+                      onChange={(e) => setEditBriefing(e.target.value)}
+                      className="min-h-[100px]"
+                    />
                   </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">Horários</Label>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {config.scheduled_hours.sort((a, b) => a - b).map(hour => (
-                      <Badge key={hour} variant="secondary" className="text-xs">
-                        {String(hour).padStart(2, '0')}:00
-                      </Badge>
-                    ))}
+
+                  {/* Edit Days */}
+                  <div className="space-y-2">
+                    <Label>Dias da Semana</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DAYS_OF_WEEK.map(day => (
+                        <button
+                          key={day.value}
+                          onClick={() => setEditDays(prev => 
+                            prev.includes(day.value) 
+                              ? prev.filter(d => d !== day.value)
+                              : [...prev, day.value].sort((a, b) => a - b)
+                          )}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            editDays.includes(day.value)
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted hover:bg-muted/80'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </div>
-            </>
-          )}
+
+                  {/* Edit Hours */}
+                  <div className="space-y-2">
+                    <Label>Horários de Publicação</Label>
+                    <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
+                      {HOURS.map(hour => (
+                        <button
+                          key={hour.value}
+                          onClick={() => setEditHours(prev => 
+                            prev.includes(hour.value) 
+                              ? prev.filter(h => h !== hour.value)
+                              : [...prev, hour.value].sort((a, b) => a - b)
+                          )}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            editHours.includes(hour.value)
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted hover:bg-muted/80'
+                          }`}
+                        >
+                          {hour.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Save/Cancel buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={() => {
+                        updateConfig({
+                          post_briefing: editBriefing,
+                          scheduled_days: editDays,
+                          scheduled_hours: editHours
+                        });
+                        setIsEditingConfig(false);
+                      }}
+                      disabled={isUpdating || editDays.length === 0 || editHours.length === 0 || !editBriefing.trim()}
+                    >
+                      {isUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      Salvar Alterações
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsEditingConfig(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Briefing</Label>
+                    <p className="text-sm">{config.post_briefing}</p>
+                  </div>
+                  <div className="flex gap-6">
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Dias</Label>
+                      <div className="flex gap-1 mt-1">
+                        {DAYS_OF_WEEK.map(day => (
+                          <Badge
+                            key={day.value}
+                            variant={config.scheduled_days.includes(day.value) ? 'default' : 'outline'}
+                            className="text-xs"
+                          >
+                            {day.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Horários</Label>
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {config.scheduled_hours.sort((a, b) => a - b).map(hour => (
+                          <Badge key={hour} variant="secondary" className="text-xs">
+                            {String(hour).padStart(2, '0')}:00
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </CollapsibleContent>
         </Card>
