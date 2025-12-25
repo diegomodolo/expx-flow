@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Instagram, Facebook, Linkedin, Twitter, ArrowRight } from "lucide-react";
+import { Instagram, Facebook, Linkedin, Twitter, Globe, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface PlatformCard {
@@ -23,6 +23,15 @@ const platforms: PlatformCard[] = [
     available: true,
     route: "/automatizadores/instagram",
     color: "bg-gradient-to-br from-purple-500 to-pink-500"
+  },
+  {
+    id: "wordpress",
+    name: "WordPress",
+    description: "Publique artigos automaticamente no seu blog",
+    icon: Globe,
+    available: true,
+    route: "/automatizadores/wordpress",
+    color: "bg-gradient-to-br from-blue-500 to-cyan-500"
   },
   {
     id: "facebook",
