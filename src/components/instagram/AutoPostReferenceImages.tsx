@@ -17,6 +17,7 @@ interface AutoPostReferenceImagesProps {
   referenceImage3: string | null;
   onImagesChange: (images: { reference_image_1?: string | null; reference_image_2?: string | null; reference_image_3?: string | null }) => void;
   disabled?: boolean;
+  isInline?: boolean;
 }
 
 export function AutoPostReferenceImages({
@@ -27,7 +28,8 @@ export function AutoPostReferenceImages({
   referenceImage2,
   referenceImage3,
   onImagesChange,
-  disabled = false
+  disabled = false,
+  isInline = false
 }: AutoPostReferenceImagesProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState<number | null>(null);
@@ -134,102 +136,114 @@ export function AutoPostReferenceImages({
 
   const emptySlots = images.filter(img => !img).length;
 
+  const content = (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <HelpCircle className="w-4 h-4 text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p>A IA usará essas imagens como guia de estilo visual para gerar as postagens. Escolha imagens que representem a identidade visual desejada.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setDialogOpen(true)}
+          disabled={disabled}
+        >
+          <Import className="w-4 h-4 mr-2" />
+          Importar
+        </Button>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {images.map((imageUrl, index) => (
+          <div
+            key={index}
+            className={cn(
+              "relative aspect-square rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden",
+              imageUrl ? "border-transparent" : "border-muted-foreground/30 hover:border-muted-foreground/50",
+              disabled && "opacity-50 pointer-events-none"
+            )}
+          >
+            {uploading === index ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Enviando...</span>
+              </div>
+            ) : imageUrl ? (
+              <>
+                <img
+                  src={imageUrl}
+                  alt={`Referência ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => handleRemoveImage(index)}
+                  className="absolute top-2 right-2 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground hover:bg-destructive/80 transition-colors"
+                  disabled={disabled}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <span className="text-white text-xs font-medium">Imagem {index + 1}</span>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => fileInputRefs[index].current?.click()}
+                className="flex flex-col items-center gap-2 p-4 text-muted-foreground hover:text-foreground transition-colors"
+                disabled={disabled}
+              >
+                <Upload className="w-6 h-6" />
+                <span className="text-xs text-center">Upload</span>
+              </button>
+            )}
+            <input
+              ref={fileInputRefs[index]}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file, index);
+                e.target.value = '';
+              }}
+              disabled={disabled}
+            />
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground mt-3">
+        Selecione até 3 imagens. Você pode fazer upload manual ou importar de anúncios/Instagram.
+      </p>
+    </>
+  );
+
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ImageIcon className="w-5 h-5" />
-                Imagens de Referência para IA
-              </CardTitle>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>A IA usará essas imagens como guia de estilo visual para gerar as postagens. Escolha imagens que representem a identidade visual desejada.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDialogOpen(true)}
-              disabled={disabled}
-            >
-              <Import className="w-4 h-4 mr-2" />
-              Importar
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            {images.map((imageUrl, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "relative aspect-square rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden",
-                  imageUrl ? "border-transparent" : "border-muted-foreground/30 hover:border-muted-foreground/50",
-                  disabled && "opacity-50 pointer-events-none"
-                )}
-              >
-                {uploading === index ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Enviando...</span>
-                  </div>
-                ) : imageUrl ? (
-                  <>
-                    <img
-                      src={imageUrl}
-                      alt={`Referência ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-2 right-2 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground hover:bg-destructive/80 transition-colors"
-                      disabled={disabled}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <span className="text-white text-xs font-medium">Imagem {index + 1}</span>
-                    </div>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => fileInputRefs[index].current?.click()}
-                    className="flex flex-col items-center gap-2 p-4 text-muted-foreground hover:text-foreground transition-colors"
-                    disabled={disabled}
-                  >
-                    <Upload className="w-6 h-6" />
-                    <span className="text-xs text-center">Upload</span>
-                  </button>
-                )}
-                <input
-                  ref={fileInputRefs[index]}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file, index);
-                    e.target.value = '';
-                  }}
-                  disabled={disabled}
-                />
+      {isInline ? (
+        content
+      ) : (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ImageIcon className="w-5 h-5" />
+                  Imagens de Referência para IA
+                </CardTitle>
               </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Selecione até 3 imagens. Você pode fazer upload manual ou importar de anúncios/Instagram.
-          </p>
-        </CardContent>
-      </Card>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {content}
+          </CardContent>
+        </Card>
+      )}
 
       <ReferenceSelectionDialog
         open={dialogOpen}
