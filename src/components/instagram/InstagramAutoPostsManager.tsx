@@ -11,7 +11,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstagramPostPreviewModal } from '@/components/instagram/InstagramPostPreviewModal';
 import { AutoPostReferenceImages } from '@/components/instagram/AutoPostReferenceImages';
-import { 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
   Instagram, 
   Calendar, 
   Clock, 
@@ -87,6 +89,7 @@ export function InstagramAutoPostsManager({
   const [editDays, setEditDays] = useState<number[]>([]);
   const [editHours, setEditHours] = useState<number[]>([]);
   const [editName, setEditName] = useState('');
+  const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
   
   // Collapsible sections state
   const [configOpen, setConfigOpen] = useState(false);
@@ -105,6 +108,20 @@ export function InstagramAutoPostsManager({
       return data;
     },
     enabled: !!instagramAccountId
+  });
+
+  // Fetch all available Instagram accounts for selection
+  const { data: availableInstagramAccounts } = useQuery({
+    queryKey: ['instagram-accounts-for-config', config?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('instagram_accounts')
+        .select('*')
+        .eq('company_id', config!.company_id)
+        .order('username');
+      return data || [];
+    },
+    enabled: !!config?.company_id
   });
 
   const handleToggleEnabled = (enabled: boolean) => {
@@ -200,6 +217,7 @@ export function InstagramAutoPostsManager({
                         setEditBriefing(config.post_briefing);
                         setEditDays(config.scheduled_days);
                         setEditHours(config.scheduled_hours);
+                        setEditInstagramAccountId(instagramAccountId);
                         setIsEditingConfig(true);
                         setConfigOpen(true);
                       }}
@@ -226,6 +244,31 @@ export function InstagramAutoPostsManager({
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       placeholder="Nome da automação"
                     />
+                  </div>
+
+                  {/* Edit Instagram Account */}
+                  <div className="space-y-2">
+                    <Label>Conta do Instagram</Label>
+                    <Select value={editInstagramAccountId} onValueChange={setEditInstagramAccountId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma conta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableInstagramAccounts?.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-5 h-5">
+                                <AvatarImage src={account.profile_picture_url || ''} />
+                                <AvatarFallback className="text-xs">
+                                  {account.username?.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              @{account.username}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Edit Briefing */}
@@ -294,11 +337,12 @@ export function InstagramAutoPostsManager({
                           name: editName || null,
                           post_briefing: editBriefing,
                           scheduled_days: editDays,
-                          scheduled_hours: editHours
+                          scheduled_hours: editHours,
+                          instagram_account_id: editInstagramAccountId
                         });
                         setIsEditingConfig(false);
                       }}
-                      disabled={isUpdating || editDays.length === 0 || editHours.length === 0 || !editBriefing.trim()}
+                      disabled={isUpdating || editDays.length === 0 || editHours.length === 0 || !editBriefing.trim() || !editInstagramAccountId}
                     >
                       {isUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                       Salvar Alterações
@@ -310,6 +354,20 @@ export function InstagramAutoPostsManager({
                 </>
               ) : (
                 <>
+                  {/* Instagram Account display */}
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Conta do Instagram</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={instagramAccount?.profile_picture_url || ''} />
+                        <AvatarFallback className="text-xs">
+                          {instagramAccount?.username?.charAt(0).toUpperCase() || 'I'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">@{instagramAccount?.username || 'Não configurado'}</span>
+                    </div>
+                  </div>
+
                   {config.name && (
                     <div>
                       <Label className="text-muted-foreground text-xs">Nome</Label>
@@ -372,6 +430,7 @@ export function InstagramAutoPostsManager({
               <AutoPostReferenceImages
                 configId={config.id}
                 clientId={clientId || undefined}
+                instagramAccountId={instagramAccountId}
                 companyId={config.company_id}
                 referenceImage1={config.reference_image_1}
                 referenceImage2={config.reference_image_2}

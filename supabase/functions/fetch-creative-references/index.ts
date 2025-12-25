@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  clientId: string;
+  clientId?: string;
+  instagramAccountId?: string;
   companyId: string;
 }
 
@@ -21,44 +22,62 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const body: RequestBody = await req.json();
-    const { clientId, companyId } = body;
+    const { clientId, instagramAccountId, companyId } = body;
 
-    if (!clientId || !companyId) {
+    if (!companyId) {
       return new Response(
-        JSON.stringify({ success: false, error: "clientId e companyId são obrigatórios" }),
+        JSON.stringify({ success: false, error: "companyId é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Fetch client data with ad account and instagram info
-    const { data: client, error: clientError } = await supabase
-      .from("clients")
-      .select(`
-        id,
-        ad_account_id,
-        instagram_account_id,
-        facebook_ad_accounts!ad_account_id (
-          id,
-          account_id,
-          account_name
-        ),
-        instagram_accounts!instagram_account_id (
-          id,
-          instagram_id,
-          username
-        )
-      `)
-      .eq("id", clientId)
-      .single();
+    let adAccountId: string | null = null;
+    let instagramId: string | null = null;
 
-    if (clientError) {
-      console.error("Error fetching client:", clientError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Cliente não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // If clientId is provided, fetch client data
+    if (clientId) {
+      const { data: client, error: clientError } = await supabase
+        .from("clients")
+        .select(`
+          id,
+          ad_account_id,
+          instagram_account_id,
+          facebook_ad_accounts!ad_account_id (
+            id,
+            account_id,
+            account_name
+          ),
+          instagram_accounts!instagram_account_id (
+            id,
+            instagram_id,
+            username
+          )
+        `)
+        .eq("id", clientId)
+        .single();
+
+      if (clientError) {
+        console.error("Error fetching client:", clientError);
+      } else {
+        adAccountId = client.facebook_ad_accounts?.account_id || null;
+        instagramId = client.instagram_accounts?.instagram_id || null;
+      }
+    }
+
+    // If instagramAccountId is provided directly (for standalone automations), use it
+    if (instagramAccountId && !instagramId) {
+      const { data: igAccount, error: igError } = await supabase
+        .from("instagram_accounts")
+        .select("instagram_id")
+        .eq("id", instagramAccountId)
+        .single();
+
+      if (!igError && igAccount) {
+        instagramId = igAccount.instagram_id;
+        console.log("Using direct instagramAccountId:", instagramId);
+      }
     }
 
     // Get Facebook integration for access token
@@ -86,11 +105,11 @@ serve(async (req) => {
     const adCreatives: { id: string; imageUrl: string; name: string; type: 'ad' }[] = [];
     const instagramPosts: { id: string; imageUrl: string; caption: string; type: 'instagram' }[] = [];
 
-    // Fetch Ad Creatives if client has ad account
-    if (client.facebook_ad_accounts?.account_id) {
-      const accountId = client.facebook_ad_accounts.account_id.startsWith('act_') 
-        ? client.facebook_ad_accounts.account_id 
-        : `act_${client.facebook_ad_accounts.account_id}`;
+    // Fetch Ad Creatives if we have an ad account
+    if (adAccountId) {
+      const accountId = adAccountId.startsWith('act_') 
+        ? adAccountId 
+        : `act_${adAccountId}`;
 
       console.log(`Fetching ads for account: ${accountId}`);
 
@@ -155,9 +174,8 @@ serve(async (req) => {
       }
     }
 
-    // Fetch Instagram Posts if client has Instagram account
-    if (client.instagram_accounts?.instagram_id) {
-      const instagramId = client.instagram_accounts.instagram_id;
+    // Fetch Instagram Posts if we have an Instagram account
+    if (instagramId) {
       console.log(`Fetching Instagram posts for account: ${instagramId}`);
 
       try {
@@ -200,8 +218,8 @@ serve(async (req) => {
         success: true,
         adCreatives: adCreatives.slice(0, 20), // Limit to 20 most recent
         instagramPosts: instagramPosts.slice(0, 20), // Limit to 20 most recent
-        hasAdAccount: !!client.facebook_ad_accounts?.account_id,
-        hasInstagram: !!client.instagram_accounts?.instagram_id
+        hasAdAccount: !!adAccountId,
+        hasInstagram: !!instagramId
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
