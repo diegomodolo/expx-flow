@@ -202,7 +202,7 @@ export function ReferenceUploader({ references, onReferencesChange, clientId }: 
                   </label>
                 </Button>
                 
-                {clientId && activeCompany?.id && (
+                {clientId && activeCompany?.company_id && (
                   <Button
                     variant="secondary"
                     onClick={() => setShowInstagramDialog(true)}
@@ -291,12 +291,12 @@ export function ReferenceUploader({ references, onReferencesChange, clientId }: 
       </div>
 
       {/* Dialog para buscar do Instagram */}
-      {clientId && activeCompany?.id && (
+      {clientId && activeCompany?.company_id && (
         <ReferenceSelectionDialog
           open={showInstagramDialog}
           onOpenChange={setShowInstagramDialog}
           clientId={clientId}
-          companyId={activeCompany.id}
+          companyId={activeCompany.company_id}
           onSelect={handleInstagramSelect}
           maxSelections={3 - references.length}
         />
