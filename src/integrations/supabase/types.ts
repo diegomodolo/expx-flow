@@ -4123,7 +4123,7 @@ export type Database = {
       }
       instagram_auto_post_configs: {
         Row: {
-          client_id: string
+          client_id: string | null
           company_id: string
           created_at: string | null
           created_by: string
@@ -4131,6 +4131,7 @@ export type Database = {
           instagram_account_id: string
           is_enabled: boolean | null
           last_post_at: string | null
+          name: string | null
           next_post_at: string | null
           post_briefing: string
           reference_image_1: string | null
@@ -4141,7 +4142,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           company_id: string
           created_at?: string | null
           created_by: string
@@ -4149,6 +4150,7 @@ export type Database = {
           instagram_account_id: string
           is_enabled?: boolean | null
           last_post_at?: string | null
+          name?: string | null
           next_post_at?: string | null
           post_briefing: string
           reference_image_1?: string | null
@@ -4159,7 +4161,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           company_id?: string
           created_at?: string | null
           created_by?: string
@@ -4167,6 +4169,7 @@ export type Database = {
           instagram_account_id?: string
           is_enabled?: boolean | null
           last_post_at?: string | null
+          name?: string | null
           next_post_at?: string | null
           post_briefing?: string
           reference_image_1?: string | null
@@ -4203,7 +4206,7 @@ export type Database = {
       instagram_auto_posts: {
         Row: {
           caption: string
-          client_id: string
+          client_id: string | null
           company_id: string
           config_id: string
           created_at: string | null
@@ -4217,7 +4220,7 @@ export type Database = {
         }
         Insert: {
           caption: string
-          client_id: string
+          client_id?: string | null
           company_id: string
           config_id: string
           created_at?: string | null
@@ -4231,7 +4234,7 @@ export type Database = {
         }
         Update: {
           caption?: string
-          client_id?: string
+          client_id?: string | null
           company_id?: string
           config_id?: string
           created_at?: string | null
