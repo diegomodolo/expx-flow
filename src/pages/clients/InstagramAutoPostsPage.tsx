@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useInstagramAutoPostConfig, useInstagramAutoPosts } from '@/hooks/useInstagramAutoPosts';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,10 +31,13 @@ import {
   Settings,
   History,
   Send,
-  Eye
+  Eye,
+  ChevronDown,
+  ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const DAYS_OF_WEEK = [
   { value: 0, label: 'Dom' },
@@ -76,8 +80,12 @@ export default function InstagramAutoPostsPage() {
     reference_image_2?: string | null;
     reference_image_3?: string | null;
   }>({});
-
-  // Fetch Instagram accounts
+  
+  // Collapsible sections state - only "Postagens Agendadas" starts open
+  const [configOpen, setConfigOpen] = useState(false);
+  const [refImagesOpen, setRefImagesOpen] = useState(false);
+  const [pendingPostsOpen, setPendingPostsOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { data: instagramAccounts } = useQuery({
     queryKey: ['instagram-accounts', clientId],
     queryFn: async () => {
@@ -324,32 +332,41 @@ export default function InstagramAutoPostsPage() {
       </div>
 
       {/* Config Summary */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Configuração Atual
-            </CardTitle>
-            {!isEditingConfig && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditBriefing(config.post_briefing);
-                  setEditDays(config.scheduled_days);
-                  setEditHours(config.scheduled_hours);
-                  setIsEditingConfig(true);
-                }}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isEditingConfig ? (
+      <Collapsible open={configOpen} onOpenChange={setConfigOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Configuração Atual
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", configOpen && "rotate-180")} />
+                </CardTitle>
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  {!isEditingConfig && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditBriefing(config.post_briefing);
+                        setEditDays(config.scheduled_days);
+                        setEditHours(config.scheduled_hours);
+                        setIsEditingConfig(true);
+                        setConfigOpen(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              {isEditingConfig ? (
             <>
               {/* Edit Briefing */}
               <div className="space-y-2">
@@ -464,53 +481,82 @@ export default function InstagramAutoPostsPage() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Reference Images Section */}
-      <AutoPostReferenceImages
-        configId={config.id}
-        clientId={clientId!}
-        companyId={config.company_id}
-        referenceImage1={config.reference_image_1}
-        referenceImage2={config.reference_image_2}
-        referenceImage3={config.reference_image_3}
-        onImagesChange={(updates) => updateConfig(updates)}
-        disabled={isUpdating}
-      />
+      <Collapsible open={refImagesOpen} onOpenChange={setRefImagesOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ImageIcon className="w-5 h-5" />
+                  Imagens de Referência para IA
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", refImagesOpen && "rotate-180")} />
+                </CardTitle>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <AutoPostReferenceImages
+                configId={config.id}
+                clientId={clientId!}
+                companyId={config.company_id}
+                referenceImage1={config.reference_image_1}
+                referenceImage2={config.reference_image_2}
+                referenceImage3={config.reference_image_3}
+                onImagesChange={(updates) => updateConfig(updates)}
+                disabled={isUpdating}
+                isInline
+              />
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Pending Posts Queue */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Postagens Agendadas
-              </CardTitle>
-              <CardDescription>
-                {pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} na fila
-              </CardDescription>
-            </div>
-            <Button
-              onClick={() => generateNextPost({ configId: config.id, companyId: config.company_id })}
-              disabled={isGeneratingNext}
-            >
-              {isGeneratingNext ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Gerando...
-                </>
-              ) : (
-                <>
-                  <Image className="w-4 h-4 mr-2" />
-                  Gerar Próxima
-                </>
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <Collapsible open={pendingPostsOpen} onOpenChange={setPendingPostsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Postagens Agendadas
+                    <ChevronDown className={cn("w-4 h-4 transition-transform", pendingPostsOpen && "rotate-180")} />
+                  </CardTitle>
+                  <CardDescription>
+                    {pendingPosts.length} post{pendingPosts.length !== 1 ? 's' : ''} na fila
+                  </CardDescription>
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    onClick={() => generateNextPost({ configId: config.id, companyId: config.company_id })}
+                    disabled={isGeneratingNext}
+                  >
+                    {isGeneratingNext ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Image className="w-4 h-4 mr-2" />
+                        Gerar Próxima
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
           {pendingPosts.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               Nenhuma postagem agendada. Clique em "Gerar Próxima" para criar.
@@ -622,61 +668,74 @@ export default function InstagramAutoPostsPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Post History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="w-5 h-5" />
-            Histórico de Postagens
-          </CardTitle>
-          <CardDescription>
-            Últimas postagens publicadas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {publishedPosts.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              Nenhuma postagem publicada ainda.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {publishedPosts.slice(0, 10).map(post => (
-                <div key={post.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                  <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                    <img
-                      src={post.image_url}
-                      alt="Post publicado"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{post.caption.slice(0, 80)}...</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Publicado em {format(new Date(post.published_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  </div>
-                  <div>
-                    {post.status === 'published' ? (
-                      <Badge variant="default" className="bg-green-600">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        Publicado
-                      </Badge>
-                    ) : post.status === 'failed' ? (
-                      <Badge variant="destructive">
-                        <XCircle className="w-3 h-3 mr-1" />
-                        Falhou
-                      </Badge>
-                    ) : null}
-                  </div>
+      <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    Histórico de Postagens
+                    <ChevronDown className={cn("w-4 h-4 transition-transform", historyOpen && "rotate-180")} />
+                  </CardTitle>
+                  <CardDescription>
+                    Últimas postagens publicadas
+                  </CardDescription>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              {publishedPosts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Nenhuma postagem publicada ainda.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {publishedPosts.slice(0, 10).map(post => (
+                    <div key={post.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                      <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                        <img
+                          src={post.image_url}
+                          alt="Post publicado"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{post.caption.slice(0, 80)}...</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Publicado em {format(new Date(post.published_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <div>
+                        {post.status === 'published' ? (
+                          <Badge variant="default" className="bg-green-600">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Publicado
+                          </Badge>
+                        ) : post.status === 'failed' ? (
+                          <Badge variant="destructive">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Falhou
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Instagram Preview Modal */}
       <InstagramPostPreviewModal
