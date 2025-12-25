@@ -92,7 +92,23 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7,
         ai_reference_image_1: (client as any).ai_reference_image_1 || "",
         ai_reference_image_2: (client as any).ai_reference_image_2 || "",
-        ai_reference_image_3: (client as any).ai_reference_image_3 || ""
+        ai_reference_image_3: (client as any).ai_reference_image_3 || "",
+        // Platform-specific financial fields
+        meta_monthly_budget: client.meta_monthly_budget || 0,
+        meta_payment_type: client.meta_payment_type || "prepaid",
+        meta_recharge_day: client.meta_recharge_day,
+        google_monthly_budget: client.google_monthly_budget || 0,
+        google_payment_type: client.google_payment_type || "prepaid",
+        google_recharge_day: client.google_recharge_day,
+        linkedin_monthly_budget: client.linkedin_monthly_budget || 0,
+        linkedin_payment_type: client.linkedin_payment_type || "prepaid",
+        linkedin_recharge_day: client.linkedin_recharge_day,
+        tiktok_monthly_budget: client.tiktok_monthly_budget || 0,
+        tiktok_payment_type: client.tiktok_payment_type || "prepaid",
+        tiktok_recharge_day: client.tiktok_recharge_day,
+        twitter_monthly_budget: client.twitter_monthly_budget || 0,
+        twitter_payment_type: client.twitter_payment_type || "prepaid",
+        twitter_recharge_day: client.twitter_recharge_day,
       };
     }
     return {
@@ -124,7 +140,23 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       presentation_overlay_opacity: 0.7,
       ai_reference_image_1: "",
       ai_reference_image_2: "",
-      ai_reference_image_3: ""
+      ai_reference_image_3: "",
+      // Platform-specific financial fields
+      meta_monthly_budget: 0,
+      meta_payment_type: "prepaid",
+      meta_recharge_day: undefined as number | undefined,
+      google_monthly_budget: 0,
+      google_payment_type: "prepaid",
+      google_recharge_day: undefined as number | undefined,
+      linkedin_monthly_budget: 0,
+      linkedin_payment_type: "prepaid",
+      linkedin_recharge_day: undefined as number | undefined,
+      tiktok_monthly_budget: 0,
+      tiktok_payment_type: "prepaid",
+      tiktok_recharge_day: undefined as number | undefined,
+      twitter_monthly_budget: 0,
+      twitter_payment_type: "prepaid",
+      twitter_recharge_day: undefined as number | undefined,
     };
   });
   const [loading, setLoading] = useState(false);
@@ -147,7 +179,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [uploadingPresentationBg, setUploadingPresentationBg] = useState(false);
   const [uploadingAiRefImage, setUploadingAiRefImage] = useState<1 | 2 | 3 | null>(null);
 
-  const platforms = ["Google Ads", "Meta Ads", "Instagram Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads", "YouTube Ads"];
+  const platforms = ["Google Ads", "Meta Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
   const campaignTypes = ["Awareness", "Conversão", "Lead Generation", "Retargeting", "Branding", "E-commerce"];
 
@@ -189,7 +221,23 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         presentation_overlay_opacity: (client as any).presentation_overlay_opacity ?? 0.7,
         ai_reference_image_1: (client as any).ai_reference_image_1 || "",
         ai_reference_image_2: (client as any).ai_reference_image_2 || "",
-        ai_reference_image_3: (client as any).ai_reference_image_3 || ""
+        ai_reference_image_3: (client as any).ai_reference_image_3 || "",
+        // Platform-specific financial fields
+        meta_monthly_budget: client.meta_monthly_budget || 0,
+        meta_payment_type: client.meta_payment_type || "prepaid",
+        meta_recharge_day: client.meta_recharge_day,
+        google_monthly_budget: client.google_monthly_budget || 0,
+        google_payment_type: client.google_payment_type || "prepaid",
+        google_recharge_day: client.google_recharge_day,
+        linkedin_monthly_budget: client.linkedin_monthly_budget || 0,
+        linkedin_payment_type: client.linkedin_payment_type || "prepaid",
+        linkedin_recharge_day: client.linkedin_recharge_day,
+        tiktok_monthly_budget: client.tiktok_monthly_budget || 0,
+        tiktok_payment_type: client.tiktok_payment_type || "prepaid",
+        tiktok_recharge_day: client.tiktok_recharge_day,
+        twitter_monthly_budget: client.twitter_monthly_budget || 0,
+        twitter_payment_type: client.twitter_payment_type || "prepaid",
+        twitter_recharge_day: client.twitter_recharge_day,
       });
       setLocalClient(client);
       
@@ -226,7 +274,23 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         presentation_overlay_opacity: 0.7,
         ai_reference_image_1: "",
         ai_reference_image_2: "",
-        ai_reference_image_3: ""
+        ai_reference_image_3: "",
+        // Platform-specific financial fields
+        meta_monthly_budget: 0,
+        meta_payment_type: "prepaid",
+        meta_recharge_day: undefined,
+        google_monthly_budget: 0,
+        google_payment_type: "prepaid",
+        google_recharge_day: undefined,
+        linkedin_monthly_budget: 0,
+        linkedin_payment_type: "prepaid",
+        linkedin_recharge_day: undefined,
+        tiktok_monthly_budget: 0,
+        tiktok_payment_type: "prepaid",
+        tiktok_recharge_day: undefined,
+        twitter_monthly_budget: 0,
+        twitter_payment_type: "prepaid",
+        twitter_recharge_day: undefined,
       });
       setLocalClient(undefined);
       setRechargeDayValue("none");
@@ -747,70 +811,145 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         );
 
       case 'financeiro':
+        const platformFinancialConfig = [
+          { 
+            key: 'meta', 
+            name: 'Meta Ads', 
+            platformCheck: 'Meta Ads',
+            icon: <Facebook className="w-5 h-5 text-blue-600" />,
+            color: 'border-blue-200 bg-blue-50/50'
+          },
+          { 
+            key: 'google', 
+            name: 'Google Ads', 
+            platformCheck: 'Google Ads',
+            icon: <div className="w-5 h-5 flex items-center justify-center text-xs font-bold text-red-500">G</div>,
+            color: 'border-red-200 bg-red-50/50'
+          },
+          { 
+            key: 'linkedin', 
+            name: 'LinkedIn Ads', 
+            platformCheck: 'LinkedIn Ads',
+            icon: <div className="w-5 h-5 flex items-center justify-center text-xs font-bold text-blue-700">in</div>,
+            color: 'border-blue-300 bg-blue-50/50'
+          },
+          { 
+            key: 'tiktok', 
+            name: 'TikTok Ads', 
+            platformCheck: 'TikTok Ads',
+            icon: <div className="w-5 h-5 flex items-center justify-center text-xs font-bold text-black">♪</div>,
+            color: 'border-gray-300 bg-gray-50/50'
+          },
+          { 
+            key: 'twitter', 
+            name: 'Twitter/X Ads', 
+            platformCheck: 'Twitter Ads',
+            icon: <div className="w-5 h-5 flex items-center justify-center text-xs font-bold text-black">𝕏</div>,
+            color: 'border-gray-300 bg-gray-50/50'
+          },
+        ];
+
+        const enabledPlatforms = platformFinancialConfig.filter(p => 
+          formData.preferred_platforms.includes(p.platformCheck)
+        );
+
         return (
           <div className="space-y-6">
-            {/* Orçamento Mensal */}
-            <div className="space-y-2">
-              <Label htmlFor="monthly_budget">Orçamento Mensal</Label>
-              <Input
-                id="monthly_budget"
-                type="number"
-                step="0.01"
-                value={formData.monthly_budget}
-                onChange={(e) => setFormData({ ...formData, monthly_budget: parseFloat(e.target.value) || 0 })}
-                placeholder="0.00"
-                disabled={readOnly}
-              />
-            </div>
+            {enabledPlatforms.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <DollarSign className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground font-medium">
+                  Nenhuma plataforma selecionada
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Selecione pelo menos uma plataforma em "Contas & Integrações" para configurar orçamentos.
+                </p>
+              </div>
+            ) : (
+              enabledPlatforms.map((platform) => {
+                const budgetKey = `${platform.key}_monthly_budget` as keyof typeof formData;
+                const paymentKey = `${platform.key}_payment_type` as keyof typeof formData;
+                const rechargeKey = `${platform.key}_recharge_day` as keyof typeof formData;
+                
+                return (
+                  <div key={platform.key} className={cn("border rounded-lg p-4 space-y-4", platform.color)}>
+                    <div className="flex items-center gap-2">
+                      {platform.icon}
+                      <h3 className="font-semibold">{platform.name}</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Orçamento Mensal */}
+                      <div className="space-y-2">
+                        <Label>Orçamento Mensal</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={(formData[budgetKey] as number) || 0}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            [budgetKey]: parseFloat(e.target.value) || 0 
+                          })}
+                          placeholder="0.00"
+                          disabled={readOnly}
+                        />
+                      </div>
+                      
+                      {/* Tipo de Pagamento */}
+                      <div className="space-y-2">
+                        <Label>Tipo de Pagamento</Label>
+                        <Select
+                          value={(formData[paymentKey] as string) || 'prepaid'}
+                          onValueChange={(value: 'prepaid' | 'postpaid') =>
+                            setFormData({ ...formData, [paymentKey]: value })
+                          }
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="prepaid">💰 Pré-pago</SelectItem>
+                            <SelectItem value="postpaid">💳 Pós-pago</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Dia de Recarga */}
+                      <div className="space-y-2">
+                        <Label>Dia de Recarga</Label>
+                        <Select
+                          value={(formData[rechargeKey] as number)?.toString() || 'none'}
+                          onValueChange={(value) => setFormData({ 
+                            ...formData, 
+                            [rechargeKey]: value === 'none' ? undefined : parseInt(value)
+                          })}
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Final do mês</SelectItem>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                              <SelectItem key={day} value={day.toString()}>
+                                Dia {day}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
 
-            {/* Tipo de Pagamento */}
-            <div className="space-y-2">
-              <Label htmlFor="payment_type">Tipo de Pagamento</Label>
-              <Select
-                value={formData.payment_type}
-                onValueChange={(value: 'prepaid' | 'postpaid') =>
-                  setFormData({ ...formData, payment_type: value })
-                }
-                disabled={readOnly}
-              >
-                <SelectTrigger id="payment_type">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="prepaid">💰 Pré-pago (com saldo)</SelectItem>
-                  <SelectItem value="postpaid">💳 Pós-pago (cartão)</SelectItem>
-                </SelectContent>
-              </Select>
+            {enabledPlatforms.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                Pré-pago: conta com saldo limitado. Pós-pago: cartão de crédito sem limite.
+                Configure orçamento, tipo de pagamento e dia de recarga para cada plataforma habilitada.
               </p>
-            </div>
-
-            {/* Dia de Recarga */}
-            <div className="space-y-2">
-              <Label htmlFor="recharge_day">Dia de Recarga do Saldo (Opcional)</Label>
-              <Select
-                value={rechargeDayValue}
-                onValueChange={(value) => setRechargeDayValue(value)}
-                disabled={readOnly}
-              >
-                <SelectTrigger id="recharge_day">
-                  <SelectValue placeholder="Selecione o dia de recarga" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Não configurado (usar final do mês)</SelectItem>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <SelectItem key={day} value={day.toString()}>
-                      Dia {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                O dia do mês em que o cliente recarrega o saldo da conta de anúncios.
-                Usado para calcular se o saldo atual é suficiente até o próximo dia de recarga.
-              </p>
-            </div>
+            )}
           </div>
         );
 

@@ -96,6 +96,27 @@ export interface Client {
   ai_reference_image_1?: string;
   ai_reference_image_2?: string;
   ai_reference_image_3?: string;
+  
+  // Platform-specific financial settings
+  meta_monthly_budget?: number;
+  meta_payment_type?: string;
+  meta_recharge_day?: number;
+  
+  google_monthly_budget?: number;
+  google_payment_type?: string;
+  google_recharge_day?: number;
+  
+  linkedin_monthly_budget?: number;
+  linkedin_payment_type?: string;
+  linkedin_recharge_day?: number;
+  
+  tiktok_monthly_budget?: number;
+  tiktok_payment_type?: string;
+  tiktok_recharge_day?: number;
+  
+  twitter_monthly_budget?: number;
+  twitter_payment_type?: string;
+  twitter_recharge_day?: number;
 }
 
 // Helper function to get all client metrics for rule evaluation
