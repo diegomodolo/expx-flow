@@ -196,23 +196,33 @@ export function ClienteDashboard({
           {/* Instagram - Compact */}
           {client.instagram_account && (
             <Card className="p-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px] flex-shrink-0">
-                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                    {client.instagram_account.profile_picture_url ? (
-                      <img 
-                        src={client.instagram_account.profile_picture_url} 
-                        alt="" 
-                        className="w-6 h-6 rounded-full"
-                      />
-                    ) : (
-                      <Users className="w-3 h-3 text-pink-500" />
-                    )}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px] flex-shrink-0">
+                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                      {client.instagram_account.profile_picture_url ? (
+                        <img 
+                          src={client.instagram_account.profile_picture_url} 
+                          alt="" 
+                          className="w-6 h-6 rounded-full"
+                        />
+                      ) : (
+                        <Users className="w-3 h-3 text-pink-500" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Instagram</p>
+                    <p className="font-semibold truncate text-sm">@{client.instagram_account.username}</p>
                   </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Instagram</p>
-                  <p className="font-semibold truncate text-sm">@{client.instagram_account.username}</p>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-bold text-pink-600">
+                    {client.instagram_account.followers_count >= 1000 
+                      ? `${(client.instagram_account.followers_count / 1000).toFixed(1)}k`
+                      : client.instagram_account.followers_count}
+                  </p>
+                  <p className="text-xs text-muted-foreground">seguidores</p>
                 </div>
               </div>
             </Card>
