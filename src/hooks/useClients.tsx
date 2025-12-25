@@ -117,6 +117,25 @@ export interface Client {
   twitter_monthly_budget?: number;
   twitter_payment_type?: string;
   twitter_recharge_day?: number;
+  
+  // Consolidated metrics (Meta + Google)
+  consolidated_spend?: number;
+  consolidated_conversions?: number;
+  consolidated_active_campaigns?: number;
+  consolidated_budget?: number;
+  consolidated_cpa?: number;
+  
+  // Platform-specific metrics breakdown
+  meta_spend?: number;
+  meta_conversions?: number;
+  meta_active_campaigns?: number;
+  google_spend?: number;
+  google_conversions?: number;
+  google_active_campaigns?: number;
+  
+  // Platforms configured flags
+  has_meta?: boolean;
+  has_google?: boolean;
 }
 
 // Helper function to get all client metrics for rule evaluation
@@ -544,22 +563,73 @@ export function useClients() {
         }
       }));
       
-      // Calculate total spend for each client
-      const clientsWithSpend = await Promise.all(clientsWithStatus.map(async (client) => {
-        const { data: campaigns } = await supabase
+      // Calculate consolidated metrics (Meta + Google) for each client
+      const clientsWithConsolidatedMetrics = await Promise.all(clientsWithStatus.map(async (client) => {
+        // Fetch Meta campaigns (from campaigns table)
+        const { data: metaCampaigns } = await supabase
           .from('campaigns')
-          .select('spend')
+          .select('spend, conversions, is_active, status')
           .eq('client_id', client.id);
         
-        const totalSpend = campaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
+        // Fetch Google campaigns (from google_campaigns table)
+        const { data: googleCampaigns } = await supabase
+          .from('google_campaigns')
+          .select('spend, conversions, is_active, status')
+          .eq('client_id', client.id);
+        
+        // Meta metrics
+        const metaSpend = metaCampaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
+        const metaConversions = metaCampaigns?.reduce((sum, c) => sum + (c.conversions || 0), 0) || 0;
+        const metaActiveCampaigns = metaCampaigns?.filter(c => c.is_active && c.status === 'active').length || 0;
+        
+        // Google metrics
+        const googleSpend = googleCampaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
+        const googleConversions = googleCampaigns?.reduce((sum, c) => sum + (c.conversions || 0), 0) || 0;
+        const googleActiveCampaigns = googleCampaigns?.filter(c => c.is_active).length || 0;
+        
+        // Consolidated metrics
+        const consolidatedSpend = metaSpend + googleSpend;
+        const consolidatedConversions = metaConversions + googleConversions;
+        const consolidatedActiveCampaigns = metaActiveCampaigns + googleActiveCampaigns;
+        
+        // Consolidated budget (use platform-specific budgets if available, otherwise fall back to monthly_budget)
+        const metaBudget = client.meta_monthly_budget || 0;
+        const googleBudget = client.google_monthly_budget || 0;
+        const consolidatedBudget = (metaBudget + googleBudget) || client.monthly_budget || 0;
+        
+        // Consolidated CPA
+        const consolidatedCpa = consolidatedConversions > 0 ? consolidatedSpend / consolidatedConversions : 0;
+        
+        // Platform flags
+        const hasMeta = !!client.ad_account_id;
+        const hasGoogle = !!client.google_account_id;
         
         return {
           ...client,
-          spend: totalSpend
+          spend: consolidatedSpend,
+          leads_generated: consolidatedConversions,
+          active_campaigns: consolidatedActiveCampaigns,
+          avg_cpl: consolidatedCpa,
+          // Consolidated fields
+          consolidated_spend: consolidatedSpend,
+          consolidated_conversions: consolidatedConversions,
+          consolidated_active_campaigns: consolidatedActiveCampaigns,
+          consolidated_budget: consolidatedBudget,
+          consolidated_cpa: consolidatedCpa,
+          // Platform breakdowns
+          meta_spend: metaSpend,
+          meta_conversions: metaConversions,
+          meta_active_campaigns: metaActiveCampaigns,
+          google_spend: googleSpend,
+          google_conversions: googleConversions,
+          google_active_campaigns: googleActiveCampaigns,
+          // Platform flags
+          has_meta: hasMeta,
+          has_google: hasGoogle,
         };
       }));
       
-      setClients(clientsWithSpend);
+      setClients(clientsWithConsolidatedMetrics);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao buscar clientes");
     } finally {
