@@ -40,8 +40,18 @@ function getPeriodDays(period: string): number {
     'last_14_days': 14,
     'last_30_days': 30,
     'last_90_days': 90,
+    '7': 7,
+    '14': 14,
+    '30': 30,
+    '90': 90,
   };
   return periodMap[period] || 30;
+}
+
+// Normalize period to consistent format (always use days number)
+function normalizePeriod(period: string): string {
+  const days = getPeriodDays(period);
+  return days.toString();
 }
 
 function getDateRange(days: number): { startDate: string; endDate: string } {
@@ -326,7 +336,7 @@ serve(async (req) => {
     const {
       clientId,
       companyId,
-      period = 'last_30_days',
+      period: rawPeriod = 'last_30_days',
       syncCampaigns = true,
       syncAdGroups = false,
       syncAds = false,
@@ -334,10 +344,14 @@ serve(async (req) => {
       silent = false,
     } = options;
 
+    // Normalize period to prevent duplicates (e.g., 'last_30_days' and '30' should be the same)
+    const period = normalizePeriod(rawPeriod);
+
     console.log(`📋 Sync options:`, {
       clientId,
       companyId,
       period,
+      rawPeriod,
       syncCampaigns,
       syncAdGroups,
       syncAds,
