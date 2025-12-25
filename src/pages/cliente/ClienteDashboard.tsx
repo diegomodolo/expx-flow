@@ -24,9 +24,11 @@ import { FundingAlert } from "@/components/alerts/FundingAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { ClientSocialAccounts } from "@/components/clients/ClientSocialAccounts";
 import { ClientDialog } from "@/components/clients/ClientDialog";
+import { BudgetProjectionIndicator } from "@/components/campaigns/BudgetProjectionIndicator";
 import { useClients, Client } from "@/hooks/useClients";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { ClientDetailsData } from "@/hooks/useClientDetails";
+import { UnifiedCampaign } from "@/hooks/useUnifiedCampaigns";
 
 interface PlatformMetrics {
   spend: number;
@@ -50,6 +52,7 @@ interface ClienteDashboardProps {
   investmentDistributionData: any[];
   metaMetrics?: PlatformMetrics;
   googleMetrics?: PlatformMetrics;
+  unifiedCampaigns?: UnifiedCampaign[];
 }
 
 export function ClienteDashboard({
@@ -68,6 +71,7 @@ export function ClienteDashboard({
   investmentDistributionData,
   metaMetrics,
   googleMetrics,
+  unifiedCampaigns = [],
 }: ClienteDashboardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { clients, updateClient } = useClients();
@@ -256,6 +260,15 @@ export function ClienteDashboard({
           )}
         </div>
       )}
+
+      {/* Budget Projection Indicator */}
+      <BudgetProjectionIndicator
+        campaigns={unifiedCampaigns}
+        monthlyBudget={client.monthly_budget}
+        metaMonthlyBudget={(client as any).meta_monthly_budget}
+        googleMonthlyBudget={(client as any).google_monthly_budget}
+        platformFilter="all"
+      />
 
       {/* Performance Metrics - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
