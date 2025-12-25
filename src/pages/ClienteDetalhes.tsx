@@ -56,7 +56,8 @@ const ClienteDetalhes = () => {
   // Calculate campaign metrics from unified data
   const totalCampaigns = unifiedMetrics.meta.campaigns + unifiedMetrics.google.campaigns;
   const activeCampaigns = unifiedMetrics.active_campaigns;
-  const totalLeadsGenerated = client?.leads_generated || 0;
+  // Total leads = conversions from Meta + Google (from unified metrics)
+  const totalLeadsGenerated = unifiedMetrics.meta.conversions + unifiedMetrics.google.conversions;
   const totalInvested = unifiedMetrics.total_spend;
 
   // Calculate sync period in days
