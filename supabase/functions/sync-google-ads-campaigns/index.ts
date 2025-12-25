@@ -476,6 +476,7 @@ serve(async (req) => {
           campaign.name,
           campaign.status,
           campaign.advertising_channel_type,
+          campaign_budget.amount_micros,
           metrics.impressions,
           metrics.clicks,
           metrics.conversions,
@@ -521,11 +522,19 @@ serve(async (req) => {
           for (const result of campaignsData.results) {
             const campaign = result.campaign;
             const metrics = result.metrics || {};
+            const campaignBudget = result.campaignBudget || {};
 
             const spend = microsToCurrency(metrics.costMicros || 0);
             const cpc = microsToCurrency(metrics.averageCpc || 0);
             const conversions = parseFloat(metrics.conversions || '0');
             const cpa = conversions > 0 ? spend / conversions : 0;
+            
+            // Convert budget from micros to currency (daily budget)
+            const dailyBudget = campaignBudget.amountMicros 
+              ? microsToCurrency(campaignBudget.amountMicros) 
+              : null;
+
+            console.log(`   Campaign ${campaign.name}: budget=${dailyBudget}, amountMicros=${campaignBudget.amountMicros}`);
 
             const { error: upsertError } = await supabase
               .from('google_campaigns')
@@ -545,6 +554,7 @@ serve(async (req) => {
                 ctr: parseFloat(metrics.ctr || '0') * 100, // Convert to percentage
                 cpc,
                 cpa,
+                daily_budget: dailyBudget,
                 period,
                 is_active: campaign.status === 'ENABLED',
                 updated_at: new Date().toISOString(),

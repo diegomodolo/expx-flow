@@ -18,6 +18,8 @@ export interface UnifiedCampaign {
   reach?: number;
   frequency?: number;
   campaign_type?: string;
+  daily_budget?: number | null;
+  lifetime_budget?: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -106,6 +108,7 @@ export function useUnifiedCampaigns(options: UseUnifiedCampaignsOptions = {}) {
               ctr: Number(campaign.ctr) || 0,
               cpc: Number(campaign.cpc) || 0,
               cpa: Number(campaign.cpa) || 0,
+              daily_budget: campaign.daily_budget ? Number(campaign.daily_budget) : null,
             }))
           );
         }
