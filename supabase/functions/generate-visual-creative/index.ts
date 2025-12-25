@@ -12,6 +12,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to convert URL to base64
+async function urlToBase64(url: string): Promise<string | null> {
+  try {
+    // If already base64, return as-is
+    if (url.startsWith('data:image/')) {
+      return url;
+    }
+    
+    // Fetch the image
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`Failed to fetch image from URL: ${url.substring(0, 100)}...`);
+      return null;
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Detect content type
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.warn(`Error converting URL to base64: ${error}`);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -137,24 +172,42 @@ Deno.serve(async (req) => {
     // Build message content for Gemini multimodal request
     const messageContent: any[] = [];
 
+    // Convert all images to base64 first (Gemini can't access external URLs like Facebook/Instagram)
+    console.log('Converting images to base64...');
+    
     // Adicionar logo do cliente se disponível (para que a IA respeite)
     if (clientData.avatar && clientData.avatar.startsWith('http')) {
-      console.log('Adding client logo to reference');
-      messageContent.push({
-        type: 'image_url',
-        image_url: { url: clientData.avatar }
-      });
+      console.log('Converting client logo to base64');
+      const logoBase64 = await urlToBase64(clientData.avatar);
+      if (logoBase64) {
+        messageContent.push({
+          type: 'image_url',
+          image_url: { url: logoBase64 }
+        });
+      }
     }
 
-    // Adicionar imagens de referência
+    // Adicionar imagens de referência (convertidas para base64)
     for (const refImage of allReferenceImages) {
-      if (refImage.startsWith('data:image/') || refImage.startsWith('http')) {
+      if (refImage.startsWith('data:image/')) {
+        // Already base64
         messageContent.push({
           type: 'image_url',
           image_url: { url: refImage }
         });
+      } else if (refImage.startsWith('http')) {
+        // Convert URL to base64
+        const base64Image = await urlToBase64(refImage);
+        if (base64Image) {
+          messageContent.push({
+            type: 'image_url',
+            image_url: { url: base64Image }
+          });
+        }
       }
     }
+
+    console.log(`Successfully converted ${messageContent.length} images to base64`);
 
     // Construir o prompt principal
     const geminiPrompt = `Generate a professional marketing creative image with the following specifications:
