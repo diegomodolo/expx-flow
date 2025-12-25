@@ -19,28 +19,29 @@ import {
 
 interface AdSet {
   id: string;
-  facebook_id: string;
+  facebook_id?: string;
   name: string;
   status: string;
-  daily_budget: number;
-  lifetime_budget: number;
-  bid_strategy: string;
-  optimization_goal: string;
-  targeting: string;
-  cpm: number;
-  ctr: number;
-  cpc: number;
-  spend: number;
-  impressions: number;
-  clicks: number;
-  conversions: number;
-  cpa: number;
-  reach?: number;
-  frequency?: number;
-  quality_ranking?: string;
-  engagement_rate_ranking?: string;
-  conversion_rate_ranking?: string;
+  daily_budget?: number | null;
+  lifetime_budget?: number | null;
+  bid_strategy?: string | null;
+  optimization_goal?: string | null;
+  targeting?: string | null;
+  cpm?: number | null;
+  ctr?: number | null;
+  cpc?: number | null;
+  spend?: number | null;
+  impressions?: number | null;
+  clicks?: number | null;
+  conversions?: number | null;
+  cpa?: number | null;
+  reach?: number | null;
+  frequency?: number | null;
+  quality_ranking?: string | null;
+  engagement_rate_ranking?: string | null;
+  conversion_rate_ranking?: string | null;
   created_at: string;
+  platform?: 'meta' | 'google';
 }
 
 interface AdSetMetricsModalProps {
@@ -52,8 +53,13 @@ interface AdSetMetricsModalProps {
 export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalProps) => {
   if (!adSet) return null;
 
+  // Safe number helper
+  const safeNum = (val: number | null | undefined, fallback = 0): number => val ?? fallback;
+
   // Calcular métricas derivadas
-  const conversionRate = adSet.clicks > 0 ? ((adSet.conversions / adSet.clicks) * 100) : 0;
+  const clicks = safeNum(adSet.clicks);
+  const conversions = safeNum(adSet.conversions);
+  const conversionRate = clicks > 0 ? ((conversions / clicks) * 100) : 0;
   
   const formatAdSetAge = () => {
     const createdDate = new Date(adSet.created_at);
@@ -146,23 +152,23 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {adSet.daily_budget > 0 && (
+                    {safeNum(adSet.daily_budget) > 0 && (
                       <div>
                         <p className="text-lg font-bold text-blue-600">
-                          R$ {adSet.daily_budget.toFixed(2)}
+                          R$ {safeNum(adSet.daily_budget).toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500">Orçamento diário</p>
                       </div>
                     )}
-                    {adSet.lifetime_budget > 0 && (
+                    {safeNum(adSet.lifetime_budget) > 0 && (
                       <div>
                         <p className="text-lg font-bold text-purple-600">
-                          R$ {adSet.lifetime_budget.toFixed(2)}
+                          R$ {safeNum(adSet.lifetime_budget).toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500">Orçamento total</p>
                       </div>
                     )}
-                    {adSet.daily_budget === 0 && adSet.lifetime_budget === 0 && (
+                    {safeNum(adSet.daily_budget) === 0 && safeNum(adSet.lifetime_budget) === 0 && (
                       <p className="text-gray-400">Não definido</p>
                     )}
                   </div>
@@ -175,7 +181,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-green-600">
-                    R$ {adSet.spend.toFixed(2)}
+                    R$ {safeNum(adSet.spend).toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Valor já gasto</p>
                 </CardContent>
@@ -187,7 +193,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-orange-600">
-                    R$ {adSet.cpa.toFixed(2)}
+                    R$ {safeNum(adSet.cpa).toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Custo médio por conversão</p>
                 </CardContent>
@@ -211,7 +217,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold">
-                    {adSet.impressions.toLocaleString()}
+                    {safeNum(adSet.impressions).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Exibições do anúncio</p>
                 </CardContent>
@@ -281,7 +287,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-purple-600">
-                    {adSet.ctr.toFixed(2)}%
+                    {safeNum(adSet.ctr).toFixed(2)}%
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Taxa de cliques</p>
                 </CardContent>
@@ -293,7 +299,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-cyan-600">
-                    R$ {adSet.cpc.toFixed(2)}
+                    R$ {safeNum(adSet.cpc).toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Custo por clique</p>
                 </CardContent>
@@ -308,7 +314,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-green-600">
-                    {adSet.conversions}
+                    {safeNum(adSet.conversions)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Total de conversões</p>
                 </CardContent>
@@ -404,7 +410,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-lg font-bold text-indigo-600">
-                    R$ {adSet.cpm.toFixed(2)}
+                    R$ {safeNum(adSet.cpm).toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Custo por mil impressões</p>
                 </CardContent>
@@ -416,7 +422,7 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 </CardHeader>
                 <CardContent>
                   <p className="text-lg font-bold text-cyan-600">
-                    {adSet.clicks.toLocaleString()}
+                    {safeNum(adSet.clicks).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Total de cliques recebidos
@@ -439,19 +445,19 @@ export const AdSetMetricsModal = ({ adSet, isOpen, onClose }: AdSetMetricsModalP
                 <div>
                   <p className="font-medium text-gray-700">Eficiência</p>
                   <p className="text-blue-600">
-                    CTR: {adSet.ctr.toFixed(2)}% | Conv: {conversionRate.toFixed(1)}%
+                    CTR: {safeNum(adSet.ctr).toFixed(2)}% | Conv: {conversionRate.toFixed(1)}%
                   </p>
                 </div>
                 <div>
                   <p className="font-medium text-gray-700">Custos</p>
                   <p className="text-green-600">
-                    CPC: R$ {adSet.cpc.toFixed(2)} | CPA: R$ {adSet.cpa.toFixed(2)}
+                    CPC: R$ {safeNum(adSet.cpc).toFixed(2)} | CPA: R$ {safeNum(adSet.cpa).toFixed(2)}
                   </p>
                 </div>
                 <div>
                   <p className="font-medium text-gray-700">Volume</p>
                   <p className="text-purple-600">
-                    {adSet.conversions} conversões | {adSet.impressions.toLocaleString()} impressões
+                    {safeNum(adSet.conversions)} conversões | {safeNum(adSet.impressions).toLocaleString()} impressões
                   </p>
                 </div>
                 <div>
