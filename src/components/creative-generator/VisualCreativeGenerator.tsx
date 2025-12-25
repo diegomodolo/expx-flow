@@ -6,7 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useVisualCreatives } from "@/hooks/useVisualCreatives";
+import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { CreativeData } from "./CreativeGenerator";
+import { NewPostModal } from "@/components/scheduling/NewPostModal";
 import { 
   Wand2, 
   Download, 
@@ -16,7 +18,8 @@ import {
   CheckCircle, 
   AlertTriangle,
   Image as ImageIcon,
-  Copy
+  Copy,
+  CalendarPlus
 } from "lucide-react";
 
 interface VisualCreativeGeneratorProps {
@@ -28,9 +31,11 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const { toast } = useToast();
   const { activeCompany } = useCompany();
   const { createCreative } = useVisualCreatives();
+  const { pages, instagramAccounts } = useFacebookPages();
 
   const handleGenerateImage = async () => {
     setIsGenerating(true);
@@ -356,6 +361,15 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
                   <RefreshCw className="w-4 h-4" />
                   Gerar Nova Versão
                 </Button>
+
+                <Button 
+                  onClick={() => setShowScheduleModal(true)}
+                  variant="secondary"
+                  className="gap-2"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                  Agendar Publicação
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -384,6 +398,17 @@ export function VisualCreativeGenerator({ data, onImageGenerated }: VisualCreati
           )}
         </div>
       )}
+
+      {/* Modal de Agendamento */}
+      <NewPostModal
+        open={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        pages={pages}
+        instagramAccounts={instagramAccounts}
+        initialMediaUrls={data.generatedImageUrl ? [data.generatedImageUrl] : []}
+        initialCaption={data.context.caption || ''}
+        initialClientId={data.clientId}
+      />
     </div>
   );
 }
