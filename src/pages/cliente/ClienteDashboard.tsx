@@ -247,40 +247,22 @@ export function ClienteDashboard({
 
       {/* Performance Metrics - First Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        {/* Funnel Completeness Score Card */}
+        {/* Valor Total Investido Card - DESTAQUE */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Completude do Funil</p>
-                <p className="text-2xl font-bold text-card-foreground">{funnelCompletenessScore}%</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Investido</p>
+                <p className="text-2xl font-bold text-card-foreground">
+                  R$ {totalInvested.toFixed(2)}
+                </p>
                 <div className="flex items-center space-x-1 mt-1">
-                  {funnelCompletenessScore >= 80 ? (
-                    <>
-                      <TrendingUp className="w-3 h-3 text-green-500" />
-                      <span className="text-xs text-green-500">excelente</span>
-                    </>
-                  ) : funnelCompletenessScore >= 50 ? (
-                    <>
-                      <BarChart3 className="w-3 h-3 text-yellow-500" />
-                      <span className="text-xs text-yellow-500">boa</span>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="w-3 h-3 text-red-500" />
-                      <span className="text-xs text-red-500">precisa melhorar</span>
-                    </>
-                  )}
+                  <TrendingUp className="w-3 h-3 text-blue-500" />
+                  <span className="text-xs text-blue-500">{syncPeriodDays} dias</span>
                 </div>
               </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                funnelCompletenessScore >= 80 ? 'bg-green-100 dark:bg-green-900/30' :
-                funnelCompletenessScore >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-red-100 dark:bg-red-900/30'
-              }`}>
-                <BarChart3 className={`w-6 h-6 ${
-                  funnelCompletenessScore >= 80 ? 'text-green-600' :
-                  funnelCompletenessScore >= 50 ? 'text-yellow-600' : 'text-red-600'
-                }`} />
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -304,19 +286,22 @@ export function ClienteDashboard({
           </CardContent>
         </Card>
 
+        {/* CPL Médio Card - DESTAQUE */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Campanhas Ativas</p>
-                <p className="text-2xl font-bold text-card-foreground">{activeCampaigns}</p>
+                <p className="text-sm font-medium text-muted-foreground">CPL Médio</p>
+                <p className="text-2xl font-bold text-green-600">
+                  R$ {client.avg_cpl.toFixed(2)}
+                </p>
                 <div className="flex items-center space-x-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-500" />
-                  <span className="text-xs text-green-500">esta semana</span>
+                  <TrendingDown className="w-3 h-3 text-green-500" />
+                  <span className="text-xs text-green-500">vs mês anterior</span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Play className="w-6 h-6 text-green-600" />
+                <DollarSign className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -325,36 +310,42 @@ export function ClienteDashboard({
 
       {/* Financial Metrics - Second Row - Total + Platform Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {/* CPL Médio Card */}
+        {/* Completude do Funil Card - menor */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">CPL Médio</p>
-                <p className="text-xl font-bold text-green-600">
-                  R$ {client.avg_cpl.toFixed(2)}
+                <p className="text-xs font-medium text-muted-foreground">Completude Funil</p>
+                <p className={`text-xl font-bold ${
+                  funnelCompletenessScore >= 80 ? 'text-green-600' :
+                  funnelCompletenessScore >= 50 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {funnelCompletenessScore}%
                 </p>
               </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-green-600" />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                funnelCompletenessScore >= 80 ? 'bg-green-100' :
+                funnelCompletenessScore >= 50 ? 'bg-yellow-100' : 'bg-red-100'
+              }`}>
+                <BarChart3 className={`w-5 h-5 ${
+                  funnelCompletenessScore >= 80 ? 'text-green-600' :
+                  funnelCompletenessScore >= 50 ? 'text-yellow-600' : 'text-red-600'
+                }`} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Valor Total Investido Card */}
+        {/* Campanhas Ativas Card - menor */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Total Investido</p>
-                <p className="text-xl font-bold text-card-foreground">
-                  R$ {totalInvested.toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground">{syncPeriodDays} dias</p>
+                <p className="text-xs font-medium text-muted-foreground">Campanhas Ativas</p>
+                <p className="text-xl font-bold text-card-foreground">{activeCampaigns}</p>
               </div>
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Play className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
