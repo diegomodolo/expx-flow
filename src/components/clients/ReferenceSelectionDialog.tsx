@@ -18,7 +18,8 @@ interface CreativeReference {
 interface ReferenceSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  clientId: string;
+  clientId?: string;
+  instagramAccountId?: string;
   companyId: string;
   onSelect: (images: string[]) => void;
   maxSelections?: number;
@@ -28,6 +29,7 @@ export function ReferenceSelectionDialog({
   open,
   onOpenChange,
   clientId,
+  instagramAccountId,
   companyId,
   onSelect,
   maxSelections = 3
@@ -42,10 +44,10 @@ export function ReferenceSelectionDialog({
   const { toast } = useToast();
 
   useEffect(() => {
-    if (open && clientId && companyId) {
+    if (open && companyId) {
       fetchReferences();
     }
-  }, [open, clientId, companyId]);
+  }, [open, clientId, instagramAccountId, companyId]);
 
   const fetchReferences = async () => {
     setLoading(true);
@@ -53,7 +55,7 @@ export function ReferenceSelectionDialog({
     
     try {
       const { data, error } = await supabase.functions.invoke('fetch-creative-references', {
-        body: { clientId, companyId }
+        body: { clientId, instagramAccountId, companyId }
       });
 
       if (error) throw error;

@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 
 interface AutoPostReferenceImagesProps {
   configId?: string;
-  clientId: string;
+  clientId?: string;
+  instagramAccountId?: string;
   companyId: string;
   referenceImage1: string | null;
   referenceImage2: string | null;
@@ -23,6 +24,7 @@ interface AutoPostReferenceImagesProps {
 export function AutoPostReferenceImages({
   configId,
   clientId,
+  instagramAccountId,
   companyId,
   referenceImage1,
   referenceImage2,
@@ -249,6 +251,7 @@ export function AutoPostReferenceImages({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         clientId={clientId}
+        instagramAccountId={instagramAccountId}
         companyId={companyId}
         onSelect={handleImportSelect}
         maxSelections={emptySlots > 0 ? emptySlots : 3}
