@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
     }
 
     // Generate image prompt based on post briefing ONLY (ignoring client ai_briefing)
+    // The AI analyzes the briefing to determine if it should generate typographic or visual content
     const imagePromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -170,17 +171,27 @@ Deno.serve(async (req) => {
             role: 'system',
             content: `Você é um especialista em direção de arte para Instagram.
 
-Gere um prompt em INGLÊS focado 100% em elementos VISUAIS.
+Analise o briefing do usuário e determine automaticamente o TIPO de imagem a gerar:
 
-REGRAS OBRIGATÓRIAS:
-- NUNCA peça para colocar texto, frases, letras, números, tipografia, "quotes" ou @usuários na imagem
-- NUNCA descreva palavras que devem aparecer na arte
-- Descreva apenas: cenário/objetos, iluminação, cores, estilo, mood e composição
-- O resultado deve funcionar em 1:1 (quadrado) e ser Instagram-ready`
+TIPO A - TIPOGRÁFICO (quando o briefing menciona frases, citações, quotes, textos motivacionais, mensagens, reflexões):
+- Descreva uma imagem com TEXTO/FRASE visível
+- Especifique: cor de fundo, estilo tipográfico (fonte, peso, tamanho), cores do texto, layout
+- Exemplo: "Dark background with large bold sans-serif motivational quote in cyan color..."
+
+TIPO B - VISUAL (quando o briefing pede fotos, produtos, cenários, ilustrações, sem menção a texto):
+- Descreva apenas elementos visuais SEM texto
+- Especifique: cenário, objetos, iluminação, cores, estilo, composição
+- Exemplo: "Professional product photography with soft lighting..."
+
+REGRAS:
+- Gere o prompt em INGLÊS
+- Formato quadrado 1:1 para Instagram
+- Adapte-se 100% ao que o briefing pede
+- Seja específico sobre cores, estilos e composição`
           },
           {
             role: 'user',
-            content: `Crie UM prompt para gerar uma imagem (sem texto) de post Instagram com base nestes dados:
+            content: `Crie UM prompt para gerar uma imagem de post Instagram:
 
 BRIEFING DA POSTAGEM:
 ${config.post_briefing}
@@ -188,16 +199,12 @@ ${config.post_briefing}
 SETOR: ${client.sector}
 PÚBLICO-ALVO: ${client.target_audience || 'Geral'}
 
-Requisitos:
-- Formato quadrado 1:1 para Instagram feed
-- Visual profissional e atraente
-- Cores e estilo alinhados ao setor ${client.sector}
-- SEM texto/letters/numbers/symbols na imagem
+Analise o briefing acima e gere o prompt adequado (tipográfico se pede frases/textos, visual se pede fotos/imagens).
 
 Responda APENAS com o prompt em inglês.`
           }
         ],
-        max_completion_tokens: 220
+        max_completion_tokens: 300
       }),
     });
 
@@ -207,10 +214,10 @@ Responda APENAS com o prompt em inglês.`
 
     const imagePromptData = await imagePromptResponse.json();
     const imagePrompt = imagePromptData.choices[0].message.content.trim();
-    console.log('Generated image prompt:', imagePrompt.substring(0, 100) + '...');
+    console.log('Generated image prompt:', imagePrompt.substring(0, 200) + '...');
 
-    // Generate image with Gemini Nano Banana (google/gemini-2.5-flash-image-preview)
-    console.log('Generating image with Gemini Nano Banana...');
+    // Generate image with Gemini (google/gemini-3-pro-image-preview for better text rendering)
+    console.log('Generating image with Gemini...');
     console.log('Reference images to send:', referenceImages.length);
     
     // Build message content with reference images
@@ -224,17 +231,19 @@ Responda APENAS com o prompt em inglês.`
       });
     }
     
-    // Add the text prompt
+    // Add the text prompt - flexible based on what GPT determined
     const geminiPrompt = `Generate a square 1:1 Instagram feed image.
 
 ${imagePrompt}
 
-${referenceImages.length > 0 ? 'IMPORTANT: Use the reference images above as style guide. Match their visual identity, color palette, and aesthetic style.' : ''}
+${referenceImages.length > 0 ? `CRITICAL - REFERENCE IMAGES PROVIDED:
+Study the reference images above carefully and match their EXACT visual style:
+- If references contain text/typography → include text with same style (fonts, colors, layout)
+- If references are photographs → create similar photographic content
+- Match their color palette, aesthetic, and overall design language
+- The generated image should look like it belongs to the same visual brand` : ''}
 
-STRICT RULES:
-- DO NOT include any text, letters, numbers, symbols, typography, quotes, watermarks, logos, or @handles.
-- If the prompt above mentions any text/quotes/typography/@handles, IGNORE those parts.
-- Return an image only.`;
+Generate the image now. Return image only.`;
 
     messageContent.push({
       type: 'text',
@@ -248,7 +257,7 @@ STRICT RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: 'google/gemini-3-pro-image-preview',
         messages: [
           {
             role: 'user',
@@ -278,16 +287,16 @@ STRICT RULES:
       const msg = geminiData?.choices?.[0]?.message;
       console.warn('Gemini returned no images. Content was:', typeof msg?.content === 'string' ? msg.content.slice(0, 500) : msg?.content);
 
+      // Retry with a simpler prompt but still flexible
       const retryPrompt = `Generate a square 1:1 Instagram feed image.
 
-Theme: ${config.post_briefing}
+Theme/Briefing: ${config.post_briefing}
 Industry: ${client.sector}
 Audience: ${client.target_audience || 'General'}
 
-STRICT RULES:
-- Image only. No text/letters/numbers/symbols.
-- No logos, no watermarks.
-- Photo-realistic, professional, Instagram-ready.`;
+Create a professional, Instagram-ready image based on the theme above.
+If the theme mentions quotes/phrases/text, include readable text in the image.
+If the theme is about products/photos/visuals, create that without text.`;
 
       const retryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -296,7 +305,7 @@ STRICT RULES:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-image-preview',
+          model: 'google/gemini-3-pro-image-preview',
           messages: [{ role: 'user', content: retryPrompt }],
           modalities: ['image', 'text']
         }),
