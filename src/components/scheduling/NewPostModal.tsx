@@ -28,6 +28,10 @@ interface NewPostModalProps {
   initialDate?: Date | null;
   pages: FacebookPage[];
   instagramAccounts: InstagramAccount[];
+  // Props para pré-preenchimento (vindo do gerador de criativos)
+  initialMediaUrls?: string[];
+  initialCaption?: string;
+  initialClientId?: string;
 }
 
 type ContentType = 'image' | 'video' | 'carousel' | 'reel';
@@ -46,6 +50,9 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   initialDate,
   pages,
   instagramAccounts,
+  initialMediaUrls,
+  initialCaption,
+  initialClientId,
 }) => {
   const { createPost, updatePost } = useScheduledPosts();
   const { clients } = useClients();
@@ -94,22 +101,25 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
         setScheduledDate(new Date(post.scheduled_at));
         setScheduledTime(format(new Date(post.scheduled_at), 'HH:mm'));
       } else {
-        // New post mode
+        // New post mode - use initial values if provided (from creative generator)
         setContentType('image');
-        setCaption('');
-        setMediaUrls([]);
+        setCaption(initialCaption || '');
+        setMediaUrls(initialMediaUrls || []);
         setSelectedPlatforms([]);
         setSelectedFacebookPage('');
         setSelectedInstagramAccount('');
-        setSelectedClient('');
+        setSelectedClient(initialClientId || '');
         setScheduledDate(initialDate || new Date());
         setScheduledTime('12:00');
       }
     }
-  }, [open, post, initialDate]);
+  }, [open, post, initialDate, initialMediaUrls, initialCaption, initialClientId]);
 
-  // Clear media when content type changes
+  // Clear media when content type changes (but not on initial render with prefilled media)
+  const [hasInitialMedia] = useState(() => (initialMediaUrls?.length ?? 0) > 0);
   useEffect(() => {
+    // Skip clearing media on first content type set if we have initial media
+    if (hasInitialMedia && mediaUrls.length > 0 && contentType === 'image') return;
     setMediaUrls([]);
   }, [contentType]);
 
