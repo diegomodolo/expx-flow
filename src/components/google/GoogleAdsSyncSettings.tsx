@@ -193,7 +193,7 @@ export function GoogleAdsSyncSettings() {
                   setExecutionsPerDay(parseInt(value));
                   setHasChanges(true);
                 }}
-                disabled={!isEnabled || loading}
+                disabled={loading}
               >
                 <SelectTrigger>
                   <SelectValue />
