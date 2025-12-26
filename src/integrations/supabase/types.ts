@@ -1782,15 +1782,21 @@ export type Database = {
           id: string
           imported_at: string | null
           logradouro: string | null
+          mei_option: string | null
           municipio: string | null
           natureza_juridica: string | null
           nome_fantasia: string | null
           numero: string | null
+          partner_cpf: string | null
+          partner_name: string | null
+          partner_role: string | null
           phone: string | null
           phone_2: string | null
           phone_3: string | null
           porte: string | null
           razao_social: string | null
+          simples_option: string | null
+          simples_option_date: string | null
           situacao_cadastral: string | null
           source: string | null
           uf: string | null
@@ -1813,15 +1819,21 @@ export type Database = {
           id?: string
           imported_at?: string | null
           logradouro?: string | null
+          mei_option?: string | null
           municipio?: string | null
           natureza_juridica?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          partner_cpf?: string | null
+          partner_name?: string | null
+          partner_role?: string | null
           phone?: string | null
           phone_2?: string | null
           phone_3?: string | null
           porte?: string | null
           razao_social?: string | null
+          simples_option?: string | null
+          simples_option_date?: string | null
           situacao_cadastral?: string | null
           source?: string | null
           uf?: string | null
@@ -1844,15 +1856,21 @@ export type Database = {
           id?: string
           imported_at?: string | null
           logradouro?: string | null
+          mei_option?: string | null
           municipio?: string | null
           natureza_juridica?: string | null
           nome_fantasia?: string | null
           numero?: string | null
+          partner_cpf?: string | null
+          partner_name?: string | null
+          partner_role?: string | null
           phone?: string | null
           phone_2?: string | null
           phone_3?: string | null
           porte?: string | null
           razao_social?: string | null
+          simples_option?: string | null
+          simples_option_date?: string | null
           situacao_cadastral?: string | null
           source?: string | null
           uf?: string | null

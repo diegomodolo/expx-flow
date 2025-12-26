@@ -59,6 +59,12 @@ const CNAE_LEAD_FIELDS = [
   { key: 'situacao_cadastral', label: 'Situação Cadastral', required: false },
   { key: 'data_situacao', label: 'Data Situação', required: false },
   { key: 'data_abertura', label: 'Data Abertura', required: false },
+  { key: 'simples_option', label: 'Optante Simples Nacional', required: false },
+  { key: 'simples_option_date', label: 'Data Opção Simples', required: false },
+  { key: 'mei_option', label: 'Optante MEI', required: false },
+  { key: 'partner_name', label: 'Nome do Sócio/Proprietário', required: false },
+  { key: 'partner_role', label: 'Cargo do Sócio', required: false },
+  { key: 'partner_cpf', label: 'CPF do Sócio', required: false },
 ];
 
 type Step = 'upload' | 'mapping' | 'confirm';
@@ -170,6 +176,17 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
         else if (headerLower.includes('situacao') && headerLower.includes('cadastral')) autoMapping[header] = 'situacao_cadastral';
         else if (headerLower.includes('data') && headerLower.includes('situacao')) autoMapping[header] = 'data_situacao';
         else if (headerLower.includes('abertura') || (headerLower.includes('inicio') && headerLower.includes('atividade'))) autoMapping[header] = 'data_abertura';
+        // Simples Nacional e MEI
+        else if ((headerLower.includes('simples') || headerLower.includes('sn')) && (headerLower.includes('opcao') || headerLower.includes('optante'))) autoMapping[header] = 'simples_option';
+        else if (headerLower.includes('simples') && headerLower.includes('data')) autoMapping[header] = 'simples_option_date';
+        else if (headerLower.includes('mei') && (headerLower.includes('opcao') || headerLower.includes('optante'))) autoMapping[header] = 'mei_option';
+        // Sócio/Proprietário
+        else if ((headerLower.includes('socio') || headerLower.includes('proprietario') || headerLower.includes('responsavel')) && 
+                 (headerLower.includes('nome') || !headerLower.includes('cpf') && !headerLower.includes('cargo') && !headerLower.includes('qualificacao'))) autoMapping[header] = 'partner_name';
+        else if ((headerLower.includes('socio') || headerLower.includes('proprietario') || headerLower.includes('responsavel')) && 
+                 (headerLower.includes('cargo') || headerLower.includes('qualificacao') || headerLower.includes('funcao'))) autoMapping[header] = 'partner_role';
+        else if ((headerLower.includes('socio') || headerLower.includes('proprietario') || headerLower.includes('responsavel')) && 
+                 headerLower.includes('cpf')) autoMapping[header] = 'partner_cpf';
       });
 
       setFieldMapping(autoMapping);
