@@ -316,7 +316,7 @@ serve(async (req) => {
         const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
         
         const lookalikeSpec: any = {
-          origin_audience_id: originAudienceId,
+          origin: [originAudienceId],
           starting_ratio: 0,
           ratio: targetRatio,
           country: targetCountry,
@@ -329,10 +329,12 @@ serve(async (req) => {
           lookalikeSpec.type = 'reach';
         }
 
+        console.log(`[manage-meta-audiences] Lookalike spec:`, JSON.stringify(lookalikeSpec));
+
         const response = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
             name,
             subtype: 'LOOKALIKE',
             lookalike_spec: JSON.stringify(lookalikeSpec),
