@@ -211,12 +211,26 @@ serve(async (req) => {
         const response = await fetch(url, { method: 'DELETE' });
         const data = await response.json();
 
+        let deletedFromMeta = true;
+        let message = 'Público excluído com sucesso';
+
         if (data.error) {
           console.error('[manage-meta-audiences] Delete error:', data.error);
-          throw new Error(data.error.message);
+          
+          // Se o público não existe mais no Meta (código 100, subcode 33), 
+          // ainda assim remover do banco local
+          if (data.error.code === 100 && data.error.error_subcode === 33) {
+            console.log(`[manage-meta-audiences] Audience ${audienceId} not found on Meta, cleaning local record`);
+            deletedFromMeta = false;
+            message = 'Público removido da lista (já não existia no Meta)';
+          } else {
+            throw new Error(data.error.message);
+          }
         }
 
-        console.log(`[manage-meta-audiences] Deleted audience: ${audienceId}`);
+        if (deletedFromMeta) {
+          console.log(`[manage-meta-audiences] Deleted audience from Meta: ${audienceId}`);
+        }
 
         // Remover do banco local
         await supabase
@@ -225,9 +239,13 @@ serve(async (req) => {
           .eq('meta_audience_id', audienceId)
           .eq('client_id', clientId);
 
+        console.log(`[manage-meta-audiences] Deleted audience from local DB: ${audienceId}`);
+
         return new Response(JSON.stringify({
           success: true,
           deleted: audienceId,
+          message,
+          deletedFromMeta,
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
