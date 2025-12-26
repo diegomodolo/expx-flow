@@ -397,6 +397,7 @@ export default function CRMPublicView() {
       <CRMDealDetailsModal
         deal={selectedDeal}
         stages={stages}
+        boards={boards}
         isOpen={dealDetailsModalOpen}
         onClose={() => {
           setDealDetailsModalOpen(false);
