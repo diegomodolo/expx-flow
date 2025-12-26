@@ -4,6 +4,7 @@ import { GeneralSettings } from "@/components/crm/settings/GeneralSettings";
 import { TagsSettings } from "@/components/crm/settings/TagsSettings";
 import { GoalsSettings } from "@/components/crm/settings/GoalsSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
+import { UsersSettings } from "@/components/crm/settings/UsersSettings";
 import { useEffect } from "react";
 
 interface ClienteCRMSettingsProps {
@@ -33,6 +34,8 @@ export function ClienteCRMSettings({ workspaceId, workspaceToken }: ClienteCRMSe
         return <GoalsSettings workspaceId={workspaceId} />;
       case "funil":
         return <PipelineSettings workspaceId={workspaceId} />;
+      case "usuarios":
+        return <UsersSettings workspaceId={workspaceId} />;
       default:
         return <GeneralSettings workspaceId={workspaceId} />;
     }

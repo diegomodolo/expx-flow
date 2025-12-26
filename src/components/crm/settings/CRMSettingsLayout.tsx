@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Settings, Tag, Target, GitBranch, LucideIcon } from "lucide-react";
+import { Settings, Tag, Target, GitBranch, Users, LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface SettingsNavItem {
@@ -34,6 +34,12 @@ const settingsNavItems: SettingsNavItem[] = [
     icon: GitBranch,
     path: "funil",
     description: "Gerenciar quadros e estágios",
+  },
+  {
+    title: "Usuários",
+    icon: Users,
+    path: "usuarios",
+    description: "Gerenciar usuários do CRM",
   },
 ];
 
