@@ -223,3 +223,6 @@ verify_jwt = true
 
 [functions.fetch-meta-videos]
 verify_jwt = true
+
+[functions.fetch-instagram-media]
+verify_jwt = true
