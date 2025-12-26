@@ -153,10 +153,11 @@ export function UploadLeadsModal({
     return manualData.filter((u) => u.email || u.phone);
   };
 
-  // Fetch leads from segment with pagination
+  // Fetch leads from segment with pagination and batched queries
   const fetchLeadsFromSegment = async (segmentId: string): Promise<UserData[]> => {
     const users: UserData[] = [];
-    const pageSize = 1000;
+    const assignmentPageSize = 500; // Smaller to avoid URL length issues
+    const leadBatchSize = 50; // Small batch for .in() queries to avoid URL too long
     let from = 0;
     let hasMore = true;
 
@@ -166,7 +167,7 @@ export function UploadLeadsModal({
         .from('lead_segment_assignments')
         .select('lead_id')
         .eq('segment_id', segmentId)
-        .range(from, from + pageSize - 1);
+        .range(from, from + assignmentPageSize - 1);
 
       if (assignError) throw assignError;
 
@@ -177,33 +178,38 @@ export function UploadLeadsModal({
 
       const leadIds = assignments.map(a => a.lead_id);
 
-      // Get lead data
-      const { data: leads, error: leadsError } = await supabase
-        .from('lead_master_pool')
-        .select('email, phone, first_name, last_name, city, state, country, zip_code')
-        .in('id', leadIds);
+      // Batch the lead IDs to avoid URL length issues
+      for (let i = 0; i < leadIds.length; i += leadBatchSize) {
+        const batchIds = leadIds.slice(i, i + leadBatchSize);
+        
+        // Get lead data for this batch
+        const { data: leads, error: leadsError } = await supabase
+          .from('lead_master_pool')
+          .select('email, phone, first_name, last_name, city, state, country, zip_code')
+          .in('id', batchIds);
 
-      if (leadsError) throw leadsError;
+        if (leadsError) throw leadsError;
 
-      for (const lead of leads || []) {
-        if (lead.email || lead.phone) {
-          users.push({
-            email: lead.email || undefined,
-            phone: lead.phone || undefined,
-            firstName: lead.first_name || undefined,
-            lastName: lead.last_name || undefined,
-            city: lead.city || undefined,
-            state: lead.state || undefined,
-            country: lead.country || undefined,
-            zipCode: lead.zip_code || undefined,
-          });
+        for (const lead of leads || []) {
+          if (lead.email || lead.phone) {
+            users.push({
+              email: lead.email || undefined,
+              phone: lead.phone || undefined,
+              firstName: lead.first_name || undefined,
+              lastName: lead.last_name || undefined,
+              city: lead.city || undefined,
+              state: lead.state || undefined,
+              country: lead.country || undefined,
+              zipCode: lead.zip_code || undefined,
+            });
+          }
         }
       }
 
-      if (assignments.length < pageSize) {
+      if (assignments.length < assignmentPageSize) {
         hasMore = false;
       } else {
-        from += pageSize;
+        from += assignmentPageSize;
       }
     }
 
