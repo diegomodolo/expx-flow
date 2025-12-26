@@ -69,6 +69,7 @@ import LeadIntelligenceApiKeys from "./pages/LeadIntelligenceApiKeys";
 import CnaeBaseDashboard from "./pages/CnaeBaseDashboard";
 import CnaeLeadsView from "./pages/CnaeLeadsView";
 import GoogleProspectingPage from "./pages/GoogleProspectingPage";
+import InstagramProspectingPage from "./pages/InstagramProspectingPage";
 import RadarSaude from "./pages/RadarSaude";
 import Rotinas from "./pages/Rotinas";
 import AutomatizadoresHub from "./pages/AutomatizadoresHub";
@@ -436,6 +437,11 @@ const App = () => {
                   <Route path="/lead-intelligence/google-prospecting" element={
                     <ProtectedRoute>
                       <GoogleProspectingPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/lead-intelligence/instagram-prospecting" element={
+                    <ProtectedRoute>
+                      <InstagramProspectingPage />
                     </ProtectedRoute>
                   } />
                  <Route path="/alertas" element={

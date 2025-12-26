@@ -9,7 +9,8 @@ import {
   Filter,
   Brain,
   Database,
-  Globe
+  Globe,
+  Instagram
 } from "lucide-react";
 
 interface LeadIntelligenceLayoutProps {
@@ -40,6 +41,12 @@ const navItems = [
     href: "/lead-intelligence/google-prospecting",
     icon: Globe,
     description: "Prospectar leads via Google"
+  },
+  {
+    title: "Prospecção Instagram",
+    href: "/lead-intelligence/instagram-prospecting",
+    icon: Instagram,
+    description: "Prospectar via seguidores"
   },
   {
     title: "Histórico",
