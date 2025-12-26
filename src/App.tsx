@@ -68,6 +68,7 @@ import LeadIntelligenceFilters from "./pages/LeadIntelligenceFilters";
 import LeadIntelligenceApiKeys from "./pages/LeadIntelligenceApiKeys";
 import CnaeBaseDashboard from "./pages/CnaeBaseDashboard";
 import CnaeLeadsView from "./pages/CnaeLeadsView";
+import GoogleProspectingPage from "./pages/GoogleProspectingPage";
 import RadarSaude from "./pages/RadarSaude";
 import Rotinas from "./pages/Rotinas";
 import AutomatizadoresHub from "./pages/AutomatizadoresHub";
@@ -430,6 +431,11 @@ const App = () => {
                   <Route path="/lead-intelligence/cnae-base/:cnaeCode" element={
                     <ProtectedRoute>
                       <CnaeLeadsView />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/lead-intelligence/google-prospecting" element={
+                    <ProtectedRoute>
+                      <GoogleProspectingPage />
                     </ProtectedRoute>
                   } />
                  <Route path="/alertas" element={

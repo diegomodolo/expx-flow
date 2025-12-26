@@ -211,3 +211,6 @@ verify_jwt = true
 
 [functions.wordpress-auto-post-scheduler]
 verify_jwt = false
+
+[functions.prospect-google-leads]
+verify_jwt = true
