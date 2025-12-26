@@ -104,7 +104,8 @@ export function useGoogleAdsCampaignSync() {
         .not('google_account_id', 'is', null);
 
       if (options.excludeInactiveClients) {
-        query = query.neq('status', 'inativo' as any);
+        // Use 'red' which is the database enum value for inactive clients
+        query = query.neq('status', 'red');
       }
 
       const { data: clients, error } = await query;
