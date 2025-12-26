@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreVertical, Eye, Upload, Trash2, Users, Loader2, Search, X } from "lucide-react";
+import { MoreVertical, Eye, Upload, Trash2, Users, Loader2, Search, X, Copy } from "lucide-react";
 import { useState, useMemo } from "react";
 
 interface AudiencesListProps {
@@ -43,6 +43,7 @@ interface AudiencesListProps {
   onViewDetails: (audience: MetaAudience) => void;
   onUploadLeads: (audience: MetaAudience) => void;
   onDelete: (audienceId: string) => void;
+  onCreateLookalike?: (audience: MetaAudience) => void;
 }
 
 const SUBTYPE_OPTIONS = [
@@ -62,6 +63,7 @@ export function AudiencesList({
   onViewDetails,
   onUploadLeads,
   onDelete,
+  onCreateLookalike,
 }: AudiencesListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [audienceToDelete, setAudienceToDelete] = useState<MetaAudience | null>(null);
@@ -251,6 +253,12 @@ export function AudiencesList({
                           <Upload className="h-4 w-4 mr-2" />
                           Adicionar Leads
                         </DropdownMenuItem>
+                        {audience.subtype !== 'LOOKALIKE' && onCreateLookalike && (
+                          <DropdownMenuItem onClick={() => onCreateLookalike(audience)}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Criar Semelhante
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => handleDeleteClick(audience)}
                           className="text-destructive focus:text-destructive"

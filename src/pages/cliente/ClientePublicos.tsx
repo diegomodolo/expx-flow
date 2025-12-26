@@ -5,6 +5,7 @@ import { AudiencesList } from "@/components/audiences/AudiencesList";
 import { CreateAudienceModal } from "@/components/audiences/CreateAudienceModal";
 import { UploadLeadsModal } from "@/components/audiences/UploadLeadsModal";
 import { AudienceDetailsModal } from "@/components/audiences/AudienceDetailsModal";
+import { CreateLookalikeModal } from "@/components/audiences/CreateLookalikeModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, RefreshCw, Users, AlertCircle, ExternalLink } from "lucide-react";
@@ -20,12 +21,14 @@ export function ClientePublicos() {
     deleteAudience,
     getAudienceDetails,
     addUsersToAudience,
+    createLookalikeAudience,
     error,
   } = useMetaAudiences(id || null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [lookalikeModalOpen, setLookalikeModalOpen] = useState(false);
   const [selectedAudience, setSelectedAudience] = useState<MetaAudience | null>(null);
 
   useEffect(() => {
@@ -53,6 +56,24 @@ export function ClientePublicos() {
 
   const handleDeleteAudience = async (audienceId: string) => {
     await deleteAudience(audienceId);
+  };
+
+  const handleCreateLookalike = (audience: MetaAudience) => {
+    setSelectedAudience(audience);
+    setLookalikeModalOpen(true);
+  };
+
+  const handleSubmitLookalike = async (
+    originAudienceId: string,
+    name: string,
+    country: string,
+    ratio: number,
+    lookalikeType?: 'similarity' | 'reach'
+  ) => {
+    const result = await createLookalikeAudience(originAudienceId, name, country, ratio, lookalikeType);
+    if (result) {
+      setLookalikeModalOpen(false);
+    }
   };
 
   // Check if error is about missing Facebook integration
@@ -130,6 +151,7 @@ export function ClientePublicos() {
         onViewDetails={handleViewDetails}
         onUploadLeads={handleUploadLeads}
         onDelete={handleDeleteAudience}
+        onCreateLookalike={handleCreateLookalike}
       />
 
       <CreateAudienceModal
@@ -152,6 +174,14 @@ export function ClientePublicos() {
         onOpenChange={setDetailsModalOpen}
         audience={selectedAudience}
         onFetchDetails={getAudienceDetails}
+      />
+
+      <CreateLookalikeModal
+        open={lookalikeModalOpen}
+        onOpenChange={setLookalikeModalOpen}
+        originAudience={selectedAudience}
+        onSubmit={handleSubmitLookalike}
+        loading={loading}
       />
     </div>
   );

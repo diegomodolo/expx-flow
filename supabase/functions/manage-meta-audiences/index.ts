@@ -7,12 +7,17 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  action: 'list' | 'create' | 'delete' | 'get-details' | 'sync';
+  action: 'list' | 'create' | 'delete' | 'get-details' | 'sync' | 'create_lookalike';
   clientId: string;
   audienceId?: string;
   name?: string;
   description?: string;
   subtype?: string;
+  // Lookalike specific fields
+  originAudienceId?: string;
+  country?: string;
+  ratio?: number;
+  lookalikeType?: 'similarity' | 'reach';
 }
 
 serve(async (req) => {
@@ -38,7 +43,7 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { action, clientId, audienceId, name, description, subtype } = body;
+    const { action, clientId, audienceId, name, description, subtype, originAudienceId, country, ratio, lookalikeType } = body;
 
     console.log(`[manage-meta-audiences] Action: ${action}, ClientId: ${clientId}`);
 
@@ -289,6 +294,88 @@ serve(async (req) => {
             operation_status: data.operation_status,
             delivery_status: data.delivery_status,
             data_source: data.data_source,
+          },
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'create_lookalike': {
+        if (!originAudienceId) {
+          throw new Error('Origin audience ID is required');
+        }
+        if (!name) {
+          throw new Error('Name is required');
+        }
+
+        const targetCountry = country || 'BR';
+        const targetRatio = Math.min(Math.max(ratio || 1, 1), 20) / 100; // Convert 1-20 to 0.01-0.20
+
+        console.log(`[manage-meta-audiences] Creating lookalike from ${originAudienceId}, country: ${targetCountry}, ratio: ${targetRatio}`);
+
+        const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
+        
+        const lookalikeSpec: any = {
+          origin_audience_id: originAudienceId,
+          starting_ratio: 0,
+          ratio: targetRatio,
+          country: targetCountry,
+        };
+
+        // Add type if specified (similarity vs reach)
+        if (lookalikeType === 'similarity') {
+          lookalikeSpec.type = 'similarity';
+        } else if (lookalikeType === 'reach') {
+          lookalikeSpec.type = 'reach';
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            subtype: 'LOOKALIKE',
+            lookalike_spec: JSON.stringify(lookalikeSpec),
+            access_token: accessToken,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          console.error('[manage-meta-audiences] Create lookalike error:', data.error);
+          throw new Error(data.error.message);
+        }
+
+        console.log(`[manage-meta-audiences] Created lookalike audience: ${data.id}`);
+
+        // Save to local database
+        const { error: insertError } = await supabase
+          .from('meta_audiences')
+          .insert({
+            client_id: clientId,
+            company_id: client.company_id,
+            ad_account_id: adAccountId,
+            meta_audience_id: data.id,
+            name,
+            description: `Lookalike baseado em público de origem (${targetRatio * 100}% - ${targetCountry})`,
+            subtype: 'LOOKALIKE',
+            synced_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('[manage-meta-audiences] Insert lookalike error:', insertError);
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          audience: { 
+            id: data.id, 
+            name, 
+            subtype: 'LOOKALIKE',
+            origin_audience_id: originAudienceId,
+            country: targetCountry,
+            ratio: targetRatio * 100,
           },
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
