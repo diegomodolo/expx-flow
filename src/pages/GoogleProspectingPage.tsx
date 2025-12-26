@@ -97,6 +97,7 @@ export default function GoogleProspectingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProgress, setSearchProgress] = useState({ step: 0, message: "", detail: "" });
   const [progressMessages, setProgressMessages] = useState<string[]>([]);
+  const [foundCount, setFoundCount] = useState(0);
 
   // Animated progress messages
   const animationMessages = [
@@ -125,27 +126,39 @@ export default function GoogleProspectingPage() {
     setIsSearching(true);
     setLeads([]);
     setProgressMessages([]);
-    setSearchProgress({ step: 1, message: "Iniciando prospecção...", detail: `Buscando ${businessType} em ${city}/${state}` });
+    setFoundCount(0);
+    setSearchProgress({
+      step: 1,
+      message: "Iniciando prospecção...",
+      detail: `Buscando ${businessType} em ${city}/${state}`,
+    });
 
-    // Start animated messages
     let messageIndex = 0;
-    const messageInterval = setInterval(() => {
+    const intervalId = window.setInterval(() => {
       const newMessage = animationMessages[messageIndex % animationMessages.length];
-      setProgressMessages(prev => [...prev.slice(-4), newMessage]);
-      setSearchProgress(prev => ({ 
-        ...prev, 
+      setProgressMessages((prev) => [...prev.slice(-4), newMessage]);
+      setSearchProgress((prev) => ({
+        ...prev,
         step: Math.min(prev.step + 0.3, 3.5),
-        detail: newMessage 
+        detail: newMessage,
       }));
+
+      // Visual-only progress of "found" count
+      setFoundCount((prev) => {
+        const cap = Math.max(0, quantity[0] - 1);
+        const bump = Math.random() < 0.35 ? 1 : 0;
+        return Math.min(cap, prev + bump);
+      });
+
       messageIndex++;
     }, 2000);
 
     try {
-      const { data, error } = await supabase.functions.invoke('prospect-google-leads', {
-        body: { 
-          state, 
-          city, 
-          businessType, 
+      const { data, error } = await supabase.functions.invoke("prospect-google-leads", {
+        body: {
+          state,
+          city,
+          businessType,
           quantity: quantity[0],
           requirePhone,
           requireEmail,
@@ -154,35 +167,43 @@ export default function GoogleProspectingPage() {
         },
       });
 
-      clearInterval(messageInterval);
-
       if (error) throw error;
 
       setSearchProgress({ step: 4, message: "Finalizando...", detail: "Preparando resultados" });
 
-      if (data.success) {
-        const leadsWithSelection = data.leads.map((lead: ExtractedLead) => ({
-          ...lead,
-          selected: true,
-        }));
-        setLeads(leadsWithSelection);
-        setSearchQuery(data.query);
-        
+      if (!data?.success) {
+        throw new Error(data?.error || "Erro na busca");
+      }
+
+      const leadsWithSelection = (data.leads || []).map((lead: ExtractedLead) => ({
+        ...lead,
+        selected: true,
+      }));
+
+      setLeads(leadsWithSelection);
+      setFoundCount(leadsWithSelection.length);
+      setSearchQuery(data.query);
+
+      toast({
+        title: "Busca concluída",
+        description: `${leadsWithSelection.length} leads encontrados${data.requested ? ` (meta: ${data.requested})` : ""}${data.pagesSearched > 1 ? ` • ${data.pagesSearched} buscas` : ""}`,
+      });
+
+      if (data.requested && leadsWithSelection.length < data.requested) {
         toast({
-          title: "Busca concluída",
-          description: `${data.leads.length} leads encontrados${data.pagesSearched > 1 ? ` (${data.pagesSearched} buscas realizadas)` : ''}`,
+          title: "Não foi possível completar a quantidade",
+          description: `Encontrei ${leadsWithSelection.length}/${data.requested} com os filtros atuais. Tente remover um filtro ou aumentar a quantidade.`,
         });
-      } else {
-        throw new Error(data.error || "Erro na busca");
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error("Search error:", error);
       toast({
         title: "Erro na busca",
         description: error instanceof Error ? error.message : "Falha ao prospectar leads",
         variant: "destructive",
       });
     } finally {
+      window.clearInterval(intervalId);
       setIsSearching(false);
       setSearchProgress({ step: 0, message: "", detail: "" });
     }
@@ -421,9 +442,14 @@ export default function GoogleProspectingPage() {
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     Prospectando leads...
                   </span>
-                  <Badge variant="outline" className="animate-pulse">
-                    Em andamento
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-background/60">
+                      Encontrados {foundCount}/{quantity[0]}
+                    </Badge>
+                    <Badge variant="outline" className="animate-pulse">
+                      Em andamento
+                    </Badge>
+                  </div>
                 </div>
                 <Progress value={(searchProgress.step / 4) * 100} className="h-3" />
                 

@@ -28,6 +28,36 @@ interface ExtractedLead {
   source_url: string;
 }
 
+
+const normalizeNullableString = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return String(value);
+
+  const v = value.trim();
+  if (!v) return null;
+
+  const lowered = v.toLowerCase();
+  const nullish = new Set(['null', 'undefined', 'n/a', 'na', '-', '—']);
+  if (nullish.has(lowered)) return null;
+
+  return v;
+};
+
+const normalizeCnpj = (value: unknown): string | null => {
+  const v = normalizeNullableString(value);
+  if (!v) return null;
+  const digits = v.replace(/\D/g, '');
+  return digits.length === 14 ? digits : null;
+};
+
+const hasValue = (value: string | null | undefined): boolean => {
+  if (!value) return false;
+  const v = value.trim();
+  if (!v) return false;
+  const lowered = v.toLowerCase();
+  return lowered !== 'null' && lowered !== 'undefined' && lowered !== 'n/a' && lowered !== 'na' && lowered !== '-' && lowered !== '—';
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -45,9 +75,22 @@ serve(async (req) => {
       requireAddress = false,
     }: ProspectRequest = await req.json();
 
-    if (!state || !city || !businessType) {
+    const safeState = normalizeNullableString(state)?.toUpperCase();
+    const safeCity = normalizeNullableString(city);
+    const safeBusinessType = normalizeNullableString(businessType);
+
+    const requestedQty = Math.min(50, Math.max(1, Number.isFinite(quantity) ? Math.floor(quantity) : 10));
+
+    if (!safeState || !safeCity || !safeBusinessType) {
       return new Response(
         JSON.stringify({ success: false, error: 'state, city e businessType são obrigatórios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (safeCity.length > 80 || safeBusinessType.length > 80) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'city e businessType são muito longos' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -73,17 +116,18 @@ serve(async (req) => {
     const extractedLeads: ExtractedLead[] = [];
     let searchPage = 0;
     const maxPages = 5; // Limit to prevent infinite loops
+
     const searchVariations = [
-      `${businessType} em ${city} ${state} contato telefone email`,
-      `${businessType} ${city} ${state} site telefone`,
-      `lista ${businessType} ${city} ${state}`,
-      `${businessType} perto de ${city} ${state} endereço`,
-      `melhores ${businessType} ${city} ${state} contato`,
+      `${safeBusinessType} em ${safeCity} ${safeState} contato telefone email`,
+      `${safeBusinessType} ${safeCity} ${safeState} site telefone`,
+      `lista ${safeBusinessType} ${safeCity} ${safeState}`,
+      `${safeBusinessType} perto de ${safeCity} ${safeState} endereço`,
+      `melhores ${safeBusinessType} ${safeCity} ${safeState} contato`,
     ];
 
     // Keep searching until we have enough leads or exhausted search variations
-    while (extractedLeads.length < quantity && searchPage < maxPages) {
-      const searchQuery = searchVariations[searchPage] || `${businessType} em ${city} ${state} página ${searchPage + 1}`;
+    while (extractedLeads.length < requestedQty && searchPage < maxPages) {
+      const searchQuery = searchVariations[searchPage] || `${safeBusinessType} em ${safeCity} ${safeState} página ${searchPage + 1}`;
       console.log(`Search page ${searchPage + 1}, query:`, searchQuery);
 
       // Search using Firecrawl
@@ -121,7 +165,7 @@ serve(async (req) => {
 
       // Process each result with Lovable AI
       for (const result of searchData.data) {
-        if (extractedLeads.length >= quantity) break;
+        if (extractedLeads.length >= requestedQty) break;
         if (!result.markdown && !result.description) continue;
 
         const content = result.markdown || result.description || '';
@@ -201,28 +245,34 @@ Extraia as informações da empresa.`
 
           if (toolCall?.function?.arguments) {
             const extractedData = JSON.parse(toolCall.function.arguments);
-            
-            // Only add if we have at least a name
-            if (extractedData.nome_fantasia) {
-              const lead: ExtractedLead = {
-                ...extractedData,
-                source_url: url,
-                website: extractedData.website || url,
-              };
 
-              // Check if lead meets filter requirements
-              const meetsRequirements = 
-                (!requirePhone || lead.phone) &&
-                (!requireEmail || lead.email) &&
-                (!requireWebsite || lead.website) &&
-                (!requireAddress || lead.endereco);
+            const nomeFantasia = normalizeNullableString(extractedData.nome_fantasia);
+            if (!hasValue(nomeFantasia)) continue;
 
-              if (meetsRequirements) {
-                extractedLeads.push(lead);
-                console.log('Added lead:', extractedData.nome_fantasia, `(${extractedLeads.length}/${quantity})`);
-              } else {
-                console.log('Skipped lead (missing required fields):', extractedData.nome_fantasia);
-              }
+            const lead: ExtractedLead = {
+              nome_fantasia: nomeFantasia,
+              razao_social: normalizeNullableString(extractedData.razao_social),
+              website: normalizeNullableString(extractedData.website),
+              phone: normalizeNullableString(extractedData.phone),
+              phone_2: normalizeNullableString(extractedData.phone_2),
+              email: normalizeNullableString(extractedData.email),
+              endereco: normalizeNullableString(extractedData.endereco),
+              cnpj: normalizeCnpj(extractedData.cnpj),
+              source_url: url,
+            };
+
+            // Check if lead meets filter requirements
+            const meetsRequirements = 
+              (!requirePhone || hasValue(lead.phone) || hasValue(lead.phone_2)) &&
+              (!requireEmail || hasValue(lead.email)) &&
+              (!requireWebsite || hasValue(lead.website)) &&
+              (!requireAddress || hasValue(lead.endereco));
+
+            if (meetsRequirements) {
+              extractedLeads.push(lead);
+              console.log('Added lead:', lead.nome_fantasia, `(${extractedLeads.length}/${requestedQty})`);
+            } else {
+              console.log('Skipped lead (missing required fields):', lead.nome_fantasia);
             }
           }
         } catch (aiError) {
@@ -241,6 +291,7 @@ Extraia as informações da empresa.`
         success: true, 
         leads: extractedLeads,
         total: extractedLeads.length,
+        requested: requestedQty,
         query: searchVariations[0],
         pagesSearched: searchPage,
       }),
