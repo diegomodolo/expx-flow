@@ -8333,6 +8333,7 @@ export type Database = {
           lead_count: number
         }[]
       }
+      get_cnae_total: { Args: { p_company_id: string }; Returns: number }
       get_user_company_ids: {
         Args: { _user_id: string }
         Returns: {
