@@ -43,55 +43,76 @@ export function InstagramMediaSelector({
   onSelect,
 }: InstagramMediaSelectorProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [instagramAccount, setInstagramAccount] = useState<{id: string, username: string} | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const { toast } = useToast();
 
-  const fetchInstagramMedia = useCallback(async () => {
+  const fetchInstagramMedia = useCallback(async (cursor?: string) => {
     if (!clientId) return;
 
-    setLoading(true);
-    setMedia([]);
-    setSelectedMedia([]);
+    const isLoadingMore = !!cursor;
+    if (isLoadingMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setMedia([]);
+      setSelectedMedia([]);
+    }
 
     try {
-      // First get the client's Instagram account
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('instagram_account_id, instagram_accounts:instagram_account_id(instagram_id, username)')
-        .eq('id', clientId)
-        .single();
+      // First get the client's Instagram account (only on initial load)
+      let igAccountId = instagramAccount?.id;
+      
+      if (!igAccountId) {
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('instagram_account_id, instagram_accounts:instagram_account_id(instagram_id, username)')
+          .eq('id', clientId)
+          .single();
 
-      if (clientError) throw clientError;
+        if (clientError) throw clientError;
 
-      if (!clientData?.instagram_account_id) {
-        toast({
-          title: 'Instagram não configurado',
-          description: 'Este cliente não tem uma conta do Instagram vinculada.',
-          variant: 'destructive',
-        });
-        onOpenChange(false);
-        return;
+        if (!clientData?.instagram_account_id) {
+          toast({
+            title: 'Instagram não configurado',
+            description: 'Este cliente não tem uma conta do Instagram vinculada.',
+            variant: 'destructive',
+          });
+          onOpenChange(false);
+          return;
+        }
+
+        const igAccount = clientData.instagram_accounts as any;
+        setInstagramAccount({ id: igAccount.instagram_id, username: igAccount.username });
+        igAccountId = igAccount.instagram_id;
       }
-
-      const igAccount = clientData.instagram_accounts as any;
-      setInstagramAccount({ id: igAccount.instagram_id, username: igAccount.username });
 
       // Fetch media from Instagram
       const { data, error } = await supabase.functions.invoke('fetch-instagram-media', {
         body: {
           clientId,
-          instagramId: igAccount.instagram_id,
+          instagramId: igAccountId,
           mediaType: mediaType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
-          limit: 30,
+          limit: 24,
+          after: cursor,
         },
       });
 
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
-      setMedia(data.media || []);
+      if (isLoadingMore) {
+        setMedia(prev => [...prev, ...(data.media || [])]);
+      } else {
+        setMedia(data.media || []);
+      }
+      
+      setNextCursor(data.nextCursor || null);
+      setHasMore(data.hasMore || false);
     } catch (err: any) {
       console.error('Error fetching Instagram media:', err);
       toast({
@@ -101,14 +122,24 @@ export function InstagramMediaSelector({
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [clientId, mediaType, toast, onOpenChange]);
+  }, [clientId, mediaType, toast, onOpenChange, instagramAccount]);
+
+  const handleLoadMore = () => {
+    if (nextCursor && !loadingMore) {
+      fetchInstagramMedia(nextCursor);
+    }
+  };
 
   useEffect(() => {
     if (open) {
+      setInstagramAccount(null);
+      setNextCursor(null);
+      setHasMore(false);
       fetchInstagramMedia();
     }
-  }, [open, fetchInstagramMedia]);
+  }, [open]);
 
   const toggleSelection = (mediaUrl: string) => {
     setSelectedMedia(prev => {
@@ -179,66 +210,90 @@ export function InstagramMediaSelector({
             </div>
           ) : (
             <ScrollArea className="h-[450px]">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-1">
-                {media.map((item) => {
-                  const isSelected = selectedMedia.includes(item.media_url);
-                  const thumbnailUrl = item.thumbnail_url || item.media_url;
-                  
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => toggleSelection(item.media_url)}
-                      className={cn(
-                        'relative aspect-square rounded-lg overflow-hidden cursor-pointer group transition-all',
-                        'border-2',
-                        isSelected 
-                          ? 'border-primary ring-2 ring-primary/30' 
-                          : 'border-transparent hover:border-muted-foreground/30'
-                      )}
-                    >
-                      <img
-                        src={thumbnailUrl}
-                        alt={item.caption?.slice(0, 50) || 'Instagram media'}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      
-                      {/* Selection indicator */}
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
-                          <div className="bg-primary text-primary-foreground rounded-full p-1.5">
-                            <Check className="h-4 w-4" />
+              <div className="p-1">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {media.map((item) => {
+                    const isSelected = selectedMedia.includes(item.media_url);
+                    const thumbnailUrl = item.thumbnail_url || item.media_url;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleSelection(item.media_url)}
+                        className={cn(
+                          'relative aspect-square rounded-lg overflow-hidden cursor-pointer group transition-all',
+                          'border-2',
+                          isSelected 
+                            ? 'border-primary ring-2 ring-primary/30' 
+                            : 'border-transparent hover:border-muted-foreground/30'
+                        )}
+                      >
+                        <img
+                          src={thumbnailUrl}
+                          alt={item.caption?.slice(0, 50) || 'Instagram media'}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        
+                        {/* Selection indicator */}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                            <div className="bg-primary text-primary-foreground rounded-full p-1.5">
+                              <Check className="h-4 w-4" />
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Video indicator */}
-                      {item.media_type === 'VIDEO' && (
-                        <div className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded">
-                          <Play className="h-3 w-3" />
-                        </div>
-                      )}
+                        {/* Video indicator */}
+                        {item.media_type === 'VIDEO' && (
+                          <div className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded">
+                            <Play className="h-3 w-3" />
+                          </div>
+                        )}
 
-                      {/* Carousel indicator */}
-                      {item.media_type === 'CAROUSEL_ALBUM' && (
-                        <div className="absolute top-2 right-2 bg-black/60 text-white px-1.5 py-0.5 rounded text-xs">
-                          📷+
-                        </div>
-                      )}
+                        {/* Carousel indicator */}
+                        {item.media_type === 'CAROUSEL_ALBUM' && (
+                          <div className="absolute top-2 right-2 bg-black/60 text-white px-1.5 py-0.5 rounded text-xs">
+                            📷+
+                          </div>
+                        )}
 
-                      {/* Hover info */}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-white text-xs truncate">
-                          {item.caption?.slice(0, 40) || 'Sem legenda'}
-                          {item.caption && item.caption.length > 40 ? '...' : ''}
-                        </p>
-                        <p className="text-white/70 text-xs">
-                          {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: ptBR })}
-                        </p>
+                        {/* Hover info */}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-white text-xs truncate">
+                            {item.caption?.slice(0, 40) || 'Sem legenda'}
+                            {item.caption && item.caption.length > 40 ? '...' : ''}
+                          </p>
+                          <p className="text-white/70 text-xs">
+                            {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: ptBR })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                
+                {/* Load More Button */}
+                {hasMore && (
+                  <div className="flex justify-center mt-4 pb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Carregando...
+                        </>
+                      ) : (
+                        'Carregar mais'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             </ScrollArea>
           )}

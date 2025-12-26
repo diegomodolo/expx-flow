@@ -16,9 +16,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { clientId, instagramId, mediaType, limit = 30 } = await req.json();
+    const { clientId, instagramId, mediaType, limit = 30, after } = await req.json();
 
-    console.log(`Fetching Instagram media for client ${clientId}, IG: ${instagramId}, type: ${mediaType}`);
+    console.log(`Fetching Instagram media for client ${clientId}, IG: ${instagramId}, type: ${mediaType}, after: ${after || 'none'}`);
 
     if (!clientId || !instagramId) {
       return new Response(
@@ -63,8 +63,13 @@ serve(async (req) => {
     // Build fields for the API request
     const fields = "id,media_type,media_url,thumbnail_url,caption,timestamp,permalink";
     
-    // Fetch media from Instagram Graph API
-    const apiUrl = `https://graph.facebook.com/v21.0/${instagramId}/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`;
+    // Fetch media from Instagram Graph API with pagination support
+    let apiUrl = `https://graph.facebook.com/v21.0/${instagramId}/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`;
+    
+    // Add cursor for pagination if provided
+    if (after) {
+      apiUrl += `&after=${after}`;
+    }
     
     console.log(`Fetching from Instagram API...`);
     
@@ -80,7 +85,11 @@ serve(async (req) => {
     }
 
     let mediaItems = data.data || [];
-    console.log(`Received ${mediaItems.length} media items from Instagram`);
+    const paging = data.paging || {};
+    const nextCursor = paging.cursors?.after || null;
+    const hasMore = !!paging.next;
+    
+    console.log(`Received ${mediaItems.length} media items from Instagram, hasMore: ${hasMore}`);
 
     // Filter by media type if specified
     if (mediaType === 'VIDEO') {
@@ -127,6 +136,8 @@ serve(async (req) => {
         success: true, 
         media: processedMedia,
         count: processedMedia.length,
+        nextCursor,
+        hasMore,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
