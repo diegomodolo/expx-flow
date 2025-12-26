@@ -372,10 +372,10 @@ export function CRMDealDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] w-[1400px] max-h-[90vh] p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-[90vw] w-[1400px] max-h-[90vh] p-0 gap-0 overflow-hidden bg-background">
         <div className="flex h-[85vh]">
           {/* Sidebar Menu */}
-          <div className="w-20 bg-card border-r flex flex-col items-center py-4 shrink-0">
+          <div className="w-20 bg-background border-r flex flex-col items-center py-4 shrink-0">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -408,7 +408,7 @@ export function CRMDealDetailsModal({
           {/* Main Content */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
-            <div className="flex items-center gap-4 p-4 border-b bg-card shrink-0">
+            <div className="flex items-center gap-4 p-4 border-b bg-background shrink-0">
               <Avatar className="w-14 h-14 shrink-0">
                 <AvatarFallback className="bg-orange-500 text-white text-lg">
                   {getInitials(deal.title)}
@@ -766,7 +766,7 @@ export function CRMDealDetailsModal({
               </ScrollArea>
 
               {/* Right Panel - Status + Note Input + Activity Feed */}
-              <div className="w-96 border-l bg-card flex flex-col shrink-0">
+              <div className="w-96 border-l bg-background flex flex-col shrink-0">
                 {/* Status Section */}
                 <div className="p-4 border-b space-y-3">
                   <div className="space-y-2">
