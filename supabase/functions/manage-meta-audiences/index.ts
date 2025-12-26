@@ -316,7 +316,6 @@ serve(async (req) => {
         const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
         
         const lookalikeSpec: any = {
-          origin: [originAudienceId],
           starting_ratio: 0,
           ratio: targetRatio,
           country: targetCountry,
@@ -337,6 +336,7 @@ serve(async (req) => {
           body: new URLSearchParams({
             name,
             subtype: 'LOOKALIKE',
+            origin_audience_id: originAudienceId,
             lookalike_spec: JSON.stringify(lookalikeSpec),
             access_token: accessToken,
           }),
