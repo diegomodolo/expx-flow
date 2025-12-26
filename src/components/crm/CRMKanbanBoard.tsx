@@ -27,10 +27,14 @@ const getStatusConfig = (status: string) => {
   switch (status) {
     case 'open':
       return { label: 'Aberto', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' };
+    case 'qualified':
+      return { label: 'Qualificado', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400' };
+    case 'unqualified':
+      return { label: 'Não Qualificado', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' };
     case 'won':
       return { label: 'Ganho', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' };
     case 'lost':
-      return { label: 'Perdido', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' };
+      return { label: 'Perdido', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' };
     default:
       return { label: 'Aberto', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' };
   }
@@ -238,7 +242,10 @@ export function CRMKanbanBoard({
                                 movingDealIds.has(deal.id) && "animate-pulse ring-2 ring-primary/30"
                               )}
                               draggable
-                              onDragStart={() => setDraggedDeal(deal)}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('dealId', deal.id);
+                                setDraggedDeal(deal);
+                              }}
                               onDragEnd={() => setDraggedDeal(null)}
                               onClick={() => onCardClick(deal)}
                             >

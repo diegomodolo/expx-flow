@@ -11,7 +11,7 @@ export interface CRMDeal {
   title: string;
   value?: number | null;
   quantity?: number | null;
-  status: "open" | "won" | "lost";
+  status: "open" | "won" | "lost" | "qualified" | "unqualified";
   temperature?: "cold" | "warm" | "hot" | null;
   start_date?: string | null;
   expected_close_date?: string | null;
@@ -60,7 +60,7 @@ export interface CreateDealData {
   title: string;
   value?: number | null;
   quantity?: number;
-  status?: "open" | "won" | "lost";
+  status?: "open" | "won" | "lost" | "qualified" | "unqualified";
   temperature?: "cold" | "warm" | "hot" | null;
   expected_close_date?: string | null;
   responsible_id?: string | null;
