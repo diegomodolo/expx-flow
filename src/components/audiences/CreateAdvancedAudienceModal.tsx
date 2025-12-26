@@ -327,7 +327,7 @@ export function CreateAdvancedAudienceModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[850px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Criar Público Avançado</DialogTitle>
         </DialogHeader>
@@ -755,12 +755,12 @@ export function CreateAdvancedAudienceModal({
                                   </div>
                                 )}
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 overflow-hidden">
                                 <p className="text-sm font-medium truncate">{video.title}</p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                                   {video.length && <span>{formatVideoLength(video.length)}</span>}
                                   {video.views !== undefined && <span>{video.views.toLocaleString()} views</span>}
-                                  <span>{formatDistanceToNow(new Date(video.created_time), { addSuffix: true, locale: ptBR })}</span>
+                                  <span className="truncate">{formatDistanceToNow(new Date(video.created_time), { addSuffix: true, locale: ptBR })}</span>
                                 </div>
                               </div>
                             </div>
