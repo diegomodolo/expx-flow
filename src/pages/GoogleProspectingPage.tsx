@@ -95,7 +95,23 @@ export default function GoogleProspectingPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [leads, setLeads] = useState<ExtractedLead[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchProgress, setSearchProgress] = useState({ step: 0, message: "" });
+  const [searchProgress, setSearchProgress] = useState({ step: 0, message: "", detail: "" });
+  const [progressMessages, setProgressMessages] = useState<string[]>([]);
+
+  // Animated progress messages
+  const animationMessages = [
+    "Conectando ao Google...",
+    "Iniciando varredura de resultados...",
+    "Analisando páginas encontradas...",
+    "Extraindo informações de contato...",
+    "Processando dados com IA...",
+    "Validando telefones e emails...",
+    "Verificando websites...",
+    "Filtrando resultados inválidos...",
+    "Buscando mais resultados...",
+    "Quase lá...",
+  ];
+
   const handleSearch = async () => {
     if (!state || !city || !businessType) {
       toast({
@@ -108,32 +124,44 @@ export default function GoogleProspectingPage() {
 
     setIsSearching(true);
     setLeads([]);
-    setSearchProgress({ step: 1, message: "Iniciando busca no Google..." });
+    setProgressMessages([]);
+    setSearchProgress({ step: 1, message: "Iniciando prospecção...", detail: `Buscando ${businessType} em ${city}/${state}` });
+
+    // Start animated messages
+    let messageIndex = 0;
+    const messageInterval = setInterval(() => {
+      const newMessage = animationMessages[messageIndex % animationMessages.length];
+      setProgressMessages(prev => [...prev.slice(-4), newMessage]);
+      setSearchProgress(prev => ({ 
+        ...prev, 
+        step: Math.min(prev.step + 0.3, 3.5),
+        detail: newMessage 
+      }));
+      messageIndex++;
+    }, 2000);
 
     try {
-      setSearchProgress({ step: 2, message: "Buscando resultados via Firecrawl..." });
-      
       const { data, error } = await supabase.functions.invoke('prospect-google-leads', {
-        body: { state, city, businessType, quantity: quantity[0] },
+        body: { 
+          state, 
+          city, 
+          businessType, 
+          quantity: quantity[0],
+          requirePhone,
+          requireEmail,
+          requireWebsite,
+          requireAddress,
+        },
       });
+
+      clearInterval(messageInterval);
 
       if (error) throw error;
 
-      setSearchProgress({ step: 3, message: "Extraindo dados com IA..." });
+      setSearchProgress({ step: 4, message: "Finalizando...", detail: "Preparando resultados" });
 
       if (data.success) {
-        setSearchProgress({ step: 4, message: "Filtrando resultados..." });
-        
-        // Filter leads based on required fields
-        const filteredLeads = data.leads.filter((lead: ExtractedLead) => {
-          if (requirePhone && !lead.phone) return false;
-          if (requireEmail && !lead.email) return false;
-          if (requireWebsite && !lead.website) return false;
-          if (requireAddress && !lead.endereco) return false;
-          return true;
-        });
-        
-        const leadsWithSelection = filteredLeads.map((lead: ExtractedLead) => ({
+        const leadsWithSelection = data.leads.map((lead: ExtractedLead) => ({
           ...lead,
           selected: true,
         }));
@@ -142,7 +170,7 @@ export default function GoogleProspectingPage() {
         
         toast({
           title: "Busca concluída",
-          description: `${data.leads.length} leads encontrados`,
+          description: `${data.leads.length} leads encontrados${data.pagesSearched > 1 ? ` (${data.pagesSearched} buscas realizadas)` : ''}`,
         });
       } else {
         throw new Error(data.error || "Erro na busca");
@@ -156,7 +184,7 @@ export default function GoogleProspectingPage() {
       });
     } finally {
       setIsSearching(false);
-      setSearchProgress({ step: 0, message: "" });
+      setSearchProgress({ step: 0, message: "", detail: "" });
     }
   };
 
@@ -385,33 +413,63 @@ export default function GoogleProspectingPage() {
 
         {/* Progress Indicator */}
         {isSearching && (
-          <Card className="border-primary/20 bg-primary/5">
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 overflow-hidden">
             <CardContent className="py-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Prospectando leads...</span>
-                  <span className="text-xs text-muted-foreground">Etapa {searchProgress.step} de 4</span>
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    Prospectando leads...
+                  </span>
+                  <Badge variant="outline" className="animate-pulse">
+                    Em andamento
+                  </Badge>
                 </div>
-                <Progress value={(searchProgress.step / 4) * 100} className="h-2" />
-                <div className="flex items-center gap-4 text-sm">
-                  <div className={`flex items-center gap-2 ${searchProgress.step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {searchProgress.step > 1 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 1 ? 'animate-spin' : ''}`} />}
-                    Iniciar
+                <Progress value={(searchProgress.step / 4) * 100} className="h-3" />
+                
+                {/* Step indicators */}
+                <div className="flex items-center justify-between text-sm">
+                  <div className={`flex items-center gap-2 transition-colors ${searchProgress.step >= 1 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 1 ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step >= 1 ? 'animate-spin' : ''}`} />}
+                    Conectar
                   </div>
-                  <div className={`flex items-center gap-2 ${searchProgress.step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {searchProgress.step > 2 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 2 ? 'animate-spin' : ''}`} />}
+                  <div className={`flex items-center gap-2 transition-colors ${searchProgress.step >= 2 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 2 ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step >= 2 ? 'animate-spin' : ''}`} />}
                     Buscar
                   </div>
-                  <div className={`flex items-center gap-2 ${searchProgress.step >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {searchProgress.step > 3 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 3 ? 'animate-spin' : ''}`} />}
+                  <div className={`flex items-center gap-2 transition-colors ${searchProgress.step >= 3 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 3 ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step >= 3 ? 'animate-spin' : ''}`} />}
                     Extrair
                   </div>
-                  <div className={`flex items-center gap-2 ${searchProgress.step >= 4 ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {searchProgress.step > 4 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 4 ? 'animate-spin' : ''}`} />}
-                    Processar
+                  <div className={`flex items-center gap-2 transition-colors ${searchProgress.step >= 4 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 4 ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step >= 4 ? 'animate-spin' : ''}`} />}
+                    Finalizar
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{searchProgress.message}</p>
+
+                {/* Live activity feed */}
+                <div className="bg-background/50 rounded-lg p-3 border border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2">Atividade:</p>
+                  <div className="space-y-1 max-h-24 overflow-hidden">
+                    {progressMessages.slice(-5).map((msg, i) => (
+                      <p 
+                        key={i} 
+                        className={`text-sm transition-opacity ${i === progressMessages.length - 1 ? 'text-primary font-medium' : 'text-muted-foreground opacity-60'}`}
+                      >
+                        → {msg}
+                      </p>
+                    ))}
+                    {progressMessages.length === 0 && (
+                      <p className="text-sm text-muted-foreground animate-pulse">→ Iniciando...</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Current detail */}
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  {searchProgress.detail || searchProgress.message}
+                </div>
               </div>
             </CardContent>
           </Card>
