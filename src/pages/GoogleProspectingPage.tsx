@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LeadIntelligenceLayout } from "@/components/leads/LeadIntelligenceLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,11 +10,11 @@ import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Globe, Phone, Mail, MapPin, Building2, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Search, Download, Globe, Phone, Mail, MapPin, Building2, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
-
 const BRAZILIAN_STATES = [
   { value: "AC", label: "Acre" },
   { value: "AL", label: "Alagoas" },
@@ -88,7 +89,7 @@ export default function GoogleProspectingPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [leads, setLeads] = useState<ExtractedLead[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [searchProgress, setSearchProgress] = useState({ step: 0, message: "" });
   const handleSearch = async () => {
     if (!state || !city || !businessType) {
       toast({
@@ -101,15 +102,21 @@ export default function GoogleProspectingPage() {
 
     setIsSearching(true);
     setLeads([]);
+    setSearchProgress({ step: 1, message: "Iniciando busca no Google..." });
 
     try {
+      setSearchProgress({ step: 2, message: "Buscando resultados via Firecrawl..." });
+      
       const { data, error } = await supabase.functions.invoke('prospect-google-leads', {
         body: { state, city, businessType, quantity: quantity[0] },
       });
 
       if (error) throw error;
 
+      setSearchProgress({ step: 3, message: "Extraindo dados com IA..." });
+
       if (data.success) {
+        setSearchProgress({ step: 4, message: "Processando resultados..." });
         const leadsWithSelection = data.leads.map((lead: ExtractedLead) => ({
           ...lead,
           selected: true,
@@ -133,6 +140,7 @@ export default function GoogleProspectingPage() {
       });
     } finally {
       setIsSearching(false);
+      setSearchProgress({ step: 0, message: "" });
     }
   };
 
@@ -217,8 +225,9 @@ export default function GoogleProspectingPage() {
   const selectedCount = leads.filter(l => l.selected).length;
 
   return (
-    <LeadIntelligenceLayout>
-      <div className="space-y-6">
+    <DashboardLayout>
+      <LeadIntelligenceLayout>
+        <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Prospecção Google</h1>
           <p className="text-muted-foreground">
@@ -282,7 +291,7 @@ export default function GoogleProspectingPage() {
                   value={quantity}
                   onValueChange={setQuantity}
                   min={5}
-                  max={20}
+                  max={50}
                   step={5}
                   className="mt-4"
                 />
@@ -306,6 +315,40 @@ export default function GoogleProspectingPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Progress Indicator */}
+        {isSearching && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="py-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Prospectando leads...</span>
+                  <span className="text-xs text-muted-foreground">Etapa {searchProgress.step} de 4</span>
+                </div>
+                <Progress value={(searchProgress.step / 4) * 100} className="h-2" />
+                <div className="flex items-center gap-4 text-sm">
+                  <div className={`flex items-center gap-2 ${searchProgress.step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 1 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 1 ? 'animate-spin' : ''}`} />}
+                    Iniciar
+                  </div>
+                  <div className={`flex items-center gap-2 ${searchProgress.step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 2 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 2 ? 'animate-spin' : ''}`} />}
+                    Buscar
+                  </div>
+                  <div className={`flex items-center gap-2 ${searchProgress.step >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 3 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 3 ? 'animate-spin' : ''}`} />}
+                    Extrair
+                  </div>
+                  <div className={`flex items-center gap-2 ${searchProgress.step >= 4 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {searchProgress.step > 4 ? <CheckCircle2 className="h-4 w-4" /> : <Loader2 className={`h-4 w-4 ${searchProgress.step === 4 ? 'animate-spin' : ''}`} />}
+                    Processar
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">{searchProgress.message}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Results */}
         {leads.length > 0 && (
@@ -432,7 +475,8 @@ export default function GoogleProspectingPage() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </LeadIntelligenceLayout>
+        </div>
+      </LeadIntelligenceLayout>
+    </DashboardLayout>
   );
 }
