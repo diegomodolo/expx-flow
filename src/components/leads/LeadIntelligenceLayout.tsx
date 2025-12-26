@@ -8,7 +8,8 @@ import {
   History, 
   Filter,
   Brain,
-  Database
+  Database,
+  Globe
 } from "lucide-react";
 
 interface LeadIntelligenceLayoutProps {
@@ -33,6 +34,12 @@ const navItems = [
     href: "/lead-intelligence/cnae-base",
     icon: Database,
     description: "Leads por código CNAE"
+  },
+  {
+    title: "Prospecção Google",
+    href: "/lead-intelligence/google-prospecting",
+    icon: Globe,
+    description: "Prospectar leads via Google"
   },
   {
     title: "Histórico",
