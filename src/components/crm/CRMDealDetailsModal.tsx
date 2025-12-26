@@ -56,6 +56,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CRMDealTags } from "./CRMDealTags";
 import { CRMContactSearchModal } from "./CRMContactSearchModal";
 import { CRMCreateContactModal } from "./CRMCreateContactModal";
+import { useCRMUsers } from "@/hooks/useCRMUsers";
 
 interface CRMDealDetailsModalProps {
   deal: CRMDeal | null;
@@ -235,6 +236,9 @@ export function CRMDealDetailsModal({
     },
     enabled: isOpen && !!contactId && !!deal,
   });
+
+  // Fetch CRM users for responsible select
+  const { users: crmUsers = [] } = useCRMUsers(deal?.workspace_id);
 
   // Add note mutation
   const addNoteMutation = useMutation({
@@ -659,10 +663,20 @@ export function CRMDealDetailsModal({
                             onValueChange={(v) => setFormData({ ...formData, responsible_id: v === "none" ? "" : v })}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione..." />
+                              <SelectValue placeholder="Selecione...">
+                                {formData.responsible_id && formData.responsible_id !== "none" 
+                                  ? crmUsers.find(u => u.id === formData.responsible_id)?.full_name || "Selecione..."
+                                  : "Sem responsável"
+                                }
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Sem responsável</SelectItem>
+                              {crmUsers.filter(u => u.is_active).map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.full_name}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
