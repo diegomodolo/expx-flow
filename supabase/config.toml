@@ -214,3 +214,6 @@ verify_jwt = false
 
 [functions.prospect-google-leads]
 verify_jwt = true
+
+[functions.prospect-apify-maps]
+verify_jwt = true
