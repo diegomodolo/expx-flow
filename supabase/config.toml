@@ -220,3 +220,6 @@ verify_jwt = true
 
 [functions.prospect-instagram-followers]
 verify_jwt = true
+
+[functions.fetch-meta-videos]
+verify_jwt = true

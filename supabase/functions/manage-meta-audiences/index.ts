@@ -29,6 +29,7 @@ interface RequestBody {
   sourceId?: string;
   engagementEvent?: string;
   videoPercentile?: number;
+  videoIds?: string[];
 }
 
 serve(async (req) => {
@@ -58,7 +59,7 @@ serve(async (req) => {
       action, clientId, audienceId, name, description, subtype, 
       originAudienceId, country, ratio, lookalikeType,
       pixelId, retentionDays, ruleType, urlValue, eventName,
-      engagementType, sourceId, engagementEvent, videoPercentile
+      engagementType, sourceId, engagementEvent, videoPercentile, videoIds
     } = body;
 
     console.log(`[manage-meta-audiences] Action: ${action}, ClientId: ${clientId}`);

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -18,7 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Globe, Facebook, Instagram, Video } from "lucide-react";
+import { Loader2, Globe, Facebook, Instagram, Video, Play, RefreshCw, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export interface PixelOption {
   id: string;
@@ -38,9 +43,20 @@ export interface InstagramOption {
   username: string;
 }
 
+export interface VideoItem {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail_url?: string;
+  created_time: string;
+  length?: number;
+  views?: number;
+}
+
 interface CreateAdvancedAudienceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  clientId: string;
   onCreateWebsiteAudience: (params: {
     name: string;
     pixelId: string;
@@ -56,6 +72,7 @@ interface CreateAdvancedAudienceModalProps {
     retentionDays: number;
     engagementEvent: string;
     videoPercentile?: number;
+    videoIds?: string[];
   }) => Promise<void>;
   loading: boolean;
   pixels: PixelOption[];
@@ -100,6 +117,7 @@ const VIDEO_PERCENTILES = [
 export function CreateAdvancedAudienceModal({
   open,
   onOpenChange,
+  clientId,
   onCreateWebsiteAudience,
   onCreateEngagementAudience,
   loading,
@@ -131,9 +149,71 @@ export function CreateAdvancedAudienceModal({
   
   // Video state
   const [videoName, setVideoName] = useState("");
-  const [selectedVideoPage, setSelectedVideoPage] = useState("");
+  const [videoSource, setVideoSource] = useState<'facebook' | 'instagram'>('facebook');
+  const [selectedVideoSourceId, setSelectedVideoSourceId] = useState("");
   const [videoRetention, setVideoRetention] = useState([30]);
   const [videoPercentile, setVideoPercentile] = useState(50);
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [selectedVideos, setSelectedVideos] = useState<string[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [selectAllVideos, setSelectAllVideos] = useState(true);
+
+  // Fetch videos when source changes
+  useEffect(() => {
+    if (selectedVideoSourceId && activeTab === 'video') {
+      fetchVideos();
+    }
+  }, [selectedVideoSourceId, videoSource]);
+
+  const fetchVideos = async () => {
+    if (!selectedVideoSourceId || !clientId) return;
+    
+    setLoadingVideos(true);
+    setVideos([]);
+    setSelectedVideos([]);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-meta-videos', {
+        body: {
+          clientId,
+          source: videoSource,
+          sourceId: selectedVideoSourceId,
+          limit: 50,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      setVideos(data.videos || []);
+      // Default to all videos selected
+      if (selectAllVideos) {
+        setSelectedVideos((data.videos || []).map((v: VideoItem) => v.id));
+      }
+    } catch (error: any) {
+      console.error('Error fetching videos:', error);
+    } finally {
+      setLoadingVideos(false);
+    }
+  };
+
+  const toggleVideoSelection = (videoId: string) => {
+    setSelectAllVideos(false);
+    setSelectedVideos(prev => 
+      prev.includes(videoId) 
+        ? prev.filter(id => id !== videoId)
+        : [...prev, videoId]
+    );
+  };
+
+  const handleSelectAllVideos = (checked: boolean) => {
+    setSelectAllVideos(checked);
+    if (checked) {
+      setSelectedVideos(videos.map(v => v.id));
+    } else {
+      setSelectedVideos([]);
+    }
+  };
 
   const resetForm = () => {
     setWebsiteName("");
@@ -151,9 +231,13 @@ export function CreateAdvancedAudienceModal({
     setIgRetention([30]);
     setIgEvent("ig_business_profile_all");
     setVideoName("");
-    setSelectedVideoPage("");
+    setVideoSource('facebook');
+    setSelectedVideoSourceId("");
     setVideoRetention([30]);
     setVideoPercentile(50);
+    setVideos([]);
+    setSelectedVideos([]);
+    setSelectAllVideos(true);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -196,14 +280,15 @@ export function CreateAdvancedAudienceModal({
           engagementEvent: igEvent,
         });
       } else if (activeTab === "video") {
-        if (!videoName.trim() || !selectedVideoPage) return;
+        if (!videoName.trim() || !selectedVideoSourceId) return;
         await onCreateEngagementAudience({
           name: videoName.trim(),
           engagementType: 'video',
-          sourceId: selectedVideoPage,
+          sourceId: selectedVideoSourceId,
           retentionDays: videoRetention[0],
           engagementEvent: 'video_watched',
           videoPercentile,
+          videoIds: selectAllVideos ? undefined : selectedVideos,
         });
       }
       resetForm();
@@ -226,14 +311,23 @@ export function CreateAdvancedAudienceModal({
       return igName.trim() && selectedInstagram;
     }
     if (activeTab === "video") {
-      return videoName.trim() && selectedVideoPage;
+      if (!videoName.trim() || !selectedVideoSourceId) return false;
+      if (!selectAllVideos && selectedVideos.length === 0) return false;
+      return true;
     }
     return false;
   };
 
+  const formatVideoLength = (seconds?: number) => {
+    if (!seconds) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Criar Público Avançado</DialogTitle>
         </DialogHeader>
@@ -522,25 +616,167 @@ export function CreateAdvancedAudienceModal({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Página do Facebook (origem dos vídeos) *</Label>
-                <Select value={selectedVideoPage} onValueChange={setSelectedVideoPage} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma página" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pages.length === 0 ? (
-                      <SelectItem value="none" disabled>Nenhuma página vinculada</SelectItem>
-                    ) : (
-                      pages.map((page) => (
-                        <SelectItem key={page.id} value={page.page_id}>
-                          {page.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Origem dos Vídeos</Label>
+                  <Select 
+                    value={videoSource} 
+                    onValueChange={(v) => {
+                      setVideoSource(v as 'facebook' | 'instagram');
+                      setSelectedVideoSourceId("");
+                      setVideos([]);
+                      setSelectedVideos([]);
+                    }} 
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="facebook">
+                        <div className="flex items-center gap-2">
+                          <Facebook className="h-4 w-4" />
+                          Facebook
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="instagram">
+                        <div className="flex items-center gap-2">
+                          <Instagram className="h-4 w-4" />
+                          Instagram
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{videoSource === 'facebook' ? 'Página' : 'Conta'} *</Label>
+                  <Select 
+                    value={selectedVideoSourceId} 
+                    onValueChange={setSelectedVideoSourceId} 
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Selecione ${videoSource === 'facebook' ? 'a página' : 'a conta'}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {videoSource === 'facebook' ? (
+                        pages.length === 0 ? (
+                          <SelectItem value="none" disabled>Nenhuma página vinculada</SelectItem>
+                        ) : (
+                          pages.map((page) => (
+                            <SelectItem key={page.id} value={page.page_id}>
+                              {page.name}
+                            </SelectItem>
+                          ))
+                        )
+                      ) : (
+                        instagramAccounts.length === 0 ? (
+                          <SelectItem value="none" disabled>Nenhuma conta vinculada</SelectItem>
+                        ) : (
+                          instagramAccounts.map((ig) => (
+                            <SelectItem key={ig.id} value={ig.instagram_id}>
+                              @{ig.username}
+                            </SelectItem>
+                          ))
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {selectedVideoSourceId && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Selecionar Vídeos</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={fetchVideos}
+                      disabled={loadingVideos}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1 ${loadingVideos ? 'animate-spin' : ''}`} />
+                      Atualizar
+                    </Button>
+                  </div>
+                  
+                  {loadingVideos ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Carregando vídeos...</span>
+                    </div>
+                  ) : videos.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border rounded-md">
+                      <Video className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Nenhum vídeo encontrado</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectAllVideos}
+                          onCheckedChange={handleSelectAllVideos}
+                        />
+                        <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                          Todos os vídeos ({videos.length})
+                        </label>
+                      </div>
+                      
+                      <ScrollArea className="h-[200px] border rounded-md">
+                        <div className="p-2 space-y-2">
+                          {videos.map((video) => (
+                            <div 
+                              key={video.id}
+                              className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                                selectedVideos.includes(video.id) || selectAllVideos
+                                  ? 'bg-primary/10 border border-primary/30' 
+                                  : 'hover:bg-muted border border-transparent'
+                              }`}
+                              onClick={() => toggleVideoSelection(video.id)}
+                            >
+                              <div className="relative w-16 h-10 bg-muted rounded overflow-hidden flex-shrink-0">
+                                {video.thumbnail_url ? (
+                                  <img 
+                                    src={video.thumbnail_url} 
+                                    alt={video.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Play className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                )}
+                                {(selectedVideos.includes(video.id) || selectAllVideos) && (
+                                  <div className="absolute inset-0 bg-primary/50 flex items-center justify-center">
+                                    <Check className="h-4 w-4 text-primary-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{video.title}</p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  {video.length && <span>{formatVideoLength(video.length)}</span>}
+                                  {video.views !== undefined && <span>{video.views.toLocaleString()} views</span>}
+                                  <span>{formatDistanceToNow(new Date(video.created_time), { addSuffix: true, locale: ptBR })}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      
+                      {!selectAllVideos && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedVideos.length} de {videos.length} vídeos selecionados
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Percentual Mínimo Assistido</Label>
@@ -580,8 +816,8 @@ export function CreateAdvancedAudienceModal({
               <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                 <p className="font-medium mb-1">Público de Vídeo</p>
                 <p>
-                  Captura pessoas que assistiram um percentual mínimo dos vídeos da sua página.
-                  Ideal para remarketing de conteúdo.
+                  Captura pessoas que assistiram um percentual mínimo dos vídeos selecionados.
+                  {selectAllVideos ? ' Inclui todos os vídeos.' : ` ${selectedVideos.length} vídeo(s) selecionado(s).`}
                 </p>
               </div>
             </TabsContent>
