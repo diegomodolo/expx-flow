@@ -53,6 +53,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CRMDealTags } from "./CRMDealTags";
 
 interface CRMDealDetailsModalProps {
   deal: CRMDeal | null;
@@ -766,12 +767,7 @@ export function CRMDealDetailsModal({
                       {/* Tags */}
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">Tags</Label>
-                        <div className="flex items-center gap-2 p-2 border rounded-md min-h-[40px]">
-                          <span className="text-muted-foreground text-sm">Selecione...</span>
-                          <Button variant="ghost" size="icon" className="ml-auto h-6 w-6">
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <CRMDealTags dealId={deal.id} workspaceId={deal.workspace_id} />
                       </div>
 
                       {/* Description */}
