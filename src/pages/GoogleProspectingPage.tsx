@@ -85,6 +85,12 @@ export default function GoogleProspectingPage() {
   const [businessType, setBusinessType] = useState("");
   const [quantity, setQuantity] = useState([10]);
   
+  // Required fields filters
+  const [requirePhone, setRequirePhone] = useState(false);
+  const [requireEmail, setRequireEmail] = useState(false);
+  const [requireWebsite, setRequireWebsite] = useState(false);
+  const [requireAddress, setRequireAddress] = useState(false);
+  
   const [isSearching, setIsSearching] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [leads, setLeads] = useState<ExtractedLead[]>([]);
@@ -116,8 +122,18 @@ export default function GoogleProspectingPage() {
       setSearchProgress({ step: 3, message: "Extraindo dados com IA..." });
 
       if (data.success) {
-        setSearchProgress({ step: 4, message: "Processando resultados..." });
-        const leadsWithSelection = data.leads.map((lead: ExtractedLead) => ({
+        setSearchProgress({ step: 4, message: "Filtrando resultados..." });
+        
+        // Filter leads based on required fields
+        const filteredLeads = data.leads.filter((lead: ExtractedLead) => {
+          if (requirePhone && !lead.phone) return false;
+          if (requireEmail && !lead.email) return false;
+          if (requireWebsite && !lead.website) return false;
+          if (requireAddress && !lead.endereco) return false;
+          return true;
+        });
+        
+        const leadsWithSelection = filteredLeads.map((lead: ExtractedLead) => ({
           ...lead,
           selected: true,
         }));
@@ -295,6 +311,57 @@ export default function GoogleProspectingPage() {
                   step={5}
                   className="mt-4"
                 />
+              </div>
+            </div>
+
+            {/* Required Fields Filters */}
+            <div className="mt-6 pt-4 border-t">
+              <Label className="text-sm font-medium mb-3 block">Filtros obrigatórios (só trazer leads que tenham):</Label>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="requirePhone" 
+                    checked={requirePhone} 
+                    onCheckedChange={(checked) => setRequirePhone(checked === true)} 
+                  />
+                  <label htmlFor="requirePhone" className="text-sm flex items-center gap-1 cursor-pointer">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    Telefone
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="requireEmail" 
+                    checked={requireEmail} 
+                    onCheckedChange={(checked) => setRequireEmail(checked === true)} 
+                  />
+                  <label htmlFor="requireEmail" className="text-sm flex items-center gap-1 cursor-pointer">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    E-mail
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="requireWebsite" 
+                    checked={requireWebsite} 
+                    onCheckedChange={(checked) => setRequireWebsite(checked === true)} 
+                  />
+                  <label htmlFor="requireWebsite" className="text-sm flex items-center gap-1 cursor-pointer">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    Website
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="requireAddress" 
+                    checked={requireAddress} 
+                    onCheckedChange={(checked) => setRequireAddress(checked === true)} 
+                  />
+                  <label htmlFor="requireAddress" className="text-sm flex items-center gap-1 cursor-pointer">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Endereço
+                  </label>
+                </div>
               </div>
             </div>
 
