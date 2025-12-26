@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Search, Download, Globe, Phone, Mail, MapPin, Building2, Loader2, CheckCircle2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Download, Globe, Phone, Mail, MapPin, Building2, Loader2, CheckCircle2, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -100,9 +101,10 @@ export default function GoogleProspectingPage() {
   const [searchProgress, setSearchProgress] = useState({ step: 0, message: "", detail: "" });
   const [progressMessages, setProgressMessages] = useState<string[]>([]);
   const [foundCount, setFoundCount] = useState(0);
+  const [searchSource, setSearchSource] = useState<"google" | "maps">("google");
 
   // Animated progress messages
-  const animationMessages = [
+  const googleAnimationMessages = [
     "Conectando ao Google...",
     "Iniciando varredura de resultados...",
     "Analisando páginas encontradas...",
@@ -114,6 +116,21 @@ export default function GoogleProspectingPage() {
     "Buscando mais resultados...",
     "Quase lá...",
   ];
+
+  const mapsAnimationMessages = [
+    "Conectando ao Google Maps...",
+    "Iniciando scraping de locais...",
+    "Mapeando estabelecimentos...",
+    "Extraindo dados dos locais...",
+    "Coletando telefones e websites...",
+    "Processando informações...",
+    "Validando dados de contato...",
+    "Organizando resultados...",
+    "Finalizando extração...",
+    "Quase lá...",
+  ];
+
+  const animationMessages = searchSource === "maps" ? mapsAnimationMessages : googleAnimationMessages;
 
   const handleSearch = async () => {
     if (!state || !city || !businessType) {
@@ -156,7 +173,9 @@ export default function GoogleProspectingPage() {
     }, 2000);
 
     try {
-      const { data, error } = await supabase.functions.invoke("prospect-google-leads", {
+      const functionName = searchSource === "maps" ? "prospect-apify-maps" : "prospect-google-leads";
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           state,
           city,
@@ -357,11 +376,25 @@ export default function GoogleProspectingPage() {
     <DashboardLayout>
       <LeadIntelligenceLayout>
         <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Prospecção Google</h1>
-          <p className="text-muted-foreground">
-            Prospecte leads automaticamente usando busca no Google
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Prospecção Google</h1>
+            <p className="text-muted-foreground">
+              Prospecte leads automaticamente usando busca no Google
+            </p>
+          </div>
+          <Tabs value={searchSource} onValueChange={(v) => setSearchSource(v as "google" | "maps")}>
+            <TabsList>
+              <TabsTrigger value="google" className="gap-2">
+                <Search className="h-4 w-4" />
+                Google Search
+              </TabsTrigger>
+              <TabsTrigger value="maps" className="gap-2">
+                <Map className="h-4 w-4" />
+                Google Maps
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Search Form */}
