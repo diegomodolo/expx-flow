@@ -26,67 +26,48 @@ export default function CnaeBaseDashboard() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch CNAEs grouped from leads - using RPC or direct query
-  const { data: cnaeData, isLoading } = useQuery({
-    queryKey: ['cnae-catalog', companyId],
+  // Fetch total leads count using count query (bypasses 1000 limit)
+  const { data: totalLeads } = useQuery({
+    queryKey: ['cnae-leads-total', companyId],
     queryFn: async () => {
-      if (!companyId) return { cnaes: [], totalLeads: 0 };
-      
-      // Get all leads to group by CNAE on client side
-      // This is more reliable than complex SQL aggregations
-      const { data, error } = await supabase
+      if (!companyId) return 0;
+      const { count, error } = await supabase
         .from('cnae_lead_pool' as any)
-        .select('cnae_code, cnae_description')
+        .select('*', { count: 'exact', head: true })
         .eq('company_id', companyId);
       
       if (error) throw error;
-      
-      // Group by CNAE code
-      const cnaeMap = new Map<string, { description: string | null; count: number }>();
-      
-      (data || []).forEach((lead: any) => {
-        const code = lead.cnae_code;
-        if (!code) return;
-        
-        const existing = cnaeMap.get(code);
-        if (existing) {
-          existing.count++;
-          // Keep description if not null
-          if (!existing.description && lead.cnae_description) {
-            existing.description = lead.cnae_description;
-          }
-        } else {
-          cnaeMap.set(code, {
-            description: lead.cnae_description || null,
-            count: 1
-          });
-        }
-      });
-
-      // Convert to array and sort by count
-      const cnaes: CnaeGroupedItem[] = Array.from(cnaeMap.entries())
-        .map(([code, data]) => ({
-          cnae_code: code,
-          cnae_description: data.description,
-          lead_count: data.count
-        }))
-        .sort((a, b) => b.lead_count - a.lead_count);
-
-      return {
-        cnaes,
-        totalLeads: data?.length || 0
-      };
+      return count || 0;
     },
     enabled: !!companyId
   });
 
-  const filteredCatalog = cnaeData?.cnaes?.filter(cnae => 
+  // Fetch CNAEs grouped using RPC function (no row limit)
+  const { data: cnaeCatalog, isLoading } = useQuery({
+    queryKey: ['cnae-catalog', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
+      const { data, error } = await supabase
+        .rpc('get_cnae_summary', { p_company_id: companyId });
+      
+      if (error) throw error;
+      
+      return (data || []).map((item: any) => ({
+        cnae_code: item.cnae_code,
+        cnae_description: item.cnae_description,
+        lead_count: Number(item.lead_count)
+      })) as CnaeGroupedItem[];
+    },
+    enabled: !!companyId
+  });
+
+  const filteredCatalog = cnaeCatalog?.filter(cnae => 
     cnae.cnae_code.includes(searchTerm) || 
     cnae.cnae_description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const totalCnaes = cnaeData?.cnaes?.length || 0;
-  const totalLeads = cnaeData?.totalLeads || 0;
+  const totalCnaes = cnaeCatalog?.length || 0;
 
   return (
     <DashboardLayout>
@@ -117,7 +98,7 @@ export default function CnaeBaseDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalLeads.toLocaleString('pt-BR')}</div>
+                <div className="text-2xl font-bold">{(totalLeads || 0).toLocaleString('pt-BR')}</div>
                 <p className="text-xs text-muted-foreground">
                   Na base de CNAEs
                 </p>
@@ -129,7 +110,7 @@ export default function CnaeBaseDashboard() {
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalCnaes}</div>
+                <div className="text-2xl font-bold">{totalCnaes.toLocaleString('pt-BR')}</div>
                 <p className="text-xs text-muted-foreground">
                   Códigos de atividade
                 </p>
@@ -142,7 +123,7 @@ export default function CnaeBaseDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {totalCnaes > 0 ? Math.round(totalLeads / totalCnaes).toLocaleString('pt-BR') : 0}
+                  {totalCnaes > 0 ? Math.round((totalLeads || 0) / totalCnaes).toLocaleString('pt-BR') : 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Leads por código

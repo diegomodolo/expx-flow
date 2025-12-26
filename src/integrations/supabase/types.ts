@@ -8325,6 +8325,14 @@ export type Database = {
       generate_client_dashboard_token: { Args: never; Returns: string }
       generate_crm_access_token: { Args: never; Returns: string }
       generate_funnel_public_token: { Args: never; Returns: string }
+      get_cnae_summary: {
+        Args: { p_company_id: string }
+        Returns: {
+          cnae_code: string
+          cnae_description: string
+          lead_count: number
+        }[]
+      }
       get_user_company_ids: {
         Args: { _user_id: string }
         Returns: {
