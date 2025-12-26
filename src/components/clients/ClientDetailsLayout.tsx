@@ -223,12 +223,6 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       description: "Análise de redes sociais"
     },
     {
-      title: "Posts Automáticos",
-      href: `/clientes/${clientId}/auto-posts`,
-      icon: Instagram,
-      description: "Postagens automáticas no Instagram"
-    },
-    {
       title: "Relatório Semanal",
       href: `/clientes/${clientId}/relatorio`,
       icon: FileText,
