@@ -71,21 +71,21 @@ ${client.ai_briefing || 'Sem briefing específico. Crie um conteúdo persuasivo 
 
 Sua tarefa é analisar a imagem fornecida e criar textos para um anúncio baseado nela e no contexto do cliente.`;
 
-    const userPrompt = `Analise esta imagem e crie os textos para um anúncio de Meta Ads.
+const userPrompt = `Analise esta imagem e crie os textos para um anúncio de Meta Ads.
 
 Retorne exatamente no seguinte formato JSON (sem markdown, apenas o JSON):
 {
-  "body": "Texto principal do anúncio (máximo 125 caracteres, persuasivo e direto)",
+  "body": "Texto principal do anúncio (entre 200 e 500 caracteres, persuasivo, envolvente e detalhado)",
   "title": "Título chamativo (máximo 40 caracteres)",
-  "description": "Descrição adicional curta (máximo 30 caracteres)",
+  "description": "Descrição adicional (entre 80 e 150 caracteres, complementando o título com mais detalhes)",
   "linkUrl": "${client.website_url || 'https://'}",
   "callToAction": "CTA mais adequado entre: LEARN_MORE, SHOP_NOW, SIGN_UP, BOOK_NOW, CONTACT_US, DOWNLOAD, GET_QUOTE, APPLY_NOW, SUBSCRIBE, WATCH_MORE, SEND_MESSAGE, GET_OFFER"
 }
 
 Regras importantes:
-- O texto principal (body) deve ser envolvente e respeitar o limite de 125 caracteres
+- O texto principal (body) DEVE ter entre 200 e 500 caracteres. Seja persuasivo, conte uma história, destaque benefícios e crie conexão emocional
 - O título deve ser impactante e direto, máximo 40 caracteres
-- A descrição deve complementar o título de forma breve
+- A descrição DEVE ter entre 80 e 150 caracteres, complementando o título com mais informações sobre a oferta
 - O CTA deve ser o mais adequado para o objetivo do cliente e a imagem
 - Adapte o tom de voz conforme o briefing do cliente
 - A URL deve ser a do site do cliente, se disponível`;
@@ -159,9 +159,9 @@ Regras importantes:
 
     // Validate and sanitize the response
     const result = {
-      body: (creativeData.body || "").slice(0, 125),
+      body: (creativeData.body || "").slice(0, 500),
       title: (creativeData.title || "").slice(0, 40),
-      description: (creativeData.description || "").slice(0, 30),
+      description: (creativeData.description || "").slice(0, 150),
       linkUrl: creativeData.linkUrl || client.website_url || "",
       callToAction: creativeData.callToAction || "LEARN_MORE",
     };
