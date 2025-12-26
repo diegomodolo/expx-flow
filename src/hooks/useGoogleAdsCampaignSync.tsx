@@ -96,6 +96,9 @@ export function useGoogleAdsCampaignSync() {
       setSyncing(true);
       setProgress({ current: 0, total: 0 });
 
+      console.log('[syncAllClients] Starting sync for company:', companyId);
+      console.log('[syncAllClients] Options:', options);
+
       // Get all clients with Google Ads accounts
       let query = supabase
         .from('clients')
@@ -110,9 +113,12 @@ export function useGoogleAdsCampaignSync() {
 
       const { data: clients, error } = await query;
 
+      console.log('[syncAllClients] Query result:', { clients, error, count: clients?.length });
+
       if (error) throw error;
 
       if (!clients || clients.length === 0) {
+        console.warn('[syncAllClients] No clients found with Google Ads configured for company:', companyId);
         toast.info("Nenhum cliente com Google Ads configurado");
         return;
       }
