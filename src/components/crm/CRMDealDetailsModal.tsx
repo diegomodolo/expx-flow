@@ -306,14 +306,14 @@ export function CRMDealDetailsModal({
       let closeDateTime: string | null = null;
 
       if (formData.start_date) {
-        const date = formData.start_date;
+        const date = new Date(formData.start_date.getTime()); // Create a copy
         const [hours, minutes] = (formData.start_time || "00:00").split(":");
         date.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
         startDateTime = date.toISOString();
       }
 
       if (formData.expected_close_date) {
-        const date = formData.expected_close_date;
+        const date = new Date(formData.expected_close_date.getTime()); // Create a copy
         const [hours, minutes] = (formData.expected_close_time || "00:00").split(":");
         date.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
         closeDateTime = date.toISOString();
