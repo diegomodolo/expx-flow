@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { Upload, X, Image, Film, Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Upload, X, Image, Film, Loader2, Sparkles, RefreshCw, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { InstagramMediaSelector } from './InstagramMediaSelector';
 
 interface MediaUploaderProps {
   mediaUrls: string[];
@@ -29,6 +30,7 @@ export function MediaUploader({
   const [uploading, setUploading] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [showInstagramSelector, setShowInstagramSelector] = useState(false);
   const { toast } = useToast();
 
   const acceptTypes = type === 'VIDEO' 
@@ -249,7 +251,7 @@ export function MediaUploader({
               <p className="text-sm text-muted-foreground mb-2">
                 Arraste {type === 'VIDEO' ? 'vídeos' : 'imagens'} aqui ou
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="outline"
@@ -269,6 +271,17 @@ export function MediaUploader({
                   <Upload className="h-4 w-4 mr-2" />
                   Selecionar arquivo
                 </Button>
+                {clientId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowInstagramSelector(true)}
+                  >
+                    <Instagram className="h-4 w-4 mr-2" />
+                    Do Instagram
+                  </Button>
+                )}
                 {showAIButton && (
                   <Button
                     type="button"
@@ -294,6 +307,7 @@ export function MediaUploader({
       )}
 
       {/* Regenerate AI button when image exists */}
+      {/* Regenerate AI button when image exists */}
       {showAIButton && mediaUrls.length > 0 && type !== 'CAROUSEL' && (
         <Button
           type="button"
@@ -315,6 +329,24 @@ export function MediaUploader({
             </>
           )}
         </Button>
+      )}
+
+      {/* Instagram Media Selector Modal */}
+      {clientId && (
+        <InstagramMediaSelector
+          open={showInstagramSelector}
+          onOpenChange={setShowInstagramSelector}
+          clientId={clientId}
+          mediaType={type}
+          maxSelection={type === 'CAROUSEL' ? Math.min(10, maxFiles - mediaUrls.length) : 1}
+          onSelect={(urls) => {
+            if (type === 'CAROUSEL') {
+              onChange([...mediaUrls, ...urls]);
+            } else {
+              onChange(urls);
+            }
+          }}
+        />
       )}
     </div>
   );
