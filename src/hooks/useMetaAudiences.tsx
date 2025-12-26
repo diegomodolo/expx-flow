@@ -353,6 +353,7 @@ export function useMetaAudiences(clientId: string | null) {
     retentionDays: number;
     engagementEvent: string;
     videoPercentile?: number;
+    videoIds?: string[];
   }): Promise<MetaAudience | null> => {
     if (!clientId) return null;
 
@@ -368,6 +369,7 @@ export function useMetaAudiences(clientId: string | null) {
           retentionDays: params.retentionDays,
           engagementEvent: params.engagementEvent,
           videoPercentile: params.videoPercentile,
+          videoIds: params.videoIds,
         },
       });
 

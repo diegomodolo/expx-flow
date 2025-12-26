@@ -222,6 +222,7 @@ export function ClientePublicos() {
       <CreateAdvancedAudienceModal
         open={advancedModalOpen}
         onOpenChange={setAdvancedModalOpen}
+        clientId={id || ''}
         onCreateWebsiteAudience={handleCreateWebsiteAudience}
         onCreateEngagementAudience={handleCreateEngagementAudience}
         loading={loading}
