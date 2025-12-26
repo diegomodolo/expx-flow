@@ -47,19 +47,28 @@ export const useGoogleAdsSyncSchedule = () => {
   const { activeCompany } = useCompany();
 
   const fetchSchedule = async () => {
-    if (!activeCompany?.company_id) return;
+    const companyId = activeCompany?.company_id;
+    if (!companyId) {
+      console.log('[useGoogleAdsSyncSchedule] No company_id, skipping fetch');
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('[useGoogleAdsSyncSchedule] Fetching schedule for company:', companyId);
+      
       const { data, error } = await supabase.functions.invoke('manage-google-ads-sync-schedule', {
-        body: {
+        body: JSON.stringify({
           action: 'get',
-          company_id: activeCompany.company_id,
-        },
+          company_id: companyId,
+        }),
       });
 
       if (error) throw error;
-      setSchedule(data.schedule);
+      
+      // Handle case where data might be a string (double-parsed)
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+      setSchedule(parsedData?.schedule || null);
     } catch (error: any) {
       console.error('Error fetching schedule:', error);
       toast({
@@ -106,29 +115,31 @@ export const useGoogleAdsSyncSchedule = () => {
     syncOptions: GoogleSyncOptions,
     executionsPerDay: number
   ) => {
-    if (!activeCompany?.company_id) return;
+    const companyId = activeCompany?.company_id;
+    if (!companyId) return;
 
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('manage-google-ads-sync-schedule', {
-        body: {
+        body: JSON.stringify({
           action: 'upsert',
-          company_id: activeCompany.company_id,
+          company_id: companyId,
           is_enabled: isEnabled,
           sync_options: syncOptions,
           executions_per_day: executionsPerDay,
-        },
+        }),
       });
 
       if (error) throw error;
 
-      setSchedule(data.schedule);
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+      setSchedule(parsedData?.schedule || null);
       toast({
         title: 'Configuração salva',
         description: 'As configurações de sincronização do Google Ads foram atualizadas.',
       });
 
-      return data.schedule;
+      return parsedData?.schedule;
     } catch (error: any) {
       console.error('Error saving schedule:', error);
       toast({
@@ -143,21 +154,23 @@ export const useGoogleAdsSyncSchedule = () => {
   };
 
   const toggleSchedule = async (enabled: boolean) => {
-    if (!activeCompany?.company_id) return;
+    const companyId = activeCompany?.company_id;
+    if (!companyId) return;
 
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('manage-google-ads-sync-schedule', {
-        body: {
+        body: JSON.stringify({
           action: 'patch',
-          company_id: activeCompany.company_id,
+          company_id: companyId,
           is_enabled: enabled,
-        },
+        }),
       });
 
       if (error) throw error;
 
-      setSchedule(data.schedule);
+      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+      setSchedule(parsedData?.schedule || null);
       toast({
         title: enabled ? 'Sincronização ativada' : 'Sincronização desativada',
         description: enabled 
@@ -165,7 +178,7 @@ export const useGoogleAdsSyncSchedule = () => {
           : 'A sincronização automática do Google Ads foi desativada.',
       });
 
-      return data.schedule;
+      return parsedData?.schedule;
     } catch (error: any) {
       console.error('Error toggling schedule:', error);
       toast({
@@ -180,15 +193,16 @@ export const useGoogleAdsSyncSchedule = () => {
   };
 
   const deleteSchedule = async () => {
-    if (!activeCompany?.company_id) return;
+    const companyId = activeCompany?.company_id;
+    if (!companyId) return;
 
     try {
       setLoading(true);
       const { error } = await supabase.functions.invoke('manage-google-ads-sync-schedule', {
-        body: {
+        body: JSON.stringify({
           action: 'delete',
-          company_id: activeCompany.company_id,
-        },
+          company_id: companyId,
+        }),
       });
 
       if (error) throw error;
