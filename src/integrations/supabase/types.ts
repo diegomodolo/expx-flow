@@ -2520,6 +2520,318 @@ export type Database = {
           },
         ]
       }
+      crm_contacts: {
+        Row: {
+          city: string | null
+          company_name: string | null
+          country: string | null
+          created_at: string | null
+          created_by: string | null
+          custom_fields: Json | null
+          email: string | null
+          external_id: string | null
+          facebook: string | null
+          full_name: string
+          id: string
+          instagram: string | null
+          notes: string | null
+          phone: string | null
+          state: string | null
+          tags: string[] | null
+          updated_at: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          website: string | null
+          workspace_id: string
+        }
+        Insert: {
+          city?: string | null
+          company_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_fields?: Json | null
+          email?: string | null
+          external_id?: string | null
+          facebook?: string | null
+          full_name: string
+          id?: string
+          instagram?: string | null
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          website?: string | null
+          workspace_id: string
+        }
+        Update: {
+          city?: string | null
+          company_name?: string | null
+          country?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custom_fields?: Json | null
+          email?: string | null
+          external_id?: string | null
+          facebook?: string | null
+          full_name?: string
+          id?: string
+          instagram?: string | null
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          website?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deal_activities: {
+        Row: {
+          activity_type: string
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          deal_id: string
+          from_stage_id: string | null
+          id: string
+          is_manual: boolean | null
+          metadata: Json | null
+          new_value: string | null
+          notes: string | null
+          old_value: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deal_id: string
+          from_stage_id?: string | null
+          id?: string
+          is_manual?: boolean | null
+          metadata?: Json | null
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deal_id?: string
+          from_stage_id?: string | null
+          id?: string
+          is_manual?: boolean | null
+          metadata?: Json | null
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deal_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deal_activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deal_activities_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deal_activities_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deal_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          link_type: string
+          source_deal_id: string
+          target_deal_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link_type?: string
+          source_deal_id: string
+          target_deal_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link_type?: string
+          source_deal_id?: string
+          target_deal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deal_links_source_deal_id_fkey"
+            columns: ["source_deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deal_links_target_deal_id_fkey"
+            columns: ["target_deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals: {
+        Row: {
+          archived_at: string | null
+          closed_at: string | null
+          contact_id: string
+          created_at: string | null
+          created_by: string | null
+          custom_fields: Json | null
+          disqualification_reason: string | null
+          expected_close_date: string | null
+          id: string
+          is_archived: boolean | null
+          notes: string | null
+          quantity: number | null
+          responsible_id: string | null
+          source_deal_id: string | null
+          stage_id: string
+          start_date: string | null
+          status: string | null
+          temperature: string | null
+          title: string
+          updated_at: string | null
+          value: number | null
+          workflow_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          closed_at?: string | null
+          contact_id: string
+          created_at?: string | null
+          created_by?: string | null
+          custom_fields?: Json | null
+          disqualification_reason?: string | null
+          expected_close_date?: string | null
+          id?: string
+          is_archived?: boolean | null
+          notes?: string | null
+          quantity?: number | null
+          responsible_id?: string | null
+          source_deal_id?: string | null
+          stage_id: string
+          start_date?: string | null
+          status?: string | null
+          temperature?: string | null
+          title: string
+          updated_at?: string | null
+          value?: number | null
+          workflow_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          closed_at?: string | null
+          contact_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          custom_fields?: Json | null
+          disqualification_reason?: string | null
+          expected_close_date?: string | null
+          id?: string
+          is_archived?: boolean | null
+          notes?: string | null
+          quantity?: number | null
+          responsible_id?: string | null
+          source_deal_id?: string | null
+          stage_id?: string
+          start_date?: string | null
+          status?: string | null
+          temperature?: string | null
+          title?: string
+          updated_at?: string | null
+          value?: number | null
+          workflow_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_source_deal_id_fkey"
+            columns: ["source_deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "crm_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_lead_activities: {
         Row: {
           activity_type: string
