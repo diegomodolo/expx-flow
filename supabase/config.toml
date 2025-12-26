@@ -226,3 +226,6 @@ verify_jwt = true
 
 [functions.fetch-instagram-media]
 verify_jwt = true
+
+[functions.generate-creative-texts]
+verify_jwt = true
