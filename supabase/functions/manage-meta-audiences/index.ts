@@ -82,23 +82,33 @@ serve(async (req) => {
     switch (action) {
       case 'list':
       case 'sync': {
-        // Listar públicos do Meta
-        const url = `${graphApiUrl}/${actAdAccountId}/customaudiences?fields=id,name,description,subtype,approximate_count_lower_bound,approximate_count_upper_bound,operation_status&access_token=${accessToken}`;
+        // Listar públicos do Meta com paginação
+        let allAudiences: any[] = [];
+        let nextUrl: string | null = `${graphApiUrl}/${actAdAccountId}/customaudiences?fields=id,name,description,subtype,approximate_count_lower_bound,approximate_count_upper_bound,operation_status&limit=100&access_token=${accessToken}`;
         
-        const response = await fetch(url);
-        const data = await response.json();
+        // Paginar através de todos os resultados
+        while (nextUrl) {
+          const response = await fetch(nextUrl);
+          const data = await response.json();
 
-        if (data.error) {
-          console.error('[manage-meta-audiences] Meta API error:', data.error);
-          throw new Error(data.error.message);
+          if (data.error) {
+            console.error('[manage-meta-audiences] Meta API error:', data.error);
+            throw new Error(data.error.message);
+          }
+
+          const audiences = data.data || [];
+          allAudiences = [...allAudiences, ...audiences];
+          console.log(`[manage-meta-audiences] Fetched ${audiences.length} audiences, total: ${allAudiences.length}`);
+
+          // Verificar se há próxima página
+          nextUrl = data.paging?.next || null;
         }
 
-        const audiences = data.data || [];
-        console.log(`[manage-meta-audiences] Found ${audiences.length} audiences`);
+        console.log(`[manage-meta-audiences] Total audiences found: ${allAudiences.length}`);
 
         // Se for sync, salvar no banco
         if (action === 'sync') {
-          for (const audience of audiences) {
+          for (const audience of allAudiences) {
             const { error: upsertError } = await supabase
               .from('meta_audiences')
               .upsert({
@@ -124,7 +134,7 @@ serve(async (req) => {
 
         return new Response(JSON.stringify({
           success: true,
-          audiences: audiences.map((a: any) => ({
+          audiences: allAudiences.map((a: any) => ({
             id: a.id,
             name: a.name,
             description: a.description,
