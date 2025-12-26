@@ -470,8 +470,8 @@ export function CRMDealDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[85vw] w-[1100px] max-h-[95vh] p-0 gap-0 overflow-hidden bg-background">
-        <div className="flex h-[90vh]">
+      <DialogContent className="max-w-[95vw] w-[1600px] max-h-[80vh] p-0 gap-0 overflow-hidden bg-background">
+        <div className="flex h-[75vh]">
           {/* Sidebar Menu */}
           <div className="w-20 bg-background border-r flex flex-col items-center py-4 shrink-0">
             {menuItems.map((item) => {
