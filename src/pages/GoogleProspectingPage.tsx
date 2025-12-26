@@ -256,27 +256,37 @@ export default function GoogleProspectingPage() {
 
       // Import to CNAE Pool
       if (destinations.cnaePool) {
-        const leadsToInsert = selectedLeads.map(lead => ({
-          company_id: activeCompany.company_id,
-          cnpj: lead.cnpj || `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          cnae_code: cnaeCode,
-          cnae_description: businessTypeData?.label || businessType,
-          nome_fantasia: lead.nome_fantasia,
-          razao_social: lead.razao_social,
-          phone: lead.phone,
-          phone_2: lead.phone_2,
-          email: lead.email,
-          logradouro: lead.endereco,
-          municipio: city,
-          uf: state,
-          source: 'google_prospecting',
-        }));
+        let successCount = 0;
+        for (const lead of selectedLeads) {
+          const cnpjValue = lead.cnpj || `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          const { error } = await supabase
+            .from('cnae_lead_pool')
+            .upsert({
+              company_id: activeCompany.company_id,
+              cnpj: cnpjValue,
+              cnae_code: cnaeCode,
+              cnae_description: businessTypeData?.label || businessType,
+              nome_fantasia: lead.nome_fantasia,
+              razao_social: lead.razao_social,
+              phone: lead.phone,
+              phone_2: lead.phone_2,
+              email: lead.email,
+              logradouro: lead.endereco,
+              municipio: city,
+              uf: state,
+              source: 'google_prospecting',
+            }, { 
+              onConflict: 'cnpj,company_id',
+              ignoreDuplicates: true 
+            });
 
-        const { error } = await supabase
-          .from('cnae_lead_pool')
-          .insert(leadsToInsert);
-
-        if (error) throw error;
+          if (!error) successCount++;
+        }
+        
+        if (successCount === 0 && selectedLeads.length > 0) {
+          console.warn('No leads were imported to CNAE pool (all duplicates)');
+        }
       }
 
       // Import to custom segment (lead_master_pool + assignment)
