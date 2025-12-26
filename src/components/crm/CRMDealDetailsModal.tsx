@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -37,6 +43,7 @@ import {
   Edit3,
   Clock,
   Briefcase,
+  CalendarIcon,
 } from "lucide-react";
 import { CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { CRMContact } from "@/hooks/useCRMContacts";
@@ -146,9 +153,9 @@ export function CRMDealDetailsModal({
   const [newNote, setNewNote] = useState("");
   const [formData, setFormData] = useState({
     title: "",
-    start_date: "",
+    start_date: null as Date | null,
     start_time: "",
-    expected_close_date: "",
+    expected_close_date: null as Date | null,
     expected_close_time: "",
     quantity: "1",
     value: "",
@@ -262,9 +269,9 @@ export function CRMDealDetailsModal({
       
       setFormData({
         title: deal.title || "",
-        start_date: startDate ? format(startDate, "dd/MM/yyyy") : "",
+        start_date: startDate,
         start_time: startDate ? format(startDate, "HH:mm") : "",
-        expected_close_date: closeDate ? format(closeDate, "dd/MM/yyyy") : "",
+        expected_close_date: closeDate,
         expected_close_time: closeDate ? format(closeDate, "HH:mm") : "",
         quantity: deal.quantity?.toString() || "1",
         value: deal.value ? deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "",
@@ -299,15 +306,17 @@ export function CRMDealDetailsModal({
       let closeDateTime: string | null = null;
 
       if (formData.start_date) {
-        const [day, month, year] = formData.start_date.split("/");
-        const time = formData.start_time || "00:00";
-        startDateTime = new Date(`${year}-${month}-${day}T${time}:00`).toISOString();
+        const date = formData.start_date;
+        const [hours, minutes] = (formData.start_time || "00:00").split(":");
+        date.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
+        startDateTime = date.toISOString();
       }
 
       if (formData.expected_close_date) {
-        const [day, month, year] = formData.expected_close_date.split("/");
-        const time = formData.expected_close_time || "00:00";
-        closeDateTime = new Date(`${year}-${month}-${day}T${time}:00`).toISOString();
+        const date = formData.expected_close_date;
+        const [hours, minutes] = (formData.expected_close_time || "00:00").split(":");
+        date.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
+        closeDateTime = date.toISOString();
       }
 
       const valueStr = formData.value.replace(/\./g, "").replace(",", ".");
@@ -516,34 +525,68 @@ export function CRMDealDetailsModal({
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Início</Label>
                           <div className="flex gap-2">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "flex-1 justify-start text-left font-normal",
+                                    !formData.start_date && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {formData.start_date ? format(formData.start_date, "dd/MM/yyyy") : "Selecionar"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={formData.start_date || undefined}
+                                  onSelect={(date) => setFormData({ ...formData, start_date: date || null })}
+                                  locale={ptBR}
+                                  className="p-3 pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
                             <Input
-                              value={formData.start_date}
-                              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                              placeholder="dd/mm/aaaa"
-                              className="flex-1"
-                            />
-                            <Input
+                              type="time"
                               value={formData.start_time}
                               onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                              placeholder="HH:mm"
-                              className="w-24"
+                              className="w-28"
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Previsão de Fechamento</Label>
                           <div className="flex gap-2">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "flex-1 justify-start text-left font-normal",
+                                    !formData.expected_close_date && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {formData.expected_close_date ? format(formData.expected_close_date, "dd/MM/yyyy") : "Selecionar"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={formData.expected_close_date || undefined}
+                                  onSelect={(date) => setFormData({ ...formData, expected_close_date: date || null })}
+                                  locale={ptBR}
+                                  className="p-3 pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
                             <Input
-                              value={formData.expected_close_date}
-                              onChange={(e) => setFormData({ ...formData, expected_close_date: e.target.value })}
-                              placeholder="dd/mm/aaaa"
-                              className="flex-1"
-                            />
-                            <Input
+                              type="time"
                               value={formData.expected_close_time}
                               onChange={(e) => setFormData({ ...formData, expected_close_time: e.target.value })}
-                              placeholder="HH:mm"
-                              className="w-24"
+                              className="w-28"
                             />
                           </div>
                         </div>
