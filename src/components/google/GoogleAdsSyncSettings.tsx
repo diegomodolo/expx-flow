@@ -78,12 +78,13 @@ export function GoogleAdsSyncSettings() {
   };
 
   const handleSyncNow = async () => {
-    if (!activeCompany) {
+    const companyId = activeCompany?.company_id;
+    if (!companyId) {
       toast.error("Nenhuma empresa ativa");
       return;
     }
 
-    await syncAllClients(activeCompany.id, {
+    await syncAllClients(companyId, {
       period: syncOptions.period,
       syncCampaigns: syncOptions.campaigns,
       syncAdGroups: syncOptions.adGroups,
