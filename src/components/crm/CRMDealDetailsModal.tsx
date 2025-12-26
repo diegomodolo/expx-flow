@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -30,8 +31,12 @@ import {
   Plus,
   Phone,
   Facebook,
-  Paperclip,
   Send,
+  MessageSquare,
+  ArrowRight,
+  Edit3,
+  Clock,
+  Briefcase,
 } from "lucide-react";
 import { CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { CRMContact } from "@/hooks/useCRMContacts";
@@ -39,6 +44,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface CRMDealDetailsModalProps {
   deal: CRMDeal | null;
@@ -49,6 +56,22 @@ interface CRMDealDetailsModalProps {
   onUpdateDeal?: (data: { id: string; [key: string]: unknown }) => Promise<unknown>;
   onViewContact?: (contact: CRMContact) => void;
   onDeleteDeal?: (dealId: string) => Promise<void>;
+}
+
+interface DealActivity {
+  id: string;
+  deal_id: string;
+  contact_id: string | null;
+  activity_type: string;
+  notes: string | null;
+  from_stage_id: string | null;
+  to_stage_id: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  metadata: Record<string, unknown> | null;
+  is_manual: boolean;
+  created_at: string;
+  created_by: string | null;
 }
 
 const menuItems = [
@@ -68,6 +91,43 @@ const statusOptions = [
   { value: "lost", label: "Perdido", color: "bg-gray-500" },
 ];
 
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case "stage_changed":
+    case "stage_change":
+      return ArrowRight;
+    case "field_updated":
+      return Edit3;
+    case "note_added":
+    case "manual_note":
+      return MessageSquare;
+    case "deal_created":
+      return Plus;
+    default:
+      return Clock;
+  }
+};
+
+const getActivityLabel = (activity: DealActivity, stages: CRMStage[]) => {
+  switch (activity.activity_type) {
+    case "stage_changed":
+    case "stage_change": {
+      const fromStage = stages.find(s => s.id === activity.from_stage_id);
+      const toStage = stages.find(s => s.id === activity.to_stage_id);
+      return `Movido de "${fromStage?.name || '?'}" para "${toStage?.name || '?'}"`;
+    }
+    case "field_updated":
+      return `Campo alterado: ${activity.old_value} → ${activity.new_value}`;
+    case "note_added":
+    case "manual_note":
+      return activity.notes;
+    case "deal_created":
+      return "Negócio criado";
+    default:
+      return activity.notes || activity.activity_type;
+  }
+};
+
 export function CRMDealDetailsModal({
   deal,
   stages,
@@ -77,8 +137,10 @@ export function CRMDealDetailsModal({
   onUpdateDeal,
   onDeleteDeal,
 }: CRMDealDetailsModalProps) {
+  const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState("principal");
   const [isSaving, setIsSaving] = useState(false);
+  const [newNote, setNewNote] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     start_date: "",
@@ -96,13 +158,81 @@ export function CRMDealDetailsModal({
     workflow_id: "",
   });
 
+  const contact = deal?.contact;
+  const contactId = contact?.id;
+
+  // Fetch activities for the contact (not just deal) - shows history across all deals
+  const { data: activities = [], refetch: refetchActivities } = useQuery({
+    queryKey: ["crm-activities", contactId, deal?.id],
+    queryFn: async () => {
+      if (!deal) return [];
+      
+      // Get activities for this contact (across all deals) or this specific deal
+      const { data, error } = await supabase
+        .from("crm_deal_activities")
+        .select("*")
+        .or(contactId ? `contact_id.eq.${contactId},deal_id.eq.${deal.id}` : `deal_id.eq.${deal.id}`)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as DealActivity[];
+    },
+    enabled: isOpen && !!deal,
+  });
+
+  // Fetch other deals for this contact
+  const { data: otherDeals = [] } = useQuery({
+    queryKey: ["crm-contact-deals", contactId],
+    queryFn: async () => {
+      if (!contactId || !deal) return [];
+      
+      const { data, error } = await supabase
+        .from("crm_deals")
+        .select("id, title, status, created_at, stage_id")
+        .eq("contact_id", contactId)
+        .neq("id", deal.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: isOpen && !!contactId && !!deal,
+  });
+
+  // Add note mutation
+  const addNoteMutation = useMutation({
+    mutationFn: async (note: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from("crm_deal_activities")
+        .insert({
+          deal_id: deal!.id,
+          contact_id: contactId || null,
+          activity_type: "manual_note",
+          notes: note,
+          is_manual: true,
+          created_by: userData.user?.id,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNewNote("");
+      refetchActivities();
+      toast.success("Nota adicionada");
+    },
+    onError: () => {
+      toast.error("Erro ao adicionar nota");
+    },
+  });
+
   // Load deal data into form when deal changes
   useEffect(() => {
     if (deal) {
       const startDate = deal.start_date ? new Date(deal.start_date) : null;
       const closeDate = deal.expected_close_date ? new Date(deal.expected_close_date) : null;
       
-      // Find board_id from stage
       const currentStage = stages.find(s => s.id === deal.stage_id);
       
       setFormData({
@@ -126,8 +256,6 @@ export function CRMDealDetailsModal({
 
   if (!deal) return null;
 
-  const contact = deal.contact;
-
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -142,7 +270,6 @@ export function CRMDealDetailsModal({
     
     setIsSaving(true);
     try {
-      // Parse dates
       let startDateTime: string | null = null;
       let closeDateTime: string | null = null;
 
@@ -158,7 +285,6 @@ export function CRMDealDetailsModal({
         closeDateTime = new Date(`${year}-${month}-${day}T${time}:00`).toISOString();
       }
 
-      // Parse value
       const valueStr = formData.value.replace(/\./g, "").replace(",", ".");
       const value = valueStr ? parseFloat(valueStr) : null;
 
@@ -176,6 +302,16 @@ export function CRMDealDetailsModal({
         workflow_id: formData.workflow_id || null,
       });
       
+      // Log field changes
+      await supabase.from("crm_deal_activities").insert({
+        deal_id: deal.id,
+        contact_id: contactId || null,
+        activity_type: "field_updated",
+        notes: "Dados do negócio atualizados",
+        is_manual: false,
+      });
+
+      refetchActivities();
       toast.success("Negócio salvo com sucesso");
     } catch (error) {
       console.error("Error saving deal:", error);
@@ -200,17 +336,19 @@ export function CRMDealDetailsModal({
     }
   };
 
-  // Filter stages by selected board
+  const handleSendNote = () => {
+    if (!newNote.trim()) return;
+    addNoteMutation.mutate(newNote.trim());
+  };
+
   const filteredStages = formData.board_id 
     ? stages.filter(s => s.board_id === formData.board_id)
     : stages;
 
-  const currentStatus = statusOptions.find(s => s.value === formData.status);
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[1200px] h-[90vh] p-0 gap-0 overflow-hidden">
-        <div className="flex h-full">
+      <DialogContent className="max-w-[90vw] w-[1400px] max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <div className="flex h-[85vh]">
           {/* Sidebar Menu */}
           <div className="w-20 bg-card border-r flex flex-col items-center py-4 shrink-0">
             {menuItems.map((item) => {
@@ -254,9 +392,15 @@ export function CRMDealDetailsModal({
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-semibold truncate">{deal.title}</h2>
                 <p className="text-sm text-muted-foreground">
-                  Criada por em {format(new Date(deal.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  Criado em {format(new Date(deal.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                 </p>
               </div>
+              {otherDeals.length > 0 && (
+                <Badge variant="secondary" className="shrink-0">
+                  <Briefcase className="w-3 h-3 mr-1" />
+                  +{otherDeals.length} negócio(s) anterior(es)
+                </Badge>
+              )}
             </div>
 
             {/* Content Area */}
@@ -267,7 +411,7 @@ export function CRMDealDetailsModal({
                   {activeSection === "principal" && (
                     <>
                       {/* Row 1: ID + Title */}
-                      <div className="grid grid-cols-[120px_1fr] gap-4">
+                      <div className="grid grid-cols-[140px_1fr] gap-4">
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">ID</Label>
                           <Input 
@@ -354,8 +498,8 @@ export function CRMDealDetailsModal({
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Responsável</Label>
                           <Select 
-                            value={formData.responsible_id} 
-                            onValueChange={(v) => setFormData({ ...formData, responsible_id: v })}
+                            value={formData.responsible_id || "none"} 
+                            onValueChange={(v) => setFormData({ ...formData, responsible_id: v === "none" ? "" : v })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione..." />
@@ -426,7 +570,7 @@ export function CRMDealDetailsModal({
                         </div>
                         
                         {contact ? (
-                          <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-6 flex-wrap">
                             <div className="flex items-center gap-3">
                               <Avatar className="w-10 h-10">
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">
@@ -454,14 +598,37 @@ export function CRMDealDetailsModal({
                         ) : (
                           <p className="text-sm text-muted-foreground">Nenhum lead vinculado</p>
                         )}
+
+                        {/* Other Deals */}
+                        {otherDeals.length > 0 && (
+                          <div className="border-t pt-3 mt-3">
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Este lead possui outros {otherDeals.length} negócio(s):
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                              {otherDeals.map((d) => {
+                                const stage = stages.find(s => s.id === d.stage_id);
+                                return (
+                                  <Badge key={d.id} variant="outline" className="text-xs">
+                                    <span 
+                                      className="w-2 h-2 rounded-full mr-1" 
+                                      style={{ backgroundColor: stage?.color || "#888" }}
+                                    />
+                                    {d.title} ({d.status === "won" ? "Ganho" : d.status === "lost" ? "Perdido" : "Aberto"})
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Workflow */}
                       <div className="space-y-2">
                         <Label className="text-xs text-muted-foreground">Fluxo</Label>
                         <Select 
-                          value={formData.workflow_id} 
-                          onValueChange={(v) => setFormData({ ...formData, workflow_id: v })}
+                          value={formData.workflow_id || "none"} 
+                          onValueChange={(v) => setFormData({ ...formData, workflow_id: v === "none" ? "" : v })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
@@ -490,18 +657,73 @@ export function CRMDealDetailsModal({
                           value={formData.notes}
                           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                           placeholder="Adicione uma descrição..."
-                          rows={6}
+                          rows={4}
                           className="resize-none"
                         />
                       </div>
+
+                      {/* Save Button */}
+                      <Button 
+                        className="w-full" 
+                        onClick={handleSave}
+                        disabled={isSaving}
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {isSaving ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
                     </>
                   )}
 
                   {activeSection === "historico" && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p>Histórico de atividades</p>
-                      <p className="text-sm">Em breve</p>
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Histórico Completo</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Visualize o histórico detalhado deste negócio e do lead associado.
+                      </p>
+                      
+                      {activities.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                          <p>Nenhuma atividade registrada</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {activities.map((activity) => {
+                            const Icon = getActivityIcon(activity.activity_type);
+                            const isDifferentDeal = activity.deal_id !== deal.id;
+                            
+                            return (
+                              <div 
+                                key={activity.id} 
+                                className={cn(
+                                  "flex gap-3 p-3 rounded-lg",
+                                  isDifferentDeal ? "bg-muted/50 border border-dashed" : "bg-muted/30"
+                                )}
+                              >
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                                  activity.is_manual ? "bg-primary/10 text-primary" : "bg-muted"
+                                )}>
+                                  <Icon className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm">{getActivityLabel(activity, stages)}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-muted-foreground">
+                                      {format(new Date(activity.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                    </span>
+                                    {isDifferentDeal && (
+                                      <Badge variant="outline" className="text-xs">
+                                        Outro negócio
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -513,10 +735,10 @@ export function CRMDealDetailsModal({
                 </div>
               </ScrollArea>
 
-              {/* Right Panel - Status + Activity */}
-              <div className="w-80 border-l bg-card flex flex-col shrink-0">
+              {/* Right Panel - Status + Note Input + Activity Feed */}
+              <div className="w-96 border-l bg-card flex flex-col shrink-0">
                 {/* Status Section */}
-                <div className="p-4 border-b space-y-4">
+                <div className="p-4 border-b space-y-3">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Situação</Label>
                     <Select 
@@ -543,72 +765,76 @@ export function CRMDealDetailsModal({
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* Quick Note */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground border-t pt-4">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <span className="font-bold">B</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <span className="italic">I</span>
-                    </Button>
-                  </div>
                 </div>
 
-                {/* Attachments */}
-                <div className="p-4 border-b space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Paperclip className="w-4 h-4" />
-                    <span>Anexar Arquivo</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select defaultValue="private">
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="private">Privado</SelectItem>
-                        <SelectItem value="public">Público</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button size="icon" className="bg-emerald-500 hover:bg-emerald-600 shrink-0">
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
+                {/* Note Input */}
+                <div className="p-4 border-b space-y-3">
+                  <Label className="text-xs text-muted-foreground">Adicionar ao Histórico</Label>
+                  <Textarea
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Digite uma nota ou observação..."
+                    rows={3}
+                    className="resize-none"
+                  />
+                  <Button 
+                    onClick={handleSendNote}
+                    disabled={!newNote.trim() || addNoteMutation.isPending}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    {addNoteMutation.isPending ? "Enviando..." : "Enviar"}
+                  </Button>
                 </div>
 
                 {/* Activity Feed */}
-                <ScrollArea className="flex-1">
-                  <div className="p-4 space-y-4">
-                    <div className="flex gap-3">
-                      <Avatar className="w-10 h-10 shrink-0">
-                        <AvatarFallback className="bg-orange-500 text-white text-sm">
-                          {getInitials(deal.title)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-sm">
-                        <p className="font-medium">{deal.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(deal.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                        </p>
-                        <p className="mt-1 text-muted-foreground">
-                          Negócio criado
-                        </p>
-                      </div>
-                    </div>
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="p-3 border-b">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <History className="w-4 h-4" />
+                      Histórico do Lead
+                    </h4>
                   </div>
-                </ScrollArea>
-
-                {/* Save Button */}
-                <div className="p-4 border-t mt-auto">
-                  <Button 
-                    className="w-full" 
-                    onClick={handleSave}
-                    disabled={isSaving}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {isSaving ? "Salvando..." : "Salvar"}
-                  </Button>
+                  <ScrollArea className="flex-1">
+                    <div className="p-3 space-y-3">
+                      {activities.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhuma atividade registrada
+                        </p>
+                      ) : (
+                        activities.map((activity) => {
+                          const Icon = getActivityIcon(activity.activity_type);
+                          const isDifferentDeal = activity.deal_id !== deal.id;
+                          
+                          return (
+                            <div key={activity.id} className="flex gap-3">
+                              <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                                activity.is_manual ? "bg-primary/10 text-primary" : "bg-muted"
+                              )}>
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm line-clamp-3">
+                                  {getActivityLabel(activity, stages)}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <span className="text-xs text-muted-foreground">
+                                    {format(new Date(activity.created_at), "dd/MM/yy HH:mm")}
+                                  </span>
+                                  {isDifferentDeal && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      Outro negócio
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
                 </div>
               </div>
             </div>
