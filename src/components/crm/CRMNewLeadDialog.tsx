@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCRMLeads } from "@/hooks/useCRMLeads";
-import { CRMStage } from "@/hooks/useCRMDeals";
+import { useCRMContacts } from "@/hooks/useCRMContacts";
+import { useCRMDeals, CRMStage } from "@/hooks/useCRMDeals";
 import { Loader2 } from "lucide-react";
 
 const brazilianStates = [
@@ -30,7 +30,8 @@ interface CRMNewLeadDialogProps {
 }
 
 export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId }: CRMNewLeadDialogProps) {
-  const { createLead, isCreatingLead } = useCRMLeads(workspaceId, boardId);
+  const { findOrCreateContact, isCreating: isCreatingContact } = useCRMContacts(workspaceId);
+  const { createDeal, isCreating: isCreatingDeal } = useCRMDeals(workspaceId, boardId);
   
   const [formData, setFormData] = useState({
     // Básico
@@ -50,7 +51,7 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
     
     // Rastreamento
     utm_source: '',
-    utm_media: '',
+    utm_medium: '',
     utm_campaign: '',
     
     // Vendas
@@ -62,6 +63,8 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
     // Observações
     notes: '',
   });
+
+  const isLoading = isCreatingContact || isCreatingDeal;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,58 +85,70 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
       return;
     }
 
-    await createLead({
-      stage_id: formData.stage_id,
-      full_name: formData.full_name.trim(),
-      email: formData.email || null,
-      phone: formData.phone || null,
-      company_name: formData.company_name || null,
-      facebook: formData.facebook || null,
-      instagram: formData.instagram || null,
-      website: formData.website || null,
-      city: formData.city || null,
-      state: formData.state || null,
-      utm_source: formData.utm_source || null,
-      utm_media: formData.utm_media || null,
-      utm_campaign: formData.utm_campaign || null,
-      temperature: formData.temperature || null,
-      start_date: formData.start_date || null,
-      expected_close_date: formData.expected_close_date || null,
-      quantity: parseInt(formData.quantity) || 1,
-      value: formData.value ? parseFloat(formData.value) : null,
-      notes: formData.notes || null,
-    } as any);
+    try {
+      // 1. Criar ou encontrar contato existente
+      const contact = await findOrCreateContact({
+        workspace_id: workspaceId,
+        full_name: formData.full_name.trim(),
+        email: formData.email || null,
+        phone: formData.phone || null,
+        company_name: formData.company_name || null,
+        facebook: formData.facebook || null,
+        instagram: formData.instagram || null,
+        website: formData.website || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        utm_source: formData.utm_source || null,
+        utm_medium: formData.utm_medium || null,
+        utm_campaign: formData.utm_campaign || null,
+      });
 
-    // Reset form
-    setFormData({
-      full_name: '',
-      email: '',
-      phone: '',
-      company_name: '',
-      temperature: '',
-      stage_id: stages[0]?.id || '',
-      facebook: '',
-      instagram: '',
-      website: '',
-      city: '',
-      state: '',
-      utm_source: '',
-      utm_media: '',
-      utm_campaign: '',
-      start_date: '',
-      expected_close_date: '',
-      quantity: '1',
-      value: '',
-      notes: '',
-    });
-    onClose();
+      // 2. Criar o deal associado ao contato
+      await createDeal({
+        workspace_id: workspaceId,
+        contact_id: contact.id,
+        stage_id: formData.stage_id,
+        title: formData.full_name.trim(), // Usa o nome como título do deal
+        value: formData.value ? parseFloat(formData.value) : null,
+        quantity: parseInt(formData.quantity) || 1,
+        temperature: formData.temperature as "cold" | "warm" | "hot" | null || null,
+        expected_close_date: formData.expected_close_date || null,
+        notes: formData.notes || null,
+      });
+
+      // Reset form
+      setFormData({
+        full_name: '',
+        email: '',
+        phone: '',
+        company_name: '',
+        temperature: '',
+        stage_id: stages[0]?.id || '',
+        facebook: '',
+        instagram: '',
+        website: '',
+        city: '',
+        state: '',
+        utm_source: '',
+        utm_medium: '',
+        utm_campaign: '',
+        start_date: '',
+        expected_close_date: '',
+        quantity: '1',
+        value: '',
+        notes: '',
+      });
+      onClose();
+    } catch (error) {
+      console.error("Error creating lead/deal:", error);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Lead</DialogTitle>
+          <DialogTitle>Novo Negócio</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
@@ -154,7 +169,7 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                     id="full_name"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    placeholder="Nome completo do lead"
+                    placeholder="Nome completo do contato"
                     required
                   />
                 </div>
@@ -298,11 +313,11 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                 </div>
 
                 <div>
-                  <Label htmlFor="utm_media">UTM Media</Label>
+                  <Label htmlFor="utm_medium">UTM Medium</Label>
                   <Input
-                    id="utm_media"
-                    value={formData.utm_media}
-                    onChange={(e) => setFormData({ ...formData, utm_media: e.target.value })}
+                    id="utm_medium"
+                    value={formData.utm_medium}
+                    onChange={(e) => setFormData({ ...formData, utm_medium: e.target.value })}
                     placeholder="cpc, organic, social"
                   />
                 </div>
@@ -374,7 +389,7 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Adicione observações sobre o lead..."
+                  placeholder="Adicione observações sobre o negócio..."
                   rows={8}
                 />
               </div>
@@ -385,9 +400,9 @@ export function CRMNewLeadDialog({ isOpen, onClose, stages, workspaceId, boardId
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isCreatingLead}>
-              {isCreatingLead && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Criar Lead
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Criar Negócio
             </Button>
           </DialogFooter>
         </form>
