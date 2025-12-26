@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreativeData } from "@/hooks/useCampaignBuilder";
 import { MediaUploader } from "./MediaUploader";
 import { UrlParametersEditor } from "./UrlParametersEditor";
 import { FeedPreview } from "./FeedPreview";
 import { Separator } from "@/components/ui/separator";
+import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreativeEditorProps {
   creative: CreativeData;
@@ -38,10 +43,71 @@ const CTA_OPTIONS = [
 ];
 
 export function CreativeEditor({ creative, onChange, clientId, clientName, clientAvatar }: CreativeEditorProps) {
+  const [generatingTexts, setGeneratingTexts] = useState(false);
+  const { toast } = useToast();
+
   const handleTypeChange = (type: CreativeData['type']) => {
     // Clear media when changing type
     onChange({ type, mediaUrls: [] });
   };
+
+  const handleGenerateTexts = async () => {
+    if (!clientId) {
+      toast({
+        title: "Erro",
+        description: "Cliente não identificado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (creative.mediaUrls.length === 0) {
+      toast({
+        title: "Adicione uma imagem",
+        description: "É necessário ter uma imagem no criativo para gerar os textos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get the first image (for carousel, use the first one)
+    const imageUrl = creative.mediaUrls[0];
+
+    setGeneratingTexts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-creative-texts', {
+        body: { clientId, imageUrl },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      // Apply generated texts
+      onChange({
+        body: data.data.body || creative.body,
+        title: data.data.title || creative.title,
+        description: data.data.description || creative.description,
+        linkUrl: data.data.linkUrl || creative.linkUrl,
+        callToAction: data.data.callToAction || creative.callToAction,
+      });
+
+      toast({
+        title: "Textos gerados!",
+        description: "Os campos foram preenchidos com base na imagem e no briefing do cliente.",
+      });
+    } catch (err: any) {
+      console.error("Error generating texts:", err);
+      toast({
+        title: "Erro ao gerar textos",
+        description: err.message || "Não foi possível gerar os textos.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTexts(false);
+    }
+  };
+
+  const canGenerateTexts = clientId && creative.mediaUrls.length > 0 && creative.type !== 'VIDEO';
 
   return (
     <div className="space-y-6 pt-4">
@@ -82,6 +148,30 @@ export function CreativeEditor({ creative, onChange, clientId, clientName, clien
             }}
           />
         </div>
+
+        {/* Generate Texts with AI Button */}
+        {canGenerateTexts && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateTexts}
+            disabled={generatingTexts}
+            className="w-full border-dashed border-primary/50 text-primary hover:bg-primary/5"
+          >
+            {generatingTexts ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Analisando imagem...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Gerar Textos com IA
+              </>
+            )}
+          </Button>
+        )}
 
         {/* Text Content */}
         <div className="space-y-2">
