@@ -57,7 +57,7 @@ export function CRMStatusBar({
   };
 
   return (
-    <div className="flex items-center gap-2 mb-6">
+    <div className="flex items-center w-full gap-2 mb-6">
       {STATUS_OPTIONS.map((option) => {
         const isActive = activeStatusFilter === option.value;
         const isDragOver = dragOverStatus === option.value && option.value !== null;
@@ -72,14 +72,12 @@ export function CRMStatusBar({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, option.value)}
             className={cn(
-              "px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 text-white",
+              "flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 text-white text-center",
               option.bgColor,
               option.borderColor,
               option.hoverBg,
               isActive && "ring-2 ring-offset-2 ring-offset-background ring-white",
-              isDragOver && "scale-110 ring-4 ring-white/50 shadow-lg shadow-white/20",
-              option.value === null && "cursor-pointer",
-              option.value !== null && "cursor-pointer"
+              isDragOver && "scale-110 ring-4 ring-white/50 shadow-lg shadow-white/20"
             )}
           >
             {option.label}
