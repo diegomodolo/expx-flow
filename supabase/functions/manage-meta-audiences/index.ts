@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  action: 'list' | 'create' | 'delete' | 'get-details' | 'sync' | 'create_lookalike';
+  action: 'list' | 'create' | 'delete' | 'get-details' | 'sync' | 'create_lookalike' | 'create_website_audience' | 'create_engagement_audience';
   clientId: string;
   audienceId?: string;
   name?: string;
@@ -18,6 +18,17 @@ interface RequestBody {
   country?: string;
   ratio?: number;
   lookalikeType?: 'similarity' | 'reach';
+  // Website Audience fields
+  pixelId?: string;
+  retentionDays?: number;
+  ruleType?: 'all_visitors' | 'url_contains' | 'url_equals' | 'event';
+  urlValue?: string;
+  eventName?: string;
+  // Engagement Audience fields
+  engagementType?: 'page' | 'instagram' | 'video';
+  sourceId?: string;
+  engagementEvent?: string;
+  videoPercentile?: number;
 }
 
 serve(async (req) => {
@@ -43,7 +54,12 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { action, clientId, audienceId, name, description, subtype, originAudienceId, country, ratio, lookalikeType } = body;
+    const { 
+      action, clientId, audienceId, name, description, subtype, 
+      originAudienceId, country, ratio, lookalikeType,
+      pixelId, retentionDays, ruleType, urlValue, eventName,
+      engagementType, sourceId, engagementEvent, videoPercentile
+    } = body;
 
     console.log(`[manage-meta-audiences] Action: ${action}, ClientId: ${clientId}`);
 
@@ -309,7 +325,7 @@ serve(async (req) => {
         }
 
         const targetCountry = country || 'BR';
-        const targetRatio = Math.min(Math.max(ratio || 1, 1), 20) / 100; // Convert 1-20 to 0.01-0.20
+        const targetRatio = Math.min(Math.max(ratio || 1, 1), 20) / 100;
 
         console.log(`[manage-meta-audiences] Creating lookalike from ${originAudienceId}, country: ${targetCountry}, ratio: ${targetRatio}`);
 
@@ -321,7 +337,6 @@ serve(async (req) => {
           country: targetCountry,
         };
 
-        // Add type if specified (similarity vs reach)
         if (lookalikeType === 'similarity') {
           lookalikeSpec.type = 'similarity';
         } else if (lookalikeType === 'reach') {
@@ -351,7 +366,6 @@ serve(async (req) => {
 
         console.log(`[manage-meta-audiences] Created lookalike audience: ${data.id}`);
 
-        // Save to local database
         const { error: insertError } = await supabase
           .from('meta_audiences')
           .insert({
@@ -378,6 +392,293 @@ serve(async (req) => {
             origin_audience_id: originAudienceId,
             country: targetCountry,
             ratio: targetRatio * 100,
+          },
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'create_website_audience': {
+        if (!name) {
+          throw new Error('Name is required');
+        }
+        if (!pixelId) {
+          throw new Error('Pixel ID is required');
+        }
+
+        const retention = Math.min(Math.max(retentionDays || 30, 1), 180);
+        const retentionSeconds = retention * 24 * 60 * 60;
+
+        console.log(`[manage-meta-audiences] Creating website audience with pixel ${pixelId}, retention: ${retention} days`);
+
+        // Build rule based on ruleType
+        let filter: any = { operator: 'and', filters: [] };
+        
+        if (ruleType === 'url_contains' && urlValue) {
+          filter = {
+            operator: 'and',
+            filters: [
+              { field: 'url', operator: 'i_contains', value: urlValue }
+            ]
+          };
+        } else if (ruleType === 'url_equals' && urlValue) {
+          filter = {
+            operator: 'and',
+            filters: [
+              { field: 'url', operator: 'eq', value: urlValue }
+            ]
+          };
+        } else if (ruleType === 'event' && eventName) {
+          filter = {
+            operator: 'and',
+            filters: [
+              { field: 'event', operator: 'eq', value: eventName }
+            ]
+          };
+        }
+        // For 'all_visitors', we use an empty filter
+
+        const rule = {
+          inclusions: {
+            operator: 'or',
+            rules: [
+              {
+                event_sources: [
+                  { type: 'pixel', id: pixelId }
+                ],
+                retention_seconds: retentionSeconds,
+                filter: filter
+              }
+            ]
+          }
+        };
+
+        console.log(`[manage-meta-audiences] Website audience rule:`, JSON.stringify(rule));
+
+        const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            description: description || `Público de website - ${ruleType === 'all_visitors' ? 'Todos visitantes' : ruleType === 'event' ? `Evento: ${eventName}` : `URL: ${urlValue}`} (${retention} dias)`,
+            subtype: 'WEBSITE',
+            rule: JSON.stringify(rule),
+            prefill: true,
+            access_token: accessToken,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          console.error('[manage-meta-audiences] Create website audience error:', data.error);
+          throw new Error(data.error.message);
+        }
+
+        console.log(`[manage-meta-audiences] Created website audience: ${data.id}`);
+
+        const { error: insertError } = await supabase
+          .from('meta_audiences')
+          .insert({
+            client_id: clientId,
+            company_id: client.company_id,
+            ad_account_id: adAccountId,
+            meta_audience_id: data.id,
+            name,
+            description: description || `Website - ${retention} dias`,
+            subtype: 'WEBSITE',
+            synced_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('[manage-meta-audiences] Insert website audience error:', insertError);
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          audience: { 
+            id: data.id, 
+            name, 
+            subtype: 'WEBSITE',
+            pixel_id: pixelId,
+            retention_days: retention,
+          },
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'create_engagement_audience': {
+        if (!name) {
+          throw new Error('Name is required');
+        }
+        if (!engagementType) {
+          throw new Error('Engagement type is required');
+        }
+        if (!sourceId) {
+          throw new Error('Source ID is required');
+        }
+
+        const retention = Math.min(Math.max(retentionDays || 30, 1), 365);
+        const retentionSeconds = retention * 24 * 60 * 60;
+
+        console.log(`[manage-meta-audiences] Creating engagement audience type: ${engagementType}, source: ${sourceId}`);
+
+        let rule: any;
+        let subtypeValue: string;
+        let descriptionText: string;
+
+        if (engagementType === 'page') {
+          subtypeValue = 'ENGAGEMENT';
+          
+          // Map engagement events to Meta API object_ids
+          const eventToObjectId: { [key: string]: string } = {
+            'page_engaged': 'page_engaged',
+            'page_liked': 'page_liked', 
+            'page_visited': 'page_visited',
+            'page_messaged': 'page_messaged',
+            'page_cta_clicked': 'page_cta_clicked',
+            'page_saved_post': 'page_saved_post',
+          };
+
+          const objectId = eventToObjectId[engagementEvent || 'page_engaged'] || 'page_engaged';
+          descriptionText = `Engajamento Página Facebook - ${engagementEvent || 'page_engaged'}`;
+
+          rule = {
+            inclusions: {
+              operator: 'or',
+              rules: [
+                {
+                  event_sources: [
+                    { type: 'page', id: sourceId }
+                  ],
+                  retention_seconds: retentionSeconds,
+                  filter: {
+                    operator: 'and',
+                    filters: [
+                      { field: 'event', operator: 'eq', value: objectId }
+                    ]
+                  }
+                }
+              ]
+            }
+          };
+        } else if (engagementType === 'instagram') {
+          subtypeValue = 'ENGAGEMENT';
+          
+          const igEventMap: { [key: string]: string } = {
+            'ig_business_profile_all': 'ig_business_profile_all',
+            'ig_business_profile_engaged': 'ig_user_engaged_shopping_in_live',
+            'ig_business_profile_any': 'ig_business_profile_all',
+          };
+
+          const igEvent = igEventMap[engagementEvent || 'ig_business_profile_all'] || 'ig_business_profile_all';
+          descriptionText = `Engajamento Instagram - ${engagementEvent || 'ig_business_profile_all'}`;
+
+          rule = {
+            inclusions: {
+              operator: 'or',
+              rules: [
+                {
+                  event_sources: [
+                    { type: 'ig_business', id: sourceId }
+                  ],
+                  retention_seconds: retentionSeconds,
+                  filter: {
+                    operator: 'and',
+                    filters: [
+                      { field: 'event', operator: 'eq', value: igEvent }
+                    ]
+                  }
+                }
+              ]
+            }
+          };
+        } else if (engagementType === 'video') {
+          subtypeValue = 'ENGAGEMENT';
+          
+          // Video percentile mapping
+          const percentile = videoPercentile || 50;
+          descriptionText = `Visualização de Vídeo - ${percentile}%`;
+
+          rule = {
+            inclusions: {
+              operator: 'or',
+              rules: [
+                {
+                  event_sources: [
+                    { type: 'page', id: sourceId }
+                  ],
+                  retention_seconds: retentionSeconds,
+                  filter: {
+                    operator: 'and',
+                    filters: [
+                      { field: 'event', operator: 'eq', value: 'video_watched' },
+                      { field: 'video_watched.video_watched_percentile', operator: 'gte', value: percentile }
+                    ]
+                  }
+                }
+              ]
+            }
+          };
+        } else {
+          throw new Error(`Unknown engagement type: ${engagementType}`);
+        }
+
+        console.log(`[manage-meta-audiences] Engagement audience rule:`, JSON.stringify(rule));
+
+        const url = `${graphApiUrl}/${actAdAccountId}/customaudiences`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            description: description || `${descriptionText} (${retention} dias)`,
+            subtype: subtypeValue,
+            rule: JSON.stringify(rule),
+            prefill: true,
+            access_token: accessToken,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          console.error('[manage-meta-audiences] Create engagement audience error:', data.error);
+          throw new Error(data.error.message);
+        }
+
+        console.log(`[manage-meta-audiences] Created engagement audience: ${data.id}`);
+
+        const { error: insertError } = await supabase
+          .from('meta_audiences')
+          .insert({
+            client_id: clientId,
+            company_id: client.company_id,
+            ad_account_id: adAccountId,
+            meta_audience_id: data.id,
+            name,
+            description: description || descriptionText,
+            subtype: subtypeValue,
+            synced_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('[manage-meta-audiences] Insert engagement audience error:', insertError);
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          audience: { 
+            id: data.id, 
+            name, 
+            subtype: subtypeValue,
+            engagement_type: engagementType,
+            source_id: sourceId,
+            retention_days: retention,
           },
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

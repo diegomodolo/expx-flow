@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 import { useMetaAudiences, MetaAudience } from "@/hooks/useMetaAudiences";
 import { AudiencesList } from "@/components/audiences/AudiencesList";
 import { CreateAudienceModal } from "@/components/audiences/CreateAudienceModal";
+import { CreateAdvancedAudienceModal, PixelOption, PageOption, InstagramOption } from "@/components/audiences/CreateAdvancedAudienceModal";
 import { UploadLeadsModal } from "@/components/audiences/UploadLeadsModal";
 import { AudienceDetailsModal } from "@/components/audiences/AudienceDetailsModal";
 import { CreateLookalikeModal } from "@/components/audiences/CreateLookalikeModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, RefreshCw, Users, AlertCircle, ExternalLink } from "lucide-react";
+import { Plus, RefreshCw, Users, AlertCircle, ExternalLink, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export function ClientePublicos() {
   const { id } = useParams<{ id: string }>();
@@ -22,25 +24,77 @@ export function ClientePublicos() {
     getAudienceDetails,
     addUsersToAudience,
     createLookalikeAudience,
+    createWebsiteAudience,
+    createEngagementAudience,
     error,
   } = useMetaAudiences(id || null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [advancedModalOpen, setAdvancedModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [lookalikeModalOpen, setLookalikeModalOpen] = useState(false);
   const [selectedAudience, setSelectedAudience] = useState<MetaAudience | null>(null);
 
+  // Data for advanced modal
+  const [pixels, setPixels] = useState<PixelOption[]>([]);
+  const [pages, setPages] = useState<PageOption[]>([]);
+  const [instagramAccounts, setInstagramAccounts] = useState<InstagramOption[]>([]);
+
   useEffect(() => {
     if (id) {
       fetchAudiences(true);
+      fetchAdvancedData();
     }
   }, [id]);
+
+  const fetchAdvancedData = async () => {
+    if (!id) return;
+
+    // Fetch pixels, pages, and Instagram accounts for this client
+    const [pixelsRes, clientRes] = await Promise.all([
+      supabase.from('meta_pixels').select('id, pixel_id, pixel_name').eq('client_id', id),
+      supabase.from('clients').select(`
+        facebook_page_id,
+        instagram_account_id,
+        facebook_pages!clients_facebook_page_id_fkey(id, page_id, page_name),
+        instagram_accounts!clients_instagram_account_id_fkey(id, instagram_id, username)
+      `).eq('id', id).single(),
+    ]);
+
+    if (pixelsRes.data) {
+      setPixels(pixelsRes.data);
+    }
+
+    if (clientRes.data) {
+      if (clientRes.data.facebook_pages) {
+        const page = clientRes.data.facebook_pages as any;
+        setPages([{ id: page.id, page_id: page.page_id, name: page.page_name }]);
+      }
+      if (clientRes.data.instagram_accounts) {
+        setInstagramAccounts([clientRes.data.instagram_accounts as InstagramOption]);
+      }
+    }
+  };
 
   const handleCreateAudience = async (name: string, description?: string) => {
     const result = await createAudience(name, description);
     if (result) {
       setCreateModalOpen(false);
+    }
+  };
+
+  const handleCreateWebsiteAudience = async (params: Parameters<typeof createWebsiteAudience>[0]) => {
+    const result = await createWebsiteAudience(params);
+    if (result) {
+      setAdvancedModalOpen(false);
+    }
+  };
+
+  const handleCreateEngagementAudience = async (params: Parameters<typeof createEngagementAudience>[0]) => {
+    const result = await createEngagementAudience(params);
+    if (result) {
+      setAdvancedModalOpen(false);
     }
   };
 
@@ -138,6 +192,10 @@ export function ClientePublicos() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Sincronizar
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setAdvancedModalOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Público Avançado
+          </Button>
           <Button size="sm" onClick={() => setCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Criar Público
@@ -159,6 +217,17 @@ export function ClientePublicos() {
         onOpenChange={setCreateModalOpen}
         onSubmit={handleCreateAudience}
         loading={loading}
+      />
+
+      <CreateAdvancedAudienceModal
+        open={advancedModalOpen}
+        onOpenChange={setAdvancedModalOpen}
+        onCreateWebsiteAudience={handleCreateWebsiteAudience}
+        onCreateEngagementAudience={handleCreateEngagementAudience}
+        loading={loading}
+        pixels={pixels}
+        pages={pages}
+        instagramAccounts={instagramAccounts}
       />
 
       <UploadLeadsModal

@@ -298,6 +298,108 @@ export function useMetaAudiences(clientId: string | null) {
     }
   }, [clientId, fetchAudiences, toast]);
 
+  const createWebsiteAudience = useCallback(async (params: {
+    name: string;
+    pixelId: string;
+    retentionDays: number;
+    ruleType: 'all_visitors' | 'url_contains' | 'url_equals' | 'event';
+    urlValue?: string;
+    eventName?: string;
+  }): Promise<MetaAudience | null> => {
+    if (!clientId) return null;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-meta-audiences', {
+        body: {
+          action: 'create_website_audience',
+          clientId,
+          name: params.name,
+          pixelId: params.pixelId,
+          retentionDays: params.retentionDays,
+          ruleType: params.ruleType,
+          urlValue: params.urlValue,
+          eventName: params.eventName,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      toast({
+        title: 'Público de website criado',
+        description: `Público "${params.name}" criado com sucesso. Será populado com dados históricos.`,
+      });
+
+      await fetchAudiences();
+      return data.audience;
+    } catch (error: any) {
+      console.error('Error creating website audience:', error);
+      toast({
+        title: 'Erro ao criar público de website',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, fetchAudiences, toast]);
+
+  const createEngagementAudience = useCallback(async (params: {
+    name: string;
+    engagementType: 'page' | 'instagram' | 'video';
+    sourceId: string;
+    retentionDays: number;
+    engagementEvent: string;
+    videoPercentile?: number;
+  }): Promise<MetaAudience | null> => {
+    if (!clientId) return null;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-meta-audiences', {
+        body: {
+          action: 'create_engagement_audience',
+          clientId,
+          name: params.name,
+          engagementType: params.engagementType,
+          sourceId: params.sourceId,
+          retentionDays: params.retentionDays,
+          engagementEvent: params.engagementEvent,
+          videoPercentile: params.videoPercentile,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      const typeLabels = {
+        page: 'Página Facebook',
+        instagram: 'Instagram',
+        video: 'Vídeo',
+      };
+
+      toast({
+        title: `Público de ${typeLabels[params.engagementType]} criado`,
+        description: `Público "${params.name}" criado com sucesso. Será populado com dados históricos.`,
+      });
+
+      await fetchAudiences();
+      return data.audience;
+    } catch (error: any) {
+      console.error('Error creating engagement audience:', error);
+      toast({
+        title: 'Erro ao criar público de engajamento',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, fetchAudiences, toast]);
+
   return {
     loading,
     audiences,
@@ -309,5 +411,7 @@ export function useMetaAudiences(clientId: string | null) {
     addUsersToAudience,
     removeUsersFromAudience,
     createLookalikeAudience,
+    createWebsiteAudience,
+    createEngagementAudience,
   };
 }
