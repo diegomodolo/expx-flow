@@ -503,13 +503,20 @@ export default function GoogleProspectingPage() {
                         <TableCell>
                           {lead.website && (
                             <a 
-                              href={lead.website} 
+                              href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-primary hover:underline text-sm flex items-center gap-1"
                             >
                               <Globe className="h-3 w-3" />
-                              {new URL(lead.website).hostname}
+                              {(() => {
+                                try {
+                                  const url = lead.website.startsWith('http') ? lead.website : `https://${lead.website}`;
+                                  return new URL(url).hostname;
+                                } catch {
+                                  return lead.website;
+                                }
+                              })()}
                             </a>
                           )}
                         </TableCell>
