@@ -23,6 +23,8 @@ import { useCRMDeals, CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { useCRMStages } from "@/hooks/useCRMStages";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
 import { Badge } from "@/components/ui/badge";
+import { CRMStatusBar } from "@/components/crm/CRMStatusBar";
+import { toast } from "sonner";
 
 interface Workspace {
   id: string;
@@ -51,6 +53,7 @@ export default function CRMPublicView() {
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
   const [editBoardDialogOpen, setEditBoardDialogOpen] = useState(false);
   const [movingDealIds, setMovingDealIds] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   // Hook para boards
   const { 
@@ -200,6 +203,21 @@ export default function CRMPublicView() {
     }
   };
 
+  const handleStatusDrop = async (dealId: string, newStatus: string) => {
+    try {
+      await updateDeal({ id: dealId, status: newStatus as 'open' | 'won' | 'lost' });
+      toast.success(`Status alterado para ${
+        newStatus === 'open' ? 'Aberto' : 
+        newStatus === 'qualified' ? 'Qualificado' : 
+        newStatus === 'unqualified' ? 'Não Qualificado' : 
+        newStatus === 'won' ? 'Ganho' : 'Perdido'
+      }`);
+    } catch (error) {
+      console.error('Error updating deal status:', error);
+      toast.error('Erro ao atualizar status');
+    }
+  };
+
   const filterDeals = (dealsToFilter: CRMDeal[]) => {
     let filtered = [...dealsToFilter];
 
@@ -234,7 +252,11 @@ export default function CRMPublicView() {
     return filtered;
   };
 
-  const filteredDeals = filterDeals(deals);
+  // Aplicar filtro de status da barra + filtros do dialog
+  let filteredDeals = filterDeals(deals);
+  if (statusFilter) {
+    filteredDeals = filteredDeals.filter(deal => deal.status === statusFilter);
+  }
   const activeFiltersCount = Object.values(leadFilters).filter(v => v !== undefined && v !== '').length;
   const selectedBoard = boards.find(b => b.id === selectedBoardId) || null;
 
@@ -330,6 +352,12 @@ export default function CRMPublicView() {
                   </Button>
                 </div>
               </div>
+
+              <CRMStatusBar
+                onStatusDrop={handleStatusDrop}
+                activeStatusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
+              />
 
               <CRMKanbanBoard
                 stages={stages}
