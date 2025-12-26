@@ -7,7 +7,8 @@ import {
   LayoutGrid, 
   History, 
   Filter,
-  Brain
+  Brain,
+  Database
 } from "lucide-react";
 
 interface LeadIntelligenceLayoutProps {
@@ -26,6 +27,12 @@ const navItems = [
     href: "/lead-intelligence/segments-view",
     icon: LayoutGrid,
     description: "Dashboard e gerenciamento"
+  },
+  {
+    title: "Base CNAE",
+    href: "/lead-intelligence/cnae-base",
+    icon: Database,
+    description: "Leads por código CNAE"
   },
   {
     title: "Histórico",
@@ -51,7 +58,10 @@ export function LeadIntelligenceLayout({ children }: LeadIntelligenceLayoutProps
   const location = useLocation();
 
   const isActiveRoute = (href: string) => {
-    return location.pathname === href;
+    if (href === "/lead-intelligence") {
+      return location.pathname === href;
+    }
+    return location.pathname.startsWith(href);
   };
 
   return (
