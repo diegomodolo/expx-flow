@@ -1764,6 +1764,110 @@ export type Database = {
           },
         ]
       }
+      cnae_lead_pool: {
+        Row: {
+          bairro: string | null
+          capital_social: number | null
+          cep: string | null
+          cnae_code: string
+          cnae_description: string | null
+          cnpj: string
+          company_id: string
+          complemento: string | null
+          created_at: string
+          data_abertura: string | null
+          data_situacao: string | null
+          ddd: string | null
+          email: string | null
+          id: string
+          imported_at: string | null
+          logradouro: string | null
+          municipio: string | null
+          natureza_juridica: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          phone: string | null
+          phone_2: string | null
+          phone_3: string | null
+          porte: string | null
+          razao_social: string | null
+          situacao_cadastral: string | null
+          source: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          capital_social?: number | null
+          cep?: string | null
+          cnae_code: string
+          cnae_description?: string | null
+          cnpj: string
+          company_id: string
+          complemento?: string | null
+          created_at?: string
+          data_abertura?: string | null
+          data_situacao?: string | null
+          ddd?: string | null
+          email?: string | null
+          id?: string
+          imported_at?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          natureza_juridica?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          phone?: string | null
+          phone_2?: string | null
+          phone_3?: string | null
+          porte?: string | null
+          razao_social?: string | null
+          situacao_cadastral?: string | null
+          source?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          capital_social?: number | null
+          cep?: string | null
+          cnae_code?: string
+          cnae_description?: string | null
+          cnpj?: string
+          company_id?: string
+          complemento?: string | null
+          created_at?: string
+          data_abertura?: string | null
+          data_situacao?: string | null
+          ddd?: string | null
+          email?: string | null
+          id?: string
+          imported_at?: string | null
+          logradouro?: string | null
+          municipio?: string | null
+          natureza_juridica?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          phone?: string | null
+          phone_2?: string | null
+          phone_3?: string | null
+          porte?: string | null
+          razao_social?: string | null
+          situacao_cadastral?: string | null
+          source?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cnae_lead_pool_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string

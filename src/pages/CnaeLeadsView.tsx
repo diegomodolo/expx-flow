@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, Building2, Phone, Mail, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, Search, Building2, Phone, Mail, MapPin, Calendar, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PAGE_SIZE = 50;
 
@@ -31,13 +37,16 @@ interface CnaeLead {
   cnpj: string;
   cnae_code: string;
   cnae_description: string | null;
-  company_name: string | null;
-  trade_name: string | null;
+  razao_social: string | null;
+  nome_fantasia: string | null;
   email: string | null;
+  ddd: string | null;
   phone: string | null;
-  city: string | null;
-  state: string | null;
-  share_capital: number | null;
+  phone_2: string | null;
+  phone_3: string | null;
+  municipio: string | null;
+  uf: string | null;
+  capital_social: number | null;
   created_at: string;
 }
 
@@ -59,13 +68,14 @@ export default function CnaeLeadsView() {
     queryFn: async () => {
       if (!companyId || !decodedCnaeCode) return null;
       const { data, error } = await supabase
-        .from('cnae_catalog' as any)
-        .select('*')
+        .from('cnae_lead_pool' as any)
+        .select('cnae_description')
         .eq('company_id', companyId)
         .eq('cnae_code', decodedCnaeCode)
+        .limit(1)
         .single();
       
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error;
       return data as unknown as CnaeCatalogItem | null;
     },
     enabled: !!companyId && !!decodedCnaeCode
@@ -84,7 +94,7 @@ export default function CnaeLeadsView() {
         .eq('cnae_code', decodedCnaeCode);
 
       if (searchTerm) {
-        query = query.or(`company_name.ilike.%${searchTerm}%,cnpj.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        query = query.or(`razao_social.ilike.%${searchTerm}%,cnpj.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
 
       const { data, count, error } = await query
@@ -106,6 +116,47 @@ export default function CnaeLeadsView() {
     } catch {
       return '-';
     }
+  };
+
+  // Render phone numbers
+  const renderPhones = (lead: CnaeLead) => {
+    const phones = [
+      { value: lead.phone, label: 'Tel 1', icon: Phone },
+      { value: lead.phone_2, label: 'Tel 2', icon: Phone },
+      { value: lead.phone_3, label: 'Cel', icon: Smartphone },
+    ].filter(p => p.value);
+
+    if (phones.length === 0) return <span className="text-muted-foreground">-</span>;
+
+    return (
+      <TooltipProvider>
+        <div className="space-y-1">
+          {phones.slice(0, 2).map((p, i) => (
+            <div key={i} className="flex items-center gap-1 text-xs">
+              <p.icon className="h-3 w-3 text-muted-foreground" />
+              <span>{p.value}</span>
+            </div>
+          ))}
+          {phones.length > 2 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="text-xs cursor-pointer">
+                  +{phones.length - 2} tel
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                {phones.slice(2).map((p, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <p.icon className="h-3 w-3" />
+                    <span>{p.label}: {p.value}</span>
+                  </div>
+                ))}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </TooltipProvider>
+    );
   };
 
   return (
@@ -182,7 +233,8 @@ export default function CnaeLeadsView() {
                         <TableRow>
                           <TableHead>Empresa</TableHead>
                           <TableHead>CNPJ</TableHead>
-                          <TableHead>Contato</TableHead>
+                          <TableHead>Telefones</TableHead>
+                          <TableHead>Email</TableHead>
                           <TableHead>Localização</TableHead>
                           <TableHead>Capital Social</TableHead>
                           <TableHead>Cadastrado em</TableHead>
@@ -192,9 +244,9 @@ export default function CnaeLeadsView() {
                         {leadsData?.leads.map((lead) => (
                           <TableRow key={lead.id}>
                             <TableCell>
-                              <div className="font-medium">{lead.company_name || '-'}</div>
-                              {lead.trade_name && (
-                                <div className="text-xs text-muted-foreground">{lead.trade_name}</div>
+                              <div className="font-medium">{lead.razao_social || '-'}</div>
+                              {lead.nome_fantasia && (
+                                <div className="text-xs text-muted-foreground">{lead.nome_fantasia}</div>
                               )}
                             </TableCell>
                             <TableCell>
@@ -203,34 +255,29 @@ export default function CnaeLeadsView() {
                               </code>
                             </TableCell>
                             <TableCell>
-                              <div className="space-y-1">
-                                {lead.email && (
-                                  <div className="flex items-center gap-1 text-xs">
-                                    <Mail className="h-3 w-3 text-muted-foreground" />
-                                    <span className="truncate max-w-32">{lead.email}</span>
-                                  </div>
-                                )}
-                                {lead.phone && (
-                                  <div className="flex items-center gap-1 text-xs">
-                                    <Phone className="h-3 w-3 text-muted-foreground" />
-                                    <span>{lead.phone}</span>
-                                  </div>
-                                )}
-                              </div>
+                              {renderPhones(lead)}
                             </TableCell>
                             <TableCell>
-                              {lead.city || lead.state ? (
+                              {lead.email ? (
+                                <div className="flex items-center gap-1 text-xs">
+                                  <Mail className="h-3 w-3 text-muted-foreground" />
+                                  <span className="truncate max-w-32">{lead.email}</span>
+                                </div>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {lead.municipio || lead.uf ? (
                                 <div className="flex items-center gap-1 text-xs">
                                   <MapPin className="h-3 w-3 text-muted-foreground" />
                                   <span>
-                                    {[lead.city, lead.state].filter(Boolean).join(' - ')}
+                                    {[lead.municipio, lead.uf].filter(Boolean).join(' - ')}
                                   </span>
                                 </div>
                               ) : '-'}
                             </TableCell>
                             <TableCell>
-                              {lead.share_capital 
-                                ? `R$ ${Number(lead.share_capital).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                              {lead.capital_social 
+                                ? `R$ ${Number(lead.capital_social).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
                                 : '-'
                               }
                             </TableCell>
