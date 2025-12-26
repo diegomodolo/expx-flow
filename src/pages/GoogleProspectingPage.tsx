@@ -15,6 +15,7 @@ import { Search, Download, Globe, Phone, Mail, MapPin, Building2, Loader2, Check
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
+import { ImportDestinationModal } from "@/components/leads/ImportDestinationModal";
 const BRAZILIAN_STATES = [
   { value: "AC", label: "Acre" },
   { value: "AL", label: "Alagoas" },
@@ -93,6 +94,7 @@ export default function GoogleProspectingPage() {
   
   const [isSearching, setIsSearching] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [showDestinationModal, setShowDestinationModal] = useState(false);
   const [leads, setLeads] = useState<ExtractedLead[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProgress, setSearchProgress] = useState({ step: 0, message: "", detail: "" });
@@ -220,7 +222,20 @@ export default function GoogleProspectingPage() {
     setLeads(prev => prev.map(lead => ({ ...lead, selected: !allSelected })));
   };
 
-  const handleImport = async () => {
+  const handleImportClick = () => {
+    const selectedLeads = leads.filter(l => l.selected);
+    if (selectedLeads.length === 0) {
+      toast({
+        title: "Nenhum lead selecionado",
+        description: "Selecione ao menos um lead para importar",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowDestinationModal(true);
+  };
+
+  const handleImport = async (destinations: { cnaePool: boolean; segmentId: string | null }) => {
     if (!activeCompany) {
       toast({
         title: "Empresa não selecionada",
@@ -231,14 +246,7 @@ export default function GoogleProspectingPage() {
     }
 
     const selectedLeads = leads.filter(l => l.selected);
-    if (selectedLeads.length === 0) {
-      toast({
-        title: "Nenhum lead selecionado",
-        description: "Selecione ao menos um lead para importar",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (selectedLeads.length === 0) return;
 
     setIsImporting(true);
 
@@ -246,34 +254,80 @@ export default function GoogleProspectingPage() {
       const businessTypeData = BUSINESS_TYPES.find(bt => bt.value === businessType);
       const cnaeCode = businessTypeData?.cnae || "0000-0/00";
 
-      const leadsToInsert = selectedLeads.map(lead => ({
-        company_id: activeCompany.company_id,
-        cnpj: lead.cnpj || `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        cnae_code: cnaeCode,
-        cnae_description: businessTypeData?.label || businessType,
-        nome_fantasia: lead.nome_fantasia,
-        razao_social: lead.razao_social,
-        phone: lead.phone,
-        phone_2: lead.phone_2,
-        email: lead.email,
-        logradouro: lead.endereco,
-        municipio: city,
-        uf: state,
-        source: 'google_prospecting',
-      }));
+      // Import to CNAE Pool
+      if (destinations.cnaePool) {
+        const leadsToInsert = selectedLeads.map(lead => ({
+          company_id: activeCompany.company_id,
+          cnpj: lead.cnpj || `TEMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          cnae_code: cnaeCode,
+          cnae_description: businessTypeData?.label || businessType,
+          nome_fantasia: lead.nome_fantasia,
+          razao_social: lead.razao_social,
+          phone: lead.phone,
+          phone_2: lead.phone_2,
+          email: lead.email,
+          logradouro: lead.endereco,
+          municipio: city,
+          uf: state,
+          source: 'google_prospecting',
+        }));
 
-      const { error } = await supabase
-        .from('cnae_lead_pool')
-        .insert(leadsToInsert);
+        const { error } = await supabase
+          .from('cnae_lead_pool')
+          .insert(leadsToInsert);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
+
+      // Import to custom segment (lead_master_pool + assignment)
+      if (destinations.segmentId) {
+        for (const lead of selectedLeads) {
+          // Insert into lead_master_pool
+          const { data: insertedLead, error: leadError } = await supabase
+            .from('lead_master_pool')
+            .insert({
+              company_id: activeCompany.company_id,
+              full_name: lead.nome_fantasia || lead.razao_social,
+              company_name: lead.razao_social || lead.nome_fantasia,
+              email: lead.email,
+              phone: lead.phone,
+              whatsapp: lead.phone,
+              city: city,
+              state: state,
+              company_segment: businessTypeData?.label || businessType,
+              acquisition_channel: 'google_prospecting',
+              source: 'google_prospecting',
+            })
+            .select('id')
+            .single();
+
+          if (leadError) {
+            console.error('Error inserting lead:', leadError);
+            continue;
+          }
+
+          // Assign to segment
+          if (insertedLead) {
+            await supabase
+              .from('lead_segment_assignments')
+              .insert({
+                lead_id: insertedLead.id,
+                segment_id: destinations.segmentId,
+              });
+          }
+        }
+      }
+
+      const destMessages: string[] = [];
+      if (destinations.cnaePool) destMessages.push("Base CNAE");
+      if (destinations.segmentId) destMessages.push("Segmento Personalizado");
 
       toast({
         title: "Leads importados",
-        description: `${selectedLeads.length} leads importados para a Base CNAE`,
+        description: `${selectedLeads.length} leads importados para ${destMessages.join(" e ")}`,
       });
 
-      // Remove imported leads from list
+      setShowDestinationModal(false);
       setLeads(prev => prev.filter(l => !l.selected));
     } catch (error) {
       console.error('Import error:', error);
@@ -514,20 +568,11 @@ export default function GoogleProspectingPage() {
                   </CardDescription>
                 </div>
                 <Button 
-                  onClick={handleImport} 
+                  onClick={handleImportClick} 
                   disabled={isImporting || selectedCount === 0}
                 >
-                  {isImporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Importando...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Importar Selecionados ({selectedCount})
-                    </>
-                  )}
+                  <Download className="h-4 w-4 mr-2" />
+                  Importar Selecionados ({selectedCount})
                 </Button>
               </div>
             </CardHeader>
@@ -632,6 +677,18 @@ export default function GoogleProspectingPage() {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Import Destination Modal */}
+        {activeCompany && (
+          <ImportDestinationModal
+            open={showDestinationModal}
+            onOpenChange={setShowDestinationModal}
+            onConfirm={handleImport}
+            companyId={activeCompany.company_id}
+            isImporting={isImporting}
+            selectedCount={selectedCount}
+          />
         )}
         </div>
       </LeadIntelligenceLayout>
