@@ -124,7 +124,7 @@ export default function CnaeBaseDashboard() {
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalCnaes.toLocaleString('pt-BR')}</div>
+                <div className="text-2xl font-bold">{(totalCnaes || 0).toLocaleString('pt-BR')}</div>
                 <p className="text-xs text-muted-foreground">
                   Códigos de atividade
                 </p>
@@ -137,7 +137,7 @@ export default function CnaeBaseDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {totalCnaes > 0 ? Math.round((totalLeads || 0) / totalCnaes).toLocaleString('pt-BR') : 0}
+                  {(totalCnaes || 0) > 0 ? Math.round((totalLeads || 0) / (totalCnaes || 1)).toLocaleString('pt-BR') : 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Leads por código
