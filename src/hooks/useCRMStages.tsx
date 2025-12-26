@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CRMStage } from "./useCRMLeads";
+import { CRMStage } from "./useCRMDeals";
 
 interface UseCRMStagesProps {
   workspaceId: string;

@@ -45,7 +45,8 @@ interface CRMDealDetailsModalProps {
   stages: CRMStage[];
   isOpen: boolean;
   onClose: () => void;
-  onUpdateDeal?: (data: { id: string; [key: string]: unknown }) => Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdateDeal?: (data: { id: string; [key: string]: any }) => Promise<any>;
   onViewContact?: (contact: CRMContact) => void;
 }
 

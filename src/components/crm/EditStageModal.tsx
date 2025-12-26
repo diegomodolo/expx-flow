@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Workflow } from "lucide-react";
-import { CRMStage } from "@/hooks/useCRMLeads";
+import { CRMStage } from "@/hooks/useCRMDeals";
 import { EVENT_PRESETS } from "@/lib/offlineEventPresets";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +53,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
   const [targetBoardStages, setTargetBoardStages] = useState<CRMStage[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [autoTemperatureChange, setAutoTemperatureChange] = useState(false);
-  const [targetTemperature, setTargetTemperature] = useState<'quente' | 'morno' | 'frio' | null>(null);
+  const [targetTemperature, setTargetTemperature] = useState<string | null>(null);
 
   const { boards } = useCRMBoards({ workspaceId });
 

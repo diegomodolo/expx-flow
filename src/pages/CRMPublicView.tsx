@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Filter, Upload, Loader2 } from "lucide-react";
 import { CRMKanbanBoard } from "@/components/crm/CRMKanbanBoard";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
-import { CRMLeadEditModal } from "@/components/crm/CRMLeadEditModal";
+import { CRMDealDetailsModal } from "@/components/crm/CRMDealDetailsModal";
 import { CRMNewLeadDialog } from "@/components/crm/CRMNewLeadDialog";
 import { CreateStageDialog } from "@/components/crm/CreateStageDialog";
 import { EditStageModal } from "@/components/crm/EditStageModal";
@@ -19,7 +19,7 @@ import { CRMReports } from "@/components/crm/CRMReports";
 import { LeadFiltersDialog, LeadFilters } from "@/components/crm/LeadFiltersDialog";
 import { EditBoardDialog } from "@/components/crm/EditBoardDialog";
 import { ClienteCRMSettings } from "@/pages/cliente/ClienteCRMSettings";
-import { useCRMLeads, CRMLead, CRMStage } from "@/hooks/useCRMLeads";
+import { useCRMDeals, CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { useCRMStages } from "@/hooks/useCRMStages";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
 import { Badge } from "@/components/ui/badge";
@@ -37,9 +37,9 @@ export default function CRMPublicView() {
   const { isAuthenticated, checkAuth } = useCRMAuth();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<CRMDeal | null>(null);
   const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
-  const [leadEditModalOpen, setLeadEditModalOpen] = useState(false);
+  const [dealDetailsModalOpen, setDealDetailsModalOpen] = useState(false);
   const [createStageDialogOpen, setCreateStageDialogOpen] = useState(false);
   const [createBoardDialogOpen, setCreateBoardDialogOpen] = useState(false);
   const [editStageModalOpen, setEditStageModalOpen] = useState(false);
@@ -50,6 +50,7 @@ export default function CRMPublicView() {
   const [leadFilters, setLeadFilters] = useState<LeadFilters>({});
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
   const [editBoardDialogOpen, setEditBoardDialogOpen] = useState(false);
+  const [movingDealIds, setMovingDealIds] = useState<Set<string>>(new Set());
 
   // Hook para boards
   const { 
@@ -64,8 +65,8 @@ export default function CRMPublicView() {
     workspaceId: workspace?.id || '' 
   });
 
-  // Hook para leads e stages com boardId
-  const { leads, stages, isLoading, moveLead, createLead, updateLead, movingLeadIds } = useCRMLeads(
+  // Hook para deals com boardId
+  const { deals, stages, isLoading, moveDeal, updateDeal } = useCRMDeals(
     workspace?.id || '', 
     selectedBoardId
   );
@@ -124,18 +125,24 @@ export default function CRMPublicView() {
     }
   }, [boards, selectedBoardId]);
 
-  const handleMoveCard = async (leadId: string, toStageId: string, fromStageId: string) => {
+  const handleMoveCard = async (dealId: string, toStageId: string, fromStageId: string) => {
     if (!workspace) return;
 
     try {
-      await moveLead({
-        leadId,
+      setMovingDealIds(prev => new Set(prev).add(dealId));
+      await moveDeal({
+        dealId,
         toStageId,
         fromStageId,
-        workspaceToken: workspace.access_token,
       });
     } catch (error) {
-      console.error('Error moving lead:', error);
+      console.error('Error moving deal:', error);
+    } finally {
+      setMovingDealIds(prev => {
+        const next = new Set(prev);
+        next.delete(dealId);
+        return next;
+      });
     }
   };
 
@@ -193,41 +200,41 @@ export default function CRMPublicView() {
     }
   };
 
-  const filterLeads = (leadsToFilter: CRMLead[]) => {
-    let filtered = [...leadsToFilter];
+  const filterDeals = (dealsToFilter: CRMDeal[]) => {
+    let filtered = [...dealsToFilter];
 
     if (leadFilters.status) {
-      filtered = filtered.filter(lead => lead.status === leadFilters.status);
+      filtered = filtered.filter(deal => deal.status === leadFilters.status);
     }
 
     if (leadFilters.temperature) {
-      filtered = filtered.filter(lead => lead.temperature === leadFilters.temperature);
+      filtered = filtered.filter(deal => deal.temperature === leadFilters.temperature);
     }
 
     if (leadFilters.stageId) {
-      filtered = filtered.filter(lead => lead.stage_id === leadFilters.stageId);
+      filtered = filtered.filter(deal => deal.stage_id === leadFilters.stageId);
     }
 
     if (leadFilters.minValue !== undefined) {
-      filtered = filtered.filter(lead => (lead.value || 0) >= leadFilters.minValue!);
+      filtered = filtered.filter(deal => (deal.value || 0) >= leadFilters.minValue!);
     }
 
     if (leadFilters.maxValue !== undefined) {
-      filtered = filtered.filter(lead => (lead.value || 0) <= leadFilters.maxValue!);
+      filtered = filtered.filter(deal => (deal.value || 0) <= leadFilters.maxValue!);
     }
 
     if (leadFilters.dateFrom) {
-      filtered = filtered.filter(lead => new Date(lead.created_at) >= new Date(leadFilters.dateFrom!));
+      filtered = filtered.filter(deal => new Date(deal.created_at) >= new Date(leadFilters.dateFrom!));
     }
 
     if (leadFilters.dateTo) {
-      filtered = filtered.filter(lead => new Date(lead.created_at) <= new Date(leadFilters.dateTo!));
+      filtered = filtered.filter(deal => new Date(deal.created_at) <= new Date(leadFilters.dateTo!));
     }
 
     return filtered;
   };
 
-  const filteredLeads = filterLeads(leads);
+  const filteredDeals = filterDeals(deals);
   const activeFiltersCount = Object.values(leadFilters).filter(v => v !== undefined && v !== '').length;
   const selectedBoard = boards.find(b => b.id === selectedBoardId) || null;
 
@@ -265,14 +272,14 @@ export default function CRMPublicView() {
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar leads..."
+                placeholder="Buscar negócios..."
                 className="pl-10 bg-muted/50 border-transparent"
               />
             </div>
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" onClick={() => setNewLeadDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Novo Lead
+                Novo Negócio
               </Button>
             </div>
           </div>
@@ -326,16 +333,16 @@ export default function CRMPublicView() {
 
               <CRMKanbanBoard
                 stages={stages}
-                leads={filteredLeads}
+                deals={filteredDeals}
                 onMoveCard={handleMoveCard}
-                onCardClick={(lead) => {
-                  setSelectedLead(lead);
-                  setLeadEditModalOpen(true);
+                onCardClick={(deal) => {
+                  setSelectedDeal(deal);
+                  setDealDetailsModalOpen(true);
                 }}
                 onEditStage={handleEditStage}
                 onDeleteStage={handleDeleteStage}
                 onReorderStages={handleReorderStages}
-                movingLeadIds={movingLeadIds}
+                movingDealIds={movingDealIds}
               />
             </div>
           )}
@@ -344,9 +351,9 @@ export default function CRMPublicView() {
           <div className="px-8 py-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-3xl font-bold mb-2">Leads</h1>
+                <h1 className="text-3xl font-bold mb-2">Contatos</h1>
                 <p className="text-muted-foreground">
-                  {leads.length} {leads.length === 1 ? 'lead cadastrado' : 'leads cadastrados'}
+                  {deals.length} {deals.length === 1 ? 'negócio cadastrado' : 'negócios cadastrados'}
                 </p>
               </div>
               
@@ -363,20 +370,15 @@ export default function CRMPublicView() {
                 
                 <Button onClick={() => setNewLeadDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Novo Lead
+                  Novo Negócio
                 </Button>
               </div>
             </div>
 
-            <CRMLeadsTable
-              leads={leads}
-              stages={stages}
-              onLeadClick={(lead) => {
-                setSelectedLead(lead);
-                setLeadEditModalOpen(true);
-              }}
-              searchTerm={leadsSearchTerm}
-            />
+            {/* TODO: Update CRMLeadsTable to use deals */}
+            <div className="text-center py-12 text-muted-foreground">
+              <p>Tabela de contatos em atualização</p>
+            </div>
           </div>
         )}
 
@@ -392,16 +394,15 @@ export default function CRMPublicView() {
         </main>
       </div>
 
-      <CRMLeadEditModal
-        lead={selectedLead}
+      <CRMDealDetailsModal
+        deal={selectedDeal}
         stages={stages}
-        isOpen={leadEditModalOpen}
+        isOpen={dealDetailsModalOpen}
         onClose={() => {
-          setLeadEditModalOpen(false);
-          setSelectedLead(null);
+          setDealDetailsModalOpen(false);
+          setSelectedDeal(null);
         }}
-        workspaceId={workspace.id}
-        boardId={selectedBoardId || ''}
+        onUpdateDeal={updateDeal}
       />
 
       <CRMNewLeadDialog
