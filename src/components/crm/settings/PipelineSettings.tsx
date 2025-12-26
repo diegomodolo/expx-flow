@@ -63,7 +63,7 @@ export function PipelineSettings({ workspaceId }: PipelineSettingsProps) {
 
   const handleUpdateBoard = async (
     boardId: string,
-    updates: { name?: string; description?: string | null }
+    updates: { name?: string; description?: string | null; queue_enabled?: boolean }
   ) => {
     await updateBoard({ boardId, updates });
   };

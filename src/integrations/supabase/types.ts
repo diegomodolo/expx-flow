@@ -2479,6 +2479,51 @@ export type Database = {
           },
         ]
       }
+      crm_board_user_queue: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          queue_position: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          queue_position?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          queue_position?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_board_user_queue_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "crm_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_board_user_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "crm_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_boards: {
         Row: {
           created_at: string | null
@@ -2488,6 +2533,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           order_index: number
+          queue_enabled: boolean | null
           workspace_id: string
         }
         Insert: {
@@ -2498,6 +2544,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           order_index: number
+          queue_enabled?: boolean | null
           workspace_id: string
         }
         Update: {
@@ -2508,6 +2555,7 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           order_index?: number
+          queue_enabled?: boolean | null
           workspace_id?: string
         }
         Relationships: [
@@ -8682,6 +8730,10 @@ export type Database = {
         }[]
       }
       get_cnae_total: { Args: { p_company_id: string }; Returns: number }
+      get_next_queue_user_and_rotate: {
+        Args: { p_board_id: string }
+        Returns: string
+      }
       get_user_company_ids: {
         Args: { _user_id: string }
         Returns: {
