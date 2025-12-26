@@ -12,7 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, Check, AlertCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Upload, FileSpreadsheet, Check, AlertCircle, ChevronRight, ChevronLeft, Phone } from "lucide-react";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,30 +39,26 @@ const CNAE_LEAD_FIELDS = [
   { key: 'cnpj', label: 'CNPJ', required: true },
   { key: 'cnae_code', label: 'Código CNAE', required: true },
   { key: 'cnae_description', label: 'Descrição CNAE', required: false },
-  { key: 'company_name', label: 'Razão Social', required: false },
-  { key: 'trade_name', label: 'Nome Fantasia', required: false },
+  { key: 'razao_social', label: 'Razão Social', required: false },
+  { key: 'nome_fantasia', label: 'Nome Fantasia', required: false },
   { key: 'email', label: 'Email', required: false },
+  { key: 'ddd', label: 'DDD', required: false },
   { key: 'phone', label: 'Telefone', required: false },
-  { key: 'street', label: 'Logradouro', required: false },
-  { key: 'number', label: 'Número', required: false },
-  { key: 'complement', label: 'Complemento', required: false },
-  { key: 'neighborhood', label: 'Bairro', required: false },
-  { key: 'city', label: 'Cidade', required: false },
-  { key: 'state', label: 'UF', required: false },
-  { key: 'zip_code', label: 'CEP', required: false },
-  { key: 'legal_nature', label: 'Natureza Jurídica', required: false },
-  { key: 'share_capital', label: 'Capital Social', required: false },
-  { key: 'company_size', label: 'Porte', required: false },
-  { key: 'registration_status', label: 'Situação Cadastral', required: false },
-  { key: 'registration_status_date', label: 'Data Situação', required: false },
-  { key: 'activity_start_date', label: 'Data Início Atividade', required: false },
-  { key: 'simples_option', label: 'Opção pelo Simples', required: false },
-  { key: 'simples_option_date', label: 'Data Opção Simples', required: false },
-  { key: 'simples_exclusion_date', label: 'Data Exclusão Simples', required: false },
-  { key: 'mei_option', label: 'Opção pelo MEI', required: false },
-  { key: 'partner_name', label: 'Nome do Sócio', required: false },
-  { key: 'partner_cpf', label: 'CPF do Sócio', required: false },
-  { key: 'secondary_cnaes', label: 'CNAEs Secundários', required: false },
+  { key: 'phone_2', label: 'Telefone 2', required: false },
+  { key: 'phone_3', label: 'Telefone 3 (Celular)', required: false },
+  { key: 'logradouro', label: 'Logradouro', required: false },
+  { key: 'numero', label: 'Número', required: false },
+  { key: 'complemento', label: 'Complemento', required: false },
+  { key: 'bairro', label: 'Bairro', required: false },
+  { key: 'municipio', label: 'Cidade', required: false },
+  { key: 'uf', label: 'UF', required: false },
+  { key: 'cep', label: 'CEP', required: false },
+  { key: 'natureza_juridica', label: 'Natureza Jurídica', required: false },
+  { key: 'capital_social', label: 'Capital Social', required: false },
+  { key: 'porte', label: 'Porte', required: false },
+  { key: 'situacao_cadastral', label: 'Situação Cadastral', required: false },
+  { key: 'data_situacao', label: 'Data Situação', required: false },
+  { key: 'data_abertura', label: 'Data Abertura', required: false },
 ];
 
 type Step = 'upload' | 'mapping' | 'confirm';
@@ -78,6 +75,7 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<{ success: number; duplicates: number } | null>(null);
+  const [mergeDddWithPhone, setMergeDddWithPhone] = useState(false);
 
   const resetState = useCallback(() => {
     setStep('upload');
@@ -87,12 +85,16 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
     setIsImporting(false);
     setImportProgress(0);
     setImportResult(null);
+    setMergeDddWithPhone(false);
   }, []);
 
   const handleClose = useCallback(() => {
     resetState();
     onOpenChange(false);
   }, [onOpenChange, resetState]);
+
+  // Check if DDD field is mapped
+  const isDddMapped = Object.values(fieldMapping).includes('ddd');
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -138,30 +140,36 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
         if (headerLower.includes('cnpj')) autoMapping[header] = 'cnpj';
         else if (headerLower.includes('cnae') && headerLower.includes('principal')) autoMapping[header] = 'cnae_code';
         else if (headerLower.includes('cnae') && headerLower.includes('desc')) autoMapping[header] = 'cnae_description';
-        else if (headerLower.includes('razao') || headerLower.includes('social')) autoMapping[header] = 'company_name';
-        else if (headerLower.includes('fantasia') || headerLower.includes('trade')) autoMapping[header] = 'trade_name';
+        else if (headerLower.includes('razao') || headerLower.includes('social')) autoMapping[header] = 'razao_social';
+        else if (headerLower.includes('fantasia') || headerLower.includes('trade')) autoMapping[header] = 'nome_fantasia';
         else if (headerLower.includes('email')) autoMapping[header] = 'email';
-        else if (headerLower.includes('telefone') || headerLower.includes('phone')) autoMapping[header] = 'phone';
-        else if (headerLower.includes('logradouro') || headerLower.includes('street')) autoMapping[header] = 'street';
-        else if (headerLower.includes('numero') && !headerLower.includes('cnpj')) autoMapping[header] = 'number';
-        else if (headerLower.includes('complemento')) autoMapping[header] = 'complement';
-        else if (headerLower.includes('bairro') || headerLower.includes('neighborhood')) autoMapping[header] = 'neighborhood';
-        else if (headerLower.includes('municipio') || headerLower.includes('cidade') || headerLower.includes('city')) autoMapping[header] = 'city';
-        else if (headerLower === 'uf' || headerLower === 'estado' || headerLower === 'state') autoMapping[header] = 'state';
-        else if (headerLower.includes('cep') || headerLower.includes('zip')) autoMapping[header] = 'zip_code';
-        else if (headerLower.includes('natureza')) autoMapping[header] = 'legal_nature';
-        else if (headerLower.includes('capital')) autoMapping[header] = 'share_capital';
-        else if (headerLower.includes('porte')) autoMapping[header] = 'company_size';
-        else if (headerLower.includes('situacao') && headerLower.includes('cadastral')) autoMapping[header] = 'registration_status';
-        else if (headerLower.includes('data') && headerLower.includes('situacao')) autoMapping[header] = 'registration_status_date';
-        else if (headerLower.includes('inicio') && headerLower.includes('atividade')) autoMapping[header] = 'activity_start_date';
-        else if (headerLower.includes('simples') && headerLower.includes('opcao')) autoMapping[header] = 'simples_option';
-        else if (headerLower.includes('simples') && headerLower.includes('data')) autoMapping[header] = 'simples_option_date';
-        else if (headerLower.includes('exclusao') && headerLower.includes('simples')) autoMapping[header] = 'simples_exclusion_date';
-        else if (headerLower.includes('mei')) autoMapping[header] = 'mei_option';
-        else if (headerLower.includes('socio') && headerLower.includes('nome')) autoMapping[header] = 'partner_name';
-        else if (headerLower.includes('socio') && headerLower.includes('cpf')) autoMapping[header] = 'partner_cpf';
-        else if (headerLower.includes('cnae') && headerLower.includes('secundar')) autoMapping[header] = 'secondary_cnaes';
+        // DDD detection
+        else if (headerLower === 'ddd') autoMapping[header] = 'ddd';
+        // Phone detection - must come after DDD check
+        else if (
+          (headerLower.includes('telefone2') || headerLower.includes('telefone 2') || headerLower === 'telefone_2')
+        ) autoMapping[header] = 'phone_2';
+        else if (
+          (headerLower.includes('telefone3') || headerLower.includes('telefone 3') || headerLower === 'telefone_3' ||
+           headerLower.includes('celular') || headerLower === 'cel')
+        ) autoMapping[header] = 'phone_3';
+        else if (
+          (headerLower.includes('telefone') || headerLower.includes('phone') || headerLower === 'tel') &&
+          !headerLower.includes('2') && !headerLower.includes('3')
+        ) autoMapping[header] = 'phone';
+        else if (headerLower.includes('logradouro') || headerLower.includes('street')) autoMapping[header] = 'logradouro';
+        else if (headerLower.includes('numero') && !headerLower.includes('cnpj')) autoMapping[header] = 'numero';
+        else if (headerLower.includes('complemento')) autoMapping[header] = 'complemento';
+        else if (headerLower.includes('bairro') || headerLower.includes('neighborhood')) autoMapping[header] = 'bairro';
+        else if (headerLower.includes('municipio') || headerLower.includes('cidade') || headerLower.includes('city')) autoMapping[header] = 'municipio';
+        else if (headerLower === 'uf' || headerLower === 'estado' || headerLower === 'state') autoMapping[header] = 'uf';
+        else if (headerLower.includes('cep') || headerLower.includes('zip')) autoMapping[header] = 'cep';
+        else if (headerLower.includes('natureza')) autoMapping[header] = 'natureza_juridica';
+        else if (headerLower.includes('capital')) autoMapping[header] = 'capital_social';
+        else if (headerLower.includes('porte')) autoMapping[header] = 'porte';
+        else if (headerLower.includes('situacao') && headerLower.includes('cadastral')) autoMapping[header] = 'situacao_cadastral';
+        else if (headerLower.includes('data') && headerLower.includes('situacao')) autoMapping[header] = 'data_situacao';
+        else if (headerLower.includes('abertura') || (headerLower.includes('inicio') && headerLower.includes('atividade'))) autoMapping[header] = 'data_abertura';
       });
 
       setFieldMapping(autoMapping);
@@ -187,16 +195,8 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
   const sanitizeValue = (value: string, fieldKey: string): string | number | boolean | null => {
     if (!value || value === '-' || value === '') return null;
 
-    // Boolean fields
-    if (fieldKey === 'simples_option' || fieldKey === 'mei_option') {
-      const lower = value.toLowerCase().trim();
-      if (lower === 'sim' || lower === 's' || lower === 'true' || lower === '1') return true;
-      if (lower === 'não' || lower === 'nao' || lower === 'n' || lower === 'false' || lower === '0') return false;
-      return null;
-    }
-
     // Date fields
-    if (fieldKey.includes('date')) {
+    if (fieldKey.includes('data') || fieldKey.includes('date')) {
       // Try to convert DD/MM/YYYY to YYYY-MM-DD
       const dateMatch = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       if (dateMatch) {
@@ -206,11 +206,11 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
       if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
         return value.split('T')[0];
       }
-      return null;
+      return value;
     }
 
     // Numeric fields
-    if (fieldKey === 'share_capital') {
+    if (fieldKey === 'capital_social') {
       // Remove R$, dots, and convert comma to dot
       const cleaned = value.replace(/[R$\s.]/g, '').replace(',', '.');
       const num = parseFloat(cleaned);
@@ -231,6 +231,12 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
       let successCount = 0;
       let duplicateCount = 0;
 
+      // Find which headers map to which fields
+      const dddHeader = Object.entries(fieldMapping).find(([, v]) => v === 'ddd')?.[0];
+      const phoneHeader = Object.entries(fieldMapping).find(([, v]) => v === 'phone')?.[0];
+      const phone2Header = Object.entries(fieldMapping).find(([, v]) => v === 'phone_2')?.[0];
+      const phone3Header = Object.entries(fieldMapping).find(([, v]) => v === 'phone_3')?.[0];
+
       for (let i = 0; i < parsedData.rows.length; i += BATCH_SIZE) {
         const batch = parsedData.rows.slice(i, i + BATCH_SIZE);
         
@@ -239,11 +245,28 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
             company_id: companyId,
           };
 
+          // Get DDD value if mapped
+          const dddValue = dddHeader ? (row[dddHeader] || '').trim() : '';
+
           Object.entries(fieldMapping).forEach(([header, fieldKey]) => {
             if (fieldKey && row[header] !== undefined) {
-              lead[fieldKey] = sanitizeValue(row[header], fieldKey);
+              let value = sanitizeValue(row[header], fieldKey);
+
+              // If merge DDD is enabled and this is a phone field, concatenate DDD
+              if (mergeDddWithPhone && dddValue && (fieldKey === 'phone' || fieldKey === 'phone_2' || fieldKey === 'phone_3')) {
+                const phoneValue = String(value || '').trim();
+                if (phoneValue && !phoneValue.startsWith(dddValue)) {
+                  value = `${dddValue}${phoneValue}`;
+                }
+              }
+
+              lead[fieldKey] = value;
             }
           });
+
+          // If merge DDD is enabled, don't save DDD separately (optional behavior)
+          // If you want to keep DDD even when merged, comment out the next line:
+          // if (mergeDddWithPhone) delete lead.ddd;
 
           return lead;
         }).filter(lead => lead.cnpj && lead.cnae_code);
@@ -252,7 +275,7 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
           const { data, error } = await supabase
             .from('cnae_lead_pool' as any)
             .upsert(leadsToInsert as any, { 
-              onConflict: 'company_id,cnpj,cnae_code',
+              onConflict: 'cnpj,company_id',
               ignoreDuplicates: true 
             })
             .select('id');
@@ -355,6 +378,31 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
                   </span>
                 </div>
 
+                {/* DDD Merge Option - Shows when DDD is mapped */}
+                {isDddMapped && (
+                  <div className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg mb-4">
+                    <Phone className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="merge-ddd"
+                          checked={mergeDddWithPhone}
+                          onCheckedChange={(checked) => setMergeDddWithPhone(!!checked)}
+                        />
+                        <label 
+                          htmlFor="merge-ddd" 
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Juntar DDD aos telefones durante a importação
+                        </label>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 ml-6">
+                        O DDD será concatenado no início de cada telefone (ex: 11 + 99999999 = 1199999999)
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {parsedData.headers.map((header) => (
                   <div key={header} className="grid grid-cols-3 gap-4 items-center p-3 border rounded-lg">
                     <div>
@@ -400,11 +448,17 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
                       <span>Campos mapeados:</span>
                       <strong>{Object.values(fieldMapping).filter(Boolean).length}</strong>
                     </div>
+                    {mergeDddWithPhone && isDddMapped && (
+                      <div className="flex justify-between text-primary">
+                        <span>DDD será concatenado aos telefones:</span>
+                        <strong>Sim</strong>
+                      </div>
+                    )}
                   </div>
 
                   {isImporting && (
                     <div className="space-y-2">
-                      <Progress value={importProgress} />
+                      <Progress value={importProgress} className="w-full" />
                       <p className="text-sm text-center text-muted-foreground">
                         Importando... {importProgress}%
                       </p>
@@ -412,21 +466,17 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
                   )}
                 </>
               ) : (
-                <div className="text-center space-y-4">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900">
+                <div className="bg-muted p-6 rounded-lg text-center space-y-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                     <Check className="h-8 w-8 text-green-600" />
                   </div>
-                  <h3 className="text-lg font-medium">Importação concluída!</h3>
-                  <div className="bg-muted p-4 rounded-lg space-y-2">
-                    <div className="flex justify-between">
-                      <span>Leads importados:</span>
-                      <strong className="text-green-600">{importResult.success.toLocaleString('pt-BR')}</strong>
-                    </div>
+                  <h3 className="text-lg font-medium">Importação Concluída!</h3>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>{importResult.success.toLocaleString('pt-BR')}</strong> leads importados com sucesso</p>
                     {importResult.duplicates > 0 && (
-                      <div className="flex justify-between">
-                        <span>Duplicados ignorados:</span>
-                        <strong className="text-muted-foreground">{importResult.duplicates.toLocaleString('pt-BR')}</strong>
-                      </div>
+                      <p className="text-muted-foreground">
+                        {importResult.duplicates.toLocaleString('pt-BR')} duplicatas ignoradas
+                      </p>
                     )}
                   </div>
                 </div>
@@ -439,7 +489,7 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
         <div className="flex justify-between items-center pt-4 border-t">
           <div>
             {step !== 'upload' && !importResult && (
-              <Button variant="ghost" onClick={() => setStep(step === 'confirm' ? 'mapping' : 'upload')}>
+              <Button variant="outline" onClick={() => setStep(step === 'confirm' ? 'mapping' : 'upload')}>
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Voltar
               </Button>
@@ -450,7 +500,10 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
               {importResult ? 'Fechar' : 'Cancelar'}
             </Button>
             {step === 'mapping' && (
-              <Button onClick={() => setStep('confirm')} disabled={!canProceedToConfirm()}>
+              <Button 
+                onClick={() => setStep('confirm')} 
+                disabled={!canProceedToConfirm()}
+              >
                 Continuar
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
