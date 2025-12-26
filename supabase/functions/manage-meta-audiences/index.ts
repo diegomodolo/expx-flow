@@ -223,7 +223,12 @@ serve(async (req) => {
             console.log(`[manage-meta-audiences] Audience ${audienceId} not found on Meta, cleaning local record`);
             deletedFromMeta = false;
             message = 'Público removido da lista (já não existia no Meta)';
-          } else {
+          } 
+          // Erro 2656: público tem lookalikes associados
+          else if (data.error.code === 2656) {
+            throw new Error('Não é possível excluir este público porque existem públicos semelhantes (lookalikes) associados a ele. Exclua os lookalikes primeiro.');
+          }
+          else {
             throw new Error(data.error.message);
           }
         }
