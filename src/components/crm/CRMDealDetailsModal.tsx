@@ -120,7 +120,7 @@ const getActivityLabel = (activity: DealActivity, stages: CRMStage[]) => {
       return `Movido de "${fromStage?.name || '?'}" para "${toStage?.name || '?'}"`;
     }
     case "field_updated":
-      return `Campo alterado: ${activity.old_value} → ${activity.new_value}`;
+      return `${activity.notes || "Campo alterado"}: ${activity.old_value || "-"} → ${activity.new_value || "-"}`;
     case "note_added":
     case "manual_note":
       return activity.notes;
@@ -313,6 +313,55 @@ export function CRMDealDetailsModal({
       const valueStr = formData.value.replace(/\./g, "").replace(",", ".");
       const value = valueStr ? parseFloat(valueStr) : null;
 
+      // Detect changed fields before updating
+      const { data: userData } = await supabase.auth.getUser();
+      const changedFields: { field: string; oldValue: string; newValue: string }[] = [];
+
+      if (formData.title !== (deal.title || "")) {
+        changedFields.push({ field: "Título", oldValue: deal.title || "-", newValue: formData.title || "-" });
+      }
+      
+      const oldStartFormatted = deal.start_date ? format(new Date(deal.start_date), "dd/MM/yyyy HH:mm") : "-";
+      const newStartFormatted = startDateTime ? format(new Date(startDateTime), "dd/MM/yyyy HH:mm") : "-";
+      if (oldStartFormatted !== newStartFormatted) {
+        changedFields.push({ field: "Data de Início", oldValue: oldStartFormatted, newValue: newStartFormatted });
+      }
+
+      const oldCloseFormatted = deal.expected_close_date ? format(new Date(deal.expected_close_date), "dd/MM/yyyy HH:mm") : "-";
+      const newCloseFormatted = closeDateTime ? format(new Date(closeDateTime), "dd/MM/yyyy HH:mm") : "-";
+      if (oldCloseFormatted !== newCloseFormatted) {
+        changedFields.push({ field: "Previsão de Fechamento", oldValue: oldCloseFormatted, newValue: newCloseFormatted });
+      }
+
+      if ((deal.quantity || 1) !== (parseInt(formData.quantity) || 1)) {
+        changedFields.push({ field: "Quantidade", oldValue: String(deal.quantity || 1), newValue: formData.quantity });
+      }
+
+      const oldValueFormatted = deal.value ? `R$ ${deal.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-";
+      const newValueFormatted = value ? `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-";
+      if (oldValueFormatted !== newValueFormatted) {
+        changedFields.push({ field: "Valor", oldValue: oldValueFormatted, newValue: newValueFormatted });
+      }
+
+      if (deal.stage_id !== formData.stage_id) {
+        const oldStage = stages.find(s => s.id === deal.stage_id);
+        const newStage = stages.find(s => s.id === formData.stage_id);
+        changedFields.push({ field: "Etapa", oldValue: oldStage?.name || "-", newValue: newStage?.name || "-" });
+      }
+
+      if (deal.status !== formData.status) {
+        const statusLabels: Record<string, string> = { open: "Aberto", won: "Ganho", lost: "Perdido" };
+        changedFields.push({ 
+          field: "Status", 
+          oldValue: statusLabels[deal.status] || deal.status, 
+          newValue: statusLabels[formData.status] || formData.status 
+        });
+      }
+
+      if ((deal.notes || "") !== (formData.notes || "")) {
+        changedFields.push({ field: "Descrição", oldValue: "Texto anterior", newValue: "Texto atualizado" });
+      }
+
       await onUpdateDeal({
         id: deal.id,
         title: formData.title,
@@ -327,14 +376,21 @@ export function CRMDealDetailsModal({
         workflow_id: formData.workflow_id || null,
       });
       
-      // Log field changes
-      await supabase.from("crm_deal_activities").insert({
-        deal_id: deal.id,
-        contact_id: contactId || null,
-        activity_type: "field_updated",
-        notes: "Dados do negócio atualizados",
-        is_manual: false,
-      });
+      // Log each field change individually with old and new values
+      if (changedFields.length > 0) {
+        const activityInserts = changedFields.map(change => ({
+          deal_id: deal.id,
+          contact_id: contactId || null,
+          activity_type: "field_updated",
+          notes: `${change.field} alterado`,
+          old_value: change.oldValue,
+          new_value: change.newValue,
+          is_manual: false,
+          created_by: userData.user?.id,
+        }));
+
+        await supabase.from("crm_deal_activities").insert(activityInserts);
+      }
 
       refetchActivities();
       toast.success("Negócio salvo com sucesso");
