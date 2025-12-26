@@ -14,14 +14,10 @@ import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-interface CnaeCatalogItem {
-  id: string;
-  company_id: string;
+interface CnaeGroupedItem {
   cnae_code: string;
   cnae_description: string | null;
   lead_count: number;
-  created_at: string;
-  updated_at: string;
 }
 
 export default function CnaeBaseDashboard() {
@@ -30,45 +26,67 @@ export default function CnaeBaseDashboard() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch CNAE catalog
-  const { data: cnaeCatalog, isLoading } = useQuery({
+  // Fetch CNAEs grouped from leads - using RPC or direct query
+  const { data: cnaeData, isLoading } = useQuery({
     queryKey: ['cnae-catalog', companyId],
     queryFn: async () => {
-      if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('cnae_catalog' as any)
-        .select('*')
-        .eq('company_id', companyId)
-        .order('lead_count', { ascending: false });
+      if (!companyId) return { cnaes: [], totalLeads: 0 };
       
-      if (error) throw error;
-      return (data || []) as unknown as CnaeCatalogItem[];
-    },
-    enabled: !!companyId
-  });
-
-  // Fetch total leads count
-  const { data: totalLeads } = useQuery({
-    queryKey: ['cnae-leads-count', companyId],
-    queryFn: async () => {
-      if (!companyId) return 0;
-      const { count, error } = await supabase
+      // Get all leads to group by CNAE on client side
+      // This is more reliable than complex SQL aggregations
+      const { data, error } = await supabase
         .from('cnae_lead_pool' as any)
-        .select('*', { count: 'exact', head: true })
+        .select('cnae_code, cnae_description')
         .eq('company_id', companyId);
       
       if (error) throw error;
-      return count || 0;
+      
+      // Group by CNAE code
+      const cnaeMap = new Map<string, { description: string | null; count: number }>();
+      
+      (data || []).forEach((lead: any) => {
+        const code = lead.cnae_code;
+        if (!code) return;
+        
+        const existing = cnaeMap.get(code);
+        if (existing) {
+          existing.count++;
+          // Keep description if not null
+          if (!existing.description && lead.cnae_description) {
+            existing.description = lead.cnae_description;
+          }
+        } else {
+          cnaeMap.set(code, {
+            description: lead.cnae_description || null,
+            count: 1
+          });
+        }
+      });
+
+      // Convert to array and sort by count
+      const cnaes: CnaeGroupedItem[] = Array.from(cnaeMap.entries())
+        .map(([code, data]) => ({
+          cnae_code: code,
+          cnae_description: data.description,
+          lead_count: data.count
+        }))
+        .sort((a, b) => b.lead_count - a.lead_count);
+
+      return {
+        cnaes,
+        totalLeads: data?.length || 0
+      };
     },
     enabled: !!companyId
   });
 
-  const filteredCatalog = cnaeCatalog?.filter(cnae => 
+  const filteredCatalog = cnaeData?.cnaes?.filter(cnae => 
     cnae.cnae_code.includes(searchTerm) || 
     cnae.cnae_description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const totalCnaes = cnaeCatalog?.length || 0;
+  const totalCnaes = cnaeData?.cnaes?.length || 0;
+  const totalLeads = cnaeData?.totalLeads || 0;
 
   return (
     <DashboardLayout>
@@ -99,7 +117,7 @@ export default function CnaeBaseDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalLeads?.toLocaleString('pt-BR') || 0}</div>
+                <div className="text-2xl font-bold">{totalLeads.toLocaleString('pt-BR')}</div>
                 <p className="text-xs text-muted-foreground">
                   Na base de CNAEs
                 </p>
@@ -124,7 +142,7 @@ export default function CnaeBaseDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {totalCnaes > 0 ? Math.round((totalLeads || 0) / totalCnaes).toLocaleString('pt-BR') : 0}
+                  {totalCnaes > 0 ? Math.round(totalLeads / totalCnaes).toLocaleString('pt-BR') : 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Leads por código
@@ -186,7 +204,7 @@ export default function CnaeBaseDashboard() {
                   </TableHeader>
                   <TableBody>
                     {filteredCatalog.map((cnae) => (
-                      <TableRow key={cnae.id}>
+                      <TableRow key={cnae.cnae_code}>
                         <TableCell>
                           <Badge variant="outline" className="font-mono">
                             {cnae.cnae_code}
@@ -196,7 +214,7 @@ export default function CnaeBaseDashboard() {
                           {cnae.cnae_description || '-'}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {cnae.lead_count?.toLocaleString('pt-BR') || 0}
+                          {cnae.lead_count.toLocaleString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-right">
                           <Link to={`/lead-intelligence/cnae-base/${encodeURIComponent(cnae.cnae_code)}`}>
