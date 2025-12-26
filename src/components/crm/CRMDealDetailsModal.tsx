@@ -54,6 +54,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CRMDealTags } from "./CRMDealTags";
+import { CRMContactSearchModal } from "./CRMContactSearchModal";
+import { CRMCreateContactModal } from "./CRMCreateContactModal";
 
 interface CRMDealDetailsModalProps {
   deal: CRMDeal | null;
@@ -152,6 +154,8 @@ export function CRMDealDetailsModal({
   const [activeSection, setActiveSection] = useState("principal");
   const [isSaving, setIsSaving] = useState(false);
   const [newNote, setNewNote] = useState("");
+  const [isSearchContactOpen, setIsSearchContactOpen] = useState(false);
+  const [isCreateContactOpen, setIsCreateContactOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     start_date: null as Date | null,
@@ -259,6 +263,34 @@ export function CRMDealDetailsModal({
       toast.error("Erro ao adicionar nota");
     },
   });
+
+  // Update deal contact
+  const updateDealContactMutation = useMutation({
+    mutationFn: async (newContactId: string) => {
+      const { error } = await supabase
+        .from("crm_deals")
+        .update({ contact_id: newContactId })
+        .eq("id", deal!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crm-deals"] });
+      refetchActivities();
+      toast.success("Lead vinculado com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao vincular lead");
+    },
+  });
+
+  const handleSelectContact = (selectedContact: CRMContact) => {
+    updateDealContactMutation.mutate(selectedContact.id);
+  };
+
+  const handleContactCreated = (newContact: CRMContact) => {
+    updateDealContactMutation.mutate(newContact.id);
+  };
 
   // Load deal data into form when deal changes
   useEffect(() => {
@@ -683,11 +715,19 @@ export function CRMDealDetailsModal({
                         <div className="flex items-center justify-between">
                           <h3 className="font-medium">Informações do Lead</h3>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setIsSearchContactOpen(true)}
+                            >
                               <Search className="w-4 h-4 mr-1" />
                               Buscar Lead
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setIsCreateContactOpen(true)}
+                            >
                               <Plus className="w-4 h-4 mr-1" />
                               Criar Novo Lead
                             </Button>
@@ -971,6 +1011,23 @@ export function CRMDealDetailsModal({
           </div>
         </div>
       </DialogContent>
+
+      {/* Contact Search Modal */}
+      <CRMContactSearchModal
+        isOpen={isSearchContactOpen}
+        onClose={() => setIsSearchContactOpen(false)}
+        workspaceId={deal.workspace_id}
+        onSelectContact={handleSelectContact}
+        currentContactId={contactId}
+      />
+
+      {/* Create Contact Modal */}
+      <CRMCreateContactModal
+        isOpen={isCreateContactOpen}
+        onClose={() => setIsCreateContactOpen(false)}
+        workspaceId={deal.workspace_id}
+        onContactCreated={handleContactCreated}
+      />
     </Dialog>
   );
 }
