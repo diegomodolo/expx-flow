@@ -72,6 +72,9 @@ interface DealActivity {
   is_manual: boolean;
   created_at: string;
   created_by: string | null;
+  user?: {
+    full_name: string | null;
+  } | null;
 }
 
 const menuItems = [
@@ -175,7 +178,29 @@ export function CRMDealDetailsModal({
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as DealActivity[];
+
+      // Fetch user names for created_by
+      const userIds = [...new Set(data.map(a => a.created_by).filter(Boolean))];
+      let usersMap: Record<string, { full_name: string | null }> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+        
+        if (profiles) {
+          usersMap = profiles.reduce((acc, p) => {
+            acc[p.user_id] = { full_name: p.full_name };
+            return acc;
+          }, {} as Record<string, { full_name: string | null }>);
+        }
+      }
+
+      return data.map(a => ({
+        ...a,
+        user: a.created_by ? usersMap[a.created_by] || null : null,
+      })) as DealActivity[];
     },
     enabled: isOpen && !!deal,
   });
@@ -708,10 +733,15 @@ export function CRMDealDetailsModal({
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm">{getActivityLabel(activity, stages)}</p>
-                                  <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <span className="text-xs text-muted-foreground">
                                       {format(new Date(activity.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                                     </span>
+                                    {activity.user?.full_name && (
+                                      <span className="text-xs text-muted-foreground">
+                                        • {activity.user.full_name}
+                                      </span>
+                                    )}
                                     {isDifferentDeal && (
                                       <Badge variant="outline" className="text-xs">
                                         Outro negócio
@@ -822,6 +852,11 @@ export function CRMDealDetailsModal({
                                   <span className="text-xs text-muted-foreground">
                                     {format(new Date(activity.created_at), "dd/MM/yy HH:mm")}
                                   </span>
+                                  {activity.user?.full_name && (
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                      • {activity.user.full_name}
+                                    </span>
+                                  )}
                                   {isDifferentDeal && (
                                     <Badge variant="outline" className="text-[10px] px-1 py-0">
                                       Outro negócio
