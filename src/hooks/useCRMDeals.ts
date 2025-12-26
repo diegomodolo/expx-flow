@@ -147,10 +147,30 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
     mutationFn: async (dealData: CreateDealData) => {
       const { data: userData } = await supabase.auth.getUser();
 
+      // Get the board_id from the stage to check for queue assignment
+      const { data: stageData } = await supabase
+        .from("crm_stages")
+        .select("board_id")
+        .eq("id", dealData.stage_id)
+        .single();
+
+      let responsibleId = dealData.responsible_id || null;
+
+      // If no responsible is set, try to get from queue
+      if (!responsibleId && stageData?.board_id) {
+        const { data: nextUserId } = await supabase.rpc("get_next_queue_user_and_rotate", {
+          p_board_id: stageData.board_id,
+        });
+        if (nextUserId) {
+          responsibleId = nextUserId;
+        }
+      }
+
       const { data, error } = await supabase
         .from("crm_deals")
         .insert({
           ...dealData,
+          responsible_id: responsibleId,
           status: dealData.status || "open",
           quantity: dealData.quantity || 1,
           is_archived: false,
