@@ -252,6 +252,52 @@ export function useMetaAudiences(clientId: string | null) {
     }
   }, [clientId, toast]);
 
+  const createLookalikeAudience = useCallback(async (
+    originAudienceId: string,
+    name: string,
+    country: string = 'BR',
+    ratio: number = 1,
+    lookalikeType?: 'similarity' | 'reach'
+  ): Promise<MetaAudience | null> => {
+    if (!clientId) return null;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-meta-audiences', {
+        body: {
+          action: 'create_lookalike',
+          clientId,
+          originAudienceId,
+          name,
+          country,
+          ratio,
+          lookalikeType,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      toast({
+        title: 'Público semelhante criado',
+        description: `Lookalike "${name}" criado com sucesso. Pode levar algumas horas para popular.`,
+      });
+
+      await fetchAudiences();
+      return data.audience;
+    } catch (error: any) {
+      console.error('Error creating lookalike audience:', error);
+      toast({
+        title: 'Erro ao criar público semelhante',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, fetchAudiences, toast]);
+
   return {
     loading,
     audiences,
@@ -262,5 +308,6 @@ export function useMetaAudiences(clientId: string | null) {
     getAudienceDetails,
     addUsersToAudience,
     removeUsersFromAudience,
+    createLookalikeAudience,
   };
 }
