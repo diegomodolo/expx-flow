@@ -42,6 +42,20 @@ export default function CnaeBaseDashboard() {
     enabled: !!companyId
   });
 
+  // Fetch total CNAEs count using RPC function (bypasses PostgREST limit)
+  const { data: totalCnaes } = useQuery({
+    queryKey: ['cnae-total', companyId],
+    queryFn: async () => {
+      if (!companyId) return 0;
+      const { data, error } = await supabase
+        .rpc('get_cnae_total', { p_company_id: companyId });
+      
+      if (error) throw error;
+      return Number(data) || 0;
+    },
+    enabled: !!companyId
+  });
+
   // Fetch CNAEs grouped using RPC function (no row limit)
   const { data: cnaeCatalog, isLoading } = useQuery({
     queryKey: ['cnae-catalog', companyId],
@@ -67,7 +81,7 @@ export default function CnaeBaseDashboard() {
     cnae.cnae_description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const totalCnaes = cnaeCatalog?.length || 0;
+  
 
   return (
     <DashboardLayout>
