@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCRMLeads, CRMStage } from "@/hooks/useCRMLeads";
+import { useCRMLeads } from "@/hooks/useCRMLeads";
+import { CRMStage } from "@/hooks/useCRMDeals";
 import { Loader2 } from "lucide-react";
 
 const brazilianStates = [

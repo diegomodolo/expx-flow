@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import { CRMStage } from "@/hooks/useCRMLeads";
+import { CRMStage } from "@/hooks/useCRMDeals";
 
 export interface LeadFilters {
   status?: string;
