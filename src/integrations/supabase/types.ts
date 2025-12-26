@@ -2894,6 +2894,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_deals_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "crm_users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_deals_source_deal_id_fkey"
             columns: ["source_deal_id"]
             isOneToOne: false
