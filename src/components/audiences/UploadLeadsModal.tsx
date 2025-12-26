@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetaAudience, UserData, UploadResult } from "@/hooks/useMetaAudiences";
-import { Upload, FileText, Keyboard, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, FileText, Keyboard, Loader2, CheckCircle, AlertCircle, Database } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface UploadLeadsModalProps {
   open: boolean;
@@ -23,6 +27,13 @@ interface UploadLeadsModalProps {
   loading: boolean;
 }
 
+interface LeadSegment {
+  id: string;
+  name: string;
+  segment_type: string;
+  lead_count?: number;
+}
+
 export function UploadLeadsModal({
   open,
   onOpenChange,
@@ -30,11 +41,59 @@ export function UploadLeadsModal({
   onUpload,
   loading,
 }: UploadLeadsModalProps) {
-  const [mode, setMode] = useState<"csv" | "manual">("csv");
+  const { activeCompany } = useCompany();
+  const [mode, setMode] = useState<"csv" | "manual" | "segment">("csv");
   const [csvData, setCsvData] = useState("");
   const [manualData, setManualData] = useState<UserData[]>([{ email: "", phone: "" }]);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [parsedCount, setParsedCount] = useState(0);
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string>("");
+  const [segmentLeadsCount, setSegmentLeadsCount] = useState<number>(0);
+  const [loadingSegmentLeads, setLoadingSegmentLeads] = useState(false);
+
+  // Fetch segments from Lead Intelligence Hub
+  const { data: segments = [], isLoading: loadingSegments } = useQuery({
+    queryKey: ['lead-segments-for-audience', activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return [];
+      
+      // Get segments with lead counts
+      const { data: segmentsData, error } = await supabase
+        .from('lead_segments')
+        .select('id, name, segment_type')
+        .eq('company_id', activeCompany.company_id)
+        .order('name');
+
+      if (error) throw error;
+
+      // Get lead counts for each segment
+      const segmentsWithCounts: LeadSegment[] = [];
+      for (const segment of segmentsData || []) {
+        const { count } = await supabase
+          .from('lead_segment_assignments')
+          .select('*', { count: 'exact', head: true })
+          .eq('segment_id', segment.id);
+        
+        segmentsWithCounts.push({
+          ...segment,
+          lead_count: count || 0,
+        });
+      }
+
+      return segmentsWithCounts;
+    },
+    enabled: open && !!activeCompany?.company_id,
+  });
+
+  // Update segment leads count when segment is selected
+  useEffect(() => {
+    if (selectedSegmentId) {
+      const segment = segments.find(s => s.id === selectedSegmentId);
+      setSegmentLeadsCount(segment?.lead_count || 0);
+    } else {
+      setSegmentLeadsCount(0);
+    }
+  }, [selectedSegmentId, segments]);
 
   const parseCSV = useCallback((csv: string): UserData[] => {
     const lines = csv.trim().split("\n");
@@ -94,10 +153,86 @@ export function UploadLeadsModal({
     return manualData.filter((u) => u.email || u.phone);
   };
 
+  // Fetch leads from segment with pagination
+  const fetchLeadsFromSegment = async (segmentId: string): Promise<UserData[]> => {
+    const users: UserData[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      // Get lead IDs from assignments
+      const { data: assignments, error: assignError } = await supabase
+        .from('lead_segment_assignments')
+        .select('lead_id')
+        .eq('segment_id', segmentId)
+        .range(from, from + pageSize - 1);
+
+      if (assignError) throw assignError;
+
+      if (!assignments || assignments.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      const leadIds = assignments.map(a => a.lead_id);
+
+      // Get lead data
+      const { data: leads, error: leadsError } = await supabase
+        .from('lead_master_pool')
+        .select('email, phone, first_name, last_name, city, state, country, zip_code')
+        .in('id', leadIds);
+
+      if (leadsError) throw leadsError;
+
+      for (const lead of leads || []) {
+        if (lead.email || lead.phone) {
+          users.push({
+            email: lead.email || undefined,
+            phone: lead.phone || undefined,
+            firstName: lead.first_name || undefined,
+            lastName: lead.last_name || undefined,
+            city: lead.city || undefined,
+            state: lead.state || undefined,
+            country: lead.country || undefined,
+            zipCode: lead.zip_code || undefined,
+          });
+        }
+      }
+
+      if (assignments.length < pageSize) {
+        hasMore = false;
+      } else {
+        from += pageSize;
+      }
+    }
+
+    return users;
+  };
+
   const handleSubmit = async () => {
     if (!audience) return;
 
-    const users = mode === "csv" ? parseCSV(csvData) : getValidManualData();
+    let users: UserData[] = [];
+
+    if (mode === "csv") {
+      users = parseCSV(csvData);
+    } else if (mode === "manual") {
+      users = getValidManualData();
+    } else if (mode === "segment") {
+      if (!selectedSegmentId) return;
+      
+      setLoadingSegmentLeads(true);
+      try {
+        users = await fetchLeadsFromSegment(selectedSegmentId);
+      } catch (error: any) {
+        console.error('Error fetching segment leads:', error);
+        setLoadingSegmentLeads(false);
+        return;
+      }
+      setLoadingSegmentLeads(false);
+    }
+
     if (users.length === 0) return;
 
     const uploadResult = await onUpload(audience.id, users);
@@ -111,12 +246,17 @@ export function UploadLeadsModal({
     setManualData([{ email: "", phone: "" }]);
     setResult(null);
     setParsedCount(0);
+    setSelectedSegmentId("");
+    setSegmentLeadsCount(0);
     onOpenChange(false);
   };
 
   const canSubmit =
     (mode === "csv" && parsedCount > 0) ||
-    (mode === "manual" && getValidManualData().length > 0);
+    (mode === "manual" && getValidManualData().length > 0) ||
+    (mode === "segment" && selectedSegmentId && segmentLeadsCount > 0);
+
+  const isProcessing = loading || loadingSegmentLeads;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -172,15 +312,19 @@ export function UploadLeadsModal({
           </div>
         ) : (
           <>
-            <Tabs value={mode} onValueChange={(v) => setMode(v as "csv" | "manual")}>
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "csv" | "manual" | "segment")}>
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="csv">
                   <FileText className="h-4 w-4 mr-2" />
-                  Colar CSV
+                  CSV
                 </TabsTrigger>
                 <TabsTrigger value="manual">
                   <Keyboard className="h-4 w-4 mr-2" />
                   Manual
+                </TabsTrigger>
+                <TabsTrigger value="segment">
+                  <Database className="h-4 w-4 mr-2" />
+                  Segmento
                 </TabsTrigger>
               </TabsList>
 
@@ -195,7 +339,7 @@ joao@email.com,11999998888
 maria@email.com,11988887777"
                     rows={8}
                     className="font-mono text-sm"
-                    disabled={loading}
+                    disabled={isProcessing}
                   />
                   {parsedCount > 0 && (
                     <Badge variant="secondary">
@@ -223,7 +367,7 @@ maria@email.com,11988887777"
                           value={row.email || ""}
                           onChange={(e) => updateManualRow(index, "email", e.target.value)}
                           placeholder="email@exemplo.com"
-                          disabled={loading}
+                          disabled={isProcessing}
                         />
                       </div>
                       <div className="flex-1">
@@ -232,7 +376,7 @@ maria@email.com,11988887777"
                           value={row.phone || ""}
                           onChange={(e) => updateManualRow(index, "phone", e.target.value)}
                           placeholder="11999998888"
-                          disabled={loading}
+                          disabled={isProcessing}
                         />
                       </div>
                       {manualData.length > 1 && (
@@ -241,7 +385,7 @@ maria@email.com,11988887777"
                           variant="ghost"
                           size="icon"
                           onClick={() => removeManualRow(index)}
-                          disabled={loading}
+                          disabled={isProcessing}
                         >
                           ×
                         </Button>
@@ -254,7 +398,7 @@ maria@email.com,11988887777"
                   variant="outline"
                   size="sm"
                   onClick={addManualRow}
-                  disabled={loading}
+                  disabled={isProcessing}
                 >
                   + Adicionar linha
                 </Button>
@@ -265,16 +409,64 @@ maria@email.com,11988887777"
                   </Badge>
                 )}
               </TabsContent>
+
+              <TabsContent value="segment" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Selecione um segmento do Lead Intelligence Hub</Label>
+                  <Select
+                    value={selectedSegmentId}
+                    onValueChange={setSelectedSegmentId}
+                    disabled={isProcessing || loadingSegments}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingSegments ? "Carregando..." : "Selecione um segmento"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {segments.map((segment) => (
+                        <SelectItem key={segment.id} value={segment.id}>
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            <span>{segment.name}</span>
+                            <Badge variant="outline" className="ml-2">
+                              {segment.lead_count} lead{segment.lead_count !== 1 ? "s" : ""}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedSegmentId && (
+                  <div className="bg-muted p-4 rounded-md space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Leads no segmento:</span>
+                      <span className="font-medium">{segmentLeadsCount}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Todos os leads deste segmento serão enviados para o público personalizado.
+                    </p>
+                  </div>
+                )}
+
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <p className="font-medium mb-1">Como funciona:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Selecione um segmento existente</li>
+                    <li>Todos os leads com email ou telefone serão incluídos</li>
+                    <li>Os dados serão criptografados (SHA256) antes do envio ao Meta</li>
+                  </ul>
+                </div>
+              </TabsContent>
             </Tabs>
 
             <DialogFooter className="mt-4">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={isProcessing}>
                 Cancelar
               </Button>
-              <Button onClick={handleSubmit} disabled={loading || !canSubmit}>
-                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button onClick={handleSubmit} disabled={isProcessing || !canSubmit}>
+                {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Upload className="h-4 w-4 mr-2" />
-                Enviar Leads
+                {mode === "segment" ? `Enviar ${segmentLeadsCount} Leads` : "Enviar Leads"}
               </Button>
             </DialogFooter>
           </>
