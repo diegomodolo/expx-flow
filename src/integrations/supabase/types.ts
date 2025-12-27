@@ -2828,6 +2828,7 @@ export type Database = {
           quantity: number | null
           responsible_id: string | null
           source_deal_id: string | null
+          stage_entered_at: string | null
           stage_id: string
           start_date: string | null
           status: string | null
@@ -2853,6 +2854,7 @@ export type Database = {
           quantity?: number | null
           responsible_id?: string | null
           source_deal_id?: string | null
+          stage_entered_at?: string | null
           stage_id: string
           start_date?: string | null
           status?: string | null
@@ -2878,6 +2880,7 @@ export type Database = {
           quantity?: number | null
           responsible_id?: string | null
           source_deal_id?: string | null
+          stage_entered_at?: string | null
           stage_id?: string
           start_date?: string | null
           status?: string | null
@@ -3267,6 +3270,7 @@ export type Database = {
           created_at: string | null
           event_mapping: string | null
           id: string
+          max_days: number | null
           name: string
           order_index: number
           target_status: string | null
@@ -3284,6 +3288,7 @@ export type Database = {
           created_at?: string | null
           event_mapping?: string | null
           id?: string
+          max_days?: number | null
           name: string
           order_index: number
           target_status?: string | null
@@ -3301,6 +3306,7 @@ export type Database = {
           created_at?: string | null
           event_mapping?: string | null
           id?: string
+          max_days?: number | null
           name?: string
           order_index?: number
           target_status?: string | null

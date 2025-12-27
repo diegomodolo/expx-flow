@@ -31,6 +31,7 @@ export interface CRMDeal {
   is_archived: boolean;
   archived_at?: string | null;
   custom_fields?: Record<string, unknown> | null;
+  stage_entered_at?: string | null;
   created_at: string;
   updated_at: string;
   created_by?: string | null;
@@ -58,6 +59,7 @@ export interface CRMStage {
   target_status?: string | null;
   auto_temperature_change?: boolean;
   target_temperature?: string | null;
+  max_days?: number | null;
   created_at?: string;
 }
 
@@ -269,6 +271,7 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
       // Prepare update data
       const updateData: Record<string, unknown> = {
         stage_id: toStageId,
+        stage_entered_at: new Date().toISOString(),
       };
 
       // Apply stage configurations
