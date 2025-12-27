@@ -592,10 +592,30 @@ export function useClients() {
         const consolidatedConversions = metaConversions + googleConversions;
         const consolidatedActiveCampaigns = metaActiveCampaigns + googleActiveCampaigns;
         
-        // Consolidated budget (use platform-specific budgets if available, otherwise fall back to monthly_budget)
+        // Consolidated budget calculation:
+        // 1. If both platform-specific budgets are set, use their sum
+        // 2. If only one is set and the other platform is configured, use monthly_budget as total
+        // 3. If neither is set, fall back to monthly_budget
         const metaBudget = client.meta_monthly_budget || 0;
         const googleBudget = client.google_monthly_budget || 0;
-        const consolidatedBudget = (metaBudget + googleBudget) || client.monthly_budget || 0;
+        const hasMetaAccount = !!client.ad_account_id;
+        const hasGoogleAccount = !!client.google_account_id;
+        
+        let consolidatedBudget: number;
+        if (metaBudget > 0 && googleBudget > 0) {
+          // Both platform budgets are explicitly set - use their sum
+          consolidatedBudget = metaBudget + googleBudget;
+        } else if ((hasMetaAccount && hasGoogleAccount) && (metaBudget > 0 || googleBudget > 0)) {
+          // Client uses both platforms but only one budget is set
+          // Use monthly_budget as the total if available, otherwise sum what we have
+          consolidatedBudget = client.monthly_budget || (metaBudget + googleBudget);
+        } else if (metaBudget > 0 || googleBudget > 0) {
+          // Only one platform budget is set
+          consolidatedBudget = metaBudget + googleBudget;
+        } else {
+          // No platform-specific budgets, use monthly_budget
+          consolidatedBudget = client.monthly_budget || 0;
+        }
         
         // Consolidated CPA
         const consolidatedCpa = consolidatedConversions > 0 ? consolidatedSpend / consolidatedConversions : 0;
