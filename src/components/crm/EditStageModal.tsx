@@ -222,9 +222,9 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="auto-status">Alterar Status do Lead Automaticamente</Label>
+                <Label htmlFor="auto-status">Alterar Status do Negócio Automaticamente</Label>
                 <p className="text-sm text-muted-foreground">
-                  O status do lead será atualizado ao entrar nesta coluna
+                  O status do negócio será atualizado ao entrar nesta coluna
                 </p>
               </div>
               <Switch
@@ -236,7 +236,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
 
             {autoStatusChange && (
               <div className="space-y-2 pl-4 border-l-2">
-                <Label htmlFor="target-status">Status para o Lead</Label>
+                <Label htmlFor="target-status">Status para o Negócio</Label>
                 <Select
                   value={targetStatus || "open"}
                   onValueChange={setTargetStatus}
@@ -260,9 +260,9 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="auto-temperature">Alterar Temperatura do Lead Automaticamente</Label>
+                <Label htmlFor="auto-temperature">Alterar Temperatura do Negócio Automaticamente</Label>
                 <p className="text-sm text-muted-foreground">
-                  A temperatura do lead será atualizada ao entrar nesta coluna
+                  A temperatura do negócio será atualizada ao entrar nesta coluna
                 </p>
               </div>
               <Switch
@@ -274,7 +274,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
 
             {autoTemperatureChange && (
               <div className="space-y-2 pl-4 border-l-2">
-                <Label htmlFor="target-temperature">Temperatura para o Lead</Label>
+                <Label htmlFor="target-temperature">Temperatura para o Negócio</Label>
                 <Select
                   value={targetTemperature || "quente"}
                   onValueChange={(value) => setTargetTemperature(value as 'quente' | 'morno' | 'frio')}
