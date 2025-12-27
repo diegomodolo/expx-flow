@@ -69,7 +69,8 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
       setWorkflowTargetBoardId(stage.workflow_target_board_id || null);
       setWorkflowTargetStageId(stage.workflow_target_stage_id || null);
       setAutoTemperatureChange(stage.auto_temperature_change || false);
-      setTargetTemperature(stage.target_temperature || null);
+      // If auto temperature is enabled but target isn't set, default to "quente"
+      setTargetTemperature(stage.auto_temperature_change ? (stage.target_temperature || "quente") : null);
       setMaxDays(stage.max_days?.toString() || "");
     }
   }, [stage]);
@@ -125,7 +126,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
         auto_status_change: autoStatusChange,
         target_status: autoStatusChange ? (targetStatus ?? "open") : null,
         auto_temperature_change: autoTemperatureChange,
-        target_temperature: autoTemperatureChange ? targetTemperature : null,
+        target_temperature: autoTemperatureChange ? (targetTemperature ?? "quente") : null,
         workflow_enabled: workflowEnabled,
         workflow_target_board_id: workflowEnabled ? workflowTargetBoardId : null,
         workflow_target_stage_id: workflowEnabled ? workflowTargetStageId : null,
@@ -271,7 +272,10 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
               <Switch
                 id="auto-temperature"
                 checked={autoTemperatureChange}
-                onCheckedChange={setAutoTemperatureChange}
+                onCheckedChange={(checked) => {
+                  setAutoTemperatureChange(checked);
+                  if (checked && !targetTemperature) setTargetTemperature("quente");
+                }}
               />
             </div>
 

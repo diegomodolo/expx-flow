@@ -64,7 +64,7 @@ export function CreateStageDialog({ isOpen, onClose, onCreate }: CreateStageDial
         auto_status_change: autoStatusChange,
         target_status: autoStatusChange ? targetStatus : null,
         auto_temperature_change: autoTemperatureChange,
-        target_temperature: autoTemperatureChange ? targetTemperature : null,
+        target_temperature: autoTemperatureChange ? (targetTemperature ?? "quente") : null,
       });
       setName("");
       setColor("#3b82f6");
@@ -210,7 +210,10 @@ export function CreateStageDialog({ isOpen, onClose, onCreate }: CreateStageDial
               <Switch
                 id="auto-temperature"
                 checked={autoTemperatureChange}
-                onCheckedChange={setAutoTemperatureChange}
+                onCheckedChange={(checked) => {
+                  setAutoTemperatureChange(checked);
+                  if (checked && !targetTemperature) setTargetTemperature("quente");
+                }}
               />
             </div>
 
