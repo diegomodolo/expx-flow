@@ -44,6 +44,13 @@ import {
   Clock,
   Briefcase,
   CalendarIcon,
+  User,
+  ExternalLink,
+  MapPin,
+  Instagram,
+  Linkedin,
+  Globe,
+  Building,
 } from "lucide-react";
 import { CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { CRMContact } from "@/hooks/useCRMContacts";
@@ -90,6 +97,7 @@ interface DealActivity {
 
 const menuItems = [
   { id: "principal", label: "Principal", icon: Home },
+  { id: "lead", label: "Lead", icon: User },
   { id: "equipe", label: "Equipe", icon: Users },
   { id: "emails", label: "E-mails", icon: Mail },
   { id: "fluxo", label: "Fluxo", icon: GitBranch },
@@ -729,6 +737,16 @@ export function CRMDealDetailsModal({
                         <div className="flex items-center justify-between">
                           <h3 className="font-medium">Informações do Lead</h3>
                           <div className="flex gap-2">
+                            {contact && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setActiveSection("lead")}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                Ver Detalhes
+                              </Button>
+                            )}
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -906,7 +924,200 @@ export function CRMDealDetailsModal({
                     </div>
                   )}
 
-                  {activeSection !== "principal" && activeSection !== "historico" && (
+                  {activeSection === "lead" && (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-lg">Informações do Lead</h3>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsSearchContactOpen(true)}
+                          >
+                            <Search className="w-4 h-4 mr-1" />
+                            Trocar Lead
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsCreateContactOpen(true)}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Criar Novo
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {contact ? (
+                        <div className="space-y-6">
+                          {/* Header with Avatar */}
+                          <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                            <Avatar className="w-16 h-16">
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                                {getInitials(contact.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h4 className="text-xl font-semibold">{contact.full_name}</h4>
+                              {contact.company_name && (
+                                <p className="text-muted-foreground flex items-center gap-1">
+                                  <Building className="w-4 h-4" />
+                                  {contact.company_name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Contact Info Grid */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Email */}
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">E-mail</Label>
+                              <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
+                                <Mail className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">{contact.email || "-"}</span>
+                              </div>
+                            </div>
+
+                            {/* Phone */}
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Telefone</Label>
+                              <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
+                                <Phone className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">{contact.phone || "-"}</span>
+                              </div>
+                            </div>
+
+                            {/* City */}
+                            {contact.city && (
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">Cidade</Label>
+                                <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
+                                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">{contact.city}{contact.state ? `, ${contact.state}` : ""}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Country */}
+                            {contact.country && (
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">País</Label>
+                                <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
+                                  <Globe className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">{contact.country}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Social Links */}
+                          {(contact.facebook || contact.instagram || contact.website) && (
+                            <div className="space-y-3">
+                              <Label className="text-xs text-muted-foreground">Links e Redes Sociais</Label>
+                              <div className="flex flex-wrap gap-2">
+                                {contact.facebook && (
+                                  <a 
+                                    href={contact.facebook.startsWith("http") ? contact.facebook : `https://facebook.com/${contact.facebook}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition-colors"
+                                  >
+                                    <Facebook className="w-4 h-4" />
+                                    <span className="text-sm">Facebook</span>
+                                  </a>
+                                )}
+                                {contact.instagram && (
+                                  <a 
+                                    href={contact.instagram.startsWith("http") ? contact.instagram : `https://instagram.com/${contact.instagram}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-pink-500/10 text-pink-600 rounded-lg hover:bg-pink-500/20 transition-colors"
+                                  >
+                                    <Instagram className="w-4 h-4" />
+                                    <span className="text-sm">Instagram</span>
+                                  </a>
+                                )}
+                                {contact.website && (
+                                  <a 
+                                    href={contact.website.startsWith("http") ? contact.website : `https://${contact.website}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                                  >
+                                    <Globe className="w-4 h-4" />
+                                    <span className="text-sm">Website</span>
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* UTM Data */}
+                          {(contact.utm_source || contact.utm_medium || contact.utm_campaign || contact.utm_term || contact.utm_content) && (
+                            <div className="space-y-3">
+                              <Label className="text-xs text-muted-foreground">Dados de Origem (UTM)</Label>
+                              <div className="grid grid-cols-2 gap-3">
+                                {contact.utm_source && (
+                                  <div className="p-2 bg-muted/20 rounded">
+                                    <p className="text-xs text-muted-foreground">Source</p>
+                                    <p className="text-sm font-medium">{contact.utm_source}</p>
+                                  </div>
+                                )}
+                                {contact.utm_medium && (
+                                  <div className="p-2 bg-muted/20 rounded">
+                                    <p className="text-xs text-muted-foreground">Medium</p>
+                                    <p className="text-sm font-medium">{contact.utm_medium}</p>
+                                  </div>
+                                )}
+                                {contact.utm_campaign && (
+                                  <div className="p-2 bg-muted/20 rounded">
+                                    <p className="text-xs text-muted-foreground">Campaign</p>
+                                    <p className="text-sm font-medium">{contact.utm_campaign}</p>
+                                  </div>
+                                )}
+                                {contact.utm_term && (
+                                  <div className="p-2 bg-muted/20 rounded">
+                                    <p className="text-xs text-muted-foreground">Term</p>
+                                    <p className="text-sm font-medium">{contact.utm_term}</p>
+                                  </div>
+                                )}
+                                {contact.utm_content && (
+                                  <div className="p-2 bg-muted/20 rounded col-span-2">
+                                    <p className="text-xs text-muted-foreground">Content</p>
+                                    <p className="text-sm font-medium">{contact.utm_content}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Notes */}
+                          {contact.notes && (
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground">Observações</Label>
+                              <div className="p-3 bg-muted/20 rounded-lg">
+                                <p className="text-sm whitespace-pre-wrap">{contact.notes}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Created At */}
+                          <div className="pt-4 border-t text-sm text-muted-foreground">
+                            Lead criado em {format(new Date(contact.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <User className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                          <p>Nenhum lead vinculado a este negócio</p>
+                          <p className="text-sm mt-2">Busque ou crie um lead para vincular</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeSection !== "principal" && activeSection !== "historico" && activeSection !== "lead" && (
                     <div className="text-center py-12 text-muted-foreground">
                       <p>Seção em desenvolvimento</p>
                     </div>
