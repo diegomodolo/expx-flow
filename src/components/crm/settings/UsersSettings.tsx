@@ -409,7 +409,7 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
                 currentImageUrl={editAvatarUrl || undefined}
                 onImageUploaded={(url) => setEditAvatarUrl(url)}
                 onImageRemoved={() => setEditAvatarUrl(null)}
-                maxSize={2}
+                maxSize={10}
                 acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
               />
             </div>
