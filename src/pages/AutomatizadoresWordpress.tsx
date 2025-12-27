@@ -21,6 +21,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordpressSites } from '@/hooks/useWordpressSites';
 import { AddWordpressSiteDialog } from '@/components/wordpress/AddWordpressSiteDialog';
+import { ManageWordpressSitesDialog } from '@/components/wordpress/ManageWordpressSitesDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -36,6 +37,7 @@ export default function AutomatizadoresWordpress() {
   const queryClient = useQueryClient();
 
   const [showAddSiteDialog, setShowAddSiteDialog] = useState(false);
+  const [showManageSitesDialog, setShowManageSitesDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   
   const [newConfig, setNewConfig] = useState({
@@ -158,7 +160,7 @@ export default function AutomatizadoresWordpress() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowAddSiteDialog(true)}>
+            <Button variant="outline" onClick={() => setShowManageSitesDialog(true)}>
               <Globe className="w-4 h-4 mr-2" />
               Gerenciar Sites
             </Button>
@@ -250,10 +252,17 @@ export default function AutomatizadoresWordpress() {
         ) : null}
       </div>
 
-      {/* Add Site Dialog */}
+      {/* Add Site Dialog (for warning card) */}
       <AddWordpressSiteDialog
         open={showAddSiteDialog}
         onOpenChange={setShowAddSiteDialog}
+        companyId={activeCompany?.company_id || ''}
+      />
+
+      {/* Manage Sites Dialog */}
+      <ManageWordpressSitesDialog
+        open={showManageSitesDialog}
+        onOpenChange={setShowManageSitesDialog}
         companyId={activeCompany?.company_id || ''}
       />
 
