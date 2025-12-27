@@ -29,7 +29,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { 
   Plus, 
   Trash2, 
@@ -71,6 +72,7 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState<"admin" | "collaborator">("collaborator");
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
   
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -99,6 +101,7 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
         email: editEmail,
         full_name: editName,
         role: editRole,
+        avatar_url: editAvatarUrl,
       },
     });
     
@@ -141,6 +144,7 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
     setEditName(user.full_name);
     setEditEmail(user.email);
     setEditRole(user.role);
+    setEditAvatarUrl(user.avatar_url || null);
     setIsEditDialogOpen(true);
   };
 
@@ -214,6 +218,7 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
                 >
                   <div className="flex items-center gap-4">
                     <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.avatar_url || undefined} alt={user.full_name} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {getInitials(user.full_name)}
                       </AvatarFallback>
@@ -390,6 +395,24 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="flex flex-col items-center gap-4">
+              <Label>Foto do Usuário</Label>
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={editAvatarUrl || undefined} alt={editName} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                  {getInitials(editName)}
+                </AvatarFallback>
+              </Avatar>
+              <ImageUploader
+                bucket="crm-assets"
+                folder="user-avatars"
+                currentImageUrl={editAvatarUrl || undefined}
+                onImageUploaded={(url) => setEditAvatarUrl(url)}
+                onImageRemoved={() => setEditAvatarUrl(null)}
+                maxSize={2}
+                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nome Completo</Label>
               <Input
