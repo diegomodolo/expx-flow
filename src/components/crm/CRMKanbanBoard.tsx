@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Mail, Phone, Building2, DollarSign, User, GripVertical, MoreVertical, Settings, Trash2 } from "lucide-react";
@@ -232,6 +232,7 @@ export function CRMKanbanBoard({
                           const contact = deal.contact;
                           const contactName = contact?.full_name || deal.title;
                           const temperatureConfig = getTemperatureConfig(deal.temperature);
+                          const responsible = deal.responsible;
                           
                           return (
                             <Card
@@ -261,8 +262,11 @@ export function CRMKanbanBoard({
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center gap-3">
                                     <Avatar className="w-10 h-10">
+                                      {responsible?.avatar_url ? (
+                                        <AvatarImage src={responsible.avatar_url} alt={responsible.full_name} />
+                                      ) : null}
                                       <AvatarFallback className="bg-primary/10 text-primary">
-                                        {getInitials(contactName)}
+                                        {responsible ? getInitials(responsible.full_name) : getInitials(contactName)}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
