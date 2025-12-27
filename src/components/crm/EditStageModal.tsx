@@ -123,7 +123,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
         color,
         event_mapping: eventMapping,
         auto_status_change: autoStatusChange,
-        target_status: autoStatusChange ? targetStatus : null,
+        target_status: autoStatusChange ? (targetStatus ?? "open") : null,
         auto_temperature_change: autoTemperatureChange,
         target_temperature: autoTemperatureChange ? targetTemperature : null,
         workflow_enabled: workflowEnabled,
@@ -230,7 +230,10 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
               <Switch
                 id="auto-status"
                 checked={autoStatusChange}
-                onCheckedChange={setAutoStatusChange}
+                onCheckedChange={(checked) => {
+                  setAutoStatusChange(checked);
+                  if (checked && !targetStatus) setTargetStatus("open");
+                }}
               />
             </div>
 

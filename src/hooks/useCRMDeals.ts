@@ -275,8 +275,8 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
       };
 
       // Apply stage configurations
-      if (targetStage?.auto_status_change && targetStage?.target_status) {
-        updateData.status = targetStage.target_status;
+      if (targetStage?.auto_status_change) {
+        updateData.status = targetStage.target_status ?? "open";
       }
       if (targetStage?.auto_temperature_change && targetStage?.target_temperature) {
         updateData.temperature = targetStage.target_temperature;
