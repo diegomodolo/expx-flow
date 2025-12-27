@@ -28,14 +28,23 @@ Deno.serve(async (req) => {
     const normalizedUrl = siteUrl.replace(/\/$/, '');
     const apiUrl = `${normalizedUrl}/wp-json/wp/v2/users/me`;
 
-    // Create Basic Auth header
-    const credentials = btoa(`${username}:${appPassword}`);
+    // Clean up the app password - remove extra spaces and normalize
+    const cleanPassword = appPassword.replace(/\s+/g, ' ').trim();
+    
+    // Create Basic Auth header with proper UTF-8 encoding
+    const encoder = new TextEncoder();
+    const credentialsBytes = encoder.encode(`${username}:${cleanPassword}`);
+    const credentials = btoa(String.fromCharCode(...credentialsBytes));
+
+    console.log('Making request to:', apiUrl);
+    console.log('Using username:', username);
 
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json',
+        'User-Agent': 'WordPress Auto Publisher/1.0',
       },
     });
 
