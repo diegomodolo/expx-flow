@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Mail, Phone, Building2, DollarSign, User, GripVertical, MoreVertical, Settings, Trash2, AlertTriangle, Clock } from "lucide-react";
+import { Mail, Phone, Building2, DollarSign, User, GripVertical, MoreVertical, Settings, Trash2, AlertTriangle, Clock, Trophy, XCircle } from "lucide-react";
 import { CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CRMWonLostDealsModal } from "./CRMWonLostDealsModal";
 
 interface CRMKanbanBoardProps {
   stages: CRMStage[];
@@ -71,6 +72,12 @@ export function CRMKanbanBoard({
 }: CRMKanbanBoardProps) {
   const [draggedDeal, setDraggedDeal] = useState<CRMDeal | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [wonLostModal, setWonLostModal] = useState<{
+    isOpen: boolean;
+    deals: CRMDeal[];
+    type: "won" | "lost";
+    stageName: string;
+  } | null>(null);
 
   const handleDealDrop = async (e: React.DragEvent, toStageId: string) => {
     e.preventDefault();
@@ -112,6 +119,7 @@ export function CRMKanbanBoard({
   };
 
   return (
+    <>
     <DragDropContext onDragEnd={handleColumnDragEnd}>
       <Droppable droppableId="board" direction="horizontal" type="COLUMN">
         {(provided) => (
@@ -123,6 +131,9 @@ export function CRMKanbanBoard({
             {stages.map((stage, index) => {
               const stageDeals = deals.filter(d => d.stage_id === stage.id);
               const totalValue = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+              const isWonLostStage = stage.auto_status_change && 
+                (stage.target_status === "won" || stage.target_status === "lost");
+              const isWon = stage.target_status === "won";
               
               return (
                 <Draggable key={stage.id} draggableId={stage.id} index={index}>
@@ -240,147 +251,217 @@ export function CRMKanbanBoard({
                         onDragLeave={() => setDragOverColumn(null)}
                         onDrop={(e) => handleDealDrop(e, stage.id)}
                       >
-                        {stageDeals.map(deal => {
-                          const contact = deal.contact;
-                          const contactName = contact?.full_name || deal.title;
-                          const temperatureConfig = getTemperatureConfig(deal.temperature);
-                          const responsible = deal.responsible;
-                          const daysInStage = getDaysInStage(deal.stage_entered_at);
-                          const isOverSLA = stage.max_days ? daysInStage > stage.max_days : false;
-                          
-                          return (
-                            <Card
-                              key={deal.id}
-                              className={cn(
-                                "cursor-move hover:shadow-lg transition-all bg-card border border-border relative",
-                                draggedDeal?.id === deal.id && "opacity-50",
-                                movingDealIds.has(deal.id) && "animate-pulse ring-2 ring-primary/30",
-                                isOverSLA && "ring-2 ring-destructive/50 border-destructive/50"
+                        {/* Summary card for Won/Lost stages */}
+                        {isWonLostStage && stageDeals.length > 0 ? (
+                          <Card
+                            className={cn(
+                              "cursor-pointer hover:shadow-lg transition-all border-2",
+                              isWon 
+                                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                                : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                            )}
+                            onClick={() => setWonLostModal({
+                              isOpen: true,
+                              deals: stageDeals,
+                              type: isWon ? "won" : "lost",
+                              stageName: stage.name,
+                            })}
+                          >
+                            <CardContent className="p-6 text-center space-y-3">
+                              <div className={cn(
+                                "w-16 h-16 mx-auto rounded-full flex items-center justify-center",
+                                isWon ? "bg-emerald-100 dark:bg-emerald-900/50" : "bg-red-100 dark:bg-red-900/50"
+                              )}>
+                                {isWon ? (
+                                  <Trophy className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                                )}
+                              </div>
+                              
+                              <div>
+                                <p className={cn(
+                                  "text-3xl font-bold",
+                                  isWon ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                                )}>
+                                  {stageDeals.length}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {stageDeals.length === 1 ? "negócio" : "negócios"} {isWon ? "ganho" : "perdido"}{stageDeals.length !== 1 ? "s" : ""}
+                                </p>
+                              </div>
+
+                              {totalValue > 0 && (
+                                <div className={cn(
+                                  "text-lg font-semibold flex items-center justify-center gap-1",
+                                  isWon ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                                )}>
+                                  <DollarSign className="w-5 h-5" />
+                                  R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </div>
                               )}
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData('dealId', deal.id);
-                                setDraggedDeal(deal);
-                              }}
-                              onDragEnd={() => setDraggedDeal(null)}
-                              onClick={() => onCardClick(deal)}
-                            >
-                              <CardContent className="p-4 space-y-3">
-                                {/* Indicador de SLA estourado */}
-                                {isOverSLA && (
-                                  <div className="flex items-center gap-1.5 text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded -mt-1 -mx-1">
-                                    <AlertTriangle className="w-3 h-3" />
-                                    SLA excedido ({daysInStage} dias)
-                                  </div>
-                                )}
-                                
-                                {/* Indicador de processamento */}
-                                {movingDealIds.has(deal.id) && (
-                                  <div className="absolute top-2 right-2">
-                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                                  </div>
-                                )}
-                                
-                                {/* Header do Card */}
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="w-10 h-10">
-                                      {responsible?.avatar_url ? (
-                                        <AvatarImage src={responsible.avatar_url} alt={responsible.full_name} />
-                                      ) : null}
-                                      <AvatarFallback className="bg-primary/10 text-primary">
-                                        {responsible ? getInitials(responsible.full_name) : getInitials(contactName)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                      <p className="font-semibold text-sm text-foreground truncate">
-                                        {deal.title}
-                                      </p>
-                                      {contact && contact.full_name !== deal.title && (
-                                        <p className="text-xs text-muted-foreground truncate">
-                                          {contact.full_name}
-                                        </p>
-                                      )}
-                                      <p className="text-xs text-muted-foreground">
-                                        {formatDistanceToNow(new Date(deal.created_at), {
-                                          addSuffix: true,
-                                          locale: ptBR
-                                        })}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Temperature indicator */}
-                                  {temperatureConfig && (
-                                    <span title={temperatureConfig.label} className="text-sm">
-                                      {temperatureConfig.emoji}
-                                    </span>
-                                  )}
-                                </div>
 
-                                {/* Status Badge + Days in Stage */}
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <Badge className={cn("text-xs", getStatusConfig(deal.status).color)}>
-                                    {getStatusConfig(deal.status).label}
-                                  </Badge>
-                                  {daysInStage > 0 && (
-                                    <Badge 
-                                      variant="outline" 
-                                      className={cn(
-                                        "text-xs flex items-center gap-1",
-                                        isOverSLA && "border-destructive text-destructive"
-                                      )}
-                                    >
-                                      <Clock className="w-3 h-3" />
-                                      {daysInStage}d
-                                    </Badge>
-                                  )}
-                                </div>
-
-                                {/* Informações de Contato */}
-                                {contact && (
-                                  <div className="space-y-1.5 text-sm">
-                                    {contact.phone && (
-                                      <p className="flex items-center text-muted-foreground text-xs">
-                                        <Phone className="w-3 h-3 mr-1.5" />
-                                        <span className="truncate">{contact.phone}</span>
-                                      </p>
-                                    )}
-                                    {contact.email && (
-                                      <p className="flex items-center text-muted-foreground text-xs">
-                                        <Mail className="w-3 h-3 mr-1.5" />
-                                        <span className="truncate">{contact.email}</span>
-                                      </p>
-                                    )}
-                                    {contact.company_name && (
-                                      <p className="flex items-center text-muted-foreground text-xs">
-                                        <Building2 className="w-3 h-3 mr-1.5" />
-                                        <span className="truncate">{contact.company_name}</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Valor */}
-                                {deal.value && (
-                                  <div className="pt-2 border-t border-border">
-                                    <div className="flex items-center gap-1 text-sm font-semibold text-green-600 dark:text-green-400">
-                                      <DollarSign className="w-4 h-4" />
-                                      R$ {deal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                    </div>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                        
-                        {/* Empty state */}
-                        {stageDeals.length === 0 && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Clique para ver detalhes
+                              </p>
+                            </CardContent>
+                          </Card>
+                        ) : isWonLostStage && stageDeals.length === 0 ? (
+                          /* Empty state for Won/Lost stages */
                           <div className="text-center py-12 text-muted-foreground">
-                            <User className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">Nenhum negócio nesta etapa</p>
+                            {isWon ? (
+                              <Trophy className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                            ) : (
+                              <XCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                            )}
+                            <p className="text-sm">Nenhum negócio {isWon ? 'ganho' : 'perdido'}</p>
                           </div>
+                        ) : (
+                          /* Regular cards for other stages */
+                          <>
+                            {stageDeals.map(deal => {
+                              const contact = deal.contact;
+                              const contactName = contact?.full_name || deal.title;
+                              const temperatureConfig = getTemperatureConfig(deal.temperature);
+                              const responsible = deal.responsible;
+                              const daysInStage = getDaysInStage(deal.stage_entered_at);
+                              const isOverSLA = stage.max_days ? daysInStage > stage.max_days : false;
+                              
+                              return (
+                                <Card
+                                  key={deal.id}
+                                  className={cn(
+                                    "cursor-move hover:shadow-lg transition-all bg-card border border-border relative",
+                                    draggedDeal?.id === deal.id && "opacity-50",
+                                    movingDealIds.has(deal.id) && "animate-pulse ring-2 ring-primary/30",
+                                    isOverSLA && "ring-2 ring-destructive/50 border-destructive/50"
+                                  )}
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData('dealId', deal.id);
+                                    setDraggedDeal(deal);
+                                  }}
+                                  onDragEnd={() => setDraggedDeal(null)}
+                                  onClick={() => onCardClick(deal)}
+                                >
+                                  <CardContent className="p-4 space-y-3">
+                                    {/* Indicador de SLA estourado */}
+                                    {isOverSLA && (
+                                      <div className="flex items-center gap-1.5 text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded -mt-1 -mx-1">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        SLA excedido ({daysInStage} dias)
+                                      </div>
+                                    )}
+                                    
+                                    {/* Indicador de processamento */}
+                                    {movingDealIds.has(deal.id) && (
+                                      <div className="absolute top-2 right-2">
+                                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                                      </div>
+                                    )}
+                                    
+                                    {/* Header do Card */}
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <Avatar className="w-10 h-10">
+                                          {responsible?.avatar_url ? (
+                                            <AvatarImage src={responsible.avatar_url} alt={responsible.full_name} />
+                                          ) : null}
+                                          <AvatarFallback className="bg-primary/10 text-primary">
+                                            {responsible ? getInitials(responsible.full_name) : getInitials(contactName)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0">
+                                          <p className="font-semibold text-sm text-foreground truncate">
+                                            {deal.title}
+                                          </p>
+                                          {contact && contact.full_name !== deal.title && (
+                                            <p className="text-xs text-muted-foreground truncate">
+                                              {contact.full_name}
+                                            </p>
+                                          )}
+                                          <p className="text-xs text-muted-foreground">
+                                            {formatDistanceToNow(new Date(deal.created_at), {
+                                              addSuffix: true,
+                                              locale: ptBR
+                                            })}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Temperature indicator */}
+                                      {temperatureConfig && (
+                                        <span title={temperatureConfig.label} className="text-sm">
+                                          {temperatureConfig.emoji}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Status Badge + Days in Stage */}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Badge className={cn("text-xs", getStatusConfig(deal.status).color)}>
+                                        {getStatusConfig(deal.status).label}
+                                      </Badge>
+                                      {daysInStage > 0 && (
+                                        <Badge 
+                                          variant="outline" 
+                                          className={cn(
+                                            "text-xs flex items-center gap-1",
+                                            isOverSLA && "border-destructive text-destructive"
+                                          )}
+                                        >
+                                          <Clock className="w-3 h-3" />
+                                          {daysInStage}d
+                                        </Badge>
+                                      )}
+                                    </div>
+
+                                    {/* Informações de Contato */}
+                                    {contact && (
+                                      <div className="space-y-1.5 text-sm">
+                                        {contact.phone && (
+                                          <p className="flex items-center text-muted-foreground text-xs">
+                                            <Phone className="w-3 h-3 mr-1.5" />
+                                            <span className="truncate">{contact.phone}</span>
+                                          </p>
+                                        )}
+                                        {contact.email && (
+                                          <p className="flex items-center text-muted-foreground text-xs">
+                                            <Mail className="w-3 h-3 mr-1.5" />
+                                            <span className="truncate">{contact.email}</span>
+                                          </p>
+                                        )}
+                                        {contact.company_name && (
+                                          <p className="flex items-center text-muted-foreground text-xs">
+                                            <Building2 className="w-3 h-3 mr-1.5" />
+                                            <span className="truncate">{contact.company_name}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Valor */}
+                                    {deal.value && (
+                                      <div className="pt-2 border-t border-border">
+                                        <div className="flex items-center gap-1 text-sm font-semibold text-green-600 dark:text-green-400">
+                                          <DollarSign className="w-4 h-4" />
+                                          R$ {deal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                            
+                            {/* Empty state */}
+                            {stageDeals.length === 0 && (
+                              <div className="text-center py-12 text-muted-foreground">
+                                <User className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                <p className="text-sm">Nenhum negócio nesta etapa</p>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -393,5 +474,18 @@ export function CRMKanbanBoard({
         )}
       </Droppable>
     </DragDropContext>
+
+    {/* Modal for Won/Lost deals */}
+    {wonLostModal && (
+      <CRMWonLostDealsModal
+        isOpen={wonLostModal.isOpen}
+        onClose={() => setWonLostModal(null)}
+        deals={wonLostModal.deals}
+        type={wonLostModal.type}
+        stageName={wonLostModal.stageName}
+        onDealClick={onCardClick}
+      />
+    )}
+    </>
   );
 }
