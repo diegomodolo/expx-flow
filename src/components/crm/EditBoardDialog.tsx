@@ -17,7 +17,8 @@ import {
   Plus, 
   X,
   Loader2,
-  Save
+  Save,
+  DollarSign
 } from "lucide-react";
 import { CRMBoard } from "@/hooks/useCRMBoards";
 import { useCRMUsers, CRMUser } from "@/hooks/useCRMUsers";
@@ -30,7 +31,7 @@ interface EditBoardDialogProps {
   isOpen: boolean;
   onClose: () => void;
   board: CRMBoard | null;
-  onUpdate: (boardId: string, updates: { name?: string; description?: string | null; queue_enabled?: boolean }) => Promise<void>;
+  onUpdate: (boardId: string, updates: { name?: string; description?: string | null; queue_enabled?: boolean; default_value?: number | null }) => Promise<void>;
   onDelete: (boardId: string) => Promise<void>;
   isUpdating: boolean;
   isDeleting: boolean;
@@ -64,6 +65,7 @@ export function EditBoardDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [queueEnabled, setQueueEnabled] = useState(false);
+  const [defaultValue, setDefaultValue] = useState<string>("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Get workspace ID from board
@@ -96,6 +98,7 @@ export function EditBoardDialog({
       setName(board.name || "");
       setDescription(board.description || "");
       setQueueEnabled(board.queue_enabled || false);
+      setDefaultValue(board.default_value ? String(board.default_value) : "");
     }
   }, [board]);
 
@@ -182,10 +185,13 @@ export function EditBoardDialog({
   const handleSave = async () => {
     if (!board || !name.trim()) return;
     
+    const parsedDefaultValue = defaultValue.trim() ? parseFloat(defaultValue.replace(',', '.')) : null;
+    
     await onUpdate(board.id, {
       name: name.trim(),
       description: description.trim() || null,
       queue_enabled: queueEnabled,
+      default_value: parsedDefaultValue,
     });
     
     onClose();
@@ -306,6 +312,25 @@ export function EditBoardDialog({
                             placeholder="Descreva o propósito deste quadro..."
                             rows={3}
                           />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="board-default-value">Valor Padrão dos Negócios</Label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              id="board-default-value"
+                              type="text"
+                              inputMode="decimal"
+                              value={defaultValue}
+                              onChange={(e) => setDefaultValue(e.target.value)}
+                              placeholder="0,00"
+                              className="pl-9"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Novos negócios criados neste quadro terão este valor por padrão
+                          </p>
                         </div>
                       </div>
                     </div>

@@ -12,6 +12,7 @@ export interface CRMBoard {
   created_at: string;
   created_by: string | null;
   queue_enabled?: boolean;
+  default_value?: number | null;
 }
 
 interface UseCRMBoardsProps {
@@ -69,7 +70,7 @@ export const useCRMBoards = ({ workspaceId }: UseCRMBoardsProps) => {
       updates 
     }: { 
       boardId: string; 
-      updates: { name?: string; description?: string | null; queue_enabled?: boolean } 
+      updates: { name?: string; description?: string | null; queue_enabled?: boolean; default_value?: number | null } 
     }) => {
       const { data, error } = await supabase
         .from('crm_boards')
