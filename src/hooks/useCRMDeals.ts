@@ -156,7 +156,7 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
     mutationFn: async (dealData: CreateDealData) => {
       const { data: userData } = await supabase.auth.getUser();
 
-      // Get the board_id from the stage to check for queue assignment
+      // Get the board_id from the stage to check for queue assignment and default value
       const { data: stageData } = await supabase
         .from("crm_stages")
         .select("board_id")
@@ -164,6 +164,7 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
         .single();
 
       let responsibleId = dealData.responsible_id || null;
+      let dealValue = dealData.value;
 
       // If no responsible is set, try to get from queue
       if (!responsibleId && stageData?.board_id) {
@@ -175,10 +176,24 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
         }
       }
 
+      // If no value is set, try to get default value from board
+      if ((dealValue === undefined || dealValue === null) && stageData?.board_id) {
+        const { data: boardData } = await supabase
+          .from("crm_boards")
+          .select("default_value")
+          .eq("id", stageData.board_id)
+          .single();
+        
+        if (boardData?.default_value) {
+          dealValue = boardData.default_value;
+        }
+      }
+
       const { data, error } = await supabase
         .from("crm_deals")
         .insert({
           ...dealData,
+          value: dealValue,
           responsible_id: responsibleId,
           status: dealData.status || "open",
           quantity: dealData.quantity || 1,
@@ -188,7 +203,8 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
         })
         .select(`
           *,
-          contact:crm_contacts(*)
+          contact:crm_contacts(*),
+          responsible:crm_users!crm_deals_responsible_id_fkey(id, full_name, email, avatar_url)
         `)
         .single();
 
