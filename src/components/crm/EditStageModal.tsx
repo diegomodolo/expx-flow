@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Workflow } from "lucide-react";
+import { AlertTriangle, Workflow, Clock } from "lucide-react";
 import { CRMStage } from "@/hooks/useCRMDeals";
 import { EVENT_PRESETS } from "@/lib/offlineEventPresets";
 import { useCRMBoards } from "@/hooks/useCRMBoards";
@@ -54,6 +54,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
   const [isSaving, setIsSaving] = useState(false);
   const [autoTemperatureChange, setAutoTemperatureChange] = useState(false);
   const [targetTemperature, setTargetTemperature] = useState<string | null>(null);
+  const [maxDays, setMaxDays] = useState<string>("");
 
   const { boards } = useCRMBoards({ workspaceId });
 
@@ -69,6 +70,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
       setWorkflowTargetStageId(stage.workflow_target_stage_id || null);
       setAutoTemperatureChange(stage.auto_temperature_change || false);
       setTargetTemperature(stage.target_temperature || null);
+      setMaxDays(stage.max_days?.toString() || "");
     }
   }, [stage]);
 
@@ -115,6 +117,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
 
     setIsSaving(true);
     try {
+      const parsedMaxDays = maxDays ? parseInt(maxDays, 10) : null;
       await onSave(stage.id, {
         name: name.trim(),
         color,
@@ -126,6 +129,7 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
         workflow_enabled: workflowEnabled,
         workflow_target_board_id: workflowEnabled ? workflowTargetBoardId : null,
         workflow_target_stage_id: workflowEnabled ? workflowTargetStageId : null,
+        max_days: parsedMaxDays && parsedMaxDays > 0 ? parsedMaxDays : null,
       });
       onClose();
     } catch (error) {
@@ -176,7 +180,24 @@ export function EditStageModal({ isOpen, onClose, stage, onSave, workspaceId }: 
             </div>
           </div>
 
-          {/* Evento Disparado */}
+          {/* SLA - Dias na Etapa */}
+          <div className="space-y-2">
+            <Label htmlFor="max-days" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Dias Máximos na Etapa (SLA)
+            </Label>
+            <Input
+              id="max-days"
+              type="number"
+              min="1"
+              value={maxDays}
+              onChange={(e) => setMaxDays(e.target.value)}
+              placeholder="Ex: 7"
+            />
+            <p className="text-xs text-muted-foreground">
+              Se configurado, um alerta será exibido quando o negócio exceder esse tempo na etapa
+            </p>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="event-mapping">Evento Disparado ao Entrar (Opcional)</Label>
             <Select

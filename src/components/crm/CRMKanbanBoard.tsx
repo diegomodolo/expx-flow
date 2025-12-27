@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Mail, Phone, Building2, DollarSign, User, GripVertical, MoreVertical, Settings, Trash2 } from "lucide-react";
+import { Mail, Phone, Building2, DollarSign, User, GripVertical, MoreVertical, Settings, Trash2, AlertTriangle, Clock } from "lucide-react";
 import { CRMDeal, CRMStage } from "@/hooks/useCRMDeals";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface CRMKanbanBoardProps {
@@ -51,6 +51,11 @@ const getTemperatureConfig = (temperature: string | null | undefined) => {
     default:
       return null;
   }
+};
+
+const getDaysInStage = (stageEnteredAt: string | null | undefined) => {
+  if (!stageEnteredAt) return 0;
+  return differenceInDays(new Date(), new Date(stageEnteredAt));
 };
 
 export function CRMKanbanBoard({ 
@@ -240,6 +245,8 @@ export function CRMKanbanBoard({
                           const contactName = contact?.full_name || deal.title;
                           const temperatureConfig = getTemperatureConfig(deal.temperature);
                           const responsible = deal.responsible;
+                          const daysInStage = getDaysInStage(deal.stage_entered_at);
+                          const isOverSLA = stage.max_days ? daysInStage > stage.max_days : false;
                           
                           return (
                             <Card
@@ -247,7 +254,8 @@ export function CRMKanbanBoard({
                               className={cn(
                                 "cursor-move hover:shadow-lg transition-all bg-card border border-border relative",
                                 draggedDeal?.id === deal.id && "opacity-50",
-                                movingDealIds.has(deal.id) && "animate-pulse ring-2 ring-primary/30"
+                                movingDealIds.has(deal.id) && "animate-pulse ring-2 ring-primary/30",
+                                isOverSLA && "ring-2 ring-destructive/50 border-destructive/50"
                               )}
                               draggable
                               onDragStart={(e) => {
@@ -258,6 +266,14 @@ export function CRMKanbanBoard({
                               onClick={() => onCardClick(deal)}
                             >
                               <CardContent className="p-4 space-y-3">
+                                {/* Indicador de SLA estourado */}
+                                {isOverSLA && (
+                                  <div className="flex items-center gap-1.5 text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded -mt-1 -mx-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    SLA excedido ({daysInStage} dias)
+                                  </div>
+                                )}
+                                
                                 {/* Indicador de processamento */}
                                 {movingDealIds.has(deal.id) && (
                                   <div className="absolute top-2 right-2">
@@ -302,11 +318,23 @@ export function CRMKanbanBoard({
                                   )}
                                 </div>
 
-                                {/* Status Badge */}
+                                {/* Status Badge + Days in Stage */}
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Badge className={cn("text-xs", getStatusConfig(deal.status).color)}>
                                     {getStatusConfig(deal.status).label}
                                   </Badge>
+                                  {daysInStage > 0 && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className={cn(
+                                        "text-xs flex items-center gap-1",
+                                        isOverSLA && "border-destructive text-destructive"
+                                      )}
+                                    >
+                                      <Clock className="w-3 h-3" />
+                                      {daysInStage}d
+                                    </Badge>
+                                  )}
                                 </div>
 
                                 {/* Informações de Contato */}
