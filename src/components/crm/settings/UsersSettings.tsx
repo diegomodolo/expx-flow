@@ -394,53 +394,61 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
               Atualize as informações do usuário
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center gap-4">
-              <Label>Foto do Usuário</Label>
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={editAvatarUrl || undefined} alt={editName} />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {getInitials(editName)}
-                </AvatarFallback>
-              </Avatar>
-              <ImageUploader
-                bucket="crm-assets"
-                folder="user-avatars"
-                currentImageUrl={editAvatarUrl || undefined}
-                onImageUploaded={(url) => setEditAvatarUrl(url)}
-                onImageRemoved={() => setEditAvatarUrl(null)}
-                maxSize={10}
-                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              />
+          <div className="space-y-6 py-4">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={editAvatarUrl || undefined} alt={editName} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {getInitials(editName)}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="flex-1">
+                <Label className="text-sm font-medium mb-2 block">Foto do Usuário</Label>
+                <ImageUploader
+                  bucket="crm-assets"
+                  folder="user-avatars"
+                  currentImageUrl={editAvatarUrl || undefined}
+                  onImageUploaded={(url) => setEditAvatarUrl(url)}
+                  onImageRemoved={() => setEditAvatarUrl(null)}
+                  maxSize={10}
+                  acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                  className="[&>div:first-child]:hidden"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome Completo</Label>
-              <Input
-                id="edit-name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">E-mail</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-role">Função</Label>
-              <Select value={editRole} onValueChange={(v) => setEditRole(v as "admin" | "collaborator")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="collaborator">Colaborador</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome Completo</Label>
+                <Input
+                  id="edit-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">E-mail</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Função</Label>
+                <Select value={editRole} onValueChange={(v) => setEditRole(v as "admin" | "collaborator")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="collaborator">Colaborador</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
