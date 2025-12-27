@@ -395,28 +395,17 @@ export function UsersSettings({ workspaceId }: UsersSettingsProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={editAvatarUrl || undefined} alt={editName} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                    {getInitials(editName)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <div className="flex-1">
-                <Label className="text-sm font-medium mb-2 block">Foto do Usuário</Label>
-                <ImageUploader
-                  bucket="crm-assets"
-                  folder="user-avatars"
-                  currentImageUrl={editAvatarUrl || undefined}
-                  onImageUploaded={(url) => setEditAvatarUrl(url)}
-                  onImageRemoved={() => setEditAvatarUrl(null)}
-                  maxSize={10}
-                  acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-                  className="[&>div:first-child]:hidden"
-                />
-              </div>
+            <div className="flex flex-col items-center gap-2">
+              <Label className="text-sm font-medium">Foto do Usuário</Label>
+              <ImageUploader
+                bucket="crm-assets"
+                folder="user-avatars"
+                currentImageUrl={editAvatarUrl || undefined}
+                onImageUploaded={(url) => setEditAvatarUrl(url)}
+                onImageRemoved={() => setEditAvatarUrl(null)}
+                maxSize={10}
+                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+              />
             </div>
             
             <div className="grid gap-4">
