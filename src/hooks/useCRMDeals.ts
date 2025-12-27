@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CRMContact } from "./useCRMContacts";
 
+export interface CRMResponsible {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar_url?: string | null;
+}
+
 export interface CRMDeal {
   id: string;
   workspace_id: string;
@@ -29,6 +36,7 @@ export interface CRMDeal {
   created_by?: string | null;
   // Joined data
   contact?: CRMContact;
+  responsible?: CRMResponsible | null;
 }
 
 export interface CRMStage {
@@ -125,7 +133,8 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
         .from("crm_deals")
         .select(`
           *,
-          contact:crm_contacts(*)
+          contact:crm_contacts(*),
+          responsible:crm_users!crm_deals_responsible_id_fkey(id, full_name, email, avatar_url)
         `)
         .eq("workspace_id", workspaceId)
         .eq("is_archived", false)
