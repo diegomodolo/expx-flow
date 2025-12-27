@@ -279,7 +279,19 @@ export function useCRMDeals(workspaceId: string | undefined, boardId?: string) {
         updateData.status = targetStage.target_status ?? "open";
       }
       if (targetStage?.auto_temperature_change && targetStage?.target_temperature) {
-        updateData.temperature = targetStage.target_temperature;
+        // Handle both Portuguese (frio, morno, quente) and English (cold, warm, hot) values
+        const tempMap: Record<string, string> = {
+          frio: "cold",
+          morno: "warm", 
+          quente: "hot",
+          cold: "cold",
+          warm: "warm",
+          hot: "hot",
+        };
+        const mappedTemp = tempMap[targetStage.target_temperature.toLowerCase()];
+        if (mappedTemp) {
+          updateData.temperature = mappedTemp;
+        }
       }
       if (targetStage?.is_won_stage) {
         updateData.status = "won";
