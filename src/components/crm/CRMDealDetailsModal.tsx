@@ -113,6 +113,12 @@ const statusOptions = [
   { value: "lost", label: "Perdido", color: "bg-gray-500" },
 ];
 
+const temperatureOptions = [
+  { value: "hot", label: "Quente", color: "bg-red-500", icon: "🔥" },
+  { value: "warm", label: "Morno", color: "bg-orange-500", icon: "🌡️" },
+  { value: "cold", label: "Frio", color: "bg-blue-400", icon: "❄️" },
+];
+
 const getActivityIcon = (type: string) => {
   switch (type) {
     case "stage_changed":
@@ -177,6 +183,7 @@ export function CRMDealDetailsModal({
     board_id: "",
     stage_id: "",
     status: "open",
+    temperature: "" as string,
     notes: "",
     tags: [] as string[],
     workflow_id: "",
@@ -345,6 +352,7 @@ export function CRMDealDetailsModal({
         board_id: currentStage?.board_id || "",
         stage_id: deal.stage_id || "",
         status: deal.status || "open",
+        temperature: deal.temperature || "",
         notes: deal.notes || "",
         tags: [],
         workflow_id: deal.workflow_id || "",
@@ -526,6 +534,7 @@ export function CRMDealDetailsModal({
         responsible_id: formData.responsible_id || null,
         stage_id: formData.stage_id,
         status: formData.status as "open" | "won" | "lost",
+        temperature: formData.temperature ? formData.temperature as "cold" | "warm" | "hot" : null,
         notes: formData.notes || null,
         workflow_id: formData.workflow_id || null,
       });
@@ -737,8 +746,8 @@ export function CRMDealDetailsModal({
                         </div>
                       </div>
 
-                      {/* Row 3: Quantity + Value */}
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Row 3: Quantity + Value + Temperature */}
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Quantidade</Label>
                           <Input
@@ -759,6 +768,38 @@ export function CRMDealDetailsModal({
                               className="pl-10"
                             />
                           </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Temperatura</Label>
+                          <Select 
+                            value={formData.temperature || "none"} 
+                            onValueChange={(v) => setFormData({ ...formData, temperature: v === "none" ? "" : v })}
+                          >
+                            <SelectTrigger className={cn(
+                              "font-medium",
+                              formData.temperature === "hot" && "bg-red-500/20 text-red-700 border-red-500/50",
+                              formData.temperature === "warm" && "bg-orange-500/20 text-orange-700 border-orange-500/50",
+                              formData.temperature === "cold" && "bg-blue-400/20 text-blue-700 border-blue-400/50"
+                            )}>
+                              <SelectValue placeholder="Selecione...">
+                                {formData.temperature && formData.temperature !== "none" 
+                                  ? temperatureOptions.find(t => t.value === formData.temperature)?.icon + " " + temperatureOptions.find(t => t.value === formData.temperature)?.label
+                                  : "Não definida"
+                                }
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Não definida</SelectItem>
+                              {temperatureOptions.map((temp) => (
+                                <SelectItem key={temp.value} value={temp.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{temp.icon}</span>
+                                    {temp.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
