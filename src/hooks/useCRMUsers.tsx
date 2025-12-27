@@ -43,6 +43,7 @@ export interface CRMUser {
   role: 'admin' | 'collaborator';
   is_active: boolean;
   created_at: string;
+  avatar_url?: string | null;
 }
 
 interface CreateUserData {
@@ -56,6 +57,7 @@ interface UpdateUserData {
   email?: string;
   full_name?: string;
   role?: 'admin' | 'collaborator';
+  avatar_url?: string | null;
 }
 
 export const useCRMUsers = (workspaceId: string | undefined) => {
