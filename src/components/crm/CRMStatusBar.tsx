@@ -8,12 +8,12 @@ interface CRMStatusBarProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'open', label: 'Aberto', bgColor: 'bg-blue-600', borderColor: 'border-blue-400', hoverBg: 'hover:bg-blue-700' },
-  { value: 'unqualified', label: 'Não Qualificado', bgColor: 'bg-amber-600', borderColor: 'border-amber-400', hoverBg: 'hover:bg-amber-700' },
-  { value: 'qualified', label: 'Qualificado', bgColor: 'bg-cyan-600', borderColor: 'border-cyan-400', hoverBg: 'hover:bg-cyan-700' },
-  { value: 'lost', label: 'Perdido', bgColor: 'bg-red-600', borderColor: 'border-red-400', hoverBg: 'hover:bg-red-700' },
-  { value: 'won', label: 'Ganho', bgColor: 'bg-emerald-600', borderColor: 'border-emerald-400', hoverBg: 'hover:bg-emerald-700' },
-  { value: null, label: 'Todos', bgColor: 'bg-gray-600', borderColor: 'border-gray-400', hoverBg: 'hover:bg-gray-700' },
+  { value: 'open', label: 'Aberto', textColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-500', hoverBg: 'hover:bg-blue-500/10', activeBg: 'bg-blue-500/15' },
+  { value: 'unqualified', label: 'Não Qualificado', textColor: 'text-amber-600 dark:text-amber-400', borderColor: 'border-amber-500', hoverBg: 'hover:bg-amber-500/10', activeBg: 'bg-amber-500/15' },
+  { value: 'qualified', label: 'Qualificado', textColor: 'text-cyan-600 dark:text-cyan-400', borderColor: 'border-cyan-500', hoverBg: 'hover:bg-cyan-500/10', activeBg: 'bg-cyan-500/15' },
+  { value: 'lost', label: 'Perdido', textColor: 'text-red-600 dark:text-red-400', borderColor: 'border-red-500', hoverBg: 'hover:bg-red-500/10', activeBg: 'bg-red-500/15' },
+  { value: 'won', label: 'Ganho', textColor: 'text-emerald-600 dark:text-emerald-400', borderColor: 'border-emerald-500', hoverBg: 'hover:bg-emerald-500/10', activeBg: 'bg-emerald-500/15' },
+  { value: null, label: 'Todos', textColor: 'text-muted-foreground', borderColor: 'border-muted-foreground/50', hoverBg: 'hover:bg-muted/50', activeBg: 'bg-muted' },
 ];
 
 export function CRMStatusBar({ 
@@ -72,12 +72,13 @@ export function CRMStatusBar({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, option.value)}
             className={cn(
-              "flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 border-2 text-white text-center",
-              option.bgColor,
+              "flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 border bg-transparent text-center",
+              option.textColor,
               option.borderColor,
               option.hoverBg,
-              isActive && "ring-2 ring-offset-2 ring-offset-background ring-white",
-              isDragOver && "scale-110 ring-4 ring-white/50 shadow-lg shadow-white/20"
+              isActive && option.activeBg,
+              isActive && "ring-1 ring-offset-1 ring-offset-background",
+              isDragOver && "scale-105 ring-2 shadow-md"
             )}
           >
             {option.label}

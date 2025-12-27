@@ -131,20 +131,27 @@ export function CRMKanbanBoard({
                       )}
                     >
                       {/* Header da Coluna */}
-                      <div className="flex flex-col bg-muted/50 p-3 rounded-lg">
+                      <div 
+                        className="flex flex-col p-3 rounded-lg border-l-4 shadow-sm"
+                        style={{ 
+                          backgroundColor: `${stage.color}15`,
+                          borderLeftColor: stage.color 
+                        }}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 flex-wrap">
                             <div {...provided.dragHandleProps} className="cursor-move">
                               <GripVertical className="w-4 h-4 text-muted-foreground" />
                             </div>
                             <span 
-                              className="w-3 h-3 rounded-full"
+                              className="w-3 h-3 rounded-full shadow-sm"
                               style={{ backgroundColor: stage.color }}
                             />
-                            <h2 className="font-semibold text-foreground">{stage.name}</h2>
+                            <h2 className="font-bold text-foreground text-base">{stage.name}</h2>
                             <Badge 
                               variant="secondary" 
-                              className="text-xs px-2 py-0.5 bg-background"
+                              className="text-xs px-2 py-0.5 font-semibold"
+                              style={{ backgroundColor: `${stage.color}25`, color: stage.color }}
                             >
                               {stageDeals.length}
                             </Badge>
