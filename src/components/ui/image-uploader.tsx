@@ -134,7 +134,7 @@ export const ImageUploader = ({
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`flex flex-col items-center gap-3 ${className}`}>
       <input
         ref={fileInputRef}
         type="file"
@@ -143,53 +143,58 @@ export const ImageUploader = ({
         className="hidden"
       />
 
-      {preview ? (
-        <div className="relative inline-block">
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-20 h-20 rounded-full object-cover border-2 border-border"
-          />
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-            onClick={handleRemoveImage}
+      <div className="relative group">
+        {preview ? (
+          <>
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-24 h-24 rounded-full object-cover border-2 border-border shadow-sm"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute -top-1 -right-1 h-7 w-7 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleRemoveImage}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
+          <div 
+            className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50 cursor-pointer hover:border-primary/50 hover:bg-muted transition-colors"
+            onClick={triggerFileInput}
           >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      ) : (
-        <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted">
-          <Upload className="h-6 w-6 text-muted-foreground" />
-        </div>
-      )}
+            <Upload className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+        )}
+      </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col items-center gap-1">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={triggerFileInput}
           disabled={uploading}
+          className="text-xs"
         >
           {uploading ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
               Enviando...
             </>
           ) : (
             <>
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-3 w-3 mr-1.5" />
               {preview ? "Alterar" : "Enviar"} Imagem
             </>
           )}
         </Button>
 
-        <p className="text-xs text-muted-foreground">
-          Formatos aceitos: JPG, PNG, WebP<br />
-          Tamanho máximo: {maxSize}MB
+        <p className="text-[10px] text-muted-foreground text-center">
+          JPG, PNG, WebP • Máx. {maxSize}MB
         </p>
       </div>
     </div>
