@@ -182,6 +182,27 @@ export function CRMDealDetailsModal({
     workflow_id: "",
   });
 
+  const [leadFormData, setLeadFormData] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    company_name: "",
+    city: "",
+    state: "",
+    country: "",
+    facebook: "",
+    instagram: "",
+    website: "",
+    utm_source: "",
+    utm_medium: "",
+    utm_campaign: "",
+    utm_term: "",
+    utm_content: "",
+    notes: "",
+    external_id: "",
+  });
+  const [isSavingLead, setIsSavingLead] = useState(false);
+
   const contact = deal?.contact;
   const contactId = contact?.id;
 
@@ -330,6 +351,85 @@ export function CRMDealDetailsModal({
       });
     }
   }, [deal, stages]);
+
+  // Load lead/contact data into form when contact changes
+  useEffect(() => {
+    if (contact) {
+      setLeadFormData({
+        full_name: contact.full_name || "",
+        email: contact.email || "",
+        phone: contact.phone || "",
+        company_name: contact.company_name || "",
+        city: contact.city || "",
+        state: contact.state || "",
+        country: contact.country || "",
+        facebook: contact.facebook || "",
+        instagram: contact.instagram || "",
+        website: contact.website || "",
+        utm_source: contact.utm_source || "",
+        utm_medium: contact.utm_medium || "",
+        utm_campaign: contact.utm_campaign || "",
+        utm_term: contact.utm_term || "",
+        utm_content: contact.utm_content || "",
+        notes: contact.notes || "",
+        external_id: contact.external_id || "",
+      });
+    }
+  }, [contact]);
+
+  // Update lead mutation
+  const updateLeadMutation = useMutation({
+    mutationFn: async (data: typeof leadFormData) => {
+      if (!contactId) throw new Error("No contact to update");
+      
+      const { error } = await supabase
+        .from("crm_contacts")
+        .update({
+          full_name: data.full_name,
+          email: data.email || null,
+          phone: data.phone || null,
+          company_name: data.company_name || null,
+          city: data.city || null,
+          state: data.state || null,
+          country: data.country || null,
+          facebook: data.facebook || null,
+          instagram: data.instagram || null,
+          website: data.website || null,
+          utm_source: data.utm_source || null,
+          utm_medium: data.utm_medium || null,
+          utm_campaign: data.utm_campaign || null,
+          utm_term: data.utm_term || null,
+          utm_content: data.utm_content || null,
+          notes: data.notes || null,
+          external_id: data.external_id || null,
+        })
+        .eq("id", contactId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crm-deals"] });
+      queryClient.invalidateQueries({ queryKey: ["crm-contacts"] });
+      toast.success("Lead atualizado com sucesso");
+    },
+    onError: (error) => {
+      console.error("Error updating lead:", error);
+      toast.error("Erro ao atualizar lead");
+    },
+  });
+
+  const handleSaveLead = async () => {
+    if (!leadFormData.full_name.trim()) {
+      toast.error("O nome do lead é obrigatório");
+      return;
+    }
+    setIsSavingLead(true);
+    try {
+      await updateLeadMutation.mutateAsync(leadFormData);
+    } finally {
+      setIsSavingLead(false);
+    }
+  };
 
   if (!deal) return null;
 
@@ -950,161 +1050,194 @@ export function CRMDealDetailsModal({
                       
                       {contact ? (
                         <div className="space-y-6">
-                          {/* Header with Avatar */}
-                          <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
-                            <Avatar className="w-16 h-16">
-                              <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                                {getInitials(contact.full_name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h4 className="text-xl font-semibold">{contact.full_name}</h4>
-                              {contact.company_name && (
-                                <p className="text-muted-foreground flex items-center gap-1">
-                                  <Building className="w-4 h-4" />
-                                  {contact.company_name}
-                                </p>
-                              )}
+                          {/* Dados Básicos */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Dados Básicos</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Nome Completo *</Label>
+                                <Input
+                                  value={leadFormData.full_name}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, full_name: e.target.value })}
+                                  placeholder="Nome do lead"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Empresa</Label>
+                                <Input
+                                  value={leadFormData.company_name}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, company_name: e.target.value })}
+                                  placeholder="Nome da empresa"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">E-mail</Label>
+                                <Input
+                                  type="email"
+                                  value={leadFormData.email}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
+                                  placeholder="email@exemplo.com"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Telefone</Label>
+                                <Input
+                                  value={leadFormData.phone}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, phone: e.target.value })}
+                                  placeholder="(00) 00000-0000"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">ID Externo</Label>
+                                <Input
+                                  value={leadFormData.external_id}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, external_id: e.target.value })}
+                                  placeholder="ID em outro sistema"
+                                />
+                              </div>
                             </div>
                           </div>
 
-                          {/* Contact Info Grid */}
-                          <div className="grid grid-cols-2 gap-4">
-                            {/* Email */}
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">E-mail</Label>
-                              <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
-                                <Mail className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{contact.email || "-"}</span>
-                              </div>
-                            </div>
-
-                            {/* Phone */}
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">Telefone</Label>
-                              <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
-                                <Phone className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{contact.phone || "-"}</span>
-                              </div>
-                            </div>
-
-                            {/* City */}
-                            {contact.city && (
-                              <div className="space-y-1">
+                          {/* Localização */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Localização</h4>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="space-y-2">
                                 <Label className="text-xs text-muted-foreground">Cidade</Label>
-                                <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
-                                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                                  <span className="text-sm">{contact.city}{contact.state ? `, ${contact.state}` : ""}</span>
-                                </div>
+                                <Input
+                                  value={leadFormData.city}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, city: e.target.value })}
+                                  placeholder="Cidade"
+                                />
                               </div>
-                            )}
-
-                            {/* Country */}
-                            {contact.country && (
-                              <div className="space-y-1">
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Estado</Label>
+                                <Input
+                                  value={leadFormData.state}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, state: e.target.value })}
+                                  placeholder="Estado"
+                                />
+                              </div>
+                              <div className="space-y-2">
                                 <Label className="text-xs text-muted-foreground">País</Label>
-                                <div className="flex items-center gap-2 p-2 bg-muted/20 rounded">
-                                  <Globe className="w-4 h-4 text-muted-foreground" />
-                                  <span className="text-sm">{contact.country}</span>
-                                </div>
+                                <Input
+                                  value={leadFormData.country}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, country: e.target.value })}
+                                  placeholder="País"
+                                />
                               </div>
-                            )}
+                            </div>
                           </div>
 
-                          {/* Social Links */}
-                          {(contact.facebook || contact.instagram || contact.website) && (
-                            <div className="space-y-3">
-                              <Label className="text-xs text-muted-foreground">Links e Redes Sociais</Label>
-                              <div className="flex flex-wrap gap-2">
-                                {contact.facebook && (
-                                  <a 
-                                    href={contact.facebook.startsWith("http") ? contact.facebook : `https://facebook.com/${contact.facebook}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition-colors"
-                                  >
-                                    <Facebook className="w-4 h-4" />
-                                    <span className="text-sm">Facebook</span>
-                                  </a>
-                                )}
-                                {contact.instagram && (
-                                  <a 
-                                    href={contact.instagram.startsWith("http") ? contact.instagram : `https://instagram.com/${contact.instagram}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-pink-500/10 text-pink-600 rounded-lg hover:bg-pink-500/20 transition-colors"
-                                  >
-                                    <Instagram className="w-4 h-4" />
-                                    <span className="text-sm">Instagram</span>
-                                  </a>
-                                )}
-                                {contact.website && (
-                                  <a 
-                                    href={contact.website.startsWith("http") ? contact.website : `https://${contact.website}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
-                                  >
-                                    <Globe className="w-4 h-4" />
-                                    <span className="text-sm">Website</span>
-                                  </a>
-                                )}
+                          {/* Redes Sociais e Website */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Redes Sociais e Website</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Facebook className="w-3 h-3" /> Facebook
+                                </Label>
+                                <Input
+                                  value={leadFormData.facebook}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, facebook: e.target.value })}
+                                  placeholder="URL ou @usuario"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Instagram className="w-3 h-3" /> Instagram
+                                </Label>
+                                <Input
+                                  value={leadFormData.instagram}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, instagram: e.target.value })}
+                                  placeholder="URL ou @usuario"
+                                />
+                              </div>
+                              <div className="space-y-2 col-span-2">
+                                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Globe className="w-3 h-3" /> Website
+                                </Label>
+                                <Input
+                                  value={leadFormData.website}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, website: e.target.value })}
+                                  placeholder="https://exemplo.com"
+                                />
                               </div>
                             </div>
-                          )}
+                          </div>
 
-                          {/* UTM Data */}
-                          {(contact.utm_source || contact.utm_medium || contact.utm_campaign || contact.utm_term || contact.utm_content) && (
-                            <div className="space-y-3">
-                              <Label className="text-xs text-muted-foreground">Dados de Origem (UTM)</Label>
-                              <div className="grid grid-cols-2 gap-3">
-                                {contact.utm_source && (
-                                  <div className="p-2 bg-muted/20 rounded">
-                                    <p className="text-xs text-muted-foreground">Source</p>
-                                    <p className="text-sm font-medium">{contact.utm_source}</p>
-                                  </div>
-                                )}
-                                {contact.utm_medium && (
-                                  <div className="p-2 bg-muted/20 rounded">
-                                    <p className="text-xs text-muted-foreground">Medium</p>
-                                    <p className="text-sm font-medium">{contact.utm_medium}</p>
-                                  </div>
-                                )}
-                                {contact.utm_campaign && (
-                                  <div className="p-2 bg-muted/20 rounded">
-                                    <p className="text-xs text-muted-foreground">Campaign</p>
-                                    <p className="text-sm font-medium">{contact.utm_campaign}</p>
-                                  </div>
-                                )}
-                                {contact.utm_term && (
-                                  <div className="p-2 bg-muted/20 rounded">
-                                    <p className="text-xs text-muted-foreground">Term</p>
-                                    <p className="text-sm font-medium">{contact.utm_term}</p>
-                                  </div>
-                                )}
-                                {contact.utm_content && (
-                                  <div className="p-2 bg-muted/20 rounded col-span-2">
-                                    <p className="text-xs text-muted-foreground">Content</p>
-                                    <p className="text-sm font-medium">{contact.utm_content}</p>
-                                  </div>
-                                )}
+                          {/* Dados de Origem (UTM) */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium text-muted-foreground border-b pb-2">Dados de Origem (UTM)</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">UTM Source</Label>
+                                <Input
+                                  value={leadFormData.utm_source}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_source: e.target.value })}
+                                  placeholder="Ex: facebook, google"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">UTM Medium</Label>
+                                <Input
+                                  value={leadFormData.utm_medium}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_medium: e.target.value })}
+                                  placeholder="Ex: cpc, email"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">UTM Campaign</Label>
+                                <Input
+                                  value={leadFormData.utm_campaign}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_campaign: e.target.value })}
+                                  placeholder="Nome da campanha"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">UTM Term</Label>
+                                <Input
+                                  value={leadFormData.utm_term}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_term: e.target.value })}
+                                  placeholder="Termo de busca"
+                                />
+                              </div>
+                              <div className="space-y-2 col-span-2">
+                                <Label className="text-xs text-muted-foreground">UTM Content</Label>
+                                <Input
+                                  value={leadFormData.utm_content}
+                                  onChange={(e) => setLeadFormData({ ...leadFormData, utm_content: e.target.value })}
+                                  placeholder="Identificador do conteúdo"
+                                />
                               </div>
                             </div>
-                          )}
+                          </div>
 
-                          {/* Notes */}
-                          {contact.notes && (
-                            <div className="space-y-2">
-                              <Label className="text-xs text-muted-foreground">Observações</Label>
-                              <div className="p-3 bg-muted/20 rounded-lg">
-                                <p className="text-sm whitespace-pre-wrap">{contact.notes}</p>
-                              </div>
-                            </div>
-                          )}
+                          {/* Observações */}
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">Observações</Label>
+                            <Textarea
+                              value={leadFormData.notes}
+                              onChange={(e) => setLeadFormData({ ...leadFormData, notes: e.target.value })}
+                              placeholder="Notas sobre este lead..."
+                              rows={4}
+                              className="resize-none"
+                            />
+                          </div>
 
-                          {/* Created At */}
-                          <div className="pt-4 border-t text-sm text-muted-foreground">
-                            Lead criado em {format(new Date(contact.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {/* Created At + Save Button */}
+                          <div className="pt-4 border-t space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              Lead criado em {format(new Date(contact.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                            <Button 
+                              className="w-full" 
+                              onClick={handleSaveLead}
+                              disabled={isSavingLead}
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              {isSavingLead ? "Salvando..." : "Salvar Lead"}
+                            </Button>
                           </div>
                         </div>
                       ) : (
