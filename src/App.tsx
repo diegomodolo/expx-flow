@@ -78,6 +78,7 @@ import AutomatizadorInstagramDetalhes from "./pages/AutomatizadorInstagramDetalh
 import AutomatizadoresWordpress from "./pages/AutomatizadoresWordpress";
 import AutomatizadorWordpressDetalhes from "./pages/AutomatizadorWordpressDetalhes";
 import AlertasDoSistema from "./pages/AlertasDoSistema";
+import DashboardTrafego from "./pages/DashboardTrafego";
 // Context providers
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
@@ -124,6 +125,11 @@ const App = () => {
                <Route path="/radar-saude" element={
                  <ProtectedRoute>
                    <RadarSaude />
+                 </ProtectedRoute>
+               } />
+               <Route path="/dashboard-trafego" element={
+                 <ProtectedRoute>
+                   <DashboardTrafego />
                  </ProtectedRoute>
                } />
                <Route path="/rotinas" element={
