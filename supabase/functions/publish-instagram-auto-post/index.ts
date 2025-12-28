@@ -37,7 +37,6 @@ async function createAlertAndNotify(
 ) {
   const { alertType, severity } = classifyError(errorText);
   
-  // Get alert title based on type
   const alertTitles: Record<string, string> = {
     account_restricted: '🚨 Conta do Instagram Restrita',
     token_expired: '🔑 Token do Facebook Expirado',
@@ -53,7 +52,6 @@ async function createAlertAndNotify(
   };
 
   try {
-    // 1. Create system alert in database
     const { error: alertError } = await supabase
       .from('system_alerts')
       .insert({
@@ -79,7 +77,6 @@ async function createAlertAndNotify(
       console.log('[Alert] System alert created:', alertType, severity);
     }
 
-    // 2. Send WhatsApp notification
     const message = buildAlertMessage('post_failed', {
       clientName: clientName,
       platforms: `Instagram Auto Post (@${instagramAccount?.username || 'desconhecido'})`,
@@ -99,6 +96,65 @@ async function createAlertAndNotify(
   } catch (err) {
     console.error('[Alert] Error in createAlertAndNotify:', err);
   }
+}
+
+// Create a single image container
+async function createImageContainer(
+  igUserId: string,
+  imageUrl: string,
+  accessToken: string,
+  isCarouselItem: boolean = false
+): Promise<string> {
+  const containerUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
+  const params: Record<string, string> = {
+    image_url: imageUrl,
+    access_token: accessToken
+  };
+  
+  if (isCarouselItem) {
+    params.is_carousel_item = 'true';
+  }
+
+  const containerResponse = await fetch(`${containerUrl}?${new URLSearchParams(params).toString()}`, {
+    method: 'POST'
+  });
+
+  if (!containerResponse.ok) {
+    const errorText = await containerResponse.text();
+    throw new Error(`Failed to create media container: ${errorText}`);
+  }
+
+  const containerData = await containerResponse.json();
+  return containerData.id;
+}
+
+// Wait for container to be ready
+async function waitForContainer(containerId: string, accessToken: string): Promise<boolean> {
+  let attempts = 0;
+  const maxAttempts = 15;
+
+  while (attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const statusResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
+    );
+    
+    if (statusResponse.ok) {
+      const statusData = await statusResponse.json();
+      console.log(`Container ${containerId} status:`, statusData.status_code);
+      
+      if (statusData.status_code === 'FINISHED') {
+        return true;
+      } else if (statusData.status_code === 'ERROR') {
+        throw new Error('Container processing failed - Instagram rejected the media');
+      }
+    }
+    
+    attempts++;
+  }
+
+  return false;
 }
 
 Deno.serve(async (req) => {
@@ -145,7 +201,7 @@ Deno.serve(async (req) => {
       throw new Error(`Post not found: ${postError?.message || 'Unknown error'}`);
     }
 
-    console.log('Post loaded:', post.id, 'Status:', post.status, 'Image URL:', post.image_url?.substring(0, 50));
+    console.log('Post loaded:', post.id, 'Status:', post.status, 'Type:', post.post_type || 'single');
 
     // Update status to publishing
     await supabase
@@ -183,110 +239,199 @@ Deno.serve(async (req) => {
 
     console.log('Publishing to Instagram account:', igUserId);
 
-    // Step 1: Create media container
-    const containerUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
-    const containerParams = new URLSearchParams({
-      image_url: post.image_url,
-      caption: post.caption,
-      access_token: accessToken
-    });
+    const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
+    let mediaId: string;
 
-    console.log('Creating media container...');
-    const containerResponse = await fetch(`${containerUrl}?${containerParams.toString()}`, {
-      method: 'POST'
-    });
-
-    if (!containerResponse.ok) {
-      const errorText = await containerResponse.text();
-      console.error('Container creation error:', errorText);
+    if (isCarousel) {
+      // CAROUSEL PUBLISHING FLOW
+      console.log('Publishing carousel with', post.image_urls.length, 'images');
       
-      await supabase
-        .from('instagram_auto_posts')
-        .update({ 
-          status: 'failed',
-          error_message: `Container creation failed: ${errorText}`
-        })
-        .eq('id', postId);
-
-      // Create alert and notify
-      await createAlertAndNotify(post, instagramAccount, clientName, errorText);
-
-      throw new Error(`Failed to create media container: ${errorText}`);
-    }
-
-    const containerData = await containerResponse.json();
-    const containerId = containerData.id;
-
-    console.log('Container created:', containerId);
-
-    // Step 2: Wait for container to be ready (poll status)
-    let containerReady = false;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    while (!containerReady && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 1: Create container for each image with is_carousel_item=true
+      const childContainerIds: string[] = [];
       
-      const statusResponse = await fetch(
-        `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
-      );
-      
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        console.log('Container status:', statusData.status_code);
-        
-        if (statusData.status_code === 'FINISHED') {
-          containerReady = true;
-        } else if (statusData.status_code === 'ERROR') {
-          const errorMsg = 'Container processing failed - Instagram rejected the media';
+      for (let i = 0; i < post.image_urls.length; i++) {
+        console.log(`Creating carousel item container ${i + 1}/${post.image_urls.length}...`);
+        try {
+          const containerId = await createImageContainer(
+            igUserId,
+            post.image_urls[i],
+            accessToken,
+            true // is_carousel_item
+          );
+          childContainerIds.push(containerId);
+          console.log(`Carousel item ${i + 1} container created:`, containerId);
+        } catch (err: any) {
+          console.error(`Error creating carousel item ${i + 1}:`, err.message);
+          await supabase
+            .from('instagram_auto_posts')
+            .update({ 
+              status: 'failed',
+              error_message: `Carousel item ${i + 1} failed: ${err.message}`
+            })
+            .eq('id', postId);
+          await createAlertAndNotify(post, instagramAccount, clientName, err.message);
+          throw err;
+        }
+      }
+
+      // Step 2: Wait for all carousel items to be ready
+      console.log('Waiting for carousel items to be ready...');
+      for (let i = 0; i < childContainerIds.length; i++) {
+        const ready = await waitForContainer(childContainerIds[i], accessToken);
+        if (!ready) {
+          const errorMsg = `Carousel item ${i + 1} not ready after maximum attempts`;
           await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
           throw new Error(errorMsg);
         }
       }
+
+      // Step 3: Create carousel container with children
+      console.log('Creating carousel container...');
+      const carouselUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
+      const carouselParams = new URLSearchParams({
+        media_type: 'CAROUSEL',
+        caption: post.caption,
+        children: childContainerIds.join(','),
+        access_token: accessToken
+      });
+
+      const carouselResponse = await fetch(`${carouselUrl}?${carouselParams.toString()}`, {
+        method: 'POST'
+      });
+
+      if (!carouselResponse.ok) {
+        const errorText = await carouselResponse.text();
+        console.error('Carousel container creation error:', errorText);
+        await supabase
+          .from('instagram_auto_posts')
+          .update({ 
+            status: 'failed',
+            error_message: `Carousel container failed: ${errorText}`
+          })
+          .eq('id', postId);
+        await createAlertAndNotify(post, instagramAccount, clientName, errorText);
+        throw new Error(`Failed to create carousel container: ${errorText}`);
+      }
+
+      const carouselData = await carouselResponse.json();
+      const carouselContainerId = carouselData.id;
+      console.log('Carousel container created:', carouselContainerId);
+
+      // Step 4: Wait for carousel container to be ready
+      const carouselReady = await waitForContainer(carouselContainerId, accessToken);
+      if (!carouselReady) {
+        const errorMsg = 'Carousel container not ready after maximum attempts';
+        await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Step 5: Publish the carousel
+      console.log('Publishing carousel...');
+      const publishUrl = `https://graph.facebook.com/v21.0/${igUserId}/media_publish`;
+      const publishParams = new URLSearchParams({
+        creation_id: carouselContainerId,
+        access_token: accessToken
+      });
+
+      const publishResponse = await fetch(`${publishUrl}?${publishParams.toString()}`, {
+        method: 'POST'
+      });
+
+      if (!publishResponse.ok) {
+        const errorText = await publishResponse.text();
+        console.error('Carousel publish error:', errorText);
+        await supabase
+          .from('instagram_auto_posts')
+          .update({ 
+            status: 'failed',
+            error_message: `Carousel publish failed: ${errorText}`
+          })
+          .eq('id', postId);
+        await createAlertAndNotify(post, instagramAccount, clientName, errorText);
+        throw new Error(`Failed to publish carousel: ${errorText}`);
+      }
+
+      const publishData = await publishResponse.json();
+      mediaId = publishData.id;
+      console.log('Carousel published successfully! Media ID:', mediaId);
+
+    } else {
+      // SINGLE IMAGE PUBLISHING FLOW
+      console.log('Publishing single image...');
       
-      attempts++;
+      // Step 1: Create media container
+      const containerUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
+      const containerParams = new URLSearchParams({
+        image_url: post.image_url,
+        caption: post.caption,
+        access_token: accessToken
+      });
+
+      console.log('Creating media container...');
+      const containerResponse = await fetch(`${containerUrl}?${containerParams.toString()}`, {
+        method: 'POST'
+      });
+
+      if (!containerResponse.ok) {
+        const errorText = await containerResponse.text();
+        console.error('Container creation error:', errorText);
+        
+        await supabase
+          .from('instagram_auto_posts')
+          .update({ 
+            status: 'failed',
+            error_message: `Container creation failed: ${errorText}`
+          })
+          .eq('id', postId);
+
+        await createAlertAndNotify(post, instagramAccount, clientName, errorText);
+        throw new Error(`Failed to create media container: ${errorText}`);
+      }
+
+      const containerData = await containerResponse.json();
+      const containerId = containerData.id;
+      console.log('Container created:', containerId);
+
+      // Step 2: Wait for container to be ready
+      const containerReady = await waitForContainer(containerId, accessToken);
+      if (!containerReady) {
+        const errorMsg = 'Container not ready after maximum attempts - timeout';
+        await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Step 3: Publish the container
+      console.log('Publishing media...');
+      const publishUrl = `https://graph.facebook.com/v21.0/${igUserId}/media_publish`;
+      const publishParams = new URLSearchParams({
+        creation_id: containerId,
+        access_token: accessToken
+      });
+
+      const publishResponse = await fetch(`${publishUrl}?${publishParams.toString()}`, {
+        method: 'POST'
+      });
+
+      if (!publishResponse.ok) {
+        const errorText = await publishResponse.text();
+        console.error('Publish error:', errorText);
+        
+        await supabase
+          .from('instagram_auto_posts')
+          .update({ 
+            status: 'failed',
+            error_message: `Publish failed: ${errorText}`
+          })
+          .eq('id', postId);
+
+        await createAlertAndNotify(post, instagramAccount, clientName, errorText);
+        throw new Error(`Failed to publish: ${errorText}`);
+      }
+
+      const publishData = await publishResponse.json();
+      mediaId = publishData.id;
+      console.log('Published successfully! Media ID:', mediaId);
     }
-
-    if (!containerReady) {
-      const errorMsg = 'Container not ready after maximum attempts - timeout';
-      await createAlertAndNotify(post, instagramAccount, clientName, errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    // Step 3: Publish the container
-    console.log('Publishing media...');
-    const publishUrl = `https://graph.facebook.com/v21.0/${igUserId}/media_publish`;
-    const publishParams = new URLSearchParams({
-      creation_id: containerId,
-      access_token: accessToken
-    });
-
-    const publishResponse = await fetch(`${publishUrl}?${publishParams.toString()}`, {
-      method: 'POST'
-    });
-
-    if (!publishResponse.ok) {
-      const errorText = await publishResponse.text();
-      console.error('Publish error:', errorText);
-      
-      await supabase
-        .from('instagram_auto_posts')
-        .update({ 
-          status: 'failed',
-          error_message: `Publish failed: ${errorText}`
-        })
-        .eq('id', postId);
-
-      // Create alert and notify
-      await createAlertAndNotify(post, instagramAccount, clientName, errorText);
-
-      throw new Error(`Failed to publish: ${errorText}`);
-    }
-
-    const publishData = await publishResponse.json();
-    const mediaId = publishData.id;
-
-    console.log('Published successfully! Media ID:', mediaId);
 
     // Update post as published
     await supabase
