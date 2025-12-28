@@ -26,7 +26,79 @@ function brasiliaToUTC(brasiliaDate: Date): Date {
   return new Date(brasiliaDate.getTime() - BRASILIA_OFFSET_MS);
 }
 
-// Helper function to calculate next post time after a given date (in Brasília, returns UTC)
+// Interface for schedule slot
+interface ScheduleSlot {
+  id: string;
+  config_id: string;
+  day_of_week: number;
+  hour: number;
+  post_type: 'single' | 'carousel';
+  carousel_images: number;
+  is_enabled: boolean;
+}
+
+// Helper function to find next available slot from schedule slots table
+async function findNextScheduleSlot(configId: string, afterDate?: Date): Promise<{ scheduledAt: Date; slot: ScheduleSlot }> {
+  // Fetch all enabled slots for this config
+  const { data: slots, error } = await supabase
+    .from('instagram_auto_post_schedules')
+    .select('*')
+    .eq('config_id', configId)
+    .eq('is_enabled', true)
+    .order('day_of_week')
+    .order('hour');
+
+  if (error || !slots || slots.length === 0) {
+    throw new Error('No schedule slots configured for this automation');
+  }
+
+  const nowBrasilia = afterDate ? new Date(afterDate.getTime() + BRASILIA_OFFSET_MS) : getNowInBrasilia();
+  const currentDay = nowBrasilia.getDay();
+  const currentHour = nowBrasilia.getHours();
+
+  console.log(`Finding next slot after Brasília time: ${nowBrasilia.toISOString()}, day: ${currentDay}, hour: ${currentHour}`);
+
+  // Group slots by day for easier lookup
+  const slotsByDay = slots.reduce((acc: Record<number, ScheduleSlot[]>, slot: ScheduleSlot) => {
+    if (!acc[slot.day_of_week]) acc[slot.day_of_week] = [];
+    acc[slot.day_of_week].push(slot);
+    return acc;
+  }, {});
+
+  // Sort slots within each day by hour
+  Object.values(slotsByDay).forEach((daySlots: ScheduleSlot[]) => {
+    daySlots.sort((a, b) => a.hour - b.hour);
+  });
+
+  // Check today's remaining slots
+  if (slotsByDay[currentDay]) {
+    for (const slot of slotsByDay[currentDay]) {
+      if (slot.hour > currentHour) {
+        const nextPost = new Date(nowBrasilia);
+        nextPost.setHours(slot.hour, 0, 0, 0);
+        console.log(`Next slot found today: ${nextPost.toISOString()}, type: ${slot.post_type}`);
+        return { scheduledAt: brasiliaToUTC(nextPost), slot };
+      }
+    }
+  }
+
+  // Check next 7 days
+  for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
+    const futureDay = (currentDay + daysAhead) % 7;
+    if (slotsByDay[futureDay] && slotsByDay[futureDay].length > 0) {
+      const firstSlot = slotsByDay[futureDay][0];
+      const nextPost = new Date(nowBrasilia);
+      nextPost.setDate(nowBrasilia.getDate() + daysAhead);
+      nextPost.setHours(firstSlot.hour, 0, 0, 0);
+      console.log(`Next slot found in ${daysAhead} days: ${nextPost.toISOString()}, type: ${firstSlot.post_type}`);
+      return { scheduledAt: brasiliaToUTC(nextPost), slot: firstSlot };
+    }
+  }
+
+  throw new Error('Could not find next available schedule slot');
+}
+
+// Legacy function for backwards compatibility (deprecated, but kept for fallback)
 function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[], afterDate?: Date): Date {
   if (!scheduledDays.length || !scheduledHours.length) {
     throw new Error('No scheduled days or hours configured');
@@ -216,14 +288,6 @@ Deno.serve(async (req) => {
     const clientName = client?.name || config.name || 'Automação';
     const clientSector = client?.sector || 'Geral';
     const clientTargetAudience = client?.target_audience || 'Geral';
-    
-    // Get post type and carousel settings
-    const postType = config.post_type || 'single';
-    const carouselMinImages = config.carousel_min_images || 5;
-    const carouselMaxImages = config.carousel_max_images || 5;
-    const numberOfImages = postType === 'carousel' ? carouselMinImages : 1;
-
-    console.log('Config loaded:', clientName, '| Post type:', postType, '| Images:', numberOfImages);
 
     // Use config reference images first, fallback to client images
     const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
@@ -256,7 +320,28 @@ Deno.serve(async (req) => {
       console.log('Last scheduled post at:', afterDate.toISOString());
     }
 
-    const scheduledAt = calculateNextPostTime(config.scheduled_days, config.scheduled_hours, afterDate);
+    // Use new schedule slots system - this determines post_type per slot
+    let scheduledAt: Date;
+    let postType: 'single' | 'carousel';
+    let numberOfImages: number;
+
+    try {
+      // Try new flexible schedule slots first
+      const { scheduledAt: slotScheduledAt, slot } = await findNextScheduleSlot(configId, afterDate);
+      scheduledAt = slotScheduledAt;
+      postType = slot.post_type as 'single' | 'carousel';
+      numberOfImages = postType === 'carousel' ? slot.carousel_images : 1;
+      console.log(`Using schedule slot: day=${slot.day_of_week}, hour=${slot.hour}, type=${postType}, images=${numberOfImages}`);
+    } catch (slotError) {
+      // Fallback to legacy scheduled_days/scheduled_hours if no slots configured
+      console.log('No schedule slots found, falling back to legacy config');
+      scheduledAt = calculateNextPostTime(config.scheduled_days, config.scheduled_hours, afterDate);
+      postType = config.post_type || 'single';
+      const carouselMinImages = config.carousel_min_images || 5;
+      numberOfImages = postType === 'carousel' ? carouselMinImages : 1;
+    }
+
+    console.log('Config loaded:', clientName, '| Post type:', postType, '| Images:', numberOfImages);
     console.log('Next post scheduled at:', scheduledAt.toISOString());
 
     const nowBrasilia = getNowInBrasilia();

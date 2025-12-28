@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { InstagramPostPreviewModal } from '@/components/instagram/InstagramPostPreviewModal';
 import { AutoPostReferenceImages } from '@/components/instagram/AutoPostReferenceImages';
+import { ScheduleGrid } from '@/components/instagram/ScheduleGrid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -573,6 +574,9 @@ export function InstagramAutoPostsManager({
           </CollapsibleContent>
         </Card>
       </Collapsible>
+
+      {/* Schedule Grid - Flexible Scheduling */}
+      <ScheduleGrid configId={configId} />
 
       {/* Reference Images Section */}
       <Collapsible open={refImagesOpen} onOpenChange={setRefImagesOpen}>
