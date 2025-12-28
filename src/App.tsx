@@ -79,7 +79,7 @@ import AutomatizadoresWordpress from "./pages/AutomatizadoresWordpress";
 import AutomatizadorWordpressDetalhes from "./pages/AutomatizadorWordpressDetalhes";
 import AlertasDoSistema from "./pages/AlertasDoSistema";
 import DashboardTrafego from "./pages/DashboardTrafego";
-// Context providers
+import DashboardTrafegoPublic from "./pages/DashboardTrafegoPublic";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -115,6 +115,7 @@ const App = () => {
               <Route path="/resultados/:token" element={<ApresentacaoResultadosPublica />} />
               <Route path="/crm/:token/login" element={<CRMLogin />} />
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
+              <Route path="/tv/:token" element={<DashboardTrafegoPublic />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={
