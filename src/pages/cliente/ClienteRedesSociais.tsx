@@ -340,10 +340,6 @@ export function ClienteRedesSociais() {
             followersCount={instagram?.followers_count || 0}
             onRefresh={() => refetch()}
             isRefreshing={isFetching}
-            instagramAccountId={client?.instagram_account_id || undefined}
-            onPostDeleted={() => {
-              queryClient.invalidateQueries({ queryKey: ['social-metrics', clientId] });
-            }}
           />
           {/* Placeholder for Facebook feed - will show empty state or future Facebook posts */}
           {facebook && (
