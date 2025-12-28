@@ -1,6 +1,7 @@
 import { TVClient } from "@/hooks/useTrafegoDashboard";
-import { AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TVClientsOnAlertProps {
   clients: TVClient[];
@@ -30,6 +31,21 @@ const statusConfig = {
   },
 };
 
+// Extract first emoji or reason from status explanation
+function extractReason(explanation: string | null): string {
+  if (!explanation) return '';
+  
+  // Try to find the rule name after "Regra aplicada:"
+  const ruleMatch = explanation.match(/Regra aplicada:\s*(.+?)(?:\n|$)/);
+  if (ruleMatch) {
+    return ruleMatch[1].trim();
+  }
+  
+  // Fallback to first line
+  const firstLine = explanation.split('\n')[0];
+  return firstLine.replace(/[🚨⚫⚠️✅🟡🔴🟢]/g, '').trim().substring(0, 40);
+}
+
 export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
   if (clients.length === 0) {
     return (
@@ -58,9 +74,10 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
       
       <div className="flex-1 overflow-hidden">
         <div className="space-y-1">
-          {clients.slice(0, 5).map((client) => {
+          {clients.slice(0, 6).map((client) => {
             const config = statusConfig[client.status as keyof typeof statusConfig] || statusConfig.atencao;
             const Icon = config.icon;
+            const reason = extractReason(client.statusExplanation);
             
             return (
               <div
@@ -71,23 +88,24 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
                   config.border
                 )}
               >
-                <Icon className={cn("h-3.5 w-3.5 shrink-0", config.color)} />
+                {/* Avatar */}
+                <Avatar className="h-7 w-7 shrink-0">
+                  <AvatarImage src={client.avatar || undefined} alt={client.name} />
+                  <AvatarFallback className={cn("text-[10px]", config.bg, config.color)}>
+                    {client.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-xs">{client.name}</p>
-                  {client.statusExplanation && (
+                  {reason && (
                     <p className="text-[10px] text-muted-foreground truncate">
-                      {client.statusExplanation}
+                      {reason}
                     </p>
                   )}
                 </div>
                 
-                <div className="text-right shrink-0">
-                  <p className="text-[9px] text-muted-foreground">CPL</p>
-                  <p className={cn("font-bold text-xs", config.color)}>
-                    R$ {client.avgCpl.toFixed(0)}
-                  </p>
-                </div>
+                <Icon className={cn("h-4 w-4 shrink-0", config.color)} />
               </div>
             );
           })}

@@ -226,6 +226,7 @@ export default function DashboardTrafegoPublic() {
     statusExplanation: c.statusExplanation || null,
     activeCampaigns: 0,
     avgCpl: c.avgCpl || 0,
+    avatar: c.avatar || null,
   }));
 
   const topClients = data.topClients || [];
