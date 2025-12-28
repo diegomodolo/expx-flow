@@ -40,29 +40,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-const DAYS_OF_WEEK = [
-  { value: 0, label: 'Dom' },
-  { value: 1, label: 'Seg' },
-  { value: 2, label: 'Ter' },
-  { value: 3, label: 'Qua' },
-  { value: 4, label: 'Qui' },
-  { value: 5, label: 'Sex' },
-  { value: 6, label: 'Sáb' },
-];
-
-const HOURS = Array.from({ length: 24 }, (_, i) => ({
-  value: i,
-  label: `${String(i).padStart(2, '0')}:00`
-}));
-
-const CAROUSEL_IMAGE_OPTIONS = [
-  { value: 5, label: '5 imagens' },
-  { value: 6, label: '6 imagens' },
-  { value: 7, label: '7 imagens' },
-  { value: 8, label: '8 imagens' },
-  { value: 9, label: '9 imagens' },
-  { value: 10, label: '10 imagens' },
-];
 
 interface InstagramAutoPostsManagerProps {
   configId: string;
@@ -165,15 +142,12 @@ export function InstagramAutoPostsManager({
   const [previewPost, setPreviewPost] = useState<{ imageUrl: string; caption: string; imageUrls?: string[] } | null>(null);
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [editBriefing, setEditBriefing] = useState('');
-  const [editDays, setEditDays] = useState<number[]>([]);
-  const [editHours, setEditHours] = useState<number[]>([]);
   const [editName, setEditName] = useState('');
   const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
-  const [editPostType, setEditPostType] = useState<'single' | 'carousel'>('single');
-  const [editCarouselImages, setEditCarouselImages] = useState(5);
   
   // Collapsible sections state
   const [configOpen, setConfigOpen] = useState(false);
+  const [scheduleGridOpen, setScheduleGridOpen] = useState(true);
   const [refImagesOpen, setRefImagesOpen] = useState(false);
   const [pendingPostsOpen, setPendingPostsOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -231,9 +205,6 @@ export function InstagramAutoPostsManager({
     );
   }
 
-  const postType = (config as any).post_type || 'single';
-  const carouselMinImages = (config as any).carousel_min_images || 5;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -248,12 +219,6 @@ export function InstagramAutoPostsManager({
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Instagram className="w-6 h-6" />
               {config.name || `@${instagramAccount?.username || 'Instagram'}`}
-              {postType === 'carousel' && (
-                <Badge variant="secondary" className="ml-2">
-                  <Layers className="w-3 h-3 mr-1" />
-                  Carrossel
-                </Badge>
-              )}
             </h1>
             <p className="text-muted-foreground">Gerencie posts automáticos do Instagram</p>
           </div>
@@ -305,11 +270,7 @@ export function InstagramAutoPostsManager({
                         e.stopPropagation();
                         setEditName(config.name || '');
                         setEditBriefing(config.post_briefing);
-                        setEditDays(config.scheduled_days);
-                        setEditHours(config.scheduled_hours);
                         setEditInstagramAccountId(instagramAccountId);
-                        setEditPostType(postType);
-                        setEditCarouselImages(carouselMinImages);
                         setIsEditingConfig(true);
                         setConfigOpen(true);
                       }}
@@ -363,56 +324,6 @@ export function InstagramAutoPostsManager({
                     </Select>
                   </div>
 
-                  {/* Post Type Selection */}
-                  <div className="space-y-2">
-                    <Label>Tipo de Post</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={editPostType === 'single' ? 'default' : 'outline'}
-                        onClick={() => setEditPostType('single')}
-                        className="flex-1"
-                      >
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        Imagem Única
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={editPostType === 'carousel' ? 'default' : 'outline'}
-                        onClick={() => setEditPostType('carousel')}
-                        className="flex-1"
-                      >
-                        <Layers className="w-4 h-4 mr-2" />
-                        Carrossel
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Carousel Image Count */}
-                  {editPostType === 'carousel' && (
-                    <div className="space-y-2">
-                      <Label>Quantidade de Imagens no Carrossel</Label>
-                      <Select 
-                        value={String(editCarouselImages)} 
-                        onValueChange={(v) => setEditCarouselImages(Number(v))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CAROUSEL_IMAGE_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={String(opt.value)}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Mínimo recomendado: 5 imagens para melhor engajamento
-                      </p>
-                    </div>
-                  )}
-
                   {/* Edit Briefing */}
                   <div className="space-y-2">
                     <Label>Briefing das Postagens</Label>
@@ -421,54 +332,9 @@ export function InstagramAutoPostsManager({
                       onChange={(e) => setEditBriefing(e.target.value)}
                       className="min-h-[100px]"
                     />
-                  </div>
-
-                  {/* Edit Days */}
-                  <div className="space-y-2">
-                    <Label>Dias da Semana</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {DAYS_OF_WEEK.map(day => (
-                        <button
-                          key={day.value}
-                          onClick={() => setEditDays(prev => 
-                            prev.includes(day.value) 
-                              ? prev.filter(d => d !== day.value)
-                              : [...prev, day.value].sort((a, b) => a - b)
-                          )}
-                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            editDays.includes(day.value)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted hover:bg-muted/80'
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Edit Hours */}
-                  <div className="space-y-2">
-                    <Label>Horários de Publicação</Label>
-                    <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md">
-                      {HOURS.map(hour => (
-                        <button
-                          key={hour.value}
-                          onClick={() => setEditHours(prev => 
-                            prev.includes(hour.value) 
-                              ? prev.filter(h => h !== hour.value)
-                              : [...prev, hour.value].sort((a, b) => a - b)
-                          )}
-                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            editHours.includes(hour.value)
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted hover:bg-muted/80'
-                          }`}
-                        >
-                          {hour.label}
-                        </button>
-                      ))}
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      O briefing é usado pela IA para gerar as imagens e legendas. Seja específico sobre o tema, estilo e tom desejado.
+                    </p>
                   </div>
 
                   {/* Save/Cancel buttons */}
@@ -478,16 +344,11 @@ export function InstagramAutoPostsManager({
                         updateConfig({
                           name: editName || null,
                           post_briefing: editBriefing,
-                          scheduled_days: editDays,
-                          scheduled_hours: editHours,
-                          instagram_account_id: editInstagramAccountId,
-                          post_type: editPostType,
-                          carousel_min_images: editCarouselImages,
-                          carousel_max_images: editCarouselImages
+                          instagram_account_id: editInstagramAccountId
                         } as any);
                         setIsEditingConfig(false);
                       }}
-                      disabled={isUpdating || editDays.length === 0 || editHours.length === 0 || !editBriefing.trim() || !editInstagramAccountId}
+                      disabled={isUpdating || !editBriefing.trim() || !editInstagramAccountId}
                     >
                       {isUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                       Salvar Alterações
@@ -520,54 +381,14 @@ export function InstagramAutoPostsManager({
                     </div>
                   )}
 
-                  {/* Post Type Display */}
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Tipo de Post</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      {postType === 'carousel' ? (
-                        <>
-                          <Layers className="w-4 h-4" />
-                          <span className="text-sm font-medium">Carrossel ({carouselMinImages} imagens)</span>
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="w-4 h-4" />
-                          <span className="text-sm font-medium">Imagem única</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
                   <div>
                     <Label className="text-muted-foreground text-xs">Briefing</Label>
                     <p className="text-sm">{config.post_briefing}</p>
                   </div>
-                  <div className="flex gap-6">
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Dias</Label>
-                      <div className="flex gap-1 mt-1">
-                        {DAYS_OF_WEEK.map(day => (
-                          <Badge
-                            key={day.value}
-                            variant={config.scheduled_days.includes(day.value) ? 'default' : 'outline'}
-                            className="text-xs"
-                          >
-                            {day.label}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Horários</Label>
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {config.scheduled_hours.sort((a: number, b: number) => a - b).map((hour: number) => (
-                          <Badge key={hour} variant="secondary" className="text-xs">
-                            {String(hour).padStart(2, '0')}:00
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+
+                  <p className="text-xs text-muted-foreground italic">
+                    Os dias, horários e tipos de post são configurados na Grade de Agendamento abaixo.
+                  </p>
                 </>
               )}
             </CardContent>
@@ -576,7 +397,9 @@ export function InstagramAutoPostsManager({
       </Collapsible>
 
       {/* Schedule Grid - Flexible Scheduling */}
-      <ScheduleGrid configId={configId} />
+      <Collapsible open={scheduleGridOpen} onOpenChange={setScheduleGridOpen}>
+        <ScheduleGrid configId={configId} isCollapsible open={scheduleGridOpen} onOpenChange={setScheduleGridOpen} />
+      </Collapsible>
 
       {/* Reference Images Section */}
       <Collapsible open={refImagesOpen} onOpenChange={setRefImagesOpen}>
