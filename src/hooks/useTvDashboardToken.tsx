@@ -50,22 +50,19 @@ export function useTvDashboardToken() {
       }
 
       const newToken = tokenData as string;
-      console.log('Generated token:', newToken, 'for company:', activeCompany.id);
 
-      // Update company with new token
-      const { data: updateData, error: updateError } = await supabase
-        .from('companies')
-        .update({ tv_dashboard_token: newToken })
-        .eq('id', activeCompany.id)
-        .select('tv_dashboard_token')
-        .single();
+      // Use secure RPC to set the token (avoids RLS issues)
+      const { error: setError } = await supabase
+        .rpc('set_tv_dashboard_token', {
+          p_company_id: activeCompany.id,
+          p_token: newToken
+        });
 
-      if (updateError) {
-        console.error('Error updating company with token:', updateError);
-        throw updateError;
+      if (setError) {
+        console.error('Error setting token via RPC:', setError);
+        throw setError;
       }
 
-      console.log('Token saved successfully:', updateData);
       setToken(newToken);
       toast.success('Token do Dashboard TV gerado com sucesso!');
       return newToken;
