@@ -1592,6 +1592,7 @@ export type Database = {
           user_id: string
           voice_tone: string | null
           website_url: string | null
+          youtube_channel_url: string | null
         }
         Insert: {
           active_campaigns?: number
@@ -1655,6 +1656,7 @@ export type Database = {
           user_id: string
           voice_tone?: string | null
           website_url?: string | null
+          youtube_channel_url?: string | null
         }
         Update: {
           active_campaigns?: number
@@ -1718,6 +1720,7 @@ export type Database = {
           user_id?: string
           voice_tone?: string | null
           website_url?: string | null
+          youtube_channel_url?: string | null
         }
         Relationships: [
           {

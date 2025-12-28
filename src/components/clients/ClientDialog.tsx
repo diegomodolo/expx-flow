@@ -18,7 +18,7 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 import { ClientContactsTab } from "./ClientContactsTab";
@@ -82,6 +82,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: client.google_account_id || "",
         facebook_page_id: client.facebook_page_id || "",
         instagram_account_id: client.instagram_account_id || "",
+        youtube_channel_url: (client as any).youtube_channel_url || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
@@ -130,6 +131,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       google_account_id: "",
       facebook_page_id: "",
       instagram_account_id: "",
+      youtube_channel_url: "",
       website_url: "",
       inactive_reason: "",
       team_id: "none",
@@ -211,6 +213,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: client.google_account_id || "",
         facebook_page_id: client.facebook_page_id || "",
         instagram_account_id: client.instagram_account_id || "",
+        youtube_channel_url: (client as any).youtube_channel_url || "",
         website_url: client.website_url || "",
         inactive_reason: client.inactive_reason || "",
         team_id: client.team_id || "none",
@@ -264,6 +267,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         google_account_id: "",
         facebook_page_id: "",
         instagram_account_id: "",
+        youtube_channel_url: "",
         website_url: "",
         inactive_reason: "",
         team_id: "none",
@@ -1226,6 +1230,24 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </Command>
                 </PopoverContent>
               </Popover>
+            </div>
+
+            {/* YouTube Channel */}
+            <div className="space-y-2">
+              <Label htmlFor="youtube_channel" className="flex items-center gap-2">
+                <Youtube className="w-4 h-4 text-red-600" />
+                Canal do YouTube
+              </Label>
+              <Input
+                id="youtube_channel"
+                value={formData.youtube_channel_url || ""}
+                onChange={(e) => setFormData({ ...formData, youtube_channel_url: e.target.value })}
+                placeholder="https://www.youtube.com/@canal ou ID do canal"
+                disabled={readOnly}
+              />
+              <p className="text-xs text-muted-foreground">
+                Cole a URL do canal ou o Channel ID (ex: UCxxxxxxx)
+              </p>
             </div>
           </div>
         );
