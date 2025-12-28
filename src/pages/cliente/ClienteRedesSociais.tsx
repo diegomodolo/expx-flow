@@ -299,7 +299,7 @@ export function ClienteRedesSociais() {
             {/* Facebook Metrics */}
             <div className="p-4 space-y-4">
               <div>
-                <h3 className="text-label-md text-muted-foreground uppercase tracking-wider mb-3">Métricas da Página</h3>
+                <h3 className="text-label-md text-muted-foreground uppercase tracking-wider mb-3">Engajamento</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <MetricCard 
                     icon={Users} 
@@ -309,11 +309,11 @@ export function ClienteRedesSociais() {
                     label="Seguidores" 
                   />
                   <MetricCard 
-                    icon={Eye} 
-                    iconColor="text-purple-500" 
-                    bgColor="bg-purple-500/10"
-                    value={formatNumber(facebook.page_impressions || 0)} 
-                    label="Impressões" 
+                    icon={Heart} 
+                    iconColor="text-destructive" 
+                    bgColor="bg-destructive/10"
+                    value={formatNumber(facebook.page_fans || facebook.followers_count || 0)} 
+                    label="Curtidas na Página" 
                   />
                   <MetricCard 
                     icon={TrendingUp} 
@@ -321,6 +321,48 @@ export function ClienteRedesSociais() {
                     bgColor="bg-success/10"
                     value={formatNumber(facebook.page_engaged_users || 0)} 
                     label="Usuários Engajados" 
+                  />
+                  <MetricCard 
+                    icon={Eye} 
+                    iconColor="text-purple-500" 
+                    bgColor="bg-purple-500/10"
+                    value={formatNumber(facebook.page_reach || facebook.page_impressions || 0)} 
+                    label="Alcance" 
+                  />
+                </div>
+              </div>
+
+              {/* Insights */}
+              <div>
+                <h3 className="text-label-md text-muted-foreground uppercase tracking-wider mb-3">Insights (28 dias)</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <MetricCard 
+                    icon={UserPlus} 
+                    iconColor="text-indigo-500" 
+                    bgColor="bg-indigo-500/10"
+                    value={formatNumber(facebook.new_followers || 0)} 
+                    label="Novos Seguidores" 
+                  />
+                  <MetricCard 
+                    icon={MousePointerClick} 
+                    iconColor="text-warning" 
+                    bgColor="bg-warning/10"
+                    value={formatNumber(facebook.page_views || 0)} 
+                    label="Visitas à Página" 
+                  />
+                  <MetricCard 
+                    icon={MessageCircle} 
+                    iconColor="text-cyan-500" 
+                    bgColor="bg-cyan-500/10"
+                    value={formatNumber(facebook.page_post_engagements || 0)} 
+                    label="Engajamento em Posts" 
+                  />
+                  <MetricCard 
+                    icon={TrendingUp} 
+                    iconColor="text-pink-500" 
+                    bgColor="bg-pink-500/10"
+                    value={formatNumber(facebook.page_consumptions || 0)} 
+                    label="Cliques em Conteúdo" 
                   />
                 </div>
               </div>
@@ -356,14 +398,14 @@ export function ClienteRedesSociais() {
                 </div>
               </div>
               {facebook.recent_posts && facebook.recent_posts.length > 0 ? (
-                <div className="p-4 grid grid-cols-2 gap-3">
-                  {facebook.recent_posts.slice(0, 6).map((post) => (
+                <div className="p-3 grid grid-cols-3 gap-1">
+                  {facebook.recent_posts.slice(0, 9).map((post) => (
                     <a
                       key={post.id}
                       href={post.permalink_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group relative aspect-square rounded-lg overflow-hidden bg-muted"
+                      className="group relative aspect-square overflow-hidden bg-muted"
                     >
                       {post.full_picture ? (
                         <img src={post.full_picture} alt="" className="w-full h-full object-cover" />

@@ -112,9 +112,14 @@ export interface SocialMetrics {
     page_name: string;
     page_category: string;
     followers_count?: number;
+    page_fans?: number;
     page_reach?: number;
     page_impressions?: number;
     page_engaged_users?: number;
+    page_post_engagements?: number;
+    page_consumptions?: number;
+    page_views?: number;
+    new_followers?: number;
     recent_posts?: {
       id: string;
       message: string;
