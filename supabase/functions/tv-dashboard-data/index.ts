@@ -63,8 +63,7 @@ serve(async (req) => {
         .from('campaigns')
         .select('id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at')
         .eq('company_id', company.id)
-        .eq('is_active', true)
-        .gte('updated_at', startOfWeek.toISOString()),
+        .eq('is_active', true),
       
       supabase
         .from('clients')
@@ -76,7 +75,7 @@ serve(async (req) => {
         .from('tasks')
         .select('id, title, priority, status, deadline, responsible_name')
         .eq('company_id', company.id)
-        .in('status', ['todo', 'progress'])
+        .in('status', ['todo', 'in_progress'])
         .order('deadline', { ascending: true })
         .limit(10)
     ]);
