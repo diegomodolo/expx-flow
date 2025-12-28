@@ -115,6 +115,16 @@ export interface SocialMetrics {
     page_reach?: number;
     page_impressions?: number;
     page_engaged_users?: number;
+    recent_posts?: {
+      id: string;
+      message: string;
+      created_time: string;
+      full_picture?: string;
+      permalink_url: string;
+      likes_count: number;
+      comments_count: number;
+      shares_count: number;
+    }[];
   } | null;
 }
 
