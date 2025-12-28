@@ -23,18 +23,34 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the post to find the config and Instagram account
+    // Get the post to find the config_id
     const { data: post, error: postError } = await supabase
       .from('instagram_auto_posts')
-      .select('*, instagram_auto_post_configs!inner(instagram_account_id)')
+      .select('id, config_id')
       .eq('id', postId)
       .single();
 
+    console.log('Post query result:', { post, postError });
+
     if (postError || !post) {
-      throw new Error('Post not found');
+      throw new Error(`Post not found: ${postError?.message || 'No data returned'}`);
     }
 
-    const instagramAccountId = post.instagram_auto_post_configs.instagram_account_id;
+    // Get the config to find instagram_account_id
+    const { data: config, error: configError } = await supabase
+      .from('instagram_auto_post_configs')
+      .select('instagram_account_id')
+      .eq('id', post.config_id)
+      .single();
+
+    console.log('Config query result:', { config, configError });
+
+    if (configError || !config) {
+      throw new Error(`Config not found: ${configError?.message || 'No data returned'}`);
+    }
+
+    const instagramAccountId = config.instagram_account_id;
+    console.log('Instagram account ID:', instagramAccountId);
 
     // Get the Instagram account with access token
     const { data: igAccount, error: igError } = await supabase
@@ -43,8 +59,10 @@ serve(async (req) => {
       .eq('id', instagramAccountId)
       .single();
 
+    console.log('Instagram account query result:', { igAccount: igAccount ? 'found' : 'not found', igError });
+
     if (igError || !igAccount?.access_token) {
-      throw new Error('Instagram account not found or access token missing');
+      throw new Error(`Instagram account not found or access token missing: ${igError?.message || 'No access token'}`);
     }
 
     // Delete from Instagram Graph API
