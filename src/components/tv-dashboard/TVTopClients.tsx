@@ -1,6 +1,5 @@
 import { Users, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TopClient {
   id: string;
@@ -18,30 +17,30 @@ interface TVTopClientsProps {
 export function TVTopClients({ clients }: TVTopClientsProps) {
   if (clients.length === 0) {
     return (
-      <div className="bg-card rounded-2xl p-6 elevation-2 h-full">
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">Top Clientes</h2>
+      <div className="bg-card rounded-xl p-3 elevation-2 h-full">
+        <div className="flex items-center gap-2 mb-2">
+          <Users className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Top Clientes</h2>
         </div>
-        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-          <Users className="h-10 w-10 mb-2 opacity-30" />
-          <p>Nenhum dado disponível</p>
+        <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
+          <Users className="h-8 w-8 mb-1 opacity-30" />
+          <p className="text-xs">Nenhum dado disponível</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-card rounded-2xl p-6 elevation-2 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
-        <Users className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Top 5 Clientes</h2>
-        <span className="text-muted-foreground text-sm ml-2">(menor CPA)</span>
+    <div className="bg-card rounded-xl p-3 elevation-2 h-full flex flex-col">
+      <div className="flex items-center gap-2 mb-2">
+        <Users className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-semibold">Top 5 Clientes</h2>
+        <span className="text-muted-foreground text-[10px] ml-1">(menor CPA)</span>
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="space-y-2 pr-4">
-          {clients.map((client, index) => {
+      <div className="flex-1 overflow-hidden">
+        <div className="space-y-1">
+          {clients.slice(0, 5).map((client, index) => {
             const isTop3 = index < 3;
             const medalColors = ["text-yellow-500", "text-gray-400", "text-amber-600"];
             
@@ -49,54 +48,45 @@ export function TVTopClients({ clients }: TVTopClientsProps) {
               <div
                 key={client.id}
                 className={cn(
-                  "rounded-xl p-4 flex items-center gap-4 transition-all",
+                  "rounded-lg p-2 flex items-center gap-2 transition-all",
                   isTop3 ? "bg-primary/5" : "bg-muted/50"
                 )}
               >
-                {/* Rank */}
                 <div className={cn(
-                  "text-2xl font-bold w-8 text-center",
+                  "text-sm font-bold w-5 text-center",
                   isTop3 ? medalColors[index] : "text-muted-foreground"
                 )}>
                   {index + 1}
                 </div>
                 
-                {/* Client info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-base">{client.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {client.campaigns} campanhas ativas
+                  <p className="font-medium truncate text-xs">{client.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {client.campaigns} campanhas
                   </p>
                 </div>
                 
-                {/* Metrics */}
-                <div className="flex items-center gap-6 text-right">
+                <div className="flex items-center gap-3 text-right shrink-0">
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">CPA</p>
+                    <p className="text-[9px] text-muted-foreground uppercase">CPA</p>
                     <p className={cn(
-                      "font-bold text-lg",
+                      "font-bold text-xs",
                       client.cpa < 30 ? "text-green-500" : 
                       client.cpa < 50 ? "text-yellow-500" : "text-red-500"
                     )}>
-                      R$ {client.cpa.toFixed(2)}
+                      R$ {client.cpa.toFixed(0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Leads</p>
-                    <p className="font-bold text-lg">{client.conversions}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Invest.</p>
-                    <p className="font-medium text-base text-muted-foreground">
-                      R$ {client.spend.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                    </p>
+                    <p className="text-[9px] text-muted-foreground uppercase">Leads</p>
+                    <p className="font-bold text-xs">{client.conversions}</p>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

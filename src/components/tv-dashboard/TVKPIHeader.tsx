@@ -40,31 +40,30 @@ function KPICard({ label, value, change, icon, invertColors }: KPICardProps) {
   const isNegative = invertColors ? change > 0 : change < 0;
   
   return (
-    <div className="bg-card rounded-2xl p-6 elevation-2 flex flex-col gap-2">
+    <div className="bg-card rounded-xl p-3 elevation-2 flex flex-col gap-1">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-lg font-medium">{label}</span>
-        <div className="p-2 rounded-xl bg-primary/10 text-primary">
+        <span className="text-muted-foreground text-sm font-medium">{label}</span>
+        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
           {icon}
         </div>
       </div>
-      <div className="text-4xl font-bold tracking-tight">{value}</div>
+      <div className="text-2xl font-bold tracking-tight">{value}</div>
       <div className="flex items-center gap-1">
         {change === 0 ? (
-          <Minus className="h-4 w-4 text-muted-foreground" />
+          <Minus className="h-3 w-3 text-muted-foreground" />
         ) : isPositive ? (
-          <TrendingUp className="h-4 w-4 text-green-500" />
+          <TrendingUp className="h-3 w-3 text-green-500" />
         ) : (
-          <TrendingDown className="h-4 w-4 text-red-500" />
+          <TrendingDown className="h-3 w-3 text-red-500" />
         )}
         <span className={cn(
-          "text-sm font-medium",
+          "text-xs font-medium",
           change === 0 && "text-muted-foreground",
           isPositive && "text-green-500",
           isNegative && "text-red-500"
         )}>
           {change > 0 ? "+" : ""}{change.toFixed(1)}%
         </span>
-        <span className="text-muted-foreground text-sm ml-1">vs período anterior</span>
       </div>
     </div>
   );
@@ -74,45 +73,45 @@ export function TVKPIHeader({ metrics, lastSync }: TVKPIHeaderProps) {
   const syncTime = new Date(lastSync);
   
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between px-2">
-        <h1 className="text-3xl font-bold">Dashboard de Tráfego</h1>
-        <div className="flex items-center gap-4 text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span>Atualizado às {syncTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-xl font-bold">Dashboard de Tráfego</h1>
+        <div className="flex items-center gap-3 text-muted-foreground text-sm">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span>Atualizado {syncTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
-          <div className="text-2xl font-mono">
+          <div className="text-lg font-mono">
             {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
           </div>
         </div>
       </div>
       
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         <KPICard
-          label="Investimento Total"
+          label="Investimento"
           value={formatCurrency(metrics.totalInvestment)}
           change={metrics.investmentChange}
-          icon={<DollarSign className="h-6 w-6" />}
+          icon={<DollarSign className="h-4 w-4" />}
         />
         <KPICard
-          label="Leads Gerados"
+          label="Leads"
           value={formatNumber(metrics.totalLeads)}
           change={metrics.leadsChange}
-          icon={<Users className="h-6 w-6" />}
+          icon={<Users className="h-4 w-4" />}
         />
         <KPICard
           label="CPA Médio"
           value={`R$ ${metrics.averageCPA.toFixed(2)}`}
           change={metrics.cpaChange}
-          icon={<Target className="h-6 w-6" />}
+          icon={<Target className="h-4 w-4" />}
           invertColors
         />
         <KPICard
           label="CTR Médio"
           value={`${metrics.averageCTR.toFixed(2)}%`}
           change={metrics.ctrChange}
-          icon={<MousePointerClick className="h-6 w-6" />}
+          icon={<MousePointerClick className="h-4 w-4" />}
         />
       </div>
     </div>

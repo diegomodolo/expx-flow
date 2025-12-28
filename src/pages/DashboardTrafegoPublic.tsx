@@ -232,63 +232,49 @@ export default function DashboardTrafegoPublic() {
   const worstCampaigns = data.worstCampaigns || [];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header with company name */}
-      <div className="bg-card border-b border-border px-6 py-3">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Header with company name - compact */}
+      <div className="bg-card border-b border-border px-4 py-2 shrink-0">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">{data.company.name}</h1>
-          <span className="text-sm text-muted-foreground">Dashboard TV</span>
+          <h1 className="text-lg font-bold text-foreground">{data.company.name}</h1>
+          <span className="text-xs text-muted-foreground">Dashboard TV</span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6 space-y-6">
+      {/* Main Content - fills remaining space */}
+      <div className="flex-1 p-3 flex flex-col gap-3 overflow-hidden">
         {/* Row 1: KPI Header */}
-        <TVKPIHeader metrics={metrics} lastSync={data.lastSync} />
+        <div className="shrink-0">
+          <TVKPIHeader metrics={metrics} lastSync={data.lastSync} />
+        </div>
 
         {/* Row 2: Main Grid - Alerts, Campaign Ranking, Clients on Alert */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Alerts */}
-          <div>
-            <TVAlertsList alerts={alerts} />
-          </div>
-
-          {/* Middle Column - Campaign Ranking */}
-          <div>
-            <TVCampaignRanking campaigns={campaigns} />
-          </div>
-
-          {/* Right Column - Clients on Alert */}
-          <div>
-            <TVClientsOnAlert clients={clients} />
-          </div>
+        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+          <TVAlertsList alerts={alerts} />
+          <TVCampaignRanking campaigns={campaigns} />
+          <TVClientsOnAlert clients={clients} />
         </div>
 
         {/* Row 3: Tasks, Top Clients, Worst Campaigns + Extra Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Tasks */}
-          <div>
-            <TVTasksList tasks={tasks} />
-          </div>
-
-          {/* Middle Column - Top Clients */}
-          <div>
-            <TVTopClients clients={topClients} />
-          </div>
-
-          {/* Right Column - Worst Campaigns and Extra Metrics */}
-          <div className="space-y-6">
-            <TVWorstCampaigns campaigns={worstCampaigns} />
-            <TVExtraMetrics 
-              activeCampaigns={data.metrics.activeCampaigns || 0}
-              activeClients={data.metrics.activeClients || 0}
-              avgCPC={data.metrics.avgCPC || 0}
-            />
+        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+          <TVTasksList tasks={tasks} />
+          <TVTopClients clients={topClients} />
+          <div className="flex flex-col gap-3">
+            <div className="flex-1">
+              <TVWorstCampaigns campaigns={worstCampaigns} />
+            </div>
+            <div className="shrink-0">
+              <TVExtraMetrics 
+                activeCampaigns={data.metrics.activeCampaigns || 0}
+                activeClients={data.metrics.activeClients || 0}
+                avgCPC={data.metrics.avgCPC || 0}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TV Controls */}
+      {/* TV Controls - floating */}
       <TVControls
         refreshInterval={refreshInterval}
         onRefreshIntervalChange={setRefreshInterval}
