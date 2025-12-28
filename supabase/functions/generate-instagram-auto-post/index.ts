@@ -219,11 +219,23 @@ Generate the image now. Return image only.`;
       }
 
       const geminiData = await geminiResponse.json();
+      
+      // Log full response for debugging
+      console.log(`Gemini response for slide ${slideNumber || 1}:`, JSON.stringify({
+        hasChoices: !!geminiData?.choices,
+        choicesLength: geminiData?.choices?.length,
+        hasMessage: !!geminiData?.choices?.[0]?.message,
+        hasImages: !!geminiData?.choices?.[0]?.message?.images,
+        imagesLength: geminiData?.choices?.[0]?.message?.images?.length,
+        textContent: geminiData?.choices?.[0]?.message?.content?.substring?.(0, 100)
+      }));
+      
       const base64Url = geminiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
 
       if (!base64Url) {
+        // Log what we got instead
+        console.error(`No image in response. Full structure:`, JSON.stringify(geminiData).substring(0, 500));
         throw new Error('No image generated from Gemini');
-      }
 
       console.log(`Image for slide ${slideNumber || 1} generated successfully on attempt ${attempt}`);
       return base64Url;
