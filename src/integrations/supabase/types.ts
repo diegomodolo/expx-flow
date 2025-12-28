@@ -8929,6 +8929,10 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      set_tv_dashboard_token: {
+        Args: { p_company_id: string; p_token: string }
+        Returns: undefined
+      }
     }
     Enums: {
       campaign_status: "active" | "paused" | "finished"
