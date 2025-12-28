@@ -49,8 +49,8 @@ serve(async (req) => {
 
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
-    // Fetch campaigns, clients, and tasks in parallel
-    const [campaignsResult, clientsResult, tasksResult, allClientsResult] = await Promise.all([
+    // Fetch campaigns, clients with budget/balance data in parallel
+    const [campaignsResult, clientsResult, clientsWithBudgetResult] = await Promise.all([
       // Campaigns with client info
       supabase
         .from('campaigns')
@@ -68,34 +68,37 @@ serve(async (req) => {
         .eq('company_id', company.id)
         .in('calculated_status', ['red', 'yellow']),
       
-      // Tasks
-      supabase
-        .from('tasks')
-        .select('id, title, priority, status, deadline, responsible_name, client_id')
-        .eq('company_id', company.id)
-        .in('status', ['todo', 'in_progress'])
-        .order('deadline', { ascending: true })
-        .limit(10),
-      
-      // All clients for building client name map
+      // All clients with budget and balance info
       supabase
         .from('clients')
-        .select('id, name')
+        .select(`
+          id, name, avatar, monthly_budget, last_sync_period,
+          facebook_ad_accounts(balance, recharge_day)
+        `)
         .eq('company_id', company.id)
     ]);
 
     const campaigns = campaignsResult.data || [];
     const clientsOnAlert = clientsResult.data || [];
-    const tasks = tasksResult.data || [];
-    const allClients = allClientsResult.data || [];
+    const clientsWithBudget = clientsWithBudgetResult.data || [];
 
     // Build client ID to name map
     const clientNameMap: Record<string, string> = {};
-    allClients.forEach(c => {
+    const clientAvatarMap: Record<string, string> = {};
+    clientsWithBudget.forEach(c => {
       clientNameMap[c.id] = c.name;
+      if (c.avatar) clientAvatarMap[c.id] = c.avatar;
     });
 
-    console.log(`[tv-dashboard-data] Found ${campaigns.length} campaigns, ${clientsOnAlert.length} clients on alert, ${tasks.length} tasks`);
+    // Calculate spend per client from campaigns
+    const clientSpend: Record<string, number> = {};
+    campaigns.forEach(c => {
+      if (c.client_id) {
+        clientSpend[c.client_id] = (clientSpend[c.client_id] || 0) + (c.spend || 0);
+      }
+    });
+
+    console.log(`[tv-dashboard-data] Found ${campaigns.length} campaigns, ${clientsOnAlert.length} clients on alert`);
 
     // Calculate metrics
     const totalInvestment = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
@@ -167,17 +170,6 @@ serve(async (req) => {
         status: c.status
       }));
 
-    // Format tasks with client names
-    const formattedTasks = tasks.map(t => ({
-      id: t.id,
-      title: t.title,
-      priority: t.priority || 'medium',
-      status: t.status,
-      dueDate: t.deadline,
-      responsible: t.responsible_name,
-      clientName: t.client_id ? clientNameMap[t.client_id] : null
-    }));
-
     // Format clients on alert with proper status mapping
     const formattedClientsOnAlert = clientsOnAlert.map(c => {
       // Map red/yellow to atencao/emergencial for frontend
@@ -197,19 +189,10 @@ serve(async (req) => {
       };
     });
 
-    // Count active campaigns per client
-    const campaignsPerClient: Record<string, number> = {};
-    campaigns.forEach(c => {
-      if (c.client_id) {
-        campaignsPerClient[c.client_id] = (campaignsPerClient[c.client_id] || 0) + 1;
-      }
-    });
-
-    // Calculate additional metrics for the third row
+    // Calculate additional metrics
     const activeCampaigns = campaigns.length;
     const activeClients = new Set(campaigns.map(c => c.client_id)).size;
     const avgCPC = totalClicks > 0 ? totalInvestment / totalClicks : 0;
-    const totalReach = campaigns.reduce((sum, c) => sum + ((c as any).reach || 0), 0);
 
     // Get top performing clients
     const clientPerformance = campaigns.reduce((acc, c) => {
@@ -238,7 +221,7 @@ serve(async (req) => {
       .sort((a: any, b: any) => a.cpa - b.cpa)
       .slice(0, 5);
 
-    // Calculate worst performing campaigns (for alerts)
+    // Calculate worst performing campaigns
     const worstCampaigns = campaigns
       .filter(c => c.conversions && c.conversions > 0 && c.cpa && c.cpa > 50)
       .sort((a, b) => (b.cpa || 0) - (a.cpa || 0))
@@ -251,6 +234,115 @@ serve(async (req) => {
         spend: c.spend || 0,
         conversions: c.conversions || 0
       }));
+
+    // === NEW: Calculate budget/balance alerts ===
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const budgetAlerts: Array<{
+      id: string;
+      name: string;
+      avatar: string | null;
+      alertType: 'insufficient_balance' | 'over_budget';
+      balance: number;
+      spend: number;
+      budget: number;
+      daysRemaining: number;
+      projectedSpend: number;
+      percentage: number;
+      message: string;
+    }> = [];
+
+    clientsWithBudget.forEach(client => {
+      const spend = clientSpend[client.id] || 0;
+      const syncPeriod = parseInt(client.last_sync_period || '0') || 7; // Default to 7 days
+      const monthlyBudget = client.monthly_budget || 0;
+      const fbAccount = Array.isArray(client.facebook_ad_accounts) 
+        ? client.facebook_ad_accounts[0] 
+        : client.facebook_ad_accounts;
+      const balance = fbAccount?.balance || 0;
+      const rechargeDay = fbAccount?.recharge_day;
+      
+      // Calculate daily spend
+      const dailySpend = syncPeriod > 0 ? spend / syncPeriod : 0;
+      
+      // Check 1: Budget overspend
+      if (monthlyBudget > 0 && syncPeriod > 0) {
+        const expectedSpend = (monthlyBudget / 30) * syncPeriod;
+        const percentage = (spend / expectedSpend) * 100;
+        
+        if (percentage > 100) {
+          budgetAlerts.push({
+            id: client.id,
+            name: client.name,
+            avatar: client.avatar,
+            alertType: 'over_budget',
+            balance,
+            spend,
+            budget: monthlyBudget,
+            daysRemaining: 0,
+            projectedSpend: expectedSpend,
+            percentage,
+            message: `Gasto ${percentage.toFixed(0)}% do planejado`
+          });
+        }
+      }
+      
+      // Check 2: Insufficient balance until recharge day
+      if (balance > 0 && dailySpend > 0) {
+        let nextRechargeDate: Date;
+        
+        if (rechargeDay && rechargeDay >= 1 && rechargeDay <= 31) {
+          if (currentDay < rechargeDay) {
+            nextRechargeDate = new Date(currentYear, currentMonth, rechargeDay);
+          } else {
+            nextRechargeDate = new Date(currentYear, currentMonth + 1, rechargeDay);
+          }
+          
+          // Adjust for months with fewer days
+          const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
+          if (rechargeDay > maxDayInMonth) {
+            nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
+          }
+        } else {
+          // Fallback: end of month
+          nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
+        }
+        
+        const timeDiff = nextRechargeDate.getTime() - now.getTime();
+        const daysRemaining = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+        const projectedSpend = dailySpend * daysRemaining;
+        const coveragePercentage = (balance / projectedSpend) * 100;
+        
+        // If balance won't last (< 80% coverage)
+        if (coveragePercentage < 80) {
+          // Avoid duplicates if already has budget alert
+          const hasOverBudget = budgetAlerts.some(a => a.id === client.id && a.alertType === 'over_budget');
+          if (!hasOverBudget) {
+            budgetAlerts.push({
+              id: client.id,
+              name: client.name,
+              avatar: client.avatar,
+              alertType: 'insufficient_balance',
+              balance,
+              spend,
+              budget: monthlyBudget,
+              daysRemaining,
+              projectedSpend,
+              percentage: coveragePercentage,
+              message: `Saldo R$ ${balance.toFixed(0)} não dura ${daysRemaining} dias`
+            });
+          }
+        }
+      }
+    });
+
+    // Sort budget alerts by severity (lower percentage = more critical)
+    budgetAlerts.sort((a, b) => a.percentage - b.percentage);
+
+    console.log(`[tv-dashboard-data] Found ${budgetAlerts.length} budget alerts`);
 
     const response = {
       company: {
@@ -266,7 +358,6 @@ serve(async (req) => {
         activeCampaigns,
         activeClients,
         avgCPC,
-        totalReach,
         investmentChange: 0,
         leadsChange: 0,
         cpaChange: 0,
@@ -274,10 +365,10 @@ serve(async (req) => {
       },
       alerts: alerts.slice(0, 10),
       campaigns: campaignRanking,
-      tasks: formattedTasks,
       clientsOnAlert: formattedClientsOnAlert,
       topClients,
-      worstCampaigns
+      worstCampaigns,
+      budgetAlerts: budgetAlerts.slice(0, 10)
     };
 
     console.log(`[tv-dashboard-data] Response prepared successfully`);

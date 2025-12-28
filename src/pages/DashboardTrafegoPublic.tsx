@@ -5,13 +5,13 @@ import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { TVKPIHeader } from '@/components/tv-dashboard/TVKPIHeader';
 import { TVAlertsList } from '@/components/tv-dashboard/TVAlertsList';
 import { TVCampaignRanking } from '@/components/tv-dashboard/TVCampaignRanking';
-import { TVTasksList } from '@/components/tv-dashboard/TVTasksList';
 import { TVClientsOnAlert } from '@/components/tv-dashboard/TVClientsOnAlert';
 import { TVControls } from '@/components/tv-dashboard/TVControls';
 import { TVTopClients } from '@/components/tv-dashboard/TVTopClients';
 import { TVWorstCampaigns } from '@/components/tv-dashboard/TVWorstCampaigns';
 import { TVExtraMetrics } from '@/components/tv-dashboard/TVExtraMetrics';
-import type { TVMetrics, TVAlert, TVCampaign, TVTask, TVClient } from '@/hooks/useTrafegoDashboard';
+import { TVBudgetAlerts } from '@/components/tv-dashboard/TVBudgetAlerts';
+import type { TVMetrics, TVAlert, TVCampaign, TVClient } from '@/hooks/useTrafegoDashboard';
 
 interface TVDashboardResponse {
   company: {
@@ -55,15 +55,6 @@ interface TVDashboardResponse {
     ctr: number;
     status: string;
   }>;
-  tasks: Array<{
-    id: string;
-    title: string;
-    priority: string;
-    status: string;
-    dueDate: string;
-    responsible: string;
-    clientName?: string;
-  }>;
   clientsOnAlert: Array<{
     id: string;
     name: string;
@@ -89,6 +80,19 @@ interface TVDashboardResponse {
     cpa: number;
     spend: number;
     conversions: number;
+  }>;
+  budgetAlerts: Array<{
+    id: string;
+    name: string;
+    avatar: string | null;
+    alertType: 'insufficient_balance' | 'over_budget';
+    balance: number;
+    spend: number;
+    budget: number;
+    daysRemaining: number;
+    projectedSpend: number;
+    percentage: number;
+    message: string;
   }>;
 }
 
@@ -210,15 +214,6 @@ export default function DashboardTrafegoPublic() {
     status: c.status,
   }));
 
-  const tasks: TVTask[] = data.tasks.map(t => ({
-    id: t.id,
-    title: t.title,
-    priority: t.priority,
-    status: t.status,
-    dueDate: t.dueDate,
-    clientName: t.clientName || t.responsible || null,
-  }));
-
   const clients: TVClient[] = data.clientsOnAlert.map(c => ({
     id: c.id,
     name: c.name,
@@ -231,6 +226,7 @@ export default function DashboardTrafegoPublic() {
 
   const topClients = data.topClients || [];
   const worstCampaigns = data.worstCampaigns || [];
+  const budgetAlerts = data.budgetAlerts || [];
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -256,16 +252,16 @@ export default function DashboardTrafegoPublic() {
           <TVClientsOnAlert clients={clients} />
         </div>
 
-        {/* Row 3: Tasks, Top Clients, Worst Campaigns + Extra Metrics */}
+        {/* Row 3: Budget Alerts, Top Clients, Worst Campaigns + Extra Metrics */}
         <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
-          <TVTasksList tasks={tasks} />
+          <TVBudgetAlerts alerts={budgetAlerts} />
           <TVTopClients clients={topClients} />
           <div className="flex flex-col gap-3">
             <div className="flex-1">
               <TVWorstCampaigns campaigns={worstCampaigns} />
             </div>
             <div className="shrink-0">
-              <TVExtraMetrics 
+              <TVExtraMetrics
                 activeCampaigns={data.metrics.activeCampaigns || 0}
                 activeClients={data.metrics.activeClients || 0}
                 avgCPC={data.metrics.avgCPC || 0}
