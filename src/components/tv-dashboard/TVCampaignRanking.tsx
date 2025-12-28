@@ -1,9 +1,14 @@
 import { TVCampaign } from "@/hooks/useTrafegoDashboard";
 import { Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface ExtendedCampaign extends TVCampaign {
+  clientAvatar?: string | null;
+}
 
 interface TVCampaignRankingProps {
-  campaigns: TVCampaign[];
+  campaigns: ExtendedCampaign[];
 }
 
 export function TVCampaignRanking({ campaigns }: TVCampaignRankingProps) {
@@ -26,7 +31,7 @@ export function TVCampaignRanking({ campaigns }: TVCampaignRankingProps) {
     <div className="bg-card rounded-xl p-3 elevation-2 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-2">
         <Trophy className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold">Top 10 Campanhas</h2>
+        <h2 className="text-sm font-semibold">Top 6 Campanhas</h2>
         <span className="text-muted-foreground text-[10px] ml-1">(menor CPA)</span>
       </div>
       
@@ -40,16 +45,23 @@ export function TVCampaignRanking({ campaigns }: TVCampaignRankingProps) {
               <div
                 key={campaign.id}
                 className={cn(
-                  "rounded-lg p-2 flex items-center gap-2 transition-all",
+                  "rounded-lg p-1.5 flex items-center gap-2 transition-all",
                   isTop3 ? "bg-primary/5" : "bg-muted/50"
                 )}
               >
                 <div className={cn(
-                  "text-sm font-bold w-5 text-center",
+                  "text-sm font-bold w-4 text-center",
                   isTop3 ? medalColors[index] : "text-muted-foreground"
                 )}>
                   {index + 1}
                 </div>
+                
+                <Avatar className="h-6 w-6 shrink-0">
+                  <AvatarImage src={campaign.clientAvatar || undefined} alt={campaign.clientName} />
+                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                    {campaign.clientName?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-xs">{campaign.name}</p>

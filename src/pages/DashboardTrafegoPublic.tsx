@@ -53,6 +53,7 @@ interface TVDashboardResponse {
     id: string;
     name: string;
     clientName: string;
+    clientAvatar?: string | null;
     clientId: string;
     spend: number;
     leads: number;
@@ -77,11 +78,13 @@ interface TVDashboardResponse {
     conversions: number;
     cpa: number;
     campaigns: number;
+    avatar?: string | null;
   }>;
   worstCampaigns: Array<{
     id: string;
     name: string;
     clientName: string;
+    clientAvatar?: string | null;
     cpa: number;
     spend: number;
     conversions: number;
@@ -218,10 +221,11 @@ export default function DashboardTrafegoPublic() {
     value: a.value || a.description,
   }));
 
-  const campaigns: TVCampaign[] = data.campaigns.map(c => ({
+  const campaigns = data.campaigns.map(c => ({
     id: c.id,
     name: c.name,
     clientName: c.clientName || 'Cliente',
+    clientAvatar: c.clientAvatar || null,
     clientId: c.clientId || '',
     spend: c.spend,
     conversions: c.leads,
