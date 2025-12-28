@@ -456,9 +456,11 @@ export function InstagramAutoPostsManager({
       {/* YouTube Knowledge Base */}
       <YouTubeKnowledgeCard
         configId={configId}
-        youtubeChannelUrl={clientData?.youtube_channel_url}
+        youtubeChannelUrl={config.youtube_channel_url}
         open={youtubeKnowledgeOpen}
         onOpenChange={setYoutubeKnowledgeOpen}
+        onUpdateYouTubeUrl={(url) => updateConfig({ youtube_channel_url: url } as any)}
+        isUpdating={isUpdating}
       />
 
       {/* PDF Knowledge Base */}

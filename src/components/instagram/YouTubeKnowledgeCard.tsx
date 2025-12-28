@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useYouTubeKnowledge, YouTubeVideo } from '@/hooks/useYouTubeKnowledge';
 import { 
@@ -14,7 +16,7 @@ import {
   Trash2,
   FileText,
   ExternalLink,
-  AlertCircle
+  Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -25,15 +27,21 @@ interface YouTubeKnowledgeCardProps {
   youtubeChannelUrl?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdateYouTubeUrl?: (url: string) => void;
+  isUpdating?: boolean;
 }
 
 export function YouTubeKnowledgeCard({ 
   configId, 
   youtubeChannelUrl,
   open,
-  onOpenChange
+  onOpenChange,
+  onUpdateYouTubeUrl,
+  isUpdating
 }: YouTubeKnowledgeCardProps) {
   const [showChannelVideos, setShowChannelVideos] = useState(false);
+  const [localUrl, setLocalUrl] = useState(youtubeChannelUrl || '');
+  const [hasChanges, setHasChanges] = useState(false);
   
   const {
     savedVideos,
@@ -51,10 +59,23 @@ export function YouTubeKnowledgeCard({
     isTranscribing
   } = useYouTubeKnowledge(configId, youtubeChannelUrl);
 
+  const handleUrlChange = (value: string) => {
+    setLocalUrl(value);
+    setHasChanges(value !== (youtubeChannelUrl || ''));
+  };
+
+  const handleSaveUrl = () => {
+    if (onUpdateYouTubeUrl) {
+      onUpdateYouTubeUrl(localUrl);
+      setHasChanges(false);
+    }
+  };
+
   const handleFetchVideos = async () => {
-    if (!youtubeChannelUrl) return;
+    const urlToFetch = localUrl || youtubeChannelUrl;
+    if (!urlToFetch) return;
     setShowChannelVideos(true);
-    await fetchChannelVideos(youtubeChannelUrl);
+    await fetchChannelVideos(urlToFetch);
   };
 
   const handleAddVideo = (video: YouTubeVideo) => {
@@ -65,35 +86,7 @@ export function YouTubeKnowledgeCard({
     return savedVideos.some(v => v.video_id === videoId);
   };
 
-  if (!youtubeChannelUrl) {
-    return (
-      <Collapsible open={open} onOpenChange={onOpenChange}>
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Youtube className="w-5 h-5 text-red-500" />
-                  Vídeos do YouTube como Base
-                  <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
-                </CardTitle>
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent>
-              <div className="flex items-center gap-2 text-muted-foreground p-4 bg-muted/30 rounded-lg">
-                <AlertCircle className="w-4 h-4" />
-                <p className="text-sm">
-                  Configure o canal do YouTube do cliente nas configurações para usar vídeos como base de conhecimento.
-                </p>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-    );
-  }
+  const effectiveUrl = localUrl || youtubeChannelUrl;
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
@@ -108,7 +101,7 @@ export function YouTubeKnowledgeCard({
                   <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
                 </CardTitle>
                 <CardDescription>
-                  {selectedCount > 0 ? `${selectedCount} vídeo(s) selecionado(s)` : 'Selecione vídeos para usar como referência'}
+                  {selectedCount > 0 ? `${selectedCount} vídeo(s) selecionado(s)` : 'Configure o canal e selecione vídeos'}
                 </CardDescription>
               </div>
               {selectedCount > 0 && (
@@ -121,10 +114,41 @@ export function YouTubeKnowledgeCard({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-4">
+            {/* YouTube Channel URL Input */}
+            <div className="space-y-2">
+              <Label htmlFor="youtube-url">URL do Canal do YouTube</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="youtube-url"
+                  type="text"
+                  placeholder="https://www.youtube.com/@canal ou https://www.youtube.com/channel/UC..."
+                  value={localUrl}
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  className="flex-1"
+                />
+                {hasChanges && (
+                  <Button 
+                    onClick={handleSaveUrl} 
+                    disabled={isUpdating}
+                    size="sm"
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cole a URL do canal do YouTube para buscar vídeos como base de conhecimento.
+              </p>
+            </div>
+
             {/* Fetch Videos Button */}
             <Button 
               onClick={handleFetchVideos} 
-              disabled={isFetchingChannel}
+              disabled={isFetchingChannel || !effectiveUrl}
               variant="outline"
               className="w-full"
             >
@@ -262,11 +286,11 @@ export function YouTubeKnowledgeCard({
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : effectiveUrl ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Nenhum vídeo adicionado ainda. Busque vídeos do canal para adicionar.
               </p>
-            )}
+            ) : null}
           </CardContent>
         </CollapsibleContent>
       </Card>

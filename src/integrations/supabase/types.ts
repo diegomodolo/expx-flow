@@ -4794,6 +4794,7 @@ export type Database = {
           scheduled_days: number[]
           scheduled_hours: number[]
           updated_at: string | null
+          youtube_channel_url: string | null
         }
         Insert: {
           carousel_max_images?: number | null
@@ -4816,6 +4817,7 @@ export type Database = {
           scheduled_days?: number[]
           scheduled_hours?: number[]
           updated_at?: string | null
+          youtube_channel_url?: string | null
         }
         Update: {
           carousel_max_images?: number | null
@@ -4838,6 +4840,7 @@ export type Database = {
           scheduled_days?: number[]
           scheduled_hours?: number[]
           updated_at?: string | null
+          youtube_channel_url?: string | null
         }
         Relationships: [
           {
