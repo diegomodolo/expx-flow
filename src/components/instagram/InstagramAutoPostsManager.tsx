@@ -159,9 +159,6 @@ export function InstagramAutoPostsManager({
         return (
           <YouTubeKnowledgeCard
             configId={configId}
-            youtubeChannelUrl={config.youtube_channel_url}
-            onUpdateYouTubeUrl={(url) => updateConfig({ youtube_channel_url: url } as any)}
-            isUpdating={isUpdating}
             isStandalone
           />
         );
