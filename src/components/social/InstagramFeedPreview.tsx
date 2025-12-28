@@ -1,9 +1,21 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Instagram, Heart, MessageCircle, ExternalLink, Play } from "lucide-react";
+import { Instagram, Heart, MessageCircle, ExternalLink, Play, RefreshCw, ChevronDown, Trash2, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Post {
   id: string;
@@ -20,6 +32,10 @@ interface InstagramFeedPreviewProps {
   username: string;
   profilePicture?: string;
   followersCount: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  instagramAccountId?: string;
+  onPostDeleted?: () => void;
 }
 
 function formatNumber(num: number): string {
@@ -32,17 +48,63 @@ function formatNumber(num: number): string {
   return num.toLocaleString('pt-BR');
 }
 
+const POSTS_PER_PAGE = 6;
+
 export function InstagramFeedPreview({ 
   posts, 
   username, 
   profilePicture,
-  followersCount 
+  followersCount,
+  onRefresh,
+  isRefreshing,
+  instagramAccountId,
+  onPostDeleted
 }: InstagramFeedPreviewProps) {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!posts || posts.length === 0) {
     return null;
   }
+
+  const visiblePosts = posts.slice(0, visibleCount);
+  const hasMore = visibleCount < posts.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => Math.min(prev + POSTS_PER_PAGE, posts.length));
+  };
+
+  const handleDeletePost = async () => {
+    if (!postToDelete || !instagramAccountId) return;
+
+    setIsDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-instagram-post', {
+        body: {
+          instagramMediaId: postToDelete.id,
+          instagramAccountId: instagramAccountId
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Post excluído do Instagram com sucesso!');
+        setSelectedPost(null);
+        setPostToDelete(null);
+        onPostDeleted?.();
+      } else {
+        throw new Error(data?.error || 'Falha ao excluir o post');
+      }
+    } catch (error: any) {
+      console.error('Error deleting Instagram post:', error);
+      toast.error(error.message || 'Erro ao excluir o post do Instagram');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -65,12 +127,23 @@ export function InstagramFeedPreview({
                 @{username} • {formatNumber(followersCount)} seguidores
               </p>
             </div>
+            {onRefresh && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="h-8 w-8"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Grid de posts - simula o feed */}
         <div className="grid grid-cols-3 gap-0.5 p-0.5 bg-border/30">
-          {posts.slice(0, 9).map((post) => (
+          {visiblePosts.map((post) => (
             <button
               key={post.id}
               onClick={() => setSelectedPost(post)}
@@ -110,11 +183,22 @@ export function InstagramFeedPreview({
           ))}
         </div>
 
-        {/* Footer com contagem */}
-        <div className="p-3 border-t border-border/50 text-center">
+        {/* Footer com contagem e botão carregar mais */}
+        <div className="p-3 border-t border-border/50 flex flex-col items-center gap-2">
           <span className="text-label-sm text-muted-foreground">
-            Mostrando {Math.min(9, posts.length)} de {posts.length} posts recentes
+            Mostrando {visiblePosts.length} de {posts.length} posts recentes
           </span>
+          {hasMore && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLoadMore}
+              className="text-primary hover:text-primary/80"
+            >
+              <ChevronDown className="h-4 w-4 mr-1" />
+              Carregar mais
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -168,19 +252,60 @@ export function InstagramFeedPreview({
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => window.open(selectedPost?.permalink, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Ver no Instagram
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => window.open(selectedPost?.permalink, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Ver no Instagram
+                  </Button>
+                  {instagramAccountId && (
+                    <Button 
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => setPostToDelete(selectedPost)}
+                      title="Excluir do Instagram"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmação de exclusão */}
+      <AlertDialog open={!!postToDelete} onOpenChange={() => setPostToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir post do Instagram?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá excluir permanentemente este post do Instagram. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeletePost}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

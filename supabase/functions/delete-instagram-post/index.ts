@@ -7,97 +7,119 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { postId, instagramMediaId } = await req.json();
-    console.log('Deleting Instagram post:', { postId, instagramMediaId });
+    const { postId, instagramMediaId, instagramAccountId } = await req.json();
 
-    if (!postId || !instagramMediaId) {
-      throw new Error('postId and instagramMediaId are required');
-    }
+    console.log('Delete request received:', { postId, instagramMediaId, instagramAccountId });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the post to find the config_id
-    const { data: post, error: postError } = await supabase
-      .from('instagram_auto_posts')
-      .select('id, config_id')
-      .eq('id', postId)
-      .single();
+    let accessToken: string | null = null;
+    let mediaIdToDelete = instagramMediaId;
 
-    console.log('Post query result:', { post, postError });
+    // If we have a postId, get the post from database first
+    if (postId) {
+      // Get the post to find the config_id
+      const { data: post, error: postError } = await supabase
+        .from('instagram_auto_posts')
+        .select('id, config_id, instagram_media_id')
+        .eq('id', postId)
+        .single();
 
-    if (postError || !post) {
-      throw new Error(`Post not found: ${postError?.message || 'No data returned'}`);
+      console.log('Post query result:', { post, postError });
+
+      if (postError || !post) {
+        throw new Error(`Post not found: ${postError?.message || 'No data returned'}`);
+      }
+
+      mediaIdToDelete = post.instagram_media_id;
+
+      // Get the config to find instagram_account_id
+      const { data: config, error: configError } = await supabase
+        .from('instagram_auto_post_configs')
+        .select('instagram_account_id')
+        .eq('id', post.config_id)
+        .single();
+
+      console.log('Config query result:', { config, configError });
+
+      if (configError || !config) {
+        throw new Error(`Config not found: ${configError?.message || 'No data returned'}`);
+      }
+
+      // Get the Instagram account with access token
+      const { data: igAccount, error: igError } = await supabase
+        .from('instagram_accounts')
+        .select('access_token')
+        .eq('id', config.instagram_account_id)
+        .single();
+
+      console.log('Instagram account query result:', { igAccount: igAccount ? 'found' : 'not found', igError });
+
+      if (igError || !igAccount?.access_token) {
+        throw new Error(`Instagram account not found or access token missing: ${igError?.message || 'No access token'}`);
+      }
+
+      accessToken = igAccount.access_token;
+    } else if (instagramAccountId) {
+      // Direct deletion from feed - get access token from account id
+      const { data: igAccount, error: igError } = await supabase
+        .from('instagram_accounts')
+        .select('access_token')
+        .eq('id', instagramAccountId)
+        .single();
+
+      console.log('Instagram account query result (direct):', { igAccount: igAccount ? 'found' : 'not found', igError });
+
+      if (igError || !igAccount?.access_token) {
+        throw new Error(`Instagram account not found or access token missing: ${igError?.message || 'No access token'}`);
+      }
+
+      accessToken = igAccount.access_token;
+    } else {
+      throw new Error('Either postId or instagramAccountId must be provided');
     }
 
-    // Get the config to find instagram_account_id
-    const { data: config, error: configError } = await supabase
-      .from('instagram_auto_post_configs')
-      .select('instagram_account_id')
-      .eq('id', post.config_id)
-      .single();
-
-    console.log('Config query result:', { config, configError });
-
-    if (configError || !config) {
-      throw new Error(`Config not found: ${configError?.message || 'No data returned'}`);
+    if (!mediaIdToDelete) {
+      throw new Error('No Instagram media ID to delete');
     }
 
-    const instagramAccountId = config.instagram_account_id;
-    console.log('Instagram account ID:', instagramAccountId);
-
-    // Get the Instagram account with access token
-    const { data: igAccount, error: igError } = await supabase
-      .from('instagram_accounts')
-      .select('access_token')
-      .eq('id', instagramAccountId)
-      .single();
-
-    console.log('Instagram account query result:', { igAccount: igAccount ? 'found' : 'not found', igError });
-
-    if (igError || !igAccount?.access_token) {
-      throw new Error(`Instagram account not found or access token missing: ${igError?.message || 'No access token'}`);
-    }
+    console.log('Attempting to delete from Instagram, media ID:', mediaIdToDelete);
 
     // Delete from Instagram Graph API
-    const deleteUrl = `https://graph.facebook.com/v21.0/${instagramMediaId}?access_token=${igAccount.access_token}`;
-    
-    console.log('Calling Instagram API to delete media:', instagramMediaId);
-    
-    const deleteResponse = await fetch(deleteUrl, {
-      method: 'DELETE',
-    });
+    const deleteResponse = await fetch(
+      `https://graph.facebook.com/v19.0/${mediaIdToDelete}?access_token=${accessToken}`,
+      { method: 'DELETE' }
+    );
 
     const deleteResult = await deleteResponse.json();
-    console.log('Instagram API response:', deleteResult);
+    console.log('Instagram API delete response:', deleteResult);
 
     if (!deleteResponse.ok) {
-      // If it's already deleted or not found, we can still remove from our DB
-      if (deleteResult.error?.code === 100 || deleteResult.error?.code === 10) {
-        console.log('Post already deleted from Instagram or not found, removing from database');
+      throw new Error(`Instagram API error: ${deleteResult.error?.message || 'Unknown error'}`);
+    }
+
+    // If we had a postId, delete from database too
+    if (postId) {
+      const { error: dbError } = await supabase
+        .from('instagram_auto_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (dbError) {
+        console.error('Error deleting from database:', dbError);
+        // Don't throw - post was deleted from Instagram
       } else {
-        throw new Error(deleteResult.error?.message || 'Failed to delete from Instagram');
+        console.log('Successfully deleted from database');
       }
     }
-
-    // Remove the post from our database
-    const { error: dbDeleteError } = await supabase
-      .from('instagram_auto_posts')
-      .delete()
-      .eq('id', postId);
-
-    if (dbDeleteError) {
-      throw dbDeleteError;
-    }
-
-    console.log('Post deleted successfully from Instagram and database');
-
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
