@@ -4860,6 +4860,50 @@ export type Database = {
           },
         ]
       }
+      instagram_auto_post_schedules: {
+        Row: {
+          carousel_images: number | null
+          config_id: string
+          created_at: string | null
+          day_of_week: number
+          hour: number
+          id: string
+          is_enabled: boolean | null
+          post_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          carousel_images?: number | null
+          config_id: string
+          created_at?: string | null
+          day_of_week: number
+          hour: number
+          id?: string
+          is_enabled?: boolean | null
+          post_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          carousel_images?: number | null
+          config_id?: string
+          created_at?: string | null
+          day_of_week?: number
+          hour?: number
+          id?: string
+          is_enabled?: boolean | null
+          post_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_auto_post_schedules_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_auto_posts: {
         Row: {
           caption: string
