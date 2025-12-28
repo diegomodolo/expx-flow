@@ -8,6 +8,9 @@ import { TVCampaignRanking } from '@/components/tv-dashboard/TVCampaignRanking';
 import { TVTasksList } from '@/components/tv-dashboard/TVTasksList';
 import { TVClientsOnAlert } from '@/components/tv-dashboard/TVClientsOnAlert';
 import { TVControls } from '@/components/tv-dashboard/TVControls';
+import { TVTopClients } from '@/components/tv-dashboard/TVTopClients';
+import { TVWorstCampaigns } from '@/components/tv-dashboard/TVWorstCampaigns';
+import { TVExtraMetrics } from '@/components/tv-dashboard/TVExtraMetrics';
 import type { TVMetrics, TVAlert, TVCampaign, TVTask, TVClient } from '@/hooks/useTrafegoDashboard';
 
 interface TVDashboardResponse {
@@ -21,6 +24,10 @@ interface TVDashboardResponse {
     totalLeads: number;
     averageCPA: number;
     averageCTR: number;
+    activeCampaigns: number;
+    activeClients: number;
+    avgCPC: number;
+    totalReach: number;
     investmentChange: number;
     leadsChange: number;
     cpaChange: number;
@@ -33,10 +40,15 @@ interface TVDashboardResponse {
     title: string;
     description: string;
     campaignId?: string;
+    clientName?: string;
+    campaignName?: string;
+    value?: string;
   }>;
   campaigns: Array<{
     id: string;
     name: string;
+    clientName: string;
+    clientId: string;
     spend: number;
     leads: number;
     cpa: number;
@@ -50,14 +62,33 @@ interface TVDashboardResponse {
     status: string;
     dueDate: string;
     responsible: string;
+    clientName?: string;
   }>;
   clientsOnAlert: Array<{
     id: string;
     name: string;
     company: string;
     status: string;
+    statusExplanation?: string;
     avatar: string | null;
     leads: number;
+    avgCpl: number;
+  }>;
+  topClients: Array<{
+    id: string;
+    name: string;
+    spend: number;
+    conversions: number;
+    cpa: number;
+    campaigns: number;
+  }>;
+  worstCampaigns: Array<{
+    id: string;
+    name: string;
+    clientName: string;
+    cpa: number;
+    spend: number;
+    conversions: number;
   }>;
 }
 
@@ -161,17 +192,17 @@ export default function DashboardTrafegoPublic() {
     type: a.type === 'high_cpa' ? 'danger' : a.type === 'low_ctr' ? 'warning' : 'opportunity',
     title: a.title,
     description: a.description,
-    clientName: 'Cliente',
-    campaignName: a.title.split(': ')[1] || 'Campanha',
+    clientName: a.clientName || 'Cliente',
+    campaignName: a.campaignName || 'Campanha',
     metric: a.type === 'high_cpa' || a.type === 'scale_opportunity' ? 'CPA' : 'CTR',
-    value: a.description,
+    value: a.value || a.description,
   }));
 
   const campaigns: TVCampaign[] = data.campaigns.map(c => ({
     id: c.id,
     name: c.name,
-    clientName: 'Cliente',
-    clientId: '',
+    clientName: c.clientName || 'Cliente',
+    clientId: c.clientId || '',
     spend: c.spend,
     conversions: c.leads,
     cpa: c.cpa,
@@ -185,17 +216,20 @@ export default function DashboardTrafegoPublic() {
     priority: t.priority,
     status: t.status,
     dueDate: t.dueDate,
-    clientName: t.responsible,
+    clientName: t.clientName || t.responsible || null,
   }));
 
   const clients: TVClient[] = data.clientsOnAlert.map(c => ({
     id: c.id,
     name: c.name,
     status: c.status,
-    statusExplanation: null,
+    statusExplanation: c.statusExplanation || null,
     activeCampaigns: 0,
-    avgCpl: c.leads,
+    avgCpl: c.avgCpl || 0,
   }));
+
+  const topClients = data.topClients || [];
+  const worstCampaigns = data.worstCampaigns || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,15 +243,14 @@ export default function DashboardTrafegoPublic() {
 
       {/* Main Content */}
       <div className="p-6 space-y-6">
-        {/* KPI Header */}
+        {/* Row 1: KPI Header */}
         <TVKPIHeader metrics={metrics} lastSync={data.lastSync} />
 
-        {/* Main Grid */}
+        {/* Row 2: Main Grid - Alerts, Campaign Ranking, Clients on Alert */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Alerts and Tasks */}
-          <div className="space-y-6">
+          {/* Left Column - Alerts */}
+          <div>
             <TVAlertsList alerts={alerts} />
-            <TVTasksList tasks={tasks} />
           </div>
 
           {/* Middle Column - Campaign Ranking */}
@@ -228,6 +261,29 @@ export default function DashboardTrafegoPublic() {
           {/* Right Column - Clients on Alert */}
           <div>
             <TVClientsOnAlert clients={clients} />
+          </div>
+        </div>
+
+        {/* Row 3: Tasks, Top Clients, Worst Campaigns + Extra Metrics */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Tasks */}
+          <div>
+            <TVTasksList tasks={tasks} />
+          </div>
+
+          {/* Middle Column - Top Clients */}
+          <div>
+            <TVTopClients clients={topClients} />
+          </div>
+
+          {/* Right Column - Worst Campaigns and Extra Metrics */}
+          <div className="space-y-6">
+            <TVWorstCampaigns campaigns={worstCampaigns} />
+            <TVExtraMetrics 
+              activeCampaigns={data.metrics.activeCampaigns || 0}
+              activeClients={data.metrics.activeClients || 0}
+              avgCPC={data.metrics.avgCPC || 0}
+            />
           </div>
         </div>
       </div>
