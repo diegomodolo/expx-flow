@@ -55,7 +55,7 @@ export function TVAlertsList({ alerts }: TVAlertsListProps) {
       
       <div className="flex-1 overflow-hidden">
         <div className="space-y-1.5">
-          {alerts.slice(0, 4).map((alert) => {
+          {alerts.slice(0, 6).map((alert) => {
             const config = alertConfig[alert.type];
             const Icon = config.icon;
             

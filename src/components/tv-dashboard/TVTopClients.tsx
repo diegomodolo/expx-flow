@@ -34,13 +34,13 @@ export function TVTopClients({ clients }: TVTopClientsProps) {
     <div className="bg-card rounded-xl p-3 elevation-2 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-2">
         <Users className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold">Top 5 Clientes</h2>
+        <h2 className="text-sm font-semibold">Top 6 Clientes</h2>
         <span className="text-muted-foreground text-[10px] ml-1">(menor CPA)</span>
       </div>
       
       <div className="flex-1 overflow-hidden">
         <div className="space-y-1">
-          {clients.slice(0, 5).map((client, index) => {
+          {clients.slice(0, 6).map((client, index) => {
             const isTop3 = index < 3;
             const medalColors = ["text-yellow-500", "text-gray-400", "text-amber-600"];
             
