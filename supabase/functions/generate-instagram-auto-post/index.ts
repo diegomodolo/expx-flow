@@ -236,6 +236,7 @@ Generate the image now. Return image only.`;
         // Log what we got instead
         console.error(`No image in response. Full structure:`, JSON.stringify(geminiData).substring(0, 500));
         throw new Error('No image generated from Gemini');
+      }
 
       console.log(`Image for slide ${slideNumber || 1} generated successfully on attempt ${attempt}`);
       return base64Url;
