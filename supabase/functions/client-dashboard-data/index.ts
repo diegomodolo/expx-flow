@@ -43,6 +43,17 @@ interface InstagramFeedPost {
   media_type?: string;
 }
 
+interface FacebookPost {
+  id: string;
+  message: string;
+  created_time: string;
+  full_picture?: string;
+  permalink_url: string;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+}
+
 interface TimelineDataPoint2 {
   date: string;
   value: number;
@@ -94,6 +105,7 @@ interface SocialMetrics {
     page_reach?: number;
     page_impressions?: number;
     page_engaged_users?: number;
+    recent_posts?: FacebookPost[];
   } | null;
 }
 
@@ -416,26 +428,35 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     let pageReach = 0;
     let pageImpressions = 0;
     let pageEngagedUsers = 0;
+    let pageFans = 0;
+    let recentPosts: FacebookPost[] = [];
 
     if (pageAccessToken) {
       try {
-        // Buscar followers count
+        // Buscar followers count e fans (likes)
         const pageInfoUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}?` +
-          `fields=followers_count&access_token=${pageAccessToken}`;
+          `fields=followers_count,fan_count&access_token=${pageAccessToken}`;
         
+        console.log('Fetching Facebook Page info...');
         const pageInfoResponse = await fetch(pageInfoUrl);
         if (pageInfoResponse.ok) {
           const pageInfo = await pageInfoResponse.json();
           followersCount = pageInfo.followers_count || 0;
+          pageFans = pageInfo.fan_count || 0;
+          console.log('Facebook Page info received:', { followersCount, pageFans });
+        } else {
+          const errorData = await pageInfoResponse.json();
+          console.log('Facebook Page info error:', errorData.error?.message);
         }
 
-        // Buscar insights da página
+        // Buscar insights da página com métricas válidas
+        // Métricas válidas: page_impressions_unique (reach), page_post_engagements
         const pageInsightsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/insights?` +
-          `metric=page_impressions,page_engaged_users,page_post_engagements` +
+          `metric=page_impressions_unique,page_post_engagements` +
           `&period=day&date_preset=last_28d` +
           `&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Facebook Page insights...');
+        console.log('Fetching Facebook Page insights with valid metrics...');
         const pageInsightsResponse = await fetch(pageInsightsUrl);
         
         if (pageInsightsResponse.ok) {
@@ -449,18 +470,48 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
               const total = values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
               
               switch (metric.name) {
-                case 'page_impressions':
-                  pageImpressions = total;
+                case 'page_impressions_unique':
+                  pageReach = total;
                   break;
-                case 'page_engaged_users':
+                case 'page_post_engagements':
                   pageEngagedUsers = total;
                   break;
               }
             });
+            console.log('Facebook insights processed:', { pageReach, pageEngagedUsers });
           }
         } else {
           const errorData = await pageInsightsResponse.json();
           console.log('Facebook Page insights not available:', errorData.error?.message);
+        }
+
+        // Buscar posts recentes da página do Facebook
+        const postsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/published_posts?` +
+          `fields=id,message,created_time,full_picture,permalink_url,likes.summary(true),comments.summary(true),shares` +
+          `&limit=12&access_token=${pageAccessToken}`;
+        
+        console.log('Fetching Facebook Page posts...');
+        const postsResponse = await fetch(postsUrl);
+        
+        if (postsResponse.ok) {
+          const postsData = await postsResponse.json();
+          console.log('Facebook posts received:', postsData.data?.length || 0);
+          
+          if (postsData.data) {
+            recentPosts = postsData.data.map((post: any) => ({
+              id: post.id,
+              message: post.message || '',
+              created_time: post.created_time,
+              full_picture: post.full_picture || '',
+              permalink_url: post.permalink_url || `https://www.facebook.com/${post.id}`,
+              likes_count: post.likes?.summary?.total_count || 0,
+              comments_count: post.comments?.summary?.total_count || 0,
+              shares_count: post.shares?.count || 0,
+            }));
+          }
+        } else {
+          const errorData = await postsResponse.json();
+          console.log('Facebook Page posts not available:', errorData.error?.message);
         }
       } catch (fbError) {
         console.log('Error fetching Facebook Page data:', fbError);
@@ -470,10 +521,11 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     facebookData = {
       page_name: fbPage.page_name,
       page_category: fbPage.page_category || '',
-      followers_count: followersCount,
+      followers_count: followersCount || pageFans,
       page_reach: pageReach,
-      page_impressions: pageImpressions,
+      page_impressions: pageReach, // Use reach as impressions for backwards compatibility
       page_engaged_users: pageEngagedUsers,
+      recent_posts: recentPosts,
     };
   }
 

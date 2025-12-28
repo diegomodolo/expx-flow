@@ -341,7 +341,7 @@ export function ClienteRedesSociais() {
             onRefresh={() => refetch()}
             isRefreshing={isFetching}
           />
-          {/* Placeholder for Facebook feed - will show empty state or future Facebook posts */}
+          {/* Facebook Feed */}
           {facebook && (
             <Card className="bg-card border-0 shadow-google-sm rounded-xl overflow-hidden">
               <div className="p-4 border-b border-border/50">
@@ -350,21 +350,47 @@ export function ClienteRedesSociais() {
                     <Facebook className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-title-sm text-foreground font-medium">Feed do Facebook</span>
-                    </div>
-                    <p className="text-body-sm text-muted-foreground">
-                      {facebook.page_name}
-                    </p>
+                    <span className="text-title-sm text-foreground font-medium">Feed do Facebook</span>
+                    <p className="text-body-sm text-muted-foreground">{facebook.page_name}</p>
                   </div>
                 </div>
               </div>
-              <div className="p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
-                <Facebook className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <p className="text-body-sm text-muted-foreground">
-                  Feed do Facebook em breve
-                </p>
-              </div>
+              {facebook.recent_posts && facebook.recent_posts.length > 0 ? (
+                <div className="p-4 grid grid-cols-2 gap-3">
+                  {facebook.recent_posts.slice(0, 6).map((post) => (
+                    <a
+                      key={post.id}
+                      href={post.permalink_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative aspect-square rounded-lg overflow-hidden bg-muted"
+                    >
+                      {post.full_picture ? (
+                        <img src={post.full_picture} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                          <Facebook className="h-8 w-8 text-primary/50" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
+                        <div className="flex items-center gap-1">
+                          <Heart className="h-4 w-4" />
+                          <span className="text-sm">{post.likes_count}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="h-4 w-4" />
+                          <span className="text-sm">{post.comments_count}</span>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
+                  <Facebook className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-body-sm text-muted-foreground">Nenhum post encontrado</p>
+                </div>
+              )}
             </Card>
           )}
         </div>
