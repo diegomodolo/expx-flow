@@ -49,42 +49,53 @@ serve(async (req) => {
 
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const lastWeekStart = new Date(startOfWeek);
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-
     // Fetch campaigns, clients, and tasks in parallel
-    const [campaignsResult, clientsResult, tasksResult] = await Promise.all([
+    const [campaignsResult, clientsResult, tasksResult, allClientsResult] = await Promise.all([
+      // Campaigns with client info
       supabase
         .from('campaigns')
-        .select('id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at')
+        .select(`
+          id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at,
+          clients!inner(id, name, company)
+        `)
         .eq('company_id', company.id)
         .eq('is_active', true),
       
+      // Clients on alert - using actual status values (red, yellow, green OR atencao, emergencial)
       supabase
         .from('clients')
-        .select('id, name, company, calculated_status, status, avatar, leads_generated')
+        .select('id, name, company, calculated_status, status, avatar, leads_generated, avg_cpl, status_explanation')
         .eq('company_id', company.id)
-        .in('calculated_status', ['atencao', 'emergencial']),
+        .or('calculated_status.in.(atencao,emergencial,red,yellow),status.in.(atencao,emergencial,red,yellow)'),
       
+      // Tasks
       supabase
         .from('tasks')
-        .select('id, title, priority, status, deadline, responsible_name')
+        .select('id, title, priority, status, deadline, responsible_name, client_id')
         .eq('company_id', company.id)
         .in('status', ['todo', 'in_progress'])
         .order('deadline', { ascending: true })
-        .limit(10)
+        .limit(10),
+      
+      // All clients for building client name map
+      supabase
+        .from('clients')
+        .select('id, name')
+        .eq('company_id', company.id)
     ]);
 
     const campaigns = campaignsResult.data || [];
-    const clients = clientsResult.data || [];
+    const clientsOnAlert = clientsResult.data || [];
     const tasks = tasksResult.data || [];
+    const allClients = allClientsResult.data || [];
 
-    console.log(`[tv-dashboard-data] Found ${campaigns.length} campaigns, ${clients.length} clients on alert, ${tasks.length} tasks`);
+    // Build client ID to name map
+    const clientNameMap: Record<string, string> = {};
+    allClients.forEach(c => {
+      clientNameMap[c.id] = c.name;
+    });
+
+    console.log(`[tv-dashboard-data] Found ${campaigns.length} campaigns, ${clientsOnAlert.length} clients on alert, ${tasks.length} tasks`);
 
     // Calculate metrics
     const totalInvestment = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
@@ -95,18 +106,33 @@ serve(async (req) => {
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
     const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
-    // Generate alerts
-    const alerts: Array<{ id: string; type: string; severity: string; title: string; description: string; campaignId?: string }> = [];
+    // Generate alerts with client names
+    const alerts: Array<{ 
+      id: string; 
+      type: string; 
+      severity: string; 
+      title: string; 
+      description: string; 
+      campaignId?: string;
+      clientName?: string;
+      campaignName?: string;
+      value?: string;
+    }> = [];
 
     campaigns.forEach(campaign => {
+      const clientName = (campaign.clients as any)?.name || clientNameMap[campaign.client_id] || 'Cliente';
+      
       if (campaign.cpa && campaign.cpa > 50) {
         alerts.push({
           id: `cpa-${campaign.id}`,
           type: 'high_cpa',
           severity: 'critical',
-          title: `CPA Alto: ${campaign.name}`,
+          title: 'CPA Alto',
           description: `CPA de R$ ${campaign.cpa.toFixed(2)} está acima do limite`,
-          campaignId: campaign.id
+          campaignId: campaign.id,
+          clientName: clientName,
+          campaignName: campaign.name,
+          value: `R$ ${campaign.cpa.toFixed(2)}`
         });
       }
       if (campaign.ctr && campaign.ctr < 1) {
@@ -114,14 +140,17 @@ serve(async (req) => {
           id: `ctr-${campaign.id}`,
           type: 'low_ctr',
           severity: 'warning',
-          title: `CTR Baixo: ${campaign.name}`,
+          title: 'CTR Baixo',
           description: `CTR de ${campaign.ctr.toFixed(2)}% está abaixo do ideal`,
-          campaignId: campaign.id
+          campaignId: campaign.id,
+          clientName: clientName,
+          campaignName: campaign.name,
+          value: `${campaign.ctr.toFixed(2)}%`
         });
       }
     });
 
-    // Sort campaigns by CPA for ranking
+    // Sort campaigns by CPA for ranking, include client name
     const campaignRanking = campaigns
       .filter(c => c.conversions && c.conversions > 0)
       .sort((a, b) => (a.cpa || 999) - (b.cpa || 999))
@@ -129,6 +158,8 @@ serve(async (req) => {
       .map(c => ({
         id: c.id,
         name: c.name,
+        clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
+        clientId: c.client_id,
         spend: c.spend || 0,
         leads: c.conversions || 0,
         cpa: c.cpa || 0,
@@ -136,38 +167,107 @@ serve(async (req) => {
         status: c.status
       }));
 
-    // Format tasks
+    // Format tasks with client names
     const formattedTasks = tasks.map(t => ({
       id: t.id,
       title: t.title,
       priority: t.priority || 'medium',
       status: t.status,
       dueDate: t.deadline,
-      responsible: t.responsible_name
+      responsible: t.responsible_name,
+      clientName: t.client_id ? clientNameMap[t.client_id] : null
     }));
 
-    // Format clients on alert
-    const clientsOnAlert = clients.map(c => ({
-      id: c.id,
-      name: c.name,
-      company: c.company,
-      status: c.calculated_status || c.status,
-      avatar: c.avatar,
-      leads: c.leads_generated || 0
-    }));
+    // Format clients on alert with proper status mapping
+    const formattedClientsOnAlert = clientsOnAlert.map(c => {
+      // Map red/yellow to atencao/emergencial for frontend
+      let displayStatus = c.calculated_status || c.status;
+      if (displayStatus === 'red') displayStatus = 'emergencia';
+      if (displayStatus === 'yellow') displayStatus = 'atencao';
+      
+      return {
+        id: c.id,
+        name: c.name,
+        company: c.company,
+        status: displayStatus,
+        statusExplanation: c.status_explanation,
+        avatar: c.avatar,
+        leads: c.leads_generated || 0,
+        avgCpl: c.avg_cpl || 0
+      };
+    });
+
+    // Count active campaigns per client
+    const campaignsPerClient: Record<string, number> = {};
+    campaigns.forEach(c => {
+      if (c.client_id) {
+        campaignsPerClient[c.client_id] = (campaignsPerClient[c.client_id] || 0) + 1;
+      }
+    });
+
+    // Calculate additional metrics for the third row
+    const activeCampaigns = campaigns.length;
+    const activeClients = new Set(campaigns.map(c => c.client_id)).size;
+    const avgCPC = totalClicks > 0 ? totalInvestment / totalClicks : 0;
+    const totalReach = campaigns.reduce((sum, c) => sum + ((c as any).reach || 0), 0);
+
+    // Get top performing clients
+    const clientPerformance = campaigns.reduce((acc, c) => {
+      const clientId = c.client_id;
+      if (!acc[clientId]) {
+        acc[clientId] = {
+          id: clientId,
+          name: (c.clients as any)?.name || clientNameMap[clientId] || 'Cliente',
+          spend: 0,
+          conversions: 0,
+          campaigns: 0
+        };
+      }
+      acc[clientId].spend += c.spend || 0;
+      acc[clientId].conversions += c.conversions || 0;
+      acc[clientId].campaigns += 1;
+      return acc;
+    }, {} as Record<string, any>);
+
+    const topClients = Object.values(clientPerformance)
+      .filter((c: any) => c.conversions > 0)
+      .map((c: any) => ({
+        ...c,
+        cpa: c.spend / c.conversions
+      }))
+      .sort((a: any, b: any) => a.cpa - b.cpa)
+      .slice(0, 5);
+
+    // Calculate worst performing campaigns (for alerts)
+    const worstCampaigns = campaigns
+      .filter(c => c.conversions && c.conversions > 0 && c.cpa && c.cpa > 50)
+      .sort((a, b) => (b.cpa || 0) - (a.cpa || 0))
+      .slice(0, 5)
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
+        cpa: c.cpa || 0,
+        spend: c.spend || 0,
+        conversions: c.conversions || 0
+      }));
 
     const response = {
       company: {
         id: company.id,
         name: company.name
       },
-      lastSync: now.toISOString(),
+      lastSync: new Date().toISOString(),
       metrics: {
         totalInvestment,
         totalLeads,
         averageCPA,
         averageCTR,
-        investmentChange: 0, // Would need historical data
+        activeCampaigns,
+        activeClients,
+        avgCPC,
+        totalReach,
+        investmentChange: 0,
         leadsChange: 0,
         cpaChange: 0,
         ctrChange: 0
@@ -175,7 +275,9 @@ serve(async (req) => {
       alerts: alerts.slice(0, 10),
       campaigns: campaignRanking,
       tasks: formattedTasks,
-      clientsOnAlert
+      clientsOnAlert: formattedClientsOnAlert,
+      topClients,
+      worstCampaigns
     };
 
     console.log(`[tv-dashboard-data] Response prepared successfully`);
