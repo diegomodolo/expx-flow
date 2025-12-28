@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useClients } from "@/hooks/useClients";
+import { useClientDirectory, useClientDirectoryFilter } from "@/hooks/useClientDirectory";
 import { Search, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,22 +18,9 @@ export function ClientQuickSwitch({ open, onOpenChange, currentClientId }: Clien
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const { clients, loading } = useClients();
 
-  const filteredClients = useMemo(() => {
-    // Sort alphabetically first
-    const sorted = [...clients].sort((a, b) => 
-      a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
-    );
-    
-    if (!search.trim()) return sorted;
-    const searchLower = search.toLowerCase();
-    return sorted.filter(
-      (client) =>
-        client.name.toLowerCase().includes(searchLower) ||
-        client.company.toLowerCase().includes(searchLower)
-    );
-  }, [clients, search]);
+  const { clients, loading } = useClientDirectory();
+  const filteredClients = useClientDirectoryFilter(clients, search);
 
   const handleSelectClient = (clientId: string) => {
     // Get the current sub-route (e.g., /campanhas, /criativos, etc.)
