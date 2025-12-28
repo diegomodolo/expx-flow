@@ -173,7 +173,14 @@ export function InstagramAutoPostsManager({
         );
 
       case 'history':
-        return <HistorySection publishedPosts={publishedPosts} />;
+        return (
+          <HistorySection 
+            publishedPosts={publishedPosts} 
+            onPostDeleted={() => {
+              // The query will be automatically invalidated by the hook
+            }}
+          />
+        );
 
       default:
         return null;
