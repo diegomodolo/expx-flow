@@ -34,7 +34,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSystemAlerts } from "@/hooks/useSystemAlerts";
-import { useTvDashboardToken } from "@/hooks/useTvDashboardToken";
+import { useCompanyTvDashboardToken } from "@/hooks/useCompanyTvDashboardToken";
 
 interface MenuItem {
   title: string;
@@ -125,7 +125,7 @@ export function DashboardSidebar() {
   const currentPath = location.pathname;
   const { hasPermission, permissionsLoading, isOwner } = useEmployeePermissions();
   const { unresolvedCriticalCount } = useSystemAlerts();
-  const { token: tvToken, generateToken, generating: generatingToken } = useTvDashboardToken();
+  const { token: tvToken, generateToken, generating: generatingToken } = useCompanyTvDashboardToken();
   
   // Track which categories are expanded
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
