@@ -518,6 +518,7 @@ REGRAS:
               content: `Crie UM prompt para gerar uma imagem de post Instagram:
 
 BRIEFING: ${config.post_briefing}
+${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 DATA ATUAL: ${currentDateFormatted}
@@ -573,6 +574,7 @@ Responda APENAS com o prompt em inglês.`
       ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides:
 
 BRIEFING: ${config.post_briefing}
+${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
@@ -582,11 +584,13 @@ REQUISITOS:
 - 3-5 hashtags relevantes
 - Mencione que é um carrossel (ex: "Deslize para ver mais →")
 - Call-to-action para engajamento
+- USE informações da base de conhecimento se disponível
 
 Responda APENAS com a legenda pronta.`
       : `Crie uma legenda para post do Instagram:
 
 BRIEFING: ${config.post_briefing}
+${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
@@ -595,6 +599,7 @@ REQUISITOS:
 - 3-5 emojis estratégicos
 - 3-5 hashtags relevantes
 - Call-to-action sutil
+- USE informações da base de conhecimento se disponível
 
 Responda APENAS com a legenda pronta.`;
 
