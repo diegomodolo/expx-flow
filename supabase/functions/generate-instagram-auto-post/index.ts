@@ -260,7 +260,6 @@ Deno.serve(async (req) => {
       throw new Error('Config ID is required');
     }
 
-    // Fetch config with optional client data
     const { data: config, error: configError } = await supabase
       .from('instagram_auto_post_configs')
       .select(`
@@ -288,6 +287,41 @@ Deno.serve(async (req) => {
     const clientName = client?.name || config.name || 'Automação';
     const clientSector = client?.sector || 'Geral';
     const clientTargetAudience = client?.target_audience || 'Geral';
+
+    // Fetch knowledge base: YouTube videos
+    const { data: knowledgeVideos } = await supabase
+      .from('instagram_autopost_knowledge_videos')
+      .select('video_title, transcription')
+      .eq('config_id', configId)
+      .eq('is_selected', true)
+      .not('transcription', 'is', null);
+
+    // Fetch knowledge base: PDF files
+    const { data: knowledgeFiles } = await supabase
+      .from('instagram_autopost_knowledge_files')
+      .select('file_name, content_text')
+      .eq('config_id', configId)
+      .eq('processing_status', 'completed')
+      .not('content_text', 'is', null);
+
+    // Build knowledge context
+    let knowledgeContext = '';
+    
+    if (knowledgeVideos && knowledgeVideos.length > 0) {
+      knowledgeContext += '\n\n--- CONTEÚDO DE VÍDEOS DO YOUTUBE ---\n';
+      for (const video of knowledgeVideos) {
+        knowledgeContext += `\nVídeo: ${video.video_title}\n${video.transcription?.substring(0, 2000)}\n`;
+      }
+    }
+    
+    if (knowledgeFiles && knowledgeFiles.length > 0) {
+      knowledgeContext += '\n\n--- CONTEÚDO DE ARQUIVOS PDF ---\n';
+      for (const file of knowledgeFiles) {
+        knowledgeContext += `\nArquivo: ${file.file_name}\n${file.content_text?.substring(0, 2000)}\n`;
+      }
+    }
+
+    console.log('Knowledge context length:', knowledgeContext.length);
 
     // Use config reference images first, fallback to client images
     const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
@@ -384,6 +418,7 @@ REGRAS:
 
 BRIEFING DA POSTAGEM:
 ${config.post_briefing}
+${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledgeContext.substring(0, 3000)}` : ''}
 
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}

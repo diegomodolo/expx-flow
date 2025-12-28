@@ -229,3 +229,9 @@ verify_jwt = true
 
 [functions.generate-creative-texts]
 verify_jwt = true
+
+[functions.fetch-youtube-channel-videos]
+verify_jwt = true
+
+[functions.transcribe-youtube-video]
+verify_jwt = true

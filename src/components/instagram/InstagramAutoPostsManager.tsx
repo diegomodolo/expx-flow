@@ -12,6 +12,8 @@ import { useQuery } from '@tanstack/react-query';
 import { InstagramPostPreviewModal } from '@/components/instagram/InstagramPostPreviewModal';
 import { AutoPostReferenceImages } from '@/components/instagram/AutoPostReferenceImages';
 import { ScheduleGrid } from '@/components/instagram/ScheduleGrid';
+import { YouTubeKnowledgeCard } from '@/components/instagram/YouTubeKnowledgeCard';
+import { PDFKnowledgeCard } from '@/components/instagram/PDFKnowledgeCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -149,8 +151,25 @@ export function InstagramAutoPostsManager({
   const [configOpen, setConfigOpen] = useState(false);
   const [scheduleGridOpen, setScheduleGridOpen] = useState(true);
   const [refImagesOpen, setRefImagesOpen] = useState(false);
+  const [youtubeKnowledgeOpen, setYoutubeKnowledgeOpen] = useState(false);
+  const [pdfKnowledgeOpen, setPdfKnowledgeOpen] = useState(false);
   const [pendingPostsOpen, setPendingPostsOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Fetch client data to get YouTube channel URL
+  const { data: clientData } = useQuery({
+    queryKey: ['client-youtube-url', config?.client_id],
+    queryFn: async () => {
+      if (!config?.client_id) return null;
+      const { data } = await supabase
+        .from('clients')
+        .select('youtube_channel_url')
+        .eq('id', config.client_id)
+        .single();
+      return data;
+    },
+    enabled: !!config?.client_id
+  });
 
   const { data: instagramAccount } = useQuery({
     queryKey: ['instagram-account', instagramAccountId],
@@ -433,6 +452,22 @@ export function InstagramAutoPostsManager({
           </CollapsibleContent>
         </Card>
       </Collapsible>
+
+      {/* YouTube Knowledge Base */}
+      <YouTubeKnowledgeCard
+        configId={configId}
+        youtubeChannelUrl={clientData?.youtube_channel_url}
+        open={youtubeKnowledgeOpen}
+        onOpenChange={setYoutubeKnowledgeOpen}
+      />
+
+      {/* PDF Knowledge Base */}
+      <PDFKnowledgeCard
+        configId={configId}
+        companyId={config.company_id}
+        open={pdfKnowledgeOpen}
+        onOpenChange={setPdfKnowledgeOpen}
+      />
 
       {/* Pending Posts Queue */}
       <Collapsible open={pendingPostsOpen} onOpenChange={setPendingPostsOpen}>

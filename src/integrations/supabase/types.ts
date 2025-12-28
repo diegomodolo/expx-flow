@@ -4980,6 +4980,103 @@ export type Database = {
           },
         ]
       }
+      instagram_autopost_knowledge_files: {
+        Row: {
+          config_id: string
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          processing_status: string
+        }
+        Insert: {
+          config_id: string
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          processing_status?: string
+        }
+        Update: {
+          config_id?: string
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          processing_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_autopost_knowledge_files_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_autopost_knowledge_videos: {
+        Row: {
+          config_id: string
+          created_at: string
+          created_by: string | null
+          duration_seconds: number | null
+          id: string
+          is_selected: boolean
+          published_at: string | null
+          thumbnail_url: string | null
+          transcription: string | null
+          video_id: string
+          video_title: string | null
+          video_url: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_selected?: boolean
+          published_at?: string | null
+          thumbnail_url?: string | null
+          transcription?: string | null
+          video_id: string
+          video_title?: string | null
+          video_url: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_selected?: boolean
+          published_at?: string | null
+          thumbnail_url?: string | null
+          transcription?: string | null
+          video_id?: string
+          video_title?: string | null
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_autopost_knowledge_videos_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_api_request_log: {
         Row: {
           api_key_id: string | null
