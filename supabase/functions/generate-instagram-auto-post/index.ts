@@ -137,7 +137,12 @@ function calculateNextPostTime(scheduledDays: number[], scheduledHours: number[]
   throw new Error('Could not calculate next post time');
 }
 
-// Generate a single image with Gemini
+// Helper function to delay execution
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Generate a single image with Gemini (with retry logic)
 async function generateSingleImage(
   imagePrompt: string,
   referenceImages: string[],
@@ -146,22 +151,27 @@ async function generateSingleImage(
   clientSector: string,
   clientTargetAudience: string,
   slideNumber?: number,
-  totalSlides?: number
+  totalSlides?: number,
+  maxRetries: number = 3
 ): Promise<string> {
-  const messageContent: any[] = [];
+  let lastError: Error | null = null;
   
-  for (const refImageUrl of referenceImages) {
-    messageContent.push({
-      type: 'image_url',
-      image_url: { url: refImageUrl }
-    });
-  }
-  
-  const slideContext = slideNumber && totalSlides 
-    ? `\n\nThis is SLIDE ${slideNumber} of ${totalSlides} in a carousel. Make sure it connects visually with other slides while having its own distinct focus.`
-    : '';
-  
-  const geminiPrompt = `Generate a square 1:1 Instagram feed image.
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const messageContent: any[] = [];
+      
+      for (const refImageUrl of referenceImages) {
+        messageContent.push({
+          type: 'image_url',
+          image_url: { url: refImageUrl }
+        });
+      }
+      
+      const slideContext = slideNumber && totalSlides 
+        ? `\n\nThis is SLIDE ${slideNumber} of ${totalSlides} in a carousel. Make sure it connects visually with other slides while having its own distinct focus.`
+        : '';
+      
+      const geminiPrompt = `Generate a square 1:1 Instagram feed image.
 
 ${imagePrompt}${slideContext}
 
@@ -175,38 +185,63 @@ Study the reference images above carefully and match their EXACT visual style:
 
 Generate the image now. Return image only.`;
 
-  messageContent.push({
-    type: 'text',
-    text: geminiPrompt
-  });
+      messageContent.push({
+        type: 'text',
+        text: geminiPrompt
+      });
 
-  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-pro-image-preview',
-      messages: [{ role: 'user', content: messageContent }],
-      modalities: ['image', 'text']
-    }),
-  });
+      console.log(`Image generation attempt ${attempt}/${maxRetries} for slide ${slideNumber || 1}...`);
 
-  if (!geminiResponse.ok) {
-    const errorText = await geminiResponse.text();
-    console.error('Gemini error:', errorText);
-    throw new Error(`Gemini API error: ${geminiResponse.status}`);
+      const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-pro-image-preview',
+          messages: [{ role: 'user', content: messageContent }],
+          modalities: ['image', 'text']
+        }),
+      });
+
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error(`Gemini error on attempt ${attempt}:`, errorText);
+        
+        // If rate limited (429), wait longer before retry
+        if (geminiResponse.status === 429) {
+          console.log('Rate limited, waiting 5 seconds before retry...');
+          await delay(5000);
+        }
+        
+        throw new Error(`Gemini API error: ${geminiResponse.status}`);
+      }
+
+      const geminiData = await geminiResponse.json();
+      const base64Url = geminiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
+
+      if (!base64Url) {
+        throw new Error('No image generated from Gemini');
+      }
+
+      console.log(`Image for slide ${slideNumber || 1} generated successfully on attempt ${attempt}`);
+      return base64Url;
+      
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`Attempt ${attempt}/${maxRetries} failed for slide ${slideNumber || 1}:`, error);
+      
+      if (attempt < maxRetries) {
+        // Wait before retrying (exponential backoff: 2s, 4s, 8s)
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`Waiting ${waitTime}ms before retry...`);
+        await delay(waitTime);
+      }
+    }
   }
-
-  const geminiData = await geminiResponse.json();
-  const base64Url = geminiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
-
-  if (!base64Url) {
-    throw new Error('No image generated from Gemini');
-  }
-
-  return base64Url;
+  
+  throw lastError || new Error('Failed to generate image after all retries');
 }
 
 // Upload base64 image to storage
