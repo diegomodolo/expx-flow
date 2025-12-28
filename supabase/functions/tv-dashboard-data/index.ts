@@ -50,12 +50,12 @@ serve(async (req) => {
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
     // Fetch campaigns, clients with budget/balance data in parallel
-    const [campaignsResult, clientsResult, clientsWithBudgetResult] = await Promise.all([
+    const [campaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult] = await Promise.all([
       // Campaigns with client info
       supabase
         .from('campaigns')
         .select(`
-          id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at,
+          id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at, platforms, frequency,
           clients!inner(id, name, company)
         `)
         .eq('company_id', company.id)
@@ -72,15 +72,23 @@ serve(async (req) => {
       supabase
         .from('clients')
         .select(`
-          id, name, avatar, monthly_budget, last_sync_period,
+          id, name, avatar, monthly_budget, last_sync_period, active_campaigns,
           facebook_ad_accounts(balance, recharge_day)
         `)
+        .eq('company_id', company.id),
+      
+      // All active clients
+      supabase
+        .from('clients')
+        .select('id, name, avatar, active_campaigns, status')
         .eq('company_id', company.id)
+        .neq('status', 'inativo')
     ]);
 
     const campaigns = campaignsResult.data || [];
     const clientsOnAlert = clientsResult.data || [];
     const clientsWithBudget = clientsWithBudgetResult.data || [];
+    const allClients = allClientsResult.data || [];
 
     // Build client ID to name map
     const clientNameMap: Record<string, string> = {};
@@ -92,9 +100,11 @@ serve(async (req) => {
 
     // Calculate spend per client from campaigns
     const clientSpend: Record<string, number> = {};
+    const clientCampaignCount: Record<string, number> = {};
     campaigns.forEach(c => {
       if (c.client_id) {
         clientSpend[c.client_id] = (clientSpend[c.client_id] || 0) + (c.spend || 0);
+        clientCampaignCount[c.client_id] = (clientCampaignCount[c.client_id] || 0) + 1;
       }
     });
 
@@ -108,6 +118,42 @@ serve(async (req) => {
     
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
     const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    
+    // NEW: Calculate conversion rate (leads/clicks)
+    const conversionRate = totalClicks > 0 ? (totalLeads / totalClicks) * 100 : 0;
+    
+    // NEW: Calculate average frequency
+    const campaignsWithFrequency = campaigns.filter(c => c.frequency && c.frequency > 0);
+    const avgFrequency = campaignsWithFrequency.length > 0 
+      ? campaignsWithFrequency.reduce((sum, c) => sum + (c.frequency || 0), 0) / campaignsWithFrequency.length 
+      : 0;
+
+    // NEW: Investment by platform
+    const investmentByPlatform: Record<string, number> = {};
+    campaigns.forEach(c => {
+      const platform = c.platforms || 'Outros';
+      investmentByPlatform[platform] = (investmentByPlatform[platform] || 0) + (c.spend || 0);
+    });
+    
+    const platformData = Object.entries(investmentByPlatform)
+      .map(([platform, spend]) => ({
+        platform,
+        spend,
+        percentage: totalInvestment > 0 ? (spend / totalInvestment) * 100 : 0
+      }))
+      .sort((a, b) => b.spend - a.spend);
+
+    // NEW: Clients without active campaigns
+    const clientsWithActiveCampaigns = new Set(campaigns.map(c => c.client_id));
+    const inactiveClients = allClients
+      .filter(c => !clientsWithActiveCampaigns.has(c.id))
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        avatar: c.avatar,
+        activeCampaigns: c.active_campaigns || 0
+      }))
+      .slice(0, 10);
 
     // Generate alerts with client names
     const alerts: Array<{ 
@@ -219,13 +265,13 @@ serve(async (req) => {
         cpa: c.spend / c.conversions
       }))
       .sort((a: any, b: any) => a.cpa - b.cpa)
-      .slice(0, 5);
+      .slice(0, 6);
 
     // Calculate worst performing campaigns
     const worstCampaigns = campaigns
       .filter(c => c.conversions && c.conversions > 0 && c.cpa && c.cpa > 50)
       .sort((a, b) => (b.cpa || 0) - (a.cpa || 0))
-      .slice(0, 5)
+      .slice(0, 6)
       .map(c => ({
         id: c.id,
         name: c.name,
@@ -235,7 +281,7 @@ serve(async (req) => {
         conversions: c.conversions || 0
       }));
 
-    // === NEW: Calculate budget/balance alerts ===
+    // === Calculate budget/balance alerts ===
     const now = new Date();
     const currentDay = now.getDate();
     const currentMonth = now.getMonth();
@@ -257,7 +303,7 @@ serve(async (req) => {
 
     clientsWithBudget.forEach(client => {
       const spend = clientSpend[client.id] || 0;
-      const syncPeriod = parseInt(client.last_sync_period || '0') || 7; // Default to 7 days
+      const syncPeriod = parseInt(client.last_sync_period || '0') || 7;
       const monthlyBudget = client.monthly_budget || 0;
       const fbAccount = Array.isArray(client.facebook_ad_accounts) 
         ? client.facebook_ad_accounts[0] 
@@ -265,7 +311,6 @@ serve(async (req) => {
       const balance = fbAccount?.balance || 0;
       const rechargeDay = fbAccount?.recharge_day;
       
-      // Calculate daily spend
       const dailySpend = syncPeriod > 0 ? spend / syncPeriod : 0;
       
       // Check 1: Budget overspend
@@ -301,13 +346,11 @@ serve(async (req) => {
             nextRechargeDate = new Date(currentYear, currentMonth + 1, rechargeDay);
           }
           
-          // Adjust for months with fewer days
           const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
           if (rechargeDay > maxDayInMonth) {
             nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
           }
         } else {
-          // Fallback: end of month
           nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
         }
         
@@ -316,9 +359,7 @@ serve(async (req) => {
         const projectedSpend = dailySpend * daysRemaining;
         const coveragePercentage = (balance / projectedSpend) * 100;
         
-        // If balance won't last (< 80% coverage)
         if (coveragePercentage < 80) {
-          // Avoid duplicates if already has budget alert
           const hasOverBudget = budgetAlerts.some(a => a.id === client.id && a.alertType === 'over_budget');
           if (!hasOverBudget) {
             budgetAlerts.push({
@@ -339,10 +380,9 @@ serve(async (req) => {
       }
     });
 
-    // Sort budget alerts by severity (lower percentage = more critical)
     budgetAlerts.sort((a, b) => a.percentage - b.percentage);
 
-    console.log(`[tv-dashboard-data] Found ${budgetAlerts.length} budget alerts`);
+    console.log(`[tv-dashboard-data] Found ${budgetAlerts.length} budget alerts, ${inactiveClients.length} inactive clients`);
 
     const response = {
       company: {
@@ -353,8 +393,11 @@ serve(async (req) => {
       metrics: {
         totalInvestment,
         totalLeads,
+        totalClicks,
         averageCPA,
         averageCTR,
+        conversionRate,
+        avgFrequency,
         activeCampaigns,
         activeClients,
         avgCPC,
@@ -368,7 +411,9 @@ serve(async (req) => {
       clientsOnAlert: formattedClientsOnAlert,
       topClients,
       worstCampaigns,
-      budgetAlerts: budgetAlerts.slice(0, 10)
+      budgetAlerts: budgetAlerts.slice(0, 10),
+      platformData,
+      inactiveClients
     };
 
     console.log(`[tv-dashboard-data] Response prepared successfully`);

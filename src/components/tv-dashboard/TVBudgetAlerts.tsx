@@ -48,7 +48,7 @@ export function TVBudgetAlerts({ alerts }: TVBudgetAlertsProps) {
       
       <div className="flex-1 overflow-hidden">
         <div className="space-y-1">
-          {alerts.slice(0, 5).map((alert) => {
+          {alerts.slice(0, 6).map((alert) => {
             const isOverBudget = alert.alertType === 'over_budget';
             const bgColor = isOverBudget ? 'bg-orange-500/10' : 'bg-red-500/10';
             const borderColor = isOverBudget ? 'border-l-orange-500' : 'border-l-red-500';

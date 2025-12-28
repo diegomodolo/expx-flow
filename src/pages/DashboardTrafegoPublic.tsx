@@ -9,8 +9,10 @@ import { TVClientsOnAlert } from '@/components/tv-dashboard/TVClientsOnAlert';
 import { TVControls } from '@/components/tv-dashboard/TVControls';
 import { TVTopClients } from '@/components/tv-dashboard/TVTopClients';
 import { TVWorstCampaigns } from '@/components/tv-dashboard/TVWorstCampaigns';
-import { TVExtraMetrics } from '@/components/tv-dashboard/TVExtraMetrics';
 import { TVBudgetAlerts } from '@/components/tv-dashboard/TVBudgetAlerts';
+import { TVPlatformChart } from '@/components/tv-dashboard/TVPlatformChart';
+import { TVConversionMetrics } from '@/components/tv-dashboard/TVConversionMetrics';
+import { TVInactiveClients } from '@/components/tv-dashboard/TVInactiveClients';
 import type { TVMetrics, TVAlert, TVCampaign, TVClient } from '@/hooks/useTrafegoDashboard';
 
 interface TVDashboardResponse {
@@ -22,8 +24,11 @@ interface TVDashboardResponse {
   metrics: {
     totalInvestment: number;
     totalLeads: number;
+    totalClicks: number;
     averageCPA: number;
     averageCTR: number;
+    conversionRate: number;
+    avgFrequency: number;
     activeCampaigns: number;
     activeClients: number;
     avgCPC: number;
@@ -93,6 +98,17 @@ interface TVDashboardResponse {
     projectedSpend: number;
     percentage: number;
     message: string;
+  }>;
+  platformData: Array<{
+    platform: string;
+    spend: number;
+    percentage: number;
+  }>;
+  inactiveClients: Array<{
+    id: string;
+    name: string;
+    avatar: string | null;
+    activeCampaigns: number;
   }>;
 }
 
@@ -227,47 +243,50 @@ export default function DashboardTrafegoPublic() {
   const topClients = data.topClients || [];
   const worstCampaigns = data.worstCampaigns || [];
   const budgetAlerts = data.budgetAlerts || [];
+  const platformData = data.platformData || [];
+  const inactiveClients = data.inactiveClients || [];
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header with company name - compact */}
-      <div className="bg-card border-b border-border px-4 py-2 shrink-0">
+      <div className="bg-card border-b border-border px-4 py-1.5 shrink-0">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-foreground">{data.company.name}</h1>
+          <h1 className="text-base font-bold text-foreground">{data.company.name}</h1>
           <span className="text-xs text-muted-foreground">Dashboard TV</span>
         </div>
       </div>
 
       {/* Main Content - fills remaining space */}
-      <div className="flex-1 p-3 flex flex-col gap-3 overflow-hidden">
+      <div className="flex-1 p-2 flex flex-col gap-2 overflow-hidden">
         {/* Row 1: KPI Header */}
         <div className="shrink-0">
           <TVKPIHeader metrics={metrics} lastSync={data.lastSync} />
         </div>
 
-        {/* Row 2: Main Grid - Alerts, Campaign Ranking, Clients on Alert */}
-        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+        {/* Row 2: Alerts, Campaign Ranking, Clients on Alert */}
+        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
           <TVAlertsList alerts={alerts} />
           <TVCampaignRanking campaigns={campaigns} />
           <TVClientsOnAlert clients={clients} />
         </div>
 
-        {/* Row 3: Budget Alerts, Top Clients, Worst Campaigns + Extra Metrics */}
-        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+        {/* Row 3: Budget Alerts, Top Clients, Worst Campaigns */}
+        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
           <TVBudgetAlerts alerts={budgetAlerts} />
           <TVTopClients clients={topClients} />
-          <div className="flex flex-col gap-3">
-            <div className="flex-1">
-              <TVWorstCampaigns campaigns={worstCampaigns} />
-            </div>
-            <div className="shrink-0">
-              <TVExtraMetrics
-                activeCampaigns={data.metrics.activeCampaigns || 0}
-                activeClients={data.metrics.activeClients || 0}
-                avgCPC={data.metrics.avgCPC || 0}
-              />
-            </div>
-          </div>
+          <TVWorstCampaigns campaigns={worstCampaigns} />
+        </div>
+
+        {/* Row 4: Platform Chart, Conversion Metrics, Inactive Clients */}
+        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+          <TVPlatformChart data={platformData} />
+          <TVConversionMetrics 
+            conversionRate={data.metrics.conversionRate || 0}
+            totalClicks={data.metrics.totalClicks || 0}
+            totalLeads={data.metrics.totalLeads || 0}
+            avgFrequency={data.metrics.avgFrequency || 0}
+          />
+          <TVInactiveClients clients={inactiveClients} />
         </div>
       </div>
 
