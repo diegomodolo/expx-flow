@@ -54,35 +54,60 @@ serve(async (req) => {
         throw new Error(`Config not found: ${configError?.message || 'No data returned'}`);
       }
 
-      // Get the Instagram account with access token
+      // Get the Instagram account to find the linked Facebook Page
       const { data: igAccount, error: igError } = await supabase
         .from('instagram_accounts')
-        .select('access_token')
+        .select('facebook_page_id')
         .eq('id', config.instagram_account_id)
         .single();
 
-      console.log('Instagram account query result:', { igAccount: igAccount ? 'found' : 'not found', igError });
+      console.log('Instagram account query result:', { igAccount, igError });
 
-      if (igError || !igAccount?.access_token) {
-        throw new Error(`Instagram account not found or access token missing: ${igError?.message || 'No access token'}`);
+      if (igError || !igAccount?.facebook_page_id) {
+        throw new Error(`Instagram account not found or missing facebook_page_id: ${igError?.message || 'No facebook_page_id'}`);
       }
 
-      accessToken = igAccount.access_token;
+      // Use the Facebook Page access token to call Instagram Graph API
+      const { data: fbPage, error: fbError } = await supabase
+        .from('facebook_pages')
+        .select('page_access_token')
+        .eq('id', igAccount.facebook_page_id)
+        .single();
+
+      console.log('Facebook page query result:', { fbPage: fbPage ? 'found' : 'not found', fbError });
+
+      if (fbError || !fbPage?.page_access_token) {
+        throw new Error(`Facebook page access token missing: ${fbError?.message || 'No page_access_token'}`);
+      }
+
+      accessToken = fbPage.page_access_token;
     } else if (instagramAccountId) {
-      // Direct deletion from feed - get access token from account id
+      // Direct deletion from feed - resolve Facebook Page token via instagram_accounts.facebook_page_id
       const { data: igAccount, error: igError } = await supabase
         .from('instagram_accounts')
-        .select('access_token')
+        .select('facebook_page_id')
         .eq('id', instagramAccountId)
         .single();
 
-      console.log('Instagram account query result (direct):', { igAccount: igAccount ? 'found' : 'not found', igError });
+      console.log('Instagram account query result (direct):', { igAccount, igError });
 
-      if (igError || !igAccount?.access_token) {
-        throw new Error(`Instagram account not found or access token missing: ${igError?.message || 'No access token'}`);
+      if (igError || !igAccount?.facebook_page_id) {
+        throw new Error(`Instagram account not found or missing facebook_page_id: ${igError?.message || 'No facebook_page_id'}`);
       }
 
-      accessToken = igAccount.access_token;
+      const { data: fbPage, error: fbError } = await supabase
+        .from('facebook_pages')
+        .select('page_access_token')
+        .eq('id', igAccount.facebook_page_id)
+        .single();
+
+      console.log('Facebook page query result (direct):', { fbPage: fbPage ? 'found' : 'not found', fbError });
+
+      if (fbError || !fbPage?.page_access_token) {
+        throw new Error(`Facebook page access token missing: ${fbError?.message || 'No page_access_token'}`);
+      }
+
+      accessToken = fbPage.page_access_token;
     } else {
       throw new Error('Either postId or instagramAccountId must be provided');
     }
