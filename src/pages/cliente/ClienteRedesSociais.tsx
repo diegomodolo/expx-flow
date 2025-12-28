@@ -330,13 +330,14 @@ export function ClienteRedesSociais() {
       </div>
 
       {/* Feed Previews - Instagram and Facebook side by side */}
-      {instagram?.top_posts && instagram.top_posts.length > 0 && (
+      {((instagram?.recent_posts && instagram.recent_posts.length > 0) ||
+        (instagram?.top_posts && instagram.top_posts.length > 0)) && (
         <div className="grid gap-6 lg:grid-cols-2">
           <InstagramFeedPreview
-            posts={instagram.top_posts}
-            username={instagram.username}
-            profilePicture={instagram.profile_picture_url}
-            followersCount={instagram.followers_count}
+            posts={instagram?.recent_posts || instagram?.top_posts || []}
+            username={instagram?.username || ''}
+            profilePicture={instagram?.profile_picture_url}
+            followersCount={instagram?.followers_count || 0}
             onRefresh={() => refetch()}
             isRefreshing={isFetching}
             instagramAccountId={client?.instagram_account_id || undefined}
