@@ -33,6 +33,16 @@ interface TopEngagementPost {
   engagement: number;
 }
 
+interface InstagramFeedPost {
+  id: string;
+  thumbnail_url: string;
+  caption: string;
+  like_count: number;
+  comments_count: number;
+  permalink: string;
+  media_type?: string;
+}
+
 interface TimelineDataPoint2 {
   date: string;
   value: number;
@@ -68,6 +78,8 @@ interface SocialMetrics {
     impressions?: number;
     profile_views?: number;
     website_clicks?: number;
+    // Posts (for feed)
+    recent_posts?: InstagramFeedPost[];
     // Top engagement posts
     top_posts?: TopEngagementPost[];
     // Timeline data (30 days)
@@ -168,42 +180,52 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     console.log('Fetching Instagram data for:', igAccount.username);
     
     try {
-      // Buscar últimos 25 posts com dados completos para ranking de engajamento
+      // Buscar últimos 25 posts com dados completos
       const mediaUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/media?` +
         `fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,permalink` +
         `&limit=25&access_token=${pageAccessToken}`;
-      
+
       const mediaResponse = await fetch(mediaUrl);
       let totalLikes = 0;
       let totalComments = 0;
       let postsCount = 0;
       let avgEngagement = 0;
       let topPosts: TopEngagementPost[] = [];
+      let recentPosts: InstagramFeedPost[] = [];
 
       if (mediaResponse.ok) {
         const mediaData = await mediaResponse.json();
         const posts = mediaData.data || [];
         postsCount = posts.length;
-        
-        totalLikes = posts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
-        totalComments = posts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
+
+        const mappedPosts: InstagramFeedPost[] = posts.map((p: any) => ({
+          id: p.id,
+          thumbnail_url: p.thumbnail_url || p.media_url || '',
+          caption: p.caption || '',
+          like_count: p.like_count || 0,
+          comments_count: p.comments_count || 0,
+          permalink: p.permalink || '',
+          media_type: p.media_type,
+        }));
+
+        // Feed: manter ordem do Instagram (mais recentes primeiro)
+        // Retornamos mais que 6 para permitir "Carregar mais" no frontend
+        recentPosts = mappedPosts.slice(0, 30);
+
+        totalLikes = mappedPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
+        totalComments = mappedPosts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
         avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
-        
-        // Ordenar por engajamento e pegar top 5
-        topPosts = posts
-          .map((p: any) => ({
-            id: p.id,
-            thumbnail_url: p.thumbnail_url || p.media_url || '',
-            caption: p.caption || '',
-            like_count: p.like_count || 0,
-            comments_count: p.comments_count || 0,
-            permalink: p.permalink || '',
+
+        // Ordenar por engajamento e pegar top 6
+        topPosts = mappedPosts
+          .map((p: InstagramFeedPost) => ({
+            ...p,
             engagement: (p.like_count || 0) + (p.comments_count || 0),
           }))
           .sort((a: TopEngagementPost, b: TopEngagementPost) => b.engagement - a.engagement)
-          .slice(0, 5);
-        
-        console.log(`Fetched ${postsCount} Instagram posts, top 5 by engagement selected`);
+          .slice(0, 6);
+
+        console.log(`Fetched ${postsCount} Instagram posts, returning ${recentPosts.length} recent and top ${topPosts.length}`);
       }
 
       // Buscar insights do Instagram (requer instagram_manage_insights)
@@ -364,6 +386,7 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         impressions,
         profile_views: profileViews,
         website_clicks: websiteClicks,
+        recent_posts: recentPosts,
         top_posts: topPosts,
         timeline: timeline.reach.length > 0 ? timeline : undefined,
         comparison: timeline.reach.length >= 14 ? comparison : undefined,

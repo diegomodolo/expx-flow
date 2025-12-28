@@ -54,6 +54,16 @@ export interface TopEngagementPost {
   engagement: number;
 }
 
+export interface InstagramFeedPost {
+  id: string;
+  thumbnail_url: string;
+  caption: string;
+  like_count: number;
+  comments_count: number;
+  permalink: string;
+  media_type?: string;
+}
+
 export interface TimelineDataPoint2 {
   date: string;
   value: number;
@@ -89,6 +99,8 @@ export interface SocialMetrics {
     impressions?: number;
     profile_views?: number;
     website_clicks?: number;
+    // Recent posts (for feed)
+    recent_posts?: InstagramFeedPost[];
     // Top engagement posts
     top_posts?: TopEngagementPost[];
     // Timeline data (30 days)
