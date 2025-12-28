@@ -61,12 +61,12 @@ serve(async (req) => {
         .eq('company_id', company.id)
         .eq('is_active', true),
       
-      // Clients on alert - using actual status values (red, yellow, green OR atencao, emergencial)
+      // Clients on alert - red or yellow status (calculated_status has priority)
       supabase
         .from('clients')
         .select('id, name, company, calculated_status, status, avatar, leads_generated, avg_cpl, status_explanation')
         .eq('company_id', company.id)
-        .or('calculated_status.in.(atencao,emergencial,red,yellow),status.in.(atencao,emergencial,red,yellow)'),
+        .in('calculated_status', ['red', 'yellow']),
       
       // Tasks
       supabase

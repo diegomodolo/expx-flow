@@ -45,6 +45,7 @@ export interface TVClient {
   statusExplanation: string | null;
   activeCampaigns: number;
   avgCpl: number;
+  avatar?: string | null;
 }
 
 export interface TVTask {
