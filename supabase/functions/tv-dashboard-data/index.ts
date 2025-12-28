@@ -80,9 +80,8 @@ serve(async (req) => {
       // All clients (to find those without active campaigns)
       supabase
         .from('clients')
-        .select('id, name, avatar, active_campaigns, status')
+        .select('id, name, avatar, status')
         .eq('company_id', company.id)
-        .in('status', ['ativo', 'atencao', 'emergencia', 'excelente'])
     ]);
 
     const campaigns = campaignsResult.data || [];
@@ -143,17 +142,29 @@ serve(async (req) => {
       }))
       .sort((a, b) => b.spend - a.spend);
 
-    // NEW: Clients without active campaigns
-    const clientsWithActiveCampaigns = new Set(campaigns.map(c => c.client_id));
+    // NEW: Clients without ACTIVE campaigns (status must be "active")
+    const activeClientIds = new Set(
+      campaigns
+        .filter(c => {
+          const status = typeof c.status === 'string' ? c.status.toLowerCase() : '';
+          return status === 'active';
+        })
+        .map(c => c.client_id)
+        .filter(Boolean)
+    );
+
     const inactiveClients = allClients
-      .filter(c => !clientsWithActiveCampaigns.has(c.id))
+      .filter(c => c.status !== 'inativo')
+      .filter(c => !activeClientIds.has(c.id))
       .map(c => ({
         id: c.id,
         name: c.name,
         avatar: c.avatar,
-        activeCampaigns: c.active_campaigns || 0
+        activeCampaigns: 0
       }))
       .slice(0, 10);
+
+    console.log(`[tv-dashboard-data] Clients total=${allClients.length}, activeClientsWithCampaign=${activeClientIds.size}, inactiveClients=${inactiveClients.length}`);
 
     // Generate alerts with client names
     const alerts: Array<{ 
@@ -164,6 +175,7 @@ serve(async (req) => {
       description: string; 
       campaignId?: string;
       clientName?: string;
+      clientAvatar?: string | null;
       campaignName?: string;
       value?: string;
     }> = [];
@@ -180,6 +192,7 @@ serve(async (req) => {
           description: `CPA de R$ ${campaign.cpa.toFixed(2)} está acima do limite`,
           campaignId: campaign.id,
           clientName: clientName,
+          clientAvatar: clientAvatarMap[campaign.client_id] || null,
           campaignName: campaign.name,
           value: `R$ ${campaign.cpa.toFixed(2)}`
         });
@@ -193,6 +206,7 @@ serve(async (req) => {
           description: `CTR de ${campaign.ctr.toFixed(2)}% está abaixo do ideal`,
           campaignId: campaign.id,
           clientName: clientName,
+          clientAvatar: clientAvatarMap[campaign.client_id] || null,
           campaignName: campaign.name,
           value: `${campaign.ctr.toFixed(2)}%`
         });

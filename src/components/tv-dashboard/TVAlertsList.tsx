@@ -1,9 +1,14 @@
 import { TVAlert } from "@/hooks/useTrafegoDashboard";
 import { AlertTriangle, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface ExtendedAlert extends TVAlert {
+  clientAvatar?: string | null;
+}
 
 interface TVAlertsListProps {
-  alerts: TVAlert[];
+  alerts: ExtendedAlert[];
 }
 
 const alertConfig = {
@@ -69,6 +74,12 @@ export function TVAlertsList({ alerts }: TVAlertsListProps) {
                 )}
               >
                 <div className="flex items-start gap-2">
+                  <Avatar className="h-6 w-6 shrink-0 mt-0.5">
+                    <AvatarImage src={alert.clientAvatar || undefined} alt={alert.clientName} />
+                    <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                      {alert.clientName.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", config.iconColor)} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">

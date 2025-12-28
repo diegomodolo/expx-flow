@@ -19,11 +19,11 @@ export function TVInactiveClients({ clients }: TVInactiveClientsProps) {
       <div className="bg-card rounded-xl p-3 elevation-2 h-full">
         <div className="flex items-center gap-2 mb-2">
           <UserX className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Clientes sem Campanhas</h2>
+          <h2 className="text-sm font-semibold">Clientes sem Campanha Ativa</h2>
         </div>
         <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
           <CheckCircle2 className="h-8 w-8 mb-1 text-green-500 opacity-50" />
-          <p className="text-xs">Todos os clientes têm campanhas!</p>
+          <p className="text-xs">Todos os clientes têm campanha ativa!</p>
         </div>
       </div>
     );
