@@ -1,5 +1,6 @@
-import { Users, TrendingUp } from "lucide-react";
+import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TopClient {
   id: string;
@@ -8,6 +9,7 @@ interface TopClient {
   conversions: number;
   cpa: number;
   campaigns: number;
+  avatar?: string | null;
 }
 
 interface TVTopClientsProps {
@@ -48,16 +50,23 @@ export function TVTopClients({ clients }: TVTopClientsProps) {
               <div
                 key={client.id}
                 className={cn(
-                  "rounded-lg p-2 flex items-center gap-2 transition-all",
+                  "rounded-lg p-1.5 flex items-center gap-2 transition-all",
                   isTop3 ? "bg-primary/5" : "bg-muted/50"
                 )}
               >
                 <div className={cn(
-                  "text-sm font-bold w-5 text-center",
+                  "text-sm font-bold w-4 text-center",
                   isTop3 ? medalColors[index] : "text-muted-foreground"
                 )}>
                   {index + 1}
                 </div>
+                
+                <Avatar className="h-6 w-6 shrink-0">
+                  <AvatarImage src={client.avatar || undefined} alt={client.name} />
+                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                    {client.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-xs">{client.name}</p>

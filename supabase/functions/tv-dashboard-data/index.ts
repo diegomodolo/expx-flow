@@ -77,12 +77,12 @@ serve(async (req) => {
         `)
         .eq('company_id', company.id),
       
-      // All active clients
+      // All clients (to find those without active campaigns)
       supabase
         .from('clients')
         .select('id, name, avatar, active_campaigns, status')
         .eq('company_id', company.id)
-        .neq('status', 'inativo')
+        .in('status', ['ativo', 'atencao', 'emergencia', 'excelente'])
     ]);
 
     const campaigns = campaignsResult.data || [];
@@ -208,6 +208,7 @@ serve(async (req) => {
         id: c.id,
         name: c.name,
         clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
+        clientAvatar: clientAvatarMap[c.client_id] || null,
         clientId: c.client_id,
         spend: c.spend || 0,
         leads: c.conversions || 0,
@@ -262,7 +263,8 @@ serve(async (req) => {
       .filter((c: any) => c.conversions > 0)
       .map((c: any) => ({
         ...c,
-        cpa: c.spend / c.conversions
+        cpa: c.spend / c.conversions,
+        avatar: clientAvatarMap[c.id] || null
       }))
       .sort((a: any, b: any) => a.cpa - b.cpa)
       .slice(0, 6);
@@ -276,6 +278,7 @@ serve(async (req) => {
         id: c.id,
         name: c.name,
         clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
+        clientAvatar: clientAvatarMap[c.client_id] || null,
         cpa: c.cpa || 0,
         spend: c.spend || 0,
         conversions: c.conversions || 0

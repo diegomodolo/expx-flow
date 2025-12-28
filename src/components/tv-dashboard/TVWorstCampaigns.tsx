@@ -1,10 +1,12 @@
 import { TrendingDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface WorstCampaign {
   id: string;
   name: string;
   clientName: string;
+  clientAvatar?: string | null;
   cpa: number;
   spend: number;
   conversions: number;
@@ -45,11 +47,18 @@ export function TVWorstCampaigns({ campaigns }: TVWorstCampaignsProps) {
           {campaigns.slice(0, 6).map((campaign, index) => (
             <div
               key={campaign.id}
-              className="rounded-lg p-2 flex items-center gap-2 bg-red-500/5 border-l-2 border-l-red-500"
+              className="rounded-lg p-1.5 flex items-center gap-2 bg-red-500/5 border-l-2 border-l-red-500"
             >
               <div className="text-sm font-bold w-4 text-center text-red-500">
                 {index + 1}
               </div>
+              
+              <Avatar className="h-6 w-6 shrink-0">
+                <AvatarImage src={campaign.clientAvatar || undefined} alt={campaign.clientName} />
+                <AvatarFallback className="text-[9px] bg-red-500/10 text-red-500">
+                  {campaign.clientName?.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate text-xs">{campaign.name}</p>
