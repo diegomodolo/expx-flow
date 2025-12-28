@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSyncJobStatus } from "@/hooks/useSyncJobStatus";
 import { useClients, Client } from "@/hooks/useClients";
 import { ClientDialog } from "@/components/clients/ClientDialog";
+import { ClientQuickSwitch } from "@/components/clients/ClientQuickSwitch";
 import {
   LayoutDashboard,
   Megaphone,
@@ -32,6 +33,7 @@ import {
   Activity,
   Instagram,
   Pencil,
+  ArrowLeftRight,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -44,6 +46,7 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
   const location = useLocation();
   const [activeSyncJobId, setActiveSyncJobId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [switchClientOpen, setSwitchClientOpen] = useState(false);
   const { job, progressPercentage } = useSyncJobStatus(activeSyncJobId);
   const { clients, updateClient } = useClients();
   
@@ -239,10 +242,19 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
             <h3 className="font-semibold text-sm text-muted-foreground mb-1">
               Cliente
             </h3>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-1">
               <p className="font-medium truncate flex-1" title={clientName}>
                 {clientName}
               </p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setSwitchClientOpen(true)}
+                title="Trocar de cliente"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -300,6 +312,13 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
         onSubmit={handleEditClient}
         client={currentClient}
         title="Editar Cliente"
+      />
+
+      {/* Client Quick Switch Dialog */}
+      <ClientQuickSwitch
+        open={switchClientOpen}
+        onOpenChange={setSwitchClientOpen}
+        currentClientId={clientId}
       />
     </div>
   );
