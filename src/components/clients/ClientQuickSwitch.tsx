@@ -21,9 +21,14 @@ export function ClientQuickSwitch({ open, onOpenChange, currentClientId }: Clien
   const { clients, loading } = useClients();
 
   const filteredClients = useMemo(() => {
-    if (!search.trim()) return clients;
+    // Sort alphabetically first
+    const sorted = [...clients].sort((a, b) => 
+      a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+    );
+    
+    if (!search.trim()) return sorted;
     const searchLower = search.toLowerCase();
-    return clients.filter(
+    return sorted.filter(
       (client) =>
         client.name.toLowerCase().includes(searchLower) ||
         client.company.toLowerCase().includes(searchLower)
@@ -46,7 +51,7 @@ export function ClientQuickSwitch({ open, onOpenChange, currentClientId }: Clien
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Trocar de Cliente</DialogTitle>
         </DialogHeader>
@@ -62,7 +67,7 @@ export function ClientQuickSwitch({ open, onOpenChange, currentClientId }: Clien
           />
         </div>
 
-        <ScrollArea className="h-[300px] -mx-6 px-6">
+        <ScrollArea className="h-[420px] -mx-6 px-6">
           {loading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               Carregando...
