@@ -419,14 +419,14 @@ Responda APENAS com o prompt em inglês.`
 
     console.log('Generated', imagePrompts.length, 'image prompts');
 
-    // Generate all images
-    const imageUrls: string[] = [];
+    // Generate all images IN PARALLEL for speed
+    console.log(`Starting parallel generation of ${imagePrompts.length} images...`);
     
-    for (let i = 0; i < imagePrompts.length; i++) {
-      console.log(`Generating image ${i + 1} of ${imagePrompts.length}...`);
+    const imageGenerationPromises = imagePrompts.map(async (prompt, i) => {
+      console.log(`Starting image ${i + 1} of ${imagePrompts.length}...`);
       
       const base64Url = await generateSingleImage(
-        imagePrompts[i],
+        prompt,
         referenceImages,
         currentDateFormatted,
         config,
@@ -437,9 +437,16 @@ Responda APENAS com o prompt em inglês.`
       );
       
       const imageUrl = await uploadImageToStorage(base64Url, configId, postType === 'carousel' ? i : undefined);
-      imageUrls.push(imageUrl);
-      console.log(`Image ${i + 1} uploaded:`, imageUrl);
-    }
+      console.log(`Image ${i + 1} completed:`, imageUrl);
+      return { index: i, url: imageUrl };
+    });
+
+    const results = await Promise.all(imageGenerationPromises);
+    // Sort by index to maintain order
+    results.sort((a, b) => a.index - b.index);
+    const imageUrls = results.map(r => r.url);
+    
+    console.log(`All ${imageUrls.length} images generated successfully`);
 
     // Generate caption
     const captionPrompt = postType === 'carousel'
