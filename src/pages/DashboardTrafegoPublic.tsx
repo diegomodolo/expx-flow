@@ -46,6 +46,7 @@ interface TVDashboardResponse {
     description: string;
     campaignId?: string;
     clientName?: string;
+    clientAvatar?: string | null;
     campaignName?: string;
     value?: string;
   }>;
@@ -210,16 +211,22 @@ export default function DashboardTrafegoPublic() {
     ctrChange: data.metrics.ctrChange,
   };
 
-  const alerts: TVAlert[] = data.alerts.map(a => ({
-    id: a.id,
-    type: a.type === 'high_cpa' ? 'danger' : a.type === 'low_ctr' ? 'warning' : 'opportunity',
-    title: a.title,
-    description: a.description,
-    clientName: a.clientName || 'Cliente',
-    campaignName: a.campaignName || 'Campanha',
-    metric: a.type === 'high_cpa' || a.type === 'scale_opportunity' ? 'CPA' : 'CTR',
-    value: a.value || a.description,
-  }));
+  const alerts: Array<TVAlert & { clientAvatar?: string | null }> = data.alerts.map(a => {
+    const type: TVAlert['type'] =
+      a.type === 'high_cpa' ? 'danger' : a.type === 'low_ctr' ? 'warning' : 'opportunity';
+
+    return {
+      id: a.id,
+      type,
+      title: a.title,
+      description: a.description,
+      clientName: a.clientName || 'Cliente',
+      clientAvatar: a.clientAvatar || null,
+      campaignName: a.campaignName || 'Campanha',
+      metric: a.type === 'high_cpa' || a.type === 'scale_opportunity' ? 'CPA' : 'CTR',
+      value: a.value || a.description,
+    };
+  });
 
   const campaigns = data.campaigns.map(c => ({
     id: c.id,
