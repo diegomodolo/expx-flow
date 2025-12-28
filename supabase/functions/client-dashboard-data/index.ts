@@ -102,9 +102,14 @@ interface SocialMetrics {
     page_name: string;
     page_category: string;
     followers_count?: number;
+    page_fans?: number;
     page_reach?: number;
     page_impressions?: number;
     page_engaged_users?: number;
+    page_post_engagements?: number;
+    page_consumptions?: number;
+    page_views?: number;
+    new_followers?: number;
     recent_posts?: FacebookPost[];
   } | null;
 }
@@ -429,6 +434,10 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     let pageImpressions = 0;
     let pageEngagedUsers = 0;
     let pageFans = 0;
+    let pagePostEngagements = 0;
+    let pageConsumptions = 0;
+    let pageViews = 0;
+    let newFollowers = 0;
     let recentPosts: FacebookPost[] = [];
 
     if (pageAccessToken) {
@@ -450,9 +459,9 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         }
 
         // Buscar insights da página com métricas válidas
-        // Métricas válidas: page_impressions_unique (reach), page_post_engagements
+        // Métricas disponíveis: page_impressions_unique (reach), page_post_engagements, page_consumptions, page_views_total
         const pageInsightsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/insights?` +
-          `metric=page_impressions_unique,page_post_engagements` +
+          `metric=page_impressions_unique,page_post_engagements,page_consumptions,page_views_total` +
           `&period=day&date_preset=last_28d` +
           `&access_token=${pageAccessToken}`;
         
@@ -475,10 +484,17 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
                   break;
                 case 'page_post_engagements':
                   pageEngagedUsers = total;
+                  pagePostEngagements = total;
+                  break;
+                case 'page_consumptions':
+                  pageConsumptions = total;
+                  break;
+                case 'page_views_total':
+                  pageViews = total;
                   break;
               }
             });
-            console.log('Facebook insights processed:', { pageReach, pageEngagedUsers });
+            console.log('Facebook insights processed:', { pageReach, pageEngagedUsers, pageConsumptions, pageViews });
           }
         } else {
           const errorData = await pageInsightsResponse.json();
@@ -522,9 +538,14 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
       page_name: fbPage.page_name,
       page_category: fbPage.page_category || '',
       followers_count: followersCount || pageFans,
+      page_fans: pageFans,
       page_reach: pageReach,
-      page_impressions: pageReach, // Use reach as impressions for backwards compatibility
+      page_impressions: pageReach,
       page_engaged_users: pageEngagedUsers,
+      page_post_engagements: pagePostEngagements,
+      page_consumptions: pageConsumptions,
+      page_views: pageViews,
+      new_followers: newFollowers,
       recent_posts: recentPosts,
     };
   }
