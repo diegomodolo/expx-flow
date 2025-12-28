@@ -10,14 +10,14 @@ interface TVExtraMetricsProps {
 export function TVExtraMetrics({ activeCampaigns, activeClients, avgCPC }: TVExtraMetricsProps) {
   const metrics = [
     {
-      label: "Campanhas Ativas",
+      label: "Campanhas",
       value: activeCampaigns.toString(),
       icon: Target,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
     {
-      label: "Clientes Ativos",
+      label: "Clientes",
       value: activeClients.toString(),
       icon: Users,
       color: "text-green-500",
@@ -33,32 +33,28 @@ export function TVExtraMetrics({ activeCampaigns, activeClients, avgCPC }: TVExt
   ];
 
   return (
-    <div className="bg-card rounded-2xl p-6 elevation-2 h-full">
-      <div className="flex items-center gap-2 mb-4">
-        <Activity className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Métricas Adicionais</h2>
+    <div className="bg-card rounded-xl p-3 elevation-2 h-full">
+      <div className="flex items-center gap-2 mb-2">
+        <Activity className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-semibold">Métricas</h2>
       </div>
       
-      <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-2">
         {metrics.map((metric) => {
           const Icon = metric.icon;
           return (
             <div
               key={metric.label}
               className={cn(
-                "rounded-xl p-4 flex items-center gap-4",
+                "rounded-lg p-2 flex flex-col items-center text-center",
                 metric.bgColor
               )}
             >
-              <div className={cn("p-2 rounded-lg", metric.bgColor)}>
-                <Icon className={cn("h-6 w-6", metric.color)} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">{metric.label}</p>
-                <p className={cn("text-2xl font-bold", metric.color)}>
-                  {metric.value}
-                </p>
-              </div>
+              <Icon className={cn("h-4 w-4 mb-1", metric.color)} />
+              <p className={cn("text-lg font-bold", metric.color)}>
+                {metric.value}
+              </p>
+              <p className="text-[9px] text-muted-foreground">{metric.label}</p>
             </div>
           );
         })}
