@@ -30,7 +30,10 @@ import {
   Send,
   Eye,
   ChevronDown,
-  ImageIcon
+  ImageIcon,
+  Layers,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -51,11 +54,86 @@ const HOURS = Array.from({ length: 24 }, (_, i) => ({
   label: `${String(i).padStart(2, '0')}:00`
 }));
 
+const CAROUSEL_IMAGE_OPTIONS = [
+  { value: 5, label: '5 imagens' },
+  { value: 6, label: '6 imagens' },
+  { value: 7, label: '7 imagens' },
+  { value: 8, label: '8 imagens' },
+  { value: 9, label: '9 imagens' },
+  { value: 10, label: '10 imagens' },
+];
+
 interface InstagramAutoPostsManagerProps {
   configId: string;
   clientId?: string | null;
   instagramAccountId: string;
   onBack?: () => void;
+}
+
+// Carousel Image Preview Component
+function CarouselImagePreview({ imageUrls, onViewFull }: { imageUrls: string[]; onViewFull: () => void }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % imageUrls.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+  };
+
+  return (
+    <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0 group">
+      <img
+        src={imageUrls[currentIndex]}
+        alt={`Slide ${currentIndex + 1}`}
+        className="w-full h-full object-cover cursor-pointer"
+        onClick={onViewFull}
+      />
+      
+      {/* Carousel indicator */}
+      <div className="absolute top-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1">
+        <Layers className="w-3 h-3" />
+        {currentIndex + 1}/{imageUrls.length}
+      </div>
+      
+      {/* Navigation arrows */}
+      {imageUrls.length > 1 && (
+        <>
+          <button
+            onClick={prevImage}
+            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft className="w-3 h-3" />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </>
+      )}
+
+      {/* Dots indicator */}
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+        {imageUrls.slice(0, 5).map((_, idx) => (
+          <div
+            key={idx}
+            className={cn(
+              "w-1.5 h-1.5 rounded-full transition-colors",
+              idx === currentIndex ? "bg-white" : "bg-white/50"
+            )}
+          />
+        ))}
+        {imageUrls.length > 5 && (
+          <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function InstagramAutoPostsManager({ 
@@ -83,13 +161,15 @@ export function InstagramAutoPostsManager({
 
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [captionText, setCaptionText] = useState('');
-  const [previewPost, setPreviewPost] = useState<{ imageUrl: string; caption: string } | null>(null);
+  const [previewPost, setPreviewPost] = useState<{ imageUrl: string; caption: string; imageUrls?: string[] } | null>(null);
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [editBriefing, setEditBriefing] = useState('');
   const [editDays, setEditDays] = useState<number[]>([]);
   const [editHours, setEditHours] = useState<number[]>([]);
   const [editName, setEditName] = useState('');
   const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
+  const [editPostType, setEditPostType] = useState<'single' | 'carousel'>('single');
+  const [editCarouselImages, setEditCarouselImages] = useState(5);
   
   // Collapsible sections state
   const [configOpen, setConfigOpen] = useState(false);
@@ -150,6 +230,9 @@ export function InstagramAutoPostsManager({
     );
   }
 
+  const postType = (config as any).post_type || 'single';
+  const carouselMinImages = (config as any).carousel_min_images || 5;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -164,6 +247,12 @@ export function InstagramAutoPostsManager({
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Instagram className="w-6 h-6" />
               {config.name || `@${instagramAccount?.username || 'Instagram'}`}
+              {postType === 'carousel' && (
+                <Badge variant="secondary" className="ml-2">
+                  <Layers className="w-3 h-3 mr-1" />
+                  Carrossel
+                </Badge>
+              )}
             </h1>
             <p className="text-muted-foreground">Gerencie posts automáticos do Instagram</p>
           </div>
@@ -218,6 +307,8 @@ export function InstagramAutoPostsManager({
                         setEditDays(config.scheduled_days);
                         setEditHours(config.scheduled_hours);
                         setEditInstagramAccountId(instagramAccountId);
+                        setEditPostType(postType);
+                        setEditCarouselImages(carouselMinImages);
                         setIsEditingConfig(true);
                         setConfigOpen(true);
                       }}
@@ -270,6 +361,56 @@ export function InstagramAutoPostsManager({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Post Type Selection */}
+                  <div className="space-y-2">
+                    <Label>Tipo de Post</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={editPostType === 'single' ? 'default' : 'outline'}
+                        onClick={() => setEditPostType('single')}
+                        className="flex-1"
+                      >
+                        <ImageIcon className="w-4 h-4 mr-2" />
+                        Imagem Única
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editPostType === 'carousel' ? 'default' : 'outline'}
+                        onClick={() => setEditPostType('carousel')}
+                        className="flex-1"
+                      >
+                        <Layers className="w-4 h-4 mr-2" />
+                        Carrossel
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Carousel Image Count */}
+                  {editPostType === 'carousel' && (
+                    <div className="space-y-2">
+                      <Label>Quantidade de Imagens no Carrossel</Label>
+                      <Select 
+                        value={String(editCarouselImages)} 
+                        onValueChange={(v) => setEditCarouselImages(Number(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CAROUSEL_IMAGE_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={String(opt.value)}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Mínimo recomendado: 5 imagens para melhor engajamento
+                      </p>
+                    </div>
+                  )}
 
                   {/* Edit Briefing */}
                   <div className="space-y-2">
@@ -338,8 +479,11 @@ export function InstagramAutoPostsManager({
                           post_briefing: editBriefing,
                           scheduled_days: editDays,
                           scheduled_hours: editHours,
-                          instagram_account_id: editInstagramAccountId
-                        });
+                          instagram_account_id: editInstagramAccountId,
+                          post_type: editPostType,
+                          carousel_min_images: editCarouselImages,
+                          carousel_max_images: editCarouselImages
+                        } as any);
                         setIsEditingConfig(false);
                       }}
                       disabled={isUpdating || editDays.length === 0 || editHours.length === 0 || !editBriefing.trim() || !editInstagramAccountId}
@@ -374,6 +518,25 @@ export function InstagramAutoPostsManager({
                       <p className="text-sm font-medium">{config.name}</p>
                     </div>
                   )}
+
+                  {/* Post Type Display */}
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Tipo de Post</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      {postType === 'carousel' ? (
+                        <>
+                          <Layers className="w-4 h-4" />
+                          <span className="text-sm font-medium">Carrossel ({carouselMinImages} imagens)</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-4 h-4" />
+                          <span className="text-sm font-medium">Imagem única</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <Label className="text-muted-foreground text-xs">Briefing</Label>
                     <p className="text-sm">{config.post_briefing}</p>
@@ -489,107 +652,136 @@ export function InstagramAutoPostsManager({
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {pendingPosts.map((post: any, index: number) => (
-                    <div key={post.id} className={`p-4 rounded-lg border ${index === 0 ? 'border-primary bg-primary/5' : 'bg-muted/30'}`}>
-                      <div className="flex gap-4">
-                        <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          <img
-                            src={post.image_url}
-                            alt="Preview do post"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                  {pendingPosts.map((post: any, index: number) => {
+                    const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
+                    
+                    return (
+                      <div key={post.id} className={`p-4 rounded-lg border ${index === 0 ? 'border-primary bg-primary/5' : 'bg-muted/30'}`}>
+                        <div className="flex gap-4">
+                          {/* Image Preview - Carousel or Single */}
+                          {isCarousel ? (
+                            <CarouselImagePreview 
+                              imageUrls={post.image_urls} 
+                              onViewFull={() => setPreviewPost({ 
+                                imageUrl: post.image_urls[0], 
+                                caption: post.caption,
+                                imageUrls: post.image_urls
+                              })}
+                            />
+                          ) : (
+                            <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                              <img
+                                src={post.image_url}
+                                alt="Preview do post"
+                                className="w-full h-full object-cover cursor-pointer"
+                                onClick={() => setPreviewPost({ imageUrl: post.image_url, caption: post.caption })}
+                              />
+                            </div>
+                          )}
 
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Badge variant={index === 0 ? 'default' : 'secondary'}>
-                              <Clock className="w-3 h-3 mr-1" />
-                              {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                            </Badge>
-                            {index === 0 && (
-                              <Badge variant="outline" className="text-xs">Próxima</Badge>
-                            )}
-                          </div>
-                          
-                          <p className="text-sm line-clamp-3">{post.caption}</p>
-                          
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setPreviewPost({ imageUrl: post.image_url, caption: post.caption })}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              Preview
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => publishNow(post.id)}
-                              disabled={isPublishing}
-                            >
-                              {isPublishing ? (
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                              ) : (
-                                <Send className="w-3 h-3 mr-1" />
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={index === 0 ? 'default' : 'secondary'}>
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {format(new Date(post.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                                </Badge>
+                                {isCarousel && (
+                                  <Badge variant="outline">
+                                    <Layers className="w-3 h-3 mr-1" />
+                                    {post.image_urls.length} imagens
+                                  </Badge>
+                                )}
+                              </div>
+                              {index === 0 && (
+                                <Badge variant="outline" className="text-xs">Próxima</Badge>
                               )}
-                              Publicar Agora
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => regeneratePost({ configId: config.id, postId: post.id })}
-                              disabled={isRegenerating}
-                            >
-                              <RefreshCw className="w-3 h-3 mr-1" />
-                              Regenerar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setCaptionText(post.caption);
-                                setEditingPostId(post.id);
-                              }}
-                            >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Editar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => deletePost(post.id)}
-                              disabled={isDeletingPost}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            </div>
+                            
+                            <p className="text-sm line-clamp-3">{post.caption}</p>
+                            
+                            <div className="flex gap-2 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setPreviewPost({ 
+                                  imageUrl: post.image_url, 
+                                  caption: post.caption,
+                                  imageUrls: isCarousel ? post.image_urls : undefined
+                                })}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Preview
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => publishNow(post.id)}
+                                disabled={isPublishing}
+                              >
+                                {isPublishing ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                ) : (
+                                  <Send className="w-3 h-3 mr-1" />
+                                )}
+                                Publicar Agora
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => regeneratePost({ configId: config.id, postId: post.id })}
+                                disabled={isRegenerating}
+                              >
+                                <RefreshCw className="w-3 h-3 mr-1" />
+                                Regenerar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setCaptionText(post.caption);
+                                  setEditingPostId(post.id);
+                                }}
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => deletePost(post.id)}
+                                disabled={isDeletingPost}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Edit Caption Inline */}
-                      {editingPostId === post.id && (
-                        <div className="mt-4 space-y-2 border-t pt-4">
-                          <Textarea
-                            value={captionText}
-                            onChange={(e) => setCaptionText(e.target.value)}
-                            className="min-h-[100px]"
-                          />
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => {
-                              updateCaption({ postId: post.id, caption: captionText });
-                              setEditingPostId(null);
-                            }} disabled={isUpdatingCaption}>
-                              {isUpdatingCaption ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingPostId(null)}>
-                              Cancelar
-                            </Button>
+                        {/* Edit Caption Inline */}
+                        {editingPostId === post.id && (
+                          <div className="mt-4 space-y-2 border-t pt-4">
+                            <Textarea
+                              value={captionText}
+                              onChange={(e) => setCaptionText(e.target.value)}
+                              className="min-h-[100px]"
+                            />
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={() => {
+                                updateCaption({ postId: post.id, caption: captionText });
+                                setEditingPostId(null);
+                              }} disabled={isUpdatingCaption}>
+                                {isUpdatingCaption ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingPostId(null)}>
+                                Cancelar
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -624,36 +816,46 @@ export function InstagramAutoPostsManager({
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {publishedPosts.slice(0, 10).map((post: any) => (
-                    <div key={post.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                      <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                        <img
-                          src={post.image_url}
-                          alt="Post publicado"
-                          className="w-full h-full object-cover"
-                        />
+                  {publishedPosts.slice(0, 10).map((post: any) => {
+                    const isCarousel = post.post_type === 'carousel' && post.image_urls && post.image_urls.length > 1;
+                    
+                    return (
+                      <div key={post.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                        <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0 relative">
+                          <img
+                            src={post.image_url}
+                            alt="Post publicado"
+                            className="w-full h-full object-cover"
+                          />
+                          {isCarousel && (
+                            <div className="absolute top-0.5 right-0.5 bg-black/60 text-white text-[10px] px-1 rounded flex items-center">
+                              <Layers className="w-2.5 h-2.5 mr-0.5" />
+                              {post.image_urls.length}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">{post.caption.slice(0, 80)}...</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Publicado em {format(new Date(post.published_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <div>
+                          {post.status === 'published' ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Publicado
+                            </Badge>
+                          ) : post.status === 'failed' ? (
+                            <Badge variant="destructive">
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Falhou
+                            </Badge>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">{post.caption.slice(0, 80)}...</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Publicado em {format(new Date(post.published_at!), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div>
-                        {post.status === 'published' ? (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            Publicado
-                          </Badge>
-                        ) : post.status === 'failed' ? (
-                          <Badge variant="destructive">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Falhou
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -669,6 +871,7 @@ export function InstagramAutoPostsManager({
         caption={previewPost?.caption || ''}
         username={instagramAccount?.username || 'usuario'}
         profilePicture={instagramAccount?.profile_picture_url}
+        imageUrls={previewPost?.imageUrls}
       />
     </div>
   );

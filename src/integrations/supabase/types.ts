@@ -4771,6 +4771,8 @@ export type Database = {
       }
       instagram_auto_post_configs: {
         Row: {
+          carousel_max_images: number | null
+          carousel_min_images: number | null
           client_id: string | null
           company_id: string
           created_at: string | null
@@ -4782,6 +4784,7 @@ export type Database = {
           name: string | null
           next_post_at: string | null
           post_briefing: string
+          post_type: string | null
           reference_image_1: string | null
           reference_image_2: string | null
           reference_image_3: string | null
@@ -4790,6 +4793,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          carousel_max_images?: number | null
+          carousel_min_images?: number | null
           client_id?: string | null
           company_id: string
           created_at?: string | null
@@ -4801,6 +4806,7 @@ export type Database = {
           name?: string | null
           next_post_at?: string | null
           post_briefing: string
+          post_type?: string | null
           reference_image_1?: string | null
           reference_image_2?: string | null
           reference_image_3?: string | null
@@ -4809,6 +4815,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          carousel_max_images?: number | null
+          carousel_min_images?: number | null
           client_id?: string | null
           company_id?: string
           created_at?: string | null
@@ -4820,6 +4828,7 @@ export type Database = {
           name?: string | null
           next_post_at?: string | null
           post_briefing?: string
+          post_type?: string | null
           reference_image_1?: string | null
           reference_image_2?: string | null
           reference_image_3?: string | null
@@ -4861,7 +4870,9 @@ export type Database = {
           error_message: string | null
           id: string
           image_url: string
+          image_urls: string[] | null
           instagram_media_id: string | null
+          post_type: string | null
           published_at: string | null
           scheduled_at: string
           status: string | null
@@ -4875,7 +4886,9 @@ export type Database = {
           error_message?: string | null
           id?: string
           image_url: string
+          image_urls?: string[] | null
           instagram_media_id?: string | null
+          post_type?: string | null
           published_at?: string | null
           scheduled_at: string
           status?: string | null
@@ -4889,7 +4902,9 @@ export type Database = {
           error_message?: string | null
           id?: string
           image_url?: string
+          image_urls?: string[] | null
           instagram_media_id?: string | null
+          post_type?: string | null
           published_at?: string | null
           scheduled_at?: string
           status?: string | null
