@@ -1,5 +1,8 @@
 project_id = "ejwpfztkspbvmuwwiwmk"
 
+[functions.tv-dashboard-data]
+verify_jwt = false
+
 [functions.execute-campaign-automations]
 verify_jwt = false
 

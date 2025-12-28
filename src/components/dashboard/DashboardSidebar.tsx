@@ -25,6 +25,8 @@ import {
   Building2,
   Bell,
   LucideIcon,
+  Tv,
+  ExternalLink,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -32,6 +34,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSystemAlerts } from "@/hooks/useSystemAlerts";
+import { useTvDashboardToken } from "@/hooks/useTvDashboardToken";
 
 interface MenuItem {
   title: string;
@@ -39,6 +42,8 @@ interface MenuItem {
   icon: LucideIcon;
   permission: MenuItemType;
   badge?: number;
+  isExternal?: boolean;
+  externalUrl?: string;
 }
 
 interface MenuCategory {
@@ -108,6 +113,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Automações", url: "/automacoes", icon: Zap, permission: "campanhas" as MenuItemType },
         { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
         { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
+        { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "dashboard" as MenuItemType, isExternal: true },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
@@ -119,6 +125,7 @@ export function DashboardSidebar() {
   const currentPath = location.pathname;
   const { hasPermission, permissionsLoading, isOwner } = useEmployeePermissions();
   const { unresolvedCriticalCount } = useSystemAlerts();
+  const { token: tvToken, generateToken, generating: generatingToken } = useTvDashboardToken();
   
   // Track which categories are expanded
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
@@ -244,44 +251,88 @@ export function DashboardSidebar() {
                 {/* Category Items */}
                 <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                   <div className={cn("space-y-0.5", open ? "ml-4 mt-1" : "mt-1")}>
-                    {category.items.map((item) => (
-                      <NavLink 
-                        key={item.url}
-                        to={item.url} 
-                        end={item.url === "/dashboard"}
-                        className={({ isActive: active }) =>
-                          cn(
-                            "flex items-center py-2 rounded-full transition-all duration-150",
-                            open ? "gap-3 px-4" : "justify-center px-0",
-                            active
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:bg-muted/50"
-                          )
-                        }
-                        title={!open ? item.title : undefined}
-                      >
-                        <item.icon 
-                          className={cn(
-                            "w-4 h-4 flex-shrink-0 transition-colors duration-150",
-                            isActive(item.url) ? "text-primary" : "text-muted-foreground"
-                          )} 
-                          strokeWidth={isActive(item.url) ? 2 : 1.5}
-                        />
-                        {open && (
-                          <span className={cn(
-                            "text-sm tracking-wide whitespace-nowrap",
-                            isActive(item.url) ? "text-primary font-medium" : "text-foreground"
-                          )}>
-                            {item.title}
-                          </span>
-                        )}
-                        {item.badge && item.badge > 0 && open && (
-                          <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-medium px-2 py-0.5 rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
-                      </NavLink>
-                    ))}
+                    {category.items.map((item) => {
+                      // Handle external Dashboard TV link
+                      if (item.isExternal && item.url === '#tv-dashboard') {
+                        const handleTvDashboardClick = async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          if (tvToken) {
+                            window.open(`/tv/${tvToken}`, '_blank');
+                          } else {
+                            const newToken = await generateToken();
+                            if (newToken) {
+                              window.open(`/tv/${newToken}`, '_blank');
+                            }
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={item.url}
+                            onClick={handleTvDashboardClick}
+                            disabled={generatingToken}
+                            className={cn(
+                              "flex items-center py-2 rounded-full transition-all duration-150 w-full",
+                              open ? "gap-3 px-4" : "justify-center px-0",
+                              "text-muted-foreground hover:bg-muted/50"
+                            )}
+                            title={!open ? item.title : undefined}
+                          >
+                            <item.icon 
+                              className="w-4 h-4 flex-shrink-0 text-muted-foreground" 
+                              strokeWidth={1.5}
+                            />
+                            {open && (
+                              <>
+                                <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
+                                  {generatingToken ? 'Gerando...' : item.title}
+                                </span>
+                                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                              </>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <NavLink 
+                          key={item.url}
+                          to={item.url} 
+                          end={item.url === "/dashboard"}
+                          className={({ isActive: active }) =>
+                            cn(
+                              "flex items-center py-2 rounded-full transition-all duration-150",
+                              open ? "gap-3 px-4" : "justify-center px-0",
+                              active
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted/50"
+                            )
+                          }
+                          title={!open ? item.title : undefined}
+                        >
+                          <item.icon 
+                            className={cn(
+                              "w-4 h-4 flex-shrink-0 transition-colors duration-150",
+                              isActive(item.url) ? "text-primary" : "text-muted-foreground"
+                            )} 
+                            strokeWidth={isActive(item.url) ? 2 : 1.5}
+                          />
+                          {open && (
+                            <span className={cn(
+                              "text-sm tracking-wide whitespace-nowrap",
+                              isActive(item.url) ? "text-primary font-medium" : "text-foreground"
+                            )}>
+                              {item.title}
+                            </span>
+                          )}
+                          {item.badge && item.badge > 0 && open && (
+                            <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      );
+                    })}
                   </div>
                 </CollapsibleContent>
               </Collapsible>

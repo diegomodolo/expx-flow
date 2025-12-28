@@ -1899,6 +1899,7 @@ export type Database = {
           name: string
           phone: string | null
           slug: string | null
+          tv_dashboard_token: string | null
           updated_at: string
         }
         Insert: {
@@ -1910,6 +1911,7 @@ export type Database = {
           name: string
           phone?: string | null
           slug?: string | null
+          tv_dashboard_token?: string | null
           updated_at?: string
         }
         Update: {
@@ -1921,6 +1923,7 @@ export type Database = {
           name?: string
           phone?: string | null
           slug?: string | null
+          tv_dashboard_token?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -8902,6 +8905,7 @@ export type Database = {
       generate_client_dashboard_token: { Args: never; Returns: string }
       generate_crm_access_token: { Args: never; Returns: string }
       generate_funnel_public_token: { Args: never; Returns: string }
+      generate_tv_dashboard_token: { Args: never; Returns: string }
       get_cnae_summary: {
         Args: { p_company_id: string }
         Returns: {
