@@ -21,6 +21,7 @@ import { SocialTimelineChart } from "@/components/social/SocialTimelineChart";
 import { FollowersGrowthChart } from "@/components/social/FollowersGrowthChart";
 import { ComparisonCard } from "@/components/social/ComparisonCard";
 import { InstagramFeedPreview } from "@/components/social/InstagramFeedPreview";
+import { useQueryClient } from "@tanstack/react-query";
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
@@ -35,7 +36,8 @@ function formatNumber(num: number): string {
 export function ClienteRedesSociais() {
   const { client } = useClientContext();
   const clientId = client?.id || '';
-  const { data, isLoading, error } = useSocialMetrics(clientId);
+  const { data, isLoading, error, refetch, isFetching } = useSocialMetrics(clientId);
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return (
@@ -335,6 +337,12 @@ export function ClienteRedesSociais() {
             username={instagram.username}
             profilePicture={instagram.profile_picture_url}
             followersCount={instagram.followers_count}
+            onRefresh={() => refetch()}
+            isRefreshing={isFetching}
+            instagramAccountId={client?.instagram_account_id || undefined}
+            onPostDeleted={() => {
+              queryClient.invalidateQueries({ queryKey: ['social-metrics', clientId] });
+            }}
           />
           {/* Placeholder for Facebook feed - will show empty state or future Facebook posts */}
           {facebook && (
