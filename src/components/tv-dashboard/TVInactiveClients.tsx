@@ -39,8 +39,8 @@ export function TVInactiveClients({ clients }: TVInactiveClientsProps) {
         </span>
       </div>
       
-      <div className="flex-1 overflow-hidden">
-        <div className="space-y-1">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="space-y-1 pr-1">
           {clients.slice(0, 6).map((client) => (
             <div
               key={client.id}
