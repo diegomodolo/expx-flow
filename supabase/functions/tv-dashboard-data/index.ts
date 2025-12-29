@@ -50,7 +50,7 @@ serve(async (req) => {
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
     // Fetch campaigns, clients with budget/balance data in parallel
-    const [campaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult] = await Promise.all([
+    const [campaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult, syncInfoResult] = await Promise.all([
       // Campaigns with client info
       supabase
         .from('campaigns')
@@ -81,13 +81,27 @@ serve(async (req) => {
       supabase
         .from('clients')
         .select('id, name, avatar, status')
+        .eq('company_id', company.id),
+      
+      // Get most recent sync info
+      supabase
+        .from('clients')
+        .select('last_sync_at, last_sync_period')
         .eq('company_id', company.id)
+        .not('last_sync_at', 'is', null)
+        .order('last_sync_at', { ascending: false })
+        .limit(1)
     ]);
 
     const campaigns = campaignsResult.data || [];
     const clientsOnAlert = clientsResult.data || [];
     const clientsWithBudget = clientsWithBudgetResult.data || [];
     const allClients = allClientsResult.data || [];
+    const syncInfo = syncInfoResult.data?.[0] || null;
+
+    // Extract sync information
+    const lastSyncAt = syncInfo?.last_sync_at || null;
+    const syncPeriod = syncInfo?.last_sync_period ? parseInt(syncInfo.last_sync_period) : null;
 
     // Build client ID to name map
     const clientNameMap: Record<string, string> = {};
@@ -407,6 +421,10 @@ serve(async (req) => {
         name: company.name
       },
       lastSync: new Date().toISOString(),
+      syncInfo: {
+        lastSyncAt,
+        syncPeriod
+      },
       metrics: {
         totalInvestment,
         totalLeads,
