@@ -9,6 +9,8 @@ interface InstagramAutoPostConfig {
   instagram_account_id: string;
   name: string | null;
   post_briefing: string;
+  single_post_prompt: string | null;
+  carousel_prompt: string | null;
   scheduled_days: number[];
   scheduled_hours: number[];
   is_enabled: boolean;

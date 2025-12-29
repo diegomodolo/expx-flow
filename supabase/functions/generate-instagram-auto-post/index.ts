@@ -465,7 +465,7 @@ REGRAS:
               content: `Crie ${numberOfImages} prompts de imagem para um carrossel do Instagram:
 
 BRIEFING DA POSTAGEM:
-${config.post_briefing}
+${config.carousel_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledgeContext.substring(0, 3000)}` : ''}
 
 SETOR: ${clientSector}
@@ -515,7 +515,7 @@ Responda em formato JSON:
               },
               {
                 role: 'user',
-                content: `Crie UM prompt para gerar uma imagem de post Instagram baseado neste briefing: ${config.post_briefing}. Responda APENAS com o prompt em inglês.`
+                content: `Crie UM prompt para gerar uma imagem de post Instagram baseado neste briefing: ${config.carousel_prompt || config.post_briefing}. Responda APENAS com o prompt em inglês.`
               }
             ],
             max_completion_tokens: 300
@@ -565,7 +565,7 @@ REGRAS:
               role: 'user',
               content: `Crie UM prompt para gerar uma imagem de post Instagram:
 
-BRIEFING: ${config.post_briefing}
+BRIEFING: ${config.single_post_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
@@ -621,7 +621,7 @@ Responda APENAS com o prompt em inglês.`
     const captionPrompt = postType === 'carousel'
       ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides:
 
-BRIEFING: ${config.post_briefing}
+BRIEFING: ${config.carousel_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
@@ -637,7 +637,7 @@ REQUISITOS:
 Responda APENAS com a legenda pronta.`
       : `Crie uma legenda para post do Instagram:
 
-BRIEFING: ${config.post_briefing}
+BRIEFING: ${config.single_post_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}

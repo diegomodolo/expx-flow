@@ -5,12 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Settings, Edit, Loader2 } from 'lucide-react';
+import { Settings, Edit, Loader2, Image, Images } from 'lucide-react';
 
 interface ConfigSectionProps {
   config: {
     name: string | null;
     post_briefing: string;
+    single_post_prompt: string | null;
+    carousel_prompt: string | null;
   };
   instagramAccount: {
     username: string;
@@ -22,7 +24,13 @@ interface ConfigSectionProps {
     username: string;
     profile_picture_url: string | null;
   }>;
-  onUpdateConfig: (updates: { name?: string | null; post_briefing?: string; instagram_account_id?: string }) => void;
+  onUpdateConfig: (updates: { 
+    name?: string | null; 
+    post_briefing?: string; 
+    single_post_prompt?: string;
+    carousel_prompt?: string;
+    instagram_account_id?: string 
+  }) => void;
   isUpdating: boolean;
 }
 
@@ -36,13 +44,15 @@ export function ConfigSection({
 }: ConfigSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editBriefing, setEditBriefing] = useState('');
+  const [editSinglePrompt, setEditSinglePrompt] = useState('');
+  const [editCarouselPrompt, setEditCarouselPrompt] = useState('');
   const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
 
   useEffect(() => {
     if (config) {
       setEditName(config.name || '');
-      setEditBriefing(config.post_briefing);
+      setEditSinglePrompt(config.single_post_prompt || config.post_briefing || '');
+      setEditCarouselPrompt(config.carousel_prompt || config.post_briefing || '');
       setEditInstagramAccountId(instagramAccountId);
     }
   }, [config, instagramAccountId]);
@@ -50,11 +60,15 @@ export function ConfigSection({
   const handleSave = () => {
     onUpdateConfig({
       name: editName || null,
-      post_briefing: editBriefing,
+      single_post_prompt: editSinglePrompt,
+      carousel_prompt: editCarouselPrompt,
       instagram_account_id: editInstagramAccountId,
     });
     setIsEditing(false);
   };
+
+  const singlePromptDisplay = config.single_post_prompt || config.post_briefing || 'Nenhum prompt definido';
+  const carouselPromptDisplay = config.carousel_prompt || config.post_briefing || 'Nenhum prompt definido';
 
   return (
     <Card>
@@ -115,21 +129,41 @@ export function ConfigSection({
             </div>
 
             <div className="space-y-2">
-              <Label>Briefing das Postagens</Label>
+              <Label className="flex items-center gap-2">
+                <Image className="w-4 h-4 text-primary" />
+                Prompt para Postagem Única
+              </Label>
               <Textarea
-                value={editBriefing}
-                onChange={(e) => setEditBriefing(e.target.value)}
+                value={editSinglePrompt}
+                onChange={(e) => setEditSinglePrompt(e.target.value)}
                 className="min-h-[100px]"
+                placeholder="Descreva o estilo, tom e conteúdo para postagens de imagem única..."
               />
               <p className="text-xs text-muted-foreground">
-                O briefing é usado pela IA para gerar as imagens e legendas. Seja específico sobre o tema, estilo e tom desejado.
+                Este prompt será usado ao gerar posts com uma única imagem
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Images className="w-4 h-4 text-primary" />
+                Prompt para Carrossel
+              </Label>
+              <Textarea
+                value={editCarouselPrompt}
+                onChange={(e) => setEditCarouselPrompt(e.target.value)}
+                className="min-h-[100px]"
+                placeholder="Descreva o estilo, tom e conteúdo para carrosséis (múltiplas imagens)..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Este prompt será usado ao gerar carrosséis com múltiplos slides
               </p>
             </div>
 
             <div className="flex gap-2 pt-2">
               <Button
                 onClick={handleSave}
-                disabled={isUpdating || !editBriefing.trim() || !editInstagramAccountId}
+                disabled={isUpdating || (!editSinglePrompt.trim() && !editCarouselPrompt.trim()) || !editInstagramAccountId}
               >
                 {isUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Salvar Alterações
@@ -161,9 +195,22 @@ export function ConfigSection({
               </div>
             )}
 
-            <div>
-              <Label className="text-muted-foreground text-xs">Briefing</Label>
-              <p className="text-sm">{config.post_briefing}</p>
+            <div className="space-y-3">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <Image className="w-4 h-4 text-primary" />
+                  <Label className="text-xs font-medium">Prompt para Postagem Única</Label>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-3">{singlePromptDisplay}</p>
+              </div>
+
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <Images className="w-4 h-4 text-primary" />
+                  <Label className="text-xs font-medium">Prompt para Carrossel</Label>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-3">{carouselPromptDisplay}</p>
+              </div>
             </div>
           </>
         )}
