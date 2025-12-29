@@ -21,6 +21,10 @@ interface TVDashboardResponse {
     name: string;
   };
   lastSync: string;
+  syncInfo: {
+    lastSyncAt: string | null;
+    syncPeriod: number | null;
+  };
   metrics: {
     totalInvestment: number;
     totalLeads: number;
@@ -271,7 +275,11 @@ export default function DashboardTrafegoPublic() {
       <div className="flex-1 p-2 flex flex-col gap-2 overflow-hidden">
         {/* Row 1: KPI Header */}
         <div className="shrink-0">
-          <TVKPIHeader metrics={metrics} lastSync={data.lastSync} />
+          <TVKPIHeader 
+            metrics={metrics} 
+            lastSync={data.lastSync} 
+            syncInfo={data.syncInfo}
+          />
         </div>
 
         {/* Row 2: Alerts, Campaign Ranking, Clients on Alert */}

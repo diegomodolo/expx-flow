@@ -1,10 +1,16 @@
 import { TVMetrics } from "@/hooks/useTrafegoDashboard";
-import { TrendingUp, TrendingDown, Minus, DollarSign, Users, Target, MousePointerClick } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, DollarSign, Users, Target, MousePointerClick, RefreshCw, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface SyncInfo {
+  lastSyncAt: string | null;
+  syncPeriod: number | null;
+}
 
 interface TVKPIHeaderProps {
   metrics: TVMetrics;
   lastSync: string;
+  syncInfo?: SyncInfo;
 }
 
 function formatCurrency(value: number): string {
@@ -69,14 +75,51 @@ function KPICard({ label, value, change, icon, invertColors }: KPICardProps) {
   );
 }
 
-export function TVKPIHeader({ metrics, lastSync }: TVKPIHeaderProps) {
+function formatSyncDate(dateString: string | null): string {
+  if (!dateString) return "—";
+  const date = new Date(dateString);
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatSyncPeriod(period: number | null): string {
+  if (!period) return "—";
+  return `${period} dias`;
+}
+
+export function TVKPIHeader({ metrics, lastSync, syncInfo }: TVKPIHeaderProps) {
   const syncTime = new Date(lastSync);
   
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h1 className="text-xl font-bold">Dashboard de Tráfego</h1>
-        <div className="flex items-center gap-3 text-muted-foreground text-sm">
+        <div className="flex items-center gap-4 text-muted-foreground text-sm">
+          {/* Sync info from Meta/Google */}
+          {syncInfo && (
+            <div className="flex items-center gap-3 bg-card/50 rounded-lg px-3 py-1.5 border border-border/50">
+              <div className="flex items-center gap-1.5">
+                <RefreshCw className="h-3.5 w-3.5 text-blue-500" />
+                <span className="text-xs">Última sync:</span>
+                <span className="text-xs font-medium text-foreground">
+                  {formatSyncDate(syncInfo.lastSyncAt)}
+                </span>
+              </div>
+              <div className="w-px h-4 bg-border" />
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-green-500" />
+                <span className="text-xs">Período:</span>
+                <span className="text-xs font-medium text-foreground">
+                  {formatSyncPeriod(syncInfo.syncPeriod)}
+                </span>
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center gap-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
             <span>Atualizado {syncTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
