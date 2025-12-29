@@ -19,7 +19,7 @@ interface TVTopClientsProps {
 export function TVTopClients({ clients }: TVTopClientsProps) {
   if (clients.length === 0) {
     return (
-      <div className="bg-card rounded-xl p-3 elevation-2 h-full">
+      <div className="bg-card rounded-xl p-3 elevation-2 h-full min-h-0 overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <Users className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Top Clientes</h2>
@@ -33,7 +33,7 @@ export function TVTopClients({ clients }: TVTopClientsProps) {
   }
 
   return (
-    <div className="bg-card rounded-xl p-3 elevation-2 h-full flex flex-col">
+    <div className="bg-card rounded-xl p-3 elevation-2 h-full min-h-0 flex flex-col overflow-hidden">
       <div className="flex items-center gap-2 mb-2">
         <Users className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-semibold">Top 6 Clientes</h2>
