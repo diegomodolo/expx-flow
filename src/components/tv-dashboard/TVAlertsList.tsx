@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ExtendedAlert extends TVAlert {
   clientAvatar?: string | null;
+  platform?: string;
 }
 
 interface TVAlertsListProps {
@@ -90,6 +91,7 @@ export function TVAlertsList({ alerts }: TVAlertsListProps) {
                     </div>
                     <p className="text-[10px] text-muted-foreground truncate">
                       {alert.clientName} • {alert.campaignName}
+                      {alert.platform && <span className="ml-1 text-[9px] opacity-70">({alert.platform})</span>}
                     </p>
                   </div>
                 </div>

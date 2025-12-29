@@ -10,6 +10,7 @@ interface WorstCampaign {
   cpa: number;
   spend: number;
   conversions: number;
+  platform?: string;
 }
 
 interface TVWorstCampaignsProps {
@@ -62,7 +63,10 @@ export function TVWorstCampaigns({ campaigns }: TVWorstCampaignsProps) {
               
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate text-xs">{campaign.name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{campaign.clientName}</p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {campaign.clientName}
+                  {campaign.platform && <span className="ml-1 opacity-70">• {campaign.platform}</span>}
+                </p>
               </div>
               
               <div className="flex items-center gap-2 text-right shrink-0">
