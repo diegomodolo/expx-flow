@@ -8,6 +8,25 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+interface UnifiedCampaign {
+  id: string;
+  name: string;
+  status: string;
+  spend: number;
+  conversions: number;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  cpc: number;
+  cpa: number;
+  client_id: string;
+  is_active: boolean;
+  updated_at: string;
+  platform: 'meta' | 'google';
+  frequency: number | null;
+  clients?: { id: string; name: string; company: string };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -49,13 +68,23 @@ serve(async (req) => {
 
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
-    // Fetch campaigns, clients with budget/balance data in parallel
-    const [campaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult, syncInfoResult] = await Promise.all([
-      // Campaigns with client info
+    // Fetch Meta campaigns, Google campaigns, clients with budget/balance data in parallel
+    const [metaCampaignsResult, googleCampaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult, syncInfoResult, googleAccountsResult] = await Promise.all([
+      // Meta Campaigns with client info
       supabase
         .from('campaigns')
         .select(`
           id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at, platforms, frequency,
+          clients!inner(id, name, company)
+        `)
+        .eq('company_id', company.id)
+        .eq('is_active', true),
+      
+      // Google Campaigns with client info
+      supabase
+        .from('google_campaigns')
+        .select(`
+          id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at, frequency,
           clients!inner(id, name, company)
         `)
         .eq('company_id', company.id)
@@ -68,12 +97,15 @@ serve(async (req) => {
         .eq('company_id', company.id)
         .in('calculated_status', ['red', 'yellow']),
       
-      // All clients with budget and balance info
+      // All clients with budget and balance info (Meta and Google)
       supabase
         .from('clients')
         .select(`
           id, name, avatar, monthly_budget, last_sync_period, active_campaigns,
-          facebook_ad_accounts(balance, recharge_day)
+          meta_monthly_budget, meta_payment_type, meta_recharge_day,
+          google_monthly_budget, google_payment_type, google_recharge_day,
+          facebook_ad_accounts(balance, recharge_day),
+          google_ads_accounts(id)
         `)
         .eq('company_id', company.id),
       
@@ -90,14 +122,70 @@ serve(async (req) => {
         .eq('company_id', company.id)
         .not('last_sync_at', 'is', null)
         .order('last_sync_at', { ascending: false })
-        .limit(1)
+        .limit(1),
+      
+      // Google Ads accounts for balance info
+      supabase
+        .from('google_ads_accounts')
+        .select('id, client_id, balance')
+        .eq('company_id', company.id)
     ]);
 
-    const campaigns = campaignsResult.data || [];
+    const metaCampaigns = metaCampaignsResult.data || [];
+    const googleCampaigns = googleCampaignsResult.data || [];
     const clientsOnAlert = clientsResult.data || [];
     const clientsWithBudget = clientsWithBudgetResult.data || [];
     const allClients = allClientsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
+    const googleAccounts = googleAccountsResult.data || [];
+
+    // Build Google account balance map
+    const googleBalanceMap: Record<string, number> = {};
+    googleAccounts.forEach(acc => {
+      if (acc.client_id) {
+        googleBalanceMap[acc.client_id] = acc.balance || 0;
+      }
+    });
+
+    // Unify campaigns from both platforms
+    const campaigns: UnifiedCampaign[] = [
+      ...metaCampaigns.map(c => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        spend: c.spend || 0,
+        conversions: c.conversions || 0,
+        clicks: c.clicks || 0,
+        impressions: c.impressions || 0,
+        ctr: c.ctr || 0,
+        cpc: c.cpc || 0,
+        cpa: c.cpa || 0,
+        client_id: c.client_id,
+        is_active: c.is_active,
+        updated_at: c.updated_at,
+        platform: 'meta' as const,
+        frequency: c.frequency,
+        clients: c.clients
+      })),
+      ...googleCampaigns.map(c => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        spend: c.spend || 0,
+        conversions: c.conversions || 0,
+        clicks: c.clicks || 0,
+        impressions: c.impressions || 0,
+        ctr: c.ctr || 0,
+        cpc: c.cpc || 0,
+        cpa: c.cpa || 0,
+        client_id: c.client_id,
+        is_active: c.is_active,
+        updated_at: c.updated_at,
+        platform: 'google' as const,
+        frequency: c.frequency,
+        clients: c.clients
+      }))
+    ];
 
     // Extract sync information
     const lastSyncAt = syncInfo?.last_sync_at || null;
@@ -111,44 +199,59 @@ serve(async (req) => {
       if (c.avatar) clientAvatarMap[c.id] = c.avatar;
     });
 
-    // Calculate spend per client from campaigns
-    const clientSpend: Record<string, number> = {};
+    // Calculate spend per client from campaigns (by platform)
+    const clientSpend: Record<string, { meta: number; google: number; total: number }> = {};
     const clientCampaignCount: Record<string, number> = {};
     campaigns.forEach(c => {
       if (c.client_id) {
-        clientSpend[c.client_id] = (clientSpend[c.client_id] || 0) + (c.spend || 0);
+        if (!clientSpend[c.client_id]) {
+          clientSpend[c.client_id] = { meta: 0, google: 0, total: 0 };
+        }
+        if (c.platform === 'meta') {
+          clientSpend[c.client_id].meta += c.spend;
+        } else {
+          clientSpend[c.client_id].google += c.spend;
+        }
+        clientSpend[c.client_id].total += c.spend;
         clientCampaignCount[c.client_id] = (clientCampaignCount[c.client_id] || 0) + 1;
       }
     });
 
-    console.log(`[tv-dashboard-data] Found ${campaigns.length} campaigns, ${clientsOnAlert.length} clients on alert`);
+    console.log(`[tv-dashboard-data] Found ${metaCampaigns.length} Meta campaigns, ${googleCampaigns.length} Google campaigns, ${clientsOnAlert.length} clients on alert`);
 
-    // Calculate metrics
-    const totalInvestment = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
-    const totalLeads = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
-    const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
-    const totalImpressions = campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0);
+    // Calculate metrics (combined from both platforms)
+    const totalInvestment = campaigns.reduce((sum, c) => sum + c.spend, 0);
+    const totalLeads = campaigns.reduce((sum, c) => sum + c.conversions, 0);
+    const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
+    const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0);
     
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
     const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     
-    // NEW: Calculate conversion rate (leads/clicks)
+    // Calculate conversion rate (leads/clicks)
     const conversionRate = totalClicks > 0 ? (totalLeads / totalClicks) * 100 : 0;
     
-    // NEW: Calculate average frequency
+    // Calculate average frequency
     const campaignsWithFrequency = campaigns.filter(c => c.frequency && c.frequency > 0);
     const avgFrequency = campaignsWithFrequency.length > 0 
       ? campaignsWithFrequency.reduce((sum, c) => sum + (c.frequency || 0), 0) / campaignsWithFrequency.length 
       : 0;
 
-    // NEW: Investment by platform
-    const investmentByPlatform: Record<string, number> = {};
+    // Investment by platform (combined)
+    const investmentByPlatform: Record<string, number> = {
+      'Meta Ads': 0,
+      'Google Ads': 0
+    };
     campaigns.forEach(c => {
-      const platform = c.platforms || 'Outros';
-      investmentByPlatform[platform] = (investmentByPlatform[platform] || 0) + (c.spend || 0);
+      if (c.platform === 'meta') {
+        investmentByPlatform['Meta Ads'] += c.spend;
+      } else {
+        investmentByPlatform['Google Ads'] += c.spend;
+      }
     });
     
     const platformData = Object.entries(investmentByPlatform)
+      .filter(([_, spend]) => spend > 0)
       .map(([platform, spend]) => ({
         platform,
         spend,
@@ -156,7 +259,7 @@ serve(async (req) => {
       }))
       .sort((a, b) => b.spend - a.spend);
 
-    // NEW: Clients without ACTIVE campaigns (status must be "active")
+    // Clients without ACTIVE campaigns (status must be "active")
     const activeClientIds = new Set(
       campaigns
         .filter(c => {
@@ -180,7 +283,7 @@ serve(async (req) => {
 
     console.log(`[tv-dashboard-data] Clients total=${allClients.length}, activeClientsWithCampaign=${activeClientIds.size}, inactiveClients=${inactiveClients.length}`);
 
-    // Generate alerts with client names
+    // Generate alerts with client names and platform info
     const alerts: Array<{ 
       id: string; 
       type: string; 
@@ -192,10 +295,12 @@ serve(async (req) => {
       clientAvatar?: string | null;
       campaignName?: string;
       value?: string;
+      platform?: string;
     }> = [];
 
     campaigns.forEach(campaign => {
       const clientName = (campaign.clients as any)?.name || clientNameMap[campaign.client_id] || 'Cliente';
+      const platformLabel = campaign.platform === 'meta' ? 'Meta' : 'Google';
       
       if (campaign.cpa && campaign.cpa > 50) {
         alerts.push({
@@ -208,7 +313,8 @@ serve(async (req) => {
           clientName: clientName,
           clientAvatar: clientAvatarMap[campaign.client_id] || null,
           campaignName: campaign.name,
-          value: `R$ ${campaign.cpa.toFixed(2)}`
+          value: `R$ ${campaign.cpa.toFixed(2)}`,
+          platform: platformLabel
         });
       }
       if (campaign.ctr && campaign.ctr < 1) {
@@ -222,12 +328,13 @@ serve(async (req) => {
           clientName: clientName,
           clientAvatar: clientAvatarMap[campaign.client_id] || null,
           campaignName: campaign.name,
-          value: `${campaign.ctr.toFixed(2)}%`
+          value: `${campaign.ctr.toFixed(2)}%`,
+          platform: platformLabel
         });
       }
     });
 
-    // Sort campaigns by CPA for ranking, include client name
+    // Sort campaigns by CPA for ranking, include client name and platform
     const campaignRanking = campaigns
       .filter(c => c.conversions && c.conversions > 0)
       .sort((a, b) => (a.cpa || 999) - (b.cpa || 999))
@@ -238,11 +345,12 @@ serve(async (req) => {
         clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
         clientAvatar: clientAvatarMap[c.client_id] || null,
         clientId: c.client_id,
-        spend: c.spend || 0,
-        leads: c.conversions || 0,
-        cpa: c.cpa || 0,
-        ctr: c.ctr || 0,
-        status: c.status
+        spend: c.spend,
+        leads: c.conversions,
+        cpa: c.cpa,
+        ctr: c.ctr,
+        status: c.status,
+        platform: c.platform === 'meta' ? 'Meta' : 'Google'
       }));
 
     // Format clients on alert with proper status mapping
@@ -269,7 +377,7 @@ serve(async (req) => {
     const activeClients = new Set(campaigns.map(c => c.client_id)).size;
     const avgCPC = totalClicks > 0 ? totalInvestment / totalClicks : 0;
 
-    // Get top performing clients
+    // Get top performing clients (combined from both platforms)
     const clientPerformance = campaigns.reduce((acc, c) => {
       const clientId = c.client_id;
       if (!acc[clientId]) {
@@ -278,26 +386,33 @@ serve(async (req) => {
           name: (c.clients as any)?.name || clientNameMap[clientId] || 'Cliente',
           spend: 0,
           conversions: 0,
-          campaigns: 0
+          campaigns: 0,
+          platforms: new Set<string>()
         };
       }
-      acc[clientId].spend += c.spend || 0;
-      acc[clientId].conversions += c.conversions || 0;
+      acc[clientId].spend += c.spend;
+      acc[clientId].conversions += c.conversions;
       acc[clientId].campaigns += 1;
+      acc[clientId].platforms.add(c.platform === 'meta' ? 'Meta' : 'Google');
       return acc;
     }, {} as Record<string, any>);
 
     const topClients = Object.values(clientPerformance)
       .filter((c: any) => c.conversions > 0)
       .map((c: any) => ({
-        ...c,
+        id: c.id,
+        name: c.name,
+        spend: c.spend,
+        conversions: c.conversions,
+        campaigns: c.campaigns,
         cpa: c.spend / c.conversions,
-        avatar: clientAvatarMap[c.id] || null
+        avatar: clientAvatarMap[c.id] || null,
+        platforms: Array.from(c.platforms)
       }))
       .sort((a: any, b: any) => a.cpa - b.cpa)
       .slice(0, 6);
 
-    // Calculate worst performing campaigns
+    // Calculate worst performing campaigns (from both platforms)
     const worstCampaigns = campaigns
       .filter(c => c.conversions && c.conversions > 0 && c.cpa && c.cpa > 50)
       .sort((a, b) => (b.cpa || 0) - (a.cpa || 0))
@@ -307,12 +422,13 @@ serve(async (req) => {
         name: c.name,
         clientName: (c.clients as any)?.name || clientNameMap[c.client_id] || 'Cliente',
         clientAvatar: clientAvatarMap[c.client_id] || null,
-        cpa: c.cpa || 0,
-        spend: c.spend || 0,
-        conversions: c.conversions || 0
+        cpa: c.cpa,
+        spend: c.spend,
+        conversions: c.conversions,
+        platform: c.platform === 'meta' ? 'Meta' : 'Google'
       }));
 
-    // === Calculate budget/balance alerts ===
+    // === Calculate budget/balance alerts (for both Meta and Google) ===
     const now = new Date();
     const currentDay = now.getDate();
     const currentMonth = now.getMonth();
@@ -330,55 +446,59 @@ serve(async (req) => {
       projectedSpend: number;
       percentage: number;
       message: string;
+      platform: string;
     }> = [];
 
     clientsWithBudget.forEach(client => {
-      const spend = clientSpend[client.id] || 0;
-      const syncPeriod = parseInt(client.last_sync_period || '0') || 7;
-      const monthlyBudget = client.monthly_budget || 0;
+      const spendData = clientSpend[client.id] || { meta: 0, google: 0, total: 0 };
+      const syncPeriodValue = parseInt(client.last_sync_period || '0') || 7;
+      
+      // Meta budget/balance check
+      const metaMonthlyBudget = client.meta_monthly_budget || client.monthly_budget || 0;
       const fbAccount = Array.isArray(client.facebook_ad_accounts) 
         ? client.facebook_ad_accounts[0] 
         : client.facebook_ad_accounts;
-      const balance = fbAccount?.balance || 0;
-      const rechargeDay = fbAccount?.recharge_day;
+      const metaBalance = fbAccount?.balance || 0;
+      const metaRechargeDay = client.meta_recharge_day || fbAccount?.recharge_day;
       
-      const dailySpend = syncPeriod > 0 ? spend / syncPeriod : 0;
+      const metaDailySpend = syncPeriodValue > 0 ? spendData.meta / syncPeriodValue : 0;
       
-      // Check 1: Budget overspend
-      if (monthlyBudget > 0 && syncPeriod > 0) {
-        const expectedSpend = (monthlyBudget / 30) * syncPeriod;
-        const percentage = (spend / expectedSpend) * 100;
+      // Meta Budget overspend
+      if (metaMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.meta > 0) {
+        const expectedSpend = (metaMonthlyBudget / 30) * syncPeriodValue;
+        const percentage = (spendData.meta / expectedSpend) * 100;
         
         if (percentage > 100) {
           budgetAlerts.push({
-            id: client.id,
+            id: `${client.id}-meta-budget`,
             name: client.name,
             avatar: client.avatar,
             alertType: 'over_budget',
-            balance,
-            spend,
-            budget: monthlyBudget,
+            balance: metaBalance,
+            spend: spendData.meta,
+            budget: metaMonthlyBudget,
             daysRemaining: 0,
             projectedSpend: expectedSpend,
             percentage,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`
+            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            platform: 'Meta'
           });
         }
       }
       
-      // Check 2: Insufficient balance until recharge day
-      if (balance > 0 && dailySpend > 0) {
+      // Meta Insufficient balance
+      if (metaBalance > 0 && metaDailySpend > 0) {
         let nextRechargeDate: Date;
         
-        if (rechargeDay && rechargeDay >= 1 && rechargeDay <= 31) {
-          if (currentDay < rechargeDay) {
-            nextRechargeDate = new Date(currentYear, currentMonth, rechargeDay);
+        if (metaRechargeDay && metaRechargeDay >= 1 && metaRechargeDay <= 31) {
+          if (currentDay < metaRechargeDay) {
+            nextRechargeDate = new Date(currentYear, currentMonth, metaRechargeDay);
           } else {
-            nextRechargeDate = new Date(currentYear, currentMonth + 1, rechargeDay);
+            nextRechargeDate = new Date(currentYear, currentMonth + 1, metaRechargeDay);
           }
           
           const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
-          if (rechargeDay > maxDayInMonth) {
+          if (metaRechargeDay > maxDayInMonth) {
             nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
           }
         } else {
@@ -387,24 +507,100 @@ serve(async (req) => {
         
         const timeDiff = nextRechargeDate.getTime() - now.getTime();
         const daysRemaining = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
-        const projectedSpend = dailySpend * daysRemaining;
-        const coveragePercentage = (balance / projectedSpend) * 100;
+        const projectedSpend = metaDailySpend * daysRemaining;
+        const coveragePercentage = (metaBalance / projectedSpend) * 100;
         
         if (coveragePercentage < 80) {
-          const hasOverBudget = budgetAlerts.some(a => a.id === client.id && a.alertType === 'over_budget');
+          const hasOverBudget = budgetAlerts.some(a => a.id === `${client.id}-meta-budget` && a.alertType === 'over_budget');
           if (!hasOverBudget) {
             budgetAlerts.push({
-              id: client.id,
+              id: `${client.id}-meta-balance`,
               name: client.name,
               avatar: client.avatar,
               alertType: 'insufficient_balance',
-              balance,
-              spend,
-              budget: monthlyBudget,
+              balance: metaBalance,
+              spend: spendData.meta,
+              budget: metaMonthlyBudget,
               daysRemaining,
               projectedSpend,
               percentage: coveragePercentage,
-              message: `Saldo R$ ${balance.toFixed(0)} não dura ${daysRemaining} dias`
+              message: `Saldo R$ ${metaBalance.toFixed(0)} não dura ${daysRemaining} dias`,
+              platform: 'Meta'
+            });
+          }
+        }
+      }
+      
+      // Google budget/balance check
+      const googleMonthlyBudget = client.google_monthly_budget || 0;
+      const googleBalance = googleBalanceMap[client.id] || 0;
+      const googleRechargeDay = client.google_recharge_day;
+      
+      const googleDailySpend = syncPeriodValue > 0 ? spendData.google / syncPeriodValue : 0;
+      
+      // Google Budget overspend
+      if (googleMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.google > 0) {
+        const expectedSpend = (googleMonthlyBudget / 30) * syncPeriodValue;
+        const percentage = (spendData.google / expectedSpend) * 100;
+        
+        if (percentage > 100) {
+          budgetAlerts.push({
+            id: `${client.id}-google-budget`,
+            name: client.name,
+            avatar: client.avatar,
+            alertType: 'over_budget',
+            balance: googleBalance,
+            spend: spendData.google,
+            budget: googleMonthlyBudget,
+            daysRemaining: 0,
+            projectedSpend: expectedSpend,
+            percentage,
+            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            platform: 'Google'
+          });
+        }
+      }
+      
+      // Google Insufficient balance
+      if (googleBalance > 0 && googleDailySpend > 0) {
+        let nextRechargeDate: Date;
+        
+        if (googleRechargeDay && googleRechargeDay >= 1 && googleRechargeDay <= 31) {
+          if (currentDay < googleRechargeDay) {
+            nextRechargeDate = new Date(currentYear, currentMonth, googleRechargeDay);
+          } else {
+            nextRechargeDate = new Date(currentYear, currentMonth + 1, googleRechargeDay);
+          }
+          
+          const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
+          if (googleRechargeDay > maxDayInMonth) {
+            nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
+          }
+        } else {
+          nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
+        }
+        
+        const timeDiff = nextRechargeDate.getTime() - now.getTime();
+        const daysRemaining = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+        const projectedSpend = googleDailySpend * daysRemaining;
+        const coveragePercentage = (googleBalance / projectedSpend) * 100;
+        
+        if (coveragePercentage < 80) {
+          const hasOverBudget = budgetAlerts.some(a => a.id === `${client.id}-google-budget` && a.alertType === 'over_budget');
+          if (!hasOverBudget) {
+            budgetAlerts.push({
+              id: `${client.id}-google-balance`,
+              name: client.name,
+              avatar: client.avatar,
+              alertType: 'insufficient_balance',
+              balance: googleBalance,
+              spend: spendData.google,
+              budget: googleMonthlyBudget,
+              daysRemaining,
+              projectedSpend,
+              percentage: coveragePercentage,
+              message: `Saldo R$ ${googleBalance.toFixed(0)} não dura ${daysRemaining} dias`,
+              platform: 'Google'
             });
           }
         }
@@ -439,7 +635,9 @@ serve(async (req) => {
         investmentChange: 0,
         leadsChange: 0,
         cpaChange: 0,
-        ctrChange: 0
+        ctrChange: 0,
+        metaCampaigns: metaCampaigns.length,
+        googleCampaigns: googleCampaigns.length
       },
       alerts: alerts.slice(0, 10),
       campaigns: campaignRanking,

@@ -14,6 +14,7 @@ interface BudgetAlert {
   projectedSpend: number;
   percentage: number;
   message: string;
+  platform?: string;
 }
 
 interface TVBudgetAlertsProps {
@@ -72,7 +73,10 @@ export function TVBudgetAlerts({ alerts }: TVBudgetAlertsProps) {
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-xs">{alert.name}</p>
+                  <p className="font-medium truncate text-xs">
+                    {alert.name}
+                    {alert.platform && <span className="ml-1 text-[9px] opacity-70">({alert.platform})</span>}
+                  </p>
                   <p className="text-[10px] text-muted-foreground truncate">
                     {alert.message}
                   </p>

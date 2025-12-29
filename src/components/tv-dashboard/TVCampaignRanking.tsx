@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ExtendedCampaign extends TVCampaign {
   clientAvatar?: string | null;
+  platform?: string;
 }
 
 interface TVCampaignRankingProps {
@@ -65,7 +66,10 @@ export function TVCampaignRanking({ campaigns }: TVCampaignRankingProps) {
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-xs">{campaign.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{campaign.clientName}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {campaign.clientName}
+                    {campaign.platform && <span className="ml-1 opacity-70">• {campaign.platform}</span>}
+                  </p>
                 </div>
                 
                 <div className="flex items-center gap-3 text-right shrink-0">
