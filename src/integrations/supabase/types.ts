@@ -4779,6 +4779,7 @@ export type Database = {
         Row: {
           carousel_max_images: number | null
           carousel_min_images: number | null
+          carousel_prompt: string | null
           client_id: string | null
           company_id: string
           created_at: string | null
@@ -4796,12 +4797,14 @@ export type Database = {
           reference_image_3: string | null
           scheduled_days: number[]
           scheduled_hours: number[]
+          single_post_prompt: string | null
           updated_at: string | null
           youtube_channel_url: string | null
         }
         Insert: {
           carousel_max_images?: number | null
           carousel_min_images?: number | null
+          carousel_prompt?: string | null
           client_id?: string | null
           company_id: string
           created_at?: string | null
@@ -4819,12 +4822,14 @@ export type Database = {
           reference_image_3?: string | null
           scheduled_days?: number[]
           scheduled_hours?: number[]
+          single_post_prompt?: string | null
           updated_at?: string | null
           youtube_channel_url?: string | null
         }
         Update: {
           carousel_max_images?: number | null
           carousel_min_images?: number | null
+          carousel_prompt?: string | null
           client_id?: string | null
           company_id?: string
           created_at?: string | null
@@ -4842,6 +4847,7 @@ export type Database = {
           reference_image_3?: string | null
           scheduled_days?: number[]
           scheduled_hours?: number[]
+          single_post_prompt?: string | null
           updated_at?: string | null
           youtube_channel_url?: string | null
         }
