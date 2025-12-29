@@ -101,11 +101,11 @@ serve(async (req) => {
       supabase
         .from('clients')
         .select(`
-          id, name, avatar, monthly_budget, last_sync_period, active_campaigns,
+          id, name, avatar, monthly_budget, last_sync_period, active_campaigns, status,
           meta_monthly_budget, meta_payment_type, meta_recharge_day,
           google_monthly_budget, google_payment_type, google_recharge_day,
-          facebook_ad_accounts(balance, recharge_day),
-          google_ads_accounts(id)
+          facebook_ad_accounts(balance, recharge_day, account_status, has_funding_issues, disable_reason),
+          google_ads_accounts(id, account_status)
         `)
         .eq('company_id', company.id),
       
@@ -450,21 +450,79 @@ serve(async (req) => {
     }> = [];
 
     clientsWithBudget.forEach(client => {
+      // Skip inactive clients
+      if (client.status === 'inativo') return;
+      
       const spendData = clientSpend[client.id] || { meta: 0, google: 0, total: 0 };
       const syncPeriodValue = parseInt(client.last_sync_period || '0') || 7;
       
-      // Meta budget/balance check
+      // ========== META ALERTS ==========
       const metaMonthlyBudget = client.meta_monthly_budget || client.monthly_budget || 0;
       const fbAccount = Array.isArray(client.facebook_ad_accounts) 
         ? client.facebook_ad_accounts[0] 
         : client.facebook_ad_accounts;
       const metaBalance = fbAccount?.balance || 0;
+      const metaAccountStatus = fbAccount?.account_status;
+      const metaHasFundingIssues = fbAccount?.has_funding_issues || false;
+      const metaDisableReason = fbAccount?.disable_reason || '';
       const metaRechargeDay = client.meta_recharge_day || fbAccount?.recharge_day;
-      
       const metaDailySpend = syncPeriodValue > 0 ? spendData.meta / syncPeriodValue : 0;
       
-      // Meta Budget overspend
-      if (metaMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.meta > 0) {
+      let metaHasCriticalAlert = false;
+      
+      // CRITICAL: Account disabled or has funding issues
+      if (fbAccount && metaAccountStatus !== undefined && metaAccountStatus !== null) {
+        const isDisabled = metaAccountStatus !== 1;
+        const hasFundingFlag = metaHasFundingIssues === true;
+        const disableReasonIsFunding = metaDisableReason?.toLowerCase().includes('funding');
+        
+        if (isDisabled || hasFundingFlag || disableReasonIsFunding) {
+          let message = 'Conta desabilitada';
+          if (hasFundingFlag || disableReasonIsFunding) {
+            message = 'Problema de fundos detectado';
+          } else if (metaDisableReason) {
+            message = metaDisableReason;
+          }
+          
+          budgetAlerts.push({
+            id: `${client.id}-meta-disabled`,
+            name: client.name,
+            avatar: client.avatar,
+            alertType: 'insufficient_balance',
+            balance: metaBalance,
+            spend: spendData.meta,
+            budget: metaMonthlyBudget,
+            daysRemaining: 0,
+            projectedSpend: 0,
+            percentage: 0,
+            message,
+            platform: 'Meta'
+          });
+          metaHasCriticalAlert = true;
+        }
+      }
+      
+      // CRITICAL: Zero or negative balance
+      if (!metaHasCriticalAlert && fbAccount && metaBalance <= 0) {
+        budgetAlerts.push({
+          id: `${client.id}-meta-zero`,
+          name: client.name,
+          avatar: client.avatar,
+          alertType: 'insufficient_balance',
+          balance: metaBalance,
+          spend: spendData.meta,
+          budget: metaMonthlyBudget,
+          daysRemaining: 0,
+          projectedSpend: 0,
+          percentage: 0,
+          message: metaBalance < 0 ? 'Saldo negativo' : 'Saldo zerado',
+          platform: 'Meta'
+        });
+        metaHasCriticalAlert = true;
+      }
+      
+      // Budget overspend
+      if (!metaHasCriticalAlert && metaMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.meta > 0) {
         const expectedSpend = (metaMonthlyBudget / 30) * syncPeriodValue;
         const percentage = (spendData.meta / expectedSpend) * 100;
         
@@ -483,11 +541,12 @@ serve(async (req) => {
             message: `Gasto ${percentage.toFixed(0)}% do planejado`,
             platform: 'Meta'
           });
+          metaHasCriticalAlert = true;
         }
       }
       
-      // Meta Insufficient balance
-      if (metaBalance > 0 && metaDailySpend > 0) {
+      // Insufficient balance (won't last until recharge)
+      if (!metaHasCriticalAlert && metaBalance > 0 && metaDailySpend > 0) {
         let nextRechargeDate: Date;
         
         if (metaRechargeDay && metaRechargeDay >= 1 && metaRechargeDay <= 31) {
@@ -511,34 +570,32 @@ serve(async (req) => {
         const coveragePercentage = (metaBalance / projectedSpend) * 100;
         
         if (coveragePercentage < 80) {
-          const hasOverBudget = budgetAlerts.some(a => a.id === `${client.id}-meta-budget` && a.alertType === 'over_budget');
-          if (!hasOverBudget) {
-            budgetAlerts.push({
-              id: `${client.id}-meta-balance`,
-              name: client.name,
-              avatar: client.avatar,
-              alertType: 'insufficient_balance',
-              balance: metaBalance,
-              spend: spendData.meta,
-              budget: metaMonthlyBudget,
-              daysRemaining,
-              projectedSpend,
-              percentage: coveragePercentage,
-              message: `Saldo R$ ${metaBalance.toFixed(0)} não dura ${daysRemaining} dias`,
-              platform: 'Meta'
-            });
-          }
+          budgetAlerts.push({
+            id: `${client.id}-meta-balance`,
+            name: client.name,
+            avatar: client.avatar,
+            alertType: 'insufficient_balance',
+            balance: metaBalance,
+            spend: spendData.meta,
+            budget: metaMonthlyBudget,
+            daysRemaining,
+            projectedSpend,
+            percentage: coveragePercentage,
+            message: `Saldo R$ ${metaBalance.toFixed(0)} não dura ${daysRemaining} dias`,
+            platform: 'Meta'
+          });
         }
       }
       
-      // Google budget/balance check
+      // ========== GOOGLE ALERTS ==========
       const googleMonthlyBudget = client.google_monthly_budget || 0;
       const googleBalance = googleBalanceMap[client.id] || 0;
       const googleRechargeDay = client.google_recharge_day;
-      
       const googleDailySpend = syncPeriodValue > 0 ? spendData.google / syncPeriodValue : 0;
       
-      // Google Budget overspend
+      let googleHasCriticalAlert = false;
+      
+      // Budget overspend
       if (googleMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.google > 0) {
         const expectedSpend = (googleMonthlyBudget / 30) * syncPeriodValue;
         const percentage = (spendData.google / expectedSpend) * 100;
@@ -558,11 +615,12 @@ serve(async (req) => {
             message: `Gasto ${percentage.toFixed(0)}% do planejado`,
             platform: 'Google'
           });
+          googleHasCriticalAlert = true;
         }
       }
       
-      // Google Insufficient balance
-      if (googleBalance > 0 && googleDailySpend > 0) {
+      // Insufficient balance
+      if (!googleHasCriticalAlert && googleBalance > 0 && googleDailySpend > 0) {
         let nextRechargeDate: Date;
         
         if (googleRechargeDay && googleRechargeDay >= 1 && googleRechargeDay <= 31) {
@@ -586,23 +644,20 @@ serve(async (req) => {
         const coveragePercentage = (googleBalance / projectedSpend) * 100;
         
         if (coveragePercentage < 80) {
-          const hasOverBudget = budgetAlerts.some(a => a.id === `${client.id}-google-budget` && a.alertType === 'over_budget');
-          if (!hasOverBudget) {
-            budgetAlerts.push({
-              id: `${client.id}-google-balance`,
-              name: client.name,
-              avatar: client.avatar,
-              alertType: 'insufficient_balance',
-              balance: googleBalance,
-              spend: spendData.google,
-              budget: googleMonthlyBudget,
-              daysRemaining,
-              projectedSpend,
-              percentage: coveragePercentage,
-              message: `Saldo R$ ${googleBalance.toFixed(0)} não dura ${daysRemaining} dias`,
-              platform: 'Google'
-            });
-          }
+          budgetAlerts.push({
+            id: `${client.id}-google-balance`,
+            name: client.name,
+            avatar: client.avatar,
+            alertType: 'insufficient_balance',
+            balance: googleBalance,
+            spend: spendData.google,
+            budget: googleMonthlyBudget,
+            daysRemaining,
+            projectedSpend,
+            percentage: coveragePercentage,
+            message: `Saldo R$ ${googleBalance.toFixed(0)} não dura ${daysRemaining} dias`,
+            platform: 'Google'
+          });
         }
       }
     });
