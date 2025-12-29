@@ -28,7 +28,7 @@ const platformLabels: Record<string, string> = {
 export function TVPlatformChart({ data }: TVPlatformChartProps) {
   if (data.length === 0) {
     return (
-      <div className="bg-card rounded-xl p-3 elevation-2 h-full">
+      <div className="bg-card rounded-xl p-3 elevation-2 h-full min-h-0 overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <DollarSign className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Investimento por Plataforma</h2>
@@ -64,7 +64,7 @@ export function TVPlatformChart({ data }: TVPlatformChartProps) {
   const totalSpend = chartData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="bg-card rounded-xl p-3 elevation-2 h-full flex flex-col">
+    <div className="bg-card rounded-xl p-3 elevation-2 h-full min-h-0 flex flex-col overflow-hidden">
       <div className="flex items-center gap-2 mb-1">
         <DollarSign className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-semibold">Invest. por Plataforma</h2>

@@ -50,13 +50,13 @@ export function TVConversionMetrics({
   ];
 
   return (
-    <div className="bg-card rounded-xl p-3 elevation-2 h-full flex flex-col">
+    <div className="bg-card rounded-xl p-3 elevation-2 h-full min-h-0 flex flex-col overflow-hidden">
       <div className="flex items-center gap-2 mb-2">
         <Target className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-semibold">Métricas de Conversão</h2>
       </div>
       
-      <div className="flex-1 grid grid-cols-2 gap-2">
+      <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
         {metrics.map((metric) => {
           const Icon = metric.icon;
           return (
