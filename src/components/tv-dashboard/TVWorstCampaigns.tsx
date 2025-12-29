@@ -42,8 +42,8 @@ export function TVWorstCampaigns({ campaigns }: TVWorstCampaignsProps) {
         </span>
       </div>
       
-      <div className="flex-1 overflow-hidden">
-        <div className="space-y-1">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="space-y-1 pr-1">
           {campaigns.slice(0, 6).map((campaign, index) => (
             <div
               key={campaign.id}
