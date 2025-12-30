@@ -8392,6 +8392,7 @@ export type Database = {
           started_at: string | null
           status: string
           trigger_id: string | null
+          trigger_name: string | null
         }
         Insert: {
           company_id: string
@@ -8406,6 +8407,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           trigger_id?: string | null
+          trigger_name?: string | null
         }
         Update: {
           company_id?: string
@@ -8420,6 +8422,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           trigger_id?: string | null
+          trigger_name?: string | null
         }
         Relationships: [
           {
