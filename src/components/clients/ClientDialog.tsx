@@ -18,8 +18,9 @@ import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { ClientBriefingTab } from "./ClientBriefingTab";
 import { ClientContactsTab } from "./ClientContactsTab";
 import { ReferenceSelectionDialog } from "./ReferenceSelectionDialog";
@@ -110,6 +111,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_monthly_budget: client.twitter_monthly_budget || 0,
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
+        is_canceled: client.is_canceled || false,
       };
     }
     return {
@@ -159,6 +161,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       twitter_monthly_budget: 0,
       twitter_payment_type: "prepaid",
       twitter_recharge_day: undefined as number | undefined,
+      is_canceled: false,
     };
   });
   const [loading, setLoading] = useState(false);
@@ -241,6 +244,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_monthly_budget: client.twitter_monthly_budget || 0,
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
+        is_canceled: client.is_canceled || false,
       });
       setLocalClient(client);
       
@@ -295,6 +299,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_monthly_budget: 0,
         twitter_payment_type: "prepaid",
         twitter_recharge_day: undefined,
+        is_canceled: false,
       });
       setLocalClient(undefined);
       setRechargeDayValue("none");
@@ -334,11 +339,21 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
     setLoading(true);
 
     try {
+      // Handle is_canceled logic: set canceled_at when marking as canceled
+      const wasCanceled = client?.is_canceled || false;
+      const isCanceled = formData.is_canceled;
+      
       const submitData = {
         ...formData,
         team_id: formData.team_id === 'none' ? null : formData.team_id,
         ai_briefing: localClient?.ai_briefing,
         briefing_generated_at: localClient?.briefing_generated_at,
+        is_canceled: isCanceled,
+        canceled_at: isCanceled && !wasCanceled 
+          ? new Date().toISOString() 
+          : isCanceled 
+            ? client?.canceled_at 
+            : null,
       };
       
       await onSubmit(submitData);
@@ -737,6 +752,51 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   disabled={readOnly}
                   rows={3}
                 />
+              </div>
+            )}
+
+            {/* Cliente Cancelado - somente em modo de edição */}
+            {client && (
+              <div className={cn(
+                "p-4 rounded-lg border-2 space-y-3",
+                formData.is_canceled 
+                  ? "border-destructive/50 bg-destructive/5" 
+                  : "border-border bg-muted/20"
+              )}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Ban className={cn(
+                      "w-5 h-5",
+                      formData.is_canceled ? "text-destructive" : "text-muted-foreground"
+                    )} />
+                    <div>
+                      <Label htmlFor="is_canceled" className={cn(
+                        "font-medium cursor-pointer",
+                        formData.is_canceled && "text-destructive"
+                      )}>
+                        Cliente Cancelado
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formData.is_canceled 
+                          ? "Este cliente está cancelado e não aparece na lista principal"
+                          : "Marcar como cancelado remove o cliente das listas e relatórios"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="is_canceled"
+                    checked={formData.is_canceled}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_canceled: checked })}
+                    disabled={readOnly}
+                    className={formData.is_canceled ? "data-[state=checked]:bg-destructive" : ""}
+                  />
+                </div>
+                {formData.is_canceled && (
+                  <p className="text-xs text-destructive/80 bg-destructive/10 p-2 rounded">
+                    ⚠️ O cliente não aparecerá mais na lista de clientes, relatórios, dashboard TV e não será sincronizado.
+                  </p>
+                )}
               </div>
             )}
 

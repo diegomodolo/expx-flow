@@ -70,7 +70,8 @@ export const useFacebookCampaignSync = () => {
       let query = supabase
         .from('clients')
         .select('id, name, ad_account_id, status')
-        .not('ad_account_id', 'is', null);
+        .not('ad_account_id', 'is', null)
+        .eq('is_canceled', false);
 
       // Exclude inactive clients if not requested to include them
       if (!options.includeInactive) {

@@ -134,6 +134,7 @@ serve(async (req) => {
         .from('clients')
         .select('id, name, company, calculated_status, status, avatar, leads_generated, avg_cpl, status_explanation')
         .eq('company_id', company.id)
+        .eq('is_canceled', false)
         .in('calculated_status', ['red', 'yellow']),
 
       // Clients with budget/balance info (aligned to Clientes.tsx)
@@ -149,13 +150,15 @@ serve(async (req) => {
           ad_account_id, google_account_id,
           facebook_ad_accounts(balance, recharge_day, account_status, has_funding_issues, disable_reason)
         `)
-        .eq('company_id', company.id),
+        .eq('company_id', company.id)
+        .eq('is_canceled', false),
 
       // All clients (to find those without active campaigns)
       supabase
         .from('clients')
         .select('id, name, avatar, status')
-        .eq('company_id', company.id),
+        .eq('company_id', company.id)
+        .eq('is_canceled', false),
 
       // Get most recent sync info
       supabase

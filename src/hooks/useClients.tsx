@@ -61,6 +61,8 @@ export interface Client {
   briefing_generated_at?: string;
   team_id?: string;
   dashboard_token?: string;
+  is_canceled?: boolean;
+  canceled_at?: string;
   facebook_ad_accounts?: {
     id: string;
     account_name: string;
@@ -452,7 +454,8 @@ export const calculateClientStatus = async (
   }
 };
 
-export function useClients() {
+export function useClients(options?: { includeCanceled?: boolean }) {
+  const includeCanceled = options?.includeCanceled ?? false;
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -488,7 +491,7 @@ export function useClients() {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("clients")
         .select(`
           *,
@@ -523,8 +526,14 @@ export function useClients() {
             color
           )
         `)
-        .eq("company_id", activeCompany.company_id)
-        .order("created_at", { ascending: false });
+        .eq("company_id", activeCompany.company_id);
+      
+      // Apply is_canceled filter unless includeCanceled is true
+      if (!includeCanceled) {
+        query = query.eq("is_canceled", false);
+      }
+      
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       
@@ -710,7 +719,9 @@ export function useClients() {
         'google_monthly_budget', 'google_payment_type', 'google_recharge_day',
         'linkedin_monthly_budget', 'linkedin_payment_type', 'linkedin_recharge_day',
         'tiktok_monthly_budget', 'tiktok_payment_type', 'tiktok_recharge_day',
-        'twitter_monthly_budget', 'twitter_payment_type', 'twitter_recharge_day'
+        'twitter_monthly_budget', 'twitter_payment_type', 'twitter_recharge_day',
+        // Cancellation fields
+        'is_canceled', 'canceled_at'
       ];
       
       // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs
