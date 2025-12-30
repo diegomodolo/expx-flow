@@ -89,6 +89,7 @@ export function CreativeGeneratorSimplified() {
   const [showReferences, setShowReferences] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [showReferenceDialog, setShowReferenceDialog] = useState(false);
+  const [referenceDialogForCreativeIndex, setReferenceDialogForCreativeIndex] = useState<number | null>(null);
   const [generatingThemeIndex, setGeneratingThemeIndex] = useState<number | null>(null);
   const [generatingCopyIndex, setGeneratingCopyIndex] = useState<number | null>(null);
 
@@ -719,7 +720,7 @@ export function CreativeGeneratorSimplified() {
                         </div>
 
                         {/* Referência Visual Individual */}
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <Label className="text-xs">Referência Visual (opcional)</Label>
                           <div className="flex items-center gap-2">
                             {/* Preview da referência */}
@@ -752,9 +753,36 @@ export function CreativeGeneratorSimplified() {
                                 />
                               </label>
                             )}
-                            <p className="text-[10px] text-muted-foreground flex-1">
-                              Adicione uma imagem de referência específica para este criativo
-                            </p>
+                            
+                            {/* Botões para buscar do Instagram/Campanhas */}
+                            {selectedClientId && activeCompany?.company_id && !input.referenceFile && !input.referenceUrl && (
+                              <div className="flex gap-1 flex-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setReferenceDialogForCreativeIndex(index);
+                                    setShowReferenceDialog(true);
+                                  }}
+                                  className="h-7 text-[10px] px-2 flex-1"
+                                >
+                                  <Instagram className="w-3 h-3 mr-1" />
+                                  Instagram
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setReferenceDialogForCreativeIndex(index);
+                                    setShowReferenceDialog(true);
+                                  }}
+                                  className="h-7 text-[10px] px-2 flex-1"
+                                >
+                                  <Megaphone className="w-3 h-3 mr-1" />
+                                  Campanhas
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -955,11 +983,23 @@ export function CreativeGeneratorSimplified() {
       {selectedClientId && activeCompany?.company_id && (
         <ReferenceSelectionDialog
           open={showReferenceDialog}
-          onOpenChange={setShowReferenceDialog}
+          onOpenChange={(open) => {
+            setShowReferenceDialog(open);
+            if (!open) setReferenceDialogForCreativeIndex(null);
+          }}
           clientId={selectedClientId}
           companyId={activeCompany.company_id}
-          onSelect={handleReferenceSelect}
-          maxSelections={MAX_REFERENCES - totalReferences}
+          onSelect={(urls) => {
+            // Se for para um criativo específico, usar apenas a primeira URL
+            if (referenceDialogForCreativeIndex !== null && urls.length > 0) {
+              handleReferenceUrlChange(referenceDialogForCreativeIndex, urls[0]);
+              setReferenceDialogForCreativeIndex(null);
+            } else {
+              // Referências globais (comportamento anterior)
+              handleReferenceSelect(urls);
+            }
+          }}
+          maxSelections={referenceDialogForCreativeIndex !== null ? 1 : MAX_REFERENCES - totalReferences}
         />
       )}
 
