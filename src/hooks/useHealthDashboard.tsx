@@ -244,7 +244,7 @@ export function useHealthDashboard() {
         }
       }
 
-      // Fetch pending tasks - use 'todo' status which is valid
+      // Fetch pending tasks - without client join (no direct FK relationship)
       const { data: tasks, error: tasksError } = await supabase
         .from("tasks")
         .select(`
@@ -252,10 +252,7 @@ export function useHealthDashboard() {
           title,
           due_date,
           priority,
-          clients (
-            name,
-            avatar
-          )
+          related_client_id
         `)
         .eq("company_id", activeCompany.company_id)
         .eq("status", "todo")
@@ -263,6 +260,24 @@ export function useHealthDashboard() {
         .limit(10);
 
       if (tasksError) throw tasksError;
+      
+      // Get client info for tasks that have related_client_id
+      const taskClientIds = (tasks || [])
+        .map(t => t.related_client_id)
+        .filter((id): id is string => id !== null);
+      
+      let taskClientMap = new Map<string, { name: string; avatar: string | null }>();
+      
+      if (taskClientIds.length > 0) {
+        const { data: taskClients } = await supabase
+          .from("clients")
+          .select("id, name, avatar")
+          .in("id", taskClientIds);
+        
+        (taskClients || []).forEach(c => {
+          taskClientMap.set(c.id, { name: c.name, avatar: c.avatar });
+        });
+      }
 
       // Process clients
       const processedClients = (clients || []).map((client) => 
@@ -302,9 +317,11 @@ export function useHealthDashboard() {
 
       const worstClients = processedClients.filter(c => c.riskLevel !== "stable").slice(0, 6);
 
-      // Process tasks - handle the array response from join
+      // Process tasks - use the separate client map
       const pendingTasks: HealthTask[] = (tasks || []).map((task) => {
-        const clientData = Array.isArray(task.clients) ? task.clients[0] : task.clients;
+        const clientData = task.related_client_id 
+          ? taskClientMap.get(task.related_client_id) 
+          : null;
         return {
           id: task.id,
           title: task.title,
