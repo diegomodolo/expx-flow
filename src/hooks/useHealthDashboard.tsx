@@ -21,6 +21,10 @@ export interface ClientHealthData {
   avgCpl: number;
   isCanceled: boolean;
   adAccountId: string | null;
+  googleAccountId: string | null;
+  hasLinkedAdAccount: boolean;
+  hasMetaAccount: boolean;
+  hasGoogleAccount: boolean;
 }
 
 export interface HealthTask {
@@ -49,7 +53,10 @@ export interface HealthDashboardData {
   // Sem campanhas ativas
   inactiveClients: ClientHealthData[];
   
-  // Sem sincronização recente (+7 dias)
+  // Sem conta de anúncios vinculada
+  noAdAccountClients: ClientHealthData[];
+  
+  // Sem sincronização recente (+7 dias) - apenas clientes COM conta vinculada
   syncAlerts: ClientHealthData[];
   
   // Ranking piores scores
@@ -82,9 +89,13 @@ interface RawClientData {
   meta_monthly_budget: number | null;
   google_monthly_budget: number | null;
   ad_account_id: string | null;
+  google_account_id: string | null;
 }
 
 function calculateHealthScore(client: RawClientData, balance: number | null): ClientHealthData {
+  const hasMetaAccount = !!client.ad_account_id;
+  const hasGoogleAccount = !!client.google_account_id;
+  const hasLinkedAdAccount = hasMetaAccount || hasGoogleAccount;
   let score = 100;
   const riskFactors: string[] = [];
 
@@ -173,6 +184,10 @@ function calculateHealthScore(client: RawClientData, balance: number | null): Cl
     avgCpl: client.avg_cpl,
     isCanceled: client.is_canceled,
     adAccountId: client.ad_account_id,
+    googleAccountId: client.google_account_id,
+    hasLinkedAdAccount,
+    hasMetaAccount,
+    hasGoogleAccount,
   };
 }
 
@@ -205,7 +220,8 @@ export function useHealthDashboard() {
           is_canceled,
           meta_monthly_budget,
           google_monthly_budget,
-          ad_account_id
+          ad_account_id,
+          google_account_id
         `)
         .eq("company_id", activeCompany.company_id)
         .eq("is_canceled", false);
@@ -313,7 +329,13 @@ export function useHealthDashboard() {
 
       const inactiveClients = processedClients.filter(c => c.activeCampaigns === 0).slice(0, 6);
 
-      const syncAlerts = processedClients.filter(c => c.lastSyncDaysAgo > 7).slice(0, 6);
+      // Clientes sem nenhuma conta de anúncios vinculada
+      const noAdAccountClients = processedClients.filter(c => !c.hasLinkedAdAccount).slice(0, 6);
+
+      // Clientes COM conta vinculada mas sem sincronização recente (+7 dias)
+      const syncAlerts = processedClients.filter(c => 
+        c.hasLinkedAdAccount && c.lastSyncDaysAgo > 7
+      ).slice(0, 6);
 
       const worstClients = processedClients.filter(c => c.riskLevel !== "stable").slice(0, 6);
 
@@ -341,6 +363,7 @@ export function useHealthDashboard() {
         balanceAlerts,
         disabledAccounts,
         inactiveClients,
+        noAdAccountClients,
         syncAlerts,
         worstClients,
         pendingTasks,
