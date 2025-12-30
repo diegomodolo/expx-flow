@@ -13,7 +13,7 @@ export interface BoardPermission {
   updated_at: string;
 }
 
-export function useEmployeeBoard(selectedUserId?: string | null) {
+export function useEmployeeBoard(selectedUserId?: string | null | "all") {
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
@@ -76,7 +76,6 @@ export function useEmployeeBoard(selectedUserId?: string | null) {
     queryFn: async () => {
       if (!user || !activeCompany?.company_id) return [];
 
-      const targetUserId = selectedUserId || user.id;
       const today = new Date().toISOString().split('T')[0];
 
       // Buscar tarefas atribuídas ao usuário
@@ -89,9 +88,13 @@ export function useEmployeeBoard(selectedUserId?: string | null) {
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
-      // Filtrar por usuário atribuído
-      // Verificar tanto user_id quanto assigned_user_id
-      query = query.or(`user_id.eq.${targetUserId},assigned_user_id.eq.${targetUserId}`);
+      // Se for "all", buscar todas as tarefas da empresa
+      // Se for um userId específico, filtrar por esse usuário
+      // Se for null, buscar as do usuário atual
+      if (selectedUserId !== "all") {
+        const targetUserId = selectedUserId || user.id;
+        query = query.or(`user_id.eq.${targetUserId},assigned_user_id.eq.${targetUserId}`);
+      }
 
       const { data: tasksData, error: tasksError } = await query;
 

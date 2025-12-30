@@ -73,7 +73,7 @@ export default function Tarefas() {
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   // Estado para seleção de quadro do colaborador
-  const [selectedBoardUserId, setSelectedBoardUserId] = useState<string | null>(null);
+  const [selectedBoardUserId, setSelectedBoardUserId] = useState<string | null | "all">(null);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -84,14 +84,19 @@ export default function Tarefas() {
   // Hook para quadro do colaborador
   const { 
     boardTasks, 
+    tasksLoading: boardTasksLoading,
     employees, 
     canViewOthersBoards, 
     isManager, 
     currentUserId 
   } = useEmployeeBoard(selectedBoardUserId);
 
+  // Determinar quais tarefas usar baseado no quadro selecionado
+  const activeTasks = selectedBoardUserId !== null ? boardTasks : tasks;
+  const activeLoading = selectedBoardUserId !== null ? boardTasksLoading : loading;
+
   // Filtrar e ordenar tarefas
-  const filteredAndSortedTasks = tasks
+  const filteredAndSortedTasks = activeTasks
     .filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            task.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -148,7 +153,7 @@ export default function Tarefas() {
   // Extrair responsáveis únicos das tarefas para o filtro
   const uniqueResponsibles = Array.from(
     new Set(
-      tasks
+      activeTasks
         .filter(task => task.responsible_name && task.responsible_name.trim() !== '')
         .map(task => task.responsible_name)
     )
@@ -897,7 +902,7 @@ export default function Tarefas() {
         </div>
 
         {/* Conteúdo das Tarefas */}
-        {loading ? (
+        {activeLoading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>

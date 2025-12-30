@@ -22,6 +22,9 @@ export interface Task {
   origin: 'manual' | 'automation' | 'dashboard';
   related_campaign_id?: string;
   related_client_id?: string;
+  created_at?: string;
+  assigned_user_id?: string;
+  visibility_date?: string;
   team?: {
     name: string;
     color: string;
