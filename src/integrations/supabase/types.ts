@@ -3552,6 +3552,41 @@ export type Database = {
           },
         ]
       }
+      employee_board_permissions: {
+        Row: {
+          can_view_others_boards: boolean
+          company_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_view_others_boards?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_view_others_boards?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_board_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_permissions: {
         Row: {
           company_id: string
@@ -7331,6 +7366,81 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_task_templates: {
+        Row: {
+          assigned_to: string
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          days_before_visible: number
+          days_to_complete: number
+          description: string | null
+          id: string
+          is_active: boolean
+          last_generated_at: string | null
+          next_generation_date: string
+          priority: string
+          recurrence_interval: number
+          recurrence_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          days_before_visible?: number
+          days_to_complete?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_generated_at?: string | null
+          next_generation_date?: string
+          priority?: string
+          recurrence_interval?: number
+          recurrence_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          days_before_visible?: number
+          days_to_complete?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_generated_at?: string | null
+          next_generation_date?: string
+          priority?: string
+          recurrence_interval?: number
+          recurrence_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_task_templates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_task_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_executions: {
         Row: {
           client_id: string | null
@@ -7797,6 +7907,7 @@ export type Database = {
           ai_estimated_minutes: number | null
           ai_organization_date: string | null
           alert_id: string | null
+          assigned_user_id: string | null
           checklist: Json | null
           company_id: string | null
           completed_at: string | null
@@ -7809,6 +7920,7 @@ export type Database = {
           origin: Database["public"]["Enums"]["task_origin"] | null
           priority: Database["public"]["Enums"]["task_priority"]
           progress: number
+          recurring_template_id: string | null
           related_campaign_id: string | null
           related_client_id: string | null
           responsible_avatar: string | null
@@ -7819,11 +7931,13 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          visibility_date: string | null
         }
         Insert: {
           ai_estimated_minutes?: number | null
           ai_organization_date?: string | null
           alert_id?: string | null
+          assigned_user_id?: string | null
           checklist?: Json | null
           company_id?: string | null
           completed_at?: string | null
@@ -7836,6 +7950,7 @@ export type Database = {
           origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
+          recurring_template_id?: string | null
           related_campaign_id?: string | null
           related_client_id?: string | null
           responsible_avatar?: string | null
@@ -7846,11 +7961,13 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          visibility_date?: string | null
         }
         Update: {
           ai_estimated_minutes?: number | null
           ai_organization_date?: string | null
           alert_id?: string | null
+          assigned_user_id?: string | null
           checklist?: Json | null
           company_id?: string | null
           completed_at?: string | null
@@ -7863,6 +7980,7 @@ export type Database = {
           origin?: Database["public"]["Enums"]["task_origin"] | null
           priority?: Database["public"]["Enums"]["task_priority"]
           progress?: number
+          recurring_template_id?: string | null
           related_campaign_id?: string | null
           related_client_id?: string | null
           responsible_avatar?: string | null
@@ -7873,6 +7991,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          visibility_date?: string | null
         }
         Relationships: [
           {
@@ -7880,6 +7999,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_recurring_template_id_fkey"
+            columns: ["recurring_template_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_task_templates"
             referencedColumns: ["id"]
           },
           {
