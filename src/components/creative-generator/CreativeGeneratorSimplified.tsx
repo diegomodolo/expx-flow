@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -26,7 +27,9 @@ import {
   ImagePlus, 
   X,
   Check,
-  Wand2
+  Wand2,
+  ChevronsUpDown,
+  Search
 } from "lucide-react";
 import { NewPostModal } from "@/components/scheduling/NewPostModal";
 
@@ -69,6 +72,7 @@ export function CreativeGeneratorSimplified() {
   const [copyText, setCopyText] = useState("");
   const [references, setReferences] = useState<File[]>([]);
   const [showReferences, setShowReferences] = useState(false);
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -86,7 +90,7 @@ export function CreativeGeneratorSimplified() {
   );
 
   const activeClients = useMemo(() => 
-    clients?.filter(c => !c.is_canceled) || [], 
+    (clients?.filter(c => !c.is_canceled) || []).sort((a, b) => a.name.localeCompare(b.name)), 
     [clients]
   );
 
@@ -318,23 +322,58 @@ export function CreativeGeneratorSimplified() {
             {/* Cliente */}
             <div className="space-y-2">
               <Label>Cliente *</Label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeClients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
+              <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientSearchOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedClient ? (
                       <div className="flex items-center gap-2">
-                        <span>{client.name}</span>
-                        {client.ai_briefing && (
+                        <span>{selectedClient.name}</span>
+                        {selectedClient.ai_briefing && (
                           <Badge variant="secondary" className="text-xs">IA</Badge>
                         )}
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    ) : (
+                      "Pesquisar cliente..."
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar cliente..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {activeClients.map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={client.name}
+                            onSelect={() => {
+                              setSelectedClientId(client.id);
+                              setClientSearchOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            <span>{client.name}</span>
+                            {client.ai_briefing && (
+                              <Badge variant="secondary" className="ml-2 text-xs">IA</Badge>
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Tipos de Criativo */}
