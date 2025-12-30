@@ -132,7 +132,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const clientBriefing = (plan.clients as any)?.ai_briefing;
 
   return (
-    <div className="h-[calc(100vh-200px)] min-h-[600px]">
+    <div className="h-full">
       <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
         {/* Left Panel - Editor */}
         <ResizablePanel defaultSize={65} minSize={50}>
