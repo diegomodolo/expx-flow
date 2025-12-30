@@ -19,6 +19,7 @@ import CampanhaDetalhes from "./pages/CampanhaDetalhes";
 import Colaboradores from "./pages/Colaboradores";
 import Squad from "./pages/Squad";
 import Tarefas from "./pages/Tarefas";
+import TarefasRecorrentes from "./pages/TarefasRecorrentes";
 import Relatorios from "./pages/Relatorios";
 import RelatorioExecutivo from "./pages/reports/RelatorioExecutivo";
 import RelatorioFunil from "./pages/reports/RelatorioFunil";
@@ -201,6 +202,11 @@ const App = () => {
                  <Route path="/tarefas" element={
                   <ProtectedRoute>
                     <Tarefas />
+                  </ProtectedRoute>
+                } />
+                <Route path="/tarefas-recorrentes" element={
+                  <ProtectedRoute>
+                    <TarefasRecorrentes />
                   </ProtectedRoute>
                 } />
                  <Route path="/relatorios" element={
