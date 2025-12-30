@@ -78,7 +78,7 @@ Instruções:
 - Considere o tom de voz e público-alvo do cliente
 - Responda em português brasileiro`;
 
-      const { data, error } = await supabase.functions.invoke("ia-agent-chat", {
+      const { data, error } = await supabase.functions.invoke("content-plan-chat", {
         body: {
           messages: [
             ...messages.map((m) => ({ role: m.role, content: m.content })),
