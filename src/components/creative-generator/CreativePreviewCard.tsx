@@ -23,6 +23,7 @@ import {
   Presentation
 } from "lucide-react";
 import { SendToPresentationDialog } from "./SendToPresentationDialog";
+import { RegeneratePromptModal } from "./RegeneratePromptModal";
 
 interface CreativePreviewCardProps {
   imageUrl: string;
@@ -37,7 +38,7 @@ interface CreativePreviewCardProps {
   onDownload: () => void;
   onSave: () => void;
   onSchedule: () => void;
-  onRegenerate: () => void;
+  onRegenerate: (extraPrompt?: string) => void;
 }
 
 // Determina o aspect ratio baseado no tipo de criativo
@@ -78,6 +79,12 @@ export function CreativePreviewCard({
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState(caption);
   const [showPresentationDialog, setShowPresentationDialog] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+
+  const handleRegenerateConfirm = (extraPrompt: string) => {
+    onRegenerate(extraPrompt);
+    setShowRegenerateModal(false);
+  };
 
   const handleSaveCaption = () => {
     onCaptionChange(editedCaption);
@@ -372,7 +379,7 @@ export function CreativePreviewCard({
             size="sm"
             variant="ghost"
             className="h-7 text-xs px-2"
-            onClick={onRegenerate}
+            onClick={() => setShowRegenerateModal(true)}
             disabled={isRegenerating}
           >
             <RefreshCw className={`w-3 h-3 mr-1 ${isRegenerating ? "animate-spin" : ""}`} />
@@ -389,6 +396,14 @@ export function CreativePreviewCard({
         imageUrl={imageUrl}
         caption={caption}
         creativeType={typeKey}
+      />
+
+      {/* Modal para adicionar instruções extras ao regenerar */}
+      <RegeneratePromptModal
+        open={showRegenerateModal}
+        onOpenChange={setShowRegenerateModal}
+        onConfirm={handleRegenerateConfirm}
+        isLoading={isRegenerating}
       />
     </Card>
   );

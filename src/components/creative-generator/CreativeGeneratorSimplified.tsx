@@ -436,7 +436,7 @@ export function CreativeGeneratorSimplified() {
     setShowScheduleModal(true);
   };
 
-  const handleRegenerate = async (creative: GeneratedCreative) => {
+  const handleRegenerate = async (creative: GeneratedCreative, extraPrompt?: string) => {
     setIsGenerating(true);
     
     try {
@@ -445,18 +445,26 @@ export function CreativeGeneratorSimplified() {
       );
       const allReferences = [...fileBase64, ...referenceUrls];
 
+      // Combinar tema original com instruções extras
+      const themeWithExtras = extraPrompt 
+        ? `${creative.theme}\n\nInstruções adicionais do usuário: ${extraPrompt}`
+        : creative.theme;
+
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
           creativeType: creative.type,
           clientId: selectedClientId,
-          theme: creative.theme,
+          theme: themeWithExtras,
           companyId: activeCompany?.company_id,
           references: allReferences.slice(0, 3),
           approvedText: creative.copyText || undefined,
           generateCaption: true,
+          extraPrompt: extraPrompt || undefined,
           context: {
             title: creative.theme,
-            description: `${creative.theme} - Nova versão regenerada`,
+            description: extraPrompt 
+              ? `${creative.theme} - ${extraPrompt}`
+              : `${creative.theme} - Nova versão regenerada`,
             objective: "engajamento",
             targetAudience: selectedClient?.target_audience || "",
             imageCopy: creative.copyText,
@@ -846,7 +854,7 @@ export function CreativeGeneratorSimplified() {
               onDownload={() => handleDownload(creative)}
               onSave={() => handleSave(creative)}
               onSchedule={() => handleSchedule(creative)}
-              onRegenerate={() => handleRegenerate(creative)}
+              onRegenerate={(extraPrompt) => handleRegenerate(creative, extraPrompt)}
             />
           ))}
         </div>
