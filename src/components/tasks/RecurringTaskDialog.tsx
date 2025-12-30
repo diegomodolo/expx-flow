@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEmployees } from "@/hooks/useEmployees";
 import { useClients } from "@/hooks/useClients";
 import { useRecurringTasks, CreateRecurringTaskData, RecurringTaskTemplate } from "@/hooks/useRecurringTasks";
-import { Repeat, Calendar, User, Building2, Clock, Eye } from "lucide-react";
+import { Repeat, User, Building2, Clock, Eye } from "lucide-react";
 
 interface RecurringTaskDialogProps {
   open: boolean;
@@ -16,6 +16,31 @@ interface RecurringTaskDialogProps {
   clientId?: string; // Se passado, pré-seleciona e fixa o cliente
   editTemplate?: RecurringTaskTemplate | null;
 }
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda-feira' },
+  { value: 2, label: 'Terça-feira' },
+  { value: 3, label: 'Quarta-feira' },
+  { value: 4, label: 'Quinta-feira' },
+  { value: 5, label: 'Sexta-feira' },
+  { value: 6, label: 'Sábado' },
+];
+
+const MONTHS = [
+  { value: 1, label: 'Janeiro' },
+  { value: 2, label: 'Fevereiro' },
+  { value: 3, label: 'Março' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Maio' },
+  { value: 6, label: 'Junho' },
+  { value: 7, label: 'Julho' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Setembro' },
+  { value: 10, label: 'Outubro' },
+  { value: 11, label: 'Novembro' },
+  { value: 12, label: 'Dezembro' },
+];
 
 export function RecurringTaskDialog({
   open,
@@ -37,6 +62,9 @@ export function RecurringTaskDialog({
     recurrence_interval: 1,
     days_before_visible: 0,
     days_to_complete: 1,
+    day_of_week: 1, // Segunda-feira por padrão
+    day_of_month: 1, // Dia 1 por padrão
+    month_of_year: 1, // Janeiro por padrão
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +82,9 @@ export function RecurringTaskDialog({
         recurrence_interval: editTemplate.recurrence_interval,
         days_before_visible: editTemplate.days_before_visible,
         days_to_complete: editTemplate.days_to_complete,
+        day_of_week: editTemplate.day_of_week ?? 1,
+        day_of_month: editTemplate.day_of_month ?? 1,
+        month_of_year: editTemplate.month_of_year ?? 1,
       });
     } else {
       setFormData({
@@ -66,6 +97,9 @@ export function RecurringTaskDialog({
         recurrence_interval: 1,
         days_before_visible: 0,
         days_to_complete: 1,
+        day_of_week: 1,
+        day_of_month: 1,
+        month_of_year: 1,
       });
     }
   }, [editTemplate, clientId, open]);
@@ -105,6 +139,9 @@ export function RecurringTaskDialog({
     monthly: 'mês(es)',
     yearly: 'ano(s)',
   };
+
+  // Gerar opções de dias do mês (1-31)
+  const daysOfMonth = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -252,6 +289,92 @@ export function RecurringTaskDialog({
                 </div>
               </div>
             </div>
+
+            {/* Seletor de dia da semana - apenas para recorrência semanal */}
+            {formData.recurrence_type === 'weekly' && (
+              <div className="space-y-2">
+                <Label>Dia da semana</Label>
+                <Select
+                  value={String(formData.day_of_week ?? 1)}
+                  onValueChange={(value) => setFormData({ ...formData, day_of_week: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DAYS_OF_WEEK.map((day) => (
+                      <SelectItem key={day.value} value={String(day.value)}>
+                        {day.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Seletor de dia do mês - para recorrência mensal */}
+            {formData.recurrence_type === 'monthly' && (
+              <div className="space-y-2">
+                <Label>Dia do mês</Label>
+                <Select
+                  value={String(formData.day_of_month ?? 1)}
+                  onValueChange={(value) => setFormData({ ...formData, day_of_month: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {daysOfMonth.map((day) => (
+                      <SelectItem key={day} value={String(day)}>
+                        Dia {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Seletor de dia e mês do ano - para recorrência anual */}
+            {formData.recurrence_type === 'yearly' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Mês</Label>
+                  <Select
+                    value={String(formData.month_of_year ?? 1)}
+                    onValueChange={(value) => setFormData({ ...formData, month_of_year: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTHS.map((month) => (
+                        <SelectItem key={month.value} value={String(month.value)}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Dia</Label>
+                  <Select
+                    value={String(formData.day_of_month ?? 1)}
+                    onValueChange={(value) => setFormData({ ...formData, day_of_month: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfMonth.map((day) => (
+                        <SelectItem key={day} value={String(day)}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

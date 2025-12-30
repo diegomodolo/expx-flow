@@ -18,6 +18,9 @@ interface RecurringTaskTemplate {
   recurrence_interval: number;
   days_before_visible: number;
   days_to_complete: number;
+  day_of_week: number | null;
+  day_of_month: number | null;
+  month_of_year: number | null;
   next_generation_date: string;
   is_active: boolean;
 }
@@ -25,7 +28,10 @@ interface RecurringTaskTemplate {
 function calculateNextGenerationDate(
   currentDate: Date,
   recurrenceType: string,
-  recurrenceInterval: number
+  recurrenceInterval: number,
+  dayOfWeek: number | null,
+  dayOfMonth: number | null,
+  monthOfYear: number | null
 ): Date {
   const nextDate = new Date(currentDate);
   
@@ -34,13 +40,36 @@ function calculateNextGenerationDate(
       nextDate.setDate(nextDate.getDate() + recurrenceInterval);
       break;
     case 'weekly':
+      // Move forward by the interval weeks
       nextDate.setDate(nextDate.getDate() + (7 * recurrenceInterval));
+      // Adjust to the specified day of week if set
+      if (dayOfWeek !== null) {
+        const currentDay = nextDate.getDay();
+        const diff = dayOfWeek - currentDay;
+        nextDate.setDate(nextDate.getDate() + diff);
+      }
       break;
     case 'monthly':
+      // Move forward by the interval months
       nextDate.setMonth(nextDate.getMonth() + recurrenceInterval);
+      // Set to the specified day of month if set
+      if (dayOfMonth !== null) {
+        // Handle months with fewer days
+        const maxDays = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+        nextDate.setDate(Math.min(dayOfMonth, maxDays));
+      }
       break;
     case 'yearly':
+      // Move forward by the interval years
       nextDate.setFullYear(nextDate.getFullYear() + recurrenceInterval);
+      // Set to the specified month and day if set
+      if (monthOfYear !== null) {
+        nextDate.setMonth(monthOfYear - 1); // monthOfYear is 1-12, setMonth expects 0-11
+      }
+      if (dayOfMonth !== null) {
+        const maxDays = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+        nextDate.setDate(Math.min(dayOfMonth, maxDays));
+      }
       break;
     default:
       nextDate.setDate(nextDate.getDate() + 1);
@@ -150,7 +179,10 @@ serve(async (req) => {
         const nextGenDate = calculateNextGenerationDate(
           generationDate,
           template.recurrence_type,
-          template.recurrence_interval
+          template.recurrence_interval,
+          template.day_of_week,
+          template.day_of_month,
+          template.month_of_year
         );
 
         // Update template with next generation date

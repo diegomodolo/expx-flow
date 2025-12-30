@@ -17,6 +17,9 @@ export interface RecurringTaskTemplate {
   recurrence_interval: number;
   days_before_visible: number;
   days_to_complete: number;
+  day_of_week: number | null; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  day_of_month: number | null; // 1-31
+  month_of_year: number | null; // 1-12
   next_generation_date: string;
   last_generated_at: string | null;
   is_active: boolean;
@@ -46,6 +49,9 @@ export interface CreateRecurringTaskData {
   recurrence_interval: number;
   days_before_visible: number;
   days_to_complete: number;
+  day_of_week?: number | null;
+  day_of_month?: number | null;
+  month_of_year?: number | null;
 }
 
 export function useRecurringTasks(clientId?: string) {
