@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Palette, Sparkles, History, Settings, Home } from "lucide-react";
-import { CreativeGenerator } from "@/components/creative-generator/CreativeGenerator";
+import { CreativeGeneratorSimplified } from "@/components/creative-generator/CreativeGeneratorSimplified";
 import { CreativeHistory } from "@/components/creative-generator/CreativeHistory";
 import { IdeogramPromptConfigModal } from "@/components/creative-generator/IdeogramPromptConfigModal";
 
@@ -35,7 +35,7 @@ export default function GeradorCriativos() {
               <div>
                 <h1 className="text-2xl font-bold">Gerador de Criativos com IA</h1>
                 <p className="text-muted-foreground">
-                  Crie criativos visuais profissionais com inteligência artificial
+                  Crie criativos visuais profissionais em segundos
                 </p>
               </div>
             </div>
@@ -65,7 +65,7 @@ export default function GeradorCriativos() {
           </TabsList>
           
           <TabsContent value="generate" className="mt-6">
-            <CreativeGenerator />
+            <CreativeGeneratorSimplified />
           </TabsContent>
           
           <TabsContent value="history" className="mt-6">

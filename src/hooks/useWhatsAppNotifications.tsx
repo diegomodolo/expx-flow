@@ -67,7 +67,12 @@ export interface ExecutionLog {
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
-  trigger?: NotificationTrigger;
+  trigger_name?: string;
+  trigger?: {
+    id: string;
+    trigger_name: string;
+    trigger_type: string;
+  };
 }
 
 // Triggers that fire in real-time (event-based, no scheduling needed)
