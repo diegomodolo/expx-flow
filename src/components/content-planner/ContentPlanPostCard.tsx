@@ -148,7 +148,15 @@ export function ContentPlanPostCard({
 
     setGeneratingField(field);
     try {
-      const { data, error } = await supabase.functions.invoke("ia-agent-chat", {
+      const systemPrompt = `Você é um copywriter profissional especializado em redes sociais. 
+Contexto do cliente: ${clientBriefing}
+Tipo de post: ${typeConfig.label}
+${post.objective ? `Objetivo do post: ${post.objective}` : ""}
+${post.headline ? `Headline atual: ${post.headline}` : ""}
+
+Responda APENAS com o texto solicitado, sem explicações adicionais.`;
+
+      const { data, error } = await supabase.functions.invoke("content-plan-chat", {
         body: {
           messages: [
             {
@@ -156,13 +164,7 @@ export function ContentPlanPostCard({
               content: getAIPrompt(field, post),
             },
           ],
-          systemPrompt: `Você é um copywriter profissional especializado em redes sociais. 
-Contexto do cliente: ${clientBriefing}
-Tipo de post: ${typeConfig.label}
-${post.objective ? `Objetivo do post: ${post.objective}` : ""}
-${post.headline ? `Headline atual: ${post.headline}` : ""}
-
-Responda APENAS com o texto solicitado, sem explicações adicionais.`,
+          systemPrompt,
         },
       });
 
@@ -170,6 +172,13 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`,
 
       const content = data.content || data.message || "";
       onUpdate({ [field]: content });
+      
+      // Update local state immediately
+      if (field === "objective") setObjective(content);
+      if (field === "headline") setHeadline(content);
+      if (field === "subheadline") setSubheadline(content);
+      if (field === "caption") setCaption(content);
+      
       toast.success(`${field} gerado com sucesso!`);
     } catch (error: any) {
       toast.error("Erro ao gerar conteúdo: " + error.message);
