@@ -29,9 +29,12 @@ import {
   Check,
   Wand2,
   ChevronsUpDown,
-  Search
+  Search,
+  Instagram,
+  Megaphone
 } from "lucide-react";
 import { NewPostModal } from "@/components/scheduling/NewPostModal";
+import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 
 // Tipos de criativos disponíveis
 const CREATIVE_TYPES = [
@@ -70,9 +73,13 @@ export function CreativeGeneratorSimplified() {
   const [quantity, setQuantity] = useState(1);
   const [theme, setTheme] = useState("");
   const [copyText, setCopyText] = useState("");
-  const [references, setReferences] = useState<File[]>([]);
+  const [referenceUrls, setReferenceUrls] = useState<string[]>([]);
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [showReferences, setShowReferences] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [showReferenceDialog, setShowReferenceDialog] = useState(false);
+  const [isGeneratingTheme, setIsGeneratingTheme] = useState(false);
+  const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -109,12 +116,26 @@ export function CreativeGeneratorSimplified() {
   const handleReferenceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter(f => f.type.startsWith('image/'));
-    setReferences(prev => [...prev, ...validFiles].slice(0, 3)); // Máximo 3
+    const totalRefs = referenceUrls.length + referenceFiles.length;
+    const remaining = 5 - totalRefs;
+    setReferenceFiles(prev => [...prev, ...validFiles.slice(0, remaining)]);
   };
 
-  const removeReference = (index: number) => {
-    setReferences(prev => prev.filter((_, i) => i !== index));
+  const removeReferenceFile = (index: number) => {
+    setReferenceFiles(prev => prev.filter((_, i) => i !== index));
   };
+
+  const removeReferenceUrl = (index: number) => {
+    setReferenceUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReferenceSelect = (urls: string[]) => {
+    const totalRefs = referenceUrls.length + referenceFiles.length;
+    const remaining = 5 - totalRefs;
+    setReferenceUrls(prev => [...prev, ...urls.slice(0, remaining)]);
+  };
+
+  const totalReferences = referenceUrls.length + referenceFiles.length;
 
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -123,6 +144,83 @@ export function CreativeGeneratorSimplified() {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleGenerateThemeWithAI = async () => {
+    if (!selectedClient?.ai_briefing) {
+      toast({
+        title: "Briefing não disponível",
+        description: "Este cliente não possui briefing de IA cadastrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingTheme(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-creative-suggestions', {
+        body: {
+          clientId: selectedClientId,
+          companyId: activeCompany?.company_id,
+          briefing: selectedClient.ai_briefing,
+          type: 'theme',
+          creativeTypes: selectedTypes
+        }
+      });
+
+      if (error) throw error;
+      if (data?.theme) {
+        setTheme(data.theme);
+        toast({ title: "Tema gerado com IA!" });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao gerar tema",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingTheme(false);
+    }
+  };
+
+  const handleGenerateCopyWithAI = async () => {
+    if (!selectedClient?.ai_briefing && !theme) {
+      toast({
+        title: "Informações insuficientes",
+        description: "Preencha o tema ou selecione um cliente com briefing de IA.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingCopy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-creative-suggestions', {
+        body: {
+          clientId: selectedClientId,
+          companyId: activeCompany?.company_id,
+          briefing: selectedClient?.ai_briefing,
+          theme: theme,
+          type: 'copy',
+          creativeTypes: selectedTypes
+        }
+      });
+
+      if (error) throw error;
+      if (data?.copy) {
+        setCopyText(data.copy);
+        toast({ title: "Texto gerado com IA!" });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao gerar texto",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCopy(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -135,10 +233,12 @@ export function CreativeGeneratorSimplified() {
     setGenerationProgress({ current: 0, total: totalToGenerate });
 
     try {
-      // Converter referências para base64
-      const referenceBase64 = await Promise.all(
-        references.map(f => convertFileToBase64(f))
+      // Converter referências de arquivo para base64
+      const fileBase64 = await Promise.all(
+        referenceFiles.map(f => convertFileToBase64(f))
       );
+      // Combinar com URLs de referência
+      const allReferences = [...fileBase64, ...referenceUrls];
 
       const newCreatives: GeneratedCreative[] = [];
 
@@ -158,7 +258,7 @@ export function CreativeGeneratorSimplified() {
               clientId: selectedClientId,
               theme: theme,
               companyId: activeCompany.company_id,
-              references: referenceBase64,
+              references: allReferences,
               approvedText: copyText || undefined,
               context: {
                 title: theme,
@@ -262,9 +362,10 @@ export function CreativeGeneratorSimplified() {
     setIsGenerating(true);
     
     try {
-      const referenceBase64 = await Promise.all(
-        references.map(f => convertFileToBase64(f))
+      const fileBase64 = await Promise.all(
+        referenceFiles.map(f => convertFileToBase64(f))
       );
+      const allReferences = [...fileBase64, ...referenceUrls];
 
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
@@ -272,7 +373,7 @@ export function CreativeGeneratorSimplified() {
           clientId: selectedClientId,
           theme: theme,
           companyId: activeCompany?.company_id,
-          references: referenceBase64,
+          references: allReferences,
           approvedText: copyText || undefined,
           context: {
             title: theme,
@@ -415,7 +516,25 @@ export function CreativeGeneratorSimplified() {
 
             {/* Tema/Descrição */}
             <div className="space-y-2">
-              <Label>Tema / Descrição do Criativo *</Label>
+              <div className="flex items-center justify-between">
+                <Label>Tema / Descrição do Criativo *</Label>
+                {selectedClient?.ai_briefing && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateThemeWithAI}
+                    disabled={isGeneratingTheme}
+                    className="h-7 text-xs"
+                  >
+                    {isGeneratingTheme ? (
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 mr-1" />
+                    )}
+                    Preencher com IA
+                  </Button>
+                )}
+              </div>
               <Textarea
                 placeholder="Ex: Promoção de Black Friday com 50% de desconto em todos os produtos"
                 value={theme}
@@ -426,7 +545,23 @@ export function CreativeGeneratorSimplified() {
 
             {/* Copy da Imagem (texto que aparece na arte) */}
             <div className="space-y-2">
-              <Label>Texto na Imagem (opcional)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Texto na Imagem (opcional)</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateCopyWithAI}
+                  disabled={isGeneratingCopy || (!selectedClient?.ai_briefing && !theme)}
+                  className="h-7 text-xs"
+                >
+                  {isGeneratingCopy ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3 mr-1" />
+                  )}
+                  Preencher com IA
+                </Button>
+              </div>
               <Input
                 placeholder="Ex: 50% OFF, Compre Agora, etc."
                 value={copyText}
@@ -443,29 +578,51 @@ export function CreativeGeneratorSimplified() {
                 <Button variant="outline" className="w-full justify-between">
                   <span className="flex items-center gap-2">
                     <ImagePlus className="w-4 h-4" />
-                    Referências Visuais ({references.length}/3)
+                    Referências Visuais ({totalReferences}/5)
                   </span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${showReferences ? 'rotate-180' : ''}`} />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="pt-4 space-y-3">
-                <div className="flex gap-2">
-                  {references.map((file, idx) => (
-                    <div key={idx} className="relative w-20 h-20">
+              <CollapsibleContent className="pt-4 space-y-4">
+                {/* Imagens selecionadas */}
+                <div className="flex flex-wrap gap-2">
+                  {/* Arquivos locais */}
+                  {referenceFiles.map((file, idx) => (
+                    <div key={`file-${idx}`} className="relative w-20 h-20">
                       <img
                         src={URL.createObjectURL(file)}
                         alt={`Ref ${idx + 1}`}
                         className="w-full h-full object-cover rounded-lg border"
                       />
                       <button
-                        onClick={() => removeReference(idx)}
+                        onClick={() => removeReferenceFile(idx)}
                         className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
-                  {references.length < 3 && (
+                  {/* URLs do Instagram/Campanhas */}
+                  {referenceUrls.map((url, idx) => (
+                    <div key={`url-${idx}`} className="relative w-20 h-20">
+                      <img
+                        src={url}
+                        alt={`Ref ${idx + 1}`}
+                        className="w-full h-full object-cover rounded-lg border"
+                      />
+                      <Badge variant="secondary" className="absolute top-1 left-1 text-[10px] px-1 py-0">
+                        <Instagram className="w-2 h-2 mr-0.5" />
+                      </Badge>
+                      <button
+                        onClick={() => removeReferenceUrl(idx)}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Botão para adicionar arquivo */}
+                  {totalReferences < 5 && (
                     <label className="w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
                       <ImagePlus className="w-6 h-6 text-muted-foreground" />
                       <input
@@ -478,8 +635,33 @@ export function CreativeGeneratorSimplified() {
                     </label>
                   )}
                 </div>
+                
+                {/* Botões para buscar do Instagram/Campanhas */}
+                {selectedClientId && activeCompany?.company_id && totalReferences < 5 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowReferenceDialog(true)}
+                      className="flex-1"
+                    >
+                      <Instagram className="w-4 h-4 mr-2" />
+                      Buscar do Instagram
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowReferenceDialog(true)}
+                      className="flex-1"
+                    >
+                      <Megaphone className="w-4 h-4 mr-2" />
+                      Buscar das Campanhas
+                    </Button>
+                  </div>
+                )}
+                
                 <p className="text-xs text-muted-foreground">
-                  Adicione imagens de referência para guiar o estilo visual
+                  Adicione até 5 imagens de referência para guiar o estilo visual
                 </p>
               </CollapsibleContent>
             </Collapsible>
@@ -606,6 +788,18 @@ export function CreativeGeneratorSimplified() {
           initialMediaUrls={[selectedCreativeForSchedule.imageUrl]}
           initialCaption={selectedCreativeForSchedule.caption}
           initialClientId={selectedClientId}
+        />
+      )}
+
+      {/* Dialog de seleção de referências do Instagram/Campanhas */}
+      {selectedClientId && activeCompany?.company_id && (
+        <ReferenceSelectionDialog
+          open={showReferenceDialog}
+          onOpenChange={setShowReferenceDialog}
+          clientId={selectedClientId}
+          companyId={activeCompany.company_id}
+          onSelect={handleReferenceSelect}
+          maxSelections={5 - totalReferences}
         />
       )}
     </div>
