@@ -19,13 +19,17 @@ import {
   MessageSquare,
   Edit2,
   Check,
-  X
+  X,
+  Presentation
 } from "lucide-react";
+import { SendToPresentationDialog } from "./SendToPresentationDialog";
 
 interface CreativePreviewCardProps {
   imageUrl: string;
   caption: string;
   typeName: string;
+  typeKey: string;
+  clientId: string;
   clientName: string;
   clientAvatar?: string;
   isRegenerating?: boolean;
@@ -40,6 +44,8 @@ export function CreativePreviewCard({
   imageUrl,
   caption,
   typeName,
+  typeKey,
+  clientId,
   clientName,
   clientAvatar,
   isRegenerating,
@@ -52,6 +58,7 @@ export function CreativePreviewCard({
   const [activeTab, setActiveTab] = useState<"instagram" | "facebook">("instagram");
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState(caption);
+  const [showPresentationDialog, setShowPresentationDialog] = useState(false);
 
   const handleSaveCaption = () => {
     onCaptionChange(editedCaption);
@@ -335,6 +342,15 @@ export function CreativePreviewCard({
           </Button>
           <Button
             size="sm"
+            variant="secondary"
+            className="h-7 text-xs px-2"
+            onClick={() => setShowPresentationDialog(true)}
+          >
+            <Presentation className="w-3 h-3 mr-1" />
+            Apresentação
+          </Button>
+          <Button
+            size="sm"
             variant="ghost"
             className="h-7 text-xs px-2"
             onClick={onRegenerate}
@@ -345,6 +361,16 @@ export function CreativePreviewCard({
           </Button>
         </div>
       </CardContent>
+
+      {/* Dialog de enviar para apresentação */}
+      <SendToPresentationDialog
+        open={showPresentationDialog}
+        onOpenChange={setShowPresentationDialog}
+        clientId={clientId}
+        imageUrl={imageUrl}
+        caption={caption}
+        creativeType={typeKey}
+      />
     </Card>
   );
 }

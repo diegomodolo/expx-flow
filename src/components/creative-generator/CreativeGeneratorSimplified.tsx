@@ -784,6 +784,8 @@ export function CreativeGeneratorSimplified() {
               imageUrl={creative.imageUrl}
               caption={creative.caption}
               typeName={creative.typeName}
+              typeKey={creative.type}
+              clientId={selectedClient?.id || ""}
               clientName={selectedClient?.name || "Cliente"}
               clientAvatar={selectedClient?.avatar || undefined}
               isRegenerating={isGenerating}
