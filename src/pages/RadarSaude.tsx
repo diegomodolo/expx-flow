@@ -6,7 +6,6 @@ import { HealthDisabledAccounts } from "@/components/health-dashboard/HealthDisa
 import { HealthInactiveClients } from "@/components/health-dashboard/HealthInactiveClients";
 import { HealthSyncAlerts } from "@/components/health-dashboard/HealthSyncAlerts";
 import { HealthWorstClients } from "@/components/health-dashboard/HealthWorstClients";
-import { HealthTasksList } from "@/components/health-dashboard/HealthTasksList";
 import { HealthDisqualifiedLeads } from "@/components/health-dashboard/HealthDisqualifiedLeads";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -102,11 +101,6 @@ const RadarSaude = () => {
           />
           <HealthWorstClients clients={data.worstClients} />
           <HealthDisqualifiedLeads clients={data.disqualifiedLeadClients} />
-        </div>
-
-        {/* Row 3: Tasks */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <HealthTasksList tasks={data.pendingTasks} />
         </div>
       </div>
     </DashboardLayout>
