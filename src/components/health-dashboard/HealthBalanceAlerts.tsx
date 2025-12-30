@@ -1,4 +1,4 @@
-import { Wallet, AlertTriangle } from "lucide-react";
+import { Wallet, AlertTriangle, TrendingDown, Clock, CheckCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ClientHealthData } from "@/hooks/useHealthDashboard";
@@ -25,6 +25,35 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function getStatusConfig(client: ClientHealthData) {
+  if (client.balanceStatus === "insufficient") {
+    return {
+      icon: AlertTriangle,
+      label: "Não vai durar",
+      bgClass: "bg-destructive/5 border-destructive/20",
+      textClass: "text-destructive",
+      badgeClass: "bg-destructive/10 text-destructive",
+    };
+  }
+  if (client.balanceStatus === "tight") {
+    return {
+      icon: TrendingDown,
+      label: "Apertado",
+      bgClass: "bg-amber-500/5 border-amber-500/20",
+      textClass: "text-amber-600 dark:text-amber-400",
+      badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    };
+  }
+  // Low balance but sufficient
+  return {
+    icon: Clock,
+    label: "Saldo baixo",
+    bgClass: "bg-yellow-500/5 border-yellow-500/20",
+    textClass: "text-yellow-600 dark:text-yellow-400",
+    badgeClass: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+  };
+}
+
 export function HealthBalanceAlerts({ clients }: HealthBalanceAlertsProps) {
   return (
     <div className="bg-card rounded-xl border border-border p-4 h-full flex flex-col">
@@ -44,7 +73,7 @@ export function HealthBalanceAlerts({ clients }: HealthBalanceAlertsProps) {
         <div className="flex-1 flex items-center justify-center text-center">
           <div>
             <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-2">
-              <Wallet className="h-5 w-5 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-green-500" />
             </div>
             <p className="text-sm text-muted-foreground">Todos os saldos OK!</p>
           </div>
@@ -52,16 +81,15 @@ export function HealthBalanceAlerts({ clients }: HealthBalanceAlertsProps) {
       ) : (
         <div className="flex-1 overflow-auto space-y-2">
           {clients.map((client) => {
-            const isCritical = client.balance !== null && client.balance < 50;
+            const config = getStatusConfig(client);
+            const StatusIcon = config.icon;
             
             return (
               <div
                 key={client.id}
                 className={cn(
                   "flex items-center gap-3 p-2 rounded-lg border",
-                  isCritical 
-                    ? "bg-destructive/5 border-destructive/20" 
-                    : "bg-yellow-500/5 border-yellow-500/20"
+                  config.bgClass
                 )}
               >
                 <Avatar className="h-8 w-8">
@@ -75,22 +103,30 @@ export function HealthBalanceAlerts({ clients }: HealthBalanceAlertsProps) {
                   <p className="text-sm font-medium text-foreground truncate">
                     {client.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Pré-pago • {client.activeCampaigns} campanha(s)
-                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Saldo: {client.balance !== null ? formatCurrency(client.balance) : "N/A"}</span>
+                    {client.dailySpend !== null && (
+                      <>
+                        <span>•</span>
+                        <span>{formatCurrency(client.dailySpend)}/dia</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <div className={cn(
-                    "flex items-center gap-1 text-sm font-semibold",
-                    isCritical ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"
+                    "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded",
+                    config.badgeClass
                   )}>
-                    {isCritical && <AlertTriangle className="h-3 w-3" />}
-                    {client.balance !== null ? formatCurrency(client.balance) : "N/A"}
+                    <StatusIcon className="h-3 w-3" />
+                    <span>{config.label}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {isCritical ? "Crítico" : "Baixo"}
-                  </p>
+                  {client.daysUntilRecharge !== null && client.balanceStatus !== "no-data" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {client.daysUntilRecharge} dias até recarga
+                    </p>
+                  )}
                 </div>
               </div>
             );
