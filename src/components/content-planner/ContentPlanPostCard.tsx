@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ContentPlanPost, ContentPlanSlide, useContentPlans } from "@/hooks/useContentPlans";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,44 @@ const postTypeConfig = {
   reels: { label: "Reels", icon: Film, color: "bg-pink-100 text-pink-700" },
 };
 
+// Custom hook for debounced updates
+function useDebouncedField(
+  initialValue: string,
+  onUpdate: (value: string) => void,
+  delay: number = 500
+) {
+  const [localValue, setLocalValue] = useState(initialValue);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  // Sync with external value when it changes
+  useEffect(() => {
+    setLocalValue(initialValue);
+  }, [initialValue]);
+
+  const handleChange = useCallback((value: string) => {
+    setLocalValue(value);
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      onUpdate(value);
+    }, delay);
+  }, [onUpdate, delay]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return [localValue, handleChange] as const;
+}
+
 export function ContentPlanPostCard({
   post,
   index,
@@ -76,6 +114,28 @@ export function ContentPlanPostCard({
   const [generatingField, setGeneratingField] = useState<string | null>(null);
   
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
+
+  // Debounced fields
+  const [objective, setObjective] = useDebouncedField(
+    post.objective || "",
+    (value) => onUpdate({ objective: value })
+  );
+  const [headline, setHeadline] = useDebouncedField(
+    post.headline || "",
+    (value) => onUpdate({ headline: value })
+  );
+  const [subheadline, setSubheadline] = useDebouncedField(
+    post.subheadline || "",
+    (value) => onUpdate({ subheadline: value })
+  );
+  const [caption, setCaption] = useDebouncedField(
+    post.caption || "",
+    (value) => onUpdate({ caption: value })
+  );
+  const [script, setScript] = useDebouncedField(
+    typeof post.script === "string" ? post.script : JSON.stringify(post.script || "", null, 2),
+    (value) => onUpdate({ script: value })
+  );
 
   const typeConfig = postTypeConfig[post.post_type];
   const TypeIcon = typeConfig.icon;
@@ -229,8 +289,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`,
                   </Button>
                 </div>
                 <Input
-                  value={post.objective || ""}
-                  onChange={(e) => onUpdate({ objective: e.target.value })}
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
                   placeholder="Ex: Gerar leads, aumentar engajamento..."
                 />
               </div>
@@ -255,8 +315,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`,
                   </Button>
                 </div>
                 <Input
-                  value={post.headline || ""}
-                  onChange={(e) => onUpdate({ headline: e.target.value })}
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
                   placeholder="Título principal do post"
                 />
               </div>
@@ -281,8 +341,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`,
                   </Button>
                 </div>
                 <Input
-                  value={post.subheadline || ""}
-                  onChange={(e) => onUpdate({ subheadline: e.target.value })}
+                  value={subheadline}
+                  onChange={(e) => setSubheadline(e.target.value)}
                   placeholder="Subtítulo complementar"
                 />
               </div>
@@ -307,14 +367,14 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`,
                   </Button>
                 </div>
                 <Textarea
-                  value={post.caption || ""}
-                  onChange={(e) => onUpdate({ caption: e.target.value })}
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
                   placeholder="Legenda completa com hashtags..."
                   rows={4}
                 />
-                {post.caption && (
+                {caption && (
                   <p className="text-xs text-muted-foreground">
-                    {post.caption.length} caracteres
+                    {caption.length} caracteres
                   </p>
                 )}
               </div>
@@ -388,8 +448,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`,
                 <div className="space-y-2 pt-4 border-t">
                   <Label>Roteiro do Reels</Label>
                   <Textarea
-                    value={typeof post.script === "string" ? post.script : JSON.stringify(post.script || "", null, 2)}
-                    onChange={(e) => onUpdate({ script: e.target.value })}
+                    value={script}
+                    onChange={(e) => setScript(e.target.value)}
                     placeholder="Descreva o roteiro do vídeo..."
                     rows={6}
                   />
