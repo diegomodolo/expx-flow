@@ -3,46 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Task } from "./useTasks";
-
-export interface BoardPermission {
-  id: string;
-  user_id: string;
-  company_id: string;
-  can_view_others_boards: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { useEmployeePermissions } from "./useEmployeePermissions";
 
 export function useEmployeeBoard(selectedUserId?: string | null | "all") {
   const { user } = useAuth();
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
-
-  // Query para verificar permissões do usuário atual
-  const {
-    data: boardPermission,
-    isLoading: permissionLoading,
-  } = useQuery({
-    queryKey: ['board-permission', user?.id, activeCompany?.company_id],
-    queryFn: async () => {
-      if (!user || !activeCompany?.company_id) return null;
-
-      const { data, error } = await supabase
-        .from("employee_board_permissions")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("company_id", activeCompany.company_id)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('Error fetching board permission:', error);
-        return null;
-      }
-
-      return data as BoardPermission | null;
-    },
-    enabled: !!user && !!activeCompany?.company_id,
-  });
+  const { hasPermission, isOwner, permissionsLoading } = useEmployeePermissions();
 
   // Query para verificar se o usuário é owner/admin
   const {
@@ -157,37 +124,8 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
     enabled: !!user && !!activeCompany?.company_id,
   });
 
-  // Verificar se pode ver quadros de outros
-  const canViewOthersBoards = isManager || boardPermission?.can_view_others_boards || false;
-
-  // Atualizar permissão de visualização
-  const updateBoardPermission = async (userId: string, canViewOthers: boolean) => {
-    if (!activeCompany?.company_id) return;
-
-    const { data: existing } = await supabase
-      .from("employee_board_permissions")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("company_id", activeCompany.company_id)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase
-        .from("employee_board_permissions")
-        .update({ can_view_others_boards: canViewOthers })
-        .eq("id", existing.id);
-    } else {
-      await supabase
-        .from("employee_board_permissions")
-        .insert([{
-          user_id: userId,
-          company_id: activeCompany.company_id,
-          can_view_others_boards: canViewOthers,
-        }]);
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['board-permission'] });
-  };
+  // Verificar se pode ver quadros de outros - usa a permissão do sistema
+  const canViewOthersBoards = isOwner || isManager || hasPermission('ver-quadros-outros');
 
   return {
     boardTasks,
@@ -196,9 +134,8 @@ export function useEmployeeBoard(selectedUserId?: string | null | "all") {
     employees,
     employeesLoading,
     canViewOthersBoards,
-    isManager,
-    permissionLoading: permissionLoading || managerLoading,
-    updateBoardPermission,
+    isManager: isManager || false,
+    permissionLoading: permissionsLoading || managerLoading,
     currentUserId: user?.id,
   };
 }

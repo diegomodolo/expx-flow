@@ -12,24 +12,26 @@ import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermiss
 import { Search, RotateCcw, Shield, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const MENU_ITEMS: { key: MenuItemType; label: string; description: string }[] = [
-  { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral' },
-  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes' },
-  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias' },
-  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão' },
-  { key: 'squad', label: 'Squad', description: 'Gestão de equipes' },
-  { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas' },
-  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários' },
-  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises' },
-  { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração' },
-  { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Ferramenta de criação de campanhas' },
-  { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Ferramenta de criação de conteúdo com IA' },
-  { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Ferramenta de criação de criativos visuais com IA' },
-  { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial' },
-  { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA' },
-  { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes de IA' },
-  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp' },
-  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema' },
+const MENU_ITEMS: { key: MenuItemType; label: string; description: string; category?: string }[] = [
+  { key: 'dashboard', label: 'Dashboard', description: 'Página inicial e visão geral', category: 'menu' },
+  { key: 'clientes', label: 'Clientes', description: 'Gestão de clientes', category: 'menu' },
+  { key: 'campanhas', label: 'Campanhas', description: 'Gestão de campanhas publicitárias', category: 'menu' },
+  { key: 'editor-funil', label: 'Funis', description: 'Editor e visualização de funis de conversão', category: 'menu' },
+  { key: 'squad', label: 'Squad', description: 'Gestão de equipes', category: 'menu' },
+  { key: 'tarefas', label: 'Tarefas', description: 'Gerenciamento de tarefas', category: 'menu' },
+  { key: 'colaboradores', label: 'Colaboradores', description: 'Gestão de funcionários', category: 'menu' },
+  { key: 'relatorios', label: 'Relatórios', description: 'Relatórios e análises', category: 'menu' },
+  { key: 'geradores', label: 'Geradores', description: 'Menu de ferramentas de geração', category: 'menu' },
+  { key: 'gerador-campanhas', label: 'Gerador de Campanhas', description: 'Ferramenta de criação de campanhas', category: 'menu' },
+  { key: 'gerador-conteudo', label: 'Gerador de Conteúdo', description: 'Ferramenta de criação de conteúdo com IA', category: 'menu' },
+  { key: 'gerador-criativos', label: 'Gerador de Criativos', description: 'Ferramenta de criação de criativos visuais com IA', category: 'menu' },
+  { key: 'ia', label: 'IA Chat', description: 'Chat com inteligência artificial', category: 'menu' },
+  { key: 'agentes-ia', label: 'Agentes IA', description: 'Acesso ao menu de Agentes de IA', category: 'menu' },
+  { key: 'editar-agentes', label: 'Editar Agentes', description: 'Criar, editar, duplicar e excluir agentes de IA', category: 'menu' },
+  { key: 'whatsapp', label: 'WhatsApp', description: 'Módulo de notificações WhatsApp', category: 'menu' },
+  { key: 'configuracoes', label: 'Configurações', description: 'Configurações do sistema', category: 'menu' },
+  // Permissões especiais
+  { key: 'ver-quadros-outros', label: 'Ver Quadros de Outros', description: 'Permite visualizar o quadro de tarefas de outros colaboradores', category: 'special' },
 ];
 
 export function PermissionsSettings() {
