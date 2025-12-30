@@ -25,6 +25,7 @@ import { ClientePublicos } from "./cliente/ClientePublicos";
 import { ClienteApresentacoes } from "./cliente/ClienteApresentacoes";
 import ClientePixels from "./ClientePixels";
 import InstagramAutoPostsPage from "./clients/InstagramAutoPostsPage";
+import { ClienteTarefas } from "./cliente/ClienteTarefas";
 import { useClientDetails } from "@/hooks/useClientDetails";
 import { useUnifiedCampaigns, useUnifiedMetrics } from "@/hooks/useUnifiedCampaigns";
 import { Loader2 } from "lucide-react";
@@ -249,6 +250,7 @@ const ClienteDetalhes = () => {
             <Route path="leads-desqualificados" element={<ClienteLeadsDesqualificados />} />
             <Route path="conversoes" element={<ClienteConversoes />} />
             <Route path="historico" element={<ClienteHistorico />} />
+            <Route path="tarefas" element={<ClienteTarefas clientId={id || ""} clientName={client?.name || ""} />} />
             <Route path="crm" element={<ClienteCRM />} />
             <Route path="automacoes" element={<ClienteAutomacoes />} />
             <Route path="redes-sociais" element={<ClienteRedesSociais />} />
