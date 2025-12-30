@@ -73,7 +73,10 @@ const RadarSaude = () => {
 
         {/* Row 3: Sync, Worst Clients, Tasks */}
         <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
-          <HealthSyncAlerts clients={data.syncAlerts} />
+          <HealthSyncAlerts 
+            syncAlerts={data.syncAlerts} 
+            noAdAccountClients={data.noAdAccountClients} 
+          />
           <HealthWorstClients clients={data.worstClients} />
           <HealthTasksList tasks={data.pendingTasks} />
         </div>
