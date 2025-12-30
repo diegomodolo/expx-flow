@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { NewPostModal } from "@/components/scheduling/NewPostModal";
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
+import { CreativePreviewCard } from "./CreativePreviewCard";
 
 // Tipos de criativos disponíveis
 const CREATIVE_TYPES = [
@@ -350,6 +351,13 @@ export function CreativeGeneratorSimplified() {
   const handleCopyCaption = (caption: string) => {
     navigator.clipboard.writeText(caption);
     toast({ title: "Legenda copiada!" });
+  };
+
+  const handleCaptionChange = (creativeId: string, newCaption: string) => {
+    setGeneratedCreatives(prev =>
+      prev.map(c => c.id === creativeId ? { ...c, caption: newCaption } : c)
+    );
+    toast({ title: "Legenda atualizada!" });
   };
 
   const handleSchedule = (creative: GeneratedCreative) => {
@@ -715,62 +723,22 @@ export function CreativeGeneratorSimplified() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           {generatedCreatives.map((creative) => (
-            <Card key={creative.id} className="overflow-hidden">
-              <div className="aspect-square relative bg-muted">
-                <img
-                  src={creative.imageUrl}
-                  alt={creative.typeName}
-                  className="w-full h-full object-contain"
-                />
-                <Badge className="absolute top-2 left-2">
-                  {creative.typeName}
-                </Badge>
-              </div>
-              <CardContent className="p-4 space-y-3">
-                {creative.caption && (
-                  <div className="bg-muted p-3 rounded-lg">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-medium text-muted-foreground">Legenda sugerida:</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2"
-                        onClick={() => handleCopyCaption(creative.caption)}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <p className="text-sm line-clamp-3">{creative.caption}</p>
-                  </div>
-                )}
-                
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleDownload(creative)}>
-                    <Download className="w-4 h-4 mr-1" />
-                    Baixar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleSave(creative)}>
-                    <Save className="w-4 h-4 mr-1" />
-                    Salvar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleSchedule(creative)}>
-                    <Calendar className="w-4 h-4 mr-1" />
-                    Agendar
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => handleRegenerate(creative)}
-                    disabled={isGenerating}
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                    Nova Versão
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <CreativePreviewCard
+              key={creative.id}
+              imageUrl={creative.imageUrl}
+              caption={creative.caption}
+              typeName={creative.typeName}
+              clientName={selectedClient?.name || "Cliente"}
+              clientAvatar={selectedClient?.avatar || undefined}
+              isRegenerating={isGenerating}
+              onCaptionChange={(newCaption) => handleCaptionChange(creative.id, newCaption)}
+              onDownload={() => handleDownload(creative)}
+              onSave={() => handleSave(creative)}
+              onSchedule={() => handleSchedule(creative)}
+              onRegenerate={() => handleRegenerate(creative)}
+            />
           ))}
         </div>
       </div>
