@@ -754,34 +754,20 @@ export function CreativeGeneratorSimplified() {
                               </label>
                             )}
                             
-                            {/* Botões para buscar do Instagram/Campanhas */}
+                            {/* Botão para buscar referência */}
                             {selectedClientId && activeCompany?.company_id && !input.referenceFile && !input.referenceUrl && (
-                              <div className="flex gap-1 flex-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setReferenceDialogForCreativeIndex(index);
-                                    setShowReferenceDialog(true);
-                                  }}
-                                  className="h-7 text-[10px] px-2 flex-1"
-                                >
-                                  <Instagram className="w-3 h-3 mr-1" />
-                                  Instagram
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setReferenceDialogForCreativeIndex(index);
-                                    setShowReferenceDialog(true);
-                                  }}
-                                  className="h-7 text-[10px] px-2 flex-1"
-                                >
-                                  <Megaphone className="w-3 h-3 mr-1" />
-                                  Campanhas
-                                </Button>
-                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setReferenceDialogForCreativeIndex(index);
+                                  setShowReferenceDialog(true);
+                                }}
+                                className="h-8 text-xs px-3"
+                              >
+                                <Instagram className="w-3 h-3 mr-1" />
+                                Buscar Referência
+                              </Button>
                             )}
                           </div>
                         </div>
