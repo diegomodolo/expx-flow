@@ -1,5 +1,6 @@
 import { Wallet, AlertTriangle, TrendingDown, Clock, CheckCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { ClientHealthData } from "@/hooks/useHealthDashboard";
 
@@ -62,11 +63,6 @@ export function HealthBalanceAlerts({ clients }: HealthBalanceAlertsProps) {
           <Wallet className="h-4 w-4 text-yellow-500" />
         </div>
         <h3 className="font-semibold text-foreground text-sm">Alertas de Saldo</h3>
-        {clients.length > 0 && (
-          <span className="ml-auto text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full">
-            {clients.length}
-          </span>
-        )}
       </div>
 
       {clients.length === 0 ? (
@@ -79,59 +75,61 @@ export function HealthBalanceAlerts({ clients }: HealthBalanceAlertsProps) {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto space-y-2">
-          {clients.map((client) => {
-            const config = getStatusConfig(client);
-            const StatusIcon = config.icon;
-            
-            return (
-              <div
-                key={client.id}
-                className={cn(
-                  "flex items-center gap-3 p-2 rounded-lg border",
-                  config.bgClass
-                )}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={client.avatar || undefined} />
-                  <AvatarFallback className="text-xs bg-muted">
-                    {getInitials(client.name)}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {client.name}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Saldo: {client.balance !== null ? formatCurrency(client.balance) : "N/A"}</span>
-                    {client.dailySpend !== null && (
-                      <>
-                        <span>•</span>
-                        <span>{formatCurrency(client.dailySpend)}/dia</span>
-                      </>
+        <ScrollArea className="flex-1">
+          <div className="space-y-2 pr-2">
+            {clients.map((client) => {
+              const config = getStatusConfig(client);
+              const StatusIcon = config.icon;
+              
+              return (
+                <div
+                  key={client.id}
+                  className={cn(
+                    "flex items-center gap-3 p-2 rounded-lg border",
+                    config.bgClass
+                  )}
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={client.avatar || undefined} />
+                    <AvatarFallback className="text-xs bg-muted">
+                      {getInitials(client.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {client.name}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Saldo: {client.balance !== null ? formatCurrency(client.balance) : "N/A"}</span>
+                      {client.dailySpend !== null && (
+                        <>
+                          <span>•</span>
+                          <span>{formatCurrency(client.dailySpend)}/dia</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className={cn(
+                      "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded",
+                      config.badgeClass
+                    )}>
+                      <StatusIcon className="h-3 w-3" />
+                      <span>{config.label}</span>
+                    </div>
+                    {client.daysUntilRecharge !== null && client.balanceStatus !== "no-data" && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {client.daysUntilRecharge} dias até recarga
+                      </p>
                     )}
                   </div>
                 </div>
-
-                <div className="text-right shrink-0">
-                  <div className={cn(
-                    "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded",
-                    config.badgeClass
-                  )}>
-                    <StatusIcon className="h-3 w-3" />
-                    <span>{config.label}</span>
-                  </div>
-                  {client.daysUntilRecharge !== null && client.balanceStatus !== "no-data" && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {client.daysUntilRecharge} dias até recarga
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
       )}
     </div>
   );
