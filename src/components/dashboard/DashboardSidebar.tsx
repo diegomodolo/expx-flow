@@ -4,6 +4,7 @@ import {
   Users,
   Megaphone,
   UsersRound,
+  RotateCcw,
   CheckSquare,
   BarChart3,
   Settings,
@@ -96,6 +97,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Relatórios", url: "/relatorios", icon: BarChart3, permission: "relatorios" as MenuItemType },
         { title: "Squad", url: "/squad", icon: UsersRound, permission: "squad" as MenuItemType },
         { title: "Tarefas", url: "/tarefas", icon: CheckSquare, permission: "tarefas" as MenuItemType },
+        { title: "Tarefas Recorrentes", url: "/tarefas-recorrentes", icon: RotateCcw, permission: "tarefas" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
     {
