@@ -124,34 +124,52 @@ Deno.serve(async (req) => {
     const textToUse = approvedText || copy || title || theme;
     console.log('Text to use in image:', textToUse);
 
+    // Normalizar creativeType (front usa snake_case; manter compatibilidade com kebab-case)
+    const normalizedCreativeType = String(creativeType || '').trim().replace(/-/g, '_');
+
     // Determinar aspect ratio baseado no tipo de criativo
-    // Instagram Feed e Facebook Feed agora usam 3:4 (1080x1440)
+    // Instagram Feed e Facebook Feed usam 3:4 (1080x1440)
     const aspectRatioMap: Record<string, string> = {
-      'instagram-stories': '9:16',
-      'reels-cover': '9:16',
-      'tiktok-cover': '9:16',
-      'instagram-feed': '3:4',
-      'facebook-feed': '3:4',
-      'whatsapp-business': '1:1',
-      'carousel-post': '3:4',
-      'awareness-campaign': '3:4',
-      'institutional-post': '3:4',
-      'event-promotion': '3:4',
-      'seasonal-post': '3:4',
-      'product-mockup': '1:1',
-      'facebook-cover': '16:9',
-      'youtube-cover': '16:9',
-      'youtube-thumbnail': '16:9',
-      'facebook-ad': '3:4',
-      'linkedin-post': '3:4',
-      'remarketing-ad': '3:4',
-      'pinterest-pin': '2:3',
-      'email-banner': '16:9',
-      'website-banner': '16:9'
+      instagram_story: '9:16',
+      instagram_reels: '9:16',
+      tiktok_video: '9:16',
+      facebook_story: '9:16',
+      whatsapp_status: '9:16',
+
+      instagram_feed: '3:4',
+      facebook_feed: '3:4',
+      linkedin_post: '3:4',
+
+      youtube_thumbnail: '16:9',
+      twitter_post: '16:9',
+
+      banner_horizontal: '32:10',
+      banner_vertical: '1:2',
     };
 
-    const aspectRatio = aspectRatioMap[creativeType] || '1:1';
-    console.log('Selected aspect ratio:', aspectRatio);
+    const aspectRatio = aspectRatioMap[normalizedCreativeType] || '1:1';
+    console.log('Selected aspect ratio:', aspectRatio, 'for type:', normalizedCreativeType);
+
+    // Dimensões exatas a serem solicitadas no prompt
+    const sizeMap: Record<string, { width: number; height: number }> = {
+      instagram_feed: { width: 1080, height: 1440 },
+      facebook_feed: { width: 1080, height: 1440 },
+      linkedin_post: { width: 1080, height: 1440 },
+
+      instagram_story: { width: 1080, height: 1920 },
+      instagram_reels: { width: 1080, height: 1920 },
+      facebook_story: { width: 1080, height: 1920 },
+      whatsapp_status: { width: 1080, height: 1920 },
+      tiktok_video: { width: 1080, height: 1920 },
+
+      youtube_thumbnail: { width: 1280, height: 720 },
+      twitter_post: { width: 1200, height: 675 },
+
+      banner_horizontal: { width: 1920, height: 600 },
+      banner_vertical: { width: 600, height: 1200 },
+    };
+
+    const targetSize = sizeMap[normalizedCreativeType] || null;
 
     // Coletar todas as imagens de referência (do request + do cliente)
     const allReferenceImages: string[] = [...references];
@@ -166,7 +184,7 @@ Deno.serve(async (req) => {
     console.log('Total reference images:', allReferenceImages.length);
 
     // Montar o prompt para geração de imagem
-    const creativeTypeName = creativeType.replace(/-/g, ' ');
+    const creativeTypeName = normalizedCreativeType.replace(/[_-]/g, ' ');
     const sectorContext = clientData.sector || '';
     const audienceContext = clientData.target_audience || targetAudience || '';
     const clientBriefing = clientData.ai_briefing || '';
@@ -216,6 +234,7 @@ Deno.serve(async (req) => {
 
 IMAGE FORMAT:
 - Aspect ratio: ${aspectRatio}
+- Output size: ${targetSize ? `${targetSize.width}x${targetSize.height} pixels (exact)` : 'Follow the correct pixel dimensions for the chosen format'}
 - Type: ${creativeTypeName}
 
 BRAND CONTEXT:
@@ -309,7 +328,7 @@ Generate the image now.`;
     if (!base64Url) {
       console.warn('Gemini returned no images on first attempt, retrying...');
       
-      const retryPrompt = `Generate a ${aspectRatio} professional marketing image for ${creativeTypeName}.
+      const retryPrompt = `Generate a ${aspectRatio} (${targetSize ? `${targetSize.width}x${targetSize.height}px` : 'use correct pixel size'}) professional marketing image for ${creativeTypeName}.
 
 Theme: ${theme}
 Brand: ${clientData.name} (${sectorContext})
