@@ -8,71 +8,94 @@ import { HealthInactiveClients } from "@/components/health-dashboard/HealthInact
 import { HealthSyncAlerts } from "@/components/health-dashboard/HealthSyncAlerts";
 import { HealthWorstClients } from "@/components/health-dashboard/HealthWorstClients";
 import { HealthTasksList } from "@/components/health-dashboard/HealthTasksList";
-import { TVControls } from "@/components/tv-dashboard/TVControls";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Button } from "@/components/ui/button";
 
 const RadarSaude = () => {
-  const [refreshInterval, setRefreshInterval] = useState(5 * 60 * 1000);
   const { data, isLoading, error, isFetching, refetch } = useHealthDashboard();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-xl text-muted-foreground">Carregando dashboard de saúde...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-lg text-muted-foreground">Carregando dashboard de saúde...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar dashboard</h1>
-          <p className="text-muted-foreground mb-4">{(error as Error).message}</p>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Tentar novamente
-          </button>
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar dashboard</h1>
+            <p className="text-muted-foreground mb-4">{(error as Error).message}</p>
+            <Button onClick={() => refetch()} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Tentar novamente
+            </Button>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (!data) {
-    return null;
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <p className="text-muted-foreground">Nenhum dado disponível</p>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Main Content */}
-      <div className="flex-1 p-3 flex flex-col gap-3 overflow-hidden">
-        {/* Row 1: KPI Header */}
-        <div className="shrink-0">
-          <HealthKPIHeader
-            totalClients={data.totalClients}
-            criticalCount={data.criticalCount}
-            attentionCount={data.attentionCount}
-            stableCount={data.stableCount}
-            averageScore={data.averageScore}
-            lastUpdate={data.lastUpdate}
-          />
+    <DashboardLayout>
+      <div className="space-y-4">
+        {/* Header com título e botão de refresh */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Radar de Saúde</h1>
+            <p className="text-sm text-muted-foreground">
+              Visão geral da saúde dos clientes
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
 
-        {/* Row 2: Alerts */}
-        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+        {/* KPI Header */}
+        <HealthKPIHeader
+          totalClients={data.totalClients}
+          criticalCount={data.criticalCount}
+          attentionCount={data.attentionCount}
+          stableCount={data.stableCount}
+          averageScore={data.averageScore}
+          lastUpdate={data.lastUpdate}
+        />
+
+        {/* Row 1: Alerts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <HealthBalanceAlerts clients={data.balanceAlerts} />
           <HealthDisabledAccounts clients={data.disabledAccounts} />
           <HealthInactiveClients clients={data.inactiveClients} />
         </div>
 
-        {/* Row 3: Sync, Worst Clients, Tasks */}
-        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+        {/* Row 2: Sync, Worst Clients, Tasks */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <HealthSyncAlerts 
             syncAlerts={data.syncAlerts} 
             noAdAccountClients={data.noAdAccountClients} 
@@ -81,15 +104,7 @@ const RadarSaude = () => {
           <HealthTasksList tasks={data.pendingTasks} />
         </div>
       </div>
-
-      {/* TV Controls */}
-      <TVControls
-        refreshInterval={refreshInterval}
-        onRefreshIntervalChange={setRefreshInterval}
-        onRefreshNow={() => refetch()}
-        isRefreshing={isFetching}
-      />
-    </div>
+    </DashboardLayout>
   );
 };
 
