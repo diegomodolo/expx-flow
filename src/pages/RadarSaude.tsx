@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useHealthDashboard } from "@/hooks/useHealthDashboard";
 import { HealthKPIHeader } from "@/components/health-dashboard/HealthKPIHeader";
@@ -8,6 +7,7 @@ import { HealthInactiveClients } from "@/components/health-dashboard/HealthInact
 import { HealthSyncAlerts } from "@/components/health-dashboard/HealthSyncAlerts";
 import { HealthWorstClients } from "@/components/health-dashboard/HealthWorstClients";
 import { HealthTasksList } from "@/components/health-dashboard/HealthTasksList";
+import { HealthDisqualifiedLeads } from "@/components/health-dashboard/HealthDisqualifiedLeads";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 
@@ -94,13 +94,18 @@ const RadarSaude = () => {
           <HealthInactiveClients clients={data.inactiveClients} />
         </div>
 
-        {/* Row 2: Sync, Worst Clients, Tasks */}
+        {/* Row 2: Sync, Worst Clients, Disqualified Leads */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <HealthSyncAlerts 
             syncAlerts={data.syncAlerts} 
             noAdAccountClients={data.noAdAccountClients} 
           />
           <HealthWorstClients clients={data.worstClients} />
+          <HealthDisqualifiedLeads clients={data.disqualifiedLeadClients} />
+        </div>
+
+        {/* Row 3: Tasks */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <HealthTasksList tasks={data.pendingTasks} />
         </div>
       </div>
