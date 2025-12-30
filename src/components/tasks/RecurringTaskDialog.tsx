@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useClients } from "@/hooks/useClients";
 import { useRecurringTasks, CreateRecurringTaskData, RecurringTaskTemplate } from "@/hooks/useRecurringTasks";
-import { Repeat, User, Building2, Clock, Eye } from "lucide-react";
+import { Repeat, User, Building2, Clock, Eye, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface RecurringTaskDialogProps {
   open: boolean;
@@ -51,6 +54,13 @@ export function RecurringTaskDialog({
   const { employees } = useEmployees();
   const { clients } = useClients();
   const { createTemplate, updateTemplate } = useRecurringTasks();
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
+
+  // Ordenar clientes por nome alfabeticamente
+  const sortedClients = useMemo(() => {
+    if (!clients) return [];
+    return [...clients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [clients]);
 
   const [formData, setFormData] = useState<CreateRecurringTaskData>({
     title: '',
@@ -228,22 +238,64 @@ export function RecurringTaskDialog({
                 <Building2 className="h-3 w-3" />
                 Cliente (opcional)
               </Label>
-              <Select
-                value={formData.client_id || "none"}
-                onValueChange={(value) => setFormData({ ...formData, client_id: value === "none" ? null : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Nenhum cliente específico" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum cliente específico</SelectItem>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientPopoverOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {formData.client_id
+                      ? sortedClients.find((c) => c.id === formData.client_id)?.name || "Selecionar cliente"
+                      : "Nenhum cliente específico"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar cliente..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="none"
+                          onSelect={() => {
+                            setFormData({ ...formData, client_id: null });
+                            setClientPopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !formData.client_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Nenhum cliente específico
+                        </CommandItem>
+                        {sortedClients.map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={client.name}
+                            onSelect={() => {
+                              setFormData({ ...formData, client_id: client.id });
+                              setClientPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.client_id === client.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {client.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
