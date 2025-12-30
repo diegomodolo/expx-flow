@@ -178,10 +178,20 @@ export function CreativeGeneratorSimplified() {
     setQuantity(posts.length);
 
     // Map posts to creative inputs
-    const newInputs = posts.map((post) => ({
-      theme: post.objective || post.headline || "",
-      copyText: post.headline || "",
-    }));
+    // theme (descrição) = headline + subheadline + caption compilados
+    // copyText (texto da imagem) = headline
+    const newInputs = posts.map((post) => {
+      const themeParts = [
+        post.headline,
+        post.subheadline,
+        post.caption
+      ].filter(Boolean);
+      
+      return {
+        theme: themeParts.join("\n\n") || post.objective || "",
+        copyText: post.headline || "",
+      };
+    });
     setCreativeInputs(newInputs);
 
     // Determine creative types based on post types
