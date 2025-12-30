@@ -13,6 +13,7 @@ import { PermissionsProtectedRoute } from "@/components/settings/PermissionsProt
 import ParametrosPerformance from "./ParametrosPerformance";
 import { WhatsAppSettings } from "@/components/whatsapp/WhatsAppSettings";
 import { ListaCnaeSettings } from "@/components/settings/ListaCnaeSettings";
+import { RecurringTasksManager } from "@/components/tasks/RecurringTasksManager";
 
 const Configuracoes = () => {
   return (
@@ -40,6 +41,7 @@ const Configuracoes = () => {
             <Route path="permissoes" element={<PermissionsProtectedRoute />} />
             <Route path="whatsapp" element={<WhatsAppSettings />} />
             <Route path="listacnae" element={<ListaCnaeSettings />} />
+            <Route path="tarefas-recorrentes" element={<RecurringTasksManager />} />
           </Routes>
         </SettingsLayout>
       </div>
