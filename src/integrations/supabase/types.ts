@@ -7373,12 +7373,15 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          day_of_month: number | null
+          day_of_week: number | null
           days_before_visible: number
           days_to_complete: number
           description: string | null
           id: string
           is_active: boolean
           last_generated_at: string | null
+          month_of_year: number | null
           next_generation_date: string
           priority: string
           recurrence_interval: number
@@ -7392,12 +7395,15 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          day_of_month?: number | null
+          day_of_week?: number | null
           days_before_visible?: number
           days_to_complete?: number
           description?: string | null
           id?: string
           is_active?: boolean
           last_generated_at?: string | null
+          month_of_year?: number | null
           next_generation_date?: string
           priority?: string
           recurrence_interval?: number
@@ -7411,12 +7417,15 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
           days_before_visible?: number
           days_to_complete?: number
           description?: string | null
           id?: string
           is_active?: boolean
           last_generated_at?: string | null
+          month_of_year?: number | null
           next_generation_date?: string
           priority?: string
           recurrence_interval?: number
