@@ -54,7 +54,8 @@ export default function PlanejamentoConteudo() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="-m-8 h-[calc(100vh-4rem)] overflow-hidden">
+        <div className="h-full p-8 flex flex-col min-h-0">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between pb-4">
           <div className="flex items-center gap-4">
@@ -135,6 +136,7 @@ export default function PlanejamentoConteudo() {
           isLoading={createPlan.isPending}
         />
       </div>
+    </div>
     </DashboardLayout>
   );
 }
