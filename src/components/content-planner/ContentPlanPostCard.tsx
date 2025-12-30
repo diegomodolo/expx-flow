@@ -1,0 +1,438 @@
+import { useState } from "react";
+import { ContentPlanPost, ContentPlanSlide, useContentPlans } from "@/hooks/useContentPlans";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Sparkles,
+  Image,
+  Film,
+  Layers,
+  Plus,
+  GripVertical,
+  Loader2,
+  Calendar,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface ContentPlanPostCardProps {
+  post: ContentPlanPost;
+  index: number;
+  isActive: boolean;
+  onSelect: () => void;
+  onUpdate: (data: Partial<ContentPlanPost>) => void;
+  onDelete: () => void;
+  onRefetch: () => void;
+  clientBriefing?: string;
+}
+
+const postTypeConfig = {
+  estatico: { label: "Estático", icon: Image, color: "bg-blue-100 text-blue-700" },
+  carrossel: { label: "Carrossel", icon: Layers, color: "bg-purple-100 text-purple-700" },
+  reels: { label: "Reels", icon: Film, color: "bg-pink-100 text-pink-700" },
+};
+
+export function ContentPlanPostCard({
+  post,
+  index,
+  isActive,
+  onSelect,
+  onUpdate,
+  onDelete,
+  onRefetch,
+  clientBriefing,
+}: ContentPlanPostCardProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [generatingField, setGeneratingField] = useState<string | null>(null);
+  
+  const { addSlide, updateSlide, deleteSlide } = useContentPlans();
+
+  const typeConfig = postTypeConfig[post.post_type];
+  const TypeIcon = typeConfig.icon;
+
+  const handleGenerateWithAI = async (field: "headline" | "subheadline" | "caption" | "objective") => {
+    if (!clientBriefing) {
+      toast.error("Este cliente não possui briefing de IA configurado");
+      return;
+    }
+
+    setGeneratingField(field);
+    try {
+      const { data, error } = await supabase.functions.invoke("ia-agent-chat", {
+        body: {
+          messages: [
+            {
+              role: "user",
+              content: getAIPrompt(field, post),
+            },
+          ],
+          systemPrompt: `Você é um copywriter profissional especializado em redes sociais. 
+Contexto do cliente: ${clientBriefing}
+Tipo de post: ${typeConfig.label}
+${post.objective ? `Objetivo do post: ${post.objective}` : ""}
+${post.headline ? `Headline atual: ${post.headline}` : ""}
+
+Responda APENAS com o texto solicitado, sem explicações adicionais.`,
+        },
+      });
+
+      if (error) throw error;
+
+      const content = data.content || data.message || "";
+      onUpdate({ [field]: content });
+      toast.success(`${field} gerado com sucesso!`);
+    } catch (error: any) {
+      toast.error("Erro ao gerar conteúdo: " + error.message);
+    } finally {
+      setGeneratingField(null);
+    }
+  };
+
+  const getAIPrompt = (field: string, post: ContentPlanPost) => {
+    const prompts: Record<string, string> = {
+      headline: "Gere uma headline impactante para este post de redes sociais. Seja criativo, conciso e use linguagem que engaje o público.",
+      subheadline: "Gere uma subheadline complementar à headline que reforce a mensagem principal.",
+      caption: "Gere uma legenda completa para este post incluindo: texto engajador, call-to-action e hashtags relevantes (mínimo 10 hashtags).",
+      objective: "Sugira um objetivo estratégico claro para este post (ex: gerar leads, aumentar engajamento, educar o público).",
+    };
+    return prompts[field] || "";
+  };
+
+  const handleAddSlide = async () => {
+    const maxOrder = post.slides?.reduce((max, s) => Math.max(max, s.order_index), -1) ?? -1;
+    await addSlide.mutateAsync({
+      post_id: post.id,
+      order_index: maxOrder + 1,
+    });
+    onRefetch();
+  };
+
+  const handleUpdateSlide = async (slideId: string, data: Partial<ContentPlanSlide>) => {
+    await updateSlide.mutateAsync({ id: slideId, ...data });
+  };
+
+  const handleDeleteSlide = async (slideId: string) => {
+    await deleteSlide.mutateAsync(slideId);
+    onRefetch();
+  };
+
+  return (
+    <>
+      <Card
+        className={`transition-all ${isActive ? "ring-2 ring-primary" : ""}`}
+        onClick={onSelect}
+      >
+        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+          {/* Header */}
+          <div className="flex items-center gap-3 p-4 border-b">
+            <div className="cursor-grab text-muted-foreground">
+              <GripVertical className="w-4 h-4" />
+            </div>
+            
+            <Badge className={typeConfig.color}>
+              <TypeIcon className="w-3 h-3 mr-1" />
+              {typeConfig.label}
+            </Badge>
+
+            <span className="text-sm font-medium text-muted-foreground">
+              Post {index + 1}
+            </span>
+
+            <div className="flex-1" />
+
+            <Select
+              value={post.post_type}
+              onValueChange={(v: "estatico" | "carrossel" | "reels") => onUpdate({ post_type: v })}
+            >
+              <SelectTrigger className="w-[130px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="estatico">Estático</SelectItem>
+                <SelectItem value="carrossel">Carrossel</SelectItem>
+                <SelectItem value="reels">Reels</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteDialog(true);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+
+          <CollapsibleContent>
+            <div className="p-4 space-y-4">
+              {/* Objective */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Objetivo</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleGenerateWithAI("objective")}
+                    disabled={generatingField === "objective"}
+                  >
+                    {generatingField === "objective" ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    IA
+                  </Button>
+                </div>
+                <Input
+                  value={post.objective || ""}
+                  onChange={(e) => onUpdate({ objective: e.target.value })}
+                  placeholder="Ex: Gerar leads, aumentar engajamento..."
+                />
+              </div>
+
+              {/* Headline */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Headline</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleGenerateWithAI("headline")}
+                    disabled={generatingField === "headline"}
+                  >
+                    {generatingField === "headline" ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    IA
+                  </Button>
+                </div>
+                <Input
+                  value={post.headline || ""}
+                  onChange={(e) => onUpdate({ headline: e.target.value })}
+                  placeholder="Título principal do post"
+                />
+              </div>
+
+              {/* Subheadline */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Subheadline</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleGenerateWithAI("subheadline")}
+                    disabled={generatingField === "subheadline"}
+                  >
+                    {generatingField === "subheadline" ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    IA
+                  </Button>
+                </div>
+                <Input
+                  value={post.subheadline || ""}
+                  onChange={(e) => onUpdate({ subheadline: e.target.value })}
+                  placeholder="Subtítulo complementar"
+                />
+              </div>
+
+              {/* Caption */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Legenda</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleGenerateWithAI("caption")}
+                    disabled={generatingField === "caption"}
+                  >
+                    {generatingField === "caption" ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    IA
+                  </Button>
+                </div>
+                <Textarea
+                  value={post.caption || ""}
+                  onChange={(e) => onUpdate({ caption: e.target.value })}
+                  placeholder="Legenda completa com hashtags..."
+                  rows={4}
+                />
+                {post.caption && (
+                  <p className="text-xs text-muted-foreground">
+                    {post.caption.length} caracteres
+                  </p>
+                )}
+              </div>
+
+              {/* Carousel Slides */}
+              {post.post_type === "carrossel" && (
+                <div className="space-y-3 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Slides do Carrossel</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={handleAddSlide}
+                    >
+                      <Plus className="w-3 h-3" />
+                      Slide
+                    </Button>
+                  </div>
+
+                  {post.slides && post.slides.length > 0 ? (
+                    <div className="space-y-3">
+                      {post.slides.map((slide, slideIndex) => (
+                        <Card key={slide.id} className="p-3 bg-muted/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              Slide {slideIndex + 1}
+                            </Badge>
+                            <div className="flex-1" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                              onClick={() => handleDeleteSlide(slide.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <Input
+                              value={slide.headline || ""}
+                              onChange={(e) =>
+                                handleUpdateSlide(slide.id, { headline: e.target.value })
+                              }
+                              placeholder="Título do slide"
+                              className="h-8 text-sm"
+                            />
+                            <Textarea
+                              value={slide.content || ""}
+                              onChange={(e) =>
+                                handleUpdateSlide(slide.id, { content: e.target.value })
+                              }
+                              placeholder="Conteúdo do slide"
+                              rows={2}
+                              className="text-sm"
+                            />
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Adicione slides ao carrossel
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Reels Script */}
+              {post.post_type === "reels" && (
+                <div className="space-y-2 pt-4 border-t">
+                  <Label>Roteiro do Reels</Label>
+                  <Textarea
+                    value={typeof post.script === "string" ? post.script : JSON.stringify(post.script || "", null, 2)}
+                    onChange={(e) => onUpdate({ script: e.target.value })}
+                    placeholder="Descreva o roteiro do vídeo..."
+                    rows={6}
+                  />
+                </div>
+              )}
+
+              {/* Scheduled Date */}
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Data Prevista
+                </Label>
+                <Input
+                  type="date"
+                  value={post.scheduled_date || ""}
+                  onChange={(e) => onUpdate({ scheduled_date: e.target.value })}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O post será removido permanentemente do planejamento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
