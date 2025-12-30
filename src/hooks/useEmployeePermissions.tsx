@@ -20,7 +20,8 @@ export type MenuItemType =
   | 'agentes-ia'
   | 'editar-agentes'
   | 'editor-funil'
-  | 'whatsapp';
+  | 'whatsapp'
+  | 'ver-quadros-outros';
 
 export interface EmployeePermission {
   id: string;
@@ -131,7 +132,7 @@ export function useEmployeePermissions() {
 
       // Se for proprietário, não precisa verificar permissões específicas
       if (userIsOwner) {
-        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'geradores', 'ia', 'configuracoes', 'agentes-ia', 'editar-agentes', 'editor-funil', 'whatsapp'];
+        const allPermissions: MenuItemType[] = ['dashboard', 'clientes', 'campanhas', 'squad', 'tarefas', 'colaboradores', 'relatorios', 'gerador-campanhas', 'gerador-conteudo', 'gerador-criativos', 'geradores', 'ia', 'configuracoes', 'agentes-ia', 'editar-agentes', 'editor-funil', 'whatsapp', 'ver-quadros-outros'];
         setCurrentUserPermissions(allPermissions);
         setPermissionsLoading(false);
         return;

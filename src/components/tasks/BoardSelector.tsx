@@ -12,8 +12,8 @@ interface Employee {
 }
 
 interface BoardSelectorProps {
-  selectedUserId: string | null;
-  onSelectUser: (userId: string | null) => void;
+  selectedUserId: string | null | "all";
+  onSelectUser: (userId: string | null | "all") => void;
   employees: Employee[];
   currentUserId?: string;
   canViewOthersBoards: boolean;
@@ -50,12 +50,25 @@ export function BoardSelector({
 
   return (
     <Select
-      value={selectedUserId || "my-board"}
-      onValueChange={(value) => onSelectUser(value === "my-board" ? null : value)}
+      value={selectedUserId === "all" ? "all-boards" : selectedUserId || "my-board"}
+      onValueChange={(value) => {
+        if (value === "my-board") {
+          onSelectUser(null);
+        } else if (value === "all-boards") {
+          onSelectUser("all");
+        } else {
+          onSelectUser(value);
+        }
+      }}
     >
       <SelectTrigger className="w-[220px]">
         <SelectValue placeholder="Selecionar quadro">
-          {selectedUserId ? (
+          {selectedUserId === "all" ? (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <span>Todos os Quadros</span>
+            </div>
+          ) : selectedUserId ? (
             <div className="flex items-center gap-2">
               <Avatar className="h-5 w-5">
                 <AvatarImage 
@@ -87,10 +100,10 @@ export function BoardSelector({
         </SelectItem>
         
         {isManager && (
-          <SelectItem value="all-boards" disabled className="opacity-50">
+          <SelectItem value="all-boards">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Todos os Quadros (em breve)</span>
+              <Users className="h-4 w-4 text-primary" />
+              <span>Todos os Quadros</span>
             </div>
           </SelectItem>
         )}
