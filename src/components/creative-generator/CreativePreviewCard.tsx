@@ -40,6 +40,25 @@ interface CreativePreviewCardProps {
   onRegenerate: () => void;
 }
 
+// Determina o aspect ratio baseado no tipo de criativo
+function getAspectRatioClass(typeKey: string): string {
+  const aspectRatioMap: Record<string, string> = {
+    'instagram_feed': 'aspect-[3/4]',
+    'facebook_feed': 'aspect-[3/4]',
+    'linkedin_post': 'aspect-[3/4]',
+    'instagram_story': 'aspect-[9/16]',
+    'instagram_reels': 'aspect-[9/16]',
+    'facebook_story': 'aspect-[9/16]',
+    'whatsapp_status': 'aspect-[9/16]',
+    'tiktok_video': 'aspect-[9/16]',
+    'youtube_thumbnail': 'aspect-video',
+    'twitter_post': 'aspect-video',
+    'banner_horizontal': 'aspect-[32/10]',
+    'banner_vertical': 'aspect-[1/2]',
+  };
+  return aspectRatioMap[typeKey] || 'aspect-[3/4]';
+}
+
 export function CreativePreviewCard({
   imageUrl,
   caption,
@@ -119,8 +138,8 @@ export function CreativePreviewCard({
               <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
             </div>
 
-            {/* Image */}
-            <div className="aspect-square bg-muted relative">
+            {/* Image - usa aspect ratio baseado no tipo */}
+            <div className={`${getAspectRatioClass(typeKey)} bg-muted relative`}>
               <img
                 src={imageUrl}
                 alt="Criativo gerado"
@@ -276,8 +295,8 @@ export function CreativePreviewCard({
               </div>
             </div>
 
-            {/* Image */}
-            <div className="aspect-square bg-muted relative">
+            {/* Image - usa aspect ratio baseado no tipo */}
+            <div className={`${getAspectRatioClass(typeKey)} bg-muted relative`}>
               <img
                 src={imageUrl}
                 alt="Criativo gerado"
