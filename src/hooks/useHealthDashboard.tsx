@@ -437,9 +437,10 @@ export function useHealthDashboard() {
         ? Math.round(processedClients.reduce((sum, c) => sum + c.healthScore, 0) / processedClients.length)
         : 0;
 
-      // Balance alerts: prepaid clients with insufficient or tight balance
+      // Balance alerts: prepaid clients with insufficient or tight balance AND active campaigns
       const balanceAlerts = processedClients.filter(c => 
         c.paymentType === "prepaid" && 
+        c.activeCampaigns > 0 &&
         (c.balanceStatus === "insufficient" || c.balanceStatus === "tight")
       )
       .sort((a, b) => {
