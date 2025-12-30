@@ -98,14 +98,17 @@ interface TVDashboardResponse {
     id: string;
     name: string;
     avatar: string | null;
-    alertType: 'insufficient_balance' | 'over_budget';
+    category: 'saldo' | 'gasto';
+    severity: 'critical' | 'warning';
     balance: number;
     spend: number;
     budget: number;
     daysRemaining: number;
     projectedSpend: number;
     percentage: number;
+    coveragePercentage: number;
     message: string;
+    platform: string;
   }>;
   platformData: Array<{
     platform: string;

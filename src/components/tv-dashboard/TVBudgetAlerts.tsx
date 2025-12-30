@@ -6,15 +6,17 @@ interface BudgetAlert {
   id: string;
   name: string;
   avatar: string | null;
-  alertType: 'insufficient_balance' | 'over_budget';
+  category: 'saldo' | 'gasto';
+  severity: 'critical' | 'warning';
   balance: number;
   spend: number;
   budget: number;
   daysRemaining: number;
   projectedSpend: number;
   percentage: number;
+  coveragePercentage: number;
   message: string;
-  platform?: string;
+  platform: string;
 }
 
 interface TVBudgetAlertsProps {
@@ -50,10 +52,13 @@ export function TVBudgetAlerts({ alerts }: TVBudgetAlertsProps) {
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="space-y-1 pr-1">
           {alerts.slice(0, 6).map((alert) => {
-            const isOverBudget = alert.alertType === 'over_budget';
-            const bgColor = isOverBudget ? 'bg-orange-500/10' : 'bg-red-500/10';
-            const borderColor = isOverBudget ? 'border-l-orange-500' : 'border-l-red-500';
-            const iconColor = isOverBudget ? 'text-orange-500' : 'text-red-500';
+            const isCritical = alert.severity === 'critical';
+            const isGasto = alert.category === 'gasto';
+            
+            // Colors based on severity
+            const bgColor = isCritical ? 'bg-red-500/10' : 'bg-amber-500/10';
+            const borderColor = isCritical ? 'border-l-red-500' : 'border-l-amber-500';
+            const iconColor = isCritical ? 'text-red-500' : 'text-amber-500';
             
             return (
               <div
@@ -73,17 +78,22 @@ export function TVBudgetAlerts({ alerts }: TVBudgetAlertsProps) {
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-xs">
-                    {alert.name}
-                    {alert.platform && <span className="ml-1 text-[9px] opacity-70">({alert.platform})</span>}
-                  </p>
+                  <div className="flex items-center gap-1">
+                    <p className="font-medium truncate text-xs">{alert.name}</p>
+                    <span className={cn(
+                      "text-[8px] px-1 py-0.5 rounded font-medium shrink-0",
+                      isGasto ? "bg-orange-500/20 text-orange-600" : "bg-blue-500/20 text-blue-600"
+                    )}>
+                      {isGasto ? 'Gasto' : 'Saldo'}
+                    </span>
+                  </div>
                   <p className="text-[10px] text-muted-foreground truncate">
-                    {alert.message}
+                    {alert.platform} • {alert.message}
                   </p>
                 </div>
                 
                 <div className="text-right shrink-0">
-                  {isOverBudget ? (
+                  {isGasto ? (
                     <>
                       <p className="text-[9px] text-muted-foreground">Gasto</p>
                       <p className={cn("font-bold text-xs", iconColor)}>
@@ -100,7 +110,7 @@ export function TVBudgetAlerts({ alerts }: TVBudgetAlertsProps) {
                   )}
                 </div>
                 
-                {isOverBudget ? (
+                {isGasto ? (
                   <TrendingUp className={cn("h-4 w-4 shrink-0", iconColor)} />
                 ) : (
                   <AlertCircle className={cn("h-4 w-4 shrink-0", iconColor)} />
