@@ -125,24 +125,26 @@ Deno.serve(async (req) => {
     console.log('Text to use in image:', textToUse);
 
     // Determinar aspect ratio baseado no tipo de criativo
+    // Instagram Feed e Facebook Feed agora usam 3:4 (1080x1440)
     const aspectRatioMap: Record<string, string> = {
       'instagram-stories': '9:16',
       'reels-cover': '9:16',
       'tiktok-cover': '9:16',
-      'instagram-feed': '1:1',
+      'instagram-feed': '3:4',
+      'facebook-feed': '3:4',
       'whatsapp-business': '1:1',
-      'carousel-post': '1:1',
-      'awareness-campaign': '1:1',
-      'institutional-post': '1:1',
-      'event-promotion': '1:1',
-      'seasonal-post': '1:1',
+      'carousel-post': '3:4',
+      'awareness-campaign': '3:4',
+      'institutional-post': '3:4',
+      'event-promotion': '3:4',
+      'seasonal-post': '3:4',
       'product-mockup': '1:1',
       'facebook-cover': '16:9',
       'youtube-cover': '16:9',
       'youtube-thumbnail': '16:9',
-      'facebook-ad': '1:1',
-      'linkedin-post': '1:1',
-      'remarketing-ad': '1:1',
+      'facebook-ad': '3:4',
+      'linkedin-post': '3:4',
+      'remarketing-ad': '3:4',
       'pinterest-pin': '2:3',
       'email-banner': '16:9',
       'website-banner': '16:9'
