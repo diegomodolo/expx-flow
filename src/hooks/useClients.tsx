@@ -664,7 +664,7 @@ export function useClients(options?: { includeCanceled?: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [user, activeCompany, isOwner, permissionsLoading, currentUserPermissions]);
+  }, [user, activeCompany, isOwner, permissionsLoading, currentUserPermissions, includeCanceled]);
 
   const createClient = async (clientData: Omit<Client, "id" | "active_campaigns" | "avg_cpl" | "leads_generated">) => {
     if (!user || !activeCompany) return null;
