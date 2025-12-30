@@ -226,7 +226,7 @@ function calculateHealthScore(
     riskFactors.push("Poucas campanhas ativas");
   }
 
-  if (client.payment_type === "pre_paid") {
+  if (client.payment_type === "prepaid") {
     if (balanceAnalysis.balanceStatus === "insufficient") {
       score -= 30;
       riskFactors.push("Saldo não vai durar até a recarga");
@@ -439,7 +439,7 @@ export function useHealthDashboard() {
 
       // Balance alerts: prepaid clients with insufficient or tight balance
       const balanceAlerts = processedClients.filter(c => 
-        c.paymentType === "pre_paid" && 
+        c.paymentType === "prepaid" && 
         (c.balanceStatus === "insufficient" || c.balanceStatus === "tight")
       )
       .sort((a, b) => {
