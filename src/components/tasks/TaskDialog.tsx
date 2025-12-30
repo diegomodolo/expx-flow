@@ -180,6 +180,9 @@ export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }
     if (dueDateTime) {
       taskData.due_date = dueDateTime.toISOString();
       taskData.deadline = dueDateTime.toISOString().split('T')[0]; // formato YYYY-MM-DD para o campo deadline
+    } else {
+      // Se não tem prazo, usar data de hoje como padrão (campo obrigatório)
+      taskData.deadline = new Date().toISOString().split('T')[0];
     }
 
     onSave(taskData);
