@@ -68,6 +68,8 @@ interface GeneratedCreative {
 interface CreativeInput {
   theme: string;
   copyText: string;
+  referenceFile?: File;
+  referenceUrl?: string;
 }
 
 export function CreativeGeneratorSimplified() {
@@ -117,7 +119,7 @@ export function CreativeGeneratorSimplified() {
       if (prev.length < quantity) {
         const newInputs = [...prev];
         for (let i = prev.length; i < quantity; i++) {
-          newInputs.push({ theme: "", copyText: "" });
+          newInputs.push({ theme: "", copyText: "", referenceFile: undefined, referenceUrl: undefined });
         }
         return newInputs;
       } else if (prev.length > quantity) {
@@ -143,6 +145,30 @@ export function CreativeGeneratorSimplified() {
     setCreativeInputs(prev => {
       const newInputs = [...prev];
       newInputs[index] = { ...newInputs[index], [field]: value };
+      return newInputs;
+    });
+  };
+
+  const handleReferenceFileChange = (index: number, file: File | undefined) => {
+    setCreativeInputs(prev => {
+      const newInputs = [...prev];
+      newInputs[index] = { ...newInputs[index], referenceFile: file, referenceUrl: undefined };
+      return newInputs;
+    });
+  };
+
+  const handleReferenceUrlChange = (index: number, url: string | undefined) => {
+    setCreativeInputs(prev => {
+      const newInputs = [...prev];
+      newInputs[index] = { ...newInputs[index], referenceUrl: url, referenceFile: undefined };
+      return newInputs;
+    });
+  };
+
+  const removeCreativeReference = (index: number) => {
+    setCreativeInputs(prev => {
+      const newInputs = [...prev];
+      newInputs[index] = { ...newInputs[index], referenceFile: undefined, referenceUrl: undefined };
       return newInputs;
     });
   };
@@ -305,10 +331,11 @@ export function CreativeGeneratorSimplified() {
     setGenerationProgress({ current: 0, total: totalToGenerate });
 
     try {
-      const fileBase64 = await Promise.all(
+      // Converter referências globais (mantidas para compatibilidade)
+      const globalFileBase64 = await Promise.all(
         referenceFiles.map(f => convertFileToBase64(f))
       );
-      const allReferences = [...fileBase64, ...referenceUrls];
+      const globalReferences = [...globalFileBase64, ...referenceUrls];
 
       const newCreatives: GeneratedCreative[] = [];
 
@@ -321,10 +348,18 @@ export function CreativeGeneratorSimplified() {
 
           setGenerationProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
-          // Use specific reference for this creative if available
-          const creativeReferences = allReferences.length > i 
-            ? [allReferences[i]] 
-            : allReferences.slice(0, 3);
+          // Usar referência individual do criativo, se disponível
+          let creativeReferences: string[] = [];
+          
+          if (input.referenceFile) {
+            const base64 = await convertFileToBase64(input.referenceFile);
+            creativeReferences = [base64];
+          } else if (input.referenceUrl) {
+            creativeReferences = [input.referenceUrl];
+          } else if (globalReferences.length > 0) {
+            // Fallback para referências globais
+            creativeReferences = globalReferences.slice(0, 3);
+          }
 
           const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
             body: {
@@ -681,6 +716,46 @@ export function CreativeGeneratorSimplified() {
                             onChange={(e) => handleInputChange(index, 'copyText', e.target.value)}
                             className="text-sm"
                           />
+                        </div>
+
+                        {/* Referência Visual Individual */}
+                        <div className="space-y-1">
+                          <Label className="text-xs">Referência Visual (opcional)</Label>
+                          <div className="flex items-center gap-2">
+                            {/* Preview da referência */}
+                            {(input.referenceFile || input.referenceUrl) ? (
+                              <div className="relative w-12 h-12 shrink-0">
+                                <img
+                                  src={input.referenceFile ? URL.createObjectURL(input.referenceFile) : input.referenceUrl}
+                                  alt="Referência"
+                                  className="w-full h-full object-cover rounded-lg border"
+                                />
+                                <button
+                                  onClick={() => removeCreativeReference(index)}
+                                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                                  type="button"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="w-12 h-12 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors shrink-0">
+                                <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleReferenceFileChange(index, file);
+                                  }}
+                                />
+                              </label>
+                            )}
+                            <p className="text-[10px] text-muted-foreground flex-1">
+                              Adicione uma imagem de referência específica para este criativo
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </Card>
