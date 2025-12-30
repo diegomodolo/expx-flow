@@ -2274,6 +2274,151 @@ export type Database = {
           },
         ]
       }
+      content_plan_posts: {
+        Row: {
+          caption: string | null
+          content_plan_id: string
+          created_at: string
+          headline: string | null
+          id: string
+          objective: string | null
+          order_index: number
+          post_type: string
+          scheduled_date: string | null
+          script: Json | null
+          status: string
+          subheadline: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          content_plan_id: string
+          created_at?: string
+          headline?: string | null
+          id?: string
+          objective?: string | null
+          order_index?: number
+          post_type?: string
+          scheduled_date?: string | null
+          script?: Json | null
+          status?: string
+          subheadline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          content_plan_id?: string
+          created_at?: string
+          headline?: string | null
+          id?: string
+          objective?: string | null
+          order_index?: number
+          post_type?: string
+          scheduled_date?: string | null
+          script?: Json | null
+          status?: string
+          subheadline?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plan_posts_content_plan_id_fkey"
+            columns: ["content_plan_id"]
+            isOneToOne: false
+            referencedRelation: "content_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_plan_slides: {
+        Row: {
+          content: string | null
+          created_at: string
+          headline: string | null
+          id: string
+          order_index: number
+          post_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          order_index?: number
+          post_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          headline?: string | null
+          id?: string
+          order_index?: number
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plan_slides_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "content_plan_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_plans: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          month: number
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          month: number
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          month?: number
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plans_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_presentations: {
         Row: {
           client_id: string
