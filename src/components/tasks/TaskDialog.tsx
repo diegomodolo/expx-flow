@@ -24,9 +24,10 @@ interface TaskDialogProps {
   onOpenChange: (open: boolean) => void;
   task?: any;
   onSave: (taskData: any) => void;
+  defaultClientId?: string;
 }
 
-export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps) {
+export function TaskDialog({ open, onOpenChange, task, onSave, defaultClientId }: TaskDialogProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -36,7 +37,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
     responsible_name: '',
     responsible_avatar: '',
     responsible_user_id: '',
-    related_client_id: '',
+    related_client_id: defaultClientId || '',
     related_campaign_id: '',
     start_date: null as Date | null,
     start_time: '',
@@ -49,11 +50,20 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
 
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [previewSlot, setPreviewSlot] = useState<string>('');
+  const [clientSearch, setClientSearch] = useState('');
   const { teams } = useTeams();
   const { employees } = useEmployees();
   const { timeSlots } = usePlannerSlots();
   const { clients } = useClients();
   const { campaigns } = useCampaigns();
+
+  // Ordenar clientes alfabeticamente e filtrar pela busca
+  const sortedFilteredClients = clients
+    ?.slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .filter(client => 
+      client.name.toLowerCase().includes(clientSearch.toLowerCase())
+    ) || [];
 
   useEffect(() => {
     if (task) {
@@ -99,7 +109,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         responsible_name: '',
         responsible_avatar: '',
         responsible_user_id: '',
-        related_client_id: '',
+        related_client_id: defaultClientId || '',
         related_campaign_id: '',
         start_date: null,
         start_time: '',
@@ -110,7 +120,7 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
         checklist: [],
       });
     }
-  }, [task]);
+  }, [task, defaultClientId]);
 
   const handleSave = () => {
     let startDateTime: Date | null = null;
@@ -404,29 +414,68 @@ export function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Cliente (opcional)</Label>
-              <Select
-                value={formData.related_client_id === '' ? "none" : formData.related_client_id || "none"}
-                onValueChange={(value) => {
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    related_client_id: value === "none" ? '' : value,
-                    // Limpar campanha quando cliente mudar
-                    related_campaign_id: ''
-                  }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum cliente</SelectItem>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    {formData.related_client_id
+                      ? clients?.find(c => c.id === formData.related_client_id)?.name || "Selecione um cliente"
+                      : "Nenhum cliente"}
+                    <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <div className="p-2 border-b">
+                    <Input
+                      placeholder="Buscar cliente..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    <div
+                      className="px-2 py-1.5 text-sm cursor-pointer hover:bg-muted"
+                      onClick={() => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          related_client_id: '',
+                          related_campaign_id: ''
+                        }));
+                        setClientSearch('');
+                      }}
+                    >
+                      Nenhum cliente
+                    </div>
+                    {sortedFilteredClients.map((client) => (
+                      <div
+                        key={client.id}
+                        className={`px-2 py-1.5 text-sm cursor-pointer hover:bg-muted ${
+                          formData.related_client_id === client.id ? 'bg-primary/10 text-primary' : ''
+                        }`}
+                        onClick={() => {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            related_client_id: client.id,
+                            related_campaign_id: ''
+                          }));
+                          setClientSearch('');
+                        }}
+                      >
+                        {client.name}
+                      </div>
+                    ))}
+                    {sortedFilteredClients.length === 0 && clientSearch && (
+                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                        Nenhum cliente encontrado
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>

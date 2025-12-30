@@ -136,6 +136,7 @@ export function ClienteTarefas({ clientId, clientName }: ClienteTarefasProps) {
         onOpenChange={setTaskDialogOpen}
         onSave={selectedTask ? handleUpdateTask : handleCreateTask}
         task={selectedTask}
+        defaultClientId={clientId}
       />
 
       <RecurringTaskDialog
