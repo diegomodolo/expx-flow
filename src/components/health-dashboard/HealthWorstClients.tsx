@@ -41,7 +41,7 @@ function getRiskIcon(riskLevel: "critical" | "attention" | "stable") {
 
 export function HealthWorstClients({ clients }: HealthWorstClientsProps) {
   return (
-    <div className="bg-card rounded-xl border border-border p-4 h-[340px] flex flex-col">
+    <div className="bg-card rounded-xl border border-border p-4 h-[400px] flex flex-col">
       <div className="flex items-center gap-2 mb-3">
         <div className="p-1.5 rounded-lg bg-destructive/10">
           <TrendingDown className="h-4 w-4 text-destructive" />
