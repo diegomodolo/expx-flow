@@ -71,17 +71,17 @@ export function CreativePreviewCard({
   return (
     <Card className="overflow-hidden">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "instagram" | "facebook")}>
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center justify-between mb-3">
-            <Badge variant="secondary">{typeName}</Badge>
-            <TabsList className="h-8">
-              <TabsTrigger value="instagram" className="text-xs h-7 px-2 gap-1">
-                <InstagramIcon className="w-3 h-3" />
-                Instagram
+        <div className="px-3 pt-3 pb-2">
+          <div className="flex items-center justify-between mb-2">
+            <Badge variant="secondary" className="text-xs">{typeName}</Badge>
+            <TabsList className="h-7">
+              <TabsTrigger value="instagram" className="text-[10px] h-6 px-1.5 gap-0.5">
+                <InstagramIcon className="w-2.5 h-2.5" />
+                IG
               </TabsTrigger>
-              <TabsTrigger value="facebook" className="text-xs h-7 px-2 gap-1">
-                <FacebookIcon className="w-3 h-3" />
-                Facebook
+              <TabsTrigger value="facebook" className="text-[10px] h-6 px-1.5 gap-0.5">
+                <FacebookIcon className="w-2.5 h-2.5" />
+                FB
               </TabsTrigger>
             </TabsList>
           </div>
@@ -127,14 +127,14 @@ export function CreativePreviewCard({
             </div>
 
             {/* Actions */}
-            <div className="p-3 space-y-2">
+            <div className="p-2 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Heart className="w-6 h-6 text-foreground cursor-pointer hover:text-red-500 transition-colors" />
-                  <MessageCircle className="w-6 h-6 text-foreground cursor-pointer" />
-                  <Send className="w-6 h-6 text-foreground cursor-pointer" />
+                <div className="flex items-center gap-3">
+                  <Heart className="w-5 h-5 text-foreground cursor-pointer hover:text-red-500 transition-colors" />
+                  <MessageCircle className="w-5 h-5 text-foreground cursor-pointer" />
+                  <Send className="w-5 h-5 text-foreground cursor-pointer" />
                 </div>
-                <Bookmark className="w-6 h-6 text-foreground cursor-pointer" />
+                <Bookmark className="w-5 h-5 text-foreground cursor-pointer" />
               </div>
 
               {/* Caption with edit */}
@@ -159,8 +159,8 @@ export function CreativePreviewCard({
                     <Textarea
                       value={editedCaption}
                       onChange={(e) => setEditedCaption(e.target.value)}
-                      rows={4}
-                      className="text-sm resize-none"
+                      rows={3}
+                      className="text-xs resize-none"
                       placeholder="Digite a legenda..."
                     />
                     <div className="flex gap-2">
@@ -184,7 +184,7 @@ export function CreativePreviewCard({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-foreground">
+                  <p className="text-xs text-foreground line-clamp-3">
                     <span className="font-semibold">{clientName}</span>{" "}
                     {caption || "Adicione uma legenda..."}
                   </p>
@@ -198,9 +198,9 @@ export function CreativePreviewCard({
         <TabsContent value="facebook" className="mt-0">
           <div className="bg-white dark:bg-zinc-900">
             {/* Header */}
-            <div className="p-3 space-y-2 border-b">
+            <div className="p-2 space-y-2 border-b">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center overflow-hidden">
                   {clientAvatar ? (
                     <img src={clientAvatar} alt={clientName} className="w-full h-full object-cover" />
                   ) : (
@@ -319,28 +319,29 @@ export function CreativePreviewCard({
       </Tabs>
 
       {/* Action Buttons */}
-      <CardContent className="p-4 border-t bg-muted/30">
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={onDownload}>
-            <Download className="w-4 h-4 mr-1" />
+      <CardContent className="p-2 border-t bg-muted/30">
+        <div className="flex flex-wrap gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onDownload}>
+            <Download className="w-3 h-3 mr-1" />
             Baixar
           </Button>
-          <Button size="sm" variant="outline" onClick={onSave}>
-            <Save className="w-4 h-4 mr-1" />
+          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onSave}>
+            <Save className="w-3 h-3 mr-1" />
             Salvar
           </Button>
-          <Button size="sm" variant="outline" onClick={onSchedule}>
-            <Calendar className="w-4 h-4 mr-1" />
+          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onSchedule}>
+            <Calendar className="w-3 h-3 mr-1" />
             Agendar
           </Button>
           <Button
             size="sm"
             variant="ghost"
+            className="h-7 text-xs px-2"
             onClick={onRegenerate}
             disabled={isRegenerating}
           >
-            <RefreshCw className={`w-4 h-4 mr-1 ${isRegenerating ? "animate-spin" : ""}`} />
-            Nova Versão
+            <RefreshCw className={`w-3 h-3 mr-1 ${isRegenerating ? "animate-spin" : ""}`} />
+            Nova
           </Button>
         </div>
       </CardContent>

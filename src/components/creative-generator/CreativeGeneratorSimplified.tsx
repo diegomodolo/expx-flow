@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -18,18 +19,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   Sparkles, 
   Loader2, 
-  Download, 
-  Save, 
-  RefreshCw, 
-  Calendar, 
-  Copy, 
   ChevronDown, 
   ImagePlus, 
   X,
   Check,
   Wand2,
   ChevronsUpDown,
-  Search,
   Instagram,
   Megaphone
 } from "lucide-react";
@@ -53,12 +48,22 @@ const CREATIVE_TYPES = [
   { id: "twitter_post", name: "Twitter/X Post", dimensions: "1200x675", aspectRatio: "16:9" },
 ];
 
+const MAX_VARIATIONS = 12;
+const MAX_REFERENCES = 12;
+
 interface GeneratedCreative {
   id: string;
   imageUrl: string;
   caption: string;
   type: string;
   typeName: string;
+  theme: string;
+  copyText: string;
+}
+
+interface CreativeInput {
+  theme: string;
+  copyText: string;
 }
 
 export function CreativeGeneratorSimplified() {
@@ -72,15 +77,14 @@ export function CreativeGeneratorSimplified() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["instagram_feed"]);
   const [quantity, setQuantity] = useState(1);
-  const [theme, setTheme] = useState("");
-  const [copyText, setCopyText] = useState("");
+  const [creativeInputs, setCreativeInputs] = useState<CreativeInput[]>([{ theme: "", copyText: "" }]);
   const [referenceUrls, setReferenceUrls] = useState<string[]>([]);
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [showReferences, setShowReferences] = useState(false);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [showReferenceDialog, setShowReferenceDialog] = useState(false);
-  const [isGeneratingTheme, setIsGeneratingTheme] = useState(false);
-  const [isGeneratingCopy, setIsGeneratingCopy] = useState(false);
+  const [generatingThemeIndex, setGeneratingThemeIndex] = useState<number | null>(null);
+  const [generatingCopyIndex, setGeneratingCopyIndex] = useState<number | null>(null);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -102,15 +106,39 @@ export function CreativeGeneratorSimplified() {
     [clients]
   );
 
-  const canGenerate = selectedClientId && selectedTypes.length > 0 && theme.trim();
+  // Update inputs array when quantity changes
+  useEffect(() => {
+    setCreativeInputs(prev => {
+      if (prev.length < quantity) {
+        const newInputs = [...prev];
+        for (let i = prev.length; i < quantity; i++) {
+          newInputs.push({ theme: "", copyText: "" });
+        }
+        return newInputs;
+      } else if (prev.length > quantity) {
+        return prev.slice(0, quantity);
+      }
+      return prev;
+    });
+  }, [quantity]);
+
+  const canGenerate = selectedClientId && selectedTypes.length > 0 && creativeInputs.some(input => input.theme.trim());
 
   const handleTypeToggle = (typeId: string) => {
     setSelectedTypes(prev => {
       if (prev.includes(typeId)) {
-        if (prev.length === 1) return prev; // Manter pelo menos um
+        if (prev.length === 1) return prev;
         return prev.filter(t => t !== typeId);
       }
       return [...prev, typeId];
+    });
+  };
+
+  const handleInputChange = (index: number, field: 'theme' | 'copyText', value: string) => {
+    setCreativeInputs(prev => {
+      const newInputs = [...prev];
+      newInputs[index] = { ...newInputs[index], [field]: value };
+      return newInputs;
     });
   };
 
@@ -118,7 +146,7 @@ export function CreativeGeneratorSimplified() {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter(f => f.type.startsWith('image/'));
     const totalRefs = referenceUrls.length + referenceFiles.length;
-    const remaining = 5 - totalRefs;
+    const remaining = MAX_REFERENCES - totalRefs;
     setReferenceFiles(prev => [...prev, ...validFiles.slice(0, remaining)]);
   };
 
@@ -132,7 +160,7 @@ export function CreativeGeneratorSimplified() {
 
   const handleReferenceSelect = (urls: string[]) => {
     const totalRefs = referenceUrls.length + referenceFiles.length;
-    const remaining = 5 - totalRefs;
+    const remaining = MAX_REFERENCES - totalRefs;
     setReferenceUrls(prev => [...prev, ...urls.slice(0, remaining)]);
   };
 
@@ -147,7 +175,7 @@ export function CreativeGeneratorSimplified() {
     });
   };
 
-  const handleGenerateThemeWithAI = async () => {
+  const handleGenerateThemeWithAI = async (index: number) => {
     if (!selectedClient?.ai_briefing) {
       toast({
         title: "Briefing não disponível",
@@ -157,7 +185,7 @@ export function CreativeGeneratorSimplified() {
       return;
     }
 
-    setIsGeneratingTheme(true);
+    setGeneratingThemeIndex(index);
     try {
       const { data, error } = await supabase.functions.invoke('generate-creative-suggestions', {
         body: {
@@ -171,7 +199,7 @@ export function CreativeGeneratorSimplified() {
 
       if (error) throw error;
       if (data?.theme) {
-        setTheme(data.theme);
+        handleInputChange(index, 'theme', data.theme);
         toast({ title: "Tema gerado com IA!" });
       }
     } catch (error: any) {
@@ -181,11 +209,12 @@ export function CreativeGeneratorSimplified() {
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingTheme(false);
+      setGeneratingThemeIndex(null);
     }
   };
 
-  const handleGenerateCopyWithAI = async () => {
+  const handleGenerateCopyWithAI = async (index: number) => {
+    const theme = creativeInputs[index]?.theme;
     if (!selectedClient?.ai_briefing && !theme) {
       toast({
         title: "Informações insuficientes",
@@ -195,7 +224,7 @@ export function CreativeGeneratorSimplified() {
       return;
     }
 
-    setIsGeneratingCopy(true);
+    setGeneratingCopyIndex(index);
     try {
       const { data, error } = await supabase.functions.invoke('generate-creative-suggestions', {
         body: {
@@ -210,7 +239,7 @@ export function CreativeGeneratorSimplified() {
 
       if (error) throw error;
       if (data?.copy) {
-        setCopyText(data.copy);
+        handleInputChange(index, 'copyText', data.copy);
         toast({ title: "Texto gerado com IA!" });
       }
     } catch (error: any) {
@@ -220,7 +249,7 @@ export function CreativeGeneratorSimplified() {
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingCopy(false);
+      setGeneratingCopyIndex(null);
     }
   };
 
@@ -230,15 +259,15 @@ export function CreativeGeneratorSimplified() {
     setIsGenerating(true);
     setGeneratedCreatives([]);
     
-    const totalToGenerate = selectedTypes.length * quantity;
+    // Count only inputs with theme filled
+    const validInputs = creativeInputs.filter(input => input.theme.trim());
+    const totalToGenerate = selectedTypes.length * validInputs.length;
     setGenerationProgress({ current: 0, total: totalToGenerate });
 
     try {
-      // Converter referências de arquivo para base64
       const fileBase64 = await Promise.all(
         referenceFiles.map(f => convertFileToBase64(f))
       );
-      // Combinar com URLs de referência
       const allReferences = [...fileBase64, ...referenceUrls];
 
       const newCreatives: GeneratedCreative[] = [];
@@ -246,27 +275,32 @@ export function CreativeGeneratorSimplified() {
       for (const typeId of selectedTypes) {
         const typeInfo = CREATIVE_TYPES.find(t => t.id === typeId)!;
         
-        for (let i = 0; i < quantity; i++) {
+        for (let i = 0; i < validInputs.length; i++) {
+          const input = validInputs[i];
+          if (!input.theme.trim()) continue;
+
           setGenerationProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
-          const variationPrompt = quantity > 1 
-            ? `Esta é a variação ${i + 1} de ${quantity}. Crie uma versão única e diferente das anteriores, mantendo o mesmo tema mas com visual diferenciado.`
-            : "";
+          // Use specific reference for this creative if available
+          const creativeReferences = allReferences.length > i 
+            ? [allReferences[i]] 
+            : allReferences.slice(0, 3);
 
           const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
             body: {
               creativeType: typeId,
               clientId: selectedClientId,
-              theme: theme,
+              theme: input.theme,
               companyId: activeCompany.company_id,
-              references: allReferences,
-              approvedText: copyText || undefined,
+              references: creativeReferences,
+              approvedText: input.copyText || undefined,
+              generateCaption: true,
               context: {
-                title: theme,
-                description: `${theme} ${variationPrompt}`.trim(),
+                title: input.theme,
+                description: input.theme,
                 objective: "engajamento",
                 targetAudience: selectedClient?.target_audience || "",
-                imageCopy: copyText,
+                imageCopy: input.copyText,
                 suggestedCaption: ""
               }
             }
@@ -278,9 +312,11 @@ export function CreativeGeneratorSimplified() {
             newCreatives.push({
               id: `${typeId}-${i}-${Date.now()}`,
               imageUrl: data.imageUrl,
-              caption: data.caption || "",
+              caption: data.caption || data.suggestedCaption || "",
               type: typeId,
-              typeName: typeInfo.name
+              typeName: typeInfo.name,
+              theme: input.theme,
+              copyText: input.copyText
             });
             setGeneratedCreatives([...newCreatives]);
           }
@@ -333,12 +369,12 @@ export function CreativeGeneratorSimplified() {
         client_id: selectedClientId,
         client_name: selectedClient.name,
         creative_type: creative.type,
-        theme: theme,
-        title: theme,
-        description: theme,
+        theme: creative.theme,
+        title: creative.theme,
+        description: creative.theme,
         objective: "engajamento",
         target_audience: selectedClient.target_audience || "",
-        copy_text: copyText,
+        copy_text: creative.copyText,
         caption: creative.caption,
         image_url: creative.imageUrl,
         status: 'completed'
@@ -346,11 +382,6 @@ export function CreativeGeneratorSimplified() {
     } catch (error) {
       // Toast já exibido pelo hook
     }
-  };
-
-  const handleCopyCaption = (caption: string) => {
-    navigator.clipboard.writeText(caption);
-    toast({ title: "Legenda copiada!" });
   };
 
   const handleCaptionChange = (creativeId: string, newCaption: string) => {
@@ -366,7 +397,6 @@ export function CreativeGeneratorSimplified() {
   };
 
   const handleRegenerate = async (creative: GeneratedCreative) => {
-    // Regenerar apenas este criativo específico
     setIsGenerating(true);
     
     try {
@@ -379,16 +409,17 @@ export function CreativeGeneratorSimplified() {
         body: {
           creativeType: creative.type,
           clientId: selectedClientId,
-          theme: theme,
+          theme: creative.theme,
           companyId: activeCompany?.company_id,
-          references: allReferences,
-          approvedText: copyText || undefined,
+          references: allReferences.slice(0, 3),
+          approvedText: creative.copyText || undefined,
+          generateCaption: true,
           context: {
-            title: theme,
-            description: `${theme} - Nova versão regenerada`,
+            title: creative.theme,
+            description: `${creative.theme} - Nova versão regenerada`,
             objective: "engajamento",
             targetAudience: selectedClient?.target_audience || "",
-            imageCopy: copyText,
+            imageCopy: creative.copyText,
             suggestedCaption: ""
           }
         }
@@ -399,7 +430,7 @@ export function CreativeGeneratorSimplified() {
       if (data?.imageUrl) {
         setGeneratedCreatives(prev => 
           prev.map(c => c.id === creative.id 
-            ? { ...c, imageUrl: data.imageUrl, caption: data.caption || "" }
+            ? { ...c, imageUrl: data.imageUrl, caption: data.caption || data.suggestedCaption || "" }
             : c
           )
         );
@@ -508,76 +539,93 @@ export function CreativeGeneratorSimplified() {
 
             {/* Quantidade */}
             <div className="space-y-2">
-              <Label>Quantidade de variações por tipo: {quantity}</Label>
+              <Label>Quantidade de criativos: {quantity}</Label>
               <Slider
                 value={[quantity]}
                 onValueChange={([val]) => setQuantity(val)}
                 min={1}
-                max={5}
+                max={MAX_VARIATIONS}
                 step={1}
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
-                Total de criativos a gerar: {selectedTypes.length * quantity}
+                Total a gerar: {selectedTypes.length * quantity} ({selectedTypes.length} tipo(s) × {quantity} criativo(s))
               </p>
             </div>
 
-            {/* Tema/Descrição */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Tema / Descrição do Criativo *</Label>
-                {selectedClient?.ai_briefing && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleGenerateThemeWithAI}
-                    disabled={isGeneratingTheme}
-                    className="h-7 text-xs"
-                  >
-                    {isGeneratingTheme ? (
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3 h-3 mr-1" />
-                    )}
-                    Preencher com IA
-                  </Button>
-                )}
-              </div>
-              <Textarea
-                placeholder="Ex: Promoção de Black Friday com 50% de desconto em todos os produtos"
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                rows={3}
-              />
-            </div>
+            {/* Campos por criativo */}
+            <div className="space-y-4">
+              <Label>Configuração de cada criativo</Label>
+              <ScrollArea className={quantity > 3 ? "h-[400px] pr-4" : ""}>
+                <div className="space-y-4">
+                  {creativeInputs.map((input, index) => (
+                    <Card key={index} className="p-4 bg-muted/30">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Criativo {index + 1}</span>
+                        </div>
+                        
+                        {/* Tema */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs">Tema / Descrição *</Label>
+                            {selectedClient?.ai_briefing && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleGenerateThemeWithAI(index)}
+                                disabled={generatingThemeIndex === index}
+                                className="h-6 text-xs px-2"
+                              >
+                                {generatingThemeIndex === index ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-3 h-3 mr-1" />
+                                )}
+                                IA
+                              </Button>
+                            )}
+                          </div>
+                          <Textarea
+                            placeholder="Ex: Promoção de Black Friday com 50% de desconto"
+                            value={input.theme}
+                            onChange={(e) => handleInputChange(index, 'theme', e.target.value)}
+                            rows={2}
+                            className="text-sm"
+                          />
+                        </div>
 
-            {/* Copy da Imagem (texto que aparece na arte) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Texto na Imagem (opcional)</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleGenerateCopyWithAI}
-                  disabled={isGeneratingCopy || (!selectedClient?.ai_briefing && !theme)}
-                  className="h-7 text-xs"
-                >
-                  {isGeneratingCopy ? (
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3 mr-1" />
-                  )}
-                  Preencher com IA
-                </Button>
-              </div>
-              <Input
-                placeholder="Ex: 50% OFF, Compre Agora, etc."
-                value={copyText}
-                onChange={(e) => setCopyText(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Este texto aparecerá diretamente na arte. Deixe vazio para a IA gerar.
-              </p>
+                        {/* Texto na imagem */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs">Texto na Imagem (opcional)</Label>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleGenerateCopyWithAI(index)}
+                              disabled={generatingCopyIndex === index || (!selectedClient?.ai_briefing && !input.theme)}
+                              className="h-6 text-xs px-2"
+                            >
+                              {generatingCopyIndex === index ? (
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3 h-3 mr-1" />
+                              )}
+                              IA
+                            </Button>
+                          </div>
+                          <Input
+                            placeholder="Ex: 50% OFF, Compre Agora, etc."
+                            value={input.copyText}
+                            onChange={(e) => handleInputChange(index, 'copyText', e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
 
             {/* Referências Visuais (colapsável) */}
@@ -586,7 +634,7 @@ export function CreativeGeneratorSimplified() {
                 <Button variant="outline" className="w-full justify-between">
                   <span className="flex items-center gap-2">
                     <ImagePlus className="w-4 h-4" />
-                    Referências Visuais ({totalReferences}/5)
+                    Referências Visuais ({totalReferences}/{MAX_REFERENCES})
                   </span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${showReferences ? 'rotate-180' : ''}`} />
                 </Button>
@@ -596,15 +644,18 @@ export function CreativeGeneratorSimplified() {
                 <div className="flex flex-wrap gap-2">
                   {/* Arquivos locais */}
                   {referenceFiles.map((file, idx) => (
-                    <div key={`file-${idx}`} className="relative w-20 h-20">
+                    <div key={`file-${idx}`} className="relative w-16 h-16">
                       <img
                         src={URL.createObjectURL(file)}
                         alt={`Ref ${idx + 1}`}
                         className="w-full h-full object-cover rounded-lg border"
                       />
+                      <span className="absolute bottom-0 left-0 bg-black/60 text-white text-[10px] px-1 rounded-br-lg rounded-tl-lg">
+                        {idx + 1}
+                      </span>
                       <button
                         onClick={() => removeReferenceFile(idx)}
-                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                        className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -612,27 +663,30 @@ export function CreativeGeneratorSimplified() {
                   ))}
                   {/* URLs do Instagram/Campanhas */}
                   {referenceUrls.map((url, idx) => (
-                    <div key={`url-${idx}`} className="relative w-20 h-20">
+                    <div key={`url-${idx}`} className="relative w-16 h-16">
                       <img
                         src={url}
-                        alt={`Ref ${idx + 1}`}
+                        alt={`Ref ${referenceFiles.length + idx + 1}`}
                         className="w-full h-full object-cover rounded-lg border"
                       />
-                      <Badge variant="secondary" className="absolute top-1 left-1 text-[10px] px-1 py-0">
-                        <Instagram className="w-2 h-2 mr-0.5" />
+                      <Badge variant="secondary" className="absolute top-0 left-0 text-[8px] px-0.5 py-0 rounded-br-lg rounded-tl-lg">
+                        <Instagram className="w-2 h-2" />
                       </Badge>
+                      <span className="absolute bottom-0 left-0 bg-black/60 text-white text-[10px] px-1 rounded-br-lg rounded-tl-lg">
+                        {referenceFiles.length + idx + 1}
+                      </span>
                       <button
                         onClick={() => removeReferenceUrl(idx)}
-                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                        className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
                   {/* Botão para adicionar arquivo */}
-                  {totalReferences < 5 && (
-                    <label className="w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
-                      <ImagePlus className="w-6 h-6 text-muted-foreground" />
+                  {totalReferences < MAX_REFERENCES && (
+                    <label className="w-16 h-16 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                      <ImagePlus className="w-5 h-5 text-muted-foreground" />
                       <input
                         type="file"
                         accept="image/*"
@@ -645,7 +699,7 @@ export function CreativeGeneratorSimplified() {
                 </div>
                 
                 {/* Botões para buscar do Instagram/Campanhas */}
-                {selectedClientId && activeCompany?.company_id && totalReferences < 5 && (
+                {selectedClientId && activeCompany?.company_id && totalReferences < MAX_REFERENCES && (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -669,7 +723,7 @@ export function CreativeGeneratorSimplified() {
                 )}
                 
                 <p className="text-xs text-muted-foreground">
-                  Adicione até 5 imagens de referência para guiar o estilo visual
+                  Adicione até {MAX_REFERENCES} imagens de referência. Cada referência pode ser usada para um criativo específico.
                 </p>
               </CollapsibleContent>
             </Collapsible>
@@ -689,7 +743,7 @@ export function CreativeGeneratorSimplified() {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Gerar {selectedTypes.length * quantity} Criativo(s)
+                  Gerar {selectedTypes.length * creativeInputs.filter(i => i.theme.trim()).length} Criativo(s)
                 </>
               )}
             </Button>
@@ -723,7 +777,7 @@ export function CreativeGeneratorSimplified() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {generatedCreatives.map((creative) => (
             <CreativePreviewCard
               key={creative.id}
@@ -767,7 +821,7 @@ export function CreativeGeneratorSimplified() {
           clientId={selectedClientId}
           companyId={activeCompany.company_id}
           onSelect={handleReferenceSelect}
-          maxSelections={5 - totalReferences}
+          maxSelections={MAX_REFERENCES - totalReferences}
         />
       )}
     </div>
