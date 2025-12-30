@@ -87,8 +87,8 @@ serve(async (req) => {
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
     // Fetch Meta campaigns, Google campaigns, clients with budget/balance data in parallel
-    const [metaCampaignsResult, googleCampaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult, syncInfoResult, googleAccountsResult] = await Promise.all([
-      // Meta Campaigns with client info
+    const [metaCampaignsResult, googleCampaignsResult, allMetaCampaignsResult, allGoogleCampaignsResult, clientsResult, clientsWithBudgetResult, allClientsResult, syncInfoResult, googleAccountsResult] = await Promise.all([
+      // Meta Campaigns with client info (ACTIVE ONLY - for KPIs/rankings)
       supabase
         .from('campaigns')
         .select(`
@@ -98,7 +98,7 @@ serve(async (req) => {
         .eq('company_id', company.id)
         .eq('is_active', true),
       
-      // Google Campaigns with client info
+      // Google Campaigns with client info (ACTIVE ONLY - for KPIs/rankings)
       supabase
         .from('google_campaigns')
         .select(`
@@ -107,6 +107,18 @@ serve(async (req) => {
         `)
         .eq('company_id', company.id)
         .eq('is_active', true),
+      
+      // ALL Meta Campaigns (for budget alerts - matches Clientes.tsx logic)
+      supabase
+        .from('campaigns')
+        .select('client_id, spend, conversions')
+        .eq('company_id', company.id),
+      
+      // ALL Google Campaigns (for budget alerts - matches Clientes.tsx logic)
+      supabase
+        .from('google_campaigns')
+        .select('client_id, spend, conversions')
+        .eq('company_id', company.id),
       
       // Clients on alert - red or yellow status (calculated_status has priority)
       supabase
@@ -152,12 +164,13 @@ serve(async (req) => {
 
     const metaCampaigns = metaCampaignsResult.data || [];
     const googleCampaigns = googleCampaignsResult.data || [];
+    const allMetaCampaigns = allMetaCampaignsResult.data || [];
+    const allGoogleCampaigns = allGoogleCampaignsResult.data || [];
     const clientsOnAlert = clientsResult.data || [];
     const clientsWithBudget = clientsWithBudgetResult.data || [];
     const allClients = allClientsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
     const googleAccounts = googleAccountsResult.data || [];
-
     // Build Google account balance map
     const googleBalanceMap: Record<string, number> = {};
     googleAccounts.forEach(acc => {
@@ -218,7 +231,7 @@ serve(async (req) => {
       if (c.avatar) clientAvatarMap[c.id] = c.avatar;
     });
 
-    // Calculate spend per client from campaigns (by platform)
+    // Calculate spend per client from ACTIVE campaigns (for KPIs/rankings)
     const clientSpend: Record<string, { meta: number; google: number; total: number }> = {};
     const clientCampaignCount: Record<string, number> = {};
     campaigns.forEach(c => {
@@ -233,6 +246,27 @@ serve(async (req) => {
         }
         clientSpend[c.client_id].total += c.spend;
         clientCampaignCount[c.client_id] = (clientCampaignCount[c.client_id] || 0) + 1;
+      }
+    });
+
+    // Calculate spend per client from ALL campaigns (for budget alerts - matches Clientes.tsx)
+    const clientSpendForAlerts: Record<string, { meta: number; google: number; total: number }> = {};
+    allMetaCampaigns.forEach((c: any) => {
+      if (c.client_id) {
+        if (!clientSpendForAlerts[c.client_id]) {
+          clientSpendForAlerts[c.client_id] = { meta: 0, google: 0, total: 0 };
+        }
+        clientSpendForAlerts[c.client_id].meta += (c.spend || 0);
+        clientSpendForAlerts[c.client_id].total += (c.spend || 0);
+      }
+    });
+    allGoogleCampaigns.forEach((c: any) => {
+      if (c.client_id) {
+        if (!clientSpendForAlerts[c.client_id]) {
+          clientSpendForAlerts[c.client_id] = { meta: 0, google: 0, total: 0 };
+        }
+        clientSpendForAlerts[c.client_id].google += (c.spend || 0);
+        clientSpendForAlerts[c.client_id].total += (c.spend || 0);
       }
     });
 
@@ -448,7 +482,7 @@ serve(async (req) => {
       }));
 
     // === Calculate budget/balance alerts (for both Meta and Google) ===
-    // Aligned with client list logic: Saldo + Gasto, critical + warning
+    // ALIGNED WITH CLIENT LIST LOGIC (Clientes.tsx): Saldo + Gasto, critical + warning
     const now = new Date();
     const currentDay = now.getDate();
     const currentMonth = now.getMonth();
@@ -464,15 +498,100 @@ serve(async (req) => {
     // 5 = Balance tight (warning saldo, 80-100%)
     // 6 = Near budget (warning gasto, 90-100%)
 
+    console.log(`[tv-dashboard-data] Processing ${clientsWithBudget.length} clients for budget alerts`);
+
+    // Helper: Get balance sufficiency status (mirrors getBalanceSufficiency from Clientes.tsx)
+    const getBalanceSufficiency = (
+      balance: number,
+      spend: number,
+      syncPeriod: number,
+      rechargeDay: number | null | undefined,
+      paymentType: string
+    ): { status: 'sufficient' | 'tight' | 'insufficient' | 'no-data'; coveragePercentage: number; daysRemaining: number; projectedSpend: number; dailySpend: number } => {
+      // Skip postpaid
+      if (paymentType === 'postpaid') {
+        return { status: 'no-data', coveragePercentage: 0, daysRemaining: 0, projectedSpend: 0, dailySpend: 0 };
+      }
+      
+      // If no sufficient data, return no-data
+      if (syncPeriod === 0 || spend === 0 || balance === 0) {
+        return { status: 'no-data', coveragePercentage: 0, daysRemaining: 0, projectedSpend: 0, dailySpend: 0 };
+      }
+      
+      // Calculate daily spend
+      const dailySpend = spend / syncPeriod;
+      
+      // Calculate next recharge date
+      let nextRechargeDate: Date;
+      
+      if (rechargeDay && rechargeDay >= 1 && rechargeDay <= 31) {
+        if (currentDay < rechargeDay) {
+          nextRechargeDate = new Date(currentYear, currentMonth, rechargeDay);
+        } else {
+          nextRechargeDate = new Date(currentYear, currentMonth + 1, rechargeDay);
+        }
+        
+        const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
+        if (rechargeDay > maxDayInMonth) {
+          nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
+        }
+      } else {
+        // Fallback: last day of current month
+        nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
+      }
+      
+      const timeDiff = nextRechargeDate.getTime() - now.getTime();
+      const daysRemaining = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+      
+      // Calculate projected spend
+      const projectedSpend = dailySpend * daysRemaining;
+      
+      // Calculate coverage percentage
+      const coveragePercentage = (balance / projectedSpend) * 100;
+      
+      // Define status based on coverage (same as Clientes.tsx)
+      let status: 'sufficient' | 'tight' | 'insufficient';
+      if (coveragePercentage >= 100) {
+        status = 'sufficient';
+      } else if (coveragePercentage >= 80) {
+        status = 'tight';
+      } else {
+        status = 'insufficient';
+      }
+      
+      return { status, coveragePercentage, daysRemaining, projectedSpend, dailySpend };
+    };
+
+    // Helper: Get budget status (mirrors getBudgetStatus from Clientes.tsx)
+    const getBudgetStatus = (
+      monthlyBudget: number,
+      actualSpend: number,
+      syncPeriod: number
+    ): { status: 'ok' | 'warning' | 'over' | 'no-budget'; percentage: number; expectedSpend: number } => {
+      if (monthlyBudget === 0 || syncPeriod === 0) {
+        return { status: 'no-budget', percentage: 0, expectedSpend: 0 };
+      }
+      
+      const expectedSpend = (monthlyBudget / 30) * syncPeriod;
+      const percentage = (actualSpend / expectedSpend) * 100;
+      
+      if (percentage <= 90) {
+        return { status: 'ok', percentage, expectedSpend };
+      } else if (percentage <= 100) {
+        return { status: 'warning', percentage, expectedSpend };
+      } else {
+        return { status: 'over', percentage, expectedSpend };
+      }
+    };
+
     clientsWithBudget.forEach(client => {
       // Skip inactive clients
       if (client.status === 'inativo') return;
       
-      const spendData = clientSpend[client.id] || { meta: 0, google: 0, total: 0 };
-      const syncPeriodValue = parseInt(client.last_sync_period || '0') || 7;
+      const spendData = clientSpendForAlerts[client.id] || { meta: 0, google: 0, total: 0 };
+      const syncPeriodValue = parseInt(client.last_sync_period || '0') || 0;
       
-      // ========== META ALERTS ==========
-      const metaMonthlyBudget = client.meta_monthly_budget || 0;
+      // ========== META BALANCE ALERTS ==========
       const fbAccount = Array.isArray(client.facebook_ad_accounts) 
         ? client.facebook_ad_accounts[0] 
         : client.facebook_ad_accounts;
@@ -481,102 +600,62 @@ serve(async (req) => {
       const metaHasFundingIssues = fbAccount?.has_funding_issues || false;
       const metaDisableReason = fbAccount?.disable_reason || '';
       const metaRechargeDay = client.meta_recharge_day || fbAccount?.recharge_day;
-      const metaDailySpend = syncPeriodValue > 0 ? spendData.meta / syncPeriodValue : 0;
       const metaPaymentType = client.meta_payment_type || client.payment_type || 'prepaid';
       const isMetaPostpaid = metaPaymentType === 'postpaid';
       
-      // --- META SALDO ALERTS (skip if postpaid) ---
-      if (!isMetaPostpaid && fbAccount) {
-        // CRITICAL: Account disabled or has funding issues
-        if (metaAccountStatus !== undefined && metaAccountStatus !== null) {
-          const isDisabled = metaAccountStatus !== 1;
-          const hasFundingFlag = metaHasFundingIssues === true;
-          const disableReasonIsFunding = metaDisableReason?.toLowerCase().includes('funding');
-          
-          if (isDisabled || hasFundingFlag || disableReasonIsFunding) {
-            let message = 'Conta desabilitada';
-            if (hasFundingFlag || disableReasonIsFunding) {
-              message = 'Problema de fundos';
-            } else if (metaDisableReason) {
-              message = metaDisableReason.substring(0, 30);
-            }
-            
-            budgetAlerts.push({
-              id: `${client.id}-meta-disabled`,
-              name: client.name,
-              avatar: client.avatar,
-              category: 'saldo',
-              severity: 'critical',
-              balance: metaBalance,
-              spend: spendData.meta,
-              budget: metaMonthlyBudget,
-              daysRemaining: 0,
-              projectedSpend: 0,
-              percentage: 0,
-              coveragePercentage: 0,
-              message,
-              platform: 'Meta',
-              sortPriority: 1
-            });
-          }
-        }
+      // Check if Meta account has critical issues (disabled/funding)
+      if (!isMetaPostpaid && fbAccount && metaAccountStatus !== undefined && metaAccountStatus !== null) {
+        const isDisabled = metaAccountStatus !== 1;
+        const hasFundingFlag = metaHasFundingIssues === true;
+        const disableReasonIsFunding = metaDisableReason?.toLowerCase().includes('funding');
         
-        // CRITICAL: Zero or negative balance
-        if (metaBalance <= 0) {
-          const existingDisabledAlert = budgetAlerts.find(a => a.id === `${client.id}-meta-disabled`);
-          if (!existingDisabledAlert) {
-            budgetAlerts.push({
-              id: `${client.id}-meta-zero`,
-              name: client.name,
-              avatar: client.avatar,
-              category: 'saldo',
-              severity: 'critical',
-              balance: metaBalance,
-              spend: spendData.meta,
-              budget: metaMonthlyBudget,
-              daysRemaining: 0,
-              projectedSpend: 0,
-              percentage: 0,
-              coveragePercentage: 0,
-              message: metaBalance < 0 ? 'Saldo negativo' : 'Saldo zerado',
-              platform: 'Meta',
-              sortPriority: 2
-            });
+        if (isDisabled || hasFundingFlag || disableReasonIsFunding) {
+          let message = 'Conta desabilitada';
+          if (hasFundingFlag || disableReasonIsFunding) {
+            message = 'Problema de fundos';
+          } else if (metaDisableReason) {
+            message = metaDisableReason.substring(0, 30);
           }
+          
+          budgetAlerts.push({
+            id: `${client.id}-meta-disabled`,
+            name: client.name,
+            avatar: client.avatar,
+            category: 'saldo',
+            severity: 'critical',
+            balance: metaBalance,
+            spend: spendData.meta,
+            budget: client.meta_monthly_budget || 0,
+            daysRemaining: 0,
+            projectedSpend: 0,
+            percentage: 0,
+            coveragePercentage: 0,
+            message,
+            platform: 'Meta',
+            sortPriority: 1
+          });
         }
+      }
+      
+      // Meta balance sufficiency check (using same logic as Clientes.tsx)
+      if (!isMetaPostpaid && metaBalance > 0) {
+        const sufficiency = getBalanceSufficiency(
+          metaBalance,
+          spendData.meta,
+          syncPeriodValue,
+          metaRechargeDay,
+          metaPaymentType
+        );
         
-        // Balance coverage check (insufficient or tight)
-        if (metaBalance > 0 && metaDailySpend > 0) {
-          let nextRechargeDate: Date;
-          
-          if (metaRechargeDay && metaRechargeDay >= 1 && metaRechargeDay <= 31) {
-            if (currentDay < metaRechargeDay) {
-              nextRechargeDate = new Date(currentYear, currentMonth, metaRechargeDay);
-            } else {
-              nextRechargeDate = new Date(currentYear, currentMonth + 1, metaRechargeDay);
-            }
-            
-            const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
-            if (metaRechargeDay > maxDayInMonth) {
-              nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
-            }
-          } else {
-            nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
-          }
-          
-          const timeDiff = nextRechargeDate.getTime() - now.getTime();
-          const daysRemaining = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
-          const projectedSpend = metaDailySpend * daysRemaining;
-          const coveragePercentage = (metaBalance / projectedSpend) * 100;
-          
-          // Check if we already have a more critical alert for this client+platform
+        if (sufficiency.status !== 'no-data' && sufficiency.status !== 'sufficient') {
+          // Check if we already have a more critical alert
           const existingCriticalAlert = budgetAlerts.find(a => 
             a.id.startsWith(`${client.id}-meta-`) && a.category === 'saldo' && a.severity === 'critical'
           );
           
           if (!existingCriticalAlert) {
-            if (coveragePercentage < 80) {
-              // CRITICAL: Won't last
+            if (sufficiency.status === 'insufficient') {
+              // CRITICAL: Won't last (coverage < 80%)
               budgetAlerts.push({
                 id: `${client.id}-meta-balance`,
                 name: client.name,
@@ -585,17 +664,17 @@ serve(async (req) => {
                 severity: 'critical',
                 balance: metaBalance,
                 spend: spendData.meta,
-                budget: metaMonthlyBudget,
-                daysRemaining,
-                projectedSpend,
+                budget: client.meta_monthly_budget || 0,
+                daysRemaining: sufficiency.daysRemaining,
+                projectedSpend: sufficiency.projectedSpend,
                 percentage: 0,
-                coveragePercentage,
-                message: `Saldo não dura ${daysRemaining}d`,
+                coveragePercentage: sufficiency.coveragePercentage,
+                message: `Saldo insuficiente (${sufficiency.coveragePercentage.toFixed(0)}%)`,
                 platform: 'Meta',
                 sortPriority: 3
               });
-            } else if (coveragePercentage < 100) {
-              // WARNING: Tight balance (80-100%)
+            } else if (sufficiency.status === 'tight') {
+              // WARNING: Tight (80-100%)
               budgetAlerts.push({
                 id: `${client.id}-meta-balance-warning`,
                 name: client.name,
@@ -604,12 +683,12 @@ serve(async (req) => {
                 severity: 'warning',
                 balance: metaBalance,
                 spend: spendData.meta,
-                budget: metaMonthlyBudget,
-                daysRemaining,
-                projectedSpend,
+                budget: client.meta_monthly_budget || 0,
+                daysRemaining: sufficiency.daysRemaining,
+                projectedSpend: sufficiency.projectedSpend,
                 percentage: 0,
-                coveragePercentage,
-                message: `Saldo apertado (${coveragePercentage.toFixed(0)}%)`,
+                coveragePercentage: sufficiency.coveragePercentage,
+                message: `Saldo apertado (${sufficiency.coveragePercentage.toFixed(0)}%)`,
                 platform: 'Meta',
                 sortPriority: 5
               });
@@ -618,13 +697,37 @@ serve(async (req) => {
         }
       }
       
-      // --- META GASTO ALERTS ---
-      if (metaMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.meta > 0) {
-        const expectedSpend = (metaMonthlyBudget / 30) * syncPeriodValue;
-        const percentage = (spendData.meta / expectedSpend) * 100;
+      // Meta zero/negative balance (only if not postpaid and has account)
+      if (!isMetaPostpaid && fbAccount && metaBalance <= 0 && spendData.meta > 0) {
+        const existingAlert = budgetAlerts.find(a => a.id.startsWith(`${client.id}-meta-`) && a.category === 'saldo');
+        if (!existingAlert) {
+          budgetAlerts.push({
+            id: `${client.id}-meta-zero`,
+            name: client.name,
+            avatar: client.avatar,
+            category: 'saldo',
+            severity: 'critical',
+            balance: metaBalance,
+            spend: spendData.meta,
+            budget: client.meta_monthly_budget || 0,
+            daysRemaining: 0,
+            projectedSpend: 0,
+            percentage: 0,
+            coveragePercentage: 0,
+            message: metaBalance < 0 ? 'Saldo negativo' : 'Saldo zerado',
+            platform: 'Meta',
+            sortPriority: 2
+          });
+        }
+      }
+      
+      // ========== META BUDGET (GASTO) ALERTS ==========
+      const metaMonthlyBudget = client.meta_monthly_budget || 0;
+      if (metaMonthlyBudget > 0) {
+        const budgetStatus = getBudgetStatus(metaMonthlyBudget, spendData.meta, syncPeriodValue);
         
-        if (percentage > 100) {
-          // CRITICAL: Over budget
+        if (budgetStatus.status === 'over') {
+          // CRITICAL: Over budget (> 100%)
           budgetAlerts.push({
             id: `${client.id}-meta-budget`,
             name: client.name,
@@ -635,14 +738,14 @@ serve(async (req) => {
             spend: spendData.meta,
             budget: metaMonthlyBudget,
             daysRemaining: 0,
-            projectedSpend: expectedSpend,
-            percentage,
+            projectedSpend: budgetStatus.expectedSpend,
+            percentage: budgetStatus.percentage,
             coveragePercentage: 0,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            message: `Gasto ${budgetStatus.percentage.toFixed(0)}% do planejado`,
             platform: 'Meta',
             sortPriority: 4
           });
-        } else if (percentage >= 90) {
+        } else if (budgetStatus.status === 'warning') {
           // WARNING: Near budget (90-100%)
           budgetAlerts.push({
             id: `${client.id}-meta-budget-warning`,
@@ -654,105 +757,64 @@ serve(async (req) => {
             spend: spendData.meta,
             budget: metaMonthlyBudget,
             daysRemaining: 0,
-            projectedSpend: expectedSpend,
-            percentage,
+            projectedSpend: budgetStatus.expectedSpend,
+            percentage: budgetStatus.percentage,
             coveragePercentage: 0,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            message: `Gasto ${budgetStatus.percentage.toFixed(0)}% do planejado`,
             platform: 'Meta',
             sortPriority: 6
           });
         }
       }
       
-      // ========== GOOGLE ALERTS ==========
-      const googleMonthlyBudget = client.google_monthly_budget || 0;
+      // ========== GOOGLE BALANCE ALERTS ==========
       const googleAccount = Array.isArray(client.google_ads_accounts) 
         ? client.google_ads_accounts[0] 
         : client.google_ads_accounts;
       const googleBalance = googleAccount?.balance || googleBalanceMap[client.id] || 0;
       const googleAccountStatus = googleAccount?.account_status;
       const googleRechargeDay = client.google_recharge_day;
-      const googleDailySpend = syncPeriodValue > 0 ? spendData.google / syncPeriodValue : 0;
       const googlePaymentType = client.google_payment_type || client.payment_type || 'prepaid';
       const isGooglePostpaid = googlePaymentType === 'postpaid';
       
-      // --- GOOGLE SALDO ALERTS (skip if postpaid) ---
-      if (!isGooglePostpaid && googleAccount) {
-        // CRITICAL: Account disabled
-        if (googleAccountStatus !== undefined && googleAccountStatus !== null && googleAccountStatus !== 1) {
-          budgetAlerts.push({
-            id: `${client.id}-google-disabled`,
-            name: client.name,
-            avatar: client.avatar,
-            category: 'saldo',
-            severity: 'critical',
-            balance: googleBalance,
-            spend: spendData.google,
-            budget: googleMonthlyBudget,
-            daysRemaining: 0,
-            projectedSpend: 0,
-            percentage: 0,
-            coveragePercentage: 0,
-            message: 'Conta desabilitada',
-            platform: 'Google',
-            sortPriority: 1
-          });
-        }
+      // Check if Google account is disabled
+      if (!isGooglePostpaid && googleAccount && googleAccountStatus !== undefined && googleAccountStatus !== null && googleAccountStatus !== 1) {
+        budgetAlerts.push({
+          id: `${client.id}-google-disabled`,
+          name: client.name,
+          avatar: client.avatar,
+          category: 'saldo',
+          severity: 'critical',
+          balance: googleBalance,
+          spend: spendData.google,
+          budget: client.google_monthly_budget || 0,
+          daysRemaining: 0,
+          projectedSpend: 0,
+          percentage: 0,
+          coveragePercentage: 0,
+          message: 'Conta desabilitada',
+          platform: 'Google',
+          sortPriority: 1
+        });
+      }
+      
+      // Google balance sufficiency check
+      if (!isGooglePostpaid && googleBalance > 0) {
+        const sufficiency = getBalanceSufficiency(
+          googleBalance,
+          spendData.google,
+          syncPeriodValue,
+          googleRechargeDay,
+          googlePaymentType
+        );
         
-        // CRITICAL: Zero or negative balance
-        if (googleBalance <= 0) {
-          const existingDisabledAlert = budgetAlerts.find(a => a.id === `${client.id}-google-disabled`);
-          if (!existingDisabledAlert) {
-            budgetAlerts.push({
-              id: `${client.id}-google-zero`,
-              name: client.name,
-              avatar: client.avatar,
-              category: 'saldo',
-              severity: 'critical',
-              balance: googleBalance,
-              spend: spendData.google,
-              budget: googleMonthlyBudget,
-              daysRemaining: 0,
-              projectedSpend: 0,
-              percentage: 0,
-              coveragePercentage: 0,
-              message: googleBalance < 0 ? 'Saldo negativo' : 'Saldo zerado',
-              platform: 'Google',
-              sortPriority: 2
-            });
-          }
-        }
-        
-        // Balance coverage check
-        if (googleBalance > 0 && googleDailySpend > 0) {
-          let nextRechargeDate: Date;
-          
-          if (googleRechargeDay && googleRechargeDay >= 1 && googleRechargeDay <= 31) {
-            if (currentDay < googleRechargeDay) {
-              nextRechargeDate = new Date(currentYear, currentMonth, googleRechargeDay);
-            } else {
-              nextRechargeDate = new Date(currentYear, currentMonth + 1, googleRechargeDay);
-            }
-            
-            const maxDayInMonth = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth() + 1, 0).getDate();
-            if (googleRechargeDay > maxDayInMonth) {
-              nextRechargeDate = new Date(nextRechargeDate.getFullYear(), nextRechargeDate.getMonth(), maxDayInMonth);
-            }
-          } else {
-            nextRechargeDate = new Date(currentYear, currentMonth + 1, 0);
-          }
-          
-          const timeDiff = nextRechargeDate.getTime() - now.getTime();
-          const daysRemaining = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
-          const projectedSpend = googleDailySpend * daysRemaining;
-          const coveragePercentage = (googleBalance / projectedSpend) * 100;
-          
+        if (sufficiency.status !== 'no-data' && sufficiency.status !== 'sufficient') {
           const existingCriticalAlert = budgetAlerts.find(a => 
             a.id.startsWith(`${client.id}-google-`) && a.category === 'saldo' && a.severity === 'critical'
           );
           
           if (!existingCriticalAlert) {
-            if (coveragePercentage < 80) {
+            if (sufficiency.status === 'insufficient') {
               budgetAlerts.push({
                 id: `${client.id}-google-balance`,
                 name: client.name,
@@ -761,16 +823,16 @@ serve(async (req) => {
                 severity: 'critical',
                 balance: googleBalance,
                 spend: spendData.google,
-                budget: googleMonthlyBudget,
-                daysRemaining,
-                projectedSpend,
+                budget: client.google_monthly_budget || 0,
+                daysRemaining: sufficiency.daysRemaining,
+                projectedSpend: sufficiency.projectedSpend,
                 percentage: 0,
-                coveragePercentage,
-                message: `Saldo não dura ${daysRemaining}d`,
+                coveragePercentage: sufficiency.coveragePercentage,
+                message: `Saldo insuficiente (${sufficiency.coveragePercentage.toFixed(0)}%)`,
                 platform: 'Google',
                 sortPriority: 3
               });
-            } else if (coveragePercentage < 100) {
+            } else if (sufficiency.status === 'tight') {
               budgetAlerts.push({
                 id: `${client.id}-google-balance-warning`,
                 name: client.name,
@@ -779,12 +841,12 @@ serve(async (req) => {
                 severity: 'warning',
                 balance: googleBalance,
                 spend: spendData.google,
-                budget: googleMonthlyBudget,
-                daysRemaining,
-                projectedSpend,
+                budget: client.google_monthly_budget || 0,
+                daysRemaining: sufficiency.daysRemaining,
+                projectedSpend: sufficiency.projectedSpend,
                 percentage: 0,
-                coveragePercentage,
-                message: `Saldo apertado (${coveragePercentage.toFixed(0)}%)`,
+                coveragePercentage: sufficiency.coveragePercentage,
+                message: `Saldo apertado (${sufficiency.coveragePercentage.toFixed(0)}%)`,
                 platform: 'Google',
                 sortPriority: 5
               });
@@ -793,12 +855,36 @@ serve(async (req) => {
         }
       }
       
-      // --- GOOGLE GASTO ALERTS ---
-      if (googleMonthlyBudget > 0 && syncPeriodValue > 0 && spendData.google > 0) {
-        const expectedSpend = (googleMonthlyBudget / 30) * syncPeriodValue;
-        const percentage = (spendData.google / expectedSpend) * 100;
+      // Google zero/negative balance
+      if (!isGooglePostpaid && googleAccount && googleBalance <= 0 && spendData.google > 0) {
+        const existingAlert = budgetAlerts.find(a => a.id.startsWith(`${client.id}-google-`) && a.category === 'saldo');
+        if (!existingAlert) {
+          budgetAlerts.push({
+            id: `${client.id}-google-zero`,
+            name: client.name,
+            avatar: client.avatar,
+            category: 'saldo',
+            severity: 'critical',
+            balance: googleBalance,
+            spend: spendData.google,
+            budget: client.google_monthly_budget || 0,
+            daysRemaining: 0,
+            projectedSpend: 0,
+            percentage: 0,
+            coveragePercentage: 0,
+            message: googleBalance < 0 ? 'Saldo negativo' : 'Saldo zerado',
+            platform: 'Google',
+            sortPriority: 2
+          });
+        }
+      }
+      
+      // ========== GOOGLE BUDGET (GASTO) ALERTS ==========
+      const googleMonthlyBudget = client.google_monthly_budget || 0;
+      if (googleMonthlyBudget > 0) {
+        const budgetStatus = getBudgetStatus(googleMonthlyBudget, spendData.google, syncPeriodValue);
         
-        if (percentage > 100) {
+        if (budgetStatus.status === 'over') {
           budgetAlerts.push({
             id: `${client.id}-google-budget`,
             name: client.name,
@@ -809,14 +895,14 @@ serve(async (req) => {
             spend: spendData.google,
             budget: googleMonthlyBudget,
             daysRemaining: 0,
-            projectedSpend: expectedSpend,
-            percentage,
+            projectedSpend: budgetStatus.expectedSpend,
+            percentage: budgetStatus.percentage,
             coveragePercentage: 0,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            message: `Gasto ${budgetStatus.percentage.toFixed(0)}% do planejado`,
             platform: 'Google',
             sortPriority: 4
           });
-        } else if (percentage >= 90) {
+        } else if (budgetStatus.status === 'warning') {
           budgetAlerts.push({
             id: `${client.id}-google-budget-warning`,
             name: client.name,
@@ -827,27 +913,25 @@ serve(async (req) => {
             spend: spendData.google,
             budget: googleMonthlyBudget,
             daysRemaining: 0,
-            projectedSpend: expectedSpend,
-            percentage,
+            projectedSpend: budgetStatus.expectedSpend,
+            percentage: budgetStatus.percentage,
             coveragePercentage: 0,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            message: `Gasto ${budgetStatus.percentage.toFixed(0)}% do planejado`,
             platform: 'Google',
             sortPriority: 6
           });
         }
       }
       
-      // ========== CONSOLIDATED GASTO ALERTS (when no per-platform budget) ==========
+      // ========== CONSOLIDATED BUDGET ALERTS (when no per-platform budget) ==========
       const hasMetaBudget = (client.meta_monthly_budget || 0) > 0;
       const hasGoogleBudget = (client.google_monthly_budget || 0) > 0;
       const hasGenericBudget = (client.monthly_budget || 0) > 0;
       
-      if (!hasMetaBudget && !hasGoogleBudget && hasGenericBudget && syncPeriodValue > 0 && spendData.total > 0) {
-        const monthlyBudget = client.monthly_budget || 0;
-        const expectedSpend = (monthlyBudget / 30) * syncPeriodValue;
-        const percentage = (spendData.total / expectedSpend) * 100;
+      if (!hasMetaBudget && !hasGoogleBudget && hasGenericBudget) {
+        const budgetStatus = getBudgetStatus(client.monthly_budget || 0, spendData.total, syncPeriodValue);
         
-        if (percentage > 100) {
+        if (budgetStatus.status === 'over') {
           budgetAlerts.push({
             id: `${client.id}-total-budget`,
             name: client.name,
@@ -856,16 +940,16 @@ serve(async (req) => {
             severity: 'critical',
             balance: 0,
             spend: spendData.total,
-            budget: monthlyBudget,
+            budget: client.monthly_budget || 0,
             daysRemaining: 0,
-            projectedSpend: expectedSpend,
-            percentage,
+            projectedSpend: budgetStatus.expectedSpend,
+            percentage: budgetStatus.percentage,
             coveragePercentage: 0,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            message: `Gasto ${budgetStatus.percentage.toFixed(0)}% do planejado`,
             platform: 'Total',
             sortPriority: 4
           });
-        } else if (percentage >= 90) {
+        } else if (budgetStatus.status === 'warning') {
           budgetAlerts.push({
             id: `${client.id}-total-budget-warning`,
             name: client.name,
@@ -874,12 +958,12 @@ serve(async (req) => {
             severity: 'warning',
             balance: 0,
             spend: spendData.total,
-            budget: monthlyBudget,
+            budget: client.monthly_budget || 0,
             daysRemaining: 0,
-            projectedSpend: expectedSpend,
-            percentage,
+            projectedSpend: budgetStatus.expectedSpend,
+            percentage: budgetStatus.percentage,
             coveragePercentage: 0,
-            message: `Gasto ${percentage.toFixed(0)}% do planejado`,
+            message: `Gasto ${budgetStatus.percentage.toFixed(0)}% do planejado`,
             platform: 'Total',
             sortPriority: 6
           });
