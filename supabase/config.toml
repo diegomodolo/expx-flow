@@ -235,3 +235,6 @@ verify_jwt = true
 
 [functions.transcribe-youtube-video]
 verify_jwt = true
+
+[functions.generate-recurring-tasks]
+verify_jwt = false
