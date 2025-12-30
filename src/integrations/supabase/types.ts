@@ -1542,6 +1542,7 @@ export type Database = {
           briefing_generated_at: string | null
           calculated_status: string | null
           campaign_type: string | null
+          canceled_at: string | null
           company: string
           company_id: string | null
           created_at: string
@@ -1555,6 +1556,7 @@ export type Database = {
           id: string
           inactive_reason: string | null
           instagram_account_id: string | null
+          is_canceled: boolean
           last_sync_at: string | null
           last_sync_period: string | null
           leads_generated: number | null
@@ -1606,6 +1608,7 @@ export type Database = {
           briefing_generated_at?: string | null
           calculated_status?: string | null
           campaign_type?: string | null
+          canceled_at?: string | null
           company: string
           company_id?: string | null
           created_at?: string
@@ -1619,6 +1622,7 @@ export type Database = {
           id?: string
           inactive_reason?: string | null
           instagram_account_id?: string | null
+          is_canceled?: boolean
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
@@ -1670,6 +1674,7 @@ export type Database = {
           briefing_generated_at?: string | null
           calculated_status?: string | null
           campaign_type?: string | null
+          canceled_at?: string | null
           company?: string
           company_id?: string | null
           created_at?: string
@@ -1683,6 +1688,7 @@ export type Database = {
           id?: string
           inactive_reason?: string | null
           instagram_account_id?: string | null
+          is_canceled?: boolean
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null

@@ -36,6 +36,7 @@ export function useClientDirectory() {
         .from("clients")
         .select("id,name,company,avatar")
         .eq("company_id", activeCompany.company_id)
+        .eq("is_canceled", false)
         .order("name", { ascending: true });
 
       if (error) throw error;

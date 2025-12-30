@@ -42,11 +42,13 @@ import {
   CheckCircle2,
   AlertCircle,
   XCircle,
-  BarChart
+  BarChart,
+  Ban
 } from "lucide-react";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
 
 type StatusType = "all" | ClientStatus;
+type CanceledFilter = "active" | "canceled" | "all";
 
 const statusConfig = {
   excelente: { 
@@ -344,6 +346,7 @@ const BalanceSufficiencyIcon = ({ client }: { client: Client }) => {
 };
 
 const Clientes = () => {
+  const [canceledFilter, setCanceledFilter] = useState<CanceledFilter>("active");
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -362,7 +365,7 @@ const Clientes = () => {
   const [sortField, setSortField] = useState<SortField>('status');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [recalculating, setRecalculating] = useState(false);
-  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients, recalculateAllStatus, recalculatingProgress } = useClients();
+  const { clients, loading, error, createClient, updateClient, deleteClient, fetchClients, recalculateAllStatus, recalculatingProgress } = useClients({ includeCanceled: canceledFilter !== "active" });
   const { sectors, fetchSectors } = useSectors();
   const { teams } = useTeams();
   const { syncing: syncingMeta, progress: metaProgress } = useFacebookCampaignSync();
@@ -433,6 +436,13 @@ const Clientes = () => {
   };
 
   const filteredAndSortedClients = clients.filter(client => {
+    // Filter by canceled status
+    const matchesCanceled = canceledFilter === "all" 
+      ? true 
+      : canceledFilter === "canceled" 
+        ? client.is_canceled === true
+        : client.is_canceled !== true;
+    
     const matchesStatus = statusFilter === "all" || client.status === statusFilter;
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -469,7 +479,7 @@ const Clientes = () => {
       return client.team_id === filters.squad;
     })();
     
-    return matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns && matchesSquad;
+    return matchesCanceled && matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns && matchesSquad;
   }).sort((a, b) => {
     let aValue: any = a[sortField];
     let bValue: any = b[sortField];
@@ -870,6 +880,27 @@ const Clientes = () => {
                       >
                         <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
                         <span>Inativo</span>
+                      </Button>
+                      
+                      {/* Separator */}
+                      <div className="w-px h-6 bg-border mx-1" />
+                      
+                      {/* Canceled Filter */}
+                      <Button
+                        variant={canceledFilter === "active" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCanceledFilter("active")}
+                      >
+                        Ativos
+                      </Button>
+                      <Button
+                        variant={canceledFilter === "canceled" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCanceledFilter("canceled")}
+                        className="flex items-center space-x-1 text-destructive border-destructive/30"
+                      >
+                        <Ban className="w-3 h-3" />
+                        <span>Cancelados</span>
                       </Button>
                     </div>
                   </div>
