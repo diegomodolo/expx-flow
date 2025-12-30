@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useClients } from "@/hooks/useClients";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CreatePlanDialogProps {
   open: boolean;
@@ -50,8 +64,16 @@ export function CreatePlanDialog({
   const [name, setName] = useState("");
   const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
   const [year, setYear] = useState(currentYear.toString());
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
 
   const selectedClient = clients?.find((c) => c.id === clientId);
+
+  // Sort clients alphabetically
+  const sortedClients = useMemo(() => {
+    return clients
+      ?.filter((c) => !c.is_canceled)
+      .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
+  }, [clients]);
 
   const handleSubmit = () => {
     if (!clientId || !name) return;
@@ -89,11 +111,6 @@ export function CreatePlanDialog({
     }
   };
 
-  // Sort clients alphabetically
-  const sortedClients = clients
-    ?.filter((c) => !c.is_canceled)
-    .sort((a, b) => a.name.localeCompare(b.name));
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -104,18 +121,47 @@ export function CreatePlanDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="client">Cliente</Label>
-            <Select value={clientId} onValueChange={handleClientChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {sortedClients?.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={clientPopoverOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedClient ? selectedClient.name : "Selecione o cliente"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar cliente..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {sortedClients.map((client) => (
+                        <CommandItem
+                          key={client.id}
+                          value={client.name}
+                          onSelect={() => {
+                            handleClientChange(client.id);
+                            setClientPopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              clientId === client.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {client.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
