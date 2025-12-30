@@ -46,14 +46,14 @@ export interface ContentPlan {
 }
 
 export function useContentPlans(clientId?: string) {
-  const { currentCompany } = useCompany();
+  const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
 
   // Fetch all content plans
   const { data: plans, isLoading, refetch } = useQuery({
-    queryKey: ["content-plans", currentCompany?.id, clientId],
+    queryKey: ["content-plans", activeCompany?.company_id, clientId],
     queryFn: async () => {
-      if (!currentCompany?.id) return [];
+      if (!activeCompany?.company_id) return [];
 
       let query = supabase
         .from("content_plans")
@@ -61,7 +61,7 @@ export function useContentPlans(clientId?: string) {
           *,
           clients:client_id (name, company)
         `)
-        .eq("company_id", currentCompany.id)
+        .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
 
       if (clientId) {
@@ -72,7 +72,7 @@ export function useContentPlans(clientId?: string) {
       if (error) throw error;
       return data as ContentPlan[];
     },
-    enabled: !!currentCompany?.id,
+    enabled: !!activeCompany?.company_id,
   });
 
   // Fetch a single plan with posts and slides
@@ -131,13 +131,13 @@ export function useContentPlans(clientId?: string) {
       year: number;
     }) => {
       const { data: user } = await supabase.auth.getUser();
-      if (!user.user || !currentCompany?.id) throw new Error("Não autenticado");
+      if (!user.user || !activeCompany?.company_id) throw new Error("Não autenticado");
 
       const { data: plan, error } = await supabase
         .from("content_plans")
         .insert({
           ...data,
-          company_id: currentCompany.id,
+          company_id: activeCompany.company_id,
           user_id: user.user.id,
         })
         .select()

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2 } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -11,9 +11,17 @@ export default function Geradores() {
     title: string;
     description: string;
     icon: typeof BookOpen;
-    color: "blue" | "purple" | "pink" | "teal";
+    color: "blue" | "purple" | "pink" | "teal" | "amber";
     path: string;
   }> = [
+    {
+      id: "planejamento",
+      title: "Planejador de Conteúdo",
+      description: "Planeje suas postagens mensais com ajuda da IA integrada",
+      icon: FileText,
+      color: "amber",
+      path: "/geradores/planejamento-conteudo",
+    },
     {
       id: "campanhas",
       title: "Gerador de Campanhas",

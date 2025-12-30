@@ -26,11 +26,14 @@ import {
   Wand2,
   ChevronsUpDown,
   Instagram,
-  Megaphone
+  Megaphone,
+  FileText
 } from "lucide-react";
 import { NewPostModal } from "@/components/scheduling/NewPostModal";
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 import { CreativePreviewCard } from "./CreativePreviewCard";
+import { ImportFromPlanDialog } from "@/components/content-planner/ImportFromPlanDialog";
+import { ContentPlanPost } from "@/hooks/useContentPlans";
 
 // Tipos de criativos disponíveis
 const CREATIVE_TYPES = [
@@ -94,6 +97,7 @@ export function CreativeGeneratorSimplified() {
   // Modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedCreativeForSchedule, setSelectedCreativeForSchedule] = useState<GeneratedCreative | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Derived state
   const selectedClient = useMemo(() => 
@@ -166,6 +170,31 @@ export function CreativeGeneratorSimplified() {
 
   const totalReferences = referenceUrls.length + referenceFiles.length;
 
+  // Import posts from content plan
+  const handleImportFromPlan = (posts: ContentPlanPost[]) => {
+    if (posts.length === 0) return;
+
+    // Set quantity to match imported posts
+    setQuantity(posts.length);
+
+    // Map posts to creative inputs
+    const newInputs = posts.map((post) => ({
+      theme: post.objective || post.headline || "",
+      copyText: post.headline || "",
+    }));
+    setCreativeInputs(newInputs);
+
+    // Determine creative types based on post types
+    const hasCarousel = posts.some((p) => p.post_type === "carrossel");
+    if (hasCarousel) {
+      setSelectedTypes(["instagram_feed"]);
+    }
+
+    toast({
+      title: "Posts importados!",
+      description: `${posts.length} post(s) importados do planejamento`,
+    });
+  };
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -514,6 +543,19 @@ export function CreativeGeneratorSimplified() {
                   </Command>
                 </PopoverContent>
               </Popover>
+              
+              {/* Botão Importar do Planejamento */}
+              {selectedClientId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 gap-2"
+                  onClick={() => setShowImportDialog(true)}
+                >
+                  <FileText className="w-4 h-4" />
+                  Importar do Planejamento
+                </Button>
+              )}
             </div>
 
             {/* Tipos de Criativo */}
@@ -824,6 +866,16 @@ export function CreativeGeneratorSimplified() {
           companyId={activeCompany.company_id}
           onSelect={handleReferenceSelect}
           maxSelections={MAX_REFERENCES - totalReferences}
+        />
+      )}
+
+      {/* Dialog de importar do planejamento */}
+      {selectedClientId && (
+        <ImportFromPlanDialog
+          open={showImportDialog}
+          onOpenChange={setShowImportDialog}
+          clientId={selectedClientId}
+          onImport={handleImportFromPlan}
         />
       )}
     </div>
