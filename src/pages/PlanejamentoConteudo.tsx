@@ -54,7 +54,7 @@ export default function PlanejamentoConteudo() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between pb-4">
           <div className="flex items-center gap-4">
@@ -88,7 +88,7 @@ export default function PlanejamentoConteudo() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="flex-shrink-0">
+          <TabsList className="flex-shrink-0 mb-4">
             <TabsTrigger value="lista" className="gap-2">
               <History className="w-4 h-4" />
               Planejamentos
@@ -99,11 +99,11 @@ export default function PlanejamentoConteudo() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="lista" className="mt-4 flex-1 overflow-auto">
+          <TabsContent value="lista" className="flex-1 overflow-auto">
             <ContentPlanList onSelectPlan={handleSelectPlan} />
           </TabsContent>
 
-          <TabsContent value="editor" className="mt-4 flex-1 min-h-0">
+          <TabsContent value="editor" className="flex-1 min-h-0 overflow-hidden">
             {selectedPlanId ? (
               <ContentPlanEditor
                 planId={selectedPlanId}
