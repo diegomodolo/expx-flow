@@ -62,7 +62,8 @@ Deno.serve(async (req) => {
       context,
       companyId,
       references = [],
-      approvedText
+      approvedText,
+      extraPrompt
     } = await req.json();
 
     console.log('Request data received:', {
@@ -73,7 +74,8 @@ Deno.serve(async (req) => {
       contextKeys: Object.keys(context || {}),
       hasReferences: references && references.length > 0,
       referencesCount: references ? references.length : 0,
-      hasApprovedText: !!approvedText
+      hasApprovedText: !!approvedText,
+      hasExtraPrompt: !!extraPrompt
     });
 
     // Validar dados obrigatórios
@@ -268,6 +270,11 @@ STYLE REQUIREMENTS:
 - High-resolution commercial photography or design quality
 - Colors and aesthetic aligned with ${sectorContext} industry standards
 - Visually appealing for ${audienceContext}
+
+${extraPrompt ? `USER ADDITIONAL INSTRUCTIONS:
+${extraPrompt}
+- Follow these additional instructions from the user carefully
+- Integrate these requirements into the final image` : ''}
 
 CRITICAL RULES:
 - If text is provided, it MUST be spelled EXACTLY as given - NO spelling errors
