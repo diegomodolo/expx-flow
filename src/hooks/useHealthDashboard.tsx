@@ -447,22 +447,21 @@ export function useHealthDashboard() {
         const statusOrder = { insufficient: 0, tight: 1, sufficient: 2, "no-data": 3 };
         return statusOrder[a.balanceStatus] - statusOrder[b.balanceStatus];
       })
-      .slice(0, 6);
 
       const disabledAccounts = processedClients.filter(c => {
         const status = c.status.toLowerCase();
         return ["pausado", "paused", "disabled", "problem", "blocked", "suspended"].some(s => status.includes(s));
-      }).slice(0, 6);
+      });
 
-      const inactiveClients = processedClients.filter(c => c.activeCampaigns === 0).slice(0, 6);
+      const inactiveClients = processedClients.filter(c => c.activeCampaigns === 0);
 
-      const noAdAccountClients = processedClients.filter(c => !c.hasLinkedAdAccount).slice(0, 6);
+      const noAdAccountClients = processedClients.filter(c => !c.hasLinkedAdAccount);
 
       const syncAlerts = processedClients.filter(c => 
         c.hasLinkedAdAccount && c.lastSyncDaysAgo > 7
-      ).slice(0, 6);
+      );
 
-      const worstClients = processedClients.filter(c => c.riskLevel !== "stable").slice(0, 6);
+      const worstClients = processedClients.filter(c => c.riskLevel !== "stable");
 
       // Build disqualified leads clients list
       const disqualifiedLeadClients: DisqualifiedLeadClient[] = [];
