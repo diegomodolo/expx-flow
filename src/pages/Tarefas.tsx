@@ -91,9 +91,9 @@ export default function Tarefas() {
     currentUserId 
   } = useEmployeeBoard(selectedBoardUserId);
 
-  // Determinar quais tarefas usar baseado no quadro selecionado
-  const activeTasks = selectedBoardUserId !== null ? boardTasks : tasks;
-  const activeLoading = selectedBoardUserId !== null ? boardTasksLoading : loading;
+  // Sempre usar boardTasks que já filtra corretamente por usuário
+  const activeTasks = boardTasks;
+  const activeLoading = boardTasksLoading;
 
   // Filtrar e ordenar tarefas
   const filteredAndSortedTasks = activeTasks
