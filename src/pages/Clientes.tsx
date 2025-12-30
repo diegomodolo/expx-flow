@@ -785,10 +785,6 @@ const Clientes = () => {
                         <Filter className="w-4 h-4" />
                         <span>Filtros</span>
                       </Button>
-                      <Button variant="outline" className="flex items-center space-x-2" onClick={exportToCSV}>
-                        <Download className="w-4 h-4" />
-                        <span className="hidden sm:inline">Exportar</span>
-                      </Button>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
