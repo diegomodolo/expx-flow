@@ -14,11 +14,15 @@ import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerTimeline } from "@/components/planner/PlannerTimeline";
+import { BoardSelector } from "@/components/tasks/BoardSelector";
+import { RecurringTasksManager } from "@/components/tasks/RecurringTasksManager";
+import { RecurringTaskDialog } from "@/components/tasks/RecurringTaskDialog";
 import { useTasks } from "@/hooks/useTasks";
 import { useTaskStats } from "@/hooks/useTaskStats";
 import { useTaskAutomation } from "@/hooks/useTaskAutomation";
 import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useClients } from "@/hooks/useClients";
+import { useEmployeeBoard } from "@/hooks/useEmployeeBoard";
 import { 
   Plus, 
   Search, 
@@ -39,7 +43,8 @@ import {
   ChevronsUpDown,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Repeat
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,7 +52,7 @@ import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function Tarefas() {
-  const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'planner'>('kanban');
+  const [view, setView] = useState<'list' | 'kanban' | 'calendar' | 'planner' | 'recurring'>('kanban');
   const [plannerDate, setPlannerDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -56,6 +61,7 @@ export default function Tarefas() {
   const [responsibleFilter, setResponsibleFilter] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [convertedAlerts, setConvertedAlerts] = useState<Set<string>>(new Set());
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
@@ -66,12 +72,23 @@ export default function Tarefas() {
   // Estados para ordenação
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  // Estado para seleção de quadro do colaborador
+  const [selectedBoardUserId, setSelectedBoardUserId] = useState<string | null>(null);
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
   const { convertAlertToTask } = useTaskAutomation();
   const { alerts, generateAlerts, loading: alertsLoading } = useDashboardAlerts();
   const { clients } = useClients();
+  
+  // Hook para quadro do colaborador
+  const { 
+    boardTasks, 
+    employees, 
+    canViewOthersBoards, 
+    isManager, 
+    currentUserId 
+  } = useEmployeeBoard(selectedBoardUserId);
 
   // Filtrar e ordenar tarefas
   const filteredAndSortedTasks = tasks
@@ -626,6 +643,26 @@ export default function Tarefas() {
               </DialogContent>
             </Dialog>
 
+            {/* Seletor de Quadro */}
+            <BoardSelector
+              selectedUserId={selectedBoardUserId}
+              onSelectUser={setSelectedBoardUserId}
+              employees={employees}
+              currentUserId={currentUserId}
+              canViewOthersBoards={canViewOthersBoards}
+              isManager={isManager || false}
+            />
+
+            {/* Botão Nova Tarefa Recorrente */}
+            <Button 
+              variant="outline"
+              onClick={() => setRecurringDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Repeat className="w-4 h-4" />
+              Nova Recorrente
+            </Button>
+
             {/* Botão Nova Tarefa */}
             <Button 
               onClick={() => {
@@ -849,6 +886,13 @@ export default function Tarefas() {
             >
               <CalendarIcon className="w-4 h-4" />
             </Button>
+            <Button
+              variant={view === 'recurring' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setView('recurring')}
+            >
+              <Repeat className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -950,6 +994,10 @@ export default function Tarefas() {
                 </CardContent>
               </Card>
             )}
+
+            {view === 'recurring' && (
+              <RecurringTasksManager />
+            )}
           </div>
         )}
 
@@ -959,6 +1007,12 @@ export default function Tarefas() {
           onOpenChange={setTaskDialogOpen}
           task={selectedTask}
           onSave={selectedTask ? handleUpdateTask : handleCreateTask}
+        />
+
+        {/* Dialog de Tarefas Recorrentes */}
+        <RecurringTaskDialog
+          open={recurringDialogOpen}
+          onOpenChange={setRecurringDialogOpen}
         />
       </div>
     </DashboardLayout>

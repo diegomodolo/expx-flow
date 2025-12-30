@@ -34,6 +34,7 @@ import {
   Instagram,
   Pencil,
   ArrowLeftRight,
+  ListTodo,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -194,6 +195,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/historico`,
       icon: Clock,
       description: "Histórico de alterações"
+    },
+    {
+      title: "Tarefas",
+      href: `/clientes/${clientId}/tarefas`,
+      icon: ListTodo,
+      description: "Gerenciar tarefas do cliente"
     },
     {
       title: "Leads Desqualificados",
