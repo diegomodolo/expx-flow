@@ -36,14 +36,15 @@ import { ImportFromPlanDialog } from "@/components/content-planner/ImportFromPla
 import { ContentPlanPost } from "@/hooks/useContentPlans";
 
 // Tipos de criativos disponíveis
+// Instagram Feed e Facebook Feed agora usam proporção 3:4 (1080x1440)
 const CREATIVE_TYPES = [
-  { id: "instagram_feed", name: "Instagram Feed", dimensions: "1080x1080", aspectRatio: "1:1" },
+  { id: "instagram_feed", name: "Instagram Feed", dimensions: "1080x1440", aspectRatio: "3:4" },
   { id: "instagram_story", name: "Instagram Story", dimensions: "1080x1920", aspectRatio: "9:16" },
   { id: "instagram_reels", name: "Instagram Reels", dimensions: "1080x1920", aspectRatio: "9:16" },
-  { id: "facebook_feed", name: "Facebook Feed", dimensions: "1200x628", aspectRatio: "1.91:1" },
+  { id: "facebook_feed", name: "Facebook Feed", dimensions: "1080x1440", aspectRatio: "3:4" },
   { id: "facebook_story", name: "Facebook Story", dimensions: "1080x1920", aspectRatio: "9:16" },
   { id: "whatsapp_status", name: "WhatsApp Status", dimensions: "1080x1920", aspectRatio: "9:16" },
-  { id: "linkedin_post", name: "LinkedIn Post", dimensions: "1200x627", aspectRatio: "1.91:1" },
+  { id: "linkedin_post", name: "LinkedIn Post", dimensions: "1080x1440", aspectRatio: "3:4" },
   { id: "youtube_thumbnail", name: "YouTube Thumbnail", dimensions: "1280x720", aspectRatio: "16:9" },
   { id: "tiktok_video", name: "TikTok", dimensions: "1080x1920", aspectRatio: "9:16" },
   { id: "banner_horizontal", name: "Banner Horizontal", dimensions: "1920x600", aspectRatio: "32:10" },
