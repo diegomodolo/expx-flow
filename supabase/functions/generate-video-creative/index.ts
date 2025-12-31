@@ -118,9 +118,10 @@ async function startVideoGeneration(
     aspectRatio?: string;
     duration?: number;
     imageReference?: string;
+    negativePrompt?: string;
   },
 ): Promise<string> {
-  const { model = "veo-2.0", aspectRatio = "9:16", duration = 5, imageReference } = options;
+  const { model = "veo-2.0", aspectRatio = "9:16", duration = 5, imageReference, negativePrompt } = options;
 
   // Obter o ID do modelo
   const modelConfig = VEO_MODELS[model] || VEO_MODELS["veo-2.0"];
@@ -139,6 +140,12 @@ async function startVideoGeneration(
       sampleCount: 1,
     },
   };
+
+  // Adicionar negativePrompt se fornecido (para evitar texto no vídeo)
+  if (negativePrompt) {
+    requestBody.parameters.negativePrompt = negativePrompt;
+    console.log("Using negativePrompt:", negativePrompt);
+  }
 
   // Se tiver referência de imagem (image-to-video)
   if (imageReference) {
@@ -470,8 +477,19 @@ serve(async (req) => {
       const accessToken = await getGCPAccessToken(serviceAccount);
 
       // Construir prompt para o vídeo
-      const noTextInstruction = noTextInVideo ? "\nIMPORTANT: Do NOT include any text, titles, captions, or overlays in the video. Keep it purely visual without any written words." : "";
-      const videoPrompt = `Create a professional marketing video for: ${theme}.\nStyle: Modern, engaging, suitable for social media marketing.\nDuration: ${duration} seconds.\nAspect ratio: ${aspectRatio}.\nMake it visually appealing and attention-grabbing.${noTextInstruction}`;
+      // Se noTextInVideo=true, colocar instrução NO INÍCIO do prompt (maior peso) + usar negativePrompt
+      const noTextInstruction = noTextInVideo 
+        ? "CRITICAL: Generate a purely VISUAL video with absolutely NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO LETTERS, NO OVERLAYS of any kind. " 
+        : "";
+      const videoPrompt = `${noTextInstruction}Create a professional marketing video for: ${theme}.\nStyle: Modern, engaging, suitable for social media marketing.\nDuration: ${duration} seconds.\nAspect ratio: ${aspectRatio}.\nMake it visually appealing and attention-grabbing.`;
+
+      // negativePrompt para reforçar exclusão de texto
+      const negativePrompt = noTextInVideo 
+        ? "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, written content, signs with text, any written words, lettering, headlines, slogans" 
+        : undefined;
+
+      console.log("Video prompt:", videoPrompt);
+      if (negativePrompt) console.log("Negative prompt:", negativePrompt);
 
       // Iniciar geração
       const operationName = await startVideoGeneration(accessToken, projectId, videoPrompt, {
@@ -479,6 +497,7 @@ serve(async (req) => {
         aspectRatio,
         duration,
         imageReference,
+        negativePrompt,
       });
 
       // Atualizar criativo com o operation ID
