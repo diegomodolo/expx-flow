@@ -85,14 +85,17 @@ serve(async (req) => {
     // Buscar uma conta de ads válida para usar
     // IMPORTANTE: Keyword Planner não funciona em contas "manager" (MCC). Preferimos sempre uma conta não-manager.
     let targetCustomerId = customerId;
+    let loginCustomerId: string | undefined;
 
     if (!targetCustomerId) {
       const { data: accounts, error: accountsError } = await supabaseClient
         .from('google_ads_accounts')
-        .select('google_customer_id, is_manager')
+        .select('google_customer_id, is_manager, status, account_name, parent_customer_id, updated_at')
         .eq('company_id', companyId)
         .eq('is_active', true)
+        .eq('status', 'ENABLED')
         .neq('is_manager', true)
+        .order('updated_at', { ascending: false })
         .limit(1);
 
       if (accountsError) {
@@ -101,20 +104,54 @@ serve(async (req) => {
 
       if (accounts && accounts.length > 0) {
         targetCustomerId = accounts[0].google_customer_id;
+        loginCustomerId = accounts[0].parent_customer_id ?? undefined;
+        console.log('Selected Google Ads account for Keyword Planner:', {
+          google_customer_id: accounts[0].google_customer_id,
+          account_name: accounts[0].account_name,
+          status: accounts[0].status,
+          is_manager: accounts[0].is_manager,
+          parent_customer_id: accounts[0].parent_customer_id,
+        });
       } else {
         throw new Error(
-          'Nenhuma conta Google Ads "não-manager" encontrada. O Keyword Planner não é suportado em contas MCC (manager). Selecione/conecte uma conta de anúncios (cliente) para usar o Keyword Planner.'
+          'Nenhuma conta Google Ads ativa/ENABLED e "não-manager" encontrada. O Keyword Planner não é suportado em contas MCC (manager).'
         );
+      }
+    } else {
+      // Se o frontend informou o customerId, tentamos descobrir o parent (login-customer-id)
+      const { data: acct, error: acctError } = await supabaseClient
+        .from('google_ads_accounts')
+        .select('parent_customer_id, is_manager, status')
+        .eq('company_id', companyId)
+        .eq('google_customer_id', targetCustomerId)
+        .maybeSingle();
+
+      if (!acctError && acct) {
+        if (acct.is_manager) {
+          throw new Error('O Keyword Planner não é suportado em contas MCC (manager).');
+        }
+        if (acct.status && acct.status !== 'ENABLED') {
+          throw new Error('A conta Google Ads selecionada não está ENABLED.');
+        }
+        loginCustomerId = acct.parent_customer_id ?? undefined;
       }
     }
 
     const cleanCustomerId = targetCustomerId.replace(/[-\s]/g, '');
-    
+    const cleanLoginCustomerId = loginCustomerId
+      ? String(loginCustomerId).replace(/[-\s]/g, '')
+      : undefined;
+
+    console.log('Keyword Planner resolved ids:', {
+      customerId: cleanCustomerId,
+      loginCustomerId: cleanLoginCustomerId,
+    });
     if (action === 'generateKeywordIdeas') {
       const result = await generateKeywordIdeas({
         accessToken: integration.access_token,
         developerToken,
         customerId: cleanCustomerId,
+        loginCustomerId: cleanLoginCustomerId,
         keywords,
         pageUrl,
         language,
@@ -133,6 +170,7 @@ serve(async (req) => {
         accessToken: integration.access_token,
         developerToken,
         customerId: cleanCustomerId,
+        loginCustomerId: cleanLoginCustomerId,
         keywords,
         language,
         geoTargetLocation,
@@ -162,6 +200,7 @@ async function generateKeywordIdeas({
   accessToken,
   developerToken,
   customerId,
+  loginCustomerId,
   keywords,
   pageUrl,
   language,
@@ -171,6 +210,7 @@ async function generateKeywordIdeas({
   accessToken: string;
   developerToken: string;
   customerId: string;
+  loginCustomerId?: string;
   keywords: string[];
   pageUrl?: string;
   language: string;
@@ -197,15 +237,22 @@ async function generateKeywordIdeas({
   console.log('Generating keyword ideas with:', JSON.stringify(requestBody));
 
   // Use v18 of the API with the correct endpoint format
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${accessToken}`,
+    'developer-token': developerToken,
+    'Content-Type': 'application/json',
+  };
+
+  // Se estivermos acessando uma conta via MCC, isso costuma ser necessário
+  if (loginCustomerId) {
+    headers['login-customer-id'] = loginCustomerId;
+  }
+
   const response = await fetch(
     `https://googleads.googleapis.com/v18/customers/${customerId}:generateKeywordIdeas`,
     {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'developer-token': developerToken,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     }
   );
@@ -267,6 +314,7 @@ async function getHistoricalMetrics({
   accessToken,
   developerToken,
   customerId,
+  loginCustomerId,
   keywords,
   language,
   geoTargetLocation,
@@ -274,6 +322,7 @@ async function getHistoricalMetrics({
   accessToken: string;
   developerToken: string;
   customerId: string;
+  loginCustomerId?: string;
   keywords: string[];
   language: string;
   geoTargetLocation: string;
@@ -292,15 +341,21 @@ async function getHistoricalMetrics({
 
   console.log('Getting historical metrics for:', keywords);
 
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${accessToken}`,
+    'developer-token': developerToken,
+    'Content-Type': 'application/json',
+  };
+
+  if (loginCustomerId) {
+    headers['login-customer-id'] = loginCustomerId;
+  }
+
   const response = await fetch(
     `https://googleads.googleapis.com/v18/customers/${customerId}:generateKeywordHistoricalMetrics`,
     {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'developer-token': developerToken,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     }
   );
