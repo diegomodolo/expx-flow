@@ -116,6 +116,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Campanhas", url: "/campanhas", icon: Megaphone, permission: "campanhas" as MenuItemType },
         { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
         { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "dashboard" as MenuItemType, isExternal: true },
+        { title: "Keyword Planner", url: "/keyword-planner", icon: Sparkles, permission: "campanhas" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),

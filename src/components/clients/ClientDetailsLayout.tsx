@@ -35,6 +35,7 @@ import {
   Pencil,
   ArrowLeftRight,
   ListTodo,
+  Sparkles,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -243,6 +244,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/tendencias`,
       icon: TrendingUp,
       description: "Dashboard Google Trends"
+    },
+    {
+      title: "Keyword Planner",
+      href: `/clientes/${clientId}/keyword-planner`,
+      icon: Sparkles,
+      description: "Planejador de palavras-chave"
     }
   ];
 
