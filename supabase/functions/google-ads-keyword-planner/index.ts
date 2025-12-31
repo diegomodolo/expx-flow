@@ -189,8 +189,9 @@ async function generateKeywordIdeas({
 
   console.log('Generating keyword ideas with:', JSON.stringify(requestBody));
 
+  // Use v18 of the API with the correct endpoint format
   const response = await fetch(
-    `https://googleads.googleapis.com/v17/customers/${customerId}:generateKeywordIdeas`,
+    `https://googleads.googleapis.com/v18/customers/${customerId}:generateKeywordIdeas`,
     {
       method: 'POST',
       headers: {
@@ -285,7 +286,7 @@ async function getHistoricalMetrics({
   console.log('Getting historical metrics for:', keywords);
 
   const response = await fetch(
-    `https://googleads.googleapis.com/v17/customers/${customerId}:generateKeywordHistoricalMetrics`,
+    `https://googleads.googleapis.com/v18/customers/${customerId}:generateKeywordHistoricalMetrics`,
     {
       method: 'POST',
       headers: {
