@@ -82,6 +82,7 @@ import AutomatizadorWordpressDetalhes from "./pages/AutomatizadorWordpressDetalh
 import AlertasDoSistema from "./pages/AlertasDoSistema";
 import DashboardTrafego from "./pages/DashboardTrafego";
 import DashboardTrafegoPublic from "./pages/DashboardTrafegoPublic";
+import KeywordPlannerPage from "./pages/KeywordPlanner";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -466,6 +467,11 @@ const App = () => {
                  <Route path="/alertas" element={
                    <ProtectedRoute>
                      <AlertasDoSistema />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/keyword-planner" element={
+                   <ProtectedRoute>
+                     <KeywordPlannerPage />
                    </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={
