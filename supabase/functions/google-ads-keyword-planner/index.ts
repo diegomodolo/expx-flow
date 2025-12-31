@@ -83,21 +83,28 @@ serve(async (req) => {
     }
 
     // Buscar uma conta de ads válida para usar
+    // IMPORTANTE: Keyword Planner não funciona em contas "manager" (MCC). Preferimos sempre uma conta não-manager.
     let targetCustomerId = customerId;
-    
+
     if (!targetCustomerId) {
-      // Buscar primeira conta ativa
-      const { data: accounts } = await supabaseClient
+      const { data: accounts, error: accountsError } = await supabaseClient
         .from('google_ads_accounts')
-        .select('google_customer_id')
+        .select('google_customer_id, is_manager')
         .eq('company_id', companyId)
         .eq('is_active', true)
+        .neq('is_manager', true)
         .limit(1);
-      
+
+      if (accountsError) {
+        throw new Error('Failed to load Google Ads accounts for this company');
+      }
+
       if (accounts && accounts.length > 0) {
         targetCustomerId = accounts[0].google_customer_id;
       } else {
-        throw new Error('No Google Ads account found. Please add a Google Ads account first.');
+        throw new Error(
+          'Nenhuma conta Google Ads "não-manager" encontrada. O Keyword Planner não é suportado em contas MCC (manager). Selecione/conecte uma conta de anúncios (cliente) para usar o Keyword Planner.'
+        );
       }
     }
 
