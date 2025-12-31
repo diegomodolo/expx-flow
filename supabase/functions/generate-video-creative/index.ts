@@ -8,6 +8,12 @@ const corsHeaders = {
 
 const LOCATION = "us-central1";
 
+// Modelos Veo suportados e suas configurações
+const VEO_MODELS: Record<string, { id: string; durations: number[] }> = {
+  "veo-2.0": { id: "veo-2.0-generate-001", durations: [5, 6, 7, 8] },
+  "veo-3.1": { id: "veo-3.0-generate-preview", durations: [5, 6, 7, 8] },
+};
+
 // Helper para criar JWT assinado com RS256
 async function createSignedJWT(serviceAccount: any): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
@@ -83,6 +89,25 @@ async function getGCPAccessToken(serviceAccount: any): Promise<string> {
   return tokenData.access_token;
 }
 
+// Validar parâmetros antes de chamar a API
+function validateVideoParams(model: string, duration: number, aspectRatio: string): string | null {
+  const modelConfig = VEO_MODELS[model];
+  if (!modelConfig) {
+    return `Modelo "${model}" não suportado. Use: ${Object.keys(VEO_MODELS).join(", ")}`;
+  }
+
+  if (!modelConfig.durations.includes(duration)) {
+    return `Duração ${duration}s não suportada para ${model}. Use: ${modelConfig.durations.join(", ")}`;
+  }
+
+  const validAspectRatios = ["16:9", "9:16"];
+  if (!validAspectRatios.includes(aspectRatio)) {
+    return `Aspect ratio "${aspectRatio}" não suportado. Use: ${validAspectRatios.join(", ")}`;
+  }
+
+  return null;
+}
+
 // Iniciar geração de vídeo com Veo
 async function startVideoGeneration(
   accessToken: string,
@@ -97,13 +122,12 @@ async function startVideoGeneration(
 ): Promise<string> {
   const { model = "veo-2.0", aspectRatio = "9:16", duration = 5, imageReference } = options;
 
-  // Determinar endpoint baseado no modelo
-  const modelEndpoint = model === "veo-3.1" ? "imagen-3.0-generate-002" : "veo-2.0-generate-001";
+  // Obter o ID do modelo
+  const modelConfig = VEO_MODELS[model] || VEO_MODELS["veo-2.0"];
+  const modelId = modelConfig.id;
 
-  // Importante: usar o host global aqui tende a retornar um Operation no formato padrão
-  // (projects/.../locations/.../operations/...) para facilitar o polling.
   const endpoint =
-    `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelEndpoint}:predictLongRunning`;
+    `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelId}:predictLongRunning`;
 
   const requestBody: any = {
     instances: [{
@@ -123,7 +147,7 @@ async function startVideoGeneration(
     };
   }
 
-  console.log("Starting video generation with Vertex AI:", { model, aspectRatio, duration });
+  console.log("Starting video generation with Vertex AI:", { model, modelId, aspectRatio, duration, endpoint });
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -141,75 +165,107 @@ async function startVideoGeneration(
   }
 
   const data = await response.json();
-  console.log("Video generation started:", data);
+  console.log("Video generation started, operationName:", data.name);
 
   // Retorna o nome da operação para polling
   return data.name;
 }
 
-function getOperationUrlCandidates(operationName: string, projectId: string): string[] {
-  const candidates: string[] = [];
-
-  // 1) Usar exatamente o nome retornado pelo predictLongRunning
-  candidates.push(`https://${LOCATION}-aiplatform.googleapis.com/v1/${operationName}`);
-  candidates.push(`https://aiplatform.googleapis.com/v1/${operationName}`);
-
-  // 2) Também tentar o formato padrão de operações do Vertex AI:
-  // projects/{project}/locations/{location}/operations/{opId}
-  if (operationName.includes("/operations/")) {
-    const opId = operationName.split("/operations/")[1];
-    if (opId) {
-      const normalized = `projects/${projectId}/locations/${LOCATION}/operations/${opId}`;
-      candidates.push(`https://${LOCATION}-aiplatform.googleapis.com/v1/${normalized}`);
-      candidates.push(`https://aiplatform.googleapis.com/v1/${normalized}`);
-    }
-  }
-
-  return [...new Set(candidates)];
+// Extrair modelId do operationName
+// Ex: "projects/my-proj/locations/us-central1/publishers/google/models/veo-2.0-generate-001/operations/abc123"
+function extractModelIdFromOperationName(operationName: string): string | null {
+  const match = operationName.match(/\/models\/([^/]+)\/operations\//);
+  return match ? match[1] : null;
 }
 
-// Verificar status da operação
+// Verificar status da operação usando fetchPredictOperation
 async function checkOperationStatus(
   accessToken: string,
   operationName: string,
   projectId: string,
 ): Promise<{ done: boolean; videoBase64?: string; error?: string }> {
-  const urls = getOperationUrlCandidates(operationName, projectId);
-  const errors: Array<{ url: string; status?: number; body?: string }> = [];
+  // Extrair modelId do operationName
+  const modelId = extractModelIdFromOperationName(operationName);
+  
+  if (!modelId) {
+    console.error("Could not extract modelId from operationName:", operationName);
+    throw new Error(`Invalid operationName format: ${operationName}`);
+  }
 
-  for (const url of urls) {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+  // Usar o endpoint :fetchPredictOperation (POST) conforme documentação do Veo
+  const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelId}:fetchPredictOperation`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      errors.push({ url, status: response.status, body: errorText });
-      continue;
-    }
+  console.log("Polling operation status:", { endpoint, operationName, modelId });
 
-    const data = await response.json();
-    console.log("Operation status (ok):", { url, done: data?.done });
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ operationName }),
+  });
 
-    if (data.done) {
-      if (data.error) {
-        return { done: true, error: data.error.message || "Video generation failed" };
-      }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("fetchPredictOperation error:", { status: response.status, body: errorText });
+    throw new Error(`Operation check error (${response.status}): ${errorText}`);
+  }
 
-      const predictions = data.response?.predictions || [];
-      if (predictions.length > 0 && predictions[0].bytesBase64Encoded) {
-        return { done: true, videoBase64: predictions[0].bytesBase64Encoded };
-      }
+  const data = await response.json();
+  console.log("Operation status response:", { done: data.done, hasError: !!data.error, hasResponse: !!data.response });
 
-      return { done: true, error: "Operação concluída, mas não retornou vídeo." };
-    }
-
+  if (data.done === false || data.done === undefined && !data.response && !data.error) {
     return { done: false };
   }
 
-  console.error("Operation check failed for all candidates", errors.map((e) => ({ url: e.url, status: e.status })));
-  throw new Error(`Operation check error: ${errors[0]?.body || "Unknown error"}`);
+  if (data.error) {
+    const errorMessage = data.error.message || JSON.stringify(data.error);
+    console.error("Video generation error:", errorMessage);
+    return { done: true, error: errorMessage };
+  }
+
+  // Tentar extrair o vídeo base64 da resposta
+  // A estrutura pode variar, então tentamos vários caminhos possíveis
+  let videoBase64: string | undefined;
+
+  // Formato 1: response.predictions[].bytesBase64Encoded
+  const predictions = data.response?.predictions || data.predictions || [];
+  if (predictions.length > 0) {
+    videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
+  }
+
+  // Formato 2: response.videos[].bytesBase64Encoded
+  if (!videoBase64) {
+    const videos = data.response?.videos || data.videos || [];
+    if (videos.length > 0) {
+      videoBase64 = videos[0].bytesBase64Encoded;
+    }
+  }
+
+  // Formato 3: response.generatedSamples[].video.bytesBase64Encoded
+  if (!videoBase64) {
+    const samples = data.response?.generatedSamples || data.generatedSamples || [];
+    if (samples.length > 0) {
+      videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
+    }
+  }
+
+  if (videoBase64) {
+    console.log("Video generated successfully, base64 length:", videoBase64.length);
+    return { done: true, videoBase64 };
+  }
+
+  // Log completo da resposta para debug (sem o base64 gigante)
+  const debugResponse = JSON.stringify(data, (key, value) => {
+    if (typeof value === 'string' && value.length > 100) {
+      return `[string of ${value.length} chars]`;
+    }
+    return value;
+  });
+  console.log("Full response structure:", debugResponse);
+
+  return { done: true, error: "Operação concluída, mas formato de resposta não reconhecido." };
 }
 
 // Upload do vídeo para Supabase Storage
@@ -265,11 +321,15 @@ serve(async (req) => {
     const projectId = serviceAccount.project_id;
 
     const handleStatusCheck = async (operationName: string, creativeId?: string | null) => {
+      console.log("Checking status for:", { operationName, creativeId });
+      
       const accessToken = await getGCPAccessToken(serviceAccount);
       const status = await checkOperationStatus(accessToken, operationName, projectId);
 
       // Concluiu com erro
       if (status.done && status.error) {
+        console.log("Generation failed with error:", status.error);
+        
         if (creativeId) {
           await supabase
             .from("visual_creatives")
@@ -290,6 +350,8 @@ serve(async (req) => {
 
       // Concluiu com vídeo
       if (status.done && status.videoBase64 && creativeId) {
+        console.log("Video completed, uploading to storage...");
+        
         const { data: creative } = await supabase
           .from("visual_creatives")
           .select("client_id")
@@ -298,6 +360,7 @@ serve(async (req) => {
 
         if (creative?.client_id) {
           const videoUrl = await uploadVideoToStorage(supabase, status.videoBase64, creative.client_id);
+          console.log("Video uploaded:", videoUrl);
 
           await supabase
             .from("visual_creatives")
@@ -318,6 +381,7 @@ serve(async (req) => {
       }
 
       // Ainda processando
+      console.log("Still processing...");
       return new Response(JSON.stringify({ done: false, status: "processing" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -325,7 +389,7 @@ serve(async (req) => {
 
     const url = new URL(req.url);
 
-    // GET - (compat) Verificar status de operação
+    // GET - Verificar status de operação
     if (req.method === "GET") {
       const operationName = url.searchParams.get("operationName");
       const creativeId = url.searchParams.get("creativeId");
@@ -337,7 +401,7 @@ serve(async (req) => {
       return await handleStatusCheck(operationName, creativeId);
     }
 
-    // POST - Iniciar geração OU checar status via POST (para facilitar o invoke do supabase)
+    // POST - Iniciar geração OU checar status via POST
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
 
@@ -362,6 +426,18 @@ serve(async (req) => {
 
       if (!clientId || !companyId || !theme) {
         throw new Error("clientId, companyId, and theme are required");
+      }
+
+      // Validar parâmetros
+      const validationError = validateVideoParams(model, duration, aspectRatio);
+      if (validationError) {
+        return new Response(
+          JSON.stringify({ error: validationError }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       console.log("Video generation request:", { clientId, companyId, theme, aspectRatio, duration, model });
