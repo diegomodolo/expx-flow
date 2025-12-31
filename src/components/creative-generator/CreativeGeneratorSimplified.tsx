@@ -191,18 +191,39 @@ export function CreativeGeneratorSimplified() {
     const newInputs = posts.map((post): CreativeInputData => {
       const themeParts = [post.headline, post.subheadline, post.caption].filter(Boolean);
       const isCarousel = post.post_type === "carrossel";
+      const isReels = post.post_type === "reels";
+      
+      // Determine media type based on post type
+      let mediaType: MediaType = "image";
+      if (isCarousel) mediaType = "carousel";
+      if (isReels) mediaType = "video";
+      
+      // Map carousel slides from content plan
+      let slides = [{ headline: "", description: "" }, { headline: "", description: "" }];
+      if (isCarousel && post.slides && post.slides.length > 0) {
+        slides = post.slides.map(slide => ({
+          headline: slide.headline || "",
+          description: slide.content || "",
+        }));
+        // Ensure at least 2 slides
+        while (slides.length < 2) {
+          slides.push({ headline: "", description: "" });
+        }
+      }
+      
+      // Get script for reels
+      const scriptContent = typeof post.script === "string" 
+        ? post.script 
+        : JSON.stringify(post.script || "");
       
       return {
-        theme: themeParts.join("\n\n") || post.objective || "",
+        theme: isReels 
+          ? (scriptContent || themeParts.join("\n\n") || post.objective || "")
+          : (themeParts.join("\n\n") || post.objective || ""),
         copyText: post.headline || "",
-        mediaType: isCarousel ? "carousel" : "image",
-        creativeType: "instagram_feed",
-        slides: isCarousel 
-          ? [
-              { headline: post.headline || "", description: post.subheadline || "" },
-              { headline: "", description: "" },
-            ]
-          : [{ headline: "", description: "" }, { headline: "", description: "" }],
+        mediaType,
+        creativeType: isReels ? "video_reels" : "instagram_feed",
+        slides,
         videoSettings: {
           duration: 5,
           model: "veo-2.0",
