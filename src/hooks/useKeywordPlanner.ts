@@ -67,7 +67,22 @@ export function useKeywordPlanner({ companyId, customerId }: UseKeywordPlannerOp
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Failed to generate keyword ideas");
+        // Tentar extrair a mensagem real do erro da Edge Function
+        let errorMessage = "Failed to generate keyword ideas";
+        try {
+          if (response.error.context && typeof response.error.context.json === 'function') {
+            const errorBody = await response.error.context.json();
+            if (errorBody?.google?.message) {
+              errorMessage = `Google Ads: ${errorBody.google.status || 'ERROR'} (${errorBody.google.code || ''}) — ${errorBody.google.message}`;
+            } else if (errorBody?.error) {
+              errorMessage = errorBody.error;
+            }
+          }
+        } catch {
+          // Se não conseguir parsear, usa a mensagem genérica
+          errorMessage = response.error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       if (response.data?.error) {
@@ -127,7 +142,21 @@ export function useKeywordPlanner({ companyId, customerId }: UseKeywordPlannerOp
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Failed to get historical metrics");
+        // Tentar extrair a mensagem real do erro da Edge Function
+        let errorMessage = "Failed to get historical metrics";
+        try {
+          if (response.error.context && typeof response.error.context.json === 'function') {
+            const errorBody = await response.error.context.json();
+            if (errorBody?.google?.message) {
+              errorMessage = `Google Ads: ${errorBody.google.status || 'ERROR'} (${errorBody.google.code || ''}) — ${errorBody.google.message}`;
+            } else if (errorBody?.error) {
+              errorMessage = errorBody.error;
+            }
+          }
+        } catch {
+          errorMessage = response.error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       if (response.data?.error) {

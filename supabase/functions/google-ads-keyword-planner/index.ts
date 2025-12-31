@@ -202,6 +202,22 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error in google-ads-keyword-planner:', error);
+    
+    // Verificar se é um erro estruturado do Google Ads
+    if (error?.isGoogleAdsError) {
+      return new Response(
+        JSON.stringify({
+          error: 'Google Ads API error',
+          google: error.google,
+          meta: error.meta,
+        }),
+        { 
+          status: 502, // Bad Gateway - erro de upstream
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -275,29 +291,33 @@ async function generateKeywordIdeas({
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Google Ads API Error:', errorText);
+    console.error('Google Ads API Error (generateKeywordIdeas):', errorText);
     
-    let errorMessage = 'Failed to generate keyword ideas. ';
+    let googleError = {
+      code: response.status,
+      status: 'ERROR',
+      message: 'Failed to generate keyword ideas',
+    };
+    
     try {
       const errorJson = JSON.parse(errorText);
-      if (errorJson.error?.message) {
-        errorMessage += errorJson.error.message;
-      }
-      if (errorJson.error?.details) {
-        const details = errorJson.error.details;
-        for (const detail of details) {
-          if (detail.errors) {
-            for (const err of detail.errors) {
-              errorMessage += ` ${err.message}`;
-            }
-          }
-        }
+      if (errorJson.error) {
+        googleError = {
+          code: errorJson.error.code || response.status,
+          status: errorJson.error.status || 'ERROR',
+          message: errorJson.error.message || 'Unknown error from Google Ads API',
+        };
       }
     } catch {
-      errorMessage += 'Please verify your Google Ads account has the Keyword Planner enabled.';
+      googleError.message = 'Please verify your Google Ads account has the Keyword Planner enabled.';
     }
     
-    throw new Error(errorMessage);
+    // Retornar erro estruturado com status 502 (upstream error)
+    throw {
+      isGoogleAdsError: true,
+      google: googleError,
+      meta: { customerId, loginCustomerId, action: 'generateKeywordIdeas' },
+    };
   }
 
   const data = await response.json();
@@ -378,8 +398,32 @@ async function getHistoricalMetrics({
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Google Ads API Error:', errorText);
-    throw new Error('Failed to get historical metrics');
+    console.error('Google Ads API Error (getHistoricalMetrics):', errorText);
+    
+    let googleError = {
+      code: response.status,
+      status: 'ERROR',
+      message: 'Failed to get historical metrics',
+    };
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.error) {
+        googleError = {
+          code: errorJson.error.code || response.status,
+          status: errorJson.error.status || 'ERROR',
+          message: errorJson.error.message || 'Unknown error from Google Ads API',
+        };
+      }
+    } catch {
+      googleError.message = 'Please verify your Google Ads account has the Keyword Planner enabled.';
+    }
+    
+    throw {
+      isGoogleAdsError: true,
+      google: googleError,
+      meta: { customerId, loginCustomerId, action: 'getHistoricalMetrics' },
+    };
   }
 
   const data = await response.json();
