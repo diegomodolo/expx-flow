@@ -10,11 +10,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useVisualCreatives } from "@/hooks/useVisualCreatives";
 import { useFacebookPages } from "@/hooks/useFacebookPages";
+import { useVideoGeneration } from "@/hooks/useVideoGeneration";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Sparkles, 
@@ -27,13 +29,25 @@ import {
   ChevronsUpDown,
   Instagram,
   Megaphone,
-  FileText
+  FileText,
+  Image,
+  Video
 } from "lucide-react";
 import { NewPostModal } from "@/components/scheduling/NewPostModal";
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 import { CreativePreviewCard } from "./CreativePreviewCard";
+import { VideoCreativePreviewCard } from "./VideoCreativePreviewCard";
 import { ImportFromPlanDialog } from "@/components/content-planner/ImportFromPlanDialog";
 import { ContentPlanPost } from "@/hooks/useContentPlans";
+
+// Tipos de vídeo disponíveis
+const VIDEO_TYPES = [
+  { id: "video_reels", name: "Instagram Reels", aspectRatio: "9:16", duration: 5 },
+  { id: "video_tiktok", name: "TikTok", aspectRatio: "9:16", duration: 5 },
+  { id: "video_shorts", name: "YouTube Shorts", aspectRatio: "9:16", duration: 8 },
+  { id: "video_feed", name: "Feed Horizontal", aspectRatio: "16:9", duration: 5 },
+  { id: "video_square", name: "Vídeo Quadrado", aspectRatio: "1:1", duration: 5 },
+];
 
 // Tipos de criativos disponíveis
 // Instagram Feed e Facebook Feed agora usam proporção 3:4 (1080x1440)
@@ -92,6 +106,15 @@ export function CreativeGeneratorSimplified() {
   const [referenceDialogForCreativeIndex, setReferenceDialogForCreativeIndex] = useState<number | null>(null);
   const [generatingThemeIndex, setGeneratingThemeIndex] = useState<number | null>(null);
   const [generatingCopyIndex, setGeneratingCopyIndex] = useState<number | null>(null);
+
+  // Video state
+  const [mediaMode, setMediaMode] = useState<'image' | 'video'>('image');
+  const [selectedVideoType, setSelectedVideoType] = useState<string>("video_reels");
+  const [videoDuration, setVideoDuration] = useState<number>(5);
+  const [videoModel, setVideoModel] = useState<'veo-2.0' | 'veo-3.1'>('veo-2.0');
+  
+  // Video generation hook
+  const videoGeneration = useVideoGeneration();
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -417,6 +440,37 @@ export function CreativeGeneratorSimplified() {
     }
   };
 
+  // Gerar vídeo com Vertex AI Veo
+  const handleGenerateVideo = async () => {
+    if (!selectedClientId || !activeCompany?.company_id || !creativeInputs[0]?.theme.trim()) {
+      toast({
+        title: "Dados incompletos",
+        description: "Selecione um cliente e preencha o tema do vídeo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const videoType = VIDEO_TYPES.find(t => t.id === selectedVideoType);
+    
+    try {
+      await videoGeneration.startGeneration({
+        clientId: selectedClientId,
+        companyId: activeCompany.company_id,
+        theme: creativeInputs[0].theme,
+        creativeType: selectedVideoType,
+        aspectRatio: videoType?.aspectRatio || '9:16',
+        duration: videoDuration,
+        model: videoModel,
+        clientName: selectedClient?.name,
+        title: creativeInputs[0].theme,
+        description: creativeInputs[0].copyText || creativeInputs[0].theme,
+      });
+    } catch (error: any) {
+      console.error('Erro ao gerar vídeo:', error);
+    }
+  };
+
   const handleDownload = async (creative: GeneratedCreative) => {
     try {
       const response = await fetch(creative.imageUrl);
@@ -613,26 +667,122 @@ export function CreativeGeneratorSimplified() {
               )}
             </div>
 
-            {/* Tipos de Criativo */}
+            {/* Toggle Imagem/Vídeo */}
             <div className="space-y-2">
-              <Label>Tipo de Criativo * (clique para selecionar múltiplos)</Label>
-              <div className="flex flex-wrap gap-2">
-                {CREATIVE_TYPES.map(type => (
-                  <Badge
-                    key={type.id}
-                    variant={selectedTypes.includes(type.id) ? "default" : "outline"}
-                    className="cursor-pointer hover:bg-primary/80 transition-colors"
-                    onClick={() => handleTypeToggle(type.id)}
-                  >
-                    {selectedTypes.includes(type.id) && <Check className="w-3 h-3 mr-1" />}
-                    {type.name}
-                  </Badge>
-                ))}
+              <Label>Tipo de Mídia *</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={mediaMode === 'image' ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setMediaMode('image')}
+                >
+                  <Image className="w-4 h-4 mr-2" />
+                  Imagem
+                </Button>
+                <Button
+                  type="button"
+                  variant={mediaMode === 'video' ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => setMediaMode('video')}
+                >
+                  <Video className="w-4 h-4 mr-2" />
+                  Vídeo (IA)
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Selecionados: {selectedTypes.map(t => CREATIVE_TYPES.find(ct => ct.id === t)?.name).join(", ")}
-              </p>
             </div>
+
+            {/* Tipos de Criativo (apenas para imagens) */}
+            {mediaMode === 'image' && (
+              <div className="space-y-2">
+                <Label>Tipo de Criativo * (clique para selecionar múltiplos)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {CREATIVE_TYPES.map(type => (
+                    <Badge
+                      key={type.id}
+                      variant={selectedTypes.includes(type.id) ? "default" : "outline"}
+                      className="cursor-pointer hover:bg-primary/80 transition-colors"
+                      onClick={() => handleTypeToggle(type.id)}
+                    >
+                      {selectedTypes.includes(type.id) && <Check className="w-3 h-3 mr-1" />}
+                      {type.name}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Selecionados: {selectedTypes.map(t => CREATIVE_TYPES.find(ct => ct.id === t)?.name).join(", ")}
+                </p>
+              </div>
+            )}
+
+            {/* Opções de Vídeo */}
+            {mediaMode === 'video' && (
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Video className="w-4 h-4 text-primary" />
+                  <span className="font-medium text-sm">Configurações de Vídeo</span>
+                  <Badge variant="secondary" className="text-xs">Google Veo</Badge>
+                </div>
+                
+                {/* Tipo de vídeo */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Formato do Vídeo</Label>
+                  <Select value={selectedVideoType} onValueChange={setSelectedVideoType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o formato" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VIDEO_TYPES.map(type => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name} ({type.aspectRatio})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Duração */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Duração: {videoDuration} segundos</Label>
+                  <Slider
+                    value={[videoDuration]}
+                    onValueChange={([val]) => setVideoDuration(val)}
+                    min={5}
+                    max={8}
+                    step={1}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Entre 5 e 8 segundos (extensível até 1 minuto)
+                  </p>
+                </div>
+
+                {/* Modelo */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Modelo de IA</Label>
+                  <Select value={videoModel} onValueChange={(v) => setVideoModel(v as 'veo-2.0' | 'veo-3.1')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="veo-2.0">
+                        Veo 2.0 (Recomendado)
+                      </SelectItem>
+                      <SelectItem value="veo-3.1">
+                        Veo 3.1 (Áudio incluído)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {videoModel === 'veo-3.1' ? 'Inclui áudio sincronizado' : 'Sem áudio, mais rápido'}
+                  </p>
+                </div>
+
+                <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
+                  <strong>Custo estimado:</strong> ~R$ {(videoDuration * (videoModel === 'veo-3.1' ? 1.75 : 1.25)).toFixed(2)} por vídeo
+                </div>
+              </div>
+            )}
 
             {/* Quantidade */}
             <div className="space-y-2">
@@ -879,33 +1029,94 @@ export function CreativeGeneratorSimplified() {
             </Collapsible>
 
             {/* Botão Gerar */}
-            <Button
-              onClick={handleGenerate}
-              disabled={!canGenerate || isGenerating}
-              className="w-full"
-              size="lg"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Gerando {generationProgress.current}/{generationProgress.total}...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Gerar {selectedTypes.length * creativeInputs.filter(i => i.theme.trim()).length} Criativo(s)
-                </>
-              )}
-            </Button>
+            {mediaMode === 'image' ? (
+              <Button
+                onClick={handleGenerate}
+                disabled={!canGenerate || isGenerating}
+                className="w-full"
+                size="lg"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando {generationProgress.current}/{generationProgress.total}...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Gerar {selectedTypes.length * creativeInputs.filter(i => i.theme.trim()).length} Criativo(s)
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateVideo}
+                disabled={!selectedClientId || !creativeInputs[0]?.theme.trim() || videoGeneration.isGenerating}
+                className="w-full"
+                size="lg"
+              >
+                {videoGeneration.isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando vídeo... {videoGeneration.state.progress}%
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4 mr-2" />
+                    Gerar Vídeo com IA
+                  </>
+                )}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Coluna Direita - Resultados */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Criativos Gerados</h3>
+        <h3 className="font-semibold text-lg">
+          {mediaMode === 'video' ? 'Vídeo Gerado' : 'Criativos Gerados'}
+        </h3>
         
-        {generatedCreatives.length === 0 && !isGenerating && (
+        {/* Video Preview (quando em modo vídeo) */}
+        {mediaMode === 'video' && (
+          <VideoCreativePreviewCard
+            videoUrl={videoGeneration.state.videoUrl}
+            status={videoGeneration.state.status}
+            progress={videoGeneration.state.progress}
+            error={videoGeneration.state.error}
+            theme={creativeInputs[0]?.theme}
+            typeName={VIDEO_TYPES.find(t => t.id === selectedVideoType)?.name}
+            duration={videoDuration}
+            aspectRatio={VIDEO_TYPES.find(t => t.id === selectedVideoType)?.aspectRatio}
+            onRegenerate={handleGenerateVideo}
+            onSave={async () => {
+              if (videoGeneration.state.videoUrl && selectedClient) {
+                await createCreative({
+                  company_id: activeCompany?.company_id || '',
+                  client_id: selectedClientId,
+                  client_name: selectedClient.name,
+                  creative_type: selectedVideoType,
+                  theme: creativeInputs[0]?.theme || '',
+                  title: creativeInputs[0]?.theme || '',
+                  description: creativeInputs[0]?.theme || '',
+                  objective: 'engajamento',
+                  target_audience: selectedClient.target_audience || '',
+                  copy_text: creativeInputs[0]?.copyText || '',
+                  video_url: videoGeneration.state.videoUrl,
+                  media_type: 'video',
+                  video_duration_seconds: videoDuration,
+                  status: 'completed'
+                });
+                toast({ title: 'Vídeo salvo no histórico!' });
+              }
+            }}
+            isRegenerating={videoGeneration.isGenerating}
+          />
+        )}
+
+        {/* Image Creatives (quando em modo imagem) */}
+        {mediaMode === 'image' && generatedCreatives.length === 0 && !isGenerating && (
           <Card className="border-dashed">
             <CardContent className="py-12 text-center text-muted-foreground">
               <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -915,7 +1126,7 @@ export function CreativeGeneratorSimplified() {
           </Card>
         )}
 
-        {isGenerating && generatedCreatives.length === 0 && (
+        {mediaMode === 'image' && isGenerating && generatedCreatives.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
               <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />

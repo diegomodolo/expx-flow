@@ -71,7 +71,7 @@ pop3_port = 54326
 [storage]
 enabled = true
 file_size_limit = "50MiB"
-public_buckets = ["avatars", "client-avatars", "company-logos"]
+public_buckets = ["avatars", "client-avatars", "company-logos", "visual-creatives"]
 
 [auth]
 enabled = true
@@ -238,3 +238,6 @@ verify_jwt = true
 
 [functions.generate-recurring-tasks]
 verify_jwt = false
+
+[functions.generate-video-creative]
+verify_jwt = true

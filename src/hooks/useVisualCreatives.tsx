@@ -17,7 +17,11 @@ export interface VisualCreative {
   copy_text?: string;
   caption?: string;
   image_url?: string;
-  status: 'generating' | 'completed' | 'failed';
+  video_url?: string;
+  media_type?: 'image' | 'video';
+  generation_operation_id?: string;
+  video_duration_seconds?: number;
+  status: 'generating' | 'completed' | 'failed' | 'error';
   created_at: string;
   updated_at: string;
 }
@@ -51,7 +55,8 @@ export function useVisualCreatives() {
 
       setCreatives((data || []).map(item => ({
         ...item,
-        status: item.status as 'generating' | 'completed' | 'failed'
+        status: item.status as 'generating' | 'completed' | 'failed' | 'error',
+        media_type: (item.media_type as 'image' | 'video') || 'image'
       })));
     } catch (err: any) {
       console.error('Error fetching visual creatives:', err);
@@ -86,7 +91,8 @@ export function useVisualCreatives() {
       // Atualizar lista local
       setCreatives(prev => [{
         ...data,
-        status: data.status as 'generating' | 'completed' | 'failed'
+        status: data.status as 'generating' | 'completed' | 'failed' | 'error',
+        media_type: (data.media_type as 'image' | 'video') || 'image'
       }, ...prev]);
 
       toast({
