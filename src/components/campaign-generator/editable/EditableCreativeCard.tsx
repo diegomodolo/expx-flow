@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Copy, Trash2, ChevronDown, Link2, Image as ImageIcon } from "lucide-react";
-import { MediaUploader } from "@/components/campaigns/builder/MediaUploader";
+import { Copy, Trash2, ChevronDown, Link2, Image as ImageIcon, Upload, Sparkles, Instagram, X } from "lucide-react";
 import { FeedPreview } from "@/components/campaigns/builder/FeedPreview";
 import { EditableCreative, CTA_OPTIONS } from "./types";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface EditableCreativeCardProps {
   creative: EditableCreative;
@@ -37,6 +38,8 @@ export function EditableCreativeCard({
 }: EditableCreativeCardProps) {
   const [showUtm, setShowUtm] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleChange = <K extends keyof EditableCreative>(
     key: K,
@@ -51,6 +54,72 @@ export function EditableCreativeCard({
       urlParameters: { ...creative.urlParameters, [key]: value },
     });
   };
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const file = files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `creatives/${clientId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('campaign-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('campaign-assets')
+        .getPublicUrl(filePath);
+
+      handleChange('mediaUrls', [publicUrl]);
+      toast.success('Imagem enviada com sucesso!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Erro ao enviar imagem');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [clientId, handleChange]);
+
+  const handleGenerateAI = useCallback(async () => {
+    if (!creative.headline && !creative.body) {
+      toast.error('Preencha o título ou texto principal para gerar a imagem');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const prompt = `Crie uma imagem profissional para anúncio de mídia social. 
+        Título: ${creative.headline || 'Sem título'}
+        Texto: ${creative.body || 'Sem texto'}
+        Descrição: ${creative.description || 'Sem descrição'}
+        Estilo: moderno, profissional, adequado para Instagram e Facebook.`;
+
+      const { data, error } = await supabase.functions.invoke('generate-ai-image', {
+        body: { prompt, clientId }
+      });
+
+      if (error) throw error;
+      if (data?.imageUrl) {
+        handleChange('mediaUrls', [data.imageUrl]);
+        toast.success('Imagem gerada com sucesso!');
+      }
+    } catch (error) {
+      console.error('AI generation error:', error);
+      toast.error('Erro ao gerar imagem com IA');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  }, [creative.headline, creative.body, creative.description, clientId, handleChange]);
+
+  const handleRemoveMedia = useCallback(() => {
+    handleChange('mediaUrls', []);
+  }, [handleChange]);
 
   // For FeedPreview compatibility
   const previewCreative = {
@@ -234,11 +303,11 @@ export function EditableCreativeCard({
                 </Collapsible>
               </div>
 
-              {/* Right Column - Media + Preview Combined */}
+              {/* Right Column - Preview with inline controls */}
               <div className="space-y-2">
-                <Label>Mídia e Pré-visualização</Label>
+                <Label>Pré-visualização</Label>
                 <div className="border rounded-lg overflow-hidden bg-muted/30">
-                  {/* Preview Area - Shows uploaded media or upload placeholder */}
+                  {/* Preview Area */}
                   <div className="relative">
                     <FeedPreview
                       creative={previewCreative}
@@ -246,42 +315,55 @@ export function EditableCreativeCard({
                       clientAvatar={clientAvatar}
                     />
                     
-                    {/* Upload overlay when no media */}
-                    {(!creative.mediaUrls || creative.mediaUrls.length === 0) && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                        <div className="w-full px-4">
-                          <MediaUploader
-                            mediaUrls={creative.mediaUrls}
-                            onChange={(urls) => handleChange('mediaUrls', urls)}
-                            type={creative.type}
-                            clientId={clientId}
-                            creativeContext={{
-                              title: creative.headline,
-                              body: creative.body,
-                              description: creative.description,
-                            }}
-                          />
-                        </div>
-                      </div>
+                    {/* Remove media button when media exists */}
+                    {creative.mediaUrls && creative.mediaUrls.length > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-80 hover:opacity-100"
+                        onClick={handleRemoveMedia}
+                        title="Remover mídia"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     )}
                   </div>
                   
-                  {/* Media controls when media exists */}
-                  {creative.mediaUrls && creative.mediaUrls.length > 0 && (
-                    <div className="p-3 border-t bg-background">
-                      <MediaUploader
-                        mediaUrls={creative.mediaUrls}
-                        onChange={(urls) => handleChange('mediaUrls', urls)}
-                        type={creative.type}
-                        clientId={clientId}
-                        creativeContext={{
-                          title: creative.headline,
-                          body: creative.body,
-                          description: creative.description,
-                        }}
-                      />
-                    </div>
-                  )}
+                  {/* Action buttons */}
+                  <div className="p-3 border-t bg-background flex flex-wrap gap-2">
+                    {/* Upload button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={isUploading}
+                      asChild
+                    >
+                      <label className="cursor-pointer">
+                        <Upload className="w-4 h-4" />
+                        {isUploading ? 'Enviando...' : 'Enviar'}
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </Button>
+
+                    {/* Generate with AI button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={handleGenerateAI}
+                      disabled={isGeneratingAI}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      {isGeneratingAI ? 'Gerando...' : 'Gerar com IA'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
