@@ -83,10 +83,12 @@ interface CreativeInputCardProps {
   onChange: (index: number, data: Partial<CreativeInputData>) => void;
   onGenerateThemeWithAI?: () => void;
   onGenerateCopyWithAI?: () => void;
+  onGenerateSlideWithAI?: (slideIndex: number, field: 'headline' | 'description') => void;
   onSelectReference?: () => void;
   onRemoveReference?: () => void;
   isGeneratingTheme?: boolean;
   isGeneratingCopy?: boolean;
+  generatingSlideField?: { index: number; field: 'headline' | 'description' } | null;
   hasClientBriefing?: boolean;
   selectedClientId?: string;
   companyId?: string;
@@ -98,10 +100,12 @@ export function CreativeInputCard({
   onChange,
   onGenerateThemeWithAI,
   onGenerateCopyWithAI,
+  onGenerateSlideWithAI,
   onSelectReference,
   onRemoveReference,
   isGeneratingTheme,
   isGeneratingCopy,
+  generatingSlideField,
   hasClientBriefing,
   selectedClientId,
   companyId,
@@ -324,6 +328,10 @@ export function CreativeInputCard({
               <CarouselSlideEditor
                 slides={data.slides || []}
                 onChange={(slides) => onChange(index, { slides })}
+                onGenerateSlideWithAI={onGenerateSlideWithAI}
+                generatingSlideField={generatingSlideField}
+                hasClientBriefing={hasClientBriefing}
+                theme={data.theme}
               />
             )}
 

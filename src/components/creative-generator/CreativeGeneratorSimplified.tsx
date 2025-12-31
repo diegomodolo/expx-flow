@@ -84,6 +84,7 @@ export function CreativeGeneratorSimplified() {
   const [referenceDialogForCreativeIndex, setReferenceDialogForCreativeIndex] = useState<number | null>(null);
   const [generatingThemeIndex, setGeneratingThemeIndex] = useState<number | null>(null);
   const [generatingCopyIndex, setGeneratingCopyIndex] = useState<number | null>(null);
+  const [generatingSlideField, setGeneratingSlideField] = useState<{ creativeIndex: number; slideIndex: number; field: 'headline' | 'description' } | null>(null);
 
   // Video generation hook
   const videoGeneration = useVideoGeneration();
@@ -273,6 +274,63 @@ export function CreativeGeneratorSimplified() {
       });
     } finally {
       setGeneratingCopyIndex(null);
+    }
+  };
+
+  // Gerar headline ou descrição de slide do carrossel com IA
+  const handleGenerateSlideWithAI = async (creativeIndex: number, slideIndex: number, field: 'headline' | 'description') => {
+    const creativeInput = creativeInputs[creativeIndex];
+    const theme = creativeInput?.theme;
+    
+    if (!selectedClient?.ai_briefing && !theme) {
+      toast({
+        title: "Informações insuficientes",
+        description: "Preencha o tema ou selecione um cliente com briefing de IA.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingSlideField({ creativeIndex, slideIndex, field });
+    
+    try {
+      const slides = creativeInput.slides || [];
+      const totalSlides = slides.length;
+      
+      const { data, error } = await supabase.functions.invoke('generate-creative-suggestions', {
+        body: {
+          clientId: selectedClientId,
+          companyId: activeCompany?.company_id,
+          briefing: selectedClient?.ai_briefing,
+          theme: theme,
+          type: field === 'headline' ? 'carousel_headline' : 'carousel_description',
+          slideNumber: slideIndex + 1,
+          totalSlides: totalSlides,
+          existingSlides: slides.map((s, idx) => ({
+            slideNumber: idx + 1,
+            headline: s.headline,
+            description: s.description,
+          })),
+          creativeTypes: [creativeInput.creativeType]
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.text) {
+        const newSlides = [...slides];
+        newSlides[slideIndex] = { ...newSlides[slideIndex], [field]: data.text };
+        handleInputChange(creativeIndex, { slides: newSlides });
+        toast({ title: `${field === 'headline' ? 'Headline' : 'Descrição'} gerada com IA!` });
+      }
+    } catch (error: any) {
+      toast({
+        title: `Erro ao gerar ${field === 'headline' ? 'headline' : 'descrição'}`,
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSlideField(null);
     }
   };
 
@@ -766,6 +824,7 @@ export function CreativeGeneratorSimplified() {
                       onChange={handleInputChange}
                       onGenerateThemeWithAI={() => handleGenerateThemeWithAI(index)}
                       onGenerateCopyWithAI={() => handleGenerateCopyWithAI(index)}
+                      onGenerateSlideWithAI={(slideIndex, field) => handleGenerateSlideWithAI(index, slideIndex, field)}
                       onSelectReference={() => {
                         setReferenceDialogForCreativeIndex(index);
                         setShowReferenceDialog(true);
@@ -773,6 +832,11 @@ export function CreativeGeneratorSimplified() {
                       onRemoveReference={() => removeCreativeReference(index)}
                       isGeneratingTheme={generatingThemeIndex === index}
                       isGeneratingCopy={generatingCopyIndex === index}
+                      generatingSlideField={
+                        generatingSlideField?.creativeIndex === index 
+                          ? { index: generatingSlideField.slideIndex, field: generatingSlideField.field }
+                          : null
+                      }
                       hasClientBriefing={!!selectedClient?.ai_briefing}
                       selectedClientId={selectedClientId}
                       companyId={activeCompany?.company_id}
