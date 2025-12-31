@@ -16,15 +16,9 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { ContentPlanPostCard } from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
-import { TrendingTopicsCard } from "@/components/trends/TrendingTopicsCard";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, TrendingUp, ChevronDown } from "lucide-react";
+import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 interface ContentPlanEditorProps {
@@ -51,7 +45,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [planStatus, setPlanStatus] = useState<"rascunho" | "em_revisao" | "aprovado">("rascunho");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activePostId, setActivePostId] = useState<string | null>(null);
-  const [showTrends, setShowTrends] = useState(false);
+  
 
   const { data: plan, isLoading, refetch } = useQuery({
     queryKey: ["content-plan-detail", planId],
@@ -210,42 +204,10 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   <Plus className="w-4 h-4" />
                   Adicionar Post
                 </Button>
-                <Button 
-                  onClick={() => setShowTrends(!showTrends)} 
-                  size="sm" 
-                  variant="outline" 
-                  className="gap-2"
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  Tendências
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showTrends ? 'rotate-180' : ''}`} />
-                </Button>
                 <Badge variant="outline" className="ml-auto">
                   {plan.posts?.length || 0} posts
                 </Badge>
               </div>
-
-              {/* Trends Panel */}
-              <Collapsible open={showTrends} onOpenChange={setShowTrends}>
-                <CollapsibleContent className="mt-4">
-                  <TrendingTopicsCard 
-                    onSelectTopic={(topic) => {
-                      if (activePostId) {
-                        const currentPost = plan.posts?.find(p => p.id === activePostId);
-                        const newHeadline = currentPost?.headline 
-                          ? `${currentPost.headline} - ${topic}` 
-                          : topic;
-                        handleUpdatePost(activePostId, { headline: newHeadline });
-                        refetch();
-                        toast.success(`"${topic}" adicionado ao título do post!`);
-                      } else {
-                        toast.info("Selecione um post para adicionar a tendência");
-                      }
-                    }}
-                    className="bg-muted/20"
-                  />
-                </CollapsibleContent>
-              </Collapsible>
             </div>
 
             {/* Posts List */}
