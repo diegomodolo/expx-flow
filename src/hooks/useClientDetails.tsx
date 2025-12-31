@@ -57,6 +57,14 @@ export interface ClientDetailsData extends Client {
     profile_picture_url: string | null;
     followers_count: number;
   };
+  google_ads_account?: {
+    id: string;
+    google_customer_id: string;
+    account_name: string;
+    parent_customer_id: string | null;
+    status: string;
+    is_manager: boolean;
+  };
 }
 
 export function useClientDetails(clientId: string) {
@@ -102,6 +110,14 @@ export function useClientDetails(clientId: string) {
             username,
             profile_picture_url,
             followers_count
+          ),
+          google_ads_account:google_ads_accounts!google_account_id (
+            id,
+            google_customer_id,
+            account_name,
+            parent_customer_id,
+            status,
+            is_manager
           )
         `)
         .eq("id", clientId)

@@ -60,6 +60,22 @@ serve(async (req) => {
 
     console.log('Keyword Planner request:', { action, companyId, customerId, keywords, pageUrl });
 
+    // Validar que o usuário tem acesso à empresa
+    const { data: membership, error: membershipError } = await supabaseClient
+      .from('company_members')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      console.error('User not a member of company:', { userId: user.id, companyId });
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this company' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Buscar integração ativa
     const { data: integration, error: integrationError } = await supabaseClient
       .from('google_ads_integrations')
