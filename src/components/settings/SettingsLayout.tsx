@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database, Sparkles } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -52,6 +52,12 @@ const settingsNavItems = [
     href: "/configuracoes/sincronizacao-google",
     icon: RefreshCw,
     description: "Sincronização do Google Ads",
+  },
+  {
+    title: "Keyword Planner",
+    href: "/configuracoes/keyword-planner",
+    icon: Sparkles,
+    description: "Planejador de palavras-chave do Google",
   },
   {
     title: "Planner",

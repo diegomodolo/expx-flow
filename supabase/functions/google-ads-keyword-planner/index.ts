@@ -1,0 +1,330 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface KeywordIdea {
+  keyword: string;
+  avgMonthlySearches: number;
+  competition: string;
+  competitionIndex: number;
+  lowTopOfPageBidMicros: number;
+  highTopOfPageBidMicros: number;
+  monthlySearchVolumes: Array<{
+    year: number;
+    month: string;
+    monthlySearches: number;
+  }>;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    const { 
+      action,
+      companyId, 
+      customerId,
+      keywords = [], 
+      pageUrl,
+      language = '1014', // Portuguese
+      geoTargetLocation = '2076', // Brazil
+      includeAdultKeywords = false,
+    } = await req.json();
+
+    if (!companyId) {
+      throw new Error('Company ID is required');
+    }
+
+    console.log('Keyword Planner request:', { action, companyId, customerId, keywords, pageUrl });
+
+    // Buscar integração ativa
+    const { data: integration, error: integrationError } = await supabaseClient
+      .from('google_ads_integrations')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .single();
+
+    if (integrationError || !integration) {
+      throw new Error('Google Ads integration not found or inactive. Please connect your Google Ads account first.');
+    }
+
+    // Verificar se token expirou
+    if (new Date(integration.expires_at) < new Date()) {
+      throw new Error('Google Ads token expired. Please reconnect your account.');
+    }
+
+    const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
+    if (!developerToken) {
+      throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN not configured');
+    }
+
+    // Buscar uma conta de ads válida para usar
+    let targetCustomerId = customerId;
+    
+    if (!targetCustomerId) {
+      // Buscar primeira conta ativa
+      const { data: accounts } = await supabaseClient
+        .from('google_ads_accounts')
+        .select('google_customer_id')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .limit(1);
+      
+      if (accounts && accounts.length > 0) {
+        targetCustomerId = accounts[0].google_customer_id;
+      } else {
+        throw new Error('No Google Ads account found. Please add a Google Ads account first.');
+      }
+    }
+
+    const cleanCustomerId = targetCustomerId.replace(/[-\s]/g, '');
+    
+    if (action === 'generateKeywordIdeas') {
+      const result = await generateKeywordIdeas({
+        accessToken: integration.access_token,
+        developerToken,
+        customerId: cleanCustomerId,
+        keywords,
+        pageUrl,
+        language,
+        geoTargetLocation,
+        includeAdultKeywords,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, data: result }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'getHistoricalMetrics') {
+      const result = await getHistoricalMetrics({
+        accessToken: integration.access_token,
+        developerToken,
+        customerId: cleanCustomerId,
+        keywords,
+        language,
+        geoTargetLocation,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, data: result }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    throw new Error('Invalid action. Use "generateKeywordIdeas" or "getHistoricalMetrics"');
+
+  } catch (error: any) {
+    console.error('Error in google-ads-keyword-planner:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
+
+async function generateKeywordIdeas({
+  accessToken,
+  developerToken,
+  customerId,
+  keywords,
+  pageUrl,
+  language,
+  geoTargetLocation,
+  includeAdultKeywords,
+}: {
+  accessToken: string;
+  developerToken: string;
+  customerId: string;
+  keywords: string[];
+  pageUrl?: string;
+  language: string;
+  geoTargetLocation: string;
+  includeAdultKeywords: boolean;
+}): Promise<KeywordIdea[]> {
+  
+  const requestBody: any = {
+    language: `languageConstants/${language}`,
+    geoTargetConstants: [`geoTargetConstants/${geoTargetLocation}`],
+    includeAdultKeywords,
+    keywordPlanNetwork: 'GOOGLE_SEARCH',
+  };
+
+  // Adicionar seed de keywords ou URL
+  if (keywords.length > 0) {
+    requestBody.keywordSeed = { keywords };
+  } else if (pageUrl) {
+    requestBody.urlSeed = { url: pageUrl };
+  } else {
+    throw new Error('Either keywords or pageUrl must be provided');
+  }
+
+  console.log('Generating keyword ideas with:', JSON.stringify(requestBody));
+
+  const response = await fetch(
+    `https://googleads.googleapis.com/v17/customers/${customerId}:generateKeywordIdeas`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'developer-token': developerToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Google Ads API Error:', errorText);
+    
+    let errorMessage = 'Failed to generate keyword ideas. ';
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.error?.message) {
+        errorMessage += errorJson.error.message;
+      }
+      if (errorJson.error?.details) {
+        const details = errorJson.error.details;
+        for (const detail of details) {
+          if (detail.errors) {
+            for (const err of detail.errors) {
+              errorMessage += ` ${err.message}`;
+            }
+          }
+        }
+      }
+    } catch {
+      errorMessage += 'Please verify your Google Ads account has the Keyword Planner enabled.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  console.log('Keyword ideas received:', data.results?.length || 0, 'results');
+
+  if (!data.results) {
+    return [];
+  }
+
+  return data.results.map((result: any) => {
+    const metrics = result.keywordIdeaMetrics || {};
+    
+    return {
+      keyword: result.text || '',
+      avgMonthlySearches: parseInt(metrics.avgMonthlySearches || '0'),
+      competition: metrics.competition || 'UNSPECIFIED',
+      competitionIndex: parseInt(metrics.competitionIndex || '0'),
+      lowTopOfPageBidMicros: parseInt(metrics.lowTopOfPageBidMicros || '0'),
+      highTopOfPageBidMicros: parseInt(metrics.highTopOfPageBidMicros || '0'),
+      monthlySearchVolumes: (metrics.monthlySearchVolumes || []).map((vol: any) => ({
+        year: vol.year,
+        month: vol.month,
+        monthlySearches: parseInt(vol.monthlySearches || '0'),
+      })),
+    };
+  });
+}
+
+async function getHistoricalMetrics({
+  accessToken,
+  developerToken,
+  customerId,
+  keywords,
+  language,
+  geoTargetLocation,
+}: {
+  accessToken: string;
+  developerToken: string;
+  customerId: string;
+  keywords: string[];
+  language: string;
+  geoTargetLocation: string;
+}): Promise<KeywordIdea[]> {
+  
+  if (keywords.length === 0) {
+    throw new Error('Keywords are required for historical metrics');
+  }
+
+  const requestBody = {
+    keywords,
+    language: `languageConstants/${language}`,
+    geoTargetConstants: [`geoTargetConstants/${geoTargetLocation}`],
+    keywordPlanNetwork: 'GOOGLE_SEARCH',
+  };
+
+  console.log('Getting historical metrics for:', keywords);
+
+  const response = await fetch(
+    `https://googleads.googleapis.com/v17/customers/${customerId}:generateKeywordHistoricalMetrics`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'developer-token': developerToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Google Ads API Error:', errorText);
+    throw new Error('Failed to get historical metrics');
+  }
+
+  const data = await response.json();
+  console.log('Historical metrics received:', data.results?.length || 0, 'results');
+
+  if (!data.results) {
+    return [];
+  }
+
+  return data.results.map((result: any) => {
+    const metrics = result.keywordMetrics || {};
+    
+    return {
+      keyword: result.text || '',
+      avgMonthlySearches: parseInt(metrics.avgMonthlySearches || '0'),
+      competition: metrics.competition || 'UNSPECIFIED',
+      competitionIndex: parseInt(metrics.competitionIndex || '0'),
+      lowTopOfPageBidMicros: parseInt(metrics.lowTopOfPageBidMicros || '0'),
+      highTopOfPageBidMicros: parseInt(metrics.highTopOfPageBidMicros || '0'),
+      monthlySearchVolumes: (metrics.monthlySearchVolumes || []).map((vol: any) => ({
+        year: vol.year,
+        month: vol.month,
+        monthlySearches: parseInt(vol.monthlySearches || '0'),
+      })),
+    };
+  });
+}
