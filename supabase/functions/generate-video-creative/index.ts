@@ -145,18 +145,25 @@ async function startVideoGeneration(
   return data.name;
 }
 
-function normalizeOperationName(operationName: string, projectId: string): string {
-  // Alguns modelos retornam nomes do tipo:
-  // projects/.../locations/.../publishers/google/models/.../operations/ID
-  // Mas o endpoint de operações do Vertex AI é:
-  // projects/.../locations/.../operations/ID
-  if (operationName.includes("/operations/") && (operationName.includes("/publishers/") || operationName.includes("/models/"))) {
+function getOperationUrlCandidates(operationName: string, projectId: string): string[] {
+  const candidates: string[] = [];
+
+  // 1) Usar exatamente o nome retornado pelo predictLongRunning (normalmente funciona)
+  candidates.push(`https://${LOCATION}-aiplatform.googleapis.com/v1/${operationName}`);
+  candidates.push(`https://aiplatform.googleapis.com/v1/${operationName}`);
+
+  // 2) Alguns endpoints usam o formato clássico do LRO: projects/.../locations/.../operations/{numericId}
+  if (operationName.includes("/operations/")) {
     const opId = operationName.split("/operations/")[1];
-    if (opId) {
-      return `projects/${projectId}/locations/${LOCATION}/operations/${opId}`;
+    if (opId && /^\d+$/.test(opId)) {
+      const normalized = `projects/${projectId}/locations/${LOCATION}/operations/${opId}`;
+      candidates.push(`https://${LOCATION}-aiplatform.googleapis.com/v1/${normalized}`);
+      candidates.push(`https://aiplatform.googleapis.com/v1/${normalized}`);
     }
   }
-  return operationName;
+
+  // de-dup
+  return [...new Set(candidates)];
 }
 
 // Verificar status da operação
@@ -165,39 +172,42 @@ async function checkOperationStatus(
   operationName: string,
   projectId: string,
 ): Promise<{ done: boolean; videoBase64?: string; error?: string }> {
-  const normalizedName = normalizeOperationName(operationName, projectId);
+  const urls = getOperationUrlCandidates(operationName, projectId);
+  const errors: Array<{ url: string; status?: number; body?: string }> = [];
 
-  const response = await fetch(`https://aiplatform.googleapis.com/v1/${normalizedName}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  for (const url of urls) {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Operation check error:", { normalizedName, errorText });
-    throw new Error(`Operation check error: ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log("Operation status:", data);
-
-  if (data.done) {
-    if (data.error) {
-      return { done: true, error: data.error.message || "Video generation failed" };
+    if (!response.ok) {
+      const errorText = await response.text();
+      errors.push({ url, status: response.status, body: errorText });
+      continue;
     }
 
-    // Extrair vídeo (base64) do response
-    const predictions = data.response?.predictions || [];
-    if (predictions.length > 0 && predictions[0].bytesBase64Encoded) {
-      return { done: true, videoBase64: predictions[0].bytesBase64Encoded };
+    const data = await response.json();
+    console.log("Operation status (ok):", { url, done: data?.done });
+
+    if (data.done) {
+      if (data.error) {
+        return { done: true, error: data.error.message || "Video generation failed" };
+      }
+
+      const predictions = data.response?.predictions || [];
+      if (predictions.length > 0 && predictions[0].bytesBase64Encoded) {
+        return { done: true, videoBase64: predictions[0].bytesBase64Encoded };
+      }
+
+      return { done: true, error: "Operação concluída, mas não retornou vídeo." };
     }
 
-    return { done: true, error: "Operação concluída, mas não retornou vídeo." };
+    return { done: false };
   }
 
-  return { done: false };
+  console.error("Operation check failed for all candidates", errors.map((e) => ({ url: e.url, status: e.status })));
+  throw new Error(`Operation check error: ${errors[0]?.body || "Unknown error"}`);
 }
 
 // Upload do vídeo para Supabase Storage
