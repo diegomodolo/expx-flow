@@ -40,8 +40,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Editable sections
 import { EditableBudgetSection } from "./editable/EditableBudgetSection";
-import { EditableTargetingSection } from "./editable/EditableTargetingSection";
-import { AudienceIntegrationSection } from "./editable/AudienceIntegrationSection";
 import { EditableScheduleSection } from "./editable/EditableScheduleSection";
 import { EditableBiddingSection } from "./editable/EditableBiddingSection";
 import { EditableAdSetsSection } from "./editable/EditableAdSetsSection";
@@ -49,7 +47,9 @@ import {
   EditableStrategy, 
   EditableAdSet, 
   EditableCreative,
-  CAMPAIGN_OBJECTIVES 
+  CAMPAIGN_OBJECTIVES,
+  createDefaultCreative,
+  createDefaultAdSet,
 } from "./editable/types";
 
 type FunnelStage = "topo" | "meio" | "fundo" | "retencao";
@@ -74,26 +74,6 @@ const CAMPAIGN_TYPES: Record<CampaignType, { title: string; icon: React.ElementT
 interface CampaignGeneratorSimplifiedProps {
   onBack: () => void;
 }
-
-const createDefaultCreative = (): EditableCreative => ({
-  id: crypto.randomUUID(),
-  type: 'IMAGE',
-  headline: '',
-  body: '',
-  description: '',
-  linkUrl: '',
-  callToAction: 'LEARN_MORE',
-  mediaUrls: [],
-  urlParameters: {},
-});
-
-const createDefaultAdSet = (name: string): EditableAdSet => ({
-  id: crypto.randomUUID(),
-  name,
-  includedAudiences: [],
-  excludedAudiences: [],
-  creatives: [createDefaultCreative()],
-});
 
 export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplifiedProps) {
   const { toast } = useToast();
@@ -180,18 +160,39 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
         const endDate = new Date();
         endDate.setDate(endDate.getDate() + (config.schedule?.duration || duration));
 
+        // Parse targeting data from AI response
+        const aiInterests = config.targeting?.interests || [];
+        const aiBehaviors = config.targeting?.behaviors ? 
+          (Array.isArray(config.targeting.behaviors) ? config.targeting.behaviors : [config.targeting.behaviors]) : [];
+
+        // Create ad sets with targeting from AI
+        const aiAdSets: EditableAdSet[] = (config.adSets || []).map((as: any, i: number) => ({
+          id: crypto.randomUUID(),
+          name: as.name || `Conjunto ${i + 1}`,
+          ageMin: as.ageMin || 18,
+          ageMax: as.ageMax || 65,
+          genders: as.genders || ['all'],
+          interests: as.interests || aiInterests,
+          behaviors: as.behaviors || aiBehaviors,
+          includedAudiences: [],
+          excludedAudiences: [],
+          creatives: [createDefaultCreative()],
+        }));
+
+        // Ensure at least one ad set
+        if (aiAdSets.length === 0) {
+          aiAdSets.push({
+            ...createDefaultAdSet('Conjunto Principal', 0),
+            interests: aiInterests,
+            behaviors: aiBehaviors,
+          });
+        }
+
         // Convert AI response to editable strategy
         const strategy: EditableStrategy = {
           dailyBudget: config.budget?.daily || dailyBudget,
           duration: config.schedule?.duration || duration,
           totalBudget: (config.budget?.daily || dailyBudget) * (config.schedule?.duration || duration),
-          ageMin: 18,
-          ageMax: 65,
-          genders: ['all'],
-          interests: config.targeting?.interests || [],
-          behaviors: config.targeting?.behaviors ? [config.targeting.behaviors] : [],
-          includedAudiences: [],
-          excludedAudiences: [],
           startDate,
           endDate,
           useOptimalHours: true,
@@ -200,18 +201,43 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
           targetCPA: config.bidding?.targetCPA,
           recommendations: config.recommendations || [],
           estimatedReach: config.targeting?.estimatedReach || '50k-100k',
-          adSets: (config.adSets || []).map((as: any, i: number) => ({
-            id: crypto.randomUUID(),
-            name: as.name || `Conjunto ${i + 1}`,
-            includedAudiences: [],
-            excludedAudiences: [],
-            creatives: [createDefaultCreative()],
-          })),
+          adSets: aiAdSets,
         };
 
-        // Ensure at least one ad set
-        if (strategy.adSets.length === 0) {
-          strategy.adSets = [createDefaultAdSet('Conjunto Principal')];
+        // Now generate creative texts using AI
+        try {
+          const { data: creativesData, error: creativesError } = await supabase.functions.invoke('generate-campaign-creatives', {
+            body: {
+              client: selectedClient,
+              funnelStage,
+              campaignType,
+              configuration: config,
+            }
+          });
+
+          if (!creativesError && creativesData?.creatives) {
+            // Fill creatives with AI-generated texts
+            const aiCreatives = creativesData.creatives;
+            strategy.adSets = strategy.adSets.map((adSet, adSetIndex) => {
+              const aiCreative = aiCreatives[adSetIndex];
+              if (aiCreative) {
+                return {
+                  ...adSet,
+                  creatives: adSet.creatives.map((creative, idx) => ({
+                    ...creative,
+                    headline: idx === 0 ? aiCreative.headline : (aiCreative.variations?.headline?.[idx - 1] || creative.headline),
+                    body: idx === 0 ? aiCreative.primaryText : (aiCreative.variations?.primaryText?.[idx - 1] || creative.body),
+                    description: idx === 0 ? aiCreative.description : (aiCreative.variations?.description?.[idx - 1] || creative.description),
+                    callToAction: aiCreative.callToAction?.toUpperCase().replace(/\s+/g, '_') || creative.callToAction,
+                    linkUrl: selectedClient.website_url || creative.linkUrl,
+                  })),
+                };
+              }
+              return adSet;
+            });
+          }
+        } catch (creativesErr) {
+          console.warn('Erro ao gerar criativos, continuando com valores padrão:', creativesErr);
         }
 
         setEditableStrategy(strategy);
@@ -304,17 +330,15 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
         adSets: editableStrategy.adSets.map(adSet => ({
           name: adSet.name,
           targeting: {
-            custom_audiences: adSet.includedAudiences.length > 0 
-              ? adSet.includedAudiences 
-              : editableStrategy.includedAudiences,
-            excluded_audiences: adSet.excludedAudiences.length > 0 
-              ? adSet.excludedAudiences 
-              : editableStrategy.excludedAudiences,
-            age_min: editableStrategy.ageMin,
-            age_max: editableStrategy.ageMax,
-            genders: editableStrategy.genders.includes('all') 
+            custom_audiences: adSet.includedAudiences,
+            excluded_audiences: adSet.excludedAudiences,
+            age_min: adSet.ageMin,
+            age_max: adSet.ageMax,
+            genders: adSet.genders.includes('all') 
               ? undefined 
-              : editableStrategy.genders.map(g => g === 'male' ? 1 : 2),
+              : adSet.genders.map(g => g === 'male' ? 1 : 2),
+            interests: adSet.interests,
+            behaviors: adSet.behaviors,
           },
           creatives: adSet.creatives.map(creative => ({
             type: creative.type,
@@ -692,18 +716,7 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
             onChange={handleStrategyChange}
           />
 
-          {/* Targeting */}
-          <EditableTargetingSection
-            strategy={editableStrategy}
-            onChange={handleStrategyChange}
-          />
-
-          {/* Audiences */}
-          <AudienceIntegrationSection
-            strategy={editableStrategy}
-            onChange={handleStrategyChange}
-            clientId={selectedClientId}
-          />
+          {/* Targeting and Audiences are now inside each Ad Set */}
 
           {/* Ad Sets with Creatives */}
           <EditableAdSetsSection
