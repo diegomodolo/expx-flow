@@ -140,7 +140,7 @@ export function ContentPlanPostCard({
   const typeConfig = postTypeConfig[post.post_type];
   const TypeIcon = typeConfig.icon;
 
-  const handleGenerateWithAI = async (field: "headline" | "subheadline" | "caption" | "objective") => {
+  const handleGenerateWithAI = async (field: "headline" | "subheadline" | "caption" | "objective" | "script") => {
     if (!clientBriefing) {
       toast.error("Este cliente não possui briefing de IA configurado");
       return;
@@ -178,6 +178,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       if (field === "headline") setHeadline(content);
       if (field === "subheadline") setSubheadline(content);
       if (field === "caption") setCaption(content);
+      if (field === "script") setScript(content);
       
       toast.success(`${field} gerado com sucesso!`);
     } catch (error: any) {
@@ -193,8 +194,77 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       subheadline: "Gere uma subheadline complementar à headline que reforce a mensagem principal.",
       caption: "Gere uma legenda completa para este post incluindo: texto engajador, call-to-action e hashtags relevantes (mínimo 10 hashtags).",
       objective: "Sugira um objetivo estratégico claro para este post (ex: gerar leads, aumentar engajamento, educar o público).",
+      script: `Gere um roteiro completo para um Reels do Instagram com duração de 15-30 segundos. 
+Inclua:
+- CENA 1, CENA 2, etc. com descrição visual
+- Texto/fala para cada cena
+- Sugestão de música/áudio
+- Timing aproximado de cada cena
+Seja criativo e engajador!`,
     };
     return prompts[field] || "";
+  };
+
+  // State for generating slide fields
+  const [generatingSlideField, setGeneratingSlideField] = useState<{slideId: string, field: string} | null>(null);
+
+  const handleGenerateSlideWithAI = async (slideId: string, field: "headline" | "content", slideIndex: number) => {
+    if (!clientBriefing) {
+      toast.error("Este cliente não possui briefing de IA configurado");
+      return;
+    }
+
+    setGeneratingSlideField({ slideId, field });
+    try {
+      const slide = post.slides?.find(s => s.id === slideId);
+      const totalSlides = post.slides?.length || 1;
+      
+      const systemPrompt = `Você é um copywriter profissional especializado em carrosséis do Instagram.
+Contexto do cliente: ${clientBriefing}
+${post.objective ? `Objetivo do post: ${post.objective}` : ""}
+${post.headline ? `Headline do carrossel: ${post.headline}` : ""}
+
+Este é o slide ${slideIndex + 1} de ${totalSlides} slides.
+${slide?.headline ? `Título atual do slide: ${slide.headline}` : ""}
+${slide?.content ? `Conteúdo atual do slide: ${slide.content}` : ""}
+
+Responda APENAS com o texto solicitado, sem explicações adicionais.`;
+
+      const prompts: Record<string, string> = {
+        headline: `Gere um título curto e impactante para o slide ${slideIndex + 1} de ${totalSlides} do carrossel. 
+O título deve ser chamativo, ter no máximo 5-7 palavras e manter coerência com os outros slides.`,
+        content: `Gere o conteúdo/texto para o slide ${slideIndex + 1} de ${totalSlides} do carrossel.
+O conteúdo deve:
+- Ser conciso (2-3 frases no máximo)
+- Complementar o título do slide
+- Manter o fluxo narrativo do carrossel
+- Agregar valor ao leitor`,
+      };
+
+      const { data, error } = await supabase.functions.invoke("content-plan-chat", {
+        body: {
+          messages: [
+            {
+              role: "user",
+              content: prompts[field],
+            },
+          ],
+          systemPrompt,
+        },
+      });
+
+      if (error) throw error;
+
+      const content = data.content || data.message || "";
+      await handleUpdateSlide(slideId, { [field]: content });
+      onRefetch();
+      
+      toast.success(`${field === "headline" ? "Título" : "Conteúdo"} do slide gerado com sucesso!`);
+    } catch (error: any) {
+      toast.error("Erro ao gerar conteúdo: " + error.message);
+    } finally {
+      setGeneratingSlideField(null);
+    }
   };
 
   const handleAddSlide = async () => {
@@ -423,23 +493,53 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
                             </Button>
                           </div>
                           <div className="space-y-2">
-                            <Input
-                              value={slide.headline || ""}
-                              onChange={(e) =>
-                                handleUpdateSlide(slide.id, { headline: e.target.value })
-                              }
-                              placeholder="Título do slide"
-                              className="h-8 text-sm"
-                            />
-                            <Textarea
-                              value={slide.content || ""}
-                              onChange={(e) =>
-                                handleUpdateSlide(slide.id, { content: e.target.value })
-                              }
-                              placeholder="Conteúdo do slide"
-                              rows={2}
-                              className="text-sm"
-                            />
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={slide.headline || ""}
+                                onChange={(e) =>
+                                  handleUpdateSlide(slide.id, { headline: e.target.value })
+                                }
+                                placeholder="Título do slide"
+                                className="h-8 text-sm flex-1"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 flex-shrink-0"
+                                onClick={() => handleGenerateSlideWithAI(slide.id, "headline", slideIndex)}
+                                disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline"}
+                              >
+                                {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline" ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-3 h-3" />
+                                )}
+                              </Button>
+                            </div>
+                            <div className="flex items-start gap-1">
+                              <Textarea
+                                value={slide.content || ""}
+                                onChange={(e) =>
+                                  handleUpdateSlide(slide.id, { content: e.target.value })
+                                }
+                                placeholder="Conteúdo do slide"
+                                rows={2}
+                                className="text-sm flex-1"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 flex-shrink-0"
+                                onClick={() => handleGenerateSlideWithAI(slide.id, "content", slideIndex)}
+                                disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content"}
+                              >
+                                {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content" ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-3 h-3" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         </Card>
                       ))}
@@ -455,7 +555,23 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
               {/* Reels Script */}
               {post.post_type === "reels" && (
                 <div className="space-y-2 pt-4 border-t">
-                  <Label>Roteiro do Reels</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Roteiro do Reels</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => handleGenerateWithAI("script")}
+                      disabled={generatingField === "script"}
+                    >
+                      {generatingField === "script" ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      IA
+                    </Button>
+                  </div>
                   <Textarea
                     value={script}
                     onChange={(e) => setScript(e.target.value)}
