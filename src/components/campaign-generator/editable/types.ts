@@ -18,8 +18,16 @@ export interface EditableCreative {
 export interface EditableAdSet {
   id: string;
   name: string;
+  // Targeting per ad set
+  ageMin: number;
+  ageMax: number;
+  genders: ('all' | 'male' | 'female')[];
+  interests: string[];
+  behaviors: string[];
+  // Audiences
   includedAudiences: string[];
   excludedAudiences: string[];
+  // Creatives
   creatives: EditableCreative[];
 }
 
@@ -28,17 +36,6 @@ export interface EditableStrategy {
   dailyBudget: number;
   duration: number;
   totalBudget: number;
-  
-  // Targeting
-  ageMin: number;
-  ageMax: number;
-  genders: ('all' | 'male' | 'female')[];
-  interests: string[];
-  behaviors: string[];
-  
-  // Audiences
-  includedAudiences: string[];
-  excludedAudiences: string[];
   
   // Schedule
   startDate: Date;
@@ -87,3 +84,28 @@ export const CTA_OPTIONS = [
   { value: 'SEND_MESSAGE', label: 'Enviar Mensagem' },
   { value: 'GET_OFFER', label: 'Obter Oferta' },
 ];
+
+export const createDefaultCreative = (): EditableCreative => ({
+  id: crypto.randomUUID(),
+  type: 'IMAGE',
+  headline: '',
+  body: '',
+  description: '',
+  linkUrl: '',
+  callToAction: 'LEARN_MORE',
+  mediaUrls: [],
+  urlParameters: {},
+});
+
+export const createDefaultAdSet = (name: string, index: number = 0): EditableAdSet => ({
+  id: crypto.randomUUID(),
+  name,
+  ageMin: 18,
+  ageMax: 65,
+  genders: ['all'],
+  interests: [],
+  behaviors: [],
+  includedAudiences: [],
+  excludedAudiences: [],
+  creatives: [createDefaultCreative()],
+});
