@@ -292,33 +292,27 @@ export function VideoCreativePreviewCard({
         )}
       </div>
 
-      {/* Tabs para Instagram/Facebook mockup */}
-      {status === 'completed' && videoUrl ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full rounded-none border-b">
-            <TabsTrigger value="instagram" className="flex-1 gap-1.5">
-              <InstagramIcon />
-              Instagram
-            </TabsTrigger>
-            <TabsTrigger value="facebook" className="flex-1 gap-1.5">
-              <FacebookIcon />
-              Facebook
-            </TabsTrigger>
-          </TabsList>
+      {/* Tabs para Instagram/Facebook mockup - sempre mostra o mockup */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full rounded-none border-b">
+          <TabsTrigger value="instagram" className="flex-1 gap-1.5">
+            <InstagramIcon />
+            Instagram
+          </TabsTrigger>
+          <TabsTrigger value="facebook" className="flex-1 gap-1.5">
+            <FacebookIcon />
+            Facebook
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="instagram" className="mt-0">
-            {renderVideoContent()}
-          </TabsContent>
-
-          <TabsContent value="facebook" className="mt-0">
-            {renderVideoContent()}
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <div className="p-4">
+        <TabsContent value="instagram" className="mt-0">
           {renderVideoContent()}
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="facebook" className="mt-0">
+          {renderVideoContent()}
+        </TabsContent>
+      </Tabs>
 
       {/* Theme */}
       {theme && (
