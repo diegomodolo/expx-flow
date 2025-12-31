@@ -51,6 +51,9 @@ export function ClienteKeywordPlanner() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [competitionFilter, setCompetitionFilter] = useState<string>("all");
 
+  // Usar o customer ID da conta Google Ads vinculada ao cliente
+  const googleCustomerId = client?.google_ads_account?.google_customer_id;
+
   const {
     loading,
     keywords,
@@ -62,6 +65,7 @@ export function ClienteKeywordPlanner() {
     clearKeywords,
   } = useKeywordPlanner({
     companyId: activeCompany?.company_id || "",
+    customerId: googleCustomerId,
   });
 
   // Extract keywords from client briefing
@@ -253,7 +257,23 @@ export function ClienteKeywordPlanner() {
         <p className="text-muted-foreground">
           Descubra palavras-chave relevantes para {client?.name || "este cliente"}
         </p>
+        {client?.google_ads_account && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Conta Google Ads: {client.google_ads_account.account_name} ({client.google_ads_account.google_customer_id})
+          </p>
+        )}
       </div>
+
+      {/* Aviso se não houver conta Google Ads vinculada */}
+      {!client?.google_ads_account && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Conta Google Ads não vinculada</AlertTitle>
+          <AlertDescription>
+            Este cliente não possui uma conta Google Ads vinculada. Vincule uma conta nas configurações do cliente para usar o Planejador de Palavras-chave.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Quick Suggestions from Briefing */}
       {hasBriefing && keywords.length === 0 && (
