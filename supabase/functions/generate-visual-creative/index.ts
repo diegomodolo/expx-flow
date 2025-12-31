@@ -175,6 +175,7 @@ Deno.serve(async (req) => {
 
     // Coletar todas as imagens de referência (do request + do cliente)
     const allReferenceImages: string[] = [...references];
+    const hasSpecificReference = references && references.length > 0;
     
     // Adicionar imagens de referência do cliente se não houver do request
     if (allReferenceImages.length === 0) {
@@ -183,7 +184,12 @@ Deno.serve(async (req) => {
       if (clientData.ai_reference_image_3) allReferenceImages.push(clientData.ai_reference_image_3);
     }
 
-    console.log('Total reference images:', allReferenceImages.length);
+    console.log('Reference images info:', {
+      hasSpecificReference,
+      totalReferenceImages: allReferenceImages.length,
+      fromRequest: references?.length || 0,
+      fromClient: allReferenceImages.length - (references?.length || 0)
+    });
 
     // Montar o prompt para geração de imagem
     const creativeTypeName = normalizedCreativeType.replace(/[_-]/g, ' ');
@@ -259,8 +265,10 @@ ${textToUse ? `TEXT TO INCLUDE IN THE IMAGE:
 - Position the text strategically within the composition` : ''}
 
 ${messageContent.length > 0 ? `REFERENCE IMAGES PROVIDED:
-- Study the reference images carefully and match their visual style
-- Follow the same color palette, typography style, and design language
+${hasSpecificReference ? `- **CRITICAL**: A SPECIFIC reference image was provided for THIS creative. You MUST closely follow this reference image's style, composition, colors, and visual elements.
+- This is NOT a generic brand reference - it was specifically chosen for this creative.
+- Replicate the visual approach, layout style, and aesthetic of this reference as closely as possible.` : `- Study the reference images carefully and match their visual style
+- Follow the same color palette, typography style, and design language`}
 ${clientData.avatar ? '- The first image is the client LOGO - incorporate it subtly if appropriate' : ''}
 - The generated image should look like it belongs to the same brand family` : ''}
 
