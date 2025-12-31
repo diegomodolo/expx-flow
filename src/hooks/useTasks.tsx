@@ -155,6 +155,7 @@ export function useTasks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-stats'] });
       toast({
         title: "Tarefa criada",
@@ -184,6 +185,7 @@ export function useTasks() {
     onSuccess: () => {
       console.log('🔄 Invalidating queries after task update');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['planner-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-stats'] });
       toast({
@@ -213,6 +215,7 @@ export function useTasks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-stats'] });
       toast({
         title: "Tarefa excluída",
