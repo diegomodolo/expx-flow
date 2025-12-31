@@ -418,6 +418,7 @@ serve(async (req) => {
         aspectRatio = "9:16",
         duration = 5,
         model = "veo-2.0",
+        noTextInVideo = false,
         imageReference,
         clientName,
         title,
@@ -469,7 +470,8 @@ serve(async (req) => {
       const accessToken = await getGCPAccessToken(serviceAccount);
 
       // Construir prompt para o vídeo
-      const videoPrompt = `Create a professional marketing video for: ${theme}.\nStyle: Modern, engaging, suitable for social media marketing.\nDuration: ${duration} seconds.\nAspect ratio: ${aspectRatio}.\nMake it visually appealing and attention-grabbing.`;
+      const noTextInstruction = noTextInVideo ? "\nIMPORTANT: Do NOT include any text, titles, captions, or overlays in the video. Keep it purely visual without any written words." : "";
+      const videoPrompt = `Create a professional marketing video for: ${theme}.\nStyle: Modern, engaging, suitable for social media marketing.\nDuration: ${duration} seconds.\nAspect ratio: ${aspectRatio}.\nMake it visually appealing and attention-grabbing.${noTextInstruction}`;
 
       // Iniciar geração
       const operationName = await startVideoGeneration(accessToken, projectId, videoPrompt, {

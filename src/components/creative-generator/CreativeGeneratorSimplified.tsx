@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -112,6 +113,7 @@ export function CreativeGeneratorSimplified() {
   const [selectedVideoType, setSelectedVideoType] = useState<string>("video_reels");
   const [videoDuration, setVideoDuration] = useState<number>(5);
   const [videoModel, setVideoModel] = useState<'veo-2.0' | 'veo-3.1'>('veo-2.0');
+  const [noTextInVideo, setNoTextInVideo] = useState<boolean>(false);
   
   // Video generation hook
   const videoGeneration = useVideoGeneration();
@@ -462,6 +464,7 @@ export function CreativeGeneratorSimplified() {
         aspectRatio: videoType?.aspectRatio || '9:16',
         duration: videoDuration,
         model: videoModel,
+        noTextInVideo: noTextInVideo,
         clientName: selectedClient?.name,
         title: creativeInputs[0].theme,
         description: creativeInputs[0].copyText || creativeInputs[0].theme,
@@ -778,9 +781,20 @@ export function CreativeGeneratorSimplified() {
                   </p>
                 </div>
 
-                <div className="text-xs text-muted-foreground bg-background/50 p-2 rounded">
-                  <strong>Custo estimado:</strong> ~R$ {(videoDuration * (videoModel === 'veo-3.1' ? 1.75 : 1.25)).toFixed(2)} por vídeo
+                {/* Opção sem texto no vídeo */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="noTextInVideo"
+                    checked={noTextInVideo}
+                    onCheckedChange={(checked) => setNoTextInVideo(checked === true)}
+                  />
+                  <Label htmlFor="noTextInVideo" className="text-sm cursor-pointer">
+                    Gerar vídeo sem texto sobreposto
+                  </Label>
                 </div>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Evita erros de lettering gerados pela IA
+                </p>
               </div>
             )}
 
