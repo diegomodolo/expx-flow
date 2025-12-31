@@ -20,6 +20,7 @@ interface StartVideoGenerationParams {
   aspectRatio?: string;
   duration?: number;
   model?: "veo-2.0" | "veo-3.1";
+  noTextInVideo?: boolean;
   imageReference?: string;
   clientName?: string;
   title?: string;
