@@ -52,11 +52,9 @@ export function ImportFromPlanDialog({
     
     try {
       const plan = await fetchPlanWithPosts(planId);
-      // Filter only posts that can generate visuals (estatico and carrossel)
-      const visualPosts = plan.posts?.filter(
-        (p) => p.post_type === "estatico" || p.post_type === "carrossel"
-      ) || [];
-      setPlanPosts(visualPosts);
+      // Include all post types: estatico, carrossel, and reels
+      const allPosts = plan.posts || [];
+      setPlanPosts(allPosts);
     } catch (error) {
       console.error("Error loading plan posts:", error);
       setPlanPosts([]);
@@ -221,8 +219,7 @@ export function ImportFromPlanDialog({
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Image className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Nenhum post visual encontrado neste planejamento</p>
-                <p className="text-sm">(apenas estáticos e carrosséis podem ser importados)</p>
+                <p>Nenhum post encontrado neste planejamento</p>
               </div>
             )}
           </>
