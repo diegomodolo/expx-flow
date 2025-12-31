@@ -479,13 +479,13 @@ serve(async (req) => {
       // Construir prompt para o vídeo
       // Se noTextInVideo=true, colocar instrução NO INÍCIO do prompt (maior peso) + usar negativePrompt
       const noTextInstruction = noTextInVideo 
-        ? "CRITICAL: Generate a purely VISUAL video with absolutely NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO LETTERS, NO OVERLAYS of any kind. " 
+        ? "CRITICAL: Generate a purely VISUAL video with absolutely NO TEXT, NO TITLES, NO CAPTIONS, NO WORDS, NO LETTERS, NO OVERLAYS, NO LOGOS, NO BRAND MARKS, NO COMPANY LOGOS, NO GRAPHIC ELEMENTS WITH BRANDING of any kind. The video must contain ONLY visual scenes without any identifying marks or text. " 
         : "";
       const videoPrompt = `${noTextInstruction}Create a professional marketing video for: ${theme}.\nStyle: Modern, engaging, suitable for social media marketing.\nDuration: ${duration} seconds.\nAspect ratio: ${aspectRatio}.\nMake it visually appealing and attention-grabbing.`;
 
-      // negativePrompt para reforçar exclusão de texto
+      // negativePrompt para reforçar exclusão de texto E logos
       const negativePrompt = noTextInVideo 
-        ? "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, written content, signs with text, any written words, lettering, headlines, slogans" 
+        ? "text, titles, captions, subtitles, overlays, words, letters, typography, watermarks, logos, brand logos, company logos, brand marks, corporate identity, brand elements, graphic logos, emblems, insignias, written content, signs with text, any written words, lettering, headlines, slogans, trademarks, brand symbols" 
         : undefined;
 
       console.log("Video prompt:", videoPrompt);
