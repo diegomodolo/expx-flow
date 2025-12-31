@@ -297,7 +297,7 @@ export function ClienteKeywordPlanner() {
                     </Badge>
                   ))}
                 </div>
-                <Button onClick={handleSearchFromBriefing} disabled={loading} className="gap-2">
+                <Button onClick={handleSearchFromBriefing} disabled={loading || !googleCustomerId} className="gap-2">
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -419,6 +419,7 @@ export function ClienteKeywordPlanner() {
             onClick={handleSearch}
             disabled={
               loading ||
+              !googleCustomerId ||
               (inputMode === "keywords" && seedKeywords.length === 0) ||
               (inputMode === "url" && !urlInput.trim()) ||
               (inputMode === "briefing" && !hasBriefing)
