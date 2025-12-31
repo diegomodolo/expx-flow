@@ -241,3 +241,6 @@ verify_jwt = false
 
 [functions.generate-video-creative]
 verify_jwt = true
+
+[functions.google-trends]
+verify_jwt = true
