@@ -100,8 +100,10 @@ async function startVideoGeneration(
   // Determinar endpoint baseado no modelo
   const modelEndpoint = model === "veo-3.1" ? "imagen-3.0-generate-002" : "veo-2.0-generate-001";
 
+  // Importante: usar o host global aqui tende a retornar um Operation no formato padrão
+  // (projects/.../locations/.../operations/...) para facilitar o polling.
   const endpoint =
-    `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelEndpoint}:predictLongRunning`;
+    `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${modelEndpoint}:predictLongRunning`;
 
   const requestBody: any = {
     instances: [{
@@ -148,21 +150,21 @@ async function startVideoGeneration(
 function getOperationUrlCandidates(operationName: string, projectId: string): string[] {
   const candidates: string[] = [];
 
-  // 1) Usar exatamente o nome retornado pelo predictLongRunning (normalmente funciona)
+  // 1) Usar exatamente o nome retornado pelo predictLongRunning
   candidates.push(`https://${LOCATION}-aiplatform.googleapis.com/v1/${operationName}`);
   candidates.push(`https://aiplatform.googleapis.com/v1/${operationName}`);
 
-  // 2) Alguns endpoints usam o formato clássico do LRO: projects/.../locations/.../operations/{numericId}
+  // 2) Também tentar o formato padrão de operações do Vertex AI:
+  // projects/{project}/locations/{location}/operations/{opId}
   if (operationName.includes("/operations/")) {
     const opId = operationName.split("/operations/")[1];
-    if (opId && /^\d+$/.test(opId)) {
+    if (opId) {
       const normalized = `projects/${projectId}/locations/${LOCATION}/operations/${opId}`;
       candidates.push(`https://${LOCATION}-aiplatform.googleapis.com/v1/${normalized}`);
       candidates.push(`https://aiplatform.googleapis.com/v1/${normalized}`);
     }
   }
 
-  // de-dup
   return [...new Set(candidates)];
 }
 
