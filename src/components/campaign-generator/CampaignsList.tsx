@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Calendar, User, Search, Download, Filter } from "lucide-react";
+import { Plus, Search, Download, Filter, ChevronRight, Megaphone, Target, Users, Zap, ShoppingBag, RotateCcw, Heart, TrendingUp, MoreVertical } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useGeneratedCampaigns } from "@/hooks/useGeneratedCampaigns";
@@ -10,11 +10,29 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface CampaignsListProps {
   onNewCampaign: () => void;
   onViewCampaign: (campaignId: string) => void;
 }
+
+const FUNNEL_ICONS: Record<string, React.ElementType> = {
+  topo: TrendingUp,
+  meio: Users,
+  fundo: Target,
+  retencao: Heart,
+};
+
+const CAMPAIGN_TYPE_INFO: Record<string, { icon: React.ElementType; color: string }> = {
+  awareness: { icon: Zap, color: "text-blue-600" },
+  traffic: { icon: Target, color: "text-orange-600" },
+  leads: { icon: Users, color: "text-green-600" },
+  conversions: { icon: ShoppingBag, color: "text-purple-600" },
+  remarketing: { icon: RotateCcw, color: "text-red-600" },
+  retention: { icon: Heart, color: "text-pink-600" },
+};
 
 export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListProps) {
   const { campaigns, loading } = useGeneratedCampaigns();
@@ -28,32 +46,26 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full space-y-4 p-4">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-10 w-40" />
         </div>
-        <Card>
-          <CardContent className="p-4">
-            <Skeleton className="h-10 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-0">
-            <div className="space-y-4 p-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                  <Skeleton className="h-8 w-24" />
-                </div>
-              ))}
+        <div className="bg-card rounded-xl p-4 shadow-google-sm">
+          <Skeleton className="h-11 w-full" />
+        </div>
+        <div className="bg-card rounded-xl shadow-google-sm divide-y divide-border">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -76,25 +88,25 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
   });
 
   const getFunnelStageLabel = (stage: string) => {
-    const labels = {
+    const labels: Record<string, string> = {
       topo: "Topo",
       meio: "Meio", 
       fundo: "Fundo",
       retencao: "Retenção"
     };
-    return labels[stage as keyof typeof labels] || stage;
+    return labels[stage] || stage;
   };
 
   const getCampaignTypeLabel = (type: string) => {
-    const labels = {
-      awareness: "Reconhecimento",
+    const labels: Record<string, string> = {
+      awareness: "Awareness",
       traffic: "Tráfego",
       leads: "Leads",
       conversions: "Conversões",
       remarketing: "Remarketing",
       retention: "Retenção"
     };
-    return labels[type as keyof typeof labels] || type;
+    return labels[type] || type;
   };
 
   const exportToCSV = () => {
@@ -126,32 +138,32 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
 
   if (campaigns.length === 0) {
     return (
-      <div className="flex flex-col h-full space-y-4 p-4">
+      <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Campanhas Geradas</h2>
-            <Badge variant="secondary" className="px-3 py-1 mt-2">
-              0 campanhas
-            </Badge>
+            <h1 className="text-2xl font-normal text-foreground tracking-tight">Campanhas Geradas</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerencie suas estratégias de campanha</p>
           </div>
-          <Button onClick={onNewCampaign} className="flex items-center space-x-2">
+          <Button onClick={onNewCampaign} className="gap-2 rounded-full px-6 shadow-google-sm">
             <Plus className="w-4 h-4" />
             <span>Nova Campanha</span>
           </Button>
         </div>
 
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Plus className="w-8 h-8 text-muted-foreground" />
+        {/* Empty State */}
+        <div className="bg-card rounded-xl shadow-google-sm flex items-center justify-center min-h-[400px]">
+          <div className="text-center py-12 px-4 max-w-sm">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Megaphone className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Nenhuma campanha gerada ainda</h3>
-            <p className="text-muted-foreground mb-6">
-              Comece criando sua primeira estratégia de campanha inteligente
+            <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma campanha ainda</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Crie sua primeira estratégia de campanha com inteligência artificial
             </p>
-            <Button onClick={onNewCampaign} size="lg" className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              Gerar Primeira Campanha
+            <Button onClick={onNewCampaign} className="gap-2 rounded-full px-6">
+              <Plus className="w-4 h-4" />
+              Criar Campanha
             </Button>
           </div>
         </div>
@@ -160,70 +172,71 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
   }
 
   return (
-    <div className="flex flex-col h-full space-y-3 sm:space-y-4 p-2 sm:p-4">
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div className="flex items-center space-x-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Campanhas Geradas</h2>
-          <Badge variant="secondary" className="px-3 py-1">
-            {filteredCampaigns.length} campanhas
-          </Badge>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-normal text-foreground tracking-tight">Campanhas Geradas</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {filteredCampaigns.length} {filteredCampaigns.length === 1 ? 'campanha' : 'campanhas'}
+          </p>
         </div>
-        <Button className="flex items-center space-x-2 w-full sm:w-auto" onClick={onNewCampaign}>
+        <Button onClick={onNewCampaign} className="gap-2 rounded-full px-6 shadow-google-sm w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           <span>Nova Campanha</span>
         </Button>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-            {/* Search Input */}
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar campanhas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" className="flex items-center space-x-2" onClick={() => setShowFilters(!showFilters)}>
-                <Filter className="w-4 h-4" />
-                <span>Filtros</span>
-              </Button>
-              <Button variant="outline" className="flex items-center space-x-2" onClick={exportToCSV}>
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Exportar</span>
-              </Button>
-            </div>
+      {/* Search and Filters */}
+      <div className="bg-card rounded-xl shadow-google-sm p-4">
+        <div className="flex flex-col lg:flex-row gap-3">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar campanhas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-11 rounded-full border-0 bg-muted/50 focus-visible:ring-1"
+            />
           </div>
-        </CardContent>
-      </Card>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2 rounded-full h-11"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden sm:inline">Filtros</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="gap-2 rounded-full h-11"
+              onClick={exportToCSV}
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Exportar</span>
+            </Button>
+          </div>
+        </div>
 
-      {/* Advanced Filters Card */}
-      {showFilters && (
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <h3 className="text-lg font-semibold mb-4">Filtros Avançados</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="funnel-filter">Etapa do Funil</Label>
+                <Label className="text-xs text-muted-foreground">Etapa do Funil</Label>
                 <Select 
                   value={filters.funnelStage} 
                   onValueChange={(value) => setFilters({ ...filters, funnelStage: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as etapas" />
+                  <SelectTrigger className="h-10 rounded-lg">
+                    <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as etapas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="topo">Topo</SelectItem>
                     <SelectItem value="meio">Meio</SelectItem>
                     <SelectItem value="fundo">Fundo</SelectItem>
@@ -233,17 +246,17 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="type-filter">Tipo de Campanha</Label>
+                <Label className="text-xs text-muted-foreground">Tipo de Campanha</Label>
                 <Select 
                   value={filters.campaignType} 
                   onValueChange={(value) => setFilters({ ...filters, campaignType: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os tipos" />
+                  <SelectTrigger className="h-10 rounded-lg">
+                    <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os tipos</SelectItem>
-                    <SelectItem value="awareness">Reconhecimento</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="awareness">Awareness</SelectItem>
                     <SelectItem value="traffic">Tráfego</SelectItem>
                     <SelectItem value="leads">Leads</SelectItem>
                     <SelectItem value="conversions">Conversões</SelectItem>
@@ -254,18 +267,18 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="client-filter">Cliente</Label>
+                <Label className="text-xs text-muted-foreground">Cliente</Label>
                 <Select 
                   value={filters.client} 
                   onValueChange={(value) => setFilters({ ...filters, client: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os clientes" />
+                  <SelectTrigger className="h-10 rounded-lg">
+                    <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {uniqueClients.map((client) => (
-                      <SelectItem key={client} value={client}>
+                      <SelectItem key={client} value={client!}>
                         {client}
                       </SelectItem>
                     ))}
@@ -274,147 +287,138 @@ export function CampaignsList({ onNewCampaign, onViewCampaign }: CampaignsListPr
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
-              <Button 
-                variant="outline" 
-                className="w-full sm:w-auto"
-                onClick={() => setFilters({ funnelStage: "all", campaignType: "all", client: "all" })}
-              >
-                Limpar Filtros
-              </Button>
-              <Button className="w-full sm:w-auto">
-                Aplicar ({filteredCampaigns.length})
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Campaigns Table - Desktop */}
-      <div className="hidden sm:block">
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Campanha
-                    </th>
-                    <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cliente
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Funil
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data
-                    </th>
-                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCampaigns.map((campaign) => (
-                    <tr key={campaign.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {campaign.title}
-                            </p>
-                            <p className="text-sm text-gray-500 truncate sm:hidden">
-                              {campaign.clients?.company}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="hidden md:table-cell px-3 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {campaign.clients?.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {campaign.clients?.company}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-3 py-4">
-                        <Badge variant="secondary">
-                          {getFunnelStageLabel(campaign.funnel_stage)}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-4">
-                        <Badge variant="outline">
-                          {getCampaignTypeLabel(campaign.campaign_type)}
-                        </Badge>
-                      </td>
-                      <td className="hidden lg:table-cell px-3 py-4 text-sm text-gray-500">
-                        {format(new Date(campaign.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </td>
-                      <td className="px-3 py-4 text-right text-sm font-medium">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onViewCampaign(campaign.id)}
-                          className="flex items-center gap-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span className="hidden sm:inline">Ver</span>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Campaigns Cards - Mobile */}
-      <div className="sm:hidden space-y-4">
-        {filteredCampaigns.map((campaign) => (
-          <Card key={campaign.id} className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-900 truncate">
-                    {campaign.title}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {campaign.clients?.company}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
+            {(filters.funnelStage !== "all" || filters.campaignType !== "all" || filters.client !== "all") && (
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Filtros ativos:</span>
+                <Button 
+                  variant="ghost" 
                   size="sm"
-                  onClick={() => onViewCampaign(campaign.id)}
-                  className="flex items-center gap-1"
+                  className="h-7 text-xs text-primary hover:text-primary"
+                  onClick={() => setFilters({ funnelStage: "all", campaignType: "all", client: "all" })}
                 >
-                  <Eye className="w-4 h-4" />
+                  Limpar todos
                 </Button>
               </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {getFunnelStageLabel(campaign.funnel_stage)}
-                </Badge>
-                <Badge variant="outline" className="text-xs">
-                  {getCampaignTypeLabel(campaign.campaign_type)}
-                </Badge>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Campaigns List - Google Style */}
+      <div className="bg-card rounded-xl shadow-google-sm overflow-hidden">
+        {/* Desktop Table Header */}
+        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 bg-muted/30 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <div className="col-span-5">Campanha</div>
+          <div className="col-span-2">Funil</div>
+          <div className="col-span-2">Tipo</div>
+          <div className="col-span-2">Data</div>
+          <div className="col-span-1"></div>
+        </div>
+
+        {/* Campaign Items */}
+        <div className="divide-y divide-border">
+          {filteredCampaigns.map((campaign) => {
+            const FunnelIcon = FUNNEL_ICONS[campaign.funnel_stage] || Target;
+            const typeInfo = CAMPAIGN_TYPE_INFO[campaign.campaign_type] || { icon: Megaphone, color: "text-muted-foreground" };
+            const TypeIcon = typeInfo.icon;
+
+            return (
+              <div 
+                key={campaign.id} 
+                className="group flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => onViewCampaign(campaign.id)}
+              >
+                {/* Client Avatar */}
+                <Avatar className="h-10 w-10 flex-shrink-0">
+                  <AvatarImage src={campaign.clients?.avatar || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                    {campaign.clients?.name?.substring(0, 2).toUpperCase() || 'CA'}
+                  </AvatarFallback>
+                </Avatar>
+
+                {/* Campaign Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {campaign.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {campaign.clients?.name} • {campaign.clients?.company}
+                  </p>
+                </div>
+
+                {/* Funnel Stage - Desktop */}
+                <div className="hidden md:flex items-center gap-2 w-24">
+                  <FunnelIcon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {getFunnelStageLabel(campaign.funnel_stage)}
+                  </span>
+                </div>
+
+                {/* Campaign Type - Desktop */}
+                <div className="hidden md:flex items-center gap-2 w-28">
+                  <TypeIcon className={`w-4 h-4 ${typeInfo.color}`} />
+                  <span className="text-sm text-muted-foreground">
+                    {getCampaignTypeLabel(campaign.campaign_type)}
+                  </span>
+                </div>
+
+                {/* Date - Desktop */}
+                <div className="hidden md:block w-24 text-sm text-muted-foreground">
+                  {format(new Date(campaign.created_at), "dd MMM yyyy", { locale: ptBR })}
+                </div>
+
+                {/* Mobile Badges */}
+                <div className="flex md:hidden flex-wrap gap-1">
+                  <Badge variant="secondary" className="text-xs h-5 px-2">
+                    {getFunnelStageLabel(campaign.funnel_stage)}
+                  </Badge>
+                </div>
+
+                {/* Arrow / Actions */}
+                <div className="flex items-center gap-1">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onViewCampaign(campaign.id)}>
+                        Ver detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportToCSV()}>
+                        Exportar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
-              
-              <p className="text-xs text-gray-500">
-                {format(new Date(campaign.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-              </p>
-            </div>
-          </Card>
-        ))}
+            );
+          })}
+        </div>
+
+        {/* Empty filtered state */}
+        {filteredCampaigns.length === 0 && campaigns.length > 0 && (
+          <div className="py-12 text-center">
+            <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Nenhuma campanha encontrada</p>
+            <Button 
+              variant="link" 
+              className="text-sm mt-2"
+              onClick={() => {
+                setSearchTerm("");
+                setFilters({ funnelStage: "all", campaignType: "all", client: "all" });
+              }}
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
