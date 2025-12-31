@@ -91,6 +91,7 @@ export function CreativeGeneratorSimplified() {
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingSingleIndex, setGeneratingSingleIndex] = useState<number | null>(null);
   const [generatedCreatives, setGeneratedCreatives] = useState<GeneratedCreative[]>([]);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0, currentType: "" });
 
@@ -754,6 +755,42 @@ export function CreativeGeneratorSimplified() {
     }
   };
 
+  // Gerar um único criativo individualmente
+  const handleGenerateSingle = async (index: number) => {
+    const input = creativeInputs[index];
+    if (!input?.theme.trim() || !selectedClientId || !activeCompany?.company_id) return;
+
+    setGeneratingSingleIndex(index);
+
+    try {
+      if (input.mediaType === "image") {
+        const creative = await generateImage(input, index);
+        if (creative) {
+          setGeneratedCreatives(prev => [...prev, creative]);
+          toast({ title: "Criativo gerado com sucesso!" });
+        }
+      } else if (input.mediaType === "carousel") {
+        const creative = await generateCarousel(input, index);
+        if (creative) {
+          setGeneratedCreatives(prev => [...prev, creative]);
+          toast({ title: "Carrossel gerado com sucesso!" });
+        }
+      } else if (input.mediaType === "video") {
+        await generateVideo(input, index);
+        toast({ title: "Vídeo iniciado! Aguarde o processamento." });
+      }
+    } catch (error: any) {
+      console.error(`Erro ao gerar criativo ${index + 1}:`, error);
+      toast({
+        title: `Erro ao gerar criativo`,
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSingleIndex(null);
+    }
+  };
+
   // Contagem por tipo
   const counts = useMemo(() => {
     const result = { image: 0, carousel: 0, video: 0 };
@@ -880,8 +917,10 @@ export function CreativeGeneratorSimplified() {
                         setShowReferenceDialog(true);
                       }}
                       onRemoveReference={() => removeCreativeReference(index)}
+                      onGenerateSingle={() => handleGenerateSingle(index)}
                       isGeneratingTheme={generatingThemeIndex === index}
                       isGeneratingCopy={generatingCopyIndex === index}
+                      isGeneratingSingle={generatingSingleIndex === index}
                       generatingSlideField={
                         generatingSlideField?.creativeIndex === index 
                           ? { index: generatingSlideField.slideIndex, field: generatingSlideField.field }

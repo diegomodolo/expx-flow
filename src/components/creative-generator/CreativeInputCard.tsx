@@ -86,8 +86,10 @@ interface CreativeInputCardProps {
   onGenerateSlideWithAI?: (slideIndex: number, field: 'headline' | 'description') => void;
   onSelectReference?: () => void;
   onRemoveReference?: () => void;
+  onGenerateSingle?: () => void;
   isGeneratingTheme?: boolean;
   isGeneratingCopy?: boolean;
+  isGeneratingSingle?: boolean;
   generatingSlideField?: { index: number; field: 'headline' | 'description' } | null;
   hasClientBriefing?: boolean;
   selectedClientId?: string;
@@ -103,8 +105,10 @@ export function CreativeInputCard({
   onGenerateSlideWithAI,
   onSelectReference,
   onRemoveReference,
+  onGenerateSingle,
   isGeneratingTheme,
   isGeneratingCopy,
+  isGeneratingSingle,
   generatingSlideField,
   hasClientBriefing,
   selectedClientId,
@@ -461,6 +465,29 @@ export function CreativeInputCard({
                     )}
                 </div>
               </div>
+            )}
+
+            {/* Botão Gerar Este Criativo */}
+            {onGenerateSingle && data.theme.trim() && (
+              <Button
+                onClick={onGenerateSingle}
+                disabled={isGeneratingSingle}
+                size="sm"
+                variant="secondary"
+                className="w-full gap-2"
+              >
+                {isGeneratingSingle ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Gerar Este Criativo
+                  </>
+                )}
+              </Button>
             )}
           </div>
         </CollapsibleContent>
