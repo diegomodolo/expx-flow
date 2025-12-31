@@ -13,7 +13,9 @@ import {
   User, 
   Building2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Play,
+  Loader2
 } from "lucide-react";
 import { useRecurringTasks, RecurringTaskTemplate } from "@/hooks/useRecurringTasks";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
@@ -29,17 +31,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface RecurringTasksManagerProps {
   clientId?: string;
 }
 
 export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) {
-  const { templates, loading, deleteTemplate, toggleTemplateActive } = useRecurringTasks(clientId);
+  const { templates, loading, deleteTemplate, toggleTemplateActive, fetchTemplates } = useRecurringTasks(clientId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTemplate, setEditTemplate] = useState<RecurringTaskTemplate | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleEdit = (template: RecurringTaskTemplate) => {
     setEditTemplate(template);
@@ -56,6 +61,50 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
       await deleteTemplate(templateToDelete);
       setDeleteConfirmOpen(false);
       setTemplateToDelete(null);
+    }
+  };
+
+  const handleGenerateTasks = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-recurring-tasks');
+      
+      if (error) {
+        console.error('Error generating tasks:', error);
+        toast.error('Erro ao gerar tarefas', {
+          description: error.message
+        });
+        return;
+      }
+
+      console.log('Generation result:', data);
+      
+      if (data?.results?.created > 0) {
+        toast.success(`${data.results.created} tarefa(s) gerada(s)`, {
+          description: 'As tarefas foram criadas com sucesso'
+        });
+      } else if (data?.results?.processed === 0) {
+        toast.info('Nenhuma tarefa pendente', {
+          description: 'Não há tarefas recorrentes para gerar no momento'
+        });
+      } else if (data?.results?.errors?.length > 0) {
+        toast.warning('Geração parcial', {
+          description: `${data.results.created} criadas, ${data.results.errors.length} erro(s)`
+        });
+      } else {
+        toast.info('Nenhuma tarefa gerada', {
+          description: 'Verifique as datas de próxima geração dos templates'
+        });
+      }
+
+      // Refresh templates to show updated next_generation_date
+      await fetchTemplates();
+      
+    } catch (err) {
+      console.error('Exception generating tasks:', err);
+      toast.error('Erro ao gerar tarefas');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -80,10 +129,25 @@ export function RecurringTasksManager({ clientId }: RecurringTasksManagerProps) 
             <Repeat className="h-5 w-5 text-primary" />
             Tarefas Recorrentes
           </CardTitle>
-          <Button size="sm" onClick={() => { setEditTemplate(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" />
-            Nova
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={handleGenerateTasks}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1" />
+              )}
+              Gerar Agora
+            </Button>
+            <Button size="sm" onClick={() => { setEditTemplate(null); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" />
+              Nova
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
