@@ -237,6 +237,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/relatorio`,
       icon: FileText,
       description: "Relatórios semanais"
+    },
+    {
+      title: "Tendências",
+      href: `/clientes/${clientId}/tendencias`,
+      icon: TrendingUp,
+      description: "Dashboard Google Trends"
     }
   ];
 
