@@ -17,6 +17,25 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Função para determinar aspect ratio baseado no tipo de criativo
+function getAspectRatioClass(typeKey: string): string {
+  const aspectRatioMap: Record<string, string> = {
+    'instagram_feed': 'aspect-[3/4]',
+    'facebook_feed': 'aspect-[3/4]',
+    'linkedin_post': 'aspect-[3/4]',
+    'instagram_story': 'aspect-[9/16]',
+    'instagram_reels': 'aspect-[9/16]',
+    'facebook_story': 'aspect-[9/16]',
+    'whatsapp_status': 'aspect-[9/16]',
+    'tiktok_video': 'aspect-[9/16]',
+    'youtube_thumbnail': 'aspect-video',
+    'twitter_post': 'aspect-video',
+    'banner_horizontal': 'aspect-[32/10]',
+    'banner_vertical': 'aspect-[1/2]',
+  };
+  return aspectRatioMap[typeKey] || 'aspect-[3/4]';
+}
+
 interface CarouselPreviewCardProps {
   images: string[];
   caption: string;
@@ -101,7 +120,7 @@ export function CarouselPreviewCard({
       <div className="relative">
         {images.length > 0 && (
           <>
-            <div className="relative aspect-square bg-muted">
+            <div className={`relative bg-muted ${getAspectRatioClass(typeKey)}`}>
               <img
                 src={images[currentSlide]}
                 alt={`Slide ${currentSlide + 1}`}

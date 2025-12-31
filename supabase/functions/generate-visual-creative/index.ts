@@ -63,7 +63,9 @@ Deno.serve(async (req) => {
       companyId,
       references = [],
       approvedText,
-      extraPrompt
+      extraPrompt,
+      isCarousel = false,
+      slides = []
     } = await req.json();
 
     console.log('Request data received:', {
@@ -75,7 +77,9 @@ Deno.serve(async (req) => {
       hasReferences: references && references.length > 0,
       referencesCount: references ? references.length : 0,
       hasApprovedText: !!approvedText,
-      hasExtraPrompt: !!extraPrompt
+      hasExtraPrompt: !!extraPrompt,
+      isCarousel,
+      slidesCount: slides?.length || 0
     });
 
     // Validar dados obrigatórios
@@ -237,8 +241,11 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully converted ${messageContent.length} images to base64`);
 
-    // Construir o prompt principal
-    const geminiPrompt = `Generate a professional marketing creative image with the following specifications:
+    // Função para gerar uma única imagem
+    const generateSingleImage = async (slidePrompt: string, slideNumber?: number): Promise<string> => {
+      const slideMessageContent: any[] = [...messageContent]; // Copia referências
+
+      const fullPrompt = `Generate a professional marketing creative image with the following specifications:
 
 IMAGE FORMAT:
 - Aspect ratio: ${aspectRatio}
@@ -257,12 +264,7 @@ CAMPAIGN DETAILS:
 - Description: ${description}
 - Objective: ${objective}
 
-${textToUse ? `TEXT TO INCLUDE IN THE IMAGE:
-"${textToUse}"
-- This text MUST appear as readable typography/overlay on the image
-- Use professional, modern fonts with excellent legibility
-- Ensure high contrast for readability
-- Position the text strategically within the composition` : ''}
+${slidePrompt}
 
 ${messageContent.length > 0 ? `REFERENCE IMAGES PROVIDED:
 ${hasSpecificReference ? `- **CRITICAL**: A SPECIFIC reference image was provided for THIS creative. You MUST closely follow this reference image's style, composition, colors, and visual elements.
@@ -292,58 +294,53 @@ CRITICAL RULES:
 
 Generate the image now.`;
 
-    messageContent.push({
-      type: 'text',
-      text: geminiPrompt
-    });
+      slideMessageContent.push({
+        type: 'text',
+        text: fullPrompt
+      });
 
-    console.log('Calling Gemini google/gemini-3-pro-image-preview...');
-    console.log('Message content items:', messageContent.length);
+      console.log(`Calling Gemini for ${slideNumber !== undefined ? `slide ${slideNumber}` : 'single image'}...`);
 
-    // Call Lovable AI Gateway with Gemini model
-    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: messageContent
-          }
-        ],
-        modalities: ['image', 'text']
-      }),
-    });
+      const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-pro-image-preview',
+          messages: [
+            {
+              role: 'user',
+              content: slideMessageContent
+            }
+          ],
+          modalities: ['image', 'text']
+        }),
+      });
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', geminiResponse.status, errorText);
-      
-      if (geminiResponse.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error('Gemini API error:', geminiResponse.status, errorText);
+        
+        if (geminiResponse.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+        if (geminiResponse.status === 402) {
+          throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
+        }
+        throw new Error(`Gemini API error: ${geminiResponse.status}`);
       }
-      if (geminiResponse.status === 402) {
-        throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
-      }
-      throw new Error(`Gemini API error: ${geminiResponse.status}`);
-    }
 
-    const geminiData = await geminiResponse.json();
-    console.log('Gemini response received');
+      const geminiData = await geminiResponse.json();
+      const getBase64Url = (d: any) => d?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
+      let base64Url = getBase64Url(geminiData);
 
-    // Extract image from response
-    const getBase64Url = (d: any) => d?.choices?.[0]?.message?.images?.[0]?.image_url?.url as string | undefined;
-    let base64Url = getBase64Url(geminiData);
-
-    // Retry if no image returned
-    if (!base64Url) {
-      console.warn('Gemini returned no images on first attempt, retrying...');
-      
-      const retryPrompt = `Generate a ${aspectRatio} (${targetSize ? `${targetSize.width}x${targetSize.height}px` : 'use correct pixel size'}) professional marketing image for ${creativeTypeName}.
+      // Retry if no image returned
+      if (!base64Url) {
+        console.warn(`No image returned for ${slideNumber !== undefined ? `slide ${slideNumber}` : 'image'}, retrying...`);
+        
+        const retryPrompt = `Generate a ${aspectRatio} (${targetSize ? `${targetSize.width}x${targetSize.height}px` : 'use correct pixel size'}) professional marketing image for ${creativeTypeName}.
 
 Theme: ${theme}
 Brand: ${clientData.name} (${sectorContext})
@@ -352,92 +349,91 @@ ${textToUse ? `Include this text prominently: "${textToUse}"` : ''}
 Create a clean, professional, marketing-ready visual.
 Generate the image now.`;
 
-      const retryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const retryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-pro-image-preview',
+            messages: [{ role: 'user', content: retryPrompt }],
+            modalities: ['image', 'text']
+          }),
+        });
+
+        if (!retryResponse.ok) {
+          throw new Error(`Gemini retry failed: ${retryResponse.status}`);
+        }
+
+        const retryData = await retryResponse.json();
+        base64Url = getBase64Url(retryData);
+
+        if (!base64Url) {
+          throw new Error('Failed to generate image with Gemini');
+        }
+      }
+
+      if (!base64Url.startsWith('data:image/')) {
+        throw new Error('Gemini returned an unsupported image format');
+      }
+
+      // Upload to Supabase Storage
+      const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('Failed to parse base64 image data');
+      }
+
+      const extension = matches[1] || 'png';
+      const base64Data = matches[2];
+      const slideSuffix = slideNumber !== undefined ? `-slide${slideNumber}` : '';
+      const fileName = `visual-creatives/${clientId}/${Date.now()}${slideSuffix}.${extension}`;
+
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from('ai-generated-images')
+        .upload(fileName, bytes, {
+          contentType: `image/${extension}`,
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        throw new Error('Failed to upload generated image');
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('ai-generated-images')
+        .getPublicUrl(fileName);
+
+      console.log(`Image uploaded: ${urlData.publicUrl}`);
+      return urlData.publicUrl;
+    };
+
+    // Gerar caption
+    const generateCaption = async (): Promise<string> => {
+      console.log('Generating caption...');
+      const captionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
+          'Authorization': `Bearer ${openAIApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-3-pro-image-preview',
-          messages: [{ role: 'user', content: retryPrompt }],
-          modalities: ['image', 'text']
-        }),
-      });
-
-      if (!retryResponse.ok) {
-        throw new Error(`Gemini retry failed: ${retryResponse.status}`);
-      }
-
-      const retryData = await retryResponse.json();
-      base64Url = getBase64Url(retryData);
-
-      if (!base64Url) {
-        console.error('No image after retry');
-        throw new Error('Failed to generate image with Gemini');
-      }
-    }
-
-    if (!base64Url.startsWith('data:image/')) {
-      throw new Error('Gemini returned an unsupported image format');
-    }
-
-    console.log('Image generated successfully, uploading to storage...');
-
-    // Parse and upload to Supabase Storage
-    const matches = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!matches) {
-      throw new Error('Failed to parse base64 image data');
-    }
-
-    const extension = matches[1] || 'png';
-    const base64Data = matches[2];
-    const fileName = `visual-creatives/${clientId}/${Date.now()}.${extension}`;
-
-    // Decode base64 and upload
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    const { error: uploadError } = await supabase.storage
-      .from('ai-generated-images')
-      .upload(fileName, bytes, {
-        contentType: `image/${extension}`,
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error('Error uploading image:', uploadError);
-      throw new Error('Failed to upload generated image');
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('ai-generated-images')
-      .getPublicUrl(fileName);
-
-    const imageUrl = urlData.publicUrl;
-    console.log('Image uploaded:', imageUrl);
-
-    // Generate caption with GPT
-    console.log('Generating caption...');
-    const captionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'Você é um especialista em marketing digital e copywriting. Crie legendas envolventes e persuasivas para redes sociais em português brasileiro.' 
-          },
-          { 
-            role: 'user', 
-            content: `Crie uma legenda para redes sociais:
+          model: 'gpt-4.1-mini-2025-04-14',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'Você é um especialista em marketing digital e copywriting. Crie legendas envolventes e persuasivas para redes sociais em português brasileiro.' 
+            },
+            { 
+              role: 'user', 
+              content: `Crie uma legenda para redes sociais:
 
 CLIENTE: ${clientData.name} (${clientData.sector})
 PÚBLICO: ${audienceContext}
@@ -445,7 +441,7 @@ TEMA: ${theme}
 TÍTULO: ${title}
 COPY: ${copy}
 OBJETIVO: ${objective}
-TIPO: ${creativeTypeName}
+TIPO: ${creativeTypeName}${isCarousel ? ' (CARROSSEL)' : ''}
 
 REQUISITOS:
 - 120-250 caracteres
@@ -455,35 +451,103 @@ REQUISITOS:
 - Tom profissional e acessível
 
 Responda APENAS com a legenda.`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 200,
-      }),
-    });
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        }),
+      });
 
-    let suggestedCaption = `🚀 ${clientData.name} apresenta: ${title || theme}! #${clientData.sector.replace(/\s+/g, '')} #Marketing`;
-    
-    if (captionResponse.ok) {
-      const captionData = await captionResponse.json();
-      if (captionData.choices?.[0]?.message?.content) {
-        suggestedCaption = captionData.choices[0].message.content.trim();
+      let suggestedCaption = `🚀 ${clientData.name} apresenta: ${title || theme}! #${clientData.sector.replace(/\s+/g, '')} #Marketing`;
+      
+      if (captionResponse.ok) {
+        const captionData = await captionResponse.json();
+        if (captionData.choices?.[0]?.message?.content) {
+          suggestedCaption = captionData.choices[0].message.content.trim();
+        }
       }
-    }
 
-    console.log('Function completed successfully');
-    return new Response(JSON.stringify({ 
-      imageUrl,
-      suggestedCaption 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      return suggestedCaption;
+    };
+
+    // LÓGICA PRINCIPAL: Carrossel ou Imagem única
+    if (isCarousel && slides && slides.length > 0) {
+      console.log(`Generating carousel with ${slides.length} slides...`);
+      
+      const generatedImages: string[] = [];
+      
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        const slideNumber = i + 1;
+        const totalSlides = slides.length;
+        
+        const slidePrompt = `CAROUSEL SLIDE ${slideNumber} OF ${totalSlides}:
+
+SLIDE CONTENT:
+- Headline: "${slide.headline || 'N/A'}"
+- Description: "${slide.description || 'N/A'}"
+
+${slide.headline ? `TEXT TO INCLUDE IN THIS SLIDE:
+"${slide.headline}"
+${slide.description ? `"${slide.description}"` : ''}
+- This text MUST appear as readable typography/overlay on the image
+- Use professional, modern fonts with excellent legibility
+- Ensure high contrast for readability` : ''}
+
+CRITICAL CAROUSEL CONSISTENCY:
+- This is slide ${slideNumber} of a ${totalSlides}-slide carousel
+- MAINTAIN VISUAL CONSISTENCY with all other slides in this carousel
+- Use the SAME color palette, typography style, and design language across all slides
+- Keep the same layout structure and visual elements
+- The slides should clearly belong together as a cohesive set`;
+
+        try {
+          const imageUrl = await generateSingleImage(slidePrompt, slideNumber);
+          generatedImages.push(imageUrl);
+          console.log(`Slide ${slideNumber}/${totalSlides} generated successfully`);
+        } catch (slideError: any) {
+          console.error(`Error generating slide ${slideNumber}:`, slideError);
+          throw new Error(`Failed to generate slide ${slideNumber}: ${slideError.message}`);
+        }
+      }
+
+      const caption = await generateCaption();
+
+      console.log(`Carousel completed: ${generatedImages.length} images`);
+      return new Response(JSON.stringify({ 
+        images: generatedImages,
+        caption 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } else {
+      // Imagem única (comportamento original)
+      const singleImagePrompt = textToUse ? `TEXT TO INCLUDE IN THE IMAGE:
+"${textToUse}"
+- This text MUST appear as readable typography/overlay on the image
+- Use professional, modern fonts with excellent legibility
+- Ensure high contrast for readability
+- Position the text strategically within the composition` : '';
+
+      const imageUrl = await generateSingleImage(singleImagePrompt);
+      const caption = await generateCaption();
+
+      console.log('Function completed successfully');
+      return new Response(JSON.stringify({ 
+        imageUrl,
+        suggestedCaption: caption 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
   } catch (error: any) {
     console.error('Error in generate-visual-creative function:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
       imageUrl: null,
+      images: null,
       suggestedCaption: null
     }), {
       status: 500,

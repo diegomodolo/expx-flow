@@ -126,6 +126,35 @@ export function CreativeGeneratorSimplified() {
     });
   }, [quantity]);
 
+  // Monitorar quando vídeo completa e adicionar ao generatedCreatives
+  useEffect(() => {
+    if (videoGeneration.state.status === 'completed' && videoGeneration.state.videoUrl) {
+      const videoInput = creativeInputs.find(i => i.mediaType === "video");
+      if (videoInput) {
+        // Verifica se já não foi adicionado
+        const alreadyAdded = generatedCreatives.some(
+          c => c.mediaType === "video" && c.videoUrl === videoGeneration.state.videoUrl
+        );
+        
+        if (!alreadyAdded) {
+          const videoType = VIDEO_TYPES.find(t => t.id === videoInput.creativeType);
+          const newVideoCreative: GeneratedCreative = {
+            id: `video-${Date.now()}`,
+            videoUrl: videoGeneration.state.videoUrl,
+            caption: "",
+            type: videoInput.creativeType,
+            typeName: videoType?.name || "Vídeo",
+            theme: videoInput.theme,
+            copyText: videoInput.copyText,
+            mediaType: "video"
+          };
+          
+          setGeneratedCreatives(prev => [...prev, newVideoCreative]);
+        }
+      }
+    }
+  }, [videoGeneration.state.status, videoGeneration.state.videoUrl]);
+
   const validInputs = creativeInputs.filter(input => input.theme.trim());
   const canGenerate = selectedClientId && validInputs.length > 0;
 
@@ -981,6 +1010,47 @@ export function CreativeGeneratorSimplified() {
                 onSave={() => handleSave(creative)}
                 onSchedule={() => handleSchedule(creative)}
                 onRegenerate={() => handleRegenerate(creative)}
+              />
+            ) : creative.mediaType === "video" ? (
+              <VideoCreativePreviewCard
+                key={creative.id}
+                videoUrl={creative.videoUrl}
+                status="completed"
+                theme={creative.theme}
+                typeName={creative.typeName}
+                clientName={selectedClient?.name || "Cliente"}
+                clientAvatar={selectedClient?.avatar || undefined}
+                duration={creativeInputs.find(i => i.mediaType === "video")?.videoSettings?.duration}
+                aspectRatio={VIDEO_TYPES.find(t => t.id === creative.type)?.aspectRatio}
+                onRegenerate={() => {
+                  const videoInput = creativeInputs.find(i => i.mediaType === "video");
+                  if (videoInput) {
+                    generateVideo(videoInput, creativeInputs.indexOf(videoInput));
+                  }
+                }}
+                onSave={async () => {
+                  if (creative.videoUrl && selectedClient) {
+                    await createCreative({
+                      company_id: activeCompany?.company_id || '',
+                      client_id: selectedClientId,
+                      client_name: selectedClient.name,
+                      creative_type: creative.type,
+                      theme: creative.theme,
+                      title: creative.theme,
+                      description: creative.theme,
+                      objective: 'engajamento',
+                      target_audience: selectedClient.target_audience || '',
+                      copy_text: creative.copyText,
+                      video_url: creative.videoUrl,
+                      media_type: 'video',
+                      video_duration_seconds: creativeInputs.find(i => i.mediaType === "video")?.videoSettings?.duration || 5,
+                      status: 'completed'
+                    });
+                    toast({ title: 'Vídeo salvo no histórico!' });
+                  }
+                }}
+                onSchedule={() => handleSchedule(creative)}
+                isRegenerating={videoGeneration.isGenerating}
               />
             ) : (
               <CreativePreviewCard
