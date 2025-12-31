@@ -234,31 +234,57 @@ export function EditableCreativeCard({
                 </Collapsible>
               </div>
 
-              {/* Right Column - Media */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Mídia</Label>
-                  <MediaUploader
-                    mediaUrls={creative.mediaUrls}
-                    onChange={(urls) => handleChange('mediaUrls', urls)}
-                    type={creative.type}
-                    clientId={clientId}
-                    creativeContext={{
-                      title: creative.headline,
-                      body: creative.body,
-                      description: creative.description,
-                    }}
-                  />
+              {/* Right Column - Media + Preview Combined */}
+              <div className="space-y-2">
+                <Label>Mídia e Pré-visualização</Label>
+                <div className="border rounded-lg overflow-hidden bg-muted/30">
+                  {/* Preview Area - Shows uploaded media or upload placeholder */}
+                  <div className="relative">
+                    <FeedPreview
+                      creative={previewCreative}
+                      clientName={clientName}
+                      clientAvatar={clientAvatar}
+                    />
+                    
+                    {/* Upload overlay when no media */}
+                    {(!creative.mediaUrls || creative.mediaUrls.length === 0) && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                        <div className="w-full px-4">
+                          <MediaUploader
+                            mediaUrls={creative.mediaUrls}
+                            onChange={(urls) => handleChange('mediaUrls', urls)}
+                            type={creative.type}
+                            clientId={clientId}
+                            creativeContext={{
+                              title: creative.headline,
+                              body: creative.body,
+                              description: creative.description,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Media controls when media exists */}
+                  {creative.mediaUrls && creative.mediaUrls.length > 0 && (
+                    <div className="p-3 border-t bg-background">
+                      <MediaUploader
+                        mediaUrls={creative.mediaUrls}
+                        onChange={(urls) => handleChange('mediaUrls', urls)}
+                        type={creative.type}
+                        clientId={clientId}
+                        creativeContext={{
+                          title: creative.headline,
+                          body: creative.body,
+                          description: creative.description,
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-
-            {/* Preview */}
-            <FeedPreview
-              creative={previewCreative}
-              clientName={clientName}
-              clientAvatar={clientAvatar}
-            />
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
