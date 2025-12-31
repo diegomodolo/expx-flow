@@ -30,8 +30,8 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
 
     try {
       // Fetch segments
-      const { data: segmentsData, error: segmentsError } = await supabase
-        .from('lead_segments')
+      const { data: segmentsData, error: segmentsError } = await (supabase
+        .from('lead_segments') as any)
         .select('id, name, description')
         .eq('company_id', activeCompany.company_id)
         .eq('is_active', true);
@@ -40,9 +40,9 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
 
       // Get counts separately
       const formattedSegments: LeadSegment[] = await Promise.all(
-        (segmentsData || []).map(async (seg) => {
-          const { count } = await supabase
-            .from('lead_segment_assignments')
+        (segmentsData || []).map(async (seg: any) => {
+          const { count } = await (supabase
+            .from('lead_segment_assignments') as any)
             .select('*', { count: 'exact', head: true })
             .eq('segment_id', seg.id);
           
@@ -94,8 +94,8 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
 
     try {
       // 1. Fetch leads from the segment
-      const { data: assignments, error: assignmentsError } = await supabase
-        .from('lead_segment_assignments')
+      const { data: assignments, error: assignmentsError } = await (supabase
+        .from('lead_segment_assignments') as any)
         .select('lead_id')
         .eq('segment_id', segmentId);
 
@@ -110,12 +110,12 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
         return null;
       }
 
-      const leadIds = assignments.map(a => a.lead_id);
+      const leadIds = assignments.map((a: any) => a.lead_id);
 
-      // 2. Fetch lead details from lead_pool (email/phone)
-      const { data: leads, error: leadsError } = await supabase
-        .from('lead_pool')
-        .select('id, email, phone, name')
+      // 2. Fetch lead details from cnae_lead_pool (email/phone)
+      const { data: leads, error: leadsError } = await (supabase
+        .from('cnae_lead_pool') as any)
+        .select('id, email, phone, razao_social')
         .in('id', leadIds);
 
       if (leadsError) throw leadsError;
@@ -150,7 +150,7 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
         }));
 
       if (users.length > 0) {
-        const { data: addData, error: addError } = await supabase.functions.invoke(
+        const { error: addError } = await supabase.functions.invoke(
           'manage-audience-users',
           {
             body: {
@@ -164,7 +164,6 @@ export function useLeadSegmentsForAudience(clientId: string | null) {
 
         if (addError) {
           console.error('Error adding users to audience:', addError);
-          // Don't throw - audience was created, just couldn't add users
         }
       }
 
