@@ -8269,14 +8269,18 @@ export type Database = {
           created_at: string
           creative_type: string
           description: string | null
+          generation_operation_id: string | null
           id: string
           image_url: string | null
+          media_type: string | null
           objective: string | null
           status: string
           target_audience: string | null
           theme: string
           title: string
           updated_at: string
+          video_duration_seconds: number | null
+          video_url: string | null
         }
         Insert: {
           caption?: string | null
@@ -8287,14 +8291,18 @@ export type Database = {
           created_at?: string
           creative_type: string
           description?: string | null
+          generation_operation_id?: string | null
           id?: string
           image_url?: string | null
+          media_type?: string | null
           objective?: string | null
           status?: string
           target_audience?: string | null
           theme: string
           title: string
           updated_at?: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
         }
         Update: {
           caption?: string | null
@@ -8305,14 +8313,18 @@ export type Database = {
           created_at?: string
           creative_type?: string
           description?: string | null
+          generation_operation_id?: string | null
           id?: string
           image_url?: string | null
+          media_type?: string | null
           objective?: string | null
           status?: string
           target_audience?: string | null
           theme?: string
           title?: string
           updated_at?: string
+          video_duration_seconds?: number | null
+          video_url?: string | null
         }
         Relationships: []
       }
