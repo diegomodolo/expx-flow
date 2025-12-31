@@ -24,8 +24,8 @@ Deno.serve(async (req) => {
     // Novo formato: type = 'theme' | 'copy'
     // Antigo formato: creativeType para sugestões múltiplas
     
-    if (body.type === 'theme' || body.type === 'copy') {
-      // NOVO FORMATO - Geração simples de tema ou copy
+    if (body.type === 'theme' || body.type === 'copy' || body.type === 'carousel_headline' || body.type === 'carousel_description') {
+      // NOVO FORMATO - Geração simples de tema, copy ou conteúdo de slide
       return await handleSimpleSuggestion(body);
     } else {
       // FORMATO ANTIGO - Múltiplas sugestões de tema
@@ -45,11 +45,11 @@ Deno.serve(async (req) => {
   }
 });
 
-// Novo formato - gerar um único tema ou copy
+// Novo formato - gerar um único tema, copy ou conteúdo de slide
 async function handleSimpleSuggestion(body: any) {
-  const { clientId, companyId, briefing, theme, type, creativeTypes } = body;
+  const { clientId, companyId, briefing, theme, type, creativeTypes, slideNumber, totalSlides, existingSlides } = body;
 
-  console.log('Generate simple suggestion:', { clientId, type, creativeTypes });
+  console.log('Generate simple suggestion:', { clientId, type, creativeTypes, slideNumber, totalSlides });
 
   if (!clientId || !companyId) {
     throw new Error('Client ID and Company ID are required');
@@ -123,6 +123,58 @@ INSTRUÇÕES:
 4. Exemplos: "50% OFF Hoje", "Última Chance!", "Frete Grátis", "Compre Agora"
 
 Responda APENAS com o texto da imagem. Nada mais.`;
+  } else if (type === 'carousel_headline') {
+    // Gerar headline para slide de carrossel
+    const existingSlidesInfo = existingSlides?.map((s: any) => 
+      `Slide ${s.slideNumber}: Headline: "${s.headline || '(vazio)'}" | Descrição: "${s.description || '(vazio)'}"`
+    ).join('\n') || '';
+
+    prompt = `Você é um copywriter especialista em carrosséis para redes sociais.
+
+Crie UMA headline curta e impactante para o SLIDE ${slideNumber} de um carrossel com ${totalSlides} slides.
+
+${clientBriefing ? `BRIEFING DO CLIENTE:\n${clientBriefing}\n` : ''}
+${theme ? `TEMA DO CARROSSEL:\n${theme}\n` : ''}
+
+SLIDES EXISTENTES:
+${existingSlidesInfo || '(Nenhum slide preenchido ainda)'}
+
+INSTRUÇÕES:
+1. A headline deve ter MÁXIMO 5-8 palavras
+2. Deve ser impactante e chamar atenção
+3. Considere a sequência narrativa do carrossel
+4. Se for o primeiro slide, seja chamativo (gancho)
+5. Se for slide intermediário, desenvolva a ideia
+6. Se for o último slide, inclua CTA ou conclusão
+7. MANTENHA CONSISTÊNCIA com os outros slides já preenchidos
+8. NÃO repita headlines de outros slides
+
+Responda APENAS com a headline. Nada mais.`;
+  } else if (type === 'carousel_description') {
+    // Gerar descrição para slide de carrossel
+    const existingSlidesInfo = existingSlides?.map((s: any) => 
+      `Slide ${s.slideNumber}: Headline: "${s.headline || '(vazio)'}" | Descrição: "${s.description || '(vazio)'}"`
+    ).join('\n') || '';
+
+    prompt = `Você é um copywriter especialista em carrosséis para redes sociais.
+
+Crie UMA descrição complementar para o SLIDE ${slideNumber} de um carrossel com ${totalSlides} slides.
+
+${clientBriefing ? `BRIEFING DO CLIENTE:\n${clientBriefing}\n` : ''}
+${theme ? `TEMA DO CARROSSEL:\n${theme}\n` : ''}
+
+SLIDES EXISTENTES:
+${existingSlidesInfo || '(Nenhum slide preenchido ainda)'}
+
+INSTRUÇÕES:
+1. A descrição deve ter MÁXIMO 15-20 palavras
+2. Deve complementar a headline do slide, não repetir
+3. Adicione contexto, benefício ou explicação
+4. Considere a sequência narrativa do carrossel
+5. MANTENHA CONSISTÊNCIA com os outros slides já preenchidos
+6. NÃO repita informações de outros slides
+
+Responda APENAS com a descrição. Nada mais.`;
   } else {
     throw new Error('Invalid suggestion type');
   }
@@ -157,10 +209,13 @@ Responda APENAS com o texto da imagem. Nada mais.`;
 
   console.log('Generated suggestion:', suggestion);
 
+  // Para tipos de carrossel, retornar como 'text' para manter consistência
+  const responseKey = (type === 'carousel_headline' || type === 'carousel_description') ? 'text' : type;
+
   return new Response(
     JSON.stringify({ 
       success: true,
-      [type]: suggestion 
+      [responseKey]: suggestion 
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
