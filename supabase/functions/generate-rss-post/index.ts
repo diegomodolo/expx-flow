@@ -36,9 +36,7 @@ serve(async (req) => {
       throw new Error(`Item RSS não encontrado: ${itemError?.message}`);
     }
 
-    if (rssItem.post_generated) {
-      throw new Error('Post já foi gerado para este item');
-    }
+    // Permite re-geração mesmo se já foi gerado anteriormente
 
     const { data: feed, error: feedError } = await supabase
       .from('instagram_autopost_rss_feeds')
