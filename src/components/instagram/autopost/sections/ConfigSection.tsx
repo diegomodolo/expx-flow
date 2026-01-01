@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Settings, Edit, Loader2, Image, Images, Facebook } from 'lucide-react';
+import { Settings, Edit, Loader2, Image, Images, Facebook, Rss } from 'lucide-react';
 
 interface FacebookPage {
   id: string;
@@ -20,6 +20,7 @@ interface ConfigSectionProps {
     post_briefing: string;
     single_post_prompt: string | null;
     carousel_prompt: string | null;
+    rss_feed_prompt?: string | null;
     also_post_to_facebook?: boolean;
     facebook_page_id?: string | null;
   };
@@ -40,6 +41,7 @@ interface ConfigSectionProps {
     post_briefing?: string; 
     single_post_prompt?: string;
     carousel_prompt?: string;
+    rss_feed_prompt?: string;
     instagram_account_id?: string;
     also_post_to_facebook?: boolean;
     facebook_page_id?: string | null;
@@ -61,6 +63,7 @@ export function ConfigSection({
   const [editName, setEditName] = useState('');
   const [editSinglePrompt, setEditSinglePrompt] = useState('');
   const [editCarouselPrompt, setEditCarouselPrompt] = useState('');
+  const [editRssFeedPrompt, setEditRssFeedPrompt] = useState('');
   const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
   const [editAlsoPostToFacebook, setEditAlsoPostToFacebook] = useState(false);
   const [editFacebookPageId, setEditFacebookPageId] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export function ConfigSection({
       setEditName(config.name || '');
       setEditSinglePrompt(config.single_post_prompt || config.post_briefing || '');
       setEditCarouselPrompt(config.carousel_prompt || config.post_briefing || '');
+      setEditRssFeedPrompt(config.rss_feed_prompt || '');
       setEditInstagramAccountId(instagramAccountId);
       setEditAlsoPostToFacebook(config.also_post_to_facebook || false);
       setEditFacebookPageId(config.facebook_page_id || null);
@@ -81,6 +85,7 @@ export function ConfigSection({
       name: editName || null,
       single_post_prompt: editSinglePrompt,
       carousel_prompt: editCarouselPrompt,
+      rss_feed_prompt: editRssFeedPrompt,
       instagram_account_id: editInstagramAccountId,
       also_post_to_facebook: editAlsoPostToFacebook,
       facebook_page_id: editAlsoPostToFacebook ? editFacebookPageId : null,
@@ -90,6 +95,7 @@ export function ConfigSection({
 
   const singlePromptDisplay = config.single_post_prompt || config.post_briefing || 'Nenhum prompt definido';
   const carouselPromptDisplay = config.carousel_prompt || config.post_briefing || 'Nenhum prompt definido';
+  const rssFeedPromptDisplay = config.rss_feed_prompt || 'Nenhum prompt definido';
 
   return (
     <Card>
@@ -178,6 +184,22 @@ export function ConfigSection({
               />
               <p className="text-xs text-muted-foreground">
                 Este prompt será usado ao gerar carrosséis com múltiplos slides
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Rss className="w-4 h-4 text-orange-500" />
+                Prompt para Feed RSS
+              </Label>
+              <Textarea
+                value={editRssFeedPrompt}
+                onChange={(e) => setEditRssFeedPrompt(e.target.value)}
+                className="min-h-[100px]"
+                placeholder="Descreva o estilo e estrutura para posts gerados a partir de notícias do feed RSS..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Este prompt será usado EXCLUSIVAMENTE ao gerar posts a partir do feed RSS. O conteúdo virá da notícia - use este campo para definir estilo visual e estrutura.
               </p>
             </div>
 
@@ -271,6 +293,14 @@ export function ConfigSection({
                   <Label className="text-xs font-medium">Prompt para Carrossel</Label>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-3">{carouselPromptDisplay}</p>
+              </div>
+
+              <div className="p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <Rss className="w-4 h-4 text-orange-500" />
+                  <Label className="text-xs font-medium text-orange-700 dark:text-orange-300">Prompt para Feed RSS</Label>
+                </div>
+                <p className="text-sm text-orange-600 dark:text-orange-400 line-clamp-3">{rssFeedPromptDisplay}</p>
               </div>
 
               {/* Display Facebook cross-posting status */}
