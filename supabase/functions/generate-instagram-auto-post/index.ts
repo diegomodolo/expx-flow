@@ -426,11 +426,11 @@ Deno.serve(async (req) => {
     console.log('Config loaded:', clientName, '| Post type:', postType, '| Images:', numberOfImages);
     console.log('Next post scheduled at:', scheduledAt.toISOString());
 
-    const nowBrasilia = getNowInBrasilia();
+    // Use scheduledAt date (when the post will be published) instead of current date
     const diasDaSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-    const dayOfWeek = diasDaSemana[nowBrasilia.getDay()];
-    const currentDateFormatted = `${dayOfWeek}, ${String(nowBrasilia.getDate()).padStart(2, '0')}/${String(nowBrasilia.getMonth() + 1).padStart(2, '0')}/${nowBrasilia.getFullYear()}`;
-    console.log('Current date for image generation:', currentDateFormatted);
+    const dayOfWeek = diasDaSemana[scheduledAt.getDay()];
+    const currentDateFormatted = `${dayOfWeek}, ${String(scheduledAt.getDate()).padStart(2, '0')}/${String(scheduledAt.getMonth() + 1).padStart(2, '0')}/${scheduledAt.getFullYear()}`;
+    console.log('Post scheduled date for prompt:', currentDateFormatted);
 
     // Generate image prompts based on post type
     let imagePrompts: string[] = [];
