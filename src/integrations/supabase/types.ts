@@ -5297,6 +5297,107 @@ export type Database = {
           },
         ]
       }
+      instagram_autopost_rss_feeds: {
+        Row: {
+          config_id: string
+          created_at: string
+          created_by: string | null
+          feed_name: string | null
+          feed_url: string
+          id: string
+          is_enabled: boolean
+          last_checked_at: string | null
+          last_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          created_by?: string | null
+          feed_name?: string | null
+          feed_url: string
+          id?: string
+          is_enabled?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          created_by?: string | null
+          feed_name?: string | null
+          feed_url?: string
+          id?: string
+          is_enabled?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_autopost_rss_feeds_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_autopost_rss_items: {
+        Row: {
+          config_id: string
+          created_at: string
+          description: string | null
+          feed_id: string
+          guid: string
+          id: string
+          is_selected: boolean
+          link: string | null
+          published_at: string | null
+          title: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          description?: string | null
+          feed_id: string
+          guid: string
+          id?: string
+          is_selected?: boolean
+          link?: string | null
+          published_at?: string | null
+          title: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          description?: string | null
+          feed_id?: string
+          guid?: string
+          id?: string
+          is_selected?: boolean
+          link?: string | null
+          published_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_autopost_rss_items_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_auto_post_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_autopost_rss_items_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_autopost_rss_feeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_api_request_log: {
         Row: {
           api_key_id: string | null
