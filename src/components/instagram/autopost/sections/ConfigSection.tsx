@@ -4,8 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Settings, Edit, Loader2, Image, Images } from 'lucide-react';
+import { Settings, Edit, Loader2, Image, Images, Facebook } from 'lucide-react';
+
+interface FacebookPage {
+  id: string;
+  page_name: string;
+  page_id: string;
+}
 
 interface ConfigSectionProps {
   config: {
@@ -13,6 +20,8 @@ interface ConfigSectionProps {
     post_briefing: string;
     single_post_prompt: string | null;
     carousel_prompt: string | null;
+    also_post_to_facebook?: boolean;
+    facebook_page_id?: string | null;
   };
   instagramAccount: {
     username: string;
@@ -24,12 +33,16 @@ interface ConfigSectionProps {
     username: string;
     profile_picture_url: string | null;
   }>;
+  availableFacebookPages?: FacebookPage[];
+  selectedFacebookPage?: FacebookPage | null;
   onUpdateConfig: (updates: { 
     name?: string | null; 
     post_briefing?: string; 
     single_post_prompt?: string;
     carousel_prompt?: string;
-    instagram_account_id?: string 
+    instagram_account_id?: string;
+    also_post_to_facebook?: boolean;
+    facebook_page_id?: string | null;
   }) => void;
   isUpdating: boolean;
 }
@@ -39,6 +52,8 @@ export function ConfigSection({
   instagramAccount,
   instagramAccountId,
   availableInstagramAccounts,
+  availableFacebookPages = [],
+  selectedFacebookPage,
   onUpdateConfig,
   isUpdating,
 }: ConfigSectionProps) {
@@ -47,6 +62,8 @@ export function ConfigSection({
   const [editSinglePrompt, setEditSinglePrompt] = useState('');
   const [editCarouselPrompt, setEditCarouselPrompt] = useState('');
   const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
+  const [editAlsoPostToFacebook, setEditAlsoPostToFacebook] = useState(false);
+  const [editFacebookPageId, setEditFacebookPageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -54,6 +71,8 @@ export function ConfigSection({
       setEditSinglePrompt(config.single_post_prompt || config.post_briefing || '');
       setEditCarouselPrompt(config.carousel_prompt || config.post_briefing || '');
       setEditInstagramAccountId(instagramAccountId);
+      setEditAlsoPostToFacebook(config.also_post_to_facebook || false);
+      setEditFacebookPageId(config.facebook_page_id || null);
     }
   }, [config, instagramAccountId]);
 
@@ -63,6 +82,8 @@ export function ConfigSection({
       single_post_prompt: editSinglePrompt,
       carousel_prompt: editCarouselPrompt,
       instagram_account_id: editInstagramAccountId,
+      also_post_to_facebook: editAlsoPostToFacebook,
+      facebook_page_id: editAlsoPostToFacebook ? editFacebookPageId : null,
     });
     setIsEditing(false);
   };
@@ -160,6 +181,46 @@ export function ConfigSection({
               </p>
             </div>
 
+            {/* Cross-posting to Facebook */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Facebook className="w-4 h-4 text-blue-600" />
+                  <Label>Postar também no Facebook</Label>
+                </div>
+                <Switch
+                  checked={editAlsoPostToFacebook}
+                  onCheckedChange={setEditAlsoPostToFacebook}
+                />
+              </div>
+              
+              {editAlsoPostToFacebook && (
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Página do Facebook</Label>
+                  <Select 
+                    value={editFacebookPageId || ''} 
+                    onValueChange={(value) => setEditFacebookPageId(value || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma página" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFacebookPages.map((page) => (
+                        <SelectItem key={page.id} value={page.id}>
+                          {page.page_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {availableFacebookPages.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhuma página do Facebook conectada. Conecte uma página nas configurações de integração.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 pt-2">
               <Button
                 onClick={handleSave}
@@ -211,6 +272,23 @@ export function ConfigSection({
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-3">{carouselPromptDisplay}</p>
               </div>
+
+              {/* Display Facebook cross-posting status */}
+              {config.also_post_to_facebook && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Facebook className="w-4 h-4 text-blue-600" />
+                    <Label className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Também postando no Facebook
+                    </Label>
+                  </div>
+                  {selectedFacebookPage && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                      {selectedFacebookPage.page_name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

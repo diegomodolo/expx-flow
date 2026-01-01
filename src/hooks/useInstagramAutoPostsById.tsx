@@ -23,6 +23,8 @@ interface InstagramAutoPostConfig {
   reference_image_2: string | null;
   reference_image_3: string | null;
   youtube_channel_url: string | null;
+  also_post_to_facebook: boolean;
+  facebook_page_id: string | null;
 }
 
 interface InstagramAutoPost {

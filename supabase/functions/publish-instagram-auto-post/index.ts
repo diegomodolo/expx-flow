@@ -181,6 +181,8 @@ Deno.serve(async (req) => {
           instagram_account_id,
           scheduled_days,
           scheduled_hours,
+          also_post_to_facebook,
+          facebook_page_id,
           instagram_accounts (
             id,
             facebook_page_id,
@@ -449,6 +451,108 @@ Deno.serve(async (req) => {
       .update({ last_post_at: new Date().toISOString() })
       .eq('id', config.id);
 
+    // Cross-post to Facebook if enabled
+    let facebookPostId: string | null = null;
+    if (config.also_post_to_facebook && config.facebook_page_id) {
+      console.log('Cross-posting to Facebook...');
+      
+      try {
+        // Fetch Facebook page details
+        const { data: facebookPage, error: fbPageError } = await supabase
+          .from('facebook_pages')
+          .select('page_id, page_access_token')
+          .eq('id', config.facebook_page_id)
+          .single();
+
+        if (fbPageError || !facebookPage) {
+          console.error('Error fetching Facebook page:', fbPageError);
+        } else if (!facebookPage.page_access_token) {
+          console.error('Facebook page access token not found');
+        } else {
+          const fbPageId = facebookPage.page_id;
+          const fbAccessToken = facebookPage.page_access_token;
+
+          if (isCarousel) {
+            // CAROUSEL: Upload each photo unpublished, then create post with attached_media
+            console.log('Publishing carousel to Facebook...');
+            const photoIds: string[] = [];
+
+            for (let i = 0; i < post.image_urls.length; i++) {
+              const photoUrl = `https://graph.facebook.com/v21.0/${fbPageId}/photos`;
+              const photoParams = new URLSearchParams({
+                url: post.image_urls[i],
+                published: 'false',
+                access_token: fbAccessToken
+              });
+
+              const photoResponse = await fetch(`${photoUrl}?${photoParams.toString()}`, {
+                method: 'POST'
+              });
+
+              if (photoResponse.ok) {
+                const photoData = await photoResponse.json();
+                photoIds.push(photoData.id);
+                console.log(`Facebook photo ${i + 1} uploaded:`, photoData.id);
+              } else {
+                const errorText = await photoResponse.text();
+                console.error(`Error uploading Facebook photo ${i + 1}:`, errorText);
+              }
+            }
+
+            if (photoIds.length > 0) {
+              // Create post with attached media
+              const feedUrl = `https://graph.facebook.com/v21.0/${fbPageId}/feed`;
+              const attachedMedia = photoIds.map(id => ({ media_fbid: id }));
+              
+              const feedResponse = await fetch(feedUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  message: post.caption,
+                  attached_media: attachedMedia,
+                  access_token: fbAccessToken
+                })
+              });
+
+              if (feedResponse.ok) {
+                const feedData = await feedResponse.json();
+                facebookPostId = feedData.id;
+                console.log('Facebook carousel post published:', facebookPostId);
+              } else {
+                const errorText = await feedResponse.text();
+                console.error('Error publishing Facebook carousel post:', errorText);
+              }
+            }
+          } else {
+            // SINGLE IMAGE: Use /photos endpoint
+            console.log('Publishing single image to Facebook...');
+            const photoUrl = `https://graph.facebook.com/v21.0/${fbPageId}/photos`;
+            const photoParams = new URLSearchParams({
+              url: post.image_url,
+              caption: post.caption,
+              access_token: fbAccessToken
+            });
+
+            const photoResponse = await fetch(`${photoUrl}?${photoParams.toString()}`, {
+              method: 'POST'
+            });
+
+            if (photoResponse.ok) {
+              const photoData = await photoResponse.json();
+              facebookPostId = photoData.post_id || photoData.id;
+              console.log('Facebook photo published:', facebookPostId);
+            } else {
+              const errorText = await photoResponse.text();
+              console.error('Error publishing to Facebook:', errorText);
+            }
+          }
+        }
+      } catch (fbError: any) {
+        console.error('Error cross-posting to Facebook:', fbError.message);
+        // Don't fail the entire operation if Facebook cross-post fails
+      }
+    }
+
     // Generate next post
     console.log('Generating next post...');
     const generateResponse = await supabase.functions.invoke('generate-instagram-auto-post', {
@@ -467,7 +571,8 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      mediaId: mediaId
+      mediaId: mediaId,
+      facebookPostId: facebookPostId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
