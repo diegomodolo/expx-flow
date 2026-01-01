@@ -15,9 +15,9 @@ interface RequestBody {
   placement?: 'feed' | 'stories' | 'reels'; // Novo parâmetro para formato
 }
 
-// Dimensões padrão do Meta Ads
+// Dimensões padrão do Meta Ads (novo formato 3:4 para feed)
 const META_DIMENSIONS = {
-  feed: { width: 1080, height: 1080, ratio: '1:1' },
+  feed: { width: 1080, height: 1440, ratio: '3:4' },
   stories: { width: 1080, height: 1920, ratio: '9:16' },
   reels: { width: 1080, height: 1920, ratio: '9:16' },
 } as const;

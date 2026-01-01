@@ -88,8 +88,8 @@ export function FeedPreview({ creative, clientName = "Sua Marca", clientAvatar }
                 <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
               </div>
 
-              {/* Media - 4:3 aspect ratio (1440x1080 Instagram format) */}
-              <div className="aspect-[4/3] bg-muted relative">
+              {/* Media - 3:4 aspect ratio (1080x1440 new Instagram format) */}
+              <div className="aspect-[3/4] bg-muted relative">
                 {hasMedia ? (
                   creative.type === 'VIDEO' ? (
                     <video
@@ -178,8 +178,8 @@ export function FeedPreview({ creative, clientName = "Sua Marca", clientAvatar }
                 </p>
               </div>
 
-              {/* Media - 4:3 aspect ratio (1440x1080 Instagram format) */}
-              <div className="aspect-[4/3] bg-muted relative">
+              {/* Media - 3:4 aspect ratio (1080x1440 new Instagram format) */}
+              <div className="aspect-[3/4] bg-muted relative">
                 {hasMedia ? (
                   creative.type === 'VIDEO' ? (
                     <video
