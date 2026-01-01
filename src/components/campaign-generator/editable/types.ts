@@ -94,7 +94,12 @@ export const createDefaultCreative = (): EditableCreative => ({
   linkUrl: '',
   callToAction: 'LEARN_MORE',
   mediaUrls: [],
-  urlParameters: {},
+  urlParameters: {
+    utm_source: 'facebook',
+    utm_medium: 'paid',
+    utm_campaign: '',
+    utm_content: '',
+  },
 });
 
 export const createDefaultAdSet = (name: string, index: number = 0): EditableAdSet => ({
