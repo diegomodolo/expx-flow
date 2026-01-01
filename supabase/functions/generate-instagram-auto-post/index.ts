@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { configId, clientId, companyId } = await req.json();
+    const { configId, rssItemId, overridePostType, overrideCarouselImages } = await req.json();
 
     console.log('Generating Instagram auto post for config:', configId);
 
@@ -353,13 +353,32 @@ Deno.serve(async (req) => {
       .not('content_text', 'is', null);
 
     // Fetch knowledge base: RSS items
-    const { data: rssItems } = await supabase
-      .from('instagram_autopost_rss_items')
-      .select('title, description, link, published_at')
-      .eq('config_id', configId)
-      .eq('is_selected', true)
-      .order('published_at', { ascending: false })
-      .limit(20);
+    let rssItems: any[] | null = null;
+
+    if (rssItemId) {
+      const { data: singleRssItem, error: rssItemError } = await supabase
+        .from('instagram_autopost_rss_items')
+        .select('title, description, link, published_at')
+        .eq('id', rssItemId)
+        .single();
+
+      if (rssItemError || !singleRssItem) {
+        console.error('Error fetching RSS item:', rssItemError);
+        throw new Error('RSS item not found');
+      }
+
+      rssItems = [singleRssItem];
+    } else {
+      const { data } = await supabase
+        .from('instagram_autopost_rss_items')
+        .select('title, description, link, published_at')
+        .eq('config_id', configId)
+        .eq('is_selected', true)
+        .order('published_at', { ascending: false })
+        .limit(20);
+
+      rssItems = data || null;
+    }
 
     // Build knowledge context
     let knowledgeContext = '';
@@ -379,11 +398,17 @@ Deno.serve(async (req) => {
     }
 
     if (rssItems && rssItems.length > 0) {
-      knowledgeContext += '\n\n--- NOTÍCIAS E ARTIGOS RECENTES (RSS) ---\n';
+      knowledgeContext += rssItemId
+        ? '\n\n--- NOTÍCIA SELECIONADA (RSS) - USE COMO FONTE PRINCIPAL ---\n'
+        : '\n\n--- NOTÍCIAS E ARTIGOS RECENTES (RSS) ---\n';
+
       for (const item of rssItems) {
         knowledgeContext += `\nTítulo: ${item.title}\n`;
         if (item.description) {
-          knowledgeContext += `Resumo: ${item.description.substring(0, 500)}\n`;
+          knowledgeContext += `Resumo: ${item.description.substring(0, 800)}\n`;
+        }
+        if (item.link) {
+          knowledgeContext += `Link: ${item.link}\n`;
         }
         if (item.published_at) {
           knowledgeContext += `Data: ${new Date(item.published_at).toLocaleDateString('pt-BR')}\n`;
@@ -443,6 +468,19 @@ Deno.serve(async (req) => {
       postType = config.post_type || 'single';
       const carouselMinImages = config.carousel_min_images || 5;
       numberOfImages = postType === 'carousel' ? carouselMinImages : 1;
+    }
+
+    // Optional overrides (used by RSS generation)
+    if (overridePostType === 'single' || overridePostType === 'carousel') {
+      postType = overridePostType;
+      if (postType === 'carousel') {
+        const desired = Number(overrideCarouselImages);
+        const safeDesired = Number.isFinite(desired) ? desired : numberOfImages;
+        numberOfImages = Math.min(Math.max(safeDesired || 5, 1), 10);
+      } else {
+        numberOfImages = 1;
+      }
+      console.log(`Overrides applied: type=${postType}, images=${numberOfImages}`);
     }
 
     console.log('Config loaded:', clientName, '| Post type:', postType, '| Images:', numberOfImages);

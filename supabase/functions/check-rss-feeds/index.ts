@@ -179,26 +179,20 @@ async function checkFeed(feed: {
       for (const itemId of newItemIds) {
         try {
           // Call generate-rss-post function for each new item
-          const response = await fetch(`${supabaseUrl}/functions/v1/generate-rss-post`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-            },
-            body: JSON.stringify({
+          const { data, error } = await supabase.functions.invoke('generate-rss-post', {
+            body: {
               itemId,
               configId: feed.config_id,
-            }),
+            },
           });
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Failed to generate post for item ${itemId}:`, errorText);
+
+          if (error || !data?.success) {
+            console.error(`Failed to generate post for item ${itemId}:`, error || data);
           } else {
-            console.log(`Successfully generated post for item ${itemId}`);
+            console.log(`Successfully generated post for item ${itemId}:`, data.postId);
           }
-          
-          // Add small delay between generations to avoid rate limiting
+
+          // Small delay between generations to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (genError) {
           console.error(`Error generating post for item ${itemId}:`, genError);
