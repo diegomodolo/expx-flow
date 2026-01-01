@@ -4963,6 +4963,7 @@ export type Database = {
       }
       instagram_auto_post_configs: {
         Row: {
+          also_post_to_facebook: boolean | null
           carousel_max_images: number | null
           carousel_min_images: number | null
           carousel_prompt: string | null
@@ -4970,6 +4971,7 @@ export type Database = {
           company_id: string
           created_at: string | null
           created_by: string
+          facebook_page_id: string | null
           id: string
           instagram_account_id: string
           is_enabled: boolean | null
@@ -4988,6 +4990,7 @@ export type Database = {
           youtube_channel_url: string | null
         }
         Insert: {
+          also_post_to_facebook?: boolean | null
           carousel_max_images?: number | null
           carousel_min_images?: number | null
           carousel_prompt?: string | null
@@ -4995,6 +4998,7 @@ export type Database = {
           company_id: string
           created_at?: string | null
           created_by: string
+          facebook_page_id?: string | null
           id?: string
           instagram_account_id: string
           is_enabled?: boolean | null
@@ -5013,6 +5017,7 @@ export type Database = {
           youtube_channel_url?: string | null
         }
         Update: {
+          also_post_to_facebook?: boolean | null
           carousel_max_images?: number | null
           carousel_min_images?: number | null
           carousel_prompt?: string | null
@@ -5020,6 +5025,7 @@ export type Database = {
           company_id?: string
           created_at?: string | null
           created_by?: string
+          facebook_page_id?: string | null
           id?: string
           instagram_account_id?: string
           is_enabled?: boolean | null
@@ -5050,6 +5056,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_auto_post_configs_facebook_page_id_fkey"
+            columns: ["facebook_page_id"]
+            isOneToOne: false
+            referencedRelation: "facebook_pages"
             referencedColumns: ["id"]
           },
           {

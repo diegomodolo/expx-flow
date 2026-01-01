@@ -77,6 +77,33 @@ export function InstagramAutoPostsManager({
     enabled: !!config?.company_id
   });
 
+  const { data: availableFacebookPages } = useQuery({
+    queryKey: ['facebook-pages-for-config', config?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('facebook_pages')
+        .select('id, page_name, page_id')
+        .eq('company_id', config!.company_id)
+        .eq('is_active', true)
+        .order('page_name');
+      return data || [];
+    },
+    enabled: !!config?.company_id
+  });
+
+  const { data: selectedFacebookPage } = useQuery({
+    queryKey: ['selected-facebook-page', config?.facebook_page_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('facebook_pages')
+        .select('id, page_name, page_id')
+        .eq('id', config!.facebook_page_id!)
+        .single();
+      return data;
+    },
+    enabled: !!config?.facebook_page_id
+  });
+
   const handleToggleEnabled = (enabled: boolean) => {
     updateConfig({ is_enabled: enabled });
   };
@@ -136,6 +163,8 @@ export function InstagramAutoPostsManager({
             instagramAccount={instagramAccount}
             instagramAccountId={instagramAccountId}
             availableInstagramAccounts={availableInstagramAccounts || []}
+            availableFacebookPages={availableFacebookPages || []}
+            selectedFacebookPage={selectedFacebookPage}
             onUpdateConfig={(updates) => updateConfig(updates as any)}
             isUpdating={isUpdating}
           />
