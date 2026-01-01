@@ -381,26 +381,29 @@ Deno.serve(async (req) => {
     }
 
     // Build knowledge context
+    // IMPORTANT: When generating from RSS (rssItemId present), we SKIP YouTube and PDF knowledge
+    // The RSS article content is the ONLY source
     let knowledgeContext = '';
     
-    if (knowledgeVideos && knowledgeVideos.length > 0) {
+    // Only include YouTube transcripts if NOT RSS-based
+    if (!rssItemId && knowledgeVideos && knowledgeVideos.length > 0) {
       knowledgeContext += '\n\n--- CONTEÚDO DE VÍDEOS DO YOUTUBE ---\n';
       for (const video of knowledgeVideos) {
         knowledgeContext += `\nVídeo: ${video.video_title}\n${video.transcription?.substring(0, 2000)}\n`;
       }
     }
     
-    if (knowledgeFiles && knowledgeFiles.length > 0) {
+    // Only include PDF files if NOT RSS-based
+    if (!rssItemId && knowledgeFiles && knowledgeFiles.length > 0) {
       knowledgeContext += '\n\n--- CONTEÚDO DE ARQUIVOS PDF ---\n';
       for (const file of knowledgeFiles) {
         knowledgeContext += `\nArquivo: ${file.file_name}\n${file.content_text?.substring(0, 2000)}\n`;
       }
     }
 
-    if (rssItems && rssItems.length > 0) {
-      knowledgeContext += rssItemId
-        ? '\n\n--- NOTÍCIA SELECIONADA (RSS) - USE COMO FONTE PRINCIPAL ---\n'
-        : '\n\n--- NOTÍCIAS E ARTIGOS RECENTES (RSS) ---\n';
+    // RSS items are handled separately (only when not doing rssItemId-based generation)
+    if (!rssItemId && rssItems && rssItems.length > 0) {
+      knowledgeContext += '\n\n--- NOTÍCIAS E ARTIGOS RECENTES (RSS) ---\n';
 
       for (const item of rssItems) {
         knowledgeContext += `\nTítulo: ${item.title}\n`;
@@ -417,6 +420,9 @@ Deno.serve(async (req) => {
     }
 
     console.log('Knowledge context length:', knowledgeContext.length);
+    if (rssItemId) {
+      console.log('RSS-based generation: YouTube and PDF knowledge SKIPPED');
+    }
 
     // Use config reference images first, fallback to client images
     const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
@@ -523,6 +529,9 @@ Este post é baseado em uma NOTÍCIA/ARTIGO REAL. Você DEVE:
       
       if (isRSSBased && rssContent) {
         // RSS-based: the news article is the PRIMARY source
+        // Use config.rss_feed_prompt for style/structure (ignores carousel_prompt and single_post_prompt)
+        const rssFeedPrompt = config.rss_feed_prompt || 'Crie um carrossel informativo e visualmente atraente baseado na notícia';
+        
         contentInstruction = `CONTEÚDO DA NOTÍCIA (FONTE PRINCIPAL - baseie TODO o carrossel nisso):
 
 TÍTULO DO ARTIGO: ${rssContent.title}
@@ -536,7 +545,7 @@ ${rssContent.published_at ? `DATA DE PUBLICAÇÃO: ${new Date(rssContent.publish
 ---
 
 REGRAS DE ESTILO/ESTRUTURA (use para formato visual, NÃO para inventar conteúdo):
-${config.carousel_prompt || config.post_briefing || 'Crie um carrossel informativo e visualmente atraente'}`;
+${rssFeedPrompt}`;
       } else {
         // Normal flow: use the config prompt as primary
         contentInstruction = `BRIEFING DA POSTAGEM:
@@ -653,6 +662,9 @@ Responda em formato JSON:
       
       if (isRSSBased && rssContent) {
         // RSS-based: the news article is the PRIMARY source
+        // Use config.rss_feed_prompt for style (ignores single_post_prompt and carousel_prompt)
+        const rssFeedPrompt = config.rss_feed_prompt || 'Crie uma imagem informativa e visualmente atraente baseada na notícia';
+        
         singleContentInstruction = `CONTEÚDO DA NOTÍCIA (FONTE PRINCIPAL - baseie a imagem nisso):
 
 TÍTULO DO ARTIGO: ${rssContent.title}
@@ -663,7 +675,7 @@ ${rssContent.description || 'Sem conteúdo adicional disponível'}
 ---
 
 REGRAS DE ESTILO (use para formato visual, NÃO para inventar conteúdo):
-${config.single_post_prompt || config.post_briefing || 'Crie uma imagem informativa e visualmente atraente'}`;
+${rssFeedPrompt}`;
       } else {
         // Normal flow
         singleContentInstruction = `BRIEFING: ${config.single_post_prompt || config.post_briefing}
@@ -778,8 +790,8 @@ ${rssAntiHallucination}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
-ESTILO/TOM (do prompt de configuração):
-${config.carousel_prompt || config.post_briefing || 'Profissional e informativo'}
+ESTILO/TOM (do prompt RSS):
+${config.rss_feed_prompt || 'Profissional e informativo'}
 
 REQUISITOS:
 - 150-400 caracteres
@@ -801,8 +813,8 @@ ${rssAntiHallucination}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
-ESTILO/TOM (do prompt de configuração):
-${config.single_post_prompt || config.post_briefing || 'Profissional e informativo'}
+ESTILO/TOM (do prompt RSS):
+${config.rss_feed_prompt || 'Profissional e informativo'}
 
 REQUISITOS:
 - 150-300 caracteres

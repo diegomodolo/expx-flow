@@ -4983,6 +4983,7 @@ export type Database = {
           reference_image_1: string | null
           reference_image_2: string | null
           reference_image_3: string | null
+          rss_feed_prompt: string | null
           scheduled_days: number[]
           scheduled_hours: number[]
           single_post_prompt: string | null
@@ -5010,6 +5011,7 @@ export type Database = {
           reference_image_1?: string | null
           reference_image_2?: string | null
           reference_image_3?: string | null
+          rss_feed_prompt?: string | null
           scheduled_days?: number[]
           scheduled_hours?: number[]
           single_post_prompt?: string | null
@@ -5037,6 +5039,7 @@ export type Database = {
           reference_image_1?: string | null
           reference_image_2?: string | null
           reference_image_3?: string | null
+          rss_feed_prompt?: string | null
           scheduled_days?: number[]
           scheduled_hours?: number[]
           single_post_prompt?: string | null
