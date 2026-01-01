@@ -113,6 +113,17 @@ Deno.serve(async (req) => {
         - Se for B2C: O público são consumidores finais que usarão o produto/serviço
         
         ETAPA 3 - SEGMENTAÇÃO ESPECÍFICA BASEADA NO BRIEFING:
+        
+        **FAIXA ETÁRIA - REGRAS OBRIGATÓRIAS:**
+        - NUNCA usar range completo 18-65 (isso é segmentação preguiçosa)
+        - Analise o briefing e identifique a faixa etária REAL do público-alvo
+        - Para B2B: geralmente 28-55 (tomadores de decisão)
+        - Para produtos jovens (games, moda jovem): 18-35
+        - Para produtos premium/luxo: 30-55
+        - Para serviços profissionais: 25-50
+        - Para produtos familiares: 28-45
+        - SEMPRE justifique a escolha da faixa etária baseado no briefing
+        
         Para B2B (empresas que vendem software, serviços, consultoria, etc.):
         - Demografia: Idade dos tomadores de decisão (geralmente 28-55), cargos específicos
         - Interesses: Ferramentas de negócio, softwares empresariais, gestão, empreendedorismo
@@ -128,6 +139,7 @@ Deno.serve(async (req) => {
         - Se detectar produto B2B, JAMAIS usar segmentação de consumidor
         - Se detectar público empresarial, usar apenas interesses profissionais/empresariais
         - Rejeitar automaticamente segmentação genérica que não condiz com o briefing
+        - NUNCA retornar ageMin: 18 e ageMax: 65 juntos (isso indica análise preguiçosa)
         ` : ''}
 
         **HISTÓRICO DE PERFORMANCE:**
@@ -142,7 +154,8 @@ Deno.serve(async (req) => {
         **RESPOSTA OBRIGATÓRIA:**
         1. PRIMEIRO: Analise o briefing e identifique se é B2B ou B2C
         2. SEGUNDO: Extraia do briefing quem é exatamente o público-alvo
-        3. TERCEIRO: Crie segmentação específica baseada no público real do briefing
+        3. TERCEIRO: Determine a FAIXA ETÁRIA ESPECÍFICA baseada no público (NÃO usar 18-65)
+        4. QUARTO: Crie segmentação específica baseada no público real do briefing
         
         CRÍTICO: Retorne APENAS um JSON válido, sem markdown ou explicações.
         
@@ -150,8 +163,9 @@ Deno.serve(async (req) => {
 
         1. **Orçamento**: Baseado no orçamento mensal de R$ ${client.monthly_budget || 5000}
         2. **Segmentação**: ESPECÍFICA baseada no briefing (não genérica do setor)
-        3. **CPA Alvo**: ${campaigns?.length ? 'Baseado no CPA histórico médio' : 'Usar benchmark do setor'}
-        4. **Cronograma**: Otimizado para o público-alvo real
+        3. **Faixa Etária**: Específica para o público-alvo (NÃO 18-65)
+        4. **CPA Alvo**: ${campaigns?.length ? 'Baseado no CPA histórico médio' : 'Usar benchmark do setor'}
+        5. **Cronograma**: Otimizado para o público-alvo real
 
         JSON obrigatório (sem markdown):
         {
@@ -178,9 +192,9 @@ Deno.serve(async (req) => {
             "optimalHours": "Horários específicos baseados no briefing"
           },
           "adSets": [
-            {"name": "Nome específico 1", "budget": ${Math.round((client.monthly_budget || 5000) * 0.5 / 30)}, "targeting": "Segmentação específica baseada no briefing"},
-            {"name": "Nome específico 2", "budget": ${Math.round((client.monthly_budget || 5000) * 0.3 / 30)}, "targeting": "Segunda segmentação do briefing"},
-            {"name": "Nome específico 3", "budget": ${Math.round((client.monthly_budget || 5000) * 0.2 / 30)}, "targeting": "Terceira segmentação do briefing"}
+            {"name": "Nome específico 1", "budget": ${Math.round((client.monthly_budget || 5000) * 0.5 / 30)}, "targeting": "Segmentação específica baseada no briefing", "ageMin": 25, "ageMax": 45},
+            {"name": "Nome específico 2", "budget": ${Math.round((client.monthly_budget || 5000) * 0.3 / 30)}, "targeting": "Segunda segmentação do briefing", "ageMin": 25, "ageMax": 45},
+            {"name": "Nome específico 3", "budget": ${Math.round((client.monthly_budget || 5000) * 0.2 / 30)}, "targeting": "Terceira segmentação do briefing", "ageMin": 25, "ageMax": 45}
           ],
           "recommendations": [
             "Recomendação específica baseada no briefing",
@@ -189,6 +203,8 @@ Deno.serve(async (req) => {
             "Monitoramento específico"
           ]
         }
+        
+        IMPORTANTE: Nos adSets, SEMPRE inclua ageMin e ageMax com valores específicos baseados na análise do público-alvo (NUNCA 18 e 65 juntos).
       `;
     }
 

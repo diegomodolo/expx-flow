@@ -34,12 +34,13 @@ export interface EditableAdSet {
 export interface EditableStrategy {
   // Budget
   dailyBudget: number;
-  duration: number;
+  duration: number; // 0 means infinite/no end date
   totalBudget: number;
   
   // Schedule
   startDate: Date;
-  endDate: Date;
+  endDate: Date | null; // null means no end date (infinite)
+  hasEndDate: boolean; // false means campaign runs indefinitely
   useOptimalHours: boolean;
   optimalHours: string;
   
