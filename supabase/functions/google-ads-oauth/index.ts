@@ -602,6 +602,91 @@ serve(async (req) => {
       }
     }
 
+    // Action: refresh_token (manually refresh the access token)
+    if (action === 'refresh_token') {
+      const { companyId: refreshCompanyId } = body;
+
+      if (!refreshCompanyId) {
+        throw new Error('Missing companyId');
+      }
+
+      console.log('Refreshing access token for company:', refreshCompanyId);
+
+      // Fetch integration
+      const { data: integration, error: integrationError } = await supabaseClient
+        .from('google_ads_integrations')
+        .select('*')
+        .eq('company_id', refreshCompanyId)
+        .eq('is_active', true)
+        .single();
+
+      if (integrationError || !integration) {
+        throw new Error('Integration not found');
+      }
+
+      if (!integration.refresh_token) {
+        throw new Error('No refresh token available. Please reconnect Google Ads.');
+      }
+
+      const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
+      const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
+
+      if (!clientId || !clientSecret) {
+        throw new Error('Google Ads OAuth credentials not configured');
+      }
+
+      // Refresh the token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: integration.refresh_token,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error('Token refresh failed:', errorText);
+        throw new Error('Failed to refresh token. Please reconnect Google Ads.');
+      }
+
+      const tokens = await tokenResponse.json();
+      const newExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+
+      // Update the integration
+      const { data: updatedIntegration, error: updateError } = await supabaseClient
+        .from('google_ads_integrations')
+        .update({
+          access_token: tokens.access_token,
+          expires_at: newExpiresAt,
+        })
+        .eq('id', integration.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      console.log('Token refreshed successfully, new expiry:', newExpiresAt);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          expiresAt: newExpiresAt,
+          message: 'Token renovado com sucesso!',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     throw new Error('Invalid action');
   } catch (error) {
     console.error('Error in google-ads-oauth:', error);

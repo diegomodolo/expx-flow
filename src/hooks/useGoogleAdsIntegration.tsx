@@ -220,6 +220,39 @@ export function useGoogleAdsIntegration() {
     }
   };
 
+  const refreshToken = async () => {
+    if (!activeCompany?.company_id) {
+      toast.error("Nenhuma empresa ativa encontrada");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('Refreshing Google Ads token...');
+      
+      const { data, error } = await supabase.functions.invoke('google-ads-oauth', {
+        body: {
+          action: 'refresh_token',
+          companyId: activeCompany.company_id,
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      console.log('Token refreshed:', data);
+      toast.success(data.message || 'Token renovado com sucesso!');
+      
+      // Reload integration data
+      await loadIntegration(activeCompany.company_id);
+    } catch (error: any) {
+      console.error('Error refreshing token:', error);
+      toast.error(`Erro ao renovar token: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addCustomerId = async (customerId: string, clientId?: string) => {
     if (!integration || !activeCompany) {
       toast.error("Nenhuma integração ativa encontrada");
@@ -270,6 +303,7 @@ export function useGoogleAdsIntegration() {
     loadIntegration,
     disconnectGoogle,
     refreshAdAccounts,
+    refreshToken,
     addCustomerId,
     getAuthUrl,
   };
