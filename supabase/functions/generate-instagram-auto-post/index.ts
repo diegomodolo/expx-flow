@@ -171,7 +171,7 @@ async function generateSingleImage(
         ? `\n\nThis is SLIDE ${slideNumber} of ${totalSlides} in a carousel. Make sure it connects visually with other slides while having its own distinct focus.`
         : '';
       
-      const geminiPrompt = `Generate a square 1:1 Instagram feed image.
+      const geminiPrompt = `Generate a vertical 3:4 Instagram feed image (1080x1350 pixels).
 
 ${imagePrompt}${slideContext}
 
@@ -459,7 +459,7 @@ REGRAS:
 - Slide 1: Introdução/Gancho
 - Slides do meio: Desenvolvimento do conteúdo
 - Último slide: Conclusão/CTA visual
-- Formato quadrado 1:1 para Instagram
+- Formato vertical 3:4 para Instagram (1080x1350 pixels)
 - Se o briefing menciona texto/frases, inclua texto legível em cada slide
 - Se menciona fotos/produtos, crie visuais sem texto`
             },
@@ -561,7 +561,7 @@ TIPO B - VISUAL (quando pede fotos, produtos, cenários):
 
 REGRAS:
 - Gere o prompt em INGLÊS
-- Formato quadrado 1:1
+- Formato vertical 3:4 (1080x1350 pixels)
 - Data do post se necessário: ${scheduledDateFormatted}`
             },
             {
