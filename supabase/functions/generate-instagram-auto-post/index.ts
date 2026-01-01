@@ -628,6 +628,7 @@ BRIEFING: ${config.carousel_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
+DATA DO POST: ${scheduledDateFormatted}
 
 REQUISITOS:
 - 150-350 caracteres (pode ser um pouco mais para carrossel)
@@ -636,6 +637,7 @@ REQUISITOS:
 - Mencione que é um carrossel (ex: "Deslize para ver mais →")
 - Call-to-action para engajamento
 - USE informações da base de conhecimento se disponível
+- Se o briefing menciona o dia da semana, use EXATAMENTE a data informada: ${scheduledDateFormatted}
 
 Responda APENAS com a legenda pronta.`
       : `Crie uma legenda para post do Instagram:
@@ -644,6 +646,7 @@ BRIEFING: ${config.single_post_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
+DATA DO POST: ${scheduledDateFormatted}
 
 REQUISITOS:
 - 150-280 caracteres
@@ -651,6 +654,7 @@ REQUISITOS:
 - 3-5 hashtags relevantes
 - Call-to-action sutil
 - USE informações da base de conhecimento se disponível
+- Se o briefing menciona o dia da semana, use EXATAMENTE a data informada: ${scheduledDateFormatted}
 
 Responda APENAS com a legenda pronta.`;
 
