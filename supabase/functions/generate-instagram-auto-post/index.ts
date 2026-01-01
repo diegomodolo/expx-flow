@@ -493,10 +493,57 @@ Deno.serve(async (req) => {
     const scheduledDateFormatted = `${dayOfWeek}, ${String(scheduledAtBrasilia.getDate()).padStart(2, '0')}/${String(scheduledAtBrasilia.getMonth() + 1).padStart(2, '0')}/${scheduledAtBrasilia.getFullYear()}`;
     console.log('Post scheduled date for prompt:', scheduledDateFormatted);
 
+    // Detect if this is an RSS-based generation (content comes from the news article)
+    const isRSSBased = !!rssItemId && rssItems && rssItems.length > 0;
+    const rssContent = isRSSBased ? rssItems[0] : null;
+    
+    console.log('Is RSS-based generation:', isRSSBased);
+    if (rssContent) {
+      console.log('RSS content title:', rssContent.title);
+    }
+
+    // Anti-hallucination instruction for RSS-based posts
+    const antiHallucinationInstruction = isRSSBased ? `
+
+IMPORTANTE - REGRA DE FIDELIDADE AO CONTEÚDO (ANTI-ALUCINAÇÃO):
+Este post é baseado em uma NOTÍCIA/ARTIGO REAL. Você DEVE:
+- Usar APENAS informações que estão EXPLICITAMENTE presentes no conteúdo do artigo abaixo
+- NÃO inventar dados, números, estatísticas, nomes ou fatos que não estejam no artigo
+- Se o artigo menciona "5 lições", liste EXATAMENTE as 5 lições mencionadas
+- Se o artigo menciona uma empresa/produto, use EXATAMENTE o nome mencionado
+- O conteúdo de cada slide/imagem deve refletir PONTOS REAIS do artigo original
+- Se algo não foi mencionado no artigo, NÃO mencione no post` : '';
+
     // Generate image prompts based on post type
     let imagePrompts: string[] = [];
     
     if (postType === 'carousel') {
+      // Build the content instruction based on whether it's RSS or not
+      let contentInstruction: string;
+      
+      if (isRSSBased && rssContent) {
+        // RSS-based: the news article is the PRIMARY source
+        contentInstruction = `CONTEÚDO DA NOTÍCIA (FONTE PRINCIPAL - baseie TODO o carrossel nisso):
+
+TÍTULO DO ARTIGO: ${rssContent.title}
+
+CONTEÚDO COMPLETO DO ARTIGO:
+${rssContent.description || 'Sem conteúdo adicional disponível'}
+
+${rssContent.link ? `LINK ORIGINAL: ${rssContent.link}` : ''}
+${rssContent.published_at ? `DATA DE PUBLICAÇÃO: ${new Date(rssContent.published_at).toLocaleDateString('pt-BR')}` : ''}
+
+---
+
+REGRAS DE ESTILO/ESTRUTURA (use para formato visual, NÃO para inventar conteúdo):
+${config.carousel_prompt || config.post_briefing || 'Crie um carrossel informativo e visualmente atraente'}`;
+      } else {
+        // Normal flow: use the config prompt as primary
+        contentInstruction = `BRIEFING DA POSTAGEM:
+${config.carousel_prompt || config.post_briefing}
+${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledgeContext.substring(0, 3000)}` : ''}`;
+      }
+
       // Generate prompts for carousel slides
       const carouselPromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -512,24 +559,24 @@ Deno.serve(async (req) => {
               content: `Você é um especialista em direção de arte para carrosséis do Instagram.
 
 Crie prompts para ${numberOfImages} slides de um carrossel que conta uma história coesa.
+${antiHallucinationInstruction}
 
 REGRAS:
 - Cada slide deve ter seu próprio prompt em INGLÊS
 - Mantenha consistência visual entre os slides (mesmas cores, estilo)
-- Slide 1: Introdução/Gancho
-- Slides do meio: Desenvolvimento do conteúdo
+- Slide 1: Introdução/Gancho baseado no TÍTULO ou tema principal
+- Slides do meio: Desenvolvimento do conteúdo REAL mencionado no artigo/briefing
 - Último slide: Conclusão/CTA visual
 - Formato vertical 3:4 para Instagram (1080x1350 pixels)
-- Se o briefing menciona texto/frases, inclua texto legível em cada slide
-- Se menciona fotos/produtos, crie visuais sem texto`
+- Se o briefing menciona texto/frases específicas, inclua texto legível em cada slide
+- Se menciona fotos/produtos, crie visuais sem texto
+- CRÍTICO: O texto que aparece em cada slide deve refletir INFORMAÇÕES REAIS do artigo/briefing`
             },
             {
               role: 'user',
               content: `Crie ${numberOfImages} prompts de imagem para um carrossel do Instagram:
 
-BRIEFING DA POSTAGEM:
-${config.carousel_prompt || config.post_briefing}
-${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledgeContext.substring(0, 3000)}` : ''}
+${contentInstruction}
 
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
@@ -542,7 +589,7 @@ Responda em formato JSON:
 }`
             }
           ],
-          max_completion_tokens: 1000
+          max_completion_tokens: 1500
         }),
       });
 
@@ -563,6 +610,10 @@ Responda em formato JSON:
       } catch (e) {
         console.error('Failed to parse carousel prompts JSON, using fallback');
         // Fallback: generate same prompt for all slides
+        const fallbackBriefing = isRSSBased && rssContent 
+          ? `Título: ${rssContent.title}. ${rssContent.description?.substring(0, 500) || ''}`
+          : (config.carousel_prompt || config.post_briefing);
+          
         const singlePromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -574,11 +625,11 @@ Responda em formato JSON:
             messages: [
               {
                 role: 'system',
-                content: 'Você é um especialista em direção de arte para Instagram. Gere prompts em inglês.'
+                content: `Você é um especialista em direção de arte para Instagram. Gere prompts em inglês.${antiHallucinationInstruction}`
               },
               {
                 role: 'user',
-                content: `Crie UM prompt para gerar uma imagem de post Instagram baseado neste briefing: ${config.carousel_prompt || config.post_briefing}. Responda APENAS com o prompt em inglês.`
+                content: `Crie UM prompt para gerar uma imagem de post Instagram baseado neste conteúdo: ${fallbackBriefing}. Responda APENAS com o prompt em inglês.`
               }
             ],
             max_completion_tokens: 300
@@ -597,6 +648,28 @@ Responda em formato JSON:
 
     } else {
       // Single image post - generate one prompt
+      // Build the content instruction based on whether it's RSS or not
+      let singleContentInstruction: string;
+      
+      if (isRSSBased && rssContent) {
+        // RSS-based: the news article is the PRIMARY source
+        singleContentInstruction = `CONTEÚDO DA NOTÍCIA (FONTE PRINCIPAL - baseie a imagem nisso):
+
+TÍTULO DO ARTIGO: ${rssContent.title}
+
+CONTEÚDO COMPLETO DO ARTIGO:
+${rssContent.description || 'Sem conteúdo adicional disponível'}
+
+---
+
+REGRAS DE ESTILO (use para formato visual, NÃO para inventar conteúdo):
+${config.single_post_prompt || config.post_briefing || 'Crie uma imagem informativa e visualmente atraente'}`;
+      } else {
+        // Normal flow
+        singleContentInstruction = `BRIEFING: ${config.single_post_prompt || config.post_briefing}
+${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ''}`;
+      }
+
       const imagePromptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -609,12 +682,14 @@ Responda em formato JSON:
             {
               role: 'system',
               content: `Você é um especialista em direção de arte para Instagram.
+${antiHallucinationInstruction}
 
 Analise o briefing e determine o TIPO de imagem:
 
 TIPO A - TIPOGRÁFICO (quando menciona frases, citações, quotes, textos motivacionais):
 - Descreva imagem com TEXTO visível
 - Especifique: fundo, tipografia, cores, layout
+- O TEXTO deve vir do CONTEÚDO REAL fornecido
 
 TIPO B - VISUAL (quando pede fotos, produtos, cenários):
 - Descreva elementos visuais SEM texto
@@ -628,8 +703,8 @@ REGRAS:
               role: 'user',
               content: `Crie UM prompt para gerar uma imagem de post Instagram:
 
-BRIEFING: ${config.single_post_prompt || config.post_briefing}
-${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ''}
+${singleContentInstruction}
+
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 DATA DO POST: ${scheduledDateFormatted}
@@ -637,7 +712,7 @@ DATA DO POST: ${scheduledDateFormatted}
 Responda APENAS com o prompt em inglês.`
             }
           ],
-          max_completion_tokens: 300
+          max_completion_tokens: 400
         }),
       });
 
@@ -681,8 +756,66 @@ Responda APENAS com o prompt em inglês.`
     console.log(`All ${imageUrls.length} images generated successfully`);
 
     // Generate caption
-    const captionPrompt = postType === 'carousel'
-      ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides:
+    let captionPrompt: string;
+    
+    if (isRSSBased && rssContent) {
+      // RSS-based caption: focus on summarizing/commenting the news article
+      const rssAntiHallucination = `
+REGRA DE FIDELIDADE (ANTI-ALUCINAÇÃO):
+- A legenda deve RESUMIR ou COMENTAR a notícia/artigo
+- Use APENAS informações presentes no artigo
+- NÃO invente dados, números ou fatos que não estejam no conteúdo`;
+
+      captionPrompt = postType === 'carousel'
+        ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides baseado nesta NOTÍCIA:
+
+TÍTULO DO ARTIGO: ${rssContent.title}
+
+CONTEÚDO DO ARTIGO:
+${rssContent.description?.substring(0, 2000) || 'Conteúdo não disponível'}
+${rssAntiHallucination}
+
+SETOR: ${clientSector}
+PÚBLICO-ALVO: ${clientTargetAudience}
+
+ESTILO/TOM (do prompt de configuração):
+${config.carousel_prompt || config.post_briefing || 'Profissional e informativo'}
+
+REQUISITOS:
+- 150-400 caracteres
+- 3-5 emojis estratégicos
+- 3-5 hashtags relevantes (relacionadas ao tema da notícia)
+- Mencione que é um carrossel (ex: "Deslize para ver mais →")
+- A legenda deve COMENTAR ou RESUMIR a notícia, não inventar conteúdo
+- NÃO inclua datas na legenda
+
+Responda APENAS com a legenda pronta.`
+        : `Crie uma legenda para post do Instagram baseado nesta NOTÍCIA:
+
+TÍTULO DO ARTIGO: ${rssContent.title}
+
+CONTEÚDO DO ARTIGO:
+${rssContent.description?.substring(0, 2000) || 'Conteúdo não disponível'}
+${rssAntiHallucination}
+
+SETOR: ${clientSector}
+PÚBLICO-ALVO: ${clientTargetAudience}
+
+ESTILO/TOM (do prompt de configuração):
+${config.single_post_prompt || config.post_briefing || 'Profissional e informativo'}
+
+REQUISITOS:
+- 150-300 caracteres
+- 3-5 emojis estratégicos
+- 3-5 hashtags relevantes (relacionadas ao tema da notícia)
+- A legenda deve COMENTAR ou RESUMIR a notícia
+- NÃO inclua datas na legenda
+
+Responda APENAS com a legenda pronta.`;
+    } else {
+      // Normal caption generation (non-RSS)
+      captionPrompt = postType === 'carousel'
+        ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides:
 
 BRIEFING: ${config.carousel_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
@@ -699,7 +832,7 @@ REQUISITOS:
 - NÃO inclua datas ou dias da semana na legenda, A MENOS que o briefing EXPLICITAMENTE peça para mencionar a data. Se pedir, use: ${scheduledDateFormatted}
 
 Responda APENAS com a legenda pronta.`
-      : `Crie uma legenda para post do Instagram:
+        : `Crie uma legenda para post do Instagram:
 
 BRIEFING: ${config.single_post_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
@@ -715,6 +848,7 @@ REQUISITOS:
 - NÃO inclua datas ou dias da semana na legenda, A MENOS que o briefing EXPLICITAMENTE peça para mencionar a data. Se pedir, use: ${scheduledDateFormatted}
 
 Responda APENAS com a legenda pronta.`;
+    }
 
     const captionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
