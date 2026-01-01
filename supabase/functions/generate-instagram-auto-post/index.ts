@@ -746,8 +746,8 @@ Responda APENAS com a legenda pronta.`;
     // Save to instagram_auto_posts
     const postData: any = {
       config_id: configId,
-      client_id: clientId || config.client_id,
-      company_id: companyId || config.company_id,
+      client_id: config.client_id,
+      company_id: config.company_id,
       caption: caption,
       status: 'pending',
       scheduled_at: scheduledAt.toISOString(),
