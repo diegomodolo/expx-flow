@@ -35,6 +35,8 @@ export function ReferenceSelectionDialog({
   maxSelections = 3
 }: ReferenceSelectionDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copyProgress, setCopyProgress] = useState({ current: 0, total: 0 });
   const [adCreatives, setAdCreatives] = useState<CreativeReference[]>([]);
   const [instagramPosts, setInstagramPosts] = useState<CreativeReference[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -93,10 +95,84 @@ export function ReferenceSelectionDialog({
     });
   };
 
-  const handleConfirm = () => {
-    onSelect(selectedImages);
-    setSelectedImages([]);
-    onOpenChange(false);
+  // Check if URL is already from our storage (permanent URL)
+  const isStorageUrl = (url: string): boolean => {
+    return url.includes('supabase.co/storage') || url.includes('.supabase.co');
+  };
+
+  // Copy external images to our storage to get permanent URLs
+  const copyImagesToStorage = async (imageUrls: string[]): Promise<string[]> => {
+    const permanentUrls: string[] = [];
+    
+    for (let i = 0; i < imageUrls.length; i++) {
+      const url = imageUrls[i];
+      setCopyProgress({ current: i + 1, total: imageUrls.length });
+      
+      // Skip if already a storage URL
+      if (isStorageUrl(url)) {
+        permanentUrls.push(url);
+        continue;
+      }
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('copy-external-image', {
+          body: { imageUrl: url, folder: 'reference-images' }
+        });
+        
+        if (error) throw error;
+        
+        if (data.success && data.url) {
+          console.log('Image copied successfully:', data.url);
+          permanentUrls.push(data.url);
+        } else {
+          console.error('Failed to copy image:', data.error);
+          // Keep original URL as fallback
+          permanentUrls.push(url);
+          toast({
+            title: "Aviso",
+            description: `Não foi possível copiar uma imagem. Usando URL original.`,
+            variant: "destructive"
+          });
+        }
+      } catch (err) {
+        console.error('Error copying image:', err);
+        // Keep original URL as fallback
+        permanentUrls.push(url);
+      }
+    }
+    
+    return permanentUrls;
+  };
+
+  const handleConfirm = async () => {
+    if (selectedImages.length === 0) return;
+    
+    setCopying(true);
+    setCopyProgress({ current: 0, total: selectedImages.length });
+    
+    try {
+      // Copy all selected images to our storage
+      const permanentUrls = await copyImagesToStorage(selectedImages);
+      
+      toast({
+        title: "Imagens copiadas",
+        description: `${permanentUrls.length} imagem(ns) salva(s) com sucesso.`,
+      });
+      
+      onSelect(permanentUrls);
+      setSelectedImages([]);
+      onOpenChange(false);
+    } catch (err) {
+      console.error('Error in handleConfirm:', err);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao copiar as imagens.",
+        variant: "destructive"
+      });
+    } finally {
+      setCopying(false);
+      setCopyProgress({ current: 0, total: 0 });
+    }
   };
 
   const handleCancel = () => {
@@ -191,7 +267,17 @@ export function ReferenceSelectionDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
-          {loading ? (
+          {copying ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">
+                Copiando imagens... ({copyProgress.current}/{copyProgress.total})
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Salvando no servidor para garantir que não expirem
+              </p>
+            </div>
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
               <p className="text-muted-foreground">Carregando imagens...</p>
@@ -255,14 +341,21 @@ export function ReferenceSelectionDialog({
             {selectedImages.length} de {maxSelections} selecionadas
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleCancel}>
+            <Button variant="outline" onClick={handleCancel} disabled={copying}>
               Cancelar
             </Button>
             <Button 
               onClick={handleConfirm} 
-              disabled={selectedImages.length === 0}
+              disabled={selectedImages.length === 0 || copying}
             >
-              Usar Selecionadas ({selectedImages.length})
+              {copying ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Copiando...
+                </>
+              ) : (
+                `Usar Selecionadas (${selectedImages.length})`
+              )}
             </Button>
           </div>
         </DialogFooter>

@@ -44,6 +44,8 @@ export function InstagramMediaSelector({
 }: InstagramMediaSelectorProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copyProgress, setCopyProgress] = useState({ current: 0, total: 0 });
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [instagramAccount, setInstagramAccount] = useState<{id: string, username: string} | null>(null);
@@ -160,9 +162,83 @@ export function InstagramMediaSelector({
     });
   };
 
-  const handleConfirm = () => {
-    onSelect(selectedMedia);
-    onOpenChange(false);
+  // Check if URL is already from our storage (permanent URL)
+  const isStorageUrl = (url: string): boolean => {
+    return url.includes('supabase.co/storage') || url.includes('.supabase.co');
+  };
+
+  // Copy external images to our storage to get permanent URLs
+  const copyImagesToStorage = async (imageUrls: string[]): Promise<string[]> => {
+    const permanentUrls: string[] = [];
+    
+    for (let i = 0; i < imageUrls.length; i++) {
+      const url = imageUrls[i];
+      setCopyProgress({ current: i + 1, total: imageUrls.length });
+      
+      // Skip if already a storage URL
+      if (isStorageUrl(url)) {
+        permanentUrls.push(url);
+        continue;
+      }
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('copy-external-image', {
+          body: { imageUrl: url, folder: 'instagram-media' }
+        });
+        
+        if (error) throw error;
+        
+        if (data.success && data.url) {
+          console.log('Image copied successfully:', data.url);
+          permanentUrls.push(data.url);
+        } else {
+          console.error('Failed to copy image:', data.error);
+          // Keep original URL as fallback
+          permanentUrls.push(url);
+          toast({
+            title: "Aviso",
+            description: `Não foi possível copiar uma imagem. Usando URL original.`,
+            variant: "destructive"
+          });
+        }
+      } catch (err) {
+        console.error('Error copying image:', err);
+        // Keep original URL as fallback
+        permanentUrls.push(url);
+      }
+    }
+    
+    return permanentUrls;
+  };
+
+  const handleConfirm = async () => {
+    if (selectedMedia.length === 0) return;
+
+    setCopying(true);
+    setCopyProgress({ current: 0, total: selectedMedia.length });
+
+    try {
+      // Copy all selected media to our storage
+      const permanentUrls = await copyImagesToStorage(selectedMedia);
+      
+      toast({
+        title: "Mídia copiada",
+        description: `${permanentUrls.length} item(ns) salvo(s) com sucesso.`,
+      });
+
+      onSelect(permanentUrls);
+      onOpenChange(false);
+    } catch (err) {
+      console.error('Error in handleConfirm:', err);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao copiar a mídia.",
+        variant: "destructive"
+      });
+    } finally {
+      setCopying(false);
+      setCopyProgress({ current: 0, total: 0 });
+    }
   };
 
   const getMediaTypeLabel = () => {
@@ -192,7 +268,17 @@ export function InstagramMediaSelector({
         </DialogHeader>
 
         <div className="flex-1 min-h-0">
-          {loading ? (
+          {copying ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Copiando mídia... ({copyProgress.current}/{copyProgress.total})
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Salvando no servidor para garantir que não expirem
+              </p>
+            </div>
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               <p className="mt-2 text-sm text-muted-foreground">
@@ -305,14 +391,21 @@ export function InstagramMediaSelector({
               {selectedMedia.length} de {maxSelection} selecionado(s)
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={copying}>
                 Cancelar
               </Button>
               <Button 
                 onClick={handleConfirm} 
-                disabled={selectedMedia.length === 0}
+                disabled={selectedMedia.length === 0 || copying}
               >
-                Usar selecionado{selectedMedia.length > 1 ? 's' : ''}
+                {copying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Copiando...
+                  </>
+                ) : (
+                  `Usar selecionado${selectedMedia.length > 1 ? 's' : ''}`
+                )}
               </Button>
             </div>
           </div>

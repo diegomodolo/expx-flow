@@ -247,3 +247,6 @@ verify_jwt = false
 
 [functions.validate-image-text]
 verify_jwt = true
+
+[functions.copy-external-image]
+verify_jwt = true
