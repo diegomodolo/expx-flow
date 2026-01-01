@@ -5,7 +5,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -26,7 +25,7 @@ serve(async (req) => {
       throw new Error('itemId e configId são obrigatórios');
     }
 
-    console.log(`Generating post from RSS item: ${itemId}`);
+    console.log(`Generating post from RSS item: ${itemId}, config: ${configId}`);
 
     // Fetch the RSS item
     const { data: rssItem, error: itemError } = await supabase
@@ -54,9 +53,9 @@ serve(async (req) => {
       throw new Error(`Feed não encontrado: ${feedError?.message}`);
     }
 
-    // Fetch the autopost configuration
+    // Fetch the autopost configuration (using correct table name)
     const { data: config, error: configError } = await supabase
-      .from('instagram_autopost_configs')
+      .from('instagram_auto_post_configs')
       .select('*')
       .eq('id', configId)
       .single();
@@ -85,8 +84,7 @@ Seu trabalho é transformar notícias e artigos em posts atraentes para Instagra
 ${client?.voice_tone ? `Tom de voz: ${client.voice_tone}` : ''}
 ${client?.target_audience ? `Público-alvo: ${client.target_audience}` : ''}
 ${client?.product_name ? `Produto/Serviço: ${client.product_name}` : ''}
-${config.persona ? `Persona: ${config.persona}` : ''}
-${config.content_style ? `Estilo de conteúdo: ${config.content_style}` : ''}`;
+${config.post_briefing ? `Briefing: ${config.post_briefing}` : ''}`;
 
     let userPrompt = '';
     
@@ -175,45 +173,45 @@ Responda APENAS com um JSON válido no seguinte formato:
       throw new Error('Falha ao processar conteúdo gerado');
     }
 
-    // Find the next available slot for this config
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Find the next available slot - get the latest scheduled post
+    const now = new Date();
 
     const { data: existingPosts } = await supabase
-      .from('instagram_autopost_scheduled_posts')
-      .select('scheduled_for')
+      .from('instagram_auto_posts')
+      .select('scheduled_at')
       .eq('config_id', configId)
-      .gte('scheduled_for', today.toISOString())
-      .order('scheduled_for', { ascending: false })
+      .gte('scheduled_at', now.toISOString())
+      .order('scheduled_at', { ascending: false })
       .limit(1);
 
     // Calculate next available date
     let scheduledDate = new Date();
     if (existingPosts && existingPosts.length > 0) {
-      scheduledDate = new Date(existingPosts[0].scheduled_for);
+      scheduledDate = new Date(existingPosts[0].scheduled_at);
       scheduledDate.setDate(scheduledDate.getDate() + 1);
     }
     scheduledDate.setHours(10, 0, 0, 0); // Default to 10 AM
 
-    // Create the scheduled post
+    // Create the post in instagram_auto_posts table (correct table name)
     const postData: any = {
       config_id: configId,
-      scheduled_for: scheduledDate.toISOString(),
+      client_id: config.client_id,
+      company_id: config.company_id,
+      scheduled_at: scheduledDate.toISOString(),
       post_type: postType,
       caption: parsedContent.caption || '',
       status: 'pending',
-      rss_item_id: itemId,
     };
 
+    // For carousel, we'll need to generate images later
+    // For now, store the slides data in image_urls as JSON or process separately
     if (postType === 'carousel' && parsedContent.slides) {
-      postData.carousel_slides = parsedContent.slides;
-    } else {
-      postData.headline = parsedContent.headline || rssItem.title;
-      postData.subheadline = parsedContent.subheadline || '';
+      // Store slides info - images will be generated later
+      postData.image_urls = parsedContent.slides.map((s: any) => s.headline);
     }
 
     const { data: createdPost, error: createError } = await supabase
-      .from('instagram_autopost_scheduled_posts')
+      .from('instagram_auto_posts')
       .insert(postData)
       .select()
       .single();
