@@ -22,12 +22,10 @@ const periodOptions = [
   { value: 'last_90_days', label: '90 dias', description: 'Últimos 3 meses' },
 ];
 
-const executionOptions = [
-  { value: 1, label: '1x por dia' },
-  { value: 2, label: '2x por dia' },
-  { value: 3, label: '3x por dia' },
-  { value: 4, label: '4x por dia' },
-];
+const executionOptions = Array.from({ length: 24 }, (_, i) => ({
+  value: i + 1,
+  label: `${i + 1}x por dia${i + 1 === 24 ? ' (1x/hora)' : ''}`,
+}));
 
 export function GoogleAdsSyncSettings() {
   const { activeCompany } = useCompany();
