@@ -146,7 +146,7 @@ function delay(ms: number): Promise<void> {
 async function generateSingleImage(
   imagePrompt: string,
   referenceImages: string[],
-  currentDateFormatted: string,
+  scheduledDateFormatted: string,
   config: any,
   clientSector: string,
   clientTargetAudience: string,
@@ -175,8 +175,8 @@ async function generateSingleImage(
 
 ${imagePrompt}${slideContext}
 
-IMPORTANT - CURRENT DATE: ${currentDateFormatted}
-If the image should contain a date (as indicated in the prompt), use EXACTLY this date: ${currentDateFormatted}
+IMPORTANT - SCHEDULED POST DATE: ${scheduledDateFormatted}
+If the image should contain a date (as indicated in the prompt), use EXACTLY this date: ${scheduledDateFormatted}
 
 ${referenceImages.length > 0 ? `CRITICAL - REFERENCE IMAGES PROVIDED:
 Study the reference images above carefully and match their EXACT visual style:
@@ -430,7 +430,7 @@ Deno.serve(async (req) => {
     const diasDaSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     const dayOfWeek = diasDaSemana[scheduledAt.getDay()];
     const currentDateFormatted = `${dayOfWeek}, ${String(scheduledAt.getDate()).padStart(2, '0')}/${String(scheduledAt.getMonth() + 1).padStart(2, '0')}/${scheduledAt.getFullYear()}`;
-    console.log('Post scheduled date for prompt:', currentDateFormatted);
+    console.log('Post scheduled date for prompt:', scheduledDateFormatted);
 
     // Generate image prompts based on post type
     let imagePrompts: string[] = [];
@@ -473,7 +473,7 @@ ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledge
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
-DATA ATUAL (se necessário): ${currentDateFormatted}
+DATA DO POST (se necessário): ${scheduledDateFormatted}
 
 Responda em formato JSON:
 {
@@ -561,7 +561,7 @@ TIPO B - VISUAL (quando pede fotos, produtos, cenários):
 REGRAS:
 - Gere o prompt em INGLÊS
 - Formato quadrado 1:1
-- Data atual se necessário: ${currentDateFormatted}`
+- Data do post se necessário: ${scheduledDateFormatted}`
             },
             {
               role: 'user',
@@ -571,7 +571,7 @@ BRIEFING: ${config.single_post_prompt || config.post_briefing}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
-DATA ATUAL: ${currentDateFormatted}
+DATA DO POST: ${scheduledDateFormatted}
 
 Responda APENAS com o prompt em inglês.`
             }
@@ -599,7 +599,7 @@ Responda APENAS com o prompt em inglês.`
       const base64Url = await generateSingleImage(
         prompt,
         referenceImages,
-        currentDateFormatted,
+        scheduledDateFormatted,
         config,
         clientSector,
         clientTargetAudience,
