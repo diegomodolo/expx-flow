@@ -347,27 +347,26 @@ export function RSSKnowledgeCard({
                                   {item.title}
                                 </h5>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  {item.post_generated ? (
+                                  {item.post_generated && (
                                     <Badge variant="outline" className="text-xs text-green-600 border-green-300 gap-1">
                                       <CheckCircle2 className="h-3 w-3" />
                                       Gerado
                                     </Badge>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 text-xs gap-1"
-                                      onClick={() => handleGeneratePost(item.id)}
-                                      disabled={isGeneratingPost || generatingItemId === item.id}
-                                    >
-                                      {generatingItemId === item.id ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Sparkles className="h-3 w-3" />
-                                      )}
-                                      Gerar
-                                    </Button>
                                   )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs gap-1"
+                                    onClick={() => handleGeneratePost(item.id)}
+                                    disabled={isGeneratingPost || generatingItemId === item.id}
+                                  >
+                                    {generatingItemId === item.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Sparkles className="h-3 w-3" />
+                                    )}
+                                    {item.post_generated ? 'Gerar novamente' : 'Gerar'}
+                                  </Button>
                                   <a
                                     href={item.link}
                                     target="_blank"
