@@ -183,6 +183,52 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [uploadingPresentationLogo, setUploadingPresentationLogo] = useState(false);
   const [uploadingPresentationBg, setUploadingPresentationBg] = useState(false);
   const [uploadingAiRefImage, setUploadingAiRefImage] = useState<1 | 2 | 3 | null>(null);
+  const [fetchingInstagramAvatar, setFetchingInstagramAvatar] = useState(false);
+
+  // Function to fetch Instagram avatar and save to storage
+  const handleFetchInstagramAvatar = async (instagramProfileUrl: string) => {
+    if (!instagramProfileUrl) return;
+    
+    setFetchingInstagramAvatar(true);
+    try {
+      // Fetch the image from Instagram URL
+      const response = await fetch(instagramProfileUrl);
+      if (!response.ok) throw new Error('Failed to fetch Instagram image');
+      
+      const blob = await response.blob();
+      const fileName = `instagram-avatar-${Date.now()}.jpg`;
+      
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('client-avatars')
+        .upload(fileName, blob, {
+          contentType: blob.type || 'image/jpeg',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-avatars')
+        .getPublicUrl(fileName);
+
+      setFormData({ ...formData, avatar: publicUrl });
+      toast({
+        title: "Foto atualizada",
+        description: "Foto do perfil do Instagram salva com sucesso!",
+      });
+    } catch (error: any) {
+      console.error('Error fetching Instagram avatar:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível buscar a foto do Instagram. Tente fazer upload manualmente.",
+        variant: "destructive",
+      });
+    } finally {
+      setFetchingInstagramAvatar(false);
+    }
+  };
 
   const platforms = ["Google Ads", "Meta Ads", "LinkedIn Ads", "TikTok Ads", "Twitter Ads"];
   const voiceTones = ["Profissional", "Casual", "Amigável", "Autoritativo", "Divertido", "Inspirador", "Educativo"];
@@ -841,17 +887,12 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          setFormData({ ...formData, avatar: selectedInstagram.profile_picture_url || "" });
-                          toast({
-                            title: "Foto atualizada",
-                            description: "Foto do perfil do Instagram aplicada com sucesso!",
-                          });
-                        }}
+                        onClick={() => handleFetchInstagramAvatar(selectedInstagram.profile_picture_url!)}
+                        disabled={fetchingInstagramAvatar}
                         className="flex items-center gap-2"
                       >
                         <Instagram className="w-4 h-4" />
-                        Buscar do Instagram
+                        {fetchingInstagramAvatar ? "Buscando..." : "Buscar do Instagram"}
                       </Button>
                     );
                   }
