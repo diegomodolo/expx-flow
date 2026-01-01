@@ -5299,6 +5299,8 @@ export type Database = {
       }
       instagram_autopost_rss_feeds: {
         Row: {
+          auto_generate: boolean
+          carousel_images: number
           config_id: string
           created_at: string
           created_by: string | null
@@ -5308,9 +5310,12 @@ export type Database = {
           is_enabled: boolean
           last_checked_at: string | null
           last_error: string | null
+          post_type: string
           updated_at: string
         }
         Insert: {
+          auto_generate?: boolean
+          carousel_images?: number
           config_id: string
           created_at?: string
           created_by?: string | null
@@ -5320,9 +5325,12 @@ export type Database = {
           is_enabled?: boolean
           last_checked_at?: string | null
           last_error?: string | null
+          post_type?: string
           updated_at?: string
         }
         Update: {
+          auto_generate?: boolean
+          carousel_images?: number
           config_id?: string
           created_at?: string
           created_by?: string | null
@@ -5332,6 +5340,7 @@ export type Database = {
           is_enabled?: boolean
           last_checked_at?: string | null
           last_error?: string | null
+          post_type?: string
           updated_at?: string
         }
         Relationships: [
@@ -5350,10 +5359,13 @@ export type Database = {
           created_at: string
           description: string | null
           feed_id: string
+          generated_at: string | null
+          generated_post_id: string | null
           guid: string
           id: string
           is_selected: boolean
           link: string | null
+          post_generated: boolean
           published_at: string | null
           title: string
         }
@@ -5362,10 +5374,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           feed_id: string
+          generated_at?: string | null
+          generated_post_id?: string | null
           guid: string
           id?: string
           is_selected?: boolean
           link?: string | null
+          post_generated?: boolean
           published_at?: string | null
           title: string
         }
@@ -5374,10 +5389,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           feed_id?: string
+          generated_at?: string | null
+          generated_post_id?: string | null
           guid?: string
           id?: string
           is_selected?: boolean
           link?: string | null
+          post_generated?: boolean
           published_at?: string | null
           title?: string
         }
