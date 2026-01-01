@@ -51,8 +51,8 @@ export function InstagramPostPreviewModal({
             </button>
           </div>
 
-          {/* Image - Square aspect ratio like Instagram */}
-          <div className="relative w-full aspect-square bg-black group">
+          {/* Image - 3:4 vertical aspect ratio like Instagram */}
+          <div className="relative w-full aspect-[3/4] bg-black group">
             <img
               src={images[currentIndex]}
               alt="Post preview"
