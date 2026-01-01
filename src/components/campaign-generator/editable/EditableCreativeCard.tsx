@@ -100,14 +100,16 @@ export function EditableCreativeCard({
         Descrição: ${creative.description || 'Sem descrição'}
         Estilo: moderno, profissional, adequado para Instagram e Facebook.`;
 
-      const { data, error } = await supabase.functions.invoke('generate-ai-image', {
-        body: { prompt, clientId }
+      const { data, error } = await supabase.functions.invoke('generate-ai-campaign-image', {
+        body: { prompt, clientId, placement: 'feed' }
       });
 
       if (error) throw error;
-      if (data?.imageUrl) {
+      if (data?.success && data?.imageUrl) {
         handleChange('mediaUrls', [data.imageUrl]);
         toast.success('Imagem gerada com sucesso!');
+      } else if (data?.error) {
+        throw new Error(data.error);
       }
     } catch (error) {
       console.error('AI generation error:', error);
