@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { EditableCampaignReport } from "@/components/campaign-generator/EditableCampaignReport";
 import { CampaignsList } from "@/components/campaign-generator/CampaignsList";
 import { CampaignGeneratorSimplified } from "@/components/campaign-generator/CampaignGeneratorSimplified";
 import { Button } from "@/components/ui/button";
@@ -25,55 +24,40 @@ const GeradorCampanhas = () => {
   const { id } = useParams();
   const { getCampaign } = useGeneratedCampaigns();
   
-  const [mode, setMode] = useState<'list' | 'generator' | 'view'>('list');
-  const [campaignData, setCampaignData] = useState<CampaignData>({
-    client: null,
-    funnelStage: null,
-    campaignType: null,
-    configuration: null,
-    creatives: [],
-  });
-  const [viewingCampaign, setViewingCampaign] = useState<any>(null);
+  const [mode, setMode] = useState<'list' | 'generator' | 'edit'>('list');
+  const [existingCampaign, setExistingCampaign] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
-      loadCampaignForView(id);
+      loadCampaignForEdit(id);
     } else {
       setMode('list');
+      setExistingCampaign(null);
     }
   }, [id]);
 
-  const loadCampaignForView = async (campaignId: string) => {
+  const loadCampaignForEdit = async (campaignId: string) => {
     try {
+      setLoading(true);
       const campaign = await getCampaign(campaignId);
       if (campaign) {
-        setViewingCampaign(campaign);
-        setMode('view');
-        setCampaignData({
-          client: campaign.clients as any,
-          funnelStage: campaign.funnel_stage as FunnelStage,
-          campaignType: campaign.campaign_type as CampaignType,
-          configuration: campaign.configuration,
-          creatives: campaign.creatives as any[],
-        });
+        setExistingCampaign(campaign);
+        setMode('edit');
       } else {
         navigate('/geradores/campanhas');
       }
     } catch (error) {
       console.error('Error loading campaign:', error);
       navigate('/geradores/campanhas');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleNewCampaign = () => {
     setMode('generator');
-    setCampaignData({
-      client: null,
-      funnelStage: null,
-      campaignType: null,
-      configuration: null,
-      creatives: [],
-    });
+    setExistingCampaign(null);
     navigate('/geradores/campanhas');
   };
 
@@ -83,8 +67,19 @@ const GeradorCampanhas = () => {
 
   const handleBackToList = () => {
     setMode('list');
+    setExistingCampaign(null);
     navigate('/geradores/campanhas');
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (mode === 'list') {
     return (
@@ -97,36 +92,7 @@ const GeradorCampanhas = () => {
     );
   }
 
-  if (mode === 'view') {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Button
-                variant="outline"
-                onClick={handleBackToList}
-                className="flex items-center gap-2 mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Voltar para Lista
-              </Button>
-              <h1 className="text-2xl font-bold text-foreground">
-                {viewingCampaign?.title}
-              </h1>
-            </div>
-          </div>
-          
-          <EditableCampaignReport
-            campaign={viewingCampaign}
-            onSave={() => loadCampaignForView(id!)}
-          />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Generator mode - simplified single screen
+  // Both 'generator' (new) and 'edit' (existing) modes use CampaignGeneratorSimplified
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -153,11 +119,20 @@ const GeradorCampanhas = () => {
         </div>
         
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gerador de Campanhas Inteligente</h1>
-          <p className="text-muted-foreground">Crie estratégias de campanha otimizadas com IA</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {mode === 'edit' ? 'Editar Campanha' : 'Gerador de Campanhas Inteligente'}
+          </h1>
+          <p className="text-muted-foreground">
+            {mode === 'edit' 
+              ? 'Edite os detalhes da sua campanha' 
+              : 'Crie estratégias de campanha otimizadas com IA'}
+          </p>
         </div>
 
-        <CampaignGeneratorSimplified onBack={handleBackToList} />
+        <CampaignGeneratorSimplified 
+          onBack={handleBackToList} 
+          existingCampaign={existingCampaign}
+        />
       </div>
     </DashboardLayout>
   );

@@ -71,29 +71,69 @@ const CAMPAIGN_TYPES: Record<CampaignType, { title: string; icon: React.ElementT
   retention: { title: "Retenção", icon: Heart, suitableFor: ["retencao"] },
 };
 
-interface CampaignGeneratorSimplifiedProps {
-  onBack: () => void;
+interface ExistingCampaign {
+  id: string;
+  client_id: string;
+  title: string;
+  funnel_stage: string;
+  campaign_type: string;
+  configuration: EditableStrategy;
+  creatives: EditableCreative[];
+  status: string;
+  clients?: {
+    id: string;
+    name: string;
+    avatar?: string;
+    company: string;
+    website_url?: string;
+    monthly_budget?: number;
+    sector?: string;
+  };
 }
 
-export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplifiedProps) {
+interface CampaignGeneratorSimplifiedProps {
+  onBack: () => void;
+  existingCampaign?: ExistingCampaign | null;
+}
+
+export function CampaignGeneratorSimplified({ onBack, existingCampaign }: CampaignGeneratorSimplifiedProps) {
   const { toast } = useToast();
   const { clients } = useClients();
   const { activeCompany } = useCompany();
 
-  // Form state
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
-  const [funnelStage, setFunnelStage] = useState<FunnelStage | "">("");
-  const [campaignType, setCampaignType] = useState<CampaignType | "">("");
+  // Determine if we're in edit mode
+  const isEditMode = Boolean(existingCampaign);
+  const [existingCampaignId] = useState(existingCampaign?.id);
+
+  // Form state - initialize from existing campaign if available
+  const [selectedClientId, setSelectedClientId] = useState<string>(existingCampaign?.client_id || "");
+  const [funnelStage, setFunnelStage] = useState<FunnelStage | "">(
+    (existingCampaign?.funnel_stage as FunnelStage) || ""
+  );
+  const [campaignType, setCampaignType] = useState<CampaignType | "">(
+    (existingCampaign?.campaign_type as CampaignType) || ""
+  );
   const [customObjective, setCustomObjective] = useState("");
-  const [dailyBudget, setDailyBudget] = useState(100);
-  const [duration, setDuration] = useState(30);
+  const [dailyBudget, setDailyBudget] = useState(existingCampaign?.configuration?.dailyBudget || 100);
+  const [duration, setDuration] = useState(existingCampaign?.configuration?.duration || 30);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Generation state
+  // Generation state - initialize with existing strategy if available
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [editableStrategy, setEditableStrategy] = useState<EditableStrategy | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editableStrategy, setEditableStrategy] = useState<EditableStrategy | null>(() => {
+    if (existingCampaign?.configuration) {
+      const config = existingCampaign.configuration;
+      return {
+        ...config,
+        startDate: new Date(config.startDate || Date.now()),
+        endDate: new Date(config.endDate || Date.now()),
+      };
+    }
+    return null;
+  });
 
   // Derived state
   const selectedClient = useMemo(() => 
@@ -394,27 +434,49 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
   const handleSave = async () => {
     if (!editableStrategy || !selectedClient) return;
 
+    setIsSaving(true);
     try {
       const campaignName = `${selectedClient.name} - ${CAMPAIGN_TYPES[campaignType as CampaignType]?.title || campaignType}`;
 
-      const { error } = await supabase.from('generated_campaigns').insert({
-        client_id: selectedClientId,
-        company_id: activeCompany?.company_id,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        title: campaignName,
-        funnel_stage: funnelStage,
-        campaign_type: campaignType,
-        configuration: editableStrategy as any,
-        creatives: editableStrategy.adSets.flatMap(as => as.creatives) as any,
-        status: 'draft',
-      });
+      if (isEditMode && existingCampaignId) {
+        // Update existing campaign
+        const { error } = await supabase.from('generated_campaigns')
+          .update({
+            title: campaignName,
+            funnel_stage: funnelStage,
+            campaign_type: campaignType,
+            configuration: editableStrategy as any,
+            creatives: editableStrategy.adSets.flatMap(as => as.creatives) as any,
+          })
+          .eq('id', existingCampaignId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Campanha salva!",
-        description: "A campanha foi salva como rascunho.",
-      });
+        toast({
+          title: "Campanha atualizada!",
+          description: "As alterações foram salvas com sucesso.",
+        });
+      } else {
+        // Create new campaign
+        const { error } = await supabase.from('generated_campaigns').insert({
+          client_id: selectedClientId,
+          company_id: activeCompany?.company_id,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          title: campaignName,
+          funnel_stage: funnelStage,
+          campaign_type: campaignType,
+          configuration: editableStrategy as any,
+          creatives: editableStrategy.adSets.flatMap(as => as.creatives) as any,
+          status: 'draft',
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Campanha salva!",
+          description: "A campanha foi salva como rascunho.",
+        });
+      }
       
       onBack();
     } catch (error: any) {
@@ -423,6 +485,8 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -435,7 +499,7 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            Nova Campanha
+            {isEditMode ? 'Editar Campanha' : 'Nova Campanha'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -666,16 +730,24 @@ export function CampaignGeneratorSimplified({ onBack }: CampaignGeneratorSimplif
           <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <Check className="w-5 h-5 text-green-500" />
-              <span className="font-medium">Estratégia Gerada</span>
+              <span className="font-medium">
+                {isEditMode ? 'Editando Campanha' : 'Estratégia Gerada'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleGenerate} disabled={isGenerating}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-                Regenerar
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSave}>
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Rascunho
+              {!isEditMode && (
+                <Button variant="outline" size="sm" onClick={handleGenerate} disabled={isGenerating}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                  Regenerar
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {isEditMode ? 'Salvar Alterações' : 'Salvar Rascunho'}
               </Button>
               <Button 
                 size="sm" 
