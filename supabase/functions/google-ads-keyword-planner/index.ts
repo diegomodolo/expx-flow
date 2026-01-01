@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getValidGoogleAdsToken } from "../_shared/googleAdsTokenRefresh.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,9 +89,10 @@ serve(async (req) => {
       throw new Error('Google Ads integration not found or inactive. Please connect your Google Ads account first.');
     }
 
-    // Verificar se token expirou
-    if (new Date(integration.expires_at) < new Date()) {
-      throw new Error('Google Ads token expired. Please reconnect your account.');
+    // Obter token válido (renova automaticamente se necessário)
+    const { accessToken, wasRefreshed } = await getValidGoogleAdsToken(supabaseClient, integration);
+    if (wasRefreshed) {
+      console.log('Token was automatically refreshed');
     }
 
     const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
@@ -164,7 +166,7 @@ serve(async (req) => {
     });
     if (action === 'generateKeywordIdeas') {
       const result = await generateKeywordIdeas({
-        accessToken: integration.access_token,
+        accessToken,
         developerToken,
         customerId: cleanCustomerId,
         loginCustomerId: cleanLoginCustomerId,
@@ -183,7 +185,7 @@ serve(async (req) => {
 
     if (action === 'getHistoricalMetrics') {
       const result = await getHistoricalMetrics({
-        accessToken: integration.access_token,
+        accessToken,
         developerToken,
         customerId: cleanCustomerId,
         loginCustomerId: cleanLoginCustomerId,

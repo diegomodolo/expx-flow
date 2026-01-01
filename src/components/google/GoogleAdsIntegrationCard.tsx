@@ -20,6 +20,7 @@ export function GoogleAdsIntegrationCard() {
     loadIntegration,
     disconnectGoogle,
     refreshAdAccounts,
+    refreshToken,
   } = useGoogleAdsIntegration();
 
   useEffect(() => {
@@ -30,10 +31,16 @@ export function GoogleAdsIntegrationCard() {
 
   const isConnected = integration && integration.is_active;
   const isExpired = integration && new Date(integration.expires_at) < new Date();
+  // Token será renovado automaticamente, mas mostramos aviso se expirado há mais de 7 dias (refresh_token pode ter expirado)
+  const isLongExpired = integration && (new Date().getTime() - new Date(integration.expires_at).getTime()) > 7 * 24 * 60 * 60 * 1000;
   
   const handleRefreshAccounts = async () => {
     if (!activeCompany?.company_id) return;
     await refreshAdAccounts();
+  };
+
+  const handleRefreshToken = async () => {
+    await refreshToken();
   };
 
   if (loading) {
@@ -69,9 +76,14 @@ export function GoogleAdsIntegrationCard() {
                 <span className="text-sm text-green-600">
                   Conectado - {adAccounts.length} conta(s) de anúncios
                 </span>
-                {isExpired && (
+                {isExpired && !isLongExpired && (
+                  <Badge variant="secondary" className="text-xs">
+                    Token será renovado automaticamente
+                  </Badge>
+                )}
+                {isLongExpired && (
                   <Badge variant="destructive" className="text-xs">
-                    Token Expirado
+                    Reconexão necessária
                   </Badge>
                 )}
               </div>
@@ -142,27 +154,51 @@ export function GoogleAdsIntegrationCard() {
               </div>
             </div>
             <div className="flex items-center gap-2 pt-2 border-t">
-              <Badge variant={isExpired ? "destructive" : "secondary"} className="text-xs">
-                {isExpired ? "Token Expirado" : "Token Válido"}
+              <Badge variant={isLongExpired ? "destructive" : "secondary"} className="text-xs">
+                {isLongExpired ? "Reconexão necessária" : isExpired ? "Renovação automática ativa" : "Token Válido"}
               </Badge>
               <Badge variant="outline" className="text-xs">
                 {adAccounts.length} conta(s) encontrada(s)
               </Badge>
+              {isExpired && !isLongExpired && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshToken}
+                  disabled={loading}
+                  className="ml-auto text-xs"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                  Renovar Token Agora
+                </Button>
+              )}
             </div>
           </div>
         )}
 
-        {isExpired && (
+        {isLongExpired && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Token Expirado</AlertTitle>
+            <AlertTitle>Reconexão Necessária</AlertTitle>
             <AlertDescription>
-              Sua conexão com o Google Ads expirou. Reconecte sua conta para continuar sincronizando dados.
+              Sua conexão com o Google Ads expirou há mais de 7 dias. O refresh token pode ter expirado. 
+              Por favor, desconecte e reconecte sua conta.
             </AlertDescription>
           </Alert>
         )}
 
-        {isConnected && adAccounts.length === 0 && !isExpired && (
+        {isExpired && !isLongExpired && (
+          <Alert>
+            <RefreshCw className="h-4 w-4" />
+            <AlertTitle>Renovação Automática</AlertTitle>
+            <AlertDescription>
+              O token de acesso expirou, mas será renovado automaticamente na próxima sincronização. 
+              Você também pode clicar em "Renovar Token Agora" para renovar manualmente.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isConnected && adAccounts.length === 0 && !isLongExpired && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Nenhuma conta encontrada</AlertTitle>
@@ -235,14 +271,6 @@ export function GoogleAdsIntegrationCard() {
           </div>
         )}
 
-        {isExpired && (
-          <Alert variant="destructive">
-            <AlertTitle>Token Expirado</AlertTitle>
-            <AlertDescription>
-              Seu token do Google Ads expirou. Clique em "Desconectar" e conecte novamente para renovar.
-            </AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   );

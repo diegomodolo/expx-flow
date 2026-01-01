@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getValidGoogleAdsToken } from "../_shared/googleAdsTokenRefresh.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +50,12 @@ serve(async (req) => {
       throw new Error('Google Ads integration not found or inactive');
     }
 
+    // Obter token válido (renova automaticamente se necessário)
+    const { accessToken, wasRefreshed } = await getValidGoogleAdsToken(supabaseClient, integration);
+    if (wasRefreshed) {
+      console.log('Token was automatically refreshed');
+    }
+
     const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
     if (!developerToken) {
       throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN not configured');
@@ -75,7 +82,7 @@ serve(async (req) => {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${integration.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'developer-token': developerToken,
           'Content-Type': 'application/json',
         },
