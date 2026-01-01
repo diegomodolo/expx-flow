@@ -181,6 +181,9 @@ serve(async (req) => {
           console.log(`Syncing client ${client.name} (${client.id})`);
 
           const { error: syncError } = await supabase.functions.invoke('sync-google-ads-campaigns', {
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
             body: {
               clientId: client.id,
               companyId: schedule.company_id,

@@ -323,14 +323,22 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    // Check if this is a service role call (from scheduler) or a user call
+    const isServiceRoleCall = token === supabaseServiceKey;
+    
+    if (isServiceRoleCall) {
+      console.log('🔐 Service role call (from scheduler)');
+    } else {
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
-    if (userError || !user) {
-      console.error('❌ Auth error:', userError);
-      throw new Error('Unauthorized');
+      if (userError || !user) {
+        console.error('❌ Auth error:', userError);
+        throw new Error('Unauthorized');
+      }
+
+      console.log(`👤 User authenticated: ${user.id}`);
     }
-
-    console.log(`👤 User authenticated: ${user.id}`);
 
     const options: SyncOptions = await req.json();
     const {
