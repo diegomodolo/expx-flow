@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useBackgroundImageGeneration } from "@/hooks/useBackgroundImageGeneration";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Sparkles, 
@@ -34,6 +36,8 @@ import {
   Settings,
   Send,
   AlertCircle,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -100,6 +104,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
   const { toast } = useToast();
   const { clients } = useClients();
   const { activeCompany } = useCompany();
+  const { progress: imageProgress, generateImagesInBackground, stopGeneration } = useBackgroundImageGeneration();
 
   // Determine if we're in edit mode
   const isEditMode = Boolean(existingCampaign);
@@ -129,11 +134,43 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
       return {
         ...config,
         startDate: new Date(config.startDate || Date.now()),
-        endDate: new Date(config.endDate || Date.now()),
+        endDate: config.endDate ? new Date(config.endDate) : null,
+        hasEndDate: config.hasEndDate !== false,
       };
     }
     return null;
   });
+
+  // Callback to update creative with generated image
+  const handleCreativeImageUpdate = useCallback((adSetId: string, creativeId: string, imageUrl: string) => {
+    setEditableStrategy(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        adSets: prev.adSets.map(as =>
+          as.id === adSetId
+            ? {
+                ...as,
+                creatives: as.creatives.map(c =>
+                  c.id === creativeId ? { ...c, mediaUrls: [imageUrl] } : c
+                ),
+              }
+            : as
+        ),
+      };
+    });
+  }, []);
+
+  // Start background image generation when strategy is set
+  useEffect(() => {
+    if (editableStrategy && selectedClientId && !isEditMode && !imageProgress.isGenerating) {
+      // Small delay to let UI render first
+      const timer = setTimeout(() => {
+        generateImagesInBackground(editableStrategy, selectedClientId, handleCreativeImageUpdate);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [editableStrategy?.adSets.length, selectedClientId, isEditMode]);
 
   // Derived state
   const selectedClient = useMemo(() => 
@@ -235,6 +272,7 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
           totalBudget: (config.budget?.daily || dailyBudget) * (config.schedule?.duration || duration),
           startDate,
           endDate,
+          hasEndDate: true, // Default to having an end date
           useOptimalHours: true,
           optimalHours: config.schedule?.optimalHours || '9h-21h',
           bidStrategy: 'LOWEST_COST',

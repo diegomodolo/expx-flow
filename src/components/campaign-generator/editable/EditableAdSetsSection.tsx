@@ -34,9 +34,8 @@ export function EditableAdSetsSection({
   const { audiences, fetchAudiences, createAudience, loading: audiencesLoading } = useMetaAudiences(clientId);
   const { segments, fetchSegments, createAudienceFromSegment, loading: segmentsLoading } = useLeadSegmentsForAudience(clientId);
   
-  const [expandedAdSets, setExpandedAdSets] = useState<string[]>(
-    strategy.adSets.map(as => as.id)
-  );
+  // Start with all ad sets collapsed by default
+  const [expandedAdSets, setExpandedAdSets] = useState<string[]>([]);
   const [creatingAudienceFor, setCreatingAudienceFor] = useState<string | null>(null);
   const [selectedSegments, setSelectedSegments] = useState<Record<string, string>>({});
 
