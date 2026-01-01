@@ -11,6 +11,9 @@ export interface RSSFeed {
   last_checked_at: string | null;
   last_error: string | null;
   created_at: string;
+  post_type: 'single' | 'carousel';
+  carousel_images: number;
+  auto_generate: boolean;
 }
 
 export interface RSSItem {
@@ -24,6 +27,9 @@ export interface RSSItem {
   published_at: string | null;
   is_selected: boolean;
   created_at: string;
+  post_generated: boolean;
+  generated_post_id: string | null;
+  generated_at: string | null;
 }
 
 // Validate RSS URL format
@@ -180,6 +186,61 @@ export function useRSSKnowledge(configId: string) {
     }
   });
 
+  // Update feed configuration (post_type, carousel_images, auto_generate)
+  const updateFeedConfigMutation = useMutation({
+    mutationFn: async ({ 
+      feedId, 
+      postType, 
+      carouselImages, 
+      autoGenerate 
+    }: { 
+      feedId: string; 
+      postType?: 'single' | 'carousel'; 
+      carouselImages?: number;
+      autoGenerate?: boolean;
+    }) => {
+      const updateData: Record<string, any> = {};
+      if (postType !== undefined) updateData.post_type = postType;
+      if (carouselImages !== undefined) updateData.carousel_images = carouselImages;
+      if (autoGenerate !== undefined) updateData.auto_generate = autoGenerate;
+
+      const { error } = await (supabase
+        .from('instagram_autopost_rss_feeds' as any)
+        .update(updateData)
+        .eq('id', feedId) as any);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rss-feeds', configId] });
+      toast.success('Configuração atualizada');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao atualizar configuração', { description: error.message });
+    }
+  });
+
+  // Generate post from RSS item
+  const generatePostMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { data, error } = await supabase.functions.invoke('generate-rss-post', {
+        body: { itemId, configId }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Falha ao gerar post');
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rss-items', configId] });
+      toast.success('Post gerado com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao gerar post', { description: error.message });
+    }
+  });
+
   // Refresh feeds (check for new items)
   const refreshFeedsMutation = useMutation({
     mutationFn: async () => {
@@ -226,6 +287,11 @@ export function useRSSKnowledge(configId: string) {
     isTogglingFeed: toggleFeedMutation.isPending,
     toggleItem: toggleItemMutation.mutate,
     isTogglingItem: toggleItemMutation.isPending,
+    updateFeedConfig: updateFeedConfigMutation.mutate,
+    isUpdatingFeedConfig: updateFeedConfigMutation.isPending,
+    generatePost: generatePostMutation.mutateAsync,
+    isGeneratingPost: generatePostMutation.isPending,
+    generatingItemId: generatePostMutation.variables,
     refreshFeeds: refreshFeedsMutation.mutate,
     isRefreshingFeeds: refreshFeedsMutation.isPending
   };
