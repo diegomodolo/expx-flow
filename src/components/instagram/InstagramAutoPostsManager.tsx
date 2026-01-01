@@ -38,12 +38,14 @@ export function InstagramAutoPostsManager({
     generateNextPost, 
     deletePost, 
     updateCaption, 
-    publishNow, 
+    publishNow,
+    validateGrammar,
     isRegenerating, 
     isGeneratingNext, 
     isDeleting: isDeletingPost, 
     isUpdatingCaption, 
-    isPublishing 
+    isPublishing,
+    isValidatingGrammar
   } = useInstagramAutoPostsByConfigId(configId);
 
   const [activeSection, setActiveSection] = useState('scheduled-posts');
@@ -117,11 +119,13 @@ export function InstagramAutoPostsManager({
               caption: post.caption,
               imageUrls: post.post_type === 'carousel' && post.image_urls ? post.image_urls : undefined
             })}
+            onValidateGrammar={validateGrammar}
             isGeneratingNext={isGeneratingNext}
             isPublishing={isPublishing}
             isRegenerating={isRegenerating}
             isUpdatingCaption={isUpdatingCaption}
             isDeletingPost={isDeletingPost}
+            isValidatingGrammar={isValidatingGrammar}
           />
         );
 

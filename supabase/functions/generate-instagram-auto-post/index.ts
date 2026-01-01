@@ -686,7 +686,10 @@ Responda APENAS com a legenda pronta.`;
       caption: caption,
       status: 'pending',
       scheduled_at: scheduledAt.toISOString(),
-      post_type: postType
+      post_type: postType,
+      grammar_validated: false,
+      grammar_validation_attempts: 0,
+      grammar_errors: null
     };
 
     if (postType === 'carousel') {
@@ -708,6 +711,42 @@ Responda APENAS com a legenda pronta.`;
     }
 
     console.log('Post saved with ID:', newPost.id, '| Type:', postType, '| Images:', imageUrls.length);
+
+    // Validate text in images automatically
+    console.log('Starting automatic grammar validation...');
+    try {
+      const validationResponse = await fetch(`${supabaseUrl}/functions/v1/validate-image-text`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrls: imageUrls,
+          postId: newPost.id
+        }),
+      });
+
+      if (validationResponse.ok) {
+        const validationResult = await validationResponse.json();
+        console.log('Grammar validation completed:', validationResult);
+        
+        // Update post with validation result
+        await supabase
+          .from('instagram_auto_posts')
+          .update({
+            grammar_validated: true,
+            grammar_validation_attempts: 1,
+            grammar_errors: validationResult.hasErrors ? validationResult.errors : null
+          })
+          .eq('id', newPost.id);
+      } else {
+        console.error('Grammar validation failed:', await validationResponse.text());
+      }
+    } catch (validationError) {
+      console.error('Error during grammar validation:', validationError);
+      // Continue without validation - post is still valid
+    }
 
     // Update config with next_post_at
     await supabase

@@ -31,6 +31,8 @@ interface InstagramAutoPost {
   client_id: string | null;
   company_id: string;
   image_url: string;
+  image_urls?: string[];
+  post_type?: 'single' | 'carousel';
   caption: string;
   status: 'pending' | 'publishing' | 'published' | 'failed';
   scheduled_at: string;
@@ -38,6 +40,9 @@ interface InstagramAutoPost {
   instagram_media_id: string | null;
   error_message: string | null;
   created_at: string;
+  grammar_validated?: boolean;
+  grammar_validation_attempts?: number;
+  grammar_errors?: string[] | null;
 }
 
 // Hook to fetch config by ID (for standalone automations)
@@ -296,6 +301,50 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
     }
   });
 
+  const validateGrammarMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      // Find the post to get image URLs
+      const post = posts?.find(p => p.id === postId);
+      if (!post) throw new Error('Post não encontrado');
+
+      const imageUrls = post.image_urls || [post.image_url];
+      
+      const { data, error } = await supabase.functions.invoke('validate-image-text', {
+        body: { imageUrls, postId }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['instagram-auto-posts-by-config', configId] });
+      if (data.hasErrors) {
+        toast({
+          title: 'Verificação concluída',
+          description: `Encontrados ${data.errors?.length || 0} possíveis erros de texto.`,
+          variant: 'destructive',
+        });
+      } else if (data.hasText) {
+        toast({
+          title: 'Texto verificado!',
+          description: 'Nenhum erro de ortografia encontrado.',
+        });
+      } else {
+        toast({
+          title: 'Verificação concluída',
+          description: 'Nenhum texto foi encontrado nas imagens.',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro na verificação',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
   return {
     posts,
     pendingPosts,
@@ -308,10 +357,12 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
     deletePost: deletePostMutation.mutate,
     updateCaption: updateCaptionMutation.mutate,
     publishNow: publishNowMutation.mutate,
+    validateGrammar: validateGrammarMutation.mutate,
     isRegenerating: regeneratePostMutation.isPending,
     isGeneratingNext: generateNextPostMutation.isPending,
     isDeleting: deletePostMutation.isPending,
     isUpdatingCaption: updateCaptionMutation.isPending,
-    isPublishing: publishNowMutation.isPending
+    isPublishing: publishNowMutation.isPending,
+    isValidatingGrammar: validateGrammarMutation.isPending
   };
 }
