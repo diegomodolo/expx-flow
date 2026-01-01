@@ -8,7 +8,8 @@ import {
   ImageIcon, 
   Youtube, 
   FileText, 
-  History 
+  History,
+  Rss
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +56,12 @@ const navItems: NavItem[] = [
     title: 'Arquivos PDF',
     icon: FileText,
     description: 'Base de conhecimento em texto',
+  },
+  {
+    id: 'rss',
+    title: 'Feeds RSS',
+    icon: Rss,
+    description: 'Notícias e artigos automáticos',
   },
   {
     id: 'history',

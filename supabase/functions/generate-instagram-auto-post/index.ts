@@ -352,6 +352,15 @@ Deno.serve(async (req) => {
       .eq('processing_status', 'completed')
       .not('content_text', 'is', null);
 
+    // Fetch knowledge base: RSS items
+    const { data: rssItems } = await supabase
+      .from('instagram_autopost_rss_items')
+      .select('title, description, link, published_at')
+      .eq('config_id', configId)
+      .eq('is_selected', true)
+      .order('published_at', { ascending: false })
+      .limit(20);
+
     // Build knowledge context
     let knowledgeContext = '';
     
@@ -366,6 +375,19 @@ Deno.serve(async (req) => {
       knowledgeContext += '\n\n--- CONTEÚDO DE ARQUIVOS PDF ---\n';
       for (const file of knowledgeFiles) {
         knowledgeContext += `\nArquivo: ${file.file_name}\n${file.content_text?.substring(0, 2000)}\n`;
+      }
+    }
+
+    if (rssItems && rssItems.length > 0) {
+      knowledgeContext += '\n\n--- NOTÍCIAS E ARTIGOS RECENTES (RSS) ---\n';
+      for (const item of rssItems) {
+        knowledgeContext += `\nTítulo: ${item.title}\n`;
+        if (item.description) {
+          knowledgeContext += `Resumo: ${item.description.substring(0, 500)}\n`;
+        }
+        if (item.published_at) {
+          knowledgeContext += `Data: ${new Date(item.published_at).toLocaleDateString('pt-BR')}\n`;
+        }
       }
     }
 

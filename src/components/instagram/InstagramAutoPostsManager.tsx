@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { InstagramPostPreviewModal } from '@/components/instagram/InstagramPostPreviewModal';
 import { YouTubeKnowledgeCard } from '@/components/instagram/YouTubeKnowledgeCard';
 import { PDFKnowledgeCard } from '@/components/instagram/PDFKnowledgeCard';
+import { RSSKnowledgeCard } from '@/components/instagram/RSSKnowledgeCard';
 import { InstagramAutoPostLayout } from '@/components/instagram/autopost/InstagramAutoPostLayout';
 import { ScheduledPostsSection } from '@/components/instagram/autopost/sections/ScheduledPostsSection';
 import { ConfigSection } from '@/components/instagram/autopost/sections/ConfigSection';
@@ -201,6 +202,14 @@ export function InstagramAutoPostsManager({
           <PDFKnowledgeCard
             configId={configId}
             companyId={config.company_id}
+            isStandalone
+          />
+        );
+
+      case 'rss':
+        return (
+          <RSSKnowledgeCard
+            configId={configId}
             isStandalone
           />
         );
