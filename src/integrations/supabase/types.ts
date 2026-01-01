@@ -5113,6 +5113,9 @@ export type Database = {
           config_id: string
           created_at: string | null
           error_message: string | null
+          grammar_errors: string[] | null
+          grammar_validated: boolean | null
+          grammar_validation_attempts: number | null
           id: string
           image_url: string
           image_urls: string[] | null
@@ -5129,6 +5132,9 @@ export type Database = {
           config_id: string
           created_at?: string | null
           error_message?: string | null
+          grammar_errors?: string[] | null
+          grammar_validated?: boolean | null
+          grammar_validation_attempts?: number | null
           id?: string
           image_url: string
           image_urls?: string[] | null
@@ -5145,6 +5151,9 @@ export type Database = {
           config_id?: string
           created_at?: string | null
           error_message?: string | null
+          grammar_errors?: string[] | null
+          grammar_validated?: boolean | null
+          grammar_validation_attempts?: number | null
           id?: string
           image_url?: string
           image_urls?: string[] | null

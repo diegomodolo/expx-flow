@@ -244,3 +244,6 @@ verify_jwt = true
 
 [functions.google-trends]
 verify_jwt = false
+
+[functions.validate-image-text]
+verify_jwt = true
