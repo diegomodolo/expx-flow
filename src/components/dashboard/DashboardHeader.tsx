@@ -8,6 +8,7 @@ import { CompanySelector } from "@/components/company/CompanySelector";
 import { Link, useNavigate } from "react-router-dom";
 import { useLeadDisqualificationNotifications } from "@/hooks/useLeadDisqualificationNotifications";
 import { Badge } from "@/components/ui/badge";
+import { PendingAdsNotification } from "@/components/notifications/PendingAdsNotification";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,6 +127,9 @@ export function DashboardHeader() {
               </Badge>
             )}
           </Button>
+
+          {/* Pending Ads Notification */}
+          <PendingAdsNotification />
           
           {/* Theme Toggle */}
           {mounted && (
