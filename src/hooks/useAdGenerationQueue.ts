@@ -272,6 +272,40 @@ export function useAdGenerationQueue(clientId?: string) {
     }
   };
 
+  const publishAds = async (adIds?: string[]) => {
+    if (!clientId || !activeCompany?.id) {
+      toast.error('Cliente não selecionado');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
+        body: {
+          client_id: clientId,
+          company_id: activeCompany.id,
+          ad_ids: adIds,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.published > 0) {
+        toast.success(`${data.published} anúncios publicados com sucesso!`);
+        fetchAds();
+      } else if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.info('Nenhum anúncio aprovado para publicar');
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Error publishing ads:', error);
+      toast.error('Erro ao publicar: ' + error.message);
+      throw error;
+    }
+  };
+
   return {
     ads,
     schedule,
@@ -282,6 +316,7 @@ export function useAdGenerationQueue(clientId?: string) {
     bulkUpdateStatus,
     updateSchedule,
     deleteAd,
+    publishAds,
     refetch: fetchAds,
     fetchSchedule,
   };

@@ -7,7 +7,7 @@ import { BulkApprovalBar } from "@/components/ad-factory/BulkApprovalBar";
 import { AdReviewFilters } from "@/components/ad-factory/AdReviewFilters";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, RefreshCw, Calendar } from "lucide-react";
+import { Sparkles, RefreshCw, Calendar, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export type AdGenerationType = "clone" | "concept" | "iteration";
@@ -19,6 +19,7 @@ export default function RevisaoDiaria() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<AdGenerationType | "all">("all");
   const [filterStatus, setFilterStatus] = useState<AdGenerationStatus | "all">("pending");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const {
     ads,
@@ -27,6 +28,7 @@ export default function RevisaoDiaria() {
     isGenerating,
     updateAdStatus,
     bulkUpdateStatus,
+    publishAds,
     refetch,
   } = useAdGenerationQueue(selectedClientId);
 
@@ -75,6 +77,19 @@ export default function RevisaoDiaria() {
   const pendingCount = ads?.filter((ad) => ad.status === "pending").length || 0;
   const approvedCount = ads?.filter((ad) => ad.status === "approved").length || 0;
 
+  const handlePublishApproved = async () => {
+    if (approvedCount === 0) {
+      toast.error("Nenhum anúncio aprovado para publicar");
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      await publishAds();
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -121,6 +136,17 @@ export default function RevisaoDiaria() {
               <Sparkles className="w-4 h-4 mr-2" />
               {isGenerating ? "Gerando..." : "Gerar Anúncios"}
             </Button>
+            {approvedCount > 0 && (
+              <Button
+                onClick={handlePublishApproved}
+                disabled={isPublishing}
+                variant="default"
+                className="bg-gradient-to-r from-green-600 to-green-500"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {isPublishing ? "Publicando..." : `Publicar ${approvedCount} Aprovados`}
+              </Button>
+            )}
           </div>
         </div>
 
