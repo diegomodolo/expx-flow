@@ -44,6 +44,7 @@ import ApresentacaoDetalhes from "./pages/ApresentacaoDetalhes";
 import Geradores from "./pages/Geradores";
 import RevisaoDiaria from "./pages/geradores/RevisaoDiaria";
 import ConfiguracaoAgenda from "./pages/geradores/ConfiguracaoAgenda";
+import AnunciosVencedores from "./pages/geradores/AnunciosVencedores";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -348,6 +349,11 @@ const App = () => {
                  <Route path="/geradores/configuracao-agenda" element={
                   <ProtectedRoute>
                     <ConfiguracaoAgenda />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/anuncios-vencedores" element={
+                  <ProtectedRoute>
+                    <AnunciosVencedores />
                   </ProtectedRoute>
                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}
