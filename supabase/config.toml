@@ -262,3 +262,6 @@ verify_jwt = false
 
 [functions.analyze-ad-winners]
 verify_jwt = false
+
+[functions.publish-approved-ads]
+verify_jwt = true
