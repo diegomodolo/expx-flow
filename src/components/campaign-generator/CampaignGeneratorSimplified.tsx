@@ -136,6 +136,16 @@ export function CampaignGeneratorSimplified({ onBack, existingCampaign }: Campai
         startDate: new Date(config.startDate || Date.now()),
         endDate: config.endDate ? new Date(config.endDate) : null,
         hasEndDate: config.hasEndDate !== false,
+        // Ensure arrays exist to prevent "length" errors
+        adSets: (config.adSets || []).map((as: any) => ({
+          ...as,
+          creatives: as.creatives || [],
+          interests: as.interests || [],
+          behaviors: as.behaviors || [],
+          includedAudiences: as.includedAudiences || [],
+          excludedAudiences: as.excludedAudiences || [],
+        })),
+        recommendations: config.recommendations || [],
       };
     }
     return null;
