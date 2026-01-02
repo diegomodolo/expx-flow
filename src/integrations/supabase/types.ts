@@ -77,6 +77,257 @@ export type Database = {
           },
         ]
       }
+      ad_generation_queue: {
+        Row: {
+          client_id: string
+          company_id: string
+          concept_description: string | null
+          created_at: string
+          generated_at: string
+          generated_content: Json
+          generation_type: Database["public"]["Enums"]["ad_generation_type"]
+          id: string
+          meta_ad_id: string | null
+          published_at: string | null
+          quality_score: number | null
+          research_sources: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_for: string | null
+          source_ad_id: string | null
+          source_competitor_id: string | null
+          status: Database["public"]["Enums"]["ad_generation_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          concept_description?: string | null
+          created_at?: string
+          generated_at?: string
+          generated_content: Json
+          generation_type: Database["public"]["Enums"]["ad_generation_type"]
+          id?: string
+          meta_ad_id?: string | null
+          published_at?: string | null
+          quality_score?: number | null
+          research_sources?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_for?: string | null
+          source_ad_id?: string | null
+          source_competitor_id?: string | null
+          status?: Database["public"]["Enums"]["ad_generation_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          concept_description?: string | null
+          created_at?: string
+          generated_at?: string
+          generated_content?: Json
+          generation_type?: Database["public"]["Enums"]["ad_generation_type"]
+          id?: string
+          meta_ad_id?: string | null
+          published_at?: string | null
+          quality_score?: number | null
+          research_sources?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_for?: string | null
+          source_ad_id?: string | null
+          source_competitor_id?: string | null
+          status?: Database["public"]["Enums"]["ad_generation_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_generation_queue_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_queue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_queue_source_competitor_id_fkey"
+            columns: ["source_competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_generation_schedules: {
+        Row: {
+          ads_per_day: number
+          autopilot_enabled: boolean
+          autopilot_max_daily_budget: number | null
+          autopilot_min_quality_score: number | null
+          client_id: string
+          clone_percentage: number
+          company_id: string
+          concept_percentage: number
+          created_at: string
+          generation_time: string
+          id: string
+          is_active: boolean
+          iteration_percentage: number
+          last_generation_at: string | null
+          next_generation_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          ads_per_day?: number
+          autopilot_enabled?: boolean
+          autopilot_max_daily_budget?: number | null
+          autopilot_min_quality_score?: number | null
+          client_id: string
+          clone_percentage?: number
+          company_id: string
+          concept_percentage?: number
+          created_at?: string
+          generation_time?: string
+          id?: string
+          is_active?: boolean
+          iteration_percentage?: number
+          last_generation_at?: string | null
+          next_generation_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ads_per_day?: number
+          autopilot_enabled?: boolean
+          autopilot_max_daily_budget?: number | null
+          autopilot_min_quality_score?: number | null
+          client_id?: string
+          clone_percentage?: number
+          company_id?: string
+          concept_percentage?: number
+          created_at?: string
+          generation_time?: string
+          id?: string
+          is_active?: boolean
+          iteration_percentage?: number
+          last_generation_at?: string | null
+          next_generation_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_generation_schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_performance_winners: {
+        Row: {
+          ad_id: string | null
+          ad_name: string
+          clicks: number | null
+          client_id: string
+          company_id: string
+          conversions: number | null
+          cpa: number | null
+          created_at: string
+          ctr: number | null
+          days_running: number
+          facebook_ad_id: string | null
+          id: string
+          impressions: number | null
+          is_winner: boolean
+          last_analyzed_at: string | null
+          roas: number | null
+          spend: number | null
+          updated_at: string
+          winner_reason: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name: string
+          clicks?: number | null
+          client_id: string
+          company_id: string
+          conversions?: number | null
+          cpa?: number | null
+          created_at?: string
+          ctr?: number | null
+          days_running?: number
+          facebook_ad_id?: string | null
+          id?: string
+          impressions?: number | null
+          is_winner?: boolean
+          last_analyzed_at?: string | null
+          roas?: number | null
+          spend?: number | null
+          updated_at?: string
+          winner_reason?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string
+          clicks?: number | null
+          client_id?: string
+          company_id?: string
+          conversions?: number | null
+          cpa?: number | null
+          created_at?: string
+          ctr?: number | null
+          days_running?: number
+          facebook_ad_id?: string | null
+          id?: string
+          impressions?: number | null
+          is_winner?: boolean
+          last_analyzed_at?: string | null
+          roas?: number | null
+          spend?: number | null
+          updated_at?: string
+          winner_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_performance_winners_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_performance_winners_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_performance_winners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_sets: {
         Row: {
           bid_strategy: string | null
@@ -6437,6 +6688,78 @@ export type Database = {
           },
         ]
       }
+      market_research_insights: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          extracted_quotes: Json | null
+          id: string
+          last_used_at: string | null
+          opportunity: string | null
+          pain_point: string | null
+          raw_content: string | null
+          relevance_score: number | null
+          sentiment: string | null
+          source_type: string
+          source_url: string | null
+          topic: string
+          updated_at: string
+          used_in_ads: number
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          extracted_quotes?: Json | null
+          id?: string
+          last_used_at?: string | null
+          opportunity?: string | null
+          pain_point?: string | null
+          raw_content?: string | null
+          relevance_score?: number | null
+          sentiment?: string | null
+          source_type: string
+          source_url?: string | null
+          topic: string
+          updated_at?: string
+          used_in_ads?: number
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          extracted_quotes?: Json | null
+          id?: string
+          last_used_at?: string | null
+          opportunity?: string | null
+          pain_point?: string | null
+          raw_content?: string | null
+          relevance_score?: number | null
+          sentiment?: string | null
+          source_type?: string
+          source_url?: string | null
+          topic?: string
+          updated_at?: string
+          used_in_ads?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_research_insights_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_research_insights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_audience_uploads: {
         Row: {
           audience_id: string
@@ -9386,6 +9709,8 @@ export type Database = {
       }
     }
     Enums: {
+      ad_generation_status: "pending" | "approved" | "rejected" | "published"
+      ad_generation_type: "clone" | "concept" | "iteration"
       campaign_status: "active" | "paused" | "finished"
       client_status: "green" | "yellow" | "red" | "orange"
       menu_item_type:
@@ -9552,6 +9877,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ad_generation_status: ["pending", "approved", "rejected", "published"],
+      ad_generation_type: ["clone", "concept", "iteration"],
       campaign_status: ["active", "paused", "finished"],
       client_status: ["green", "yellow", "red", "orange"],
       menu_item_type: [

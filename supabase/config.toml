@@ -256,3 +256,6 @@ verify_jwt = false
 
 [functions.generate-rss-post]
 verify_jwt = true
+
+[functions.daily-ad-generator]
+verify_jwt = true
