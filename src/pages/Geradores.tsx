@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings, Trophy, BarChart3 } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings, Trophy, BarChart3, History } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -45,6 +45,14 @@ export default function Geradores() {
       icon: Trophy,
       color: "amber",
       path: "/geradores/anuncios-vencedores",
+    },
+    {
+      id: "historico-geracoes",
+      title: "Histórico de Gerações",
+      description: "Visualize a timeline completa de anúncios gerados pela IA",
+      icon: History,
+      color: "purple",
+      path: "/geradores/historico-geracoes",
     },
     {
       id: "planejamento",

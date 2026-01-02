@@ -47,6 +47,7 @@ import ConfiguracaoAgenda from "./pages/geradores/ConfiguracaoAgenda";
 import ConfiguracaoFabrica from "./pages/geradores/ConfiguracaoFabrica";
 import AnunciosVencedores from "./pages/geradores/AnunciosVencedores";
 import DashboardFabrica from "./pages/geradores/DashboardFabrica";
+import HistoricoGeracoes from "./pages/geradores/HistoricoGeracoes";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -366,6 +367,11 @@ const App = () => {
                  <Route path="/geradores/dashboard-fabrica" element={
                   <ProtectedRoute>
                     <DashboardFabrica />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/historico-geracoes" element={
+                  <ProtectedRoute>
+                    <HistoricoGeracoes />
                   </ProtectedRoute>
                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}
