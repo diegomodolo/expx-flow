@@ -258,4 +258,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.daily-ad-generator]
-verify_jwt = true
+verify_jwt = false
+
+[functions.analyze-ad-winners]
+verify_jwt = false

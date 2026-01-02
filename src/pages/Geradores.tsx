@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings, Trophy } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -29,6 +29,14 @@ export default function Geradores() {
       icon: Settings,
       color: "teal",
       path: "/geradores/configuracao-agenda",
+    },
+    {
+      id: "anuncios-vencedores",
+      title: "Anúncios Vencedores",
+      description: "Identifique automaticamente os anúncios com melhor performance",
+      icon: Trophy,
+      color: "amber",
+      path: "/geradores/anuncios-vencedores",
     },
     {
       id: "planejamento",
