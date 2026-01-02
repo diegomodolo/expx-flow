@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2 } from "lucide-react";
+import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FabricaCompetidores } from "./FabricaCompetidores";
+import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 
 interface ScheduleConfig {
   id?: string;
@@ -224,159 +227,186 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Geração Diária */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Geração Diária
-            </CardTitle>
-            <CardDescription>Configure a geração automática de anúncios</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="is_active">Geração ativa</Label>
-              <Switch
-                id="is_active"
-                checked={config.is_active}
-                onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
-              />
-            </div>
+      <Tabs defaultValue="geral" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="geral" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Geral
+          </TabsTrigger>
+          <TabsTrigger value="concorrentes" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Concorrentes
+          </TabsTrigger>
+          <TabsTrigger value="temas" className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4" />
+            Temas de Pesquisa
+          </TabsTrigger>
+        </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="ads_per_day">Anúncios por dia: {config.ads_per_day}</Label>
-              <Slider
-                id="ads_per_day"
-                min={1}
-                max={50}
-                step={1}
-                value={[config.ads_per_day]}
-                onValueChange={([value]) => setConfig({ ...config, ads_per_day: value })}
-              />
-            </div>
+        <TabsContent value="geral" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Geração Diária */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Geração Diária
+                </CardTitle>
+                <CardDescription>Configure a geração automática de anúncios</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_active">Geração ativa</Label>
+                  <Switch
+                    id="is_active"
+                    checked={config.is_active}
+                    onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="generation_time">Horário de geração</Label>
-              <Input
-                id="generation_time"
-                type="time"
-                value={config.generation_time}
-                onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Distribuição */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Distribuição de Tipos
-            </CardTitle>
-            <CardDescription>Define a proporção de cada tipo de anúncio</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Clones (concorrentes): {config.clone_percentage}%</Label>
-              <Slider
-                min={0}
-                max={100}
-                step={5}
-                value={[config.clone_percentage]}
-                onValueChange={([value]) => updatePercentages('clone_percentage', value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Conceitos (pesquisa): {config.concept_percentage}%</Label>
-              <Slider
-                min={0}
-                max={100}
-                step={5}
-                value={[config.concept_percentage]}
-                onValueChange={([value]) => updatePercentages('concept_percentage', value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Iterações (vencedores): {config.iteration_percentage}%</Label>
-              <Slider
-                min={0}
-                max={100}
-                step={5}
-                value={[config.iteration_percentage]}
-                onValueChange={([value]) => updatePercentages('iteration_percentage', value)}
-              />
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              Total: {config.clone_percentage + config.concept_percentage + config.iteration_percentage}%
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Autopilot */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-yellow-500" />
-              Modo Autopilot
-            </CardTitle>
-            <CardDescription>
-              Publica automaticamente anúncios aprovados com alto score de qualidade
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="autopilot_enabled">Ativar Autopilot</Label>
-                <p className="text-sm text-muted-foreground">
-                  Anúncios com score acima do mínimo serão publicados automaticamente
-                </p>
-              </div>
-              <Switch
-                id="autopilot_enabled"
-                checked={config.autopilot_enabled}
-                onCheckedChange={(checked) => setConfig({ ...config, autopilot_enabled: checked })}
-              />
-            </div>
-
-            {config.autopilot_enabled && (
-              <div className="grid gap-6 md:grid-cols-2 pt-4 border-t">
                 <div className="space-y-2">
-                  <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score}%</Label>
+                  <Label htmlFor="ads_per_day">Anúncios por dia: {config.ads_per_day}</Label>
                   <Slider
-                    min={50}
+                    id="ads_per_day"
+                    min={1}
+                    max={50}
+                    step={1}
+                    value={[config.ads_per_day]}
+                    onValueChange={([value]) => setConfig({ ...config, ads_per_day: value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="generation_time">Horário de geração</Label>
+                  <Input
+                    id="generation_time"
+                    type="time"
+                    value={config.generation_time}
+                    onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Distribuição */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Distribuição de Tipos
+                </CardTitle>
+                <CardDescription>Define a proporção de cada tipo de anúncio</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Clones (concorrentes): {config.clone_percentage}%</Label>
+                  <Slider
+                    min={0}
                     max={100}
                     step={5}
-                    value={[config.autopilot_min_quality_score]}
-                    onValueChange={([value]) => setConfig({ ...config, autopilot_min_quality_score: value })}
+                    value={[config.clone_percentage]}
+                    onValueChange={([value]) => updatePercentages('clone_percentage', value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Apenas anúncios com score igual ou acima serão publicados automaticamente
-                  </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="autopilot_max_budget">Orçamento diário máximo (R$)</Label>
-                  <Input
-                    id="autopilot_max_budget"
-                    type="number"
-                    min={10}
-                    value={config.autopilot_max_daily_budget}
-                    onChange={(e) => setConfig({ ...config, autopilot_max_daily_budget: Number(e.target.value) })}
+                  <Label>Conceitos (pesquisa): {config.concept_percentage}%</Label>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[config.concept_percentage]}
+                    onValueChange={([value]) => updatePercentages('concept_percentage', value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Limite máximo de gastos diários com anúncios publicados automaticamente
-                  </p>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+
+                <div className="space-y-2">
+                  <Label>Iterações (vencedores): {config.iteration_percentage}%</Label>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[config.iteration_percentage]}
+                    onValueChange={([value]) => updatePercentages('iteration_percentage', value)}
+                  />
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  Total: {config.clone_percentage + config.concept_percentage + config.iteration_percentage}%
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Autopilot */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  Modo Autopilot
+                </CardTitle>
+                <CardDescription>
+                  Publica automaticamente anúncios aprovados com alto score de qualidade
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="autopilot_enabled">Ativar Autopilot</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Anúncios com score acima do mínimo serão publicados automaticamente
+                    </p>
+                  </div>
+                  <Switch
+                    id="autopilot_enabled"
+                    checked={config.autopilot_enabled}
+                    onCheckedChange={(checked) => setConfig({ ...config, autopilot_enabled: checked })}
+                  />
+                </div>
+
+                {config.autopilot_enabled && (
+                  <div className="grid gap-6 md:grid-cols-2 pt-4 border-t">
+                    <div className="space-y-2">
+                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score}%</Label>
+                      <Slider
+                        min={50}
+                        max={100}
+                        step={5}
+                        value={[config.autopilot_min_quality_score]}
+                        onValueChange={([value]) => setConfig({ ...config, autopilot_min_quality_score: value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Apenas anúncios com score igual ou acima serão publicados automaticamente
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="autopilot_max_budget">Orçamento diário máximo (R$)</Label>
+                      <Input
+                        id="autopilot_max_budget"
+                        type="number"
+                        min={10}
+                        value={config.autopilot_max_daily_budget}
+                        onChange={(e) => setConfig({ ...config, autopilot_max_daily_budget: Number(e.target.value) })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Limite máximo de gastos diários com anúncios publicados automaticamente
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="concorrentes">
+          <FabricaCompetidores clientId={clientId} clonePercentage={config.clone_percentage} />
+        </TabsContent>
+
+        <TabsContent value="temas">
+          <FabricaTemasPesquisa clientId={clientId} conceptPercentage={config.concept_percentage} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
