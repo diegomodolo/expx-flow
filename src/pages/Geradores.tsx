@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -15,11 +15,19 @@ export default function Geradores() {
     path: string;
   }> = [
     {
+      id: "revisao-diaria",
+      title: "Revisão Diária de Anúncios",
+      description: "Revise e aprove os anúncios gerados pela IA diariamente",
+      icon: Eye,
+      color: "amber",
+      path: "/geradores/revisao-diaria",
+    },
+    {
       id: "planejamento",
       title: "Planejador de Conteúdo",
       description: "Planeje suas postagens mensais com ajuda da IA integrada",
       icon: FileText,
-      color: "amber",
+      color: "teal",
       path: "/geradores/planejamento-conteudo",
     },
     {
@@ -51,7 +59,7 @@ export default function Geradores() {
       title: "Gerador de Apresentações",
       description: "Crie apresentações profissionais de conteúdo para aprovação dos clientes",
       icon: Presentation,
-      color: "teal",
+      color: "blue",
       path: "/geradores/apresentacoes",
     },
   ];
