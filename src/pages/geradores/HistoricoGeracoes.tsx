@@ -4,13 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { useCompany } from "@/contexts/CompanyContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Clock, CheckCircle, XCircle, Send, Sparkles, Copy, RefreshCw } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 
 interface GenerationRecord {
   id: string;
@@ -93,22 +92,14 @@ export default function HistoricoGeracoes() {
             <p className="text-muted-foreground">Timeline completa de anúncios gerados pela IA</p>
           </div>
 
-          <Select
+          <ClientSearchCombobox
+            clients={clients || []}
             value={selectedClientId || "all"}
             onValueChange={(value) => setSelectedClientId(value === "all" ? null : value)}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Todos os clientes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os clientes</SelectItem>
-              {clients?.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            includeAllOption
+            allOptionLabel="Todos os clientes"
+            className="w-[220px]"
+          />
         </div>
 
         {isLoading ? (
