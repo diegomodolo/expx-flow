@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings, Trophy } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings, Trophy, BarChart3 } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -14,6 +14,14 @@ export default function Geradores() {
     color: "blue" | "purple" | "pink" | "teal" | "amber";
     path: string;
   }> = [
+    {
+      id: "dashboard-fabrica",
+      title: "Dashboard da Fábrica",
+      description: "Acompanhe métricas de geração, aprovação e publicação de anúncios",
+      icon: BarChart3,
+      color: "blue",
+      path: "/geradores/dashboard-fabrica",
+    },
     {
       id: "revisao-diaria",
       title: "Revisão Diária de Anúncios",
