@@ -283,5 +283,6 @@ export function useAdGenerationQueue(clientId?: string) {
     updateSchedule,
     deleteAd,
     refetch: fetchAds,
+    fetchSchedule,
   };
 }

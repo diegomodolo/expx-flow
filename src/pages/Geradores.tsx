@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -21,6 +21,14 @@ export default function Geradores() {
       icon: Eye,
       color: "amber",
       path: "/geradores/revisao-diaria",
+    },
+    {
+      id: "configuracao-agenda",
+      title: "Configuração da Fábrica",
+      description: "Configure a geração automática de anúncios para cada cliente",
+      icon: Settings,
+      color: "teal",
+      path: "/geradores/configuracao-agenda",
     },
     {
       id: "planejamento",
