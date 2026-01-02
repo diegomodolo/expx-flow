@@ -44,6 +44,7 @@ import ApresentacaoDetalhes from "./pages/ApresentacaoDetalhes";
 import Geradores from "./pages/Geradores";
 import RevisaoDiaria from "./pages/geradores/RevisaoDiaria";
 import ConfiguracaoAgenda from "./pages/geradores/ConfiguracaoAgenda";
+import ConfiguracaoFabrica from "./pages/geradores/ConfiguracaoFabrica";
 import AnunciosVencedores from "./pages/geradores/AnunciosVencedores";
 import DashboardFabrica from "./pages/geradores/DashboardFabrica";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
@@ -350,6 +351,11 @@ const App = () => {
                  <Route path="/geradores/configuracao-agenda" element={
                   <ProtectedRoute>
                     <ConfiguracaoAgenda />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/configuracao-fabrica" element={
+                  <ProtectedRoute>
+                    <ConfiguracaoFabrica />
                   </ProtectedRoute>
                 } />
                  <Route path="/geradores/anuncios-vencedores" element={

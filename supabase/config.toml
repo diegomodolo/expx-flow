@@ -265,3 +265,6 @@ verify_jwt = false
 
 [functions.publish-approved-ads]
 verify_jwt = true
+
+[functions.autopilot-publisher]
+verify_jwt = false

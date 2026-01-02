@@ -31,12 +31,12 @@ export default function Geradores() {
       path: "/geradores/revisao-diaria",
     },
     {
-      id: "configuracao-agenda",
+      id: "configuracao-fabrica",
       title: "Configuração da Fábrica",
-      description: "Configure a geração automática de anúncios para cada cliente",
+      description: "Configure geração automática e modo autopilot de anúncios",
       icon: Settings,
       color: "teal",
-      path: "/geradores/configuracao-agenda",
+      path: "/geradores/configuracao-fabrica",
     },
     {
       id: "anuncios-vencedores",
