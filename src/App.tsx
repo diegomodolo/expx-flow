@@ -43,11 +43,11 @@ import GeradorApresentacoes from "./pages/GeradorApresentacoes";
 import ApresentacaoDetalhes from "./pages/ApresentacaoDetalhes";
 import Geradores from "./pages/Geradores";
 import RevisaoDiaria from "./pages/geradores/RevisaoDiaria";
-import ConfiguracaoAgenda from "./pages/geradores/ConfiguracaoAgenda";
 import ConfiguracaoFabrica from "./pages/geradores/ConfiguracaoFabrica";
 import AnunciosVencedores from "./pages/geradores/AnunciosVencedores";
 import DashboardFabrica from "./pages/geradores/DashboardFabrica";
 import HistoricoGeracoes from "./pages/geradores/HistoricoGeracoes";
+import FabricaAnuncios from "./pages/geradores/FabricaAnuncios";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -344,32 +344,33 @@ const App = () => {
                     <PlanejamentoConteudo />
                   </ProtectedRoute>
                 } />
-                 <Route path="/geradores/revisao-diaria" element={
+                 {/* Fábrica de Anúncios - Menu principal */}
+                 <Route path="/geradores/fabrica-anuncios" element={
                   <ProtectedRoute>
-                    <RevisaoDiaria />
+                    <FabricaAnuncios />
                   </ProtectedRoute>
                 } />
-                 <Route path="/geradores/configuracao-agenda" element={
-                  <ProtectedRoute>
-                    <ConfiguracaoAgenda />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/configuracao-fabrica" element={
-                  <ProtectedRoute>
-                    <ConfiguracaoFabrica />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/anuncios-vencedores" element={
-                  <ProtectedRoute>
-                    <AnunciosVencedores />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/dashboard-fabrica" element={
+                 <Route path="/geradores/fabrica-anuncios/dashboard" element={
                   <ProtectedRoute>
                     <DashboardFabrica />
                   </ProtectedRoute>
                 } />
-                 <Route path="/geradores/historico-geracoes" element={
+                 <Route path="/geradores/fabrica-anuncios/revisao-diaria" element={
+                  <ProtectedRoute>
+                    <RevisaoDiaria />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/fabrica-anuncios/configuracao" element={
+                  <ProtectedRoute>
+                    <ConfiguracaoFabrica />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/fabrica-anuncios/vencedores" element={
+                  <ProtectedRoute>
+                    <AnunciosVencedores />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/fabrica-anuncios/historico" element={
                   <ProtectedRoute>
                     <HistoricoGeracoes />
                   </ProtectedRoute>

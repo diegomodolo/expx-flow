@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Eye, Settings, Trophy, BarChart3, History } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Factory } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -15,44 +15,12 @@ export default function Geradores() {
     path: string;
   }> = [
     {
-      id: "dashboard-fabrica",
-      title: "Dashboard da Fábrica",
-      description: "Acompanhe métricas de geração, aprovação e publicação de anúncios",
-      icon: BarChart3,
-      color: "blue",
-      path: "/geradores/dashboard-fabrica",
-    },
-    {
-      id: "revisao-diaria",
-      title: "Revisão Diária de Anúncios",
-      description: "Revise e aprove os anúncios gerados pela IA diariamente",
-      icon: Eye,
+      id: "fabrica-anuncios",
+      title: "Fábrica de Anúncios",
+      description: "Geração automatizada de anúncios com IA, revisão, aprovação e publicação",
+      icon: Factory,
       color: "amber",
-      path: "/geradores/revisao-diaria",
-    },
-    {
-      id: "configuracao-fabrica",
-      title: "Configuração da Fábrica",
-      description: "Configure geração automática e modo autopilot de anúncios",
-      icon: Settings,
-      color: "teal",
-      path: "/geradores/configuracao-fabrica",
-    },
-    {
-      id: "anuncios-vencedores",
-      title: "Anúncios Vencedores",
-      description: "Identifique automaticamente os anúncios com melhor performance",
-      icon: Trophy,
-      color: "amber",
-      path: "/geradores/anuncios-vencedores",
-    },
-    {
-      id: "historico-geracoes",
-      title: "Histórico de Gerações",
-      description: "Visualize a timeline completa de anúncios gerados pela IA",
-      icon: History,
-      color: "purple",
-      path: "/geradores/historico-geracoes",
+      path: "/geradores/fabrica-anuncios",
     },
     {
       id: "planejamento",
