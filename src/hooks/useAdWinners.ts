@@ -100,6 +100,55 @@ export function useAdWinners(clientId: string | null) {
     }
   };
 
+  const [isCreatingIteration, setIsCreatingIteration] = useState(false);
+
+  const createIteration = async (winnerId: string): Promise<boolean> => {
+    if (!clientId || !activeCompany?.company_id) {
+      toast.error('Selecione um cliente primeiro');
+      return false;
+    }
+
+    const winner = winners?.find(w => w.id === winnerId);
+    if (!winner) {
+      toast.error('Anúncio vencedor não encontrado');
+      return false;
+    }
+
+    setIsCreatingIteration(true);
+    try {
+      // Get user_id from session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error('Sessão expirada');
+        return false;
+      }
+
+      const { data, error } = await supabase.functions.invoke('daily-ad-generator', {
+        body: {
+          client_id: clientId,
+          company_id: activeCompany.company_id,
+          user_id: session.user.id,
+          generation_type: 'iteration',
+          count: 1,
+          source_winner_id: winnerId,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('Iteração criada com sucesso! Verifique a fila de revisão.');
+      queryClient.invalidateQueries({ queryKey: ['ad-generation-queue', clientId] });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error creating iteration:', error);
+      toast.error('Erro ao criar iteração: ' + error.message);
+      return false;
+    } finally {
+      setIsCreatingIteration(false);
+    }
+  };
+
   return {
     winners: winners || [],
     isLoading,
@@ -107,5 +156,7 @@ export function useAdWinners(clientId: string | null) {
     refetch,
     analyzeWinners,
     isAnalyzing,
+    createIteration,
+    isCreatingIteration,
   };
 }

@@ -10,8 +10,9 @@ import { useAdWinners } from '@/hooks/useAdWinners';
 
 export default function AnunciosVencedores() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [creatingIterationId, setCreatingIterationId] = useState<string | null>(null);
   const { clients, loading: clientsLoading } = useClients();
-  const { winners, isLoading, analyzeWinners, isAnalyzing } = useAdWinners(selectedClientId);
+  const { winners, isLoading, analyzeWinners, isAnalyzing, createIteration, isCreatingIteration } = useAdWinners(selectedClientId);
 
   const handleAnalyze = async () => {
     await analyzeWinners();
@@ -171,9 +172,28 @@ export default function AnunciosVencedores() {
                     </div>
                   </div>
 
-                  <Button variant="outline" size="sm" className="w-full gap-2 mt-2">
-                    <Sparkles className="h-4 w-4" />
-                    Criar Iteração
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full gap-2 mt-2"
+                    disabled={isCreatingIteration && creatingIterationId === winner.id}
+                    onClick={async () => {
+                      setCreatingIterationId(winner.id);
+                      await createIteration(winner.id);
+                      setCreatingIterationId(null);
+                    }}
+                  >
+                    {isCreatingIteration && creatingIterationId === winner.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Criando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Criar Iteração
+                      </>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
