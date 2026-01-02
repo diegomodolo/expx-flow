@@ -36,6 +36,7 @@ import {
   ArrowLeftRight,
   ListTodo,
   Sparkles,
+  Factory,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -250,6 +251,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/keyword-planner`,
       icon: Sparkles,
       description: "Planejador de palavras-chave"
+    },
+    {
+      title: "Fábrica de Anúncios",
+      href: `/clientes/${clientId}/fabrica-anuncios`,
+      icon: Factory,
+      description: "Configurar geração automática de anúncios"
     }
   ];
 

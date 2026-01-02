@@ -1,156 +1,112 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Settings, Zap, Clock, Target, Save, Loader2 } from "lucide-react";
+import { Settings, Plus, Loader2, Factory, Zap, Clock, ArrowRight } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
+import { ClienteConfiguracaoFabrica } from "@/components/generators/ClienteConfiguracaoFabrica";
+import { useNavigate } from "react-router-dom";
 
-interface ScheduleConfig {
-  id?: string;
+interface ScheduleWithClient {
+  id: string;
+  client_id: string;
   is_active: boolean;
   ads_per_day: number;
-  clone_percentage: number;
-  concept_percentage: number;
-  iteration_percentage: number;
-  generation_time: string;
   autopilot_enabled: boolean;
-  autopilot_min_quality_score: number;
-  autopilot_max_daily_budget: number;
+  generation_time: string;
+  client_name?: string;
+  client_company?: string;
 }
-
-const defaultConfig: ScheduleConfig = {
-  is_active: true,
-  ads_per_day: 10,
-  clone_percentage: 20,
-  concept_percentage: 50,
-  iteration_percentage: 30,
-  generation_time: "08:00",
-  autopilot_enabled: false,
-  autopilot_min_quality_score: 80,
-  autopilot_max_daily_budget: 500,
-};
 
 export default function ConfiguracaoFabrica() {
   const { activeCompany } = useCompany();
   const { clients } = useClients();
+  const navigate = useNavigate();
+  const [schedules, setSchedules] = useState<ScheduleWithClient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
-  const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [configClientId, setConfigClientId] = useState<string | null>(null);
 
-  const selectedClient = clients.find(c => c.id === selectedClientId);
-
-  useEffect(() => {
-    if (selectedClientId) {
-      loadConfig();
-    }
-  }, [selectedClientId]);
-
-  const loadConfig = async () => {
-    if (!selectedClientId) return;
+  const loadSchedules = async () => {
+    if (!activeCompany?.company_id) return;
     
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('ad_generation_schedules')
-        .select('*')
-        .eq('client_id', selectedClientId)
-        .single();
+        .select('id, client_id, is_active, ads_per_day, autopilot_enabled, generation_time')
+        .eq('company_id', activeCompany.company_id);
 
-      if (data) {
-        setConfig({
-          id: data.id,
-          is_active: data.is_active,
-          ads_per_day: data.ads_per_day,
-          clone_percentage: data.clone_percentage,
-          concept_percentage: data.concept_percentage,
-          iteration_percentage: data.iteration_percentage,
-          generation_time: data.generation_time,
-          autopilot_enabled: data.autopilot_enabled,
-          autopilot_min_quality_score: data.autopilot_min_quality_score || 80,
-          autopilot_max_daily_budget: data.autopilot_max_daily_budget || 500,
-        });
-      } else {
-        setConfig(defaultConfig);
-      }
+      if (error) throw error;
+
+      // Map client names to schedules
+      const schedulesWithClients = (data || []).map(schedule => {
+        const client = clients.find(c => c.id === schedule.client_id);
+        return {
+          ...schedule,
+          client_name: client?.name || 'Cliente não encontrado',
+          client_company: client?.company || '',
+        };
+      });
+
+      setSchedules(schedulesWithClients);
     } catch (error) {
-      console.error('Error loading config:', error);
-      setConfig(defaultConfig);
+      console.error('Error loading schedules:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const saveConfig = async () => {
-    if (!selectedClientId || !activeCompany?.company_id) return;
+  useEffect(() => {
+    if (activeCompany?.company_id && clients.length > 0) {
+      loadSchedules();
+    }
+  }, [activeCompany?.company_id, clients]);
 
-    setSaving(true);
-    try {
-      const configData = {
-        client_id: selectedClientId,
-        company_id: activeCompany.company_id,
-        is_active: config.is_active,
-        ads_per_day: config.ads_per_day,
-        clone_percentage: config.clone_percentage,
-        concept_percentage: config.concept_percentage,
-        iteration_percentage: config.iteration_percentage,
-        generation_time: config.generation_time,
-        autopilot_enabled: config.autopilot_enabled,
-        autopilot_min_quality_score: config.autopilot_min_quality_score,
-        autopilot_max_daily_budget: config.autopilot_max_daily_budget,
-      };
+  const clientsWithSchedule = schedules.map(s => s.client_id);
+  const availableClients = clients.filter(c => !clientsWithSchedule.includes(c.id));
 
-      if (config.id) {
-        const { error } = await supabase
-          .from('ad_generation_schedules')
-          .update(configData)
-          .eq('id', config.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('ad_generation_schedules')
-          .insert(configData);
-        
-        if (error) throw error;
-      }
-
-      toast.success('Configurações salvas com sucesso!');
-      loadConfig();
-    } catch (error: any) {
-      console.error('Error saving config:', error);
-      toast.error('Erro ao salvar configurações: ' + error.message);
-    } finally {
-      setSaving(false);
+  const handleCreateFactory = () => {
+    if (selectedClientId) {
+      setConfigClientId(selectedClientId);
+      setCreateDialogOpen(false);
+      setSelectedClientId("");
     }
   };
 
-  const updatePercentages = (field: keyof ScheduleConfig, value: number) => {
-    const total = 100;
-    const newConfig = { ...config, [field]: value };
-    
-    const fields: (keyof ScheduleConfig)[] = ['clone_percentage', 'concept_percentage', 'iteration_percentage'];
-    const otherFields = fields.filter(f => f !== field);
-    const remaining = total - value;
-    const currentOtherTotal = otherFields.reduce((sum, f) => sum + (config[f] as number), 0);
-    
-    if (currentOtherTotal > 0) {
-      otherFields.forEach(f => {
-        const ratio = (config[f] as number) / currentOtherTotal;
-        (newConfig as any)[f] = Math.round(remaining * ratio);
-      });
-    }
-    
-    setConfig(newConfig);
+  const handleConfigSaved = () => {
+    loadSchedules();
+    setConfigClientId(null);
   };
+
+  if (configClientId) {
+    const client = clients.find(c => c.id === configClientId);
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => setConfigClientId(null)}>
+              ← Voltar
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Configurar Fábrica</h1>
+              <p className="text-muted-foreground">{client?.name}</p>
+            </div>
+          </div>
+          <ClienteConfiguracaoFabrica 
+            clientId={configClientId} 
+            onSave={handleConfigSaved}
+          />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -158,198 +114,112 @@ export default function ConfiguracaoFabrica() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Configuração da Fábrica</h1>
-            <p className="text-muted-foreground">Configure a geração automática de anúncios</p>
+            <p className="text-muted-foreground">Gerencie as fábricas de anúncios por cliente</p>
           </div>
-          <Button onClick={saveConfig} disabled={saving || !selectedClientId}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Salvar Configurações
+          <Button onClick={() => setCreateDialogOpen(true)} disabled={availableClients.length === 0}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Fábrica
           </Button>
         </div>
 
-        {/* Client Selector */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Selecionar Cliente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ClientSearchCombobox
-              clients={clients}
-              value={selectedClientId}
-              onValueChange={setSelectedClientId}
-              showCompany
-              placeholder="Selecione um cliente..."
-            />
-          </CardContent>
-        </Card>
-
-        {selectedClientId && !loading && (
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Geração Diária */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Geração Diária
-                </CardTitle>
-                <CardDescription>Configure a geração automática de anúncios</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">Geração ativa</Label>
-                  <Switch
-                    id="is_active"
-                    checked={config.is_active}
-                    onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="ads_per_day">Anúncios por dia: {config.ads_per_day}</Label>
-                  <Slider
-                    id="ads_per_day"
-                    min={1}
-                    max={50}
-                    step={1}
-                    value={[config.ads_per_day]}
-                    onValueChange={([value]) => setConfig({ ...config, ads_per_day: value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="generation_time">Horário de geração</Label>
-                  <Input
-                    id="generation_time"
-                    type="time"
-                    value={config.generation_time}
-                    onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Distribuição */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Distribuição de Tipos
-                </CardTitle>
-                <CardDescription>Define a proporção de cada tipo de anúncio</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Clones (concorrentes): {config.clone_percentage}%</Label>
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={[config.clone_percentage]}
-                    onValueChange={([value]) => updatePercentages('clone_percentage', value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Conceitos (pesquisa): {config.concept_percentage}%</Label>
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={[config.concept_percentage]}
-                    onValueChange={([value]) => updatePercentages('concept_percentage', value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Iterações (vencedores): {config.iteration_percentage}%</Label>
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={[config.iteration_percentage]}
-                    onValueChange={([value]) => updatePercentages('iteration_percentage', value)}
-                  />
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  Total: {config.clone_percentage + config.concept_percentage + config.iteration_percentage}%
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Autopilot */}
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  Modo Autopilot
-                </CardTitle>
-                <CardDescription>
-                  Publica automaticamente anúncios aprovados com alto score de qualidade
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="autopilot_enabled">Ativar Autopilot</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Anúncios com score acima do mínimo serão publicados automaticamente
-                    </p>
-                  </div>
-                  <Switch
-                    id="autopilot_enabled"
-                    checked={config.autopilot_enabled}
-                    onCheckedChange={(checked) => setConfig({ ...config, autopilot_enabled: checked })}
-                  />
-                </div>
-
-                {config.autopilot_enabled && (
-                  <div className="grid gap-6 md:grid-cols-2 pt-4 border-t">
-                    <div className="space-y-2">
-                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score}%</Label>
-                      <Slider
-                        min={50}
-                        max={100}
-                        step={5}
-                        value={[config.autopilot_min_quality_score]}
-                        onValueChange={([value]) => setConfig({ ...config, autopilot_min_quality_score: value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Apenas anúncios com score igual ou acima serão publicados automaticamente
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="autopilot_max_budget">Orçamento diário máximo (R$)</Label>
-                      <Input
-                        id="autopilot_max_budget"
-                        type="number"
-                        min={10}
-                        value={config.autopilot_max_daily_budget}
-                        onChange={(e) => setConfig({ ...config, autopilot_max_daily_budget: Number(e.target.value) })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Limite máximo de gastos diários com anúncios publicados automaticamente
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {loading && (
+        {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : schedules.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <Factory className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Nenhuma fábrica configurada</h3>
+              <p className="text-muted-foreground mb-4">
+                Crie uma fábrica de anúncios para começar a gerar anúncios automaticamente
+              </p>
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar primeira fábrica
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {schedules.map((schedule) => (
+              <Card 
+                key={schedule.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setConfigClientId(schedule.client_id)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{schedule.client_name}</CardTitle>
+                      <CardDescription>{schedule.client_company}</CardDescription>
+                    </div>
+                    <Badge variant={schedule.is_active ? "default" : "secondary"}>
+                      {schedule.is_active ? "Ativa" : "Inativa"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {schedule.generation_time}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Settings className="h-4 w-4" />
+                      {schedule.ads_per_day} anúncios/dia
+                    </div>
+                    {schedule.autopilot_enabled && (
+                      <div className="flex items-center gap-1 text-yellow-600">
+                        <Zap className="h-4 w-4" />
+                        Autopilot
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button variant="ghost" size="sm">
+                      Configurar <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
+
+        {/* Dialog para criar nova fábrica */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova Fábrica de Anúncios</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Selecione o cliente</label>
+                <ClientSearchCombobox
+                  clients={availableClients}
+                  value={selectedClientId}
+                  onValueChange={setSelectedClientId}
+                  showCompany
+                  placeholder="Buscar cliente..."
+                />
+              </div>
+              {availableClients.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Todos os clientes já possuem fábricas configuradas.
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreateFactory} disabled={!selectedClientId}>
+                  Criar Fábrica
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
