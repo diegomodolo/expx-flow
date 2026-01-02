@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Settings, Zap, Clock, Target, Save, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 
 interface ScheduleConfig {
   id?: string;
@@ -179,18 +179,13 @@ export default function ConfiguracaoFabrica() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente..." />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} - {client.company}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientSearchCombobox
+              clients={clients}
+              value={selectedClientId}
+              onValueChange={setSelectedClientId}
+              showCompany
+              placeholder="Selecione um cliente..."
+            />
           </CardContent>
         </Card>
 
