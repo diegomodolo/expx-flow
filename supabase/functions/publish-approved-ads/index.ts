@@ -39,10 +39,10 @@ serve(async (req) => {
       legacy_ad_ids: ad_ids?.length 
     });
 
-    // Fetch client with Meta credentials
+    // Fetch client with Facebook Ad Account + Facebook Page (needed for ad creative)
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('*, facebook_ad_accounts(*)')
+      .select('*, facebook_ad_accounts(*), facebook_pages(*)')
       .eq('id', client_id)
       .single();
 
@@ -349,17 +349,31 @@ async function createAdCreative(
   content: any
 ): Promise<{ success: boolean; creative_id?: string; error?: string }> {
   try {
+    const linkUrl = client.website_url || 'https://example.com';
+    const pageId = client.facebook_pages?.page_id;
+
+    if (!pageId) {
+      console.error('[publish-approved-ads] Missing Facebook Page (page_id) for client:', client.id, {
+        facebook_page_id_fk: client.facebook_page_id,
+      });
+      return {
+        success: false,
+        error: 'Página do Facebook não configurada para este cliente. Selecione uma Página do Facebook para representar sua empresa.',
+      };
+    }
+
     const creativePayload: any = {
       name: `AI Generated - ${content.headline?.substring(0, 50) || 'Ad'} - ${Date.now()}`,
       object_story_spec: {
-        page_id: client.facebook_page_id,
+        page_id: pageId,
         link_data: {
-          link: client.website_url || 'https://example.com',
+          link: linkUrl,
           message: content.body || content.primary_text || '',
           name: content.headline || '',
           description: content.description || '',
           call_to_action: {
             type: mapCallToAction(content.cta || content.call_to_action),
+            value: { link: linkUrl },
           },
         },
       },
@@ -371,7 +385,8 @@ async function createAdCreative(
       creativePayload.object_story_spec.link_data.picture = content.image_url;
     }
 
-    console.log('[publish-approved-ads] Creating creative with payload:', JSON.stringify(creativePayload, null, 2));
+    const safeLogPayload = { ...creativePayload, access_token: '[REDACTED]' };
+    console.log('[publish-approved-ads] Creating creative with payload:', JSON.stringify(safeLogPayload, null, 2));
 
     const response = await fetch(
       `https://graph.facebook.com/v18.0/act_${adAccountId}/adcreatives`,
