@@ -216,22 +216,45 @@ export function CreativeSocialPreviewModal({ creative, open, onOpenChange, onSta
           </div>
 
           {/* Actions */}
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 space-y-3">
+            {/* Ações principais para status pending */}
             {creative.status === 'pending' && (
               <>
-                <Button onClick={() => onStatusChange('approved')} className="flex-1">
-                  <Check className="h-4 w-4 mr-2" />
-                  Aprovar
-                </Button>
-                <Button variant="destructive" onClick={() => onStatusChange('rejected')} className="flex-1">
-                  <X className="h-4 w-4 mr-2" />
-                  Rejeitar
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => onStatusChange('approved')} className="flex-1 bg-green-600 hover:bg-green-700">
+                    <Check className="h-4 w-4 mr-2" />
+                    Aprovar
+                  </Button>
+                  <Button variant="destructive" onClick={() => onStatusChange('rejected')} className="flex-1">
+                    <X className="h-4 w-4 mr-2" />
+                    Rejeitar
+                  </Button>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handlePublishNow} disabled={publishing} className="flex-1">
+                    {publishing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Publicar Agora
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowSchedule(true)} className="flex-1">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Agendar
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowSendToPresentation(true)} className="flex-1">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Apresentação
+                  </Button>
+                </div>
               </>
             )}
             
+            {/* Ações para status approved */}
             {creative.status === 'approved' && (
-              <>
+              <div className="flex gap-2">
                 <Button onClick={handlePublishNow} disabled={publishing} className="flex-1">
                   {publishing ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -246,9 +269,28 @@ export function CreativeSocialPreviewModal({ creative, open, onOpenChange, onSta
                 </Button>
                 <Button variant="outline" onClick={() => setShowSendToPresentation(true)} className="flex-1">
                   <FileText className="h-4 w-4 mr-2" />
-                  Enviar p/ Apresentação
+                  Apresentação
                 </Button>
-              </>
+              </div>
+            )}
+
+            {/* Status info para rejected/published */}
+            {creative.status === 'rejected' && (
+              <div className="flex items-center justify-center p-4 bg-red-500/10 rounded-lg">
+                <Badge variant="destructive" className="text-base px-4 py-2">
+                  <X className="h-4 w-4 mr-2" />
+                  Criativo Rejeitado
+                </Badge>
+              </div>
+            )}
+
+            {(creative.status === 'published' || creative.status === 'scheduled') && (
+              <div className="flex items-center justify-center p-4 bg-blue-500/10 rounded-lg">
+                <Badge className="bg-blue-500 text-base px-4 py-2">
+                  <Check className="h-4 w-4 mr-2" />
+                  {creative.status === 'published' ? 'Criativo Publicado' : 'Criativo Agendado'}
+                </Badge>
+              </div>
             )}
           </div>
         </DialogContent>

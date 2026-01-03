@@ -1,25 +1,29 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCreativeGenerationQueue, CreativeQueueItem } from "@/hooks/useCreativeGenerationQueue";
-import { Loader2, Check, X, Eye, Send, Calendar, Sparkles, RefreshCw, Image } from "lucide-react";
+import { Loader2, Check, X, Eye, Sparkles, RefreshCw, Image, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreativeSocialPreviewModal } from "./CreativeSocialPreviewModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface Props {
   clientId: string;
 }
+
+type StatusFilter = 'pending' | 'approved' | 'rejected' | 'published' | 'all';
 
 export function FabricaCriativosGerados({ clientId }: Props) {
   const { creatives, loading, fetchCreatives, updateStatus } = useCreativeGenerationQueue(clientId);
   const { activeCompany } = useCompany();
   const [selectedCreative, setSelectedCreative] = useState<CreativeQueueItem | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -77,9 +81,18 @@ export function FabricaCriativosGerados({ clientId }: Props) {
     }
   };
 
-  const pendingCreatives = creatives.filter(c => c.status === 'pending');
-  const approvedCreatives = creatives.filter(c => c.status === 'approved');
-  const publishedCreatives = creatives.filter(c => ['published', 'scheduled'].includes(c.status));
+  // Contadores por status
+  const pendingCount = creatives.filter(c => c.status === 'pending').length;
+  const approvedCount = creatives.filter(c => c.status === 'approved').length;
+  const rejectedCount = creatives.filter(c => c.status === 'rejected').length;
+  const publishedCount = creatives.filter(c => ['published', 'scheduled'].includes(c.status)).length;
+
+  // Filtrar criativos pelo status selecionado
+  const filteredCreatives = statusFilter === 'all' 
+    ? creatives 
+    : statusFilter === 'published'
+      ? creatives.filter(c => ['published', 'scheduled'].includes(c.status))
+      : creatives.filter(c => c.status === statusFilter);
 
   if (loading) {
     return (
@@ -91,11 +104,11 @@ export function FabricaCriativosGerados({ clientId }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h3 className="text-lg font-semibold">Criativos Gerados</h3>
           <p className="text-sm text-muted-foreground">
-            {creatives.length} criativos • {pendingCreatives.length} pendentes • {approvedCreatives.length} aprovados
+            {creatives.length} criativos • {pendingCount} abertos • {approvedCount} aprovados • {publishedCount} publicados
           </p>
         </div>
         <div className="flex gap-2">
@@ -114,20 +127,49 @@ export function FabricaCriativosGerados({ clientId }: Props) {
         </div>
       </div>
 
-      {creatives.length === 0 ? (
+      {/* Filtros de Status */}
+      <div className="flex items-center gap-3">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <ToggleGroup 
+          type="single" 
+          value={statusFilter} 
+          onValueChange={(value) => value && setStatusFilter(value as StatusFilter)}
+          className="justify-start"
+        >
+          <ToggleGroupItem value="pending" aria-label="Filtrar abertos" className="data-[state=on]:bg-yellow-500/20 data-[state=on]:text-yellow-600">
+            Abertos ({pendingCount})
+          </ToggleGroupItem>
+          <ToggleGroupItem value="approved" aria-label="Filtrar aprovados" className="data-[state=on]:bg-green-500/20 data-[state=on]:text-green-600">
+            Aprovados ({approvedCount})
+          </ToggleGroupItem>
+          <ToggleGroupItem value="rejected" aria-label="Filtrar rejeitados" className="data-[state=on]:bg-red-500/20 data-[state=on]:text-red-600">
+            Rejeitados ({rejectedCount})
+          </ToggleGroupItem>
+          <ToggleGroupItem value="published" aria-label="Filtrar publicados" className="data-[state=on]:bg-blue-500/20 data-[state=on]:text-blue-600">
+            Publicados ({publishedCount})
+          </ToggleGroupItem>
+          <ToggleGroupItem value="all" aria-label="Ver todos">
+            Todos ({creatives.length})
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      {filteredCreatives.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Image className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground text-center">
-              Nenhum criativo gerado ainda.
-              <br />
-              Clique em "Gerar Criativo" ou configure a geração automática.
+              {creatives.length === 0 ? (
+                <>Nenhum criativo gerado ainda.<br />Clique em "Gerar Criativo" ou configure a geração automática.</>
+              ) : (
+                <>Nenhum criativo com o status "{statusFilter === 'pending' ? 'Aberto' : statusFilter === 'approved' ? 'Aprovado' : statusFilter === 'rejected' ? 'Rejeitado' : 'Publicado'}".</>
+              )}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {creatives.map((creative) => (
+          {filteredCreatives.map((creative) => (
             <Card key={creative.id} className="overflow-hidden">
               {creative.image_url ? (
                 <div className="aspect-[3/4] relative">
