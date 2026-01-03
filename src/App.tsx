@@ -48,7 +48,7 @@ import AnunciosVencedores from "./pages/geradores/AnunciosVencedores";
 import DashboardFabrica from "./pages/geradores/DashboardFabrica";
 import HistoricoGeracoes from "./pages/geradores/HistoricoGeracoes";
 import FabricaAnuncios from "./pages/geradores/FabricaAnuncios";
-import ClienteFabricaCriativos from "./pages/clientes/ClienteFabricaCriativos";
+
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -343,12 +343,6 @@ const App = () => {
                  <Route path="/geradores/planejamento-conteudo" element={
                   <ProtectedRoute>
                     <PlanejamentoConteudo />
-                  </ProtectedRoute>
-                } />
-                 {/* Fábrica de Criativos - Por cliente */}
-                 <Route path="/clientes/:id/fabrica-criativos" element={
-                  <ProtectedRoute>
-                    <ClienteFabricaCriativos />
                   </ProtectedRoute>
                 } />
                  {/* Fábrica de Anúncios - Menu principal */}
