@@ -28,6 +28,7 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
   const { insights, loading, deleteInsight, refetch } = useMarketResearchInsights(clientId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showIADialog, setShowIADialog] = useState(false);
+  const [editingInsight, setEditingInsight] = useState<MarketResearchInsight | null>(null);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -35,6 +36,16 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
       await deleteInsight(id);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCardClick = (insight: MarketResearchInsight) => {
+    setEditingInsight(insight);
+  };
+
+  const handleEditDialogClose = (open: boolean) => {
+    if (!open) {
+      setEditingInsight(null);
     }
   };
 
@@ -113,6 +124,15 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
         onThemesAdded={refetch} 
       />
 
+      {/* Edit Dialog - controlled */}
+      <TemasPesquisaDialog 
+        clientId={clientId} 
+        onInsightAdded={refetch}
+        insightToEdit={editingInsight}
+        open={!!editingInsight}
+        onOpenChange={handleEditDialogClose}
+      />
+
       {insights.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -126,7 +146,11 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {insights.map((insight) => (
-            <Card key={insight.id}>
+            <Card 
+              key={insight.id} 
+              className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
+              onClick={() => handleCardClick(insight)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -143,6 +167,7 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {deletingId === insight.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -151,7 +176,7 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
                         )}
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Remover tema?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -202,6 +227,7 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ExternalLink className="h-3 w-3" />
                       Fonte
