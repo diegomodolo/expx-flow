@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type, AlertCircle, RotateCcw } from "lucide-react";
+import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type, AlertCircle, RotateCcw, History } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import { FabricaCompetidores } from "./FabricaCompetidores";
 import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaAnunciosGerados } from "./FabricaAnunciosGerados";
 import { FabricaConfiguracoesAvancadas } from "./FabricaConfiguracoesAvancadas";
+import { FabricaHistorico } from "./FabricaHistorico";
 import { PublishingDefaultsConfig, PublishingDefaults } from "@/components/ad-factory/PublishingDefaultsConfig";
 
 interface ScheduleConfig {
@@ -451,7 +452,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="geral" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Geral
@@ -467,6 +468,10 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           <TabsTrigger value="anuncios" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Anúncios Gerados
+          </TabsTrigger>
+          <TabsTrigger value="historico" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Histórico
           </TabsTrigger>
         </TabsList>
 
@@ -760,6 +765,10 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
         <TabsContent value="anuncios">
           <FabricaAnunciosGerados clientId={clientId} />
+        </TabsContent>
+
+        <TabsContent value="historico">
+          <FabricaHistorico clientId={clientId} />
         </TabsContent>
       </Tabs>
     </div>
