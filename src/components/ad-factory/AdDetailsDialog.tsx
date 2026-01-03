@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -15,11 +16,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2, Send, Copy, RefreshCw, Sparkles, Star, ExternalLink } from "lucide-react";
+import { Loader2, Send, Copy, RefreshCw, Sparkles, Star, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { GeneratedAdType } from "./AdPreviewCard";
+
+const getScoreLabel = (score: number) => {
+  if (score >= 9) return "Unicórnio";
+  if (score >= 7) return "Otimizado";
+  if (score >= 4) return "Funcional";
+  if (score >= 1) return "Baixa Qualidade";
+  return "Rejeitado";
+};
+
+const getScoreBadgeVariant = (score: number): "default" | "secondary" | "destructive" | "outline" => {
+  if (score >= 7) return "default";
+  if (score >= 4) return "secondary";
+  return "destructive";
+};
+
+const getScoreColor = (score: number) => {
+  if (score >= 7) return "bg-green-500";
+  if (score >= 4) return "bg-yellow-500";
+  return "bg-red-500";
+};
 
 interface AdDetailsDialogProps {
   open: boolean;
@@ -136,10 +157,73 @@ export function AdDetailsDialog({
               )}
             </div>
 
-            {ad.quality_score && (
-              <div className="flex items-center gap-2 text-amber-500">
-                <Star className="w-5 h-5 fill-current" />
-                <span className="font-medium">Score de Qualidade: {ad.quality_score}</span>
+            {/* Score Section */}
+            {ad.quality_score != null && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                  <span className="font-bold text-lg">{ad.quality_score}/10</span>
+                  <Badge variant={getScoreBadgeVariant(ad.quality_score)}>
+                    {getScoreLabel(ad.quality_score)}
+                  </Badge>
+                </div>
+                
+                {/* Breakdown visual with progress bars */}
+                {content?.score_breakdown && (
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Visual (40%)</span>
+                        <span className="font-medium">{content.score_breakdown.visual}/10</span>
+                      </div>
+                      <Progress value={content.score_breakdown.visual * 10} className="h-2" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Copywriting (30%)</span>
+                        <span className="font-medium">{content.score_breakdown.copy}/10</span>
+                      </div>
+                      <Progress value={content.score_breakdown.copy * 10} className="h-2" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Headline/CTA (20%)</span>
+                        <span className="font-medium">{content.score_breakdown.headline_cta}/10</span>
+                      </div>
+                      <Progress value={content.score_breakdown.headline_cta * 10} className="h-2" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Conformidade (10%)</span>
+                        <span className="font-medium">{content.score_breakdown.conformidade}/10</span>
+                      </div>
+                      <Progress value={content.score_breakdown.conformidade * 10} className="h-2" />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Explanation */}
+                {content?.score_explanation && (
+                  <div className="pt-3 border-t border-border">
+                    <Label className="text-muted-foreground text-xs">Por que essa nota?</Label>
+                    <p className="text-sm mt-1">{content.score_explanation}</p>
+                  </div>
+                )}
+                
+                {/* Flags/Alerts */}
+                {content?.score_flags && content.score_flags.length > 0 && (
+                  <div className="pt-3 border-t border-border">
+                    <div className="flex items-center gap-2 text-yellow-600">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="font-medium text-sm">Alertas</span>
+                    </div>
+                    <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                      {content.score_flags.map((flag: string, i: number) => (
+                        <li key={i}>• {flag}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>
