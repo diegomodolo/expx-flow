@@ -223,14 +223,20 @@ async function publishAdToMultipleDestinations(
     );
   }
 
-  const adAccountId = client.ad_account_id || client.facebook_ad_accounts?.facebook_account_id;
+  // Use the Facebook account_id from the joined table (e.g., "act_486452446836316")
+  // Remove "act_" prefix if present since we add it in the API call
+  const rawAccountId = client.facebook_ad_accounts?.account_id;
+  const adAccountId = rawAccountId?.replace('act_', '') || null;
   
   if (!adAccountId) {
+    console.error('[publish-approved-ads] No FB account_id found for client:', client.id);
     return new Response(
-      JSON.stringify({ success: false, error: 'Ad Account não configurado para este cliente' }),
+      JSON.stringify({ success: false, error: 'Ad Account do Facebook não configurado para este cliente. Vincule uma conta de anúncios.' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
+
+  console.log('[publish-approved-ads] Using FB Ad Account:', adAccountId);
 
   const content = ad.generated_content;
   const results: any[] = [];
@@ -442,10 +448,12 @@ async function publishAdToMeta(
   targetCampaignId?: string,
   targetAdSetId?: string
 ): Promise<{ success: boolean; meta_ad_id?: string; error?: string }> {
-  const adAccountId = client.ad_account_id || client.facebook_ad_accounts?.facebook_account_id;
+  // Use the Facebook account_id from the joined table
+  const rawAccountId = client.facebook_ad_accounts?.account_id;
+  const adAccountId = rawAccountId?.replace('act_', '') || null;
   
   if (!adAccountId) {
-    return { success: false, error: 'Ad Account não configurado para este cliente' };
+    return { success: false, error: 'Ad Account do Facebook não configurado para este cliente' };
   }
 
   // Get facebook_id for the target ad set
