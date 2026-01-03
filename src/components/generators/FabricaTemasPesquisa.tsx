@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useMarketResearchInsights, MarketResearchInsight } from "@/hooks/useMarketResearchInsights";
 import { TemasPesquisaDialog } from "./TemasPesquisaDialog";
-import { Lightbulb, ExternalLink, Trash2, AlertCircle, Loader2, TrendingUp } from "lucide-react";
+import { GerarTemasIADialog } from "./GerarTemasIADialog";
+import { Lightbulb, ExternalLink, Trash2, AlertCircle, Loader2, TrendingUp, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -26,6 +27,7 @@ interface Props {
 export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
   const { insights, loading, deleteInsight, refetch } = useMarketResearchInsights(clientId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showIADialog, setShowIADialog] = useState(false);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -91,8 +93,25 @@ export function FabricaTemasPesquisa({ clientId, conceptPercentage }: Props) {
             Insights de mercado para geração de anúncios do tipo Conceito
           </p>
         </div>
-        <TemasPesquisaDialog clientId={clientId} onInsightAdded={refetch} />
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => setShowIADialog(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+            Gerar com IA
+          </Button>
+          <TemasPesquisaDialog clientId={clientId} onInsightAdded={refetch} />
+        </div>
       </div>
+
+      <GerarTemasIADialog 
+        open={showIADialog} 
+        onOpenChange={setShowIADialog} 
+        clientId={clientId} 
+        onThemesAdded={refetch} 
+      />
 
       {insights.length === 0 ? (
         <Card className="border-dashed">
