@@ -686,32 +686,18 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                 </div>
 
                 {config.autopilot_enabled && (
-                  <div className="grid gap-6 md:grid-cols-2 pt-4 border-t">
-                    <div className="space-y-2">
-                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score}%</Label>
+                  <div className="pt-4 border-t">
+                    <div className="space-y-2 max-w-md">
+                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score}</Label>
                       <Slider
-                        min={50}
-                        max={100}
-                        step={5}
+                        min={5}
+                        max={10}
+                        step={1}
                         value={[config.autopilot_min_quality_score]}
                         onValueChange={([value]) => setConfig({ ...config, autopilot_min_quality_score: value })}
                       />
                       <p className="text-xs text-muted-foreground">
                         Apenas anúncios com score igual ou acima serão publicados automaticamente
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="autopilot_max_budget">Orçamento diário máximo (R$)</Label>
-                      <Input
-                        id="autopilot_max_budget"
-                        type="number"
-                        min={10}
-                        value={config.autopilot_max_daily_budget}
-                        onChange={(e) => setConfig({ ...config, autopilot_max_daily_budget: Number(e.target.value) })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Limite máximo de gastos diários com anúncios publicados automaticamente
                       </p>
                     </div>
                   </div>
