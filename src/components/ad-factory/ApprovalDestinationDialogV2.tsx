@@ -46,8 +46,12 @@ import {
   Instagram,
   Facebook,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  Sparkles,
+  Send
 } from "lucide-react";
+import { GeneratedAdType } from "./AdPreviewCard";
 import { cn } from "@/lib/utils";
 
 const CTA_OPTIONS = [
@@ -96,6 +100,19 @@ interface AdConfig {
   url_params: string;
 }
 
+const statusConfig = {
+  pending: { label: "Aberto", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
+  approved: { label: "Aprovado", color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  rejected: { label: "Rejeitado", color: "bg-red-500/10 text-red-600 border-red-500/30" },
+  published: { label: "Publicado", color: "bg-green-500/10 text-green-600 border-green-500/30" },
+};
+
+const typeConfig = {
+  clone: { label: "Clone", icon: Copy, color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+  concept: { label: "Conceito", icon: Sparkles, color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+  iteration: { label: "Iteração", icon: RefreshCw, color: "bg-green-500/10 text-green-500 border-green-500/20" },
+};
+
 interface ApprovalDestinationDialogV2Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -105,6 +122,8 @@ interface ApprovalDestinationDialogV2Props {
   defaultCampaignId?: string | null;
   defaultAdSetId?: string | null;
   onApprove: (destinations: SelectedDestination[], adConfig: AdConfig) => Promise<void>;
+  onStatusChange?: () => void;
+  ad?: GeneratedAdType | null;
   adContent?: {
     headline?: string;
     primary_text?: string;
@@ -122,6 +141,8 @@ export function ApprovalDestinationDialogV2({
   defaultCampaignId,
   defaultAdSetId,
   onApprove,
+  onStatusChange,
+  ad,
   adContent,
 }: ApprovalDestinationDialogV2Props) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -131,9 +152,16 @@ export function ApprovalDestinationDialogV2({
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [previewPlatform, setPreviewPlatform] = useState<'facebook' | 'instagram'>('facebook');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
   
   // Load pixels for selection
   const { pixels, loading: loadingPixels, fetchPixels, syncPixels, syncing } = useMetaPixels(clientId, companyId);
+
+  // Get type config for display
+  const typeConf = ad ? (typeConfig[ad.generation_type as keyof typeof typeConfig] || typeConfig.concept) : null;
+  const TypeIcon = typeConf?.icon;
+  const currentStatusConf = ad ? (statusConfig[ad.status as keyof typeof statusConfig] || statusConfig.pending) : null;
 
   // Ad configuration state
   const [adConfig, setAdConfig] = useState<AdConfig>({
@@ -330,6 +358,29 @@ export function ApprovalDestinationDialogV2({
     }
   };
 
+  const handleStatusChange = async () => {
+    if (!selectedStatus || !ad || selectedStatus === ad.status) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from("ad_generation_queue")
+        .update({ status: selectedStatus as "pending" | "approved" | "rejected" | "published" })
+        .eq("id", ad.id);
+
+      if (error) throw error;
+
+      toast.success("Status atualizado com sucesso!");
+      onStatusChange?.();
+      setSelectedStatus("");
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Erro ao atualizar status");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const getCTALabel = (value: string) => {
     return CTA_OPTIONS.find(o => o.value === value)?.label || value;
   };
@@ -338,12 +389,23 @@ export function ApprovalDestinationDialogV2({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-3">
             <Upload className="h-5 w-5" />
-            Aprovar e Publicar Anúncio
+            <span>Detalhes do Anúncio</span>
+            {typeConf && TypeIcon && (
+              <Badge variant="outline" className={cn("gap-1", typeConf.color)}>
+                <TypeIcon className="w-3 h-3" />
+                {typeConf.label}
+              </Badge>
+            )}
+            {currentStatusConf && (
+              <Badge variant="outline" className={currentStatusConf.color}>
+                {currentStatusConf.label}
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Configure o anúncio e selecione onde será publicado no Facebook/Instagram
+            Configure e publique o anúncio no Facebook/Instagram
           </DialogDescription>
         </DialogHeader>
 
@@ -628,37 +690,73 @@ export function ApprovalDestinationDialogV2({
         </div>
 
         <DialogFooter className="px-6 py-4 border-t">
-          <div className="flex items-center justify-between w-full">
-            <div className="text-sm text-muted-foreground">
-              {getSelectedCount() > 0 ? (
-                <span>
-                  Publicar em <strong>{getSelectedCount()}</strong> destino{getSelectedCount() !== 1 ? 's' : ''}
-                </span>
-              ) : (
-                <span>Selecione os destinos de publicação</span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handlePublish} 
-                disabled={publishing || selectedDestinations.filter(d => d.adSetIds.length > 0).length === 0 || !adConfig.destination_url}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {publishing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Publicando...
-                  </>
+          <div className="flex items-center justify-between w-full gap-4">
+            {/* Status Change Section */}
+            {ad && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Status:</Label>
+                <Select
+                  value={selectedStatus || ad.status}
+                  onValueChange={setSelectedStatus}
+                >
+                  <SelectTrigger className="w-[140px] h-9">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Aberto</SelectItem>
+                    <SelectItem value="approved">Aprovado</SelectItem>
+                    <SelectItem value="rejected">Rejeitado</SelectItem>
+                    <SelectItem value="published">Publicado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleStatusChange}
+                  disabled={isUpdatingStatus || !selectedStatus || selectedStatus === ad.status}
+                >
+                  {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-4 ml-auto">
+              <div className="text-sm text-muted-foreground">
+                {getSelectedCount() > 0 ? (
+                  <span>
+                    Publicar em <strong>{getSelectedCount()}</strong> destino{getSelectedCount() !== 1 ? 's' : ''}
+                  </span>
                 ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Aprovar e Publicar
-                  </>
+                  <span className="hidden sm:inline">Selecione os destinos</span>
                 )}
-              </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Fechar
+                </Button>
+                <Button 
+                  onClick={handlePublish} 
+                  disabled={publishing || selectedDestinations.filter(d => d.adSetIds.length > 0).length === 0 || !adConfig.destination_url}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {publishing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Publicando...
+                    </>
+                  ) : ad?.status === 'published' ? (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Republicar
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Aprovar e Publicar
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogFooter>
