@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Plus, Loader2, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Trash2 } from "lucide-react";
 import { AdPreviewCard } from "@/components/ad-factory/AdPreviewCard";
-import { ApprovalDestinationDialog } from "@/components/ad-factory/ApprovalDestinationDialog";
+import { ApprovalDestinationDialogV2 } from "@/components/ad-factory/ApprovalDestinationDialogV2";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +70,16 @@ interface SelectedDestination {
   campaignId: string;
   campaignName: string;
   adSetIds: string[];
+}
+
+interface AdConfig {
+  destination_url: string;
+  primary_text: string;
+  headline: string;
+  description: string;
+  cta: string;
+  pixel_id: string;
+  url_params: string;
 }
 
 const statusConfig: Record<
@@ -189,7 +199,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     setApprovalDialogOpen(true);
   };
 
-  const handleApproveAndPublish = async (destinations: SelectedDestination[]) => {
+  const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
     if (!adToPublish || !activeCompany?.company_id) return;
 
     console.log('[FabricaAnunciosGerados] Publishing ad:', adToPublish.id, 'to destinations:', destinations);
@@ -200,6 +210,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
         company_id: activeCompany.company_id,
         ad_id: adToPublish.id,
         destinations,
+        ad_config: adConfig,
       },
     });
 
@@ -555,7 +566,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <ApprovalDestinationDialog
+      <ApprovalDestinationDialogV2
         open={approvalDialogOpen}
         onOpenChange={(open) => {
           setApprovalDialogOpen(open);
@@ -571,6 +582,8 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
           adToPublish
             ? {
                 headline: (adToPublish.generated_content as any)?.headline,
+                primary_text: (adToPublish.generated_content as any)?.primary_text || (adToPublish.generated_content as any)?.body,
+                description: (adToPublish.generated_content as any)?.description,
                 image_url: (adToPublish.generated_content as any)?.creative_image_url,
               }
             : undefined

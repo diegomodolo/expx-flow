@@ -181,6 +181,13 @@ export type Database = {
           concept_percentage: number
           created_at: string
           custom_image_prompt: string | null
+          default_cta: string | null
+          default_description: string | null
+          default_destination_url: string | null
+          default_headline: string | null
+          default_pixel_id: string | null
+          default_primary_text: string | null
+          default_url_params: string | null
           generation_time: string
           id: string
           is_active: boolean
@@ -209,6 +216,13 @@ export type Database = {
           concept_percentage?: number
           created_at?: string
           custom_image_prompt?: string | null
+          default_cta?: string | null
+          default_description?: string | null
+          default_destination_url?: string | null
+          default_headline?: string | null
+          default_pixel_id?: string | null
+          default_primary_text?: string | null
+          default_url_params?: string | null
           generation_time?: string
           id?: string
           is_active?: boolean
@@ -237,6 +251,13 @@ export type Database = {
           concept_percentage?: number
           created_at?: string
           custom_image_prompt?: string | null
+          default_cta?: string | null
+          default_description?: string | null
+          default_destination_url?: string | null
+          default_headline?: string | null
+          default_pixel_id?: string | null
+          default_primary_text?: string | null
+          default_url_params?: string | null
           generation_time?: string
           id?: string
           is_active?: boolean
