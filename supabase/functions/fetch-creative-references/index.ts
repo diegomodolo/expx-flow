@@ -201,19 +201,20 @@ serve(async (req) => {
 
       try {
         // Build URL with cursor if provided
-        let mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,product_type&limit=50&access_token=${accessToken}`;
+        let mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,product_type&limit=100&access_token=${accessToken}`;
         
         if (instagramCursor) {
           mediaUrl = instagramCursor;
         }
 
-        const maxPages = 5; // Limit pagination to avoid timeout
+        const maxPages = 10; // Increase max pages to find enough images
         let page = 0;
         let nextUrl: string | null = mediaUrl;
 
+        // Keep fetching until we have enough image posts or run out of pages
         while (nextUrl && instagramPosts.length < limit && page < maxPages) {
           page += 1;
-          console.log(`Instagram pagination: fetching page ${page}`);
+          console.log(`Instagram pagination: fetching page ${page}, current posts: ${instagramPosts.length}`);
 
           const mediaResponse = await fetch(nextUrl);
           const mediaData = await mediaResponse.json();
@@ -225,6 +226,12 @@ serve(async (req) => {
 
           const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
           console.log(`Found ${items.length} Instagram posts from API (page ${page})`);
+
+          if (items.length === 0) {
+            console.log("No more items from API, stopping pagination");
+            nextUrl = null;
+            break;
+          }
 
           // Sort by timestamp descending (most recent first)
           const sortedItems = items.sort((a: any, b: any) => {
@@ -245,6 +252,9 @@ serve(async (req) => {
             const imageUrl = post.media_url || post.thumbnail_url;
             if (!imageUrl) continue;
 
+            // Avoid duplicates
+            if (instagramPosts.some(p => p.id === post.id)) continue;
+
             instagramPosts.push({
               id: post.id,
               imageUrl,
@@ -255,7 +265,7 @@ serve(async (req) => {
             });
           }
 
-          // Save next cursor
+          // Save next cursor for next iteration
           if (mediaData?.paging?.next) {
             nextUrl = mediaData.paging.next;
           } else {
@@ -263,13 +273,13 @@ serve(async (req) => {
           }
         }
 
-        // Set next cursor for pagination if we have more
-        if (nextUrl && instagramPosts.length >= limit) {
+        // Set next cursor for pagination if we have more data available
+        if (nextUrl) {
           nextInstagramCursor = nextUrl;
         }
 
         console.log(
-          `Filtered to ${instagramPosts.length} Instagram image posts (after pagination)`
+          `Filtered to ${instagramPosts.length} Instagram image posts (after ${page} pages)`
         );
       } catch (e) {
         console.error("Error in Instagram fetch:", e);
