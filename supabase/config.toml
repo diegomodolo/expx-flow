@@ -271,3 +271,6 @@ verify_jwt = false
 
 [functions.generate-research-themes]
 verify_jwt = true
+
+[functions.daily-ad-generator-scheduler]
+verify_jwt = false
