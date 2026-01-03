@@ -35,6 +35,7 @@ export function ReferenceSelectionDialog({
   maxSelections = 3
 }: ReferenceSelectionDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState<'ads' | 'instagram' | null>(null);
   const [copying, setCopying] = useState(false);
   const [copyProgress, setCopyProgress] = useState({ current: 0, total: 0 });
   const [adCreatives, setAdCreatives] = useState<CreativeReference[]>([]);
@@ -43,30 +44,72 @@ export function ReferenceSelectionDialog({
   const [hasAdAccount, setHasAdAccount] = useState(false);
   const [hasInstagram, setHasInstagram] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination cursors
+  const [nextAdCursor, setNextAdCursor] = useState<string | null>(null);
+  const [nextInstagramCursor, setNextInstagramCursor] = useState<string | null>(null);
+  const [hasMoreAds, setHasMoreAds] = useState(false);
+  const [hasMoreInstagram, setHasMoreInstagram] = useState(false);
+  
   const { toast } = useToast();
 
   useEffect(() => {
     if (open && companyId) {
+      // Reset state when opening
+      setAdCreatives([]);
+      setInstagramPosts([]);
+      setNextAdCursor(null);
+      setNextInstagramCursor(null);
+      setHasMoreAds(false);
+      setHasMoreInstagram(false);
       fetchReferences();
     }
   }, [open, clientId, instagramAccountId, companyId]);
 
-  const fetchReferences = async () => {
-    setLoading(true);
+  const fetchReferences = async (adCursor?: string, instagramCursor?: string, append = false) => {
+    if (!append) {
+      setLoading(true);
+    }
     setError(null);
     
     try {
       const { data, error } = await supabase.functions.invoke('fetch-creative-references', {
-        body: { clientId, instagramAccountId, companyId }
+        body: { 
+          clientId, 
+          instagramAccountId, 
+          companyId,
+          limit: 20,
+          adCursor,
+          instagramCursor
+        }
       });
 
       if (error) throw error;
 
       if (data.success) {
-        setAdCreatives(data.adCreatives || []);
-        setInstagramPosts(data.instagramPosts || []);
+        if (append) {
+          // Append new items to existing ones, avoiding duplicates
+          if (adCursor) {
+            const existingIds = new Set(adCreatives.map(c => c.id));
+            const newAds = (data.adCreatives || []).filter((c: CreativeReference) => !existingIds.has(c.id));
+            setAdCreatives(prev => [...prev, ...newAds]);
+          }
+          if (instagramCursor) {
+            const existingIds = new Set(instagramPosts.map(p => p.id));
+            const newPosts = (data.instagramPosts || []).filter((p: CreativeReference) => !existingIds.has(p.id));
+            setInstagramPosts(prev => [...prev, ...newPosts]);
+          }
+        } else {
+          setAdCreatives(data.adCreatives || []);
+          setInstagramPosts(data.instagramPosts || []);
+        }
+        
         setHasAdAccount(data.hasAdAccount || false);
         setHasInstagram(data.hasInstagram || false);
+        setNextAdCursor(data.nextAdCursor || null);
+        setNextInstagramCursor(data.nextInstagramCursor || null);
+        setHasMoreAds(data.hasMoreAds || false);
+        setHasMoreInstagram(data.hasMoreInstagram || false);
       } else {
         setError(data.error || "Erro ao buscar referências");
       }
@@ -75,7 +118,20 @@ export function ReferenceSelectionDialog({
       setError("Erro ao buscar imagens de referência");
     } finally {
       setLoading(false);
+      setLoadingMore(null);
     }
+  };
+
+  const loadMoreAds = async () => {
+    if (!nextAdCursor || loadingMore) return;
+    setLoadingMore('ads');
+    await fetchReferences(nextAdCursor, undefined, true);
+  };
+
+  const loadMoreInstagram = async () => {
+    if (!nextInstagramCursor || loadingMore) return;
+    setLoadingMore('instagram');
+    await fetchReferences(undefined, nextInstagramCursor, true);
   };
 
   const toggleSelection = (imageUrl: string) => {
@@ -180,7 +236,15 @@ export function ReferenceSelectionDialog({
     onOpenChange(false);
   };
 
-  const renderImageGrid = (items: CreativeReference[], emptyMessage: string, noAccountMessage: string, hasAccount: boolean) => {
+  const renderImageGrid = (
+    items: CreativeReference[], 
+    emptyMessage: string, 
+    noAccountMessage: string, 
+    hasAccount: boolean,
+    hasMore: boolean,
+    onLoadMore: () => void,
+    isLoadingMore: boolean
+  ) => {
     if (!hasAccount) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -200,53 +264,76 @@ export function ReferenceSelectionDialog({
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {items.map((item) => {
-          const isSelected = selectedImages.includes(item.imageUrl);
-          const selectionIndex = selectedImages.indexOf(item.imageUrl);
-          
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                "relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all",
-                isSelected 
-                  ? "border-primary ring-2 ring-primary/30" 
-                  : "border-transparent hover:border-muted-foreground/30"
-              )}
-              onClick={() => toggleSelection(item.imageUrl)}
-            >
-              <img
-                src={item.imageUrl}
-                alt={item.name || item.caption || "Referência"}
-                className="w-full h-32 object-cover"
-                loading="lazy"
-              />
-              
-              {/* Selection indicator */}
-              {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold">
-                  {selectionIndex + 1}
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {items.map((item) => {
+            const isSelected = selectedImages.includes(item.imageUrl);
+            const selectionIndex = selectedImages.indexOf(item.imageUrl);
+            
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all",
+                  isSelected 
+                    ? "border-primary ring-2 ring-primary/30" 
+                    : "border-transparent hover:border-muted-foreground/30"
+                )}
+                onClick={() => toggleSelection(item.imageUrl)}
+              >
+                <img
+                  src={item.imageUrl}
+                  alt={item.name || item.caption || "Referência"}
+                  className="w-full h-32 object-cover"
+                  loading="lazy"
+                />
+                
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold">
+                    {selectionIndex + 1}
+                  </div>
+                )}
+                
+                {/* Hover overlay */}
+                <div className={cn(
+                  "absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity",
+                  isSelected ? "opacity-30" : "opacity-0 hover:opacity-100"
+                )}>
+                  <Check className="w-8 h-8 text-white" />
                 </div>
+                
+                {/* Label */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                  <p className="text-white text-xs truncate">
+                    {item.name || item.caption || "Imagem"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="w-full max-w-xs"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Carregando...
+                </>
+              ) : (
+                `Carregar mais (${items.length} carregadas)`
               )}
-              
-              {/* Hover overlay */}
-              <div className={cn(
-                "absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity",
-                isSelected ? "opacity-30" : "opacity-0 hover:opacity-100"
-              )}>
-                <Check className="w-8 h-8 text-white" />
-              </div>
-              
-              {/* Label */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                <p className="text-white text-xs truncate">
-                  {item.name || item.caption || "Imagem"}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
@@ -286,7 +373,7 @@ export function ReferenceSelectionDialog({
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <AlertCircle className="w-12 h-12 text-destructive mb-4" />
               <p className="text-destructive font-medium">{error}</p>
-              <Button variant="outline" className="mt-4" onClick={fetchReferences}>
+              <Button variant="outline" className="mt-4" onClick={() => fetchReferences()}>
                 Tentar novamente
               </Button>
             </div>
@@ -305,11 +392,11 @@ export function ReferenceSelectionDialog({
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="ads" className="flex items-center gap-2">
                   <Megaphone className="w-4 h-4" />
-                  Anúncios ({adCreatives.length})
+                  Anúncios ({adCreatives.length}{hasMoreAds ? '+' : ''})
                 </TabsTrigger>
                 <TabsTrigger value="instagram" className="flex items-center gap-2">
                   <Instagram className="w-4 h-4" />
-                  Instagram ({instagramPosts.length})
+                  Instagram ({instagramPosts.length}{hasMoreInstagram ? '+' : ''})
                 </TabsTrigger>
               </TabsList>
               
@@ -319,7 +406,10 @@ export function ReferenceSelectionDialog({
                     adCreatives,
                     "Nenhum criativo de imagem encontrado na conta de anúncios.",
                     "Conta de anúncios do Meta não configurada para este cliente.",
-                    hasAdAccount
+                    hasAdAccount,
+                    hasMoreAds,
+                    loadMoreAds,
+                    loadingMore === 'ads'
                   )}
                 </TabsContent>
                 
@@ -328,7 +418,10 @@ export function ReferenceSelectionDialog({
                     instagramPosts,
                     "Nenhum post de imagem encontrado no Instagram.",
                     "Conta do Instagram não configurada para este cliente.",
-                    hasInstagram
+                    hasInstagram,
+                    hasMoreInstagram,
+                    loadMoreInstagram,
+                    loadingMore === 'instagram'
                   )}
                 </TabsContent>
               </div>
