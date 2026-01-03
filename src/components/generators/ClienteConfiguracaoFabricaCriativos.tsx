@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image } from "lucide-react";
+import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image, Upload, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,7 @@ import {
 import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaCriativosGerados } from "./FabricaCriativosGerados";
 import { FabricaCriativosHistorico } from "./FabricaCriativosHistorico";
-import { FabricaCriativosAvancado } from "./FabricaCriativosAvancado";
+
 
 interface ScheduleConfig {
   id?: string;
@@ -71,6 +72,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [uploading, setUploading] = useState<number | null>(null);
   
   const [hasResearchThemes, setHasResearchThemes] = useState(false);
   const [hasPreviousCreatives, setHasPreviousCreatives] = useState(false);
@@ -239,6 +241,43 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
     }
   };
 
+  const handleImageUpload = async (file: File, index: number) => {
+    setUploading(index);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${clientId}/${Date.now()}-ref-${index}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('visual-creatives')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('visual-creatives')
+        .getPublicUrl(fileName);
+
+      const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
+      setConfig(prev => ({ ...prev, [fieldName]: publicUrl }));
+      toast.success('Imagem enviada!');
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast.error('Erro ao enviar imagem');
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
+    setConfig(prev => ({ ...prev, [fieldName]: null }));
+  };
+
+  const referenceImages = [1, 2, 3, 4, 5, 6].map(i => ({
+    index: i,
+    url: config[`reference_image_${i}` as keyof ScheduleConfig] as string | null,
+  }));
+
   const updatePercentages = (field: 'concept_percentage' | 'iteration_percentage', value: number) => {
     const newConfig = { ...config };
     newConfig[field] = value;
@@ -296,7 +335,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="geral" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Geral
@@ -304,10 +343,6 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
           <TabsTrigger value="temas" className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4" />
             Temas
-          </TabsTrigger>
-          <TabsTrigger value="avancado" className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Avançado
           </TabsTrigger>
           <TabsTrigger value="criativos" className="flex items-center gap-2">
             <Image className="h-4 w-4" />
@@ -470,19 +505,105 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
               </CardContent>
             </Card>
           </div>
+
+          {/* Prompt e Imagens de Referência */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Prompt Personalizado
+                </CardTitle>
+                <CardDescription>
+                  Instruções adicionais para a geração de imagens
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Prompt de Imagem</Label>
+                  <Textarea
+                    value={config.custom_image_prompt || ''}
+                    onChange={(e) => setConfig({ ...config, custom_image_prompt: e.target.value || null })}
+                    placeholder="Ex: Use sempre cores vibrantes, estilo minimalista, fundo gradiente..."
+                    rows={4}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este prompt será adicionado a todas as gerações de imagem
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="h-5 w-5" />
+                  Imagens de Referência
+                </CardTitle>
+                <CardDescription>
+                  Faça upload de até 6 imagens para manter consistência visual
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {referenceImages.map(({ index, url }) => (
+                    <div
+                      key={index}
+                      className="aspect-square border-2 border-dashed rounded-lg relative overflow-hidden"
+                    >
+                      {url ? (
+                        <>
+                          <img
+                            src={url}
+                            alt={`Referência ${index}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => handleRemoveImage(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
+                          {uploading === index ? (
+                            <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                              <span className="text-xs text-muted-foreground">Imagem {index}</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, index);
+                            }}
+                            disabled={uploading !== null}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Essas imagens serão usadas como referência visual para manter a identidade da marca
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="temas">
           <FabricaTemasPesquisa clientId={clientId} conceptPercentage={config.concept_percentage} />
         </TabsContent>
 
-        <TabsContent value="avancado">
-          <FabricaCriativosAvancado 
-            config={config}
-            onConfigChange={(newConfig) => setConfig(prev => ({ ...prev, ...newConfig }))}
-            clientId={clientId}
-          />
-        </TabsContent>
 
         <TabsContent value="criativos">
           <FabricaCriativosGerados clientId={clientId} />
