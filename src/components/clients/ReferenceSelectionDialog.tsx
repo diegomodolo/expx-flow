@@ -389,7 +389,7 @@ export function ReferenceSelectionDialog({
             </div>
           ) : (
             <Tabs defaultValue={hasAdAccount ? "ads" : "instagram"} className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 shrink-0">
                 <TabsTrigger value="ads" className="flex items-center gap-2">
                   <Megaphone className="w-4 h-4" />
                   Anúncios ({adCreatives.length}{hasMoreAds ? '+' : ''})
@@ -400,8 +400,8 @@ export function ReferenceSelectionDialog({
                 </TabsTrigger>
               </TabsList>
               
-              <div className="flex-1 overflow-auto mt-4">
-                <TabsContent value="ads" className="mt-0">
+              <div className="flex-1 overflow-y-auto mt-4 min-h-0 max-h-[50vh]">
+                <TabsContent value="ads" className="mt-0 h-full">
                   {renderImageGrid(
                     adCreatives,
                     "Nenhum criativo de imagem encontrado na conta de anúncios.",
@@ -413,7 +413,7 @@ export function ReferenceSelectionDialog({
                   )}
                 </TabsContent>
                 
-                <TabsContent value="instagram" className="mt-0">
+                <TabsContent value="instagram" className="mt-0 h-full">
                   {renderImageGrid(
                     instagramPosts,
                     "Nenhum post de imagem encontrado no Instagram.",
