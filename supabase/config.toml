@@ -277,3 +277,9 @@ verify_jwt = false
 
 [functions.score-generated-ad]
 verify_jwt = false
+
+[functions.daily-creative-generator]
+verify_jwt = false
+
+[functions.daily-creative-generator-scheduler]
+verify_jwt = false
