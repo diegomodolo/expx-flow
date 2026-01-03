@@ -194,16 +194,21 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
   };
 
   const handleReferenceSelect = (images: string[]) => {
-    // Find empty slots and fill them
+    // Find empty slots and fill them with all selected images at once
     const currentImages = getReferenceImages();
+    const newConfig = { ...config };
     let imageIndex = 0;
 
     for (let i = 0; i < 6 && imageIndex < images.length; i++) {
       if (!currentImages[i]) {
-        setReferenceImage(i, images[imageIndex]);
+        const key = `reference_image_${i + 1}` as keyof AdvancedConfig;
+        newConfig[key] = images[imageIndex];
         imageIndex++;
       }
     }
+
+    // Update all at once to avoid state closure issues
+    onChange(newConfig);
   };
 
   const getEmptySlots = () => {
