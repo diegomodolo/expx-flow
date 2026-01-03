@@ -37,8 +37,8 @@ interface ScheduleConfig {
   iteration_percentage: number;
   generation_time: string;
   autopilot_enabled: boolean;
-  autopilot_min_quality_score: number;
-  autopilot_max_daily_budget: number;
+  autopilot_min_quality_score: number; // 0-10
+  autopilot_max_daily_budget: number | null; // (deprecated) não usado no autopilot
   always_include_text_in_images: boolean;
   // Advanced config
   target_campaign_id: string | null;
@@ -68,8 +68,8 @@ const defaultConfig: ScheduleConfig = {
   iteration_percentage: 30,
   generation_time: "08:00",
   autopilot_enabled: false,
-  autopilot_min_quality_score: 80,
-  autopilot_max_daily_budget: 500,
+  autopilot_min_quality_score: 7.5,
+  autopilot_max_daily_budget: null,
   always_include_text_in_images: true,
   // Advanced config defaults
   target_campaign_id: null,
@@ -166,8 +166,30 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       if (error) throw error;
 
       if (data) {
-        // Percentuais são inteiros (0-100) no banco.
-        // autopilot_min_quality_score é numeric(3,2) (0-9.99), então salvamos como 0-1.
+        const rawMinScore = Number(data.autopilot_min_quality_score ?? 7.5);
+        // Compat: versões antigas salvavam 0-1; hoje o autopilot usa 0-10.
+        const normalizedMinScore = rawMinScore <= 1 ? rawMinScore * 10 : rawMinScore;
+        const minQualityScore = Math.round(normalizedMinScore * 10) / 10;
+
+        // Remove o teto de orçamento (não é usado no fluxo do Autopilot)
+        const needsLegacyFix = rawMinScore <= 1;
+        const needsBudgetClear = data.autopilot_max_daily_budget != null;
+
+        if ((needsLegacyFix || needsBudgetClear) && data.id) {
+          const updatePayload: Record<string, any> = {};
+          if (needsLegacyFix) updatePayload.autopilot_min_quality_score = minQualityScore;
+          if (needsBudgetClear) updatePayload.autopilot_max_daily_budget = null;
+
+          const { error: fixError } = await supabase
+            .from('ad_generation_schedules')
+            .update(updatePayload)
+            .eq('id', data.id);
+
+          if (fixError) {
+            console.warn('Legacy autopilot fix failed:', fixError);
+          }
+        }
+
         setConfig({
           id: data.id,
           is_active: data.is_active,
@@ -177,8 +199,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           iteration_percentage: data.iteration_percentage,
           generation_time: data.generation_time,
           autopilot_enabled: data.autopilot_enabled,
-          autopilot_min_quality_score: Math.round(((data.autopilot_min_quality_score ?? 0.8) as number) * 100),
-          autopilot_max_daily_budget: Number(data.autopilot_max_daily_budget ?? 500),
+          autopilot_min_quality_score: minQualityScore,
+          autopilot_max_daily_budget: null,
           always_include_text_in_images: data.always_include_text_in_images ?? true,
           // Advanced config
           target_campaign_id: data.target_campaign_id ?? null,
@@ -227,10 +249,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         iteration_percentage: config.iteration_percentage,
         generation_time: config.generation_time,
         autopilot_enabled: config.autopilot_enabled,
-        // numeric(3,2) no banco (0-9.99): salvar como 0-1 com 2 casas
-        autopilot_min_quality_score: Number((config.autopilot_min_quality_score / 100).toFixed(2)),
-        // numeric(10,2) no banco
-        autopilot_max_daily_budget: Number(config.autopilot_max_daily_budget),
+        autopilot_min_quality_score: Number(config.autopilot_min_quality_score.toFixed(1)),
+        autopilot_max_daily_budget: null,
         always_include_text_in_images: config.always_include_text_in_images,
         // Advanced config
         target_campaign_id: config.target_campaign_id,
@@ -688,13 +708,15 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                 {config.autopilot_enabled && (
                   <div className="pt-4 border-t">
                     <div className="space-y-2 max-w-md">
-                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score}</Label>
+                      <Label>Score mínimo de qualidade: {config.autopilot_min_quality_score.toFixed(1)}/10</Label>
                       <Slider
-                        min={5}
+                        min={0}
                         max={10}
-                        step={1}
+                        step={0.1}
                         value={[config.autopilot_min_quality_score]}
-                        onValueChange={([value]) => setConfig({ ...config, autopilot_min_quality_score: value })}
+                        onValueChange={([value]) =>
+                          setConfig({ ...config, autopilot_min_quality_score: Math.round(value * 10) / 10 })
+                        }
                       />
                       <p className="text-xs text-muted-foreground">
                         Apenas anúncios com score igual ou acima serão publicados automaticamente
