@@ -84,8 +84,9 @@ serve(async (req) => {
       console.log(`[daily-ad-generator-scheduler] Triggering generation for client ${schedule.clients?.name} (${schedule.client_id})`);
 
       try {
-        // Call the daily-ad-generator function
-        const response = await fetch(`${supabaseUrl}/functions/v1/daily-ad-generator`, {
+        // Fire-and-forget: Start the generation without waiting for response
+        // This prevents timeout issues when generation takes too long
+        fetch(`${supabaseUrl}/functions/v1/daily-ad-generator`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${supabaseKey}`,
@@ -96,36 +97,36 @@ serve(async (req) => {
             company_id: schedule.company_id,
             user_id: schedule.clients?.user_id,
           }),
+        }).catch(err => {
+          console.error(`[daily-ad-generator-scheduler] Background request error for ${schedule.client_id}:`, err);
         });
 
-        const result = await response.json();
-        
         results.push({
           client_id: schedule.client_id,
           client_name: schedule.clients?.name,
-          success: response.ok,
-          result,
+          triggered: true,
+          message: 'Generation started in background',
         });
 
-        console.log(`[daily-ad-generator-scheduler] Result for ${schedule.clients?.name}:`, result);
+        console.log(`[daily-ad-generator-scheduler] Triggered generation for ${schedule.clients?.name} (fire-and-forget)`);
       } catch (error) {
-        console.error(`[daily-ad-generator-scheduler] Error for client ${schedule.client_id}:`, error);
+        console.error(`[daily-ad-generator-scheduler] Error triggering for client ${schedule.client_id}:`, error);
         results.push({
           client_id: schedule.client_id,
           client_name: schedule.clients?.name,
-          success: false,
+          triggered: false,
           error: error.message,
         });
       }
     }
 
-    console.log('[daily-ad-generator-scheduler] Completed. Processed:', results.length, 'clients');
+    console.log('[daily-ad-generator-scheduler] Completed. Triggered:', results.length, 'clients');
 
     return new Response(
       JSON.stringify({
         success: true,
         current_time: currentHourMinute,
-        processed: results.length,
+        triggered: results.length,
         results,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
