@@ -126,6 +126,19 @@ interface TVDashboardResponse {
 export default function DashboardTrafegoPublic() {
   const { token } = useParams<{ token: string }>();
   const [refreshInterval, setRefreshInterval] = useState(5 * 60 * 1000); // 5 minutes in ms
+  const [zoom, setZoom] = useState(() => {
+    // Load saved zoom from localStorage
+    const savedZoom = localStorage.getItem(`tv-dashboard-zoom-${token}`);
+    return savedZoom ? parseInt(savedZoom, 10) : 100;
+  });
+
+  const handleZoomChange = (newZoom: number) => {
+    setZoom(newZoom);
+    // Save zoom to localStorage per token
+    if (token) {
+      localStorage.setItem(`tv-dashboard-zoom-${token}`, newZoom.toString());
+    }
+  };
 
   const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ['tv-dashboard-public', token],
@@ -265,59 +278,71 @@ export default function DashboardTrafegoPublic() {
   const inactiveClients = data.inactiveClients || [];
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Header with company name - compact */}
-      <div className="bg-card border-b border-border px-4 py-1.5 shrink-0">
-        <div className="flex items-center justify-between">
-          <h1 className="text-base font-bold text-foreground">{data.company.name}</h1>
-          <span className="text-xs text-muted-foreground">Dashboard TV</span>
+    <div className="h-screen bg-background overflow-hidden">
+      {/* Zoomable container */}
+      <div 
+        className="h-full flex flex-col origin-top-left"
+        style={{ 
+          transform: `scale(${zoom / 100})`,
+          width: `${10000 / zoom}%`,
+          height: `${10000 / zoom}%`,
+        }}
+      >
+        {/* Header with company name - compact */}
+        <div className="bg-card border-b border-border px-4 py-1.5 shrink-0">
+          <div className="flex items-center justify-between">
+            <h1 className="text-base font-bold text-foreground">{data.company.name}</h1>
+            <span className="text-xs text-muted-foreground">Dashboard TV</span>
+          </div>
+        </div>
+
+        {/* Main Content - fills remaining space */}
+        <div className="flex-1 p-2 flex flex-col gap-2 overflow-hidden">
+          {/* Row 1: KPI Header */}
+          <div className="shrink-0">
+            <TVKPIHeader 
+              metrics={metrics} 
+              lastSync={data.lastSync} 
+              syncInfo={data.syncInfo}
+            />
+          </div>
+
+          {/* Row 2: Alerts, Campaign Ranking, Clients on Alert */}
+          <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+            <TVAlertsList alerts={alerts} />
+            <TVCampaignRanking campaigns={campaigns} />
+            <TVClientsOnAlert clients={clients} />
+          </div>
+
+          {/* Row 3: Budget Alerts, Top Clients, Worst Campaigns */}
+          <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+            <TVBudgetAlerts alerts={budgetAlerts} />
+            <TVTopClients clients={topClients} />
+            <TVWorstCampaigns campaigns={worstCampaigns} />
+          </div>
+
+          {/* Row 4: Platform Chart, Conversion Metrics, Inactive Clients */}
+          <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+            <TVPlatformChart data={platformData} />
+            <TVConversionMetrics 
+              conversionRate={data.metrics.conversionRate || 0}
+              totalClicks={data.metrics.totalClicks || 0}
+              totalLeads={data.metrics.totalLeads || 0}
+              avgFrequency={data.metrics.avgFrequency || 0}
+            />
+            <TVInactiveClients clients={inactiveClients} />
+          </div>
         </div>
       </div>
 
-      {/* Main Content - fills remaining space */}
-      <div className="flex-1 p-2 flex flex-col gap-2 overflow-hidden">
-        {/* Row 1: KPI Header */}
-        <div className="shrink-0">
-          <TVKPIHeader 
-            metrics={metrics} 
-            lastSync={data.lastSync} 
-            syncInfo={data.syncInfo}
-          />
-        </div>
-
-        {/* Row 2: Alerts, Campaign Ranking, Clients on Alert */}
-        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-          <TVAlertsList alerts={alerts} />
-          <TVCampaignRanking campaigns={campaigns} />
-          <TVClientsOnAlert clients={clients} />
-        </div>
-
-        {/* Row 3: Budget Alerts, Top Clients, Worst Campaigns */}
-        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-          <TVBudgetAlerts alerts={budgetAlerts} />
-          <TVTopClients clients={topClients} />
-          <TVWorstCampaigns campaigns={worstCampaigns} />
-        </div>
-
-        {/* Row 4: Platform Chart, Conversion Metrics, Inactive Clients */}
-        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-          <TVPlatformChart data={platformData} />
-          <TVConversionMetrics 
-            conversionRate={data.metrics.conversionRate || 0}
-            totalClicks={data.metrics.totalClicks || 0}
-            totalLeads={data.metrics.totalLeads || 0}
-            avgFrequency={data.metrics.avgFrequency || 0}
-          />
-          <TVInactiveClients clients={inactiveClients} />
-        </div>
-      </div>
-
-      {/* TV Controls - floating */}
+      {/* TV Controls - floating (outside zoom container) */}
       <TVControls
         refreshInterval={refreshInterval}
         onRefreshIntervalChange={setRefreshInterval}
         onRefreshNow={() => refetch()}
         isRefreshing={isFetching}
+        zoom={zoom}
+        onZoomChange={handleZoomChange}
       />
     </div>
   );
