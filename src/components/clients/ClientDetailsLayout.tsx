@@ -37,6 +37,7 @@ import {
   ListTodo,
   Sparkles,
   Factory,
+  Palette,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
@@ -257,6 +258,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/fabrica-anuncios`,
       icon: Factory,
       description: "Configurar geração automática de anúncios"
+    },
+    {
+      title: "Fábrica de Criativos",
+      href: `/clientes/${clientId}/fabrica-criativos`,
+      icon: Palette,
+      description: "Geração automática de criativos para redes sociais"
     }
   ];
 
