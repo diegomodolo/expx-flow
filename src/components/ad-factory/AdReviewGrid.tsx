@@ -42,13 +42,20 @@ export function AdReviewGrid({
   const [selectedAdForApproval, setSelectedAdForApproval] = useState<GeneratedAdType | null>(null);
 
   const handleApproveClick = (ad: GeneratedAdType) => {
+    // Always open the dialog to select destinations
     if (!clientId || !companyId) {
-      // Fallback to simple approve without dialog
-      onApprove(ad.id);
+      toast.error('Selecione um cliente primeiro');
       return;
     }
     setSelectedAdForApproval(ad);
     setApprovalDialogOpen(true);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setSelectedAdForApproval(null);
+    }
+    setApprovalDialogOpen(open);
   };
 
   const handleApproveAndPublish = async (destinations: SelectedDestination[]) => {
@@ -131,17 +138,17 @@ export function AdReviewGrid({
         ))}
       </div>
 
-      {selectedAdForApproval && clientId && companyId && (
+      {clientId && companyId && (
         <ApprovalDestinationDialog
           open={approvalDialogOpen}
-          onOpenChange={setApprovalDialogOpen}
-          adId={selectedAdForApproval.id}
+          onOpenChange={handleDialogClose}
+          adId={selectedAdForApproval?.id || ''}
           clientId={clientId}
           companyId={companyId}
           defaultCampaignId={defaultCampaignId}
           defaultAdSetId={defaultAdSetId}
           onApprove={handleApproveAndPublish}
-          adContent={selectedAdForApproval.generated_content}
+          adContent={selectedAdForApproval?.generated_content}
         />
       )}
     </>
