@@ -92,36 +92,45 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
     setGenerating(true);
     try {
-      // Get user ID
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Create a placeholder entry - in a real implementation, this would trigger an AI generation
-      const { error } = await supabase
-        .from('ad_generation_queue')
-        .insert({
+      // Call the real AI generation edge function
+      const { data, error } = await supabase.functions.invoke('daily-ad-generator', {
+        body: {
           client_id: clientId,
           company_id: activeCompany.company_id,
           user_id: user.id,
           generation_type: selectedType,
-          status: 'pending',
-          generated_content: {
-            headline: `[Aguardando geração - ${typeConfig[selectedType].label}]`,
-            body: "O conteúdo será gerado em breve...",
-            description: "",
-            call_to_action: "Saiba Mais",
-          },
-          concept_description: selectedType === 'concept' ? 'Gerado manualmente' : null,
-        });
+          count: 1,
+        },
+      });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error codes
+        if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+          toast.error('Limite de requisições atingido. Aguarde alguns segundos e tente novamente.');
+          return;
+        }
+        if (error.message?.includes('402') || error.message?.includes('payment') || error.message?.includes('credits')) {
+          toast.error('Créditos insuficientes. Adicione créditos ao seu workspace.');
+          return;
+        }
+        throw error;
+      }
 
-      toast.success(`Anúncio do tipo "${typeConfig[selectedType].label}" adicionado à fila!`);
+      if (data?.generated > 0) {
+        toast.success(`Anúncio "${typeConfig[selectedType].label}" gerado com sucesso!`);
+      } else {
+        const reason = data?.errors?.[0] || 'Verifique se há dados suficientes (concorrentes, temas de pesquisa ou anúncios vencedores).';
+        toast.warning(`Não foi possível gerar o anúncio. ${reason}`);
+      }
+
       setDialogOpen(false);
       refetch();
     } catch (error: any) {
       console.error('Error generating ad:', error);
-      toast.error('Erro ao gerar anúncio: ' + error.message);
+      toast.error('Erro ao gerar anúncio: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setGenerating(false);
     }
@@ -229,8 +238,17 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
                 Cancelar
               </Button>
               <Button onClick={handleGenerateAd} disabled={generating}>
-                {generating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Gerar Anúncio
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Gerando com IA...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Gerar Anúncio
+                  </>
+                )}
               </Button>
             </div>
           </DialogContent>
