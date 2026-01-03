@@ -10,6 +10,9 @@ interface RequestBody {
   clientId?: string;
   instagramAccountId?: string;
   companyId: string;
+  limit?: number;
+  adCursor?: string;
+  instagramCursor?: string;
 }
 
 serve(async (req) => {
@@ -22,7 +25,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const body: RequestBody = await req.json();
-    const { clientId, instagramAccountId, companyId } = body;
+    const { clientId, instagramAccountId, companyId, limit = 20, adCursor, instagramCursor } = body;
 
     if (!companyId) {
       return new Response(
@@ -104,6 +107,8 @@ serve(async (req) => {
     const accessToken = integration.access_token;
     const adCreatives: { id: string; imageUrl: string; name: string; type: 'ad' }[] = [];
     const instagramPosts: { id: string; imageUrl: string; caption: string; type: 'instagram' }[] = [];
+    let nextAdCursor: string | null = null;
+    let nextInstagramCursor: string | null = null;
 
     // Fetch Ad Creatives if we have an ad account
     if (adAccountId) {
@@ -111,14 +116,17 @@ serve(async (req) => {
         ? adAccountId 
         : `act_${adAccountId}`;
 
-      console.log(`Fetching ads for account: ${accountId}`);
+      console.log(`Fetching ads for account: ${accountId}, cursor: ${adCursor || 'initial'}`);
 
       try {
-        // Fetch adcreatives directly to filter by type - only IMAGE creatives
-        const creativesResponse = await fetch(
-          `https://graph.facebook.com/v20.0/${accountId}/adcreatives?fields=id,name,image_url,object_story_spec,object_type&limit=100&access_token=${accessToken}`
-        );
+        // Build URL with cursor if provided
+        let creativesUrl = `https://graph.facebook.com/v20.0/${accountId}/adcreatives?fields=id,name,image_url,object_story_spec,object_type,created_time&limit=100&access_token=${accessToken}`;
         
+        if (adCursor) {
+          creativesUrl = adCursor;
+        }
+
+        const creativesResponse = await fetch(creativesUrl);
         const creativesData = await creativesResponse.json();
         
         if (creativesData.error) {
@@ -126,13 +134,21 @@ serve(async (req) => {
         } else if (creativesData.data) {
           console.log(`Found ${creativesData.data.length} creatives`);
           
-          for (const creative of creativesData.data) {
+          // Sort by created_time descending (most recent first)
+          const sortedCreatives = creativesData.data.sort((a: any, b: any) => {
+            const dateA = new Date(a.created_time || 0).getTime();
+            const dateB = new Date(b.created_time || 0).getTime();
+            return dateB - dateA;
+          });
+          
+          for (const creative of sortedCreatives) {
+            if (adCreatives.length >= limit) break;
+            
             // Check if it's an image-based creative
             const spec = creative.object_story_spec;
             
             // Skip if it's a video creative
             if (spec?.video_data) {
-              console.log(`Skipping video creative: ${creative.id}`);
               continue;
             }
             
@@ -167,6 +183,11 @@ serve(async (req) => {
             }
           }
           
+          // Set next cursor for pagination
+          if (creativesData.paging?.next && adCreatives.length === limit) {
+            nextAdCursor = creativesData.paging.next;
+          }
+          
           console.log(`Filtered to ${adCreatives.length} image-only creatives`);
         }
       } catch (e) {
@@ -176,20 +197,21 @@ serve(async (req) => {
 
     // Fetch Instagram Posts if we have an Instagram account
     if (instagramId) {
-      console.log(`Fetching Instagram posts for account: ${instagramId}`);
+      console.log(`Fetching Instagram posts for account: ${instagramId}, cursor: ${instagramCursor || 'initial'}`);
 
       try {
-        // We paginate because the latest 20 posts might be all videos/reels.
-        // We'll keep fetching until we collect up to 20 IMAGE/CAROUSEL posts or we hit a hard cap.
-        const targetCount = 20;
-        const maxPages = 10;
+        // Build URL with cursor if provided
+        let mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,product_type&limit=50&access_token=${accessToken}`;
+        
+        if (instagramCursor) {
+          mediaUrl = instagramCursor;
+        }
 
+        const maxPages = 5; // Limit pagination to avoid timeout
         let page = 0;
-        let nextUrl:
-          | string
-          | null = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,product_type&limit=50&access_token=${accessToken}`;
+        let nextUrl: string | null = mediaUrl;
 
-        while (nextUrl && instagramPosts.length < targetCount && page < maxPages) {
+        while (nextUrl && instagramPosts.length < limit && page < maxPages) {
           page += 1;
           console.log(`Instagram pagination: fetching page ${page}`);
 
@@ -204,7 +226,16 @@ serve(async (req) => {
           const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
           console.log(`Found ${items.length} Instagram posts from API (page ${page})`);
 
-          for (const post of items) {
+          // Sort by timestamp descending (most recent first)
+          const sortedItems = items.sort((a: any, b: any) => {
+            const dateA = new Date(a.timestamp || 0).getTime();
+            const dateB = new Date(b.timestamp || 0).getTime();
+            return dateB - dateA;
+          });
+
+          for (const post of sortedItems) {
+            if (instagramPosts.length >= limit) break;
+            
             // Only include IMAGE and CAROUSEL_ALBUM (skip VIDEO/REELS)
             const mediaType = post.media_type?.toUpperCase();
             const isImagePost = mediaType === "IMAGE" || mediaType === "CAROUSEL_ALBUM";
@@ -222,11 +253,19 @@ serve(async (req) => {
                 : "Post do Instagram",
               type: "instagram",
             });
-
-            if (instagramPosts.length >= targetCount) break;
           }
 
-          nextUrl = mediaData?.paging?.next ?? null;
+          // Save next cursor
+          if (mediaData?.paging?.next) {
+            nextUrl = mediaData.paging.next;
+          } else {
+            nextUrl = null;
+          }
+        }
+
+        // Set next cursor for pagination if we have more
+        if (nextUrl && instagramPosts.length >= limit) {
+          nextInstagramCursor = nextUrl;
         }
 
         console.log(
@@ -242,10 +281,14 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        adCreatives: adCreatives.slice(0, 20), // Limit to 20 most recent
-        instagramPosts: instagramPosts.slice(0, 20), // Limit to 20 most recent
+        adCreatives,
+        instagramPosts,
         hasAdAccount: !!adAccountId,
-        hasInstagram: !!instagramId
+        hasInstagram: !!instagramId,
+        nextAdCursor,
+        nextInstagramCursor,
+        hasMoreAds: !!nextAdCursor,
+        hasMoreInstagram: !!nextInstagramCursor
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
