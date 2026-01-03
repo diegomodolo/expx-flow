@@ -249,25 +249,35 @@ async function generateCreativeImage(client: ClientData, adContent: any, schedul
   // Get custom prompt from schedule
   const customPrompt = schedule?.custom_image_prompt || '';
   
-  // Build image generation prompt based on client branding and ad content
+// Build image generation prompt based on client branding and ad content
+  // Formato 3:4 (1080x1440) é o padrão ideal para Meta Ads Feed
   const imagePrompt = `
 Crie uma imagem publicitária profissional para um anúncio de Facebook/Instagram.
 
+=== DIMENSÕES OBRIGATÓRIAS ===
+FORMATO: 3:4 (vertical/portrait)
+RESOLUÇÃO: 1080x1440 pixels
+IMPORTANTE: A imagem DEVE ser gerada exatamente neste formato 3:4, NÃO quadrado.
+
+=== INFORMAÇÕES DA MARCA ===
 MARCA: ${client.company}
 PRODUTO: ${client.product_name || client.company}
 SETOR: ${client.sector}
 HEADLINE DO ANÚNCIO: ${adContent.headline || ''}
 CONCEITO: ${adContent.concept_explanation || adContent.concept_adapted || ''}
 
-DIRETRIZES DE ESTILO:
+=== DIRETRIZES DE ESTILO ===
 - Use cores vibrantes e profissionais
 - Estilo moderno e clean
-- Foco em conversão
-- Formato quadrado (1:1) ideal para redes sociais
-- Não inclua texto na imagem (será adicionado separadamente)
+- Foco em conversão para Meta Ads
+- NÃO inclua texto na imagem (será adicionado separadamente)
+- Ultra high resolution com detalhes nítidos
+- Composição vertical otimizada para mobile
 
-${customPrompt ? `INSTRUÇÕES PERSONALIZADAS: ${customPrompt}` : ''}
-${adContent.image_prompt ? `SUGESTÃO ADICIONAL: ${adContent.image_prompt}` : ''}
+${customPrompt ? `=== INSTRUÇÕES PERSONALIZADAS ===\n${customPrompt}` : ''}
+${adContent.image_prompt ? `=== SUGESTÃO ADICIONAL ===\n${adContent.image_prompt}` : ''}
+
+Gere a imagem EXATAMENTE em 1080x1440 pixels (formato 3:4).
 `;
 
   try {
@@ -282,7 +292,7 @@ ${adContent.image_prompt ? `SUGESTÃO ADICIONAL: ${adContent.image_prompt}` : ''
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-image-preview',
+          model: 'google/gemini-3-pro-image-preview',
           messages: [
             {
               role: 'user',
@@ -293,7 +303,10 @@ ${adContent.image_prompt ? `SUGESTÃO ADICIONAL: ${adContent.image_prompt}` : ''
 
 ${imagePrompt}
 
-IMPORTANTE: Mantenha a consistência visual com a imagem de referência, mas crie uma composição NOVA e ORIGINAL para o anúncio.`,
+IMPORTANTE: 
+- Mantenha a consistência visual com a imagem de referência
+- Crie uma composição NOVA e ORIGINAL para o anúncio
+- A imagem DEVE ser no formato 3:4 (1080x1440 pixels), NÃO quadrado`,
                 },
                 {
                   type: 'image_url',
@@ -331,7 +344,7 @@ IMPORTANTE: Mantenha a consistência visual com a imagem de referência, mas cri
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: 'google/gemini-3-pro-image-preview',
         messages: [
           {
             role: 'user',
