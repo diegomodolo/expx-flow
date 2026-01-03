@@ -9,7 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image, Upload, X } from "lucide-react";
+import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image, Upload, X, Wand2, Copy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const SUGGESTED_PROMPT = `Se baseie 100% nas imagens de referência para criar as variações de imagem dos criativos. Todos os criativos de imagem gerado devem ter o texto da headline na imagem. Todos os textos gerados nas imagens devem ser 100% em português do Brasil`;
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
@@ -354,86 +357,84 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="geral">
+        <TabsContent value="geral" className="space-y-6">
+          {/* Primeira linha: Configuração Geral + Distribuição de Tipos */}
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Configuração Geral
+                  <Clock className="h-5 w-5" />
+                  Geração Diária
                 </CardTitle>
+                <CardDescription>Configure a geração automática de criativos</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Fábrica Ativa</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Habilita a geração automática diária
-                    </p>
-                  </div>
+                  <Label htmlFor="is_active">Geração ativa</Label>
                   <Switch
+                    id="is_active"
                     checked={config.is_active}
                     onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })}
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Criativos por dia</Label>
-                    <span className="text-lg font-semibold">{config.creatives_per_day}</span>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="creatives_per_day">Criativos por dia: {config.creatives_per_day}</Label>
                   <Slider
-                    value={[config.creatives_per_day]}
-                    onValueChange={([value]) => setConfig({ ...config, creatives_per_day: value })}
+                    id="creatives_per_day"
                     min={1}
                     max={20}
                     step={1}
+                    value={[config.creatives_per_day]}
+                    onValueChange={([value]) => setConfig({ ...config, creatives_per_day: value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Horário de Geração (BRT)
-                  </Label>
-                  <Input
-                    type="time"
-                    value={config.generation_time}
-                    onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
-                  />
+                  <Label htmlFor="generation_time">Horário de geração</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="generation_time"
+                      type="time"
+                      value={config.generation_time}
+                      onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={resetGenerationForToday}
+                      disabled={resetting || !config.id}
+                      title="Resetar para gerar hoje"
+                    >
+                      {resetting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clique no botão de reset para permitir geração novamente hoje
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pt-2 border-t">
                   <div className="space-y-0.5">
-                    <Label className="flex items-center gap-2">
+                    <Label htmlFor="always_include_text" className="flex items-center gap-2">
                       <Type className="h-4 w-4" />
-                      Incluir Texto nas Imagens
+                      Texto nas imagens
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Sempre incluir texto/copy nas imagens
+                    <p className="text-xs text-muted-foreground">
+                      Sempre incluir headline/texto nos criativos
                     </p>
                   </div>
                   <Switch
+                    id="always_include_text"
                     checked={config.always_include_text_in_images}
                     onCheckedChange={(checked) => setConfig({ ...config, always_include_text_in_images: checked })}
                   />
                 </div>
-
-                {config.id && (
-                  <Button
-                    variant="outline"
-                    onClick={resetGenerationForToday}
-                    disabled={resetting}
-                    className="w-full"
-                  >
-                    {resetting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                    )}
-                    Resetar Geração de Hoje
-                  </Button>
-                )}
               </CardContent>
             </Card>
 
@@ -506,98 +507,120 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
             </Card>
           </div>
 
-          {/* Prompt e Imagens de Referência */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  Prompt Personalizado
-                </CardTitle>
-                <CardDescription>
-                  Instruções adicionais para a geração de imagens
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label>Prompt de Imagem</Label>
-                  <Textarea
-                    value={config.custom_image_prompt || ''}
-                    onChange={(e) => setConfig({ ...config, custom_image_prompt: e.target.value || null })}
-                    placeholder="Ex: Use sempre cores vibrantes, estilo minimalista, fundo gradiente..."
-                    rows={4}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Este prompt será adicionado a todas as gerações de imagem
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Segunda linha: Prompt Personalizado (largura total) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="h-5 w-5" />
+                Prompt Personalizado para Imagens
+              </CardTitle>
+              <CardDescription>
+                Instruções adicionais para a IA ao gerar as imagens dos criativos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Sugestão de Prompt */}
+              <Alert className="bg-amber-500/10 border-amber-500/30">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                <AlertDescription className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm mb-1">Sugestão de prompt:</p>
+                    <p className="text-xs text-muted-foreground italic">
+                      "{SUGGESTED_PROMPT}"
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setConfig({ ...config, custom_image_prompt: SUGGESTED_PROMPT });
+                      toast.success("Prompt sugerido aplicado!");
+                    }}
+                    className="shrink-0"
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                    Usar
+                  </Button>
+                </AlertDescription>
+              </Alert>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Image className="h-5 w-5" />
-                  Imagens de Referência
-                </CardTitle>
-                <CardDescription>
-                  Faça upload de até 6 imagens para manter consistência visual
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {referenceImages.map(({ index, url }) => (
-                    <div
-                      key={index}
-                      className="aspect-square border-2 border-dashed rounded-lg relative overflow-hidden"
-                    >
-                      {url ? (
-                        <>
-                          <img
-                            src={url}
-                            alt={`Referência ${index}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            className="absolute top-2 right-2 h-6 w-6"
-                            onClick={() => handleRemoveImage(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
-                          {uploading === index ? (
-                            <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
-                          ) : (
-                            <>
-                              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                              <span className="text-xs text-muted-foreground">Imagem {index}</span>
-                            </>
-                          )}
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageUpload(file, index);
-                            }}
-                            disabled={uploading !== null}
-                          />
-                        </label>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-4">
-                  Essas imagens serão usadas como referência visual para manter a identidade da marca
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+              <Textarea
+                placeholder="Ex: Usar cores vibrantes e modernas, foco em pessoas sorrindo, estilo minimalista, incluir o produto em destaque..."
+                value={config.custom_image_prompt || ''}
+                onChange={(e) => setConfig({ ...config, custom_image_prompt: e.target.value || null })}
+                rows={4}
+              />
+              <p className="text-sm text-muted-foreground">
+                Este prompt será somado ao prompt padrão de geração de imagens. Use para definir estilos visuais específicos, direções criativas ou elementos que devem aparecer em todos os criativos.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Terceira linha: Imagens de Referência (6 em uma linha) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5" />
+                Imagens de Referência
+              </CardTitle>
+              <CardDescription>
+                Até 6 imagens para a IA usar como referência visual
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-6 gap-4">
+                {referenceImages.map(({ index, url }) => (
+                  <div
+                    key={index}
+                    className="relative aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 overflow-hidden group"
+                  >
+                    {url ? (
+                      <>
+                        <img
+                          src={url}
+                          alt={`Referência ${index}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs py-1 text-center">
+                          Ref {index}
+                        </div>
+                      </>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-muted/50 transition-colors">
+                        {uploading === index ? (
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Upload</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file, index);
+                          }}
+                          disabled={uploading !== null}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Estas imagens serão usadas como referência visual para gerar os criativos. Se não configuradas, a IA usará as imagens de referência do cadastro do cliente.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="temas">
