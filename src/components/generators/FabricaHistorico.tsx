@@ -165,14 +165,14 @@ export function FabricaHistorico({ clientId }: Props) {
 
                         {distribution && (
                           <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                            {distribution.clones > 0 && (
-                              <span>Clones: {distribution.clones}</span>
+                            {(distribution.clones > 0 || entry.execution_details?.requested_distribution?.cloneCount > 0) && (
+                              <span>Clones: {distribution.clones}{entry.execution_details?.requested_distribution?.cloneCount > 0 && isInProgress ? `/${entry.execution_details.requested_distribution.cloneCount}` : ''}</span>
                             )}
-                            {distribution.concepts > 0 && (
-                              <span>Conceitos: {distribution.concepts}</span>
+                            {(distribution.concepts > 0 || entry.execution_details?.requested_distribution?.conceptCount > 0) && (
+                              <span>Conceitos: {distribution.concepts}{entry.execution_details?.requested_distribution?.conceptCount > 0 && isInProgress ? `/${entry.execution_details.requested_distribution.conceptCount}` : ''}</span>
                             )}
-                            {distribution.iterations > 0 && (
-                              <span>Iterações: {distribution.iterations}</span>
+                            {(distribution.iterations > 0 || entry.execution_details?.requested_distribution?.iterationCount > 0) && (
+                              <span>Iterações: {distribution.iterations}{entry.execution_details?.requested_distribution?.iterationCount > 0 && isInProgress ? `/${entry.execution_details.requested_distribution.iterationCount}` : ''}</span>
                             )}
                           </div>
                         )}

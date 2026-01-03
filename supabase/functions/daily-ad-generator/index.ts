@@ -117,9 +117,18 @@ serve(async (req) => {
     schedule = scheduleData;
 
     adsToGenerate = count || schedule?.ads_per_day || 10;
-    const clonePercentage = schedule?.clone_percentage || 20;
-    const conceptPercentage = schedule?.concept_percentage || 50;
-    const iterationPercentage = schedule?.iteration_percentage || 30;
+    // CRITICAL: Use nullish coalescing (??) instead of OR (||) because 0 is a valid value
+    // || treats 0 as falsy and would use the default, ?? only checks for null/undefined
+    const clonePercentage = schedule?.clone_percentage ?? 20;
+    const conceptPercentage = schedule?.concept_percentage ?? 50;
+    const iterationPercentage = schedule?.iteration_percentage ?? 30;
+    
+    console.log('[daily-ad-generator] Raw percentages from schedule:', {
+      clone: schedule?.clone_percentage,
+      concept: schedule?.concept_percentage,
+      iteration: schedule?.iteration_percentage,
+    });
+    console.log('[daily-ad-generator] Applied percentages:', { clonePercentage, conceptPercentage, iterationPercentage });
 
     // Calculate distribution
     const cloneCount = Math.round(adsToGenerate * clonePercentage / 100);
@@ -337,14 +346,24 @@ function getClientReferenceImages(client: ClientData): string[] {
 }
 
 // Generate creative image using Nano banana model
-async function generateCreativeImage(client: ClientData, adContent: any, schedule: AdGenerationSchedule | null = null): Promise<string | null> {
+async function generateCreativeImage(client: ClientData, adContent: any, schedule: AdGenerationSchedule | null = null, timeoutMs: number = 45000): Promise<string | null> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const startTime = Date.now();
+  
+  console.log('[daily-ad-generator] Starting image generation for:', adContent.headline?.substring(0, 30) || 'unknown');
   
   // Prioritize schedule reference images over client images
   let referenceImages = getScheduleReferenceImages(schedule);
   if (referenceImages.length === 0) {
     referenceImages = getClientReferenceImages(client);
   }
+  
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log('[daily-ad-generator] Image generation timeout after', timeoutMs, 'ms');
+    controller.abort();
+  }, timeoutMs);
   
   // Get custom prompt from schedule
   const customPrompt = schedule?.custom_image_prompt || '';
@@ -391,6 +410,7 @@ Gere a imagem EXATAMENTE em 1080x1440 pixels (formato 3:4).
           'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           model: 'google/gemini-3-pro-image-preview',
           messages: [
@@ -421,11 +441,13 @@ IMPORTANTE:
         }),
       });
 
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
         const data = await response.json();
         const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (imageUrl) {
-          console.log('[daily-ad-generator] Image generated successfully (with reference)');
+          console.log('[daily-ad-generator] Image generated successfully (with reference) in', Date.now() - startTime, 'ms');
           return imageUrl;
         }
       } else {
@@ -443,6 +465,7 @@ IMPORTANTE:
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
       body: JSON.stringify({
         model: 'google/gemini-3-pro-image-preview',
         messages: [
@@ -455,19 +478,26 @@ IMPORTANTE:
       }),
     });
 
+    clearTimeout(timeoutId);
+
     if (response.ok) {
       const data = await response.json();
       const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       if (imageUrl) {
-        console.log('[daily-ad-generator] Image generated successfully (without reference)');
+        console.log('[daily-ad-generator] Image generated successfully (without reference) in', Date.now() - startTime, 'ms');
         return imageUrl;
       }
     } else {
       const errorText = await response.text();
       console.error('[daily-ad-generator] Image generation error:', errorText);
     }
-  } catch (error) {
-    console.error('[daily-ad-generator] Error generating creative image:', error);
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[daily-ad-generator] Image generation aborted due to timeout after', Date.now() - startTime, 'ms');
+    } else {
+      console.error('[daily-ad-generator] Error generating creative image:', error);
+    }
   }
 
   return null;
@@ -598,15 +628,14 @@ async function generateCloneAdsProgressive(
     }
   }
 
-  // STEP 2: Generate all images in parallel
-  console.log('[daily-ad-generator] Generating', validAds.length, 'images in PARALLEL');
+  // STEP 2: Generate all images in parallel with Promise.allSettled to not lose partial results
+  console.log('[daily-ad-generator] Generating', validAds.length, 'images in PARALLEL with Promise.allSettled');
   const imagePromises = validAds.map(({ adaptedAd }) => 
-    generateCreativeImage(client, adaptedAd, schedule).catch(err => {
-      console.error('[daily-ad-generator] Error generating image:', err);
-      return null;
-    })
+    generateCreativeImage(client, adaptedAd, schedule, 45000)
   );
-  const images = await Promise.all(imagePromises);
+  const imageResults = await Promise.allSettled(imagePromises);
+  const images = imageResults.map(result => result.status === 'fulfilled' ? result.value : null);
+  console.log('[daily-ad-generator] Image generation results:', imageResults.map(r => r.status));
 
   // STEP 3: Save ads with images progressively
   let generatedCount = 0;
@@ -714,14 +743,14 @@ Responda APENAS em JSON válido.`,
 
   console.log('[daily-ad-generator] Generated', validResults.length, 'concept texts, now generating images in PARALLEL');
 
-  // STEP 2: Generate all images in parallel
+  // STEP 2: Generate all images in parallel with Promise.allSettled
+  console.log('[daily-ad-generator] Generating', validResults.length, 'concept images in PARALLEL with Promise.allSettled');
   const imagePromises = validResults.map(({ adContent }) => 
-    generateCreativeImage(client, adContent, schedule).catch(err => {
-      console.error('[daily-ad-generator] Error generating concept image:', err);
-      return null;
-    })
+    generateCreativeImage(client, adContent, schedule, 45000)
   );
-  const images = await Promise.all(imagePromises);
+  const imageResults = await Promise.allSettled(imagePromises);
+  const images = imageResults.map(result => result.status === 'fulfilled' ? result.value : null);
+  console.log('[daily-ad-generator] Concept image generation results:', imageResults.map(r => r.status));
 
   // STEP 3: Save ads progressively
   let generatedCount = 0;
@@ -834,14 +863,14 @@ Responda APENAS em JSON válido.`,
 
   console.log('[daily-ad-generator] Generated', validResults.length, 'iteration texts, now generating images in PARALLEL');
 
-  // STEP 2: Generate all images in parallel
+  // STEP 2: Generate all images in parallel with Promise.allSettled
+  console.log('[daily-ad-generator] Generating', validResults.length, 'iteration images in PARALLEL with Promise.allSettled');
   const imagePromises = validResults.map(({ adContent }) => 
-    generateCreativeImage(client, adContent, schedule).catch(err => {
-      console.error('[daily-ad-generator] Error generating iteration image:', err);
-      return null;
-    })
+    generateCreativeImage(client, adContent, schedule, 45000)
   );
-  const images = await Promise.all(imagePromises);
+  const imageResults = await Promise.allSettled(imagePromises);
+  const images = imageResults.map(result => result.status === 'fulfilled' ? result.value : null);
+  console.log('[daily-ad-generator] Iteration image generation results:', imageResults.map(r => r.status));
 
   // STEP 3: Save ads progressively
   let generatedCount = 0;
@@ -952,14 +981,14 @@ Responda em JSON:
 
   console.log('[daily-ad-generator] Generated', validResults.length, 'AI clone texts, now generating images in PARALLEL');
 
-  // STEP 2: Generate all images in parallel
+  // STEP 2: Generate all images in parallel with Promise.allSettled
+  console.log('[daily-ad-generator] Generating', validResults.length, 'AI clone images in PARALLEL with Promise.allSettled');
   const imagePromises = validResults.map(adContent => 
-    generateCreativeImage(client, adContent, schedule).catch(err => {
-      console.error('[daily-ad-generator] Error generating AI clone image:', err);
-      return null;
-    })
+    generateCreativeImage(client, adContent, schedule, 45000)
   );
-  const images = await Promise.all(imagePromises);
+  const imageResults = await Promise.allSettled(imagePromises);
+  const images = imageResults.map(result => result.status === 'fulfilled' ? result.value : null);
+  console.log('[daily-ad-generator] AI clone image generation results:', imageResults.map(r => r.status));
 
   // STEP 3: Save ads progressively
   let generatedCount = 0;
