@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type } from "lucide-react";
+import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type, AlertCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,12 +84,53 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
   const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Availability states
+  const [hasCompetitors, setHasCompetitors] = useState(false);
+  const [hasResearchThemes, setHasResearchThemes] = useState(false);
+  const [hasCampaigns, setHasCampaigns] = useState(false);
 
   useEffect(() => {
     if (clientId) {
       loadConfig();
+      checkAvailability();
     }
   }, [clientId]);
+
+  const checkAvailability = async () => {
+    if (!clientId || !activeCompany?.company_id) return;
+
+    try {
+      // Check for competitors
+      const { count: competitorsCount } = await supabase
+        .from('competitors')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+        .eq('company_id', activeCompany.company_id);
+      
+      setHasCompetitors((competitorsCount || 0) > 0);
+
+      // Check for research themes (market_research_insights)
+      const { count: themesCount } = await supabase
+        .from('market_research_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+        .eq('company_id', activeCompany.company_id);
+      
+      setHasResearchThemes((themesCount || 0) > 0);
+
+      // Check for campaigns
+      const { count: campaignsCount } = await supabase
+        .from('campaigns')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+        .eq('is_active', true);
+      
+      setHasCampaigns((campaignsCount || 0) > 0);
+    } catch (error) {
+      console.error('Error checking availability:', error);
+    }
+  };
 
   const loadConfig = async () => {
     if (!clientId) return;
@@ -218,12 +259,22 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
     }
   };
 
-  const updatePercentages = (field: keyof ScheduleConfig, value: number) => {
+  const updatePercentages = (field: keyof ScheduleConfig, value: number, disabled: boolean = false) => {
+    if (disabled) return;
+    
     const total = 100;
     const newConfig = { ...config, [field]: value };
     
-    const fields: (keyof ScheduleConfig)[] = ['clone_percentage', 'concept_percentage', 'iteration_percentage'];
-    const otherFields = fields.filter(f => f !== field);
+    // Get available fields (only those that are not disabled)
+    const allFields: (keyof ScheduleConfig)[] = ['clone_percentage', 'concept_percentage', 'iteration_percentage'];
+    const availableFields = allFields.filter(f => {
+      if (f === 'clone_percentage') return hasCompetitors;
+      if (f === 'concept_percentage') return hasResearchThemes;
+      if (f === 'iteration_percentage') return hasCampaigns;
+      return true;
+    });
+    
+    const otherFields = availableFields.filter(f => f !== field);
     const remaining = total - value;
     const currentOtherTotal = otherFields.reduce((sum, f) => sum + (config[f] as number), 0);
     
@@ -232,10 +283,65 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         const ratio = (config[f] as number) / currentOtherTotal;
         (newConfig as any)[f] = Math.round(remaining * ratio);
       });
+    } else if (otherFields.length > 0) {
+      // Distribute equally if current total is 0
+      const perField = Math.floor(remaining / otherFields.length);
+      otherFields.forEach((f, idx) => {
+        (newConfig as any)[f] = idx === otherFields.length - 1 
+          ? remaining - perField * (otherFields.length - 1) 
+          : perField;
+      });
     }
+    
+    // Ensure disabled fields are always 0
+    if (!hasCompetitors) newConfig.clone_percentage = 0;
+    if (!hasResearchThemes) newConfig.concept_percentage = 0;
+    if (!hasCampaigns) newConfig.iteration_percentage = 0;
     
     setConfig(newConfig);
   };
+
+  // Effect to reset disabled percentages when availability changes
+  useEffect(() => {
+    const newConfig = { ...config };
+    let changed = false;
+    
+    if (!hasCompetitors && config.clone_percentage > 0) {
+      newConfig.clone_percentage = 0;
+      changed = true;
+    }
+    if (!hasResearchThemes && config.concept_percentage > 0) {
+      newConfig.concept_percentage = 0;
+      changed = true;
+    }
+    if (!hasCampaigns && config.iteration_percentage > 0) {
+      newConfig.iteration_percentage = 0;
+      changed = true;
+    }
+    
+    if (changed) {
+      // Redistribute to available types
+      const availableCount = [hasCompetitors, hasResearchThemes, hasCampaigns].filter(Boolean).length;
+      if (availableCount > 0) {
+        const perType = Math.floor(100 / availableCount);
+        let remaining = 100;
+        
+        if (hasCompetitors) {
+          newConfig.clone_percentage = perType;
+          remaining -= perType;
+        }
+        if (hasResearchThemes) {
+          newConfig.concept_percentage = hasCompetitors ? perType : remaining;
+          remaining -= newConfig.concept_percentage;
+        }
+        if (hasCampaigns) {
+          newConfig.iteration_percentage = remaining;
+        }
+      }
+      
+      setConfig(newConfig);
+    }
+  }, [hasCompetitors, hasResearchThemes, hasCampaigns]);
 
   if (loading) {
     return (
@@ -372,37 +478,91 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                 <CardDescription>Define a proporção de cada tipo de anúncio</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Clone - Concorrentes */}
                 <div className="space-y-2">
-                  <Label>Clones (concorrentes): {config.clone_percentage}%</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className={!hasCompetitors ? "text-muted-foreground" : ""}>
+                      Clones (concorrentes): {config.clone_percentage}%
+                    </Label>
+                    {!hasCompetitors && (
+                      <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                        <AlertCircle className="h-3 w-3" />
+                        Sem concorrentes
+                      </span>
+                    )}
+                  </div>
                   <Slider
                     min={0}
                     max={100}
                     step={5}
                     value={[config.clone_percentage]}
-                    onValueChange={([value]) => updatePercentages('clone_percentage', value)}
+                    onValueChange={([value]) => updatePercentages('clone_percentage', value, !hasCompetitors)}
+                    disabled={!hasCompetitors}
+                    className={!hasCompetitors ? "opacity-50 cursor-not-allowed" : ""}
                   />
+                  {!hasCompetitors && (
+                    <p className="text-xs text-muted-foreground">
+                      Configure concorrentes na aba "Concorrentes" para ativar este tipo.
+                    </p>
+                  )}
                 </div>
 
+                {/* Concept - Temas de Pesquisa */}
                 <div className="space-y-2">
-                  <Label>Conceitos (pesquisa): {config.concept_percentage}%</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className={!hasResearchThemes ? "text-muted-foreground" : ""}>
+                      Conceitos (pesquisa): {config.concept_percentage}%
+                    </Label>
+                    {!hasResearchThemes && (
+                      <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                        <AlertCircle className="h-3 w-3" />
+                        Sem temas
+                      </span>
+                    )}
+                  </div>
                   <Slider
                     min={0}
                     max={100}
                     step={5}
                     value={[config.concept_percentage]}
-                    onValueChange={([value]) => updatePercentages('concept_percentage', value)}
+                    onValueChange={([value]) => updatePercentages('concept_percentage', value, !hasResearchThemes)}
+                    disabled={!hasResearchThemes}
+                    className={!hasResearchThemes ? "opacity-50 cursor-not-allowed" : ""}
                   />
+                  {!hasResearchThemes && (
+                    <p className="text-xs text-muted-foreground">
+                      Adicione temas na aba "Temas de Pesquisa" para ativar este tipo.
+                    </p>
+                  )}
                 </div>
 
+                {/* Iteration - Campanhas/Winners */}
                 <div className="space-y-2">
-                  <Label>Iterações (vencedores): {config.iteration_percentage}%</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className={!hasCampaigns ? "text-muted-foreground" : ""}>
+                      Iterações (vencedores): {config.iteration_percentage}%
+                    </Label>
+                    {!hasCampaigns && (
+                      <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                        <AlertCircle className="h-3 w-3" />
+                        Sem campanhas
+                      </span>
+                    )}
+                  </div>
                   <Slider
                     min={0}
                     max={100}
                     step={5}
                     value={[config.iteration_percentage]}
-                    onValueChange={([value]) => updatePercentages('iteration_percentage', value)}
+                    onValueChange={([value]) => updatePercentages('iteration_percentage', value, !hasCampaigns)}
+                    disabled={!hasCampaigns}
+                    className={!hasCampaigns ? "opacity-50 cursor-not-allowed" : ""}
                   />
+                  {!hasCampaigns && (
+                    <p className="text-xs text-muted-foreground">
+                      Sincronize campanhas do Meta para ativar este tipo.
+                    </p>
+                  )}
                 </div>
 
                 <div className="text-sm text-muted-foreground">
