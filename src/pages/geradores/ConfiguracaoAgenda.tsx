@@ -24,8 +24,7 @@ export default function ConfiguracaoAgenda() {
     iteration_percentage: 30,
     is_active: true,
     autopilot_enabled: false,
-    autopilot_min_quality_score: 80,
-    autopilot_max_daily_budget: 100,
+    autopilot_min_quality_score: 7.5,
   });
 
   useEffect(() => {
@@ -38,8 +37,7 @@ export default function ConfiguracaoAgenda() {
         iteration_percentage: schedule.iteration_percentage || 30,
         is_active: schedule.is_active ?? true,
         autopilot_enabled: schedule.autopilot_enabled ?? false,
-        autopilot_min_quality_score: schedule.autopilot_min_quality_score || 80,
-        autopilot_max_daily_budget: schedule.autopilot_max_daily_budget || 100,
+        autopilot_min_quality_score: schedule.autopilot_min_quality_score ?? 7.5,
       });
     }
   }, [schedule]);
@@ -248,26 +246,19 @@ export default function ConfiguracaoAgenda() {
               </div>
 
               {formData.autopilot_enabled && (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Score mínimo para autopublicação: {formData.autopilot_min_quality_score}</Label>
+                    <Label>Score mínimo para autopublicação: {formData.autopilot_min_quality_score.toFixed(1)}</Label>
                     <Slider
-                      min={50}
-                      max={100}
-                      step={5}
+                      min={0}
+                      max={10}
+                      step={0.1}
                       value={[formData.autopilot_min_quality_score]}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, autopilot_min_quality_score: value[0] }))}
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="max_budget">Orçamento diário máximo (R$)</Label>
-                    <Input
-                      id="max_budget"
-                      type="number"
-                      value={formData.autopilot_max_daily_budget}
-                      onChange={(e) => setFormData(prev => ({ ...prev, autopilot_max_daily_budget: Number(e.target.value) }))}
-                    />
+                    <p className="text-xs text-muted-foreground">
+                      Anúncios com nota igual ou maior serão publicados automaticamente no destino configurado
+                    </p>
                   </div>
                 </div>
               )}
