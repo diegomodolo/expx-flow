@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Plus, Loader2, Eye, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, Loader2, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Trash2 } from "lucide-react";
+import { AdPreviewCard } from "@/components/ad-factory/AdPreviewCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -297,58 +298,32 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {ads.map((ad) => {
-            const content = ad.generated_content as GeneratedAd['generated_content'];
-            const type = typeConfig[ad.generation_type] || typeConfig.concept;
-            const status = statusConfig[ad.status] || statusConfig.pending;
-
-            return (
-              <Card key={ad.id} className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden" onClick={() => setSelectedAd(ad)}>
-                {/* Creative Image Preview */}
-                {content?.creative_image_url && (
-                  <div className="aspect-square w-full overflow-hidden bg-muted">
-                    <img 
-                      src={content.creative_image_url} 
-                      alt={content?.headline || 'Criativo do anúncio'}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className={`flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium ${type.color}`}>
-                      {type.icon}
-                      {type.label}
-                    </div>
-                    <Badge variant={status.variant} className="flex items-center gap-1">
-                      {status.icon}
-                      {status.label}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-base line-clamp-2 mt-2">
-                    {content?.headline || "Sem título"}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {format(new Date(ad.generated_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {content?.body || content?.primary_text || "Sem conteúdo"}
-                  </p>
-                  {ad.quality_score !== null && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Qualidade:</span>
-                      <Badge variant="outline" className="text-xs">
-                        {ad.quality_score}%
-                      </Badge>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {ads.map((ad) => (
+            <div key={ad.id} onClick={() => setSelectedAd(ad)} className="cursor-pointer">
+              <AdPreviewCard
+                ad={{
+                  id: ad.id,
+                  generation_type: ad.generation_type,
+                  generated_content: {
+                    headline: (ad.generated_content as any)?.headline,
+                    body: (ad.generated_content as any)?.body || (ad.generated_content as any)?.primary_text,
+                    cta: (ad.generated_content as any)?.call_to_action,
+                    image_prompt: (ad.generated_content as any)?.image_prompt,
+                    image_url: (ad.generated_content as any)?.creative_image_url,
+                  },
+                  status: ad.status,
+                  quality_score: ad.quality_score,
+                  generated_at: ad.generated_at,
+                  concept_description: ad.concept_description || undefined,
+                }}
+                isSelected={false}
+                onSelect={() => {}}
+                onApprove={() => handleUpdateStatus(ad.id, 'approved')}
+                onReject={() => handleUpdateStatus(ad.id, 'rejected')}
+              />
+            </div>
+          ))}
         </div>
       )}
 

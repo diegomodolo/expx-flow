@@ -14,6 +14,7 @@ interface AdPreviewCardProps {
       body?: string;
       cta?: string;
       image_prompt?: string;
+      image_url?: string;
       concept?: string;
     };
     status: string;
@@ -109,9 +110,14 @@ export function AdPreviewCard({
 
         {/* Image Area - 3:4 aspect ratio (1080x1440) */}
         <div className="relative aspect-[3/4] bg-muted overflow-hidden">
-          {content?.image_prompt ? (
+          {content?.image_url ? (
+            <img 
+              src={content.image_url} 
+              alt={content?.headline || 'Preview do anúncio'}
+              className="w-full h-full object-cover"
+            />
+          ) : content?.image_prompt ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-muted to-muted/50">
-              {/* Headline overlay on image */}
               {content?.headline && (
                 <div className="text-center mb-4 px-4">
                   <p className="text-lg font-bold text-foreground leading-tight">
@@ -129,7 +135,6 @@ export function AdPreviewCard({
                   </p>
                 </div>
               </div>
-              {/* CTA Button on image */}
               {content?.cta && (
                 <div className="w-full px-4 pb-4">
                   <div className="w-full py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-lg text-center">
