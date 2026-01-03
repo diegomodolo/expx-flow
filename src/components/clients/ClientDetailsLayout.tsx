@@ -339,14 +339,16 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
         {children}
       </div>
 
-      {/* Edit Client Dialog */}
-      <ClientDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onSubmit={handleEditClient}
-        client={currentClient}
-        title="Editar Cliente"
-      />
+      {/* Edit Client Dialog - Only render when currentClient is loaded */}
+      {currentClient && (
+        <ClientDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSubmit={handleEditClient}
+          client={currentClient}
+          title="Editar Cliente"
+        />
+      )}
 
       {/* Client Quick Switch Dialog */}
       <ClientQuickSwitch
