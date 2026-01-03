@@ -171,6 +171,7 @@ export type Database = {
       ad_generation_schedules: {
         Row: {
           ads_per_day: number
+          always_include_text_in_images: boolean
           autopilot_enabled: boolean
           autopilot_max_daily_budget: number | null
           autopilot_min_quality_score: number | null
@@ -189,6 +190,7 @@ export type Database = {
         }
         Insert: {
           ads_per_day?: number
+          always_include_text_in_images?: boolean
           autopilot_enabled?: boolean
           autopilot_max_daily_budget?: number | null
           autopilot_min_quality_score?: number | null
@@ -207,6 +209,7 @@ export type Database = {
         }
         Update: {
           ads_per_day?: number
+          always_include_text_in_images?: boolean
           autopilot_enabled?: boolean
           autopilot_max_daily_budget?: number | null
           autopilot_min_quality_score?: number | null

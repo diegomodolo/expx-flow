@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles } from "lucide-react";
+import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ interface ScheduleConfig {
   autopilot_enabled: boolean;
   autopilot_min_quality_score: number;
   autopilot_max_daily_budget: number;
+  always_include_text_in_images: boolean;
 }
 
 const defaultConfig: ScheduleConfig = {
@@ -48,6 +49,7 @@ const defaultConfig: ScheduleConfig = {
   autopilot_enabled: false,
   autopilot_min_quality_score: 80,
   autopilot_max_daily_budget: 500,
+  always_include_text_in_images: true,
 };
 
 interface Props {
@@ -95,6 +97,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           autopilot_enabled: data.autopilot_enabled,
           autopilot_min_quality_score: Math.round(((data.autopilot_min_quality_score ?? 0.8) as number) * 100),
           autopilot_max_daily_budget: Number(data.autopilot_max_daily_budget ?? 500),
+          always_include_text_in_images: data.always_include_text_in_images ?? true,
         });
       } else {
         setConfig(defaultConfig);
@@ -127,6 +130,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         autopilot_min_quality_score: Number((config.autopilot_min_quality_score / 100).toFixed(2)),
         // numeric(10,2) no banco
         autopilot_max_daily_budget: Number(config.autopilot_max_daily_budget),
+        always_include_text_in_images: config.always_include_text_in_images,
       };
 
       if (config.id) {
@@ -295,6 +299,23 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
                     type="time"
                     value={config.generation_time}
                     onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="always_include_text" className="flex items-center gap-2">
+                      <Type className="h-4 w-4" />
+                      Texto nas imagens
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Sempre incluir headline/texto nos criativos
+                    </p>
+                  </div>
+                  <Switch
+                    id="always_include_text"
+                    checked={config.always_include_text_in_images}
+                    onCheckedChange={(checked) => setConfig({ ...config, always_include_text_in_images: checked })}
                   />
                 </div>
               </CardContent>
