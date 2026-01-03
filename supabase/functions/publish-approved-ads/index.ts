@@ -51,21 +51,41 @@ serve(async (req) => {
       throw new Error('Client not found');
     }
 
-    // Get company's Facebook credentials
-    const { data: facebookCredential } = await supabase
-      .from('platform_credentials')
-      .select('*')
+    // Get company's Facebook integration token (source of truth)
+    const { data: integrations, error: integrationError } = await supabase
+      .from('facebook_integrations')
+      .select('access_token, expires_at, is_active, updated_at')
       .eq('company_id', company_id)
-      .eq('platform', 'facebook')
-      .single();
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-    if (!facebookCredential?.access_token) {
-      console.warn('[publish-approved-ads] No Facebook credentials found');
+    if (integrationError) {
+      console.error('[publish-approved-ads] Error fetching Facebook integration:', integrationError);
+      throw new Error('Erro ao buscar integração do Facebook');
+    }
+
+    const facebookIntegration = integrations?.[0];
+
+    if (!facebookIntegration?.access_token) {
+      console.warn('[publish-approved-ads] No Facebook integration token found for company', company_id);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Credenciais do Facebook não encontradas. Configure a integração primeiro.',
-          published: 0 
+          published: 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (facebookIntegration.expires_at && new Date(facebookIntegration.expires_at) <= new Date()) {
+      console.warn('[publish-approved-ads] Facebook token expired at', facebookIntegration.expires_at);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Token do Facebook expirado. Reconecte a integração para publicar.',
+          published: 0,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -75,7 +95,7 @@ serve(async (req) => {
     if (ad_id && destinations && destinations.length > 0) {
       return await publishAdToMultipleDestinations(
         supabase,
-        facebookCredential.access_token,
+        facebookIntegration.access_token,
         client,
         ad_id,
         destinations
@@ -121,7 +141,7 @@ serve(async (req) => {
       try {
         const result = await publishAdToMeta(
           supabase,
-          facebookCredential.access_token,
+          facebookIntegration.access_token,
           client,
           ad,
           schedule?.target_campaign_id,
