@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { AdPreviewCard, GeneratedAdType } from "./AdPreviewCard";
 import { ApprovalDestinationDialogV2 } from "./ApprovalDestinationDialogV2";
-import { AdDetailsDialog } from "./AdDetailsDialog";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,51 +48,45 @@ export function AdReviewGrid({
   defaultAdSetId,
   onRefetch,
 }: AdReviewGridProps) {
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedAdForApproval, setSelectedAdForApproval] = useState<GeneratedAdType | null>(null);
-  const [selectedAdForDetails, setSelectedAdForDetails] = useState<GeneratedAdType | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedAd, setSelectedAd] = useState<GeneratedAdType | null>(null);
 
   const handleApproveClick = (ad: GeneratedAdType) => {
-    // Always open the dialog to select destinations
     if (!clientId || !companyId) {
       toast.error('Selecione um cliente primeiro');
       return;
     }
-    setSelectedAdForApproval(ad);
-    setApprovalDialogOpen(true);
+    setSelectedAd(ad);
+    setDialogOpen(true);
   };
 
   const handleDialogClose = (open: boolean) => {
     if (!open) {
-      setSelectedAdForApproval(null);
+      setSelectedAd(null);
     }
-    setApprovalDialogOpen(open);
+    setDialogOpen(open);
   };
 
   const handleViewDetails = (ad: GeneratedAdType) => {
-    setSelectedAdForDetails(ad);
-    setDetailsDialogOpen(true);
-  };
-
-  const handleRepublish = (ad: GeneratedAdType) => {
-    // Close details dialog and open publish dialog
-    setDetailsDialogOpen(false);
-    setSelectedAdForDetails(null);
-    setSelectedAdForApproval(ad);
-    setApprovalDialogOpen(true);
+    // Now uses the same modal as approve
+    if (!clientId || !companyId) {
+      toast.error('Selecione um cliente primeiro');
+      return;
+    }
+    setSelectedAd(ad);
+    setDialogOpen(true);
   };
 
   const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
-    if (!selectedAdForApproval || !clientId || !companyId) return;
+    if (!selectedAd || !clientId || !companyId) return;
 
-    console.log('[AdReviewGrid] Publishing ad:', selectedAdForApproval.id, 'to destinations:', destinations);
+    console.log('[AdReviewGrid] Publishing ad:', selectedAd.id, 'to destinations:', destinations);
 
     const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
       body: {
         client_id: clientId,
         company_id: companyId,
-        ad_id: selectedAdForApproval.id,
+        ad_id: selectedAd.id,
         destinations,
         ad_config: adConfig,
       },
@@ -122,8 +115,8 @@ export function AdReviewGrid({
       onRefetch();
     }
 
-    setSelectedAdForApproval(null);
-    setApprovalDialogOpen(false);
+    setSelectedAd(null);
+    setDialogOpen(false);
   };
 
   if (isLoading) {
@@ -167,28 +160,19 @@ export function AdReviewGrid({
       </div>
 
       {clientId && companyId && (
-        <>
-          <ApprovalDestinationDialogV2
-            open={approvalDialogOpen}
-            onOpenChange={handleDialogClose}
-            adId={selectedAdForApproval?.id || ''}
-            clientId={clientId}
-            companyId={companyId}
-            defaultCampaignId={defaultCampaignId}
-            defaultAdSetId={defaultAdSetId}
-            onApprove={handleApproveAndPublish}
-            adContent={selectedAdForApproval?.generated_content}
-          />
-          <AdDetailsDialog
-            open={detailsDialogOpen}
-            onOpenChange={setDetailsDialogOpen}
-            ad={selectedAdForDetails}
-            clientId={clientId}
-            companyId={companyId}
-            onStatusChange={onRefetch}
-            onRepublish={handleRepublish}
-          />
-        </>
+        <ApprovalDestinationDialogV2
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+          adId={selectedAd?.id || ''}
+          clientId={clientId}
+          companyId={companyId}
+          defaultCampaignId={defaultCampaignId}
+          defaultAdSetId={defaultAdSetId}
+          onApprove={handleApproveAndPublish}
+          onStatusChange={onRefetch}
+          ad={selectedAd}
+          adContent={selectedAd?.generated_content}
+        />
       )}
     </>
   );
