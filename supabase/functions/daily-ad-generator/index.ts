@@ -399,16 +399,22 @@ function normalizeCTA(cta: string): string {
 async function generateCloneAds(supabase: any, client: ClientData, count: number): Promise<any[]> {
   if (count <= 0) return [];
 
-  console.log('[daily-ad-generator] Generating', count, 'clone ads');
+  console.log('[daily-ad-generator] Generating', count, 'clone ads for client:', client.id);
 
-  // Fetch competitor ads that have been running for 30+ days (winners)
-  const { data: competitorAds } = await supabase
+  // Fetch competitor ads - prioritize those running longer (older date_spotted = proven winners)
+  const { data: competitorAds, error: competitorError } = await supabase
     .from('competitor_ads')
     .select('*, competitors(name, company_name)')
     .eq('client_id', client.id)
     .eq('is_active', true)
     .order('date_spotted', { ascending: true })
     .limit(count * 2);
+
+  if (competitorError) {
+    console.error('[daily-ad-generator] Error fetching competitor ads:', competitorError);
+  }
+
+  console.log('[daily-ad-generator] Found competitor ads:', competitorAds?.length || 0);
 
   if (!competitorAds || competitorAds.length === 0) {
     console.log('[daily-ad-generator] No competitor ads found, generating placeholder clones');
