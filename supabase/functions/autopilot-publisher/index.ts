@@ -35,12 +35,12 @@ serve(async (req) => {
     const results: any[] = [];
 
     for (const schedule of schedules || []) {
-      const minQualityScore = schedule.autopilot_min_quality_score || 80;
-      const maxDailyBudget = schedule.autopilot_max_daily_budget || 500;
+      // Score is now 0-10, no need to divide by 100
+      const minQualityScore = schedule.autopilot_min_quality_score ?? 7.5;
       const targetCampaignId = schedule.target_campaign_id;
       const targetAdsetId = schedule.target_adset_id;
 
-      console.log('[autopilot-publisher] Processing client:', schedule.client_id, 'Target campaign:', targetCampaignId, 'Target adset:', targetAdsetId);
+      console.log('[autopilot-publisher] Processing client:', schedule.client_id, 'Min score:', minQualityScore, 'Target campaign:', targetCampaignId);
 
       // Check if target campaign/adset is configured
       if (!targetCampaignId) {
@@ -54,12 +54,13 @@ serve(async (req) => {
       }
 
       // Fetch approved ads with high quality score that haven't been published
+      // Score is now 0-10, compare directly
       const { data: eligibleAds, error: adsError } = await supabase
         .from('ad_generation_queue')
         .select('*')
         .eq('client_id', schedule.client_id)
         .eq('status', 'approved')
-        .gte('quality_score', minQualityScore / 100)
+        .gte('quality_score', minQualityScore)
         .is('published_at', null);
 
       if (adsError) {
@@ -67,7 +68,7 @@ serve(async (req) => {
         continue;
       }
 
-      console.log('[autopilot-publisher] Found', eligibleAds?.length || 0, 'eligible ads');
+      console.log('[autopilot-publisher] Found', eligibleAds?.length || 0, 'eligible ads with score >=', minQualityScore);
 
       if (!eligibleAds || eligibleAds.length === 0) {
         results.push({
@@ -78,33 +79,8 @@ serve(async (req) => {
         continue;
       }
 
-      // Check daily budget spent
-      const today = new Date().toISOString().split('T')[0];
-      const { data: todayPublished } = await supabase
-        .from('ad_generation_queue')
-        .select('id')
-        .eq('client_id', schedule.client_id)
-        .gte('published_at', today);
-
-      const publishedToday = todayPublished?.length || 0;
-      const estimatedCostPerAd = 50; // Estimated R$50 per ad
-      const remainingBudget = maxDailyBudget - (publishedToday * estimatedCostPerAd);
-
-      if (remainingBudget <= 0) {
-        console.log('[autopilot-publisher] Daily budget exhausted for client:', schedule.client_id);
-        results.push({
-          client_id: schedule.client_id,
-          published: 0,
-          reason: 'Daily budget exhausted',
-        });
-        continue;
-      }
-
-      // Calculate how many ads we can publish
-      const adsToPublish = Math.min(
-        eligibleAds.length,
-        Math.floor(remainingBudget / estimatedCostPerAd)
-      );
+      // Publish all eligible ads (no budget limit needed)
+      const adsToPublish = eligibleAds.length;
 
       console.log('[autopilot-publisher] Will publish', adsToPublish, 'ads to campaign:', targetCampaignId);
 
@@ -178,7 +154,7 @@ serve(async (req) => {
         client_id: schedule.client_id,
         published: publishedCount,
         eligible: eligibleAds.length,
-        budget_remaining: remainingBudget,
+        min_quality_score: minQualityScore,
         target_campaign_id: targetCampaignId,
         target_adset_id: targetAdsetId,
       });

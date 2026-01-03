@@ -210,6 +210,72 @@ Responda usando a função score_ad.`;
 
     console.log('[score-generated-ad] Successfully scored ad:', ad_id, 'Score:', roundedScore);
 
+    // Check if autopilot should publish this ad automatically
+    let autopublished = false;
+    const { data: schedule } = await supabase
+      .from('ad_generation_schedules')
+      .select('autopilot_enabled, autopilot_min_quality_score, target_campaign_id, target_adset_id, company_id')
+      .eq('client_id', ad.client_id)
+      .single();
+
+    if (schedule?.autopilot_enabled && schedule?.target_campaign_id) {
+      const minScore = schedule.autopilot_min_quality_score ?? 7.5;
+      
+      console.log('[score-generated-ad] Autopilot check - Score:', roundedScore, 'Min required:', minScore);
+      
+      if (roundedScore >= minScore) {
+        console.log('[score-generated-ad] Autopilot triggered! Publishing ad automatically...');
+        
+        // Call publish-approved-ads to publish automatically
+        try {
+          const publishResponse = await fetch(`${supabaseUrl}/functions/v1/publish-approved-ads`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              client_id: ad.client_id,
+              company_id: schedule.company_id || ad.company_id,
+              ad_ids: [ad.id],
+              destinations: [{
+                campaignId: schedule.target_campaign_id,
+                adsetId: schedule.target_adset_id
+              }]
+            }),
+          });
+          
+          if (publishResponse.ok) {
+            // Update ad status to published with autopilot note
+            await supabase
+              .from('ad_generation_queue')
+              .update({ 
+                status: 'published',
+                published_at: new Date().toISOString(),
+                generated_content: {
+                  ...updatedContent,
+                  autopilot_published: true,
+                  autopilot_note: `Publicado automaticamente via Autopilot (nota ${roundedScore} >= ${minScore})`
+                }
+              })
+              .eq('id', ad_id);
+            
+            autopublished = true;
+            console.log('[score-generated-ad] Ad autopublished successfully!');
+          } else {
+            const errorText = await publishResponse.text();
+            console.error('[score-generated-ad] Autopublish failed:', errorText);
+          }
+        } catch (publishError) {
+          console.error('[score-generated-ad] Autopublish error:', publishError);
+        }
+      } else {
+        console.log('[score-generated-ad] Score below minimum, not autopublishing');
+      }
+    } else {
+      console.log('[score-generated-ad] Autopilot not enabled or no target campaign configured');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -217,7 +283,8 @@ Responda usando a função score_ad.`;
         score: roundedScore,
         breakdown: scoreResult.breakdown,
         explanation: scoreResult.explanation,
-        flags: scoreResult.flags
+        flags: scoreResult.flags,
+        autopublished
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
