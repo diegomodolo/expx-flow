@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type, AlertCircle } from "lucide-react";
+import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles, Type, AlertCircle, RotateCcw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,6 +101,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
   const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
   
   // Availability states
@@ -294,6 +295,30 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
     }
   };
 
+  const resetGenerationForToday = async () => {
+    if (!config.id) {
+      toast.error('Salve a configuração primeiro');
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const { error } = await supabase
+        .from('ad_generation_schedules')
+        .update({ last_generation_at: null })
+        .eq('id', config.id);
+
+      if (error) throw error;
+
+      toast.success('Reset realizado! A geração vai rodar no próximo horário configurado.');
+    } catch (error: any) {
+      console.error('Error resetting generation:', error);
+      toast.error('Erro ao resetar: ' + error.message);
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const updatePercentages = (field: keyof ScheduleConfig, value: number, disabled: boolean = false) => {
     if (disabled) return;
     
@@ -480,12 +505,31 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
                 <div className="space-y-2">
                   <Label htmlFor="generation_time">Horário de geração</Label>
-                  <Input
-                    id="generation_time"
-                    type="time"
-                    value={config.generation_time}
-                    onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="generation_time"
+                      type="time"
+                      value={config.generation_time}
+                      onChange={(e) => setConfig({ ...config, generation_time: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={resetGenerationForToday}
+                      disabled={resetting || !config.id}
+                      title="Resetar para gerar hoje"
+                    >
+                      {resetting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clique no botão de reset para permitir geração novamente hoje
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t">
