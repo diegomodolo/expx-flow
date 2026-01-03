@@ -6,6 +6,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Valid Facebook CTAs
+const VALID_FACEBOOK_CTAS = [
+  'APPLY_NOW',
+  'BOOK_TRAVEL',
+  'CALL_NOW',
+  'CONTACT_US',
+  'DOWNLOAD',
+  'GET_DIRECTIONS',
+  'GET_OFFER',
+  'GET_QUOTE',
+  'GET_SHOWTIMES',
+  'INSTALL_APP',
+  'LEARN_MORE',
+  'LISTEN_NOW',
+  'MESSAGE_PAGE',
+  'NO_BUTTON',
+  'OPEN_LINK',
+  'ORDER_NOW',
+  'PLAY_GAME',
+  'REQUEST_TIME',
+  'SAVE',
+  'SEE_MENU',
+  'SHOP_NOW',
+  'SIGN_UP',
+  'SUBSCRIBE',
+  'WATCH_MORE',
+  'WHATSAPP_MESSAGE',
+];
+
 interface AdGenerationSchedule {
   id: string;
   client_id: string;
@@ -26,6 +55,9 @@ interface ClientData {
   voice_tone: string | null;
   product_name: string | null;
   website_url: string | null;
+  ai_reference_image_1: string | null;
+  ai_reference_image_2: string | null;
+  ai_reference_image_3: string | null;
 }
 
 serve(async (req) => {
@@ -42,7 +74,7 @@ serve(async (req) => {
 
     console.log('[daily-ad-generator] Starting generation:', { client_id, company_id, generation_type, count });
 
-    // Fetch client data
+    // Fetch client data including AI reference images
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
@@ -54,7 +86,7 @@ serve(async (req) => {
       throw new Error('Client not found');
     }
 
-    console.log('[daily-ad-generator] Client data loaded:', client.name);
+    console.log('[daily-ad-generator] Client data loaded:', client.name, 'Has reference images:', !!client.ai_reference_image_1);
 
     // Get generation schedule or use defaults
     const { data: schedule } = await supabase
@@ -76,21 +108,31 @@ serve(async (req) => {
     console.log('[daily-ad-generator] Distribution:', { cloneCount, conceptCount, iterationCount });
 
     const generatedAds: any[] = [];
+    const errors: string[] = [];
 
     // Generate based on type or all types
     if (!generation_type || generation_type === 'clone') {
-      const clones = await generateCloneAds(supabase, client, cloneCount);
+      const targetCount = generation_type === 'clone' ? (count || 1) : cloneCount;
+      const clones = await generateCloneAds(supabase, client, targetCount);
       generatedAds.push(...clones);
+      if (clones.length === 0 && targetCount > 0) {
+        errors.push('Nenhum anúncio de concorrente encontrado para clone.');
+      }
     }
 
     if (!generation_type || generation_type === 'concept') {
-      const concepts = await generateConceptAds(supabase, client, conceptCount);
+      const targetCount = generation_type === 'concept' ? (count || 1) : conceptCount;
+      const concepts = await generateConceptAds(supabase, client, targetCount);
       generatedAds.push(...concepts);
     }
 
     if (!generation_type || generation_type === 'iteration') {
-      const iterations = await generateIterationAds(supabase, client, iterationCount);
+      const targetCount = generation_type === 'iteration' ? (count || 1) : iterationCount;
+      const iterations = await generateIterationAds(supabase, client, targetCount);
       generatedAds.push(...iterations);
+      if (iterations.length === 0 && targetCount > 0) {
+        errors.push('Nenhum anúncio vencedor encontrado para iteração.');
+      }
     }
 
     // Insert all generated ads into the queue
@@ -137,6 +179,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         generated: generatedAds.length,
+        errors: errors.length > 0 ? errors : undefined,
         distribution: {
           clones: generatedAds.filter(a => a.type === 'clone').length,
           concepts: generatedAds.filter(a => a.type === 'concept').length,
@@ -154,6 +197,194 @@ serve(async (req) => {
   }
 });
 
+// Get reference images from client
+function getClientReferenceImages(client: ClientData): string[] {
+  const images: string[] = [];
+  if (client.ai_reference_image_1) images.push(client.ai_reference_image_1);
+  if (client.ai_reference_image_2) images.push(client.ai_reference_image_2);
+  if (client.ai_reference_image_3) images.push(client.ai_reference_image_3);
+  return images;
+}
+
+// Generate creative image using Nano banana model
+async function generateCreativeImage(client: ClientData, adContent: any): Promise<string | null> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const referenceImages = getClientReferenceImages(client);
+  
+  // Build image generation prompt based on client branding and ad content
+  const imagePrompt = `
+Crie uma imagem publicitária profissional para um anúncio de Facebook/Instagram.
+
+MARCA: ${client.company}
+PRODUTO: ${client.product_name || client.company}
+SETOR: ${client.sector}
+HEADLINE DO ANÚNCIO: ${adContent.headline || ''}
+CONCEITO: ${adContent.concept_explanation || adContent.concept_adapted || ''}
+
+DIRETRIZES DE ESTILO:
+- Use cores vibrantes e profissionais
+- Estilo moderno e clean
+- Foco em conversão
+- Formato quadrado (1:1) ideal para redes sociais
+- Não inclua texto na imagem (será adicionado separadamente)
+
+${adContent.image_prompt ? `SUGESTÃO ADICIONAL: ${adContent.image_prompt}` : ''}
+`;
+
+  try {
+    // If client has reference images, use image editing to maintain style
+    if (referenceImages.length > 0) {
+      console.log('[daily-ad-generator] Generating image based on reference:', referenceImages[0]);
+      
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `Crie uma nova imagem publicitária inspirada nesta referência visual, mantendo o mesmo estilo, cores e identidade visual.
+
+${imagePrompt}
+
+IMPORTANTE: Mantenha a consistência visual com a imagem de referência, mas crie uma composição NOVA e ORIGINAL para o anúncio.`,
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: referenceImages[0],
+                  },
+                },
+              ],
+            },
+          ],
+          modalities: ['image', 'text'],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (imageUrl) {
+          console.log('[daily-ad-generator] Image generated successfully (with reference)');
+          return imageUrl;
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('[daily-ad-generator] Image generation error (with reference):', errorText);
+      }
+    }
+    
+    // Fallback: Generate without reference image
+    console.log('[daily-ad-generator] Generating image without reference');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: imagePrompt,
+          },
+        ],
+        modalities: ['image', 'text'],
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (imageUrl) {
+        console.log('[daily-ad-generator] Image generated successfully (without reference)');
+        return imageUrl;
+      }
+    } else {
+      const errorText = await response.text();
+      console.error('[daily-ad-generator] Image generation error:', errorText);
+    }
+  } catch (error) {
+    console.error('[daily-ad-generator] Error generating creative image:', error);
+  }
+
+  return null;
+}
+
+// Validate and normalize CTA to Facebook-allowed values
+function normalizeCTA(cta: string): string {
+  if (!cta) return 'LEARN_MORE';
+  
+  // Clean and normalize
+  const normalized = cta.toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_');
+  
+  // Check if it's already valid
+  if (VALID_FACEBOOK_CTAS.includes(normalized)) {
+    return normalized;
+  }
+  
+  // Map common variations to valid CTAs
+  const ctaMapping: Record<string, string> = {
+    'SAIBA_MAIS': 'LEARN_MORE',
+    'SABER_MAIS': 'LEARN_MORE',
+    'VER_MAIS': 'LEARN_MORE',
+    'COMPRAR': 'SHOP_NOW',
+    'COMPRE_AGORA': 'SHOP_NOW',
+    'COMPRAR_AGORA': 'SHOP_NOW',
+    'INSCREVA_SE': 'SIGN_UP',
+    'CADASTRE_SE': 'SIGN_UP',
+    'CADASTRAR': 'SIGN_UP',
+    'BAIXAR': 'DOWNLOAD',
+    'BAIXE_AGORA': 'DOWNLOAD',
+    'INSTALAR': 'INSTALL_APP',
+    'LIGAR': 'CALL_NOW',
+    'LIGUE_AGORA': 'CALL_NOW',
+    'CONTATO': 'CONTACT_US',
+    'FALE_CONOSCO': 'CONTACT_US',
+    'ENTRE_EM_CONTATO': 'CONTACT_US',
+    'AGENDAR': 'REQUEST_TIME',
+    'AGENDE': 'REQUEST_TIME',
+    'RESERVAR': 'BOOK_TRAVEL',
+    'RESERVE': 'BOOK_TRAVEL',
+    'PEDIR': 'ORDER_NOW',
+    'PEÇA_AGORA': 'ORDER_NOW',
+    'VER_MENU': 'SEE_MENU',
+    'CARDAPIO': 'SEE_MENU',
+    'ASSISTIR': 'WATCH_MORE',
+    'ASSISTA': 'WATCH_MORE',
+    'OUVIR': 'LISTEN_NOW',
+    'OUÇA': 'LISTEN_NOW',
+    'SALVAR': 'SAVE',
+    'MENSAGEM': 'MESSAGE_PAGE',
+    'WHATSAPP': 'WHATSAPP_MESSAGE',
+    'ORCAMENTO': 'GET_QUOTE',
+    'COTACAO': 'GET_QUOTE',
+    'OFERTA': 'GET_OFFER',
+    'VER_OFERTA': 'GET_OFFER',
+    'APLICAR': 'APPLY_NOW',
+    'CANDIDATAR': 'APPLY_NOW',
+    'JOGAR': 'PLAY_GAME',
+    'ABRIR': 'OPEN_LINK',
+  };
+  
+  if (ctaMapping[normalized]) {
+    return ctaMapping[normalized];
+  }
+  
+  // Default fallback
+  return 'LEARN_MORE';
+}
+
 // Generate clone ads from competitor winning ads
 async function generateCloneAds(supabase: any, client: ClientData, count: number): Promise<any[]> {
   if (count <= 0) return [];
@@ -167,11 +398,10 @@ async function generateCloneAds(supabase: any, client: ClientData, count: number
     .eq('client_id', client.id)
     .eq('is_active', true)
     .order('date_spotted', { ascending: true })
-    .limit(count * 2); // Get more than needed to have variety
+    .limit(count * 2);
 
   if (!competitorAds || competitorAds.length === 0) {
     console.log('[daily-ad-generator] No competitor ads found, generating placeholder clones');
-    // Generate placeholder clone concepts
     return await generateAICloneAds(supabase, client, count);
   }
 
@@ -186,13 +416,19 @@ async function generateCloneAds(supabase: any, client: ClientData, count: number
     // Generate adapted version using AI
     const adaptedAd = await adaptCompetitorAd(supabase, client, sourceAd);
     
+    // Generate creative image
+    const creativeImageUrl = await generateCreativeImage(client, adaptedAd);
+    if (creativeImageUrl) {
+      adaptedAd.creative_image_url = creativeImageUrl;
+    }
+    
     ads.push({
       type: 'clone',
       source_ad_id: sourceAd.id,
       source_competitor_id: sourceAd.competitor_id,
       content: adaptedAd,
       concept_description: `Clone do anúncio do concorrente ${sourceAd.competitors?.company_name || 'desconhecido'}. Conceito original: ${sourceAd.ad_title || sourceAd.ad_copy?.substring(0, 100)}`,
-      quality_score: 0.75,
+      quality_score: 75,
     });
   }
 
@@ -214,8 +450,6 @@ async function generateConceptAds(supabase: any, client: ClientData, count: numb
     .limit(count);
 
   const ads: any[] = [];
-
-  // Use AI to generate new concepts
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   for (let i = 0; i < count; i++) {
@@ -237,6 +471,7 @@ async function generateConceptAds(supabase: any, client: ClientData, count: numb
               role: 'system',
               content: `Você é um especialista em marketing digital e criação de anúncios para Facebook/Instagram. 
 Gere anúncios criativos, persuasivos e que convertem.
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
 Responda APENAS em JSON válido.`,
             },
             {
@@ -252,20 +487,36 @@ Responda APENAS em JSON válido.`,
         const content = data.choices?.[0]?.message?.content;
         
         try {
-          // Clean JSON from markdown if present
           const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
           const adContent = JSON.parse(cleanJson);
+          
+          // Normalize CTA
+          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+          
+          // Ensure body content exists
+          if (!adContent.body && adContent.primary_text) {
+            adContent.body = adContent.primary_text;
+          }
+          
+          // Generate creative image
+          const creativeImageUrl = await generateCreativeImage(client, adContent);
+          if (creativeImageUrl) {
+            adContent.creative_image_url = creativeImageUrl;
+          }
           
           ads.push({
             type: 'concept',
             content: adContent,
             concept_description: adContent.concept_explanation || `Conceito baseado em pesquisa de mercado: ${insight?.topic || 'análise geral'}`,
             research_sources: insight ? [insight] : null,
-            quality_score: 0.8,
+            quality_score: 80,
           });
         } catch (parseError) {
-          console.error('[daily-ad-generator] JSON parse error:', parseError);
+          console.error('[daily-ad-generator] JSON parse error:', parseError, 'Content:', content);
         }
+      } else {
+        const errorText = await response.text();
+        console.error('[daily-ad-generator] AI response error:', response.status, errorText);
       }
     } catch (error) {
       console.error('[daily-ad-generator] AI generation error:', error);
@@ -317,6 +568,7 @@ async function generateIterationAds(supabase: any, client: ClientData, count: nu
               role: 'system',
               content: `Você é um especialista em otimização de anúncios. 
 Crie variações de anúncios vencedores mantendo a essência mas testando novos ângulos.
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
 Responda APENAS em JSON válido.`,
             },
             {
@@ -335,12 +587,26 @@ Responda APENAS em JSON válido.`,
           const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
           const adContent = JSON.parse(cleanJson);
           
+          // Normalize CTA
+          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+          
+          // Ensure body content exists
+          if (!adContent.body && adContent.primary_text) {
+            adContent.body = adContent.primary_text;
+          }
+          
+          // Generate creative image
+          const creativeImageUrl = await generateCreativeImage(client, adContent);
+          if (creativeImageUrl) {
+            adContent.creative_image_url = creativeImageUrl;
+          }
+          
           ads.push({
             type: 'iteration',
             source_ad_id: sourceAd.ad_id,
             content: adContent,
             concept_description: `Iteração do anúncio vencedor: ${sourceAd.ad_name}. Variação: ${adContent.variation_type || 'otimização'}`,
-            quality_score: 0.85,
+            quality_score: 85,
           });
         } catch (parseError) {
           console.error('[daily-ad-generator] JSON parse error:', parseError);
@@ -377,15 +643,18 @@ DADOS DO CLIENTE:
 
 Crie um anúncio adaptado mantendo o CONCEITO mas usando a identidade do cliente.
 
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
+
 Responda em JSON:
 {
-  "headline": "...",
-  "primary_text": "...",
-  "description": "...",
-  "call_to_action": "...",
+  "headline": "título chamativo e curto (máximo 40 caracteres)",
+  "body": "texto principal do anúncio com 2-3 parágrafos persuasivos, explicando benefícios e criando urgência (125-250 caracteres idealmente)",
+  "primary_text": "mesmo que body",
+  "description": "descrição curta para link (máximo 30 caracteres)",
+  "call_to_action": "CTA_VALIDO",
   "ad_type": "image|video|carousel",
   "concept_adapted": "descrição breve do conceito adaptado",
-  "image_prompt": "prompt para gerar imagem do anúncio"
+  "image_prompt": "prompt detalhado para gerar imagem do anúncio mantendo a identidade visual da marca"
 }`;
 
   try {
@@ -408,7 +677,17 @@ Responda em JSON:
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleanJson);
+      const adContent = JSON.parse(cleanJson);
+      
+      // Normalize CTA
+      adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+      
+      // Ensure body exists
+      if (!adContent.body && adContent.primary_text) {
+        adContent.body = adContent.primary_text;
+      }
+      
+      return adContent;
     }
   } catch (error) {
     console.error('[daily-ad-generator] Error adapting competitor ad:', error);
@@ -417,7 +696,8 @@ Responda em JSON:
   // Fallback
   return {
     headline: `${client.product_name || client.company} - Transforme sua vida`,
-    primary_text: sourceAd.ad_copy || 'Descubra como podemos ajudar você.',
+    body: `Descubra como ${client.company} pode ajudar você a alcançar seus objetivos. Nossa solução foi desenvolvida pensando em você.`,
+    primary_text: `Descubra como ${client.company} pode ajudar você a alcançar seus objetivos. Nossa solução foi desenvolvida pensando em você.`,
     description: client.company,
     call_to_action: 'LEARN_MORE',
     ad_type: 'image',
@@ -449,17 +729,21 @@ Crie um anúncio que:
 1. Ataque diretamente uma dor do público
 2. Apresente a solução de forma clara
 3. Tenha um CTA forte
+4. Tenha um BODY/PRIMARY_TEXT com pelo menos 2 parágrafos persuasivos
+
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
 
 Responda em JSON:
 {
-  "headline": "...",
-  "primary_text": "...",
-  "description": "...",
-  "call_to_action": "...",
+  "headline": "título chamativo e curto (máximo 40 caracteres)",
+  "body": "texto principal do anúncio com 2-3 parágrafos persuasivos, explicando benefícios e criando urgência (125-250 caracteres idealmente)",
+  "primary_text": "mesmo que body",
+  "description": "descrição curta para link (máximo 30 caracteres)",
+  "call_to_action": "CTA_VALIDO",
   "ad_type": "image|video|carousel",
   "concept_explanation": "explicação breve do conceito",
   "target_emotion": "emoção alvo (medo, desejo, curiosidade, etc)",
-  "image_prompt": "prompt para gerar imagem do anúncio"
+  "image_prompt": "prompt detalhado para gerar imagem do anúncio mantendo a identidade visual da marca"
 }`;
 }
 
@@ -483,6 +767,7 @@ Crie uma variação que:
 1. Mantenha a essência que fez o anúncio funcionar
 2. Teste um novo ângulo (headline diferente, abordagem diferente, etc)
 3. Potencialmente escale ainda mais os resultados
+4. Tenha um BODY/PRIMARY_TEXT com pelo menos 2 parágrafos persuasivos
 
 Tipos de variação a considerar:
 - Headline diferente
@@ -490,16 +775,19 @@ Tipos de variação a considerar:
 - CTA mais forte
 - Formato diferente (imagem vs carrossel)
 
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
+
 Responda em JSON:
 {
-  "headline": "...",
-  "primary_text": "...",
-  "description": "...",
-  "call_to_action": "...",
+  "headline": "título chamativo e curto (máximo 40 caracteres)",
+  "body": "texto principal do anúncio com 2-3 parágrafos persuasivos, explicando benefícios e criando urgência (125-250 caracteres idealmente)",
+  "primary_text": "mesmo que body",
+  "description": "descrição curta para link (máximo 30 caracteres)",
+  "call_to_action": "CTA_VALIDO",
   "ad_type": "image|video|carousel",
   "variation_type": "tipo da variação (headline_test, emotion_test, cta_test, format_test)",
   "what_changed": "o que foi mudado e por quê",
-  "image_prompt": "prompt para gerar imagem do anúncio"
+  "image_prompt": "prompt detalhado para gerar imagem do anúncio"
 }`;
 }
 
@@ -521,15 +809,18 @@ CLIENTE:
 
 Inspire-se em estratégias de sucesso do mercado.
 
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
+
 Responda em JSON:
 {
-  "headline": "...",
-  "primary_text": "...",
-  "description": "...",
-  "call_to_action": "...",
+  "headline": "título chamativo e curto (máximo 40 caracteres)",
+  "body": "texto principal do anúncio com 2-3 parágrafos persuasivos (125-250 caracteres idealmente)",
+  "primary_text": "mesmo que body",
+  "description": "descrição curta para link (máximo 30 caracteres)",
+  "call_to_action": "CTA_VALIDO",
   "ad_type": "image",
   "inspired_by": "tipo de estratégia (urgência, prova social, exclusividade, etc)",
-  "image_prompt": "prompt para gerar imagem"
+  "image_prompt": "prompt detalhado para gerar imagem"
 }`;
 
     try {
@@ -554,11 +845,25 @@ Responda em JSON:
         const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
         const adContent = JSON.parse(cleanJson);
         
+        // Normalize CTA
+        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+        
+        // Ensure body exists
+        if (!adContent.body && adContent.primary_text) {
+          adContent.body = adContent.primary_text;
+        }
+        
+        // Generate creative image
+        const creativeImageUrl = await generateCreativeImage(client, adContent);
+        if (creativeImageUrl) {
+          adContent.creative_image_url = creativeImageUrl;
+        }
+        
         ads.push({
           type: 'clone',
           content: adContent,
           concept_description: `Clone baseado em estratégias de sucesso: ${adContent.inspired_by}`,
-          quality_score: 0.7,
+          quality_score: 70,
         });
       }
     } catch (error) {
