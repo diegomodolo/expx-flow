@@ -5,7 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Plus, Loader2, Eye, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw } from "lucide-react";
+import { Plus, Loader2, Eye, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -156,6 +167,24 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     } catch (error: any) {
       console.error('Error updating status:', error);
       toast.error('Erro ao atualizar status');
+    }
+  };
+
+  const handleDeleteAd = async (adId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ad_generation_queue')
+        .delete()
+        .eq('id', adId);
+
+      if (error) throw error;
+
+      toast.success('Anúncio excluído com sucesso');
+      refetch();
+      setSelectedAd(null);
+    } catch (error: any) {
+      console.error('Error deleting ad:', error);
+      toast.error('Erro ao excluir anúncio');
     }
   };
 
@@ -414,9 +443,31 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
               </ScrollArea>
 
               <div className="flex justify-between gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setSelectedAd(null)}>
-                  Fechar
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir anúncio?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. O anúncio será permanentemente excluído.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleDeleteAd(selectedAd.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <div className="flex gap-2">
                   {selectedAd.status === 'pending' && (
                     <>
