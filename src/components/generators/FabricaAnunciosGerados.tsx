@@ -42,9 +42,11 @@ interface GeneratedAd {
   generated_content: {
     headline?: string;
     body?: string;
+    primary_text?: string;
     description?: string;
     call_to_action?: string;
     image_prompt?: string;
+    creative_image_url?: string;
   };
   concept_description: string | null;
   generated_at: string;
@@ -273,7 +275,17 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             const status = statusConfig[ad.status] || statusConfig.pending;
 
             return (
-              <Card key={ad.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedAd(ad)}>
+              <Card key={ad.id} className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden" onClick={() => setSelectedAd(ad)}>
+                {/* Creative Image Preview */}
+                {content?.creative_image_url && (
+                  <div className="aspect-square w-full overflow-hidden bg-muted">
+                    <img 
+                      src={content.creative_image_url} 
+                      alt={content?.headline || 'Criativo do anúncio'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className={`flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium ${type.color}`}>
@@ -294,7 +306,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground line-clamp-3">
-                    {content?.body || "Sem conteúdo"}
+                    {content?.body || content?.primary_text || "Sem conteúdo"}
                   </p>
                   {ad.quality_score !== null && (
                     <div className="mt-3 flex items-center gap-2">
@@ -334,12 +346,26 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
                 </DialogDescription>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[400px]">
+              <ScrollArea className="max-h-[500px]">
                 <div className="space-y-4 py-4">
+                  {/* Creative Image */}
+                  {(selectedAd.generated_content as any)?.creative_image_url && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Criativo</Label>
+                      <div className="mt-2 rounded-lg overflow-hidden border">
+                        <img 
+                          src={(selectedAd.generated_content as any)?.creative_image_url} 
+                          alt="Criativo do anúncio"
+                          className="w-full h-auto max-h-64 object-contain bg-muted"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <Label className="text-xs text-muted-foreground">Corpo do Anúncio</Label>
                     <p className="mt-1 text-sm whitespace-pre-wrap">
-                      {(selectedAd.generated_content as any)?.body || "—"}
+                      {(selectedAd.generated_content as any)?.body || (selectedAd.generated_content as any)?.primary_text || "—"}
                     </p>
                   </div>
 
