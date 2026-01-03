@@ -185,13 +185,14 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
                 <Skeleton className="h-10 flex-1" />
               ) : (
                 <Select
-                  value={config.default_pixel_id || ""}
-                  onValueChange={(value) => onChange({ default_pixel_id: value || null })}
+                  value={config.default_pixel_id || "none"}
+                  onValueChange={(value) => onChange({ default_pixel_id: value === "none" ? null : value })}
                 >
                   <SelectTrigger id="pixel_id" className="flex-1">
                     <SelectValue placeholder="Selecione um Pixel" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {pixels.map((pixel) => (
                       <SelectItem key={pixel.id} value={pixel.pixel_id}>
                         {pixel.pixel_name} {pixel.is_primary && "(Principal)"}
@@ -316,24 +317,21 @@ export function PublishingDefaultsConfig({ config, onChange, clientId, companyId
               <Skeleton className="h-10 flex-1" />
             ) : (
               <Select
-                value={config.default_pixel_id || ""}
-                onValueChange={(value) => onChange({ default_pixel_id: value || null })}
+                value={config.default_pixel_id || "none"}
+                onValueChange={(value) => onChange({ default_pixel_id: value === "none" ? null : value })}
               >
                 <SelectTrigger id="pixel_id" className="flex-1">
                   <SelectValue placeholder="Selecione um Pixel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {pixels.length === 0 ? (
-                    <SelectItem value="" disabled>
-                      Nenhum pixel encontrado
+                  <SelectItem value="none">
+                    {pixels.length === 0 ? "Nenhum pixel encontrado" : "Nenhum"}
+                  </SelectItem>
+                  {pixels.map((pixel) => (
+                    <SelectItem key={pixel.id} value={pixel.pixel_id}>
+                      {pixel.pixel_name} {pixel.is_primary && "(Principal)"}
                     </SelectItem>
-                  ) : (
-                    pixels.map((pixel) => (
-                      <SelectItem key={pixel.id} value={pixel.pixel_id}>
-                        {pixel.pixel_name} {pixel.is_primary && "(Principal)"}
-                      </SelectItem>
-                    ))
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
             )}
