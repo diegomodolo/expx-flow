@@ -2,8 +2,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Check, X, Copy, RefreshCw, Sparkles, Star, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export interface ScoreBreakdown {
+  visual: number;
+  copy: number;
+  headline_cta: number;
+  conformidade: number;
+}
 
 export interface GeneratedAdType {
   id: string;
@@ -15,6 +28,9 @@ export interface GeneratedAdType {
     image_prompt?: string;
     image_url?: string;
     concept?: string;
+    score_breakdown?: ScoreBreakdown;
+    score_explanation?: string;
+    score_flags?: string[];
   };
   status: string;
   quality_score: number | null;
@@ -90,11 +106,44 @@ export function AdPreviewCard({
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          {ad.quality_score && (
-            <div className="flex items-center gap-1 text-amber-500">
-              <Star className={compact ? "w-3 h-3 fill-current" : "w-4 h-4 fill-current"} />
-              <span className={cn("font-medium", compact ? "text-xs" : "text-sm")}>{ad.quality_score}</span>
-            </div>
+          {ad.quality_score != null && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-amber-500 cursor-help">
+                    <Star className={compact ? "w-3 h-3 fill-current" : "w-4 h-4 fill-current"} />
+                    <span className={cn("font-medium", compact ? "text-xs" : "text-sm")}>{ad.quality_score}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <div className="space-y-2 p-1">
+                    <p className="font-semibold text-xs">Score Breakdown:</p>
+                    {content?.score_breakdown ? (
+                      <ul className="text-xs space-y-1">
+                        <li className="flex justify-between gap-4">
+                          <span>Visual (40%):</span>
+                          <span className="font-medium">{content.score_breakdown.visual}/10</span>
+                        </li>
+                        <li className="flex justify-between gap-4">
+                          <span>Copy (30%):</span>
+                          <span className="font-medium">{content.score_breakdown.copy}/10</span>
+                        </li>
+                        <li className="flex justify-between gap-4">
+                          <span>Headline/CTA (20%):</span>
+                          <span className="font-medium">{content.score_breakdown.headline_cta}/10</span>
+                        </li>
+                        <li className="flex justify-between gap-4">
+                          <span>Conformidade (10%):</span>
+                          <span className="font-medium">{content.score_breakdown.conformidade}/10</span>
+                        </li>
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Detalhes não disponíveis</p>
+                    )}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>

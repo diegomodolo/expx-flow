@@ -274,3 +274,6 @@ verify_jwt = true
 
 [functions.daily-ad-generator-scheduler]
 verify_jwt = false
+
+[functions.score-generated-ad]
+verify_jwt = false

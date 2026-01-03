@@ -181,13 +181,6 @@ serve(async (req) => {
 
     // Helper function to save a single ad and update history progressively
     const saveAdAndUpdateHistory = async (ad: any, currentDistribution: { clones: number; concepts: number; iterations: number }) => {
-      // Normalize quality_score to fit NUMERIC(3,2) - max value 9.99
-      let normalizedScore = null;
-      if (ad.quality_score != null) {
-        normalizedScore = Math.min(9.99, Math.max(0, ad.quality_score / 10));
-        normalizedScore = Math.round(normalizedScore * 100) / 100;
-      }
-
       const adToInsert = {
         client_id,
         company_id,
@@ -198,21 +191,48 @@ serve(async (req) => {
         generated_content: ad.content,
         concept_description: ad.concept_description || null,
         research_sources: ad.research_sources || null,
-        quality_score: normalizedScore,
+        quality_score: null, // Will be set by score-generated-ad
         status: 'pending',
         scheduled_for: new Date().toISOString(),
       };
 
-      const { error: insertError } = await supabase
+      const { data: savedAd, error: insertError } = await supabase
         .from('ad_generation_queue')
-        .insert(adToInsert);
+        .insert(adToInsert)
+        .select('id')
+        .single();
 
       if (insertError) {
         console.error('[daily-ad-generator] Error inserting ad:', insertError);
         return false;
       }
 
-      console.log('[daily-ad-generator] Saved ad of type:', ad.type);
+      console.log('[daily-ad-generator] Saved ad of type:', ad.type, 'id:', savedAd?.id);
+
+      // Call score-generated-ad to analyze and score the ad
+      if (savedAd?.id) {
+        try {
+          console.log('[daily-ad-generator] Calling score-generated-ad for:', savedAd.id);
+          const scoreResponse = await fetch(`${supabaseUrl}/functions/v1/score-generated-ad`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ad_id: savedAd.id }),
+          });
+          
+          if (scoreResponse.ok) {
+            const scoreResult = await scoreResponse.json();
+            console.log('[daily-ad-generator] Ad scored:', savedAd.id, 'Score:', scoreResult.score);
+          } else {
+            console.error('[daily-ad-generator] Scoring failed for ad:', savedAd.id);
+          }
+        } catch (scoreError) {
+          console.error('[daily-ad-generator] Error calling score-generated-ad:', scoreError);
+          // Continue even if scoring fails - the ad is already saved
+        }
+      }
 
       // Update history with current progress
       if (historyId) {
