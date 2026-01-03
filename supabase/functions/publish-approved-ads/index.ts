@@ -245,7 +245,7 @@ async function publishAdToMultipleDestinations(
   console.log('[publish-approved-ads] Publishing to', destinations.length, 'campaigns');
 
   // First, create the ad creative (only once, can be reused)
-  const creativeResult = await createAdCreative(accessToken, client, adAccountId, content);
+  const creativeResult = await createAdCreative(supabase, accessToken, client, adAccountId, content);
   
   if (!creativeResult.success) {
     return new Response(
@@ -341,8 +341,61 @@ async function publishAdToMultipleDestinations(
   );
 }
 
+// Upload base64 image to Supabase Storage and return public URL
+async function uploadBase64ToStorage(
+  supabase: any,
+  base64Data: string,
+  clientId: string
+): Promise<string | null> {
+  try {
+    // Extract mime type and data
+    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      console.error('[publish-approved-ads] Invalid base64 format');
+      return null;
+    }
+    
+    const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+    const base64Content = matches[2];
+    
+    // Convert base64 to Uint8Array
+    const binaryString = atob(base64Content);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Generate unique filename
+    const filename = `ad-creatives/${clientId}/${Date.now()}.${extension}`;
+    
+    // Upload to storage
+    const { data, error } = await supabase.storage
+      .from('client-assets')
+      .upload(filename, bytes, {
+        contentType: `image/${extension}`,
+        upsert: false,
+      });
+    
+    if (error) {
+      console.error('[publish-approved-ads] Storage upload error:', error);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('client-assets')
+      .getPublicUrl(filename);
+    
+    return urlData?.publicUrl || null;
+  } catch (error) {
+    console.error('[publish-approved-ads] Error uploading image:', error);
+    return null;
+  }
+}
+
 // Create ad creative (reusable across ad sets)
 async function createAdCreative(
+  supabase: any,
   accessToken: string,
   client: any,
   adAccountId: string,
@@ -380,9 +433,28 @@ async function createAdCreative(
       access_token: accessToken,
     };
 
-    // If we have an image URL, add it
-    if (content.image_url) {
-      creativePayload.object_story_spec.link_data.picture = content.image_url;
+    // Get image URL - check multiple possible field names
+    // Note: creative_image_url may be base64 (data:image/...) which Facebook doesn't accept directly
+    // Facebook requires a publicly accessible URL for the picture field
+    const rawImageUrl = content.creative_image_url || content.image_url || content.imageUrl || content.image;
+    
+    if (rawImageUrl) {
+      // Check if it's a base64 image (Facebook doesn't accept these)
+      if (rawImageUrl.startsWith('data:image/')) {
+        console.log('[publish-approved-ads] Image is base64 encoded - uploading to storage...');
+        
+        // Upload base64 to Supabase Storage and get public URL
+        const publicUrl = await uploadBase64ToStorage(supabase, rawImageUrl, client.id);
+        
+        if (publicUrl) {
+          console.log('[publish-approved-ads] Image uploaded, public URL:', publicUrl);
+          creativePayload.object_story_spec.link_data.picture = publicUrl;
+        } else {
+          console.warn('[publish-approved-ads] Failed to upload image to storage');
+        }
+      } else {
+        creativePayload.object_story_spec.link_data.picture = rawImageUrl;
+      }
     }
 
     const safeLogPayload = { ...creativePayload, access_token: '[REDACTED]' };
@@ -495,7 +567,7 @@ async function publishAdToMeta(
   });
 
   // Create creative
-  const creativeResult = await createAdCreative(accessToken, client, adAccountId, content);
+  const creativeResult = await createAdCreative(supabase, accessToken, client, adAccountId, content);
   
   if (!creativeResult.success) {
     return { success: false, error: creativeResult.error };
