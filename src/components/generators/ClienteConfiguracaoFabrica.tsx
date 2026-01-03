@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb } from "lucide-react";
+import { Zap, Clock, Target, Save, Loader2, Trash2, Settings, Users, Lightbulb, Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FabricaCompetidores } from "./FabricaCompetidores";
 import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
+import { FabricaAnunciosGerados } from "./FabricaAnunciosGerados";
 
 interface ScheduleConfig {
   id?: string;
@@ -235,7 +236,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="geral" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Geral
@@ -247,6 +248,10 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           <TabsTrigger value="temas" className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4" />
             Temas de Pesquisa
+          </TabsTrigger>
+          <TabsTrigger value="anuncios" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Anúncios Gerados
           </TabsTrigger>
         </TabsList>
 
@@ -412,6 +417,10 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
         <TabsContent value="temas">
           <FabricaTemasPesquisa clientId={clientId} conceptPercentage={config.concept_percentage} />
+        </TabsContent>
+
+        <TabsContent value="anuncios">
+          <FabricaAnunciosGerados clientId={clientId} />
         </TabsContent>
       </Tabs>
     </div>
