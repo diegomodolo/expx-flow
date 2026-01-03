@@ -1,8 +1,8 @@
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, X, Copy, RefreshCw, Sparkles, Star } from "lucide-react";
+import { Check, X, Copy, RefreshCw, Sparkles, Star, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdPreviewCardProps {
@@ -60,25 +60,26 @@ export function AdPreviewCard({
   return (
     <Card
       className={cn(
-        "relative transition-all duration-200 hover:shadow-lg",
+        "relative transition-all duration-200 hover:shadow-lg overflow-hidden",
         isSelected && "ring-2 ring-primary",
         ad.status === "approved" && "border-green-500/50 bg-green-500/5",
         ad.status === "rejected" && "border-red-500/50 bg-red-500/5 opacity-60"
       )}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={onSelect}
-              disabled={!isPending}
-            />
-            <Badge variant="outline" className={cn("gap-1", config.color)}>
-              <TypeIcon className="w-3 h-3" />
-              {config.label}
-            </Badge>
-          </div>
+      {/* Selection & Status Bar */}
+      <div className="flex items-center justify-between p-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onSelect}
+            disabled={!isPending}
+          />
+          <Badge variant="outline" className={cn("gap-1", config.color)}>
+            <TypeIcon className="w-3 h-3" />
+            {config.label}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2">
           {ad.quality_score && (
             <div className="flex items-center gap-1 text-amber-500">
               <Star className="w-4 h-4 fill-current" />
@@ -86,54 +87,127 @@ export function AdPreviewCard({
             </div>
           )}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-3">
-        {/* Concept/Source Info */}
-        {ad.concept_description && (
-          <p className="text-xs text-muted-foreground italic">
-            "{ad.concept_description}"
+      {/* Instagram Mockup */}
+      <div className="bg-background">
+        {/* Instagram Header */}
+        <div className="flex items-center justify-between px-3 py-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
+              <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                <span className="text-xs font-bold text-foreground">AD</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">preview_anuncio</p>
+              <p className="text-[10px] text-muted-foreground">Patrocinado</p>
+            </div>
+          </div>
+          <MoreHorizontal className="w-5 h-5 text-foreground" />
+        </div>
+
+        {/* Image Area - 3:4 aspect ratio (1080x1440) */}
+        <div className="relative aspect-[3/4] bg-muted overflow-hidden">
+          {content?.image_prompt ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-muted to-muted/50">
+              {/* Headline overlay on image */}
+              {content?.headline && (
+                <div className="text-center mb-4 px-4">
+                  <p className="text-lg font-bold text-foreground leading-tight">
+                    {content.headline}
+                  </p>
+                </div>
+              )}
+              <div className="flex-1 flex items-center justify-center w-full">
+                <div className="text-center px-4">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                  </div>
+                  <p className="text-xs text-muted-foreground italic line-clamp-4">
+                    "{content.image_prompt}"
+                  </p>
+                </div>
+              </div>
+              {/* CTA Button on image */}
+              {content?.cta && (
+                <div className="w-full px-4 pb-4">
+                  <div className="w-full py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-lg text-center">
+                    {content.cta}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-muted to-muted/50">
+              {content?.headline && (
+                <p className="text-lg font-bold text-foreground text-center leading-tight mb-4">
+                  {content.headline}
+                </p>
+              )}
+              <div className="w-16 h-16 rounded-full bg-muted-foreground/10 flex items-center justify-center">
+                <span className="text-2xl">📷</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Imagem do anúncio</p>
+              {content?.cta && (
+                <div className="w-full px-4 mt-4">
+                  <div className="w-full py-2 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-lg text-center">
+                    {content.cta}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Format badge */}
+          <div className="absolute top-2 right-2">
+            <Badge variant="secondary" className="text-[10px] bg-black/60 text-white border-0">
+              3:4 • 1080×1440
+            </Badge>
+          </div>
+        </div>
+
+        {/* Instagram Actions */}
+        <div className="px-3 py-2">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-4">
+              <Heart className="w-6 h-6 text-foreground cursor-pointer hover:text-red-500 transition-colors" />
+              <MessageCircle className="w-6 h-6 text-foreground cursor-pointer hover:text-primary transition-colors" />
+              <Send className="w-6 h-6 text-foreground cursor-pointer hover:text-primary transition-colors" />
+            </div>
+            <Bookmark className="w-6 h-6 text-foreground cursor-pointer hover:text-primary transition-colors" />
+          </div>
+          
+          {/* Likes */}
+          <p className="text-xs font-semibold text-foreground mb-1">1.234 curtidas</p>
+          
+          {/* Caption */}
+          {content?.body && (
+            <p className="text-xs text-foreground">
+              <span className="font-semibold">preview_anuncio</span>{" "}
+              <span className="text-muted-foreground line-clamp-2">{content.body}</span>
+            </p>
+          )}
+          
+          {/* Concept description if present */}
+          {ad.concept_description && (
+            <p className="text-[10px] text-muted-foreground mt-1 italic">
+              Conceito: {ad.concept_description}
+            </p>
+          )}
+          
+          {/* Timestamp */}
+          <p className="text-[10px] text-muted-foreground mt-1 uppercase">
+            {new Date(ad.generated_at).toLocaleDateString('pt-BR', { 
+              day: 'numeric', 
+              month: 'short' 
+            })}
           </p>
-        )}
+        </div>
+      </div>
 
-        {/* Headline */}
-        {content?.headline && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Headline</p>
-            <p className="font-semibold text-foreground">{content.headline}</p>
-          </div>
-        )}
-
-        {/* Body */}
-        {content?.body && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Texto</p>
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {content.body}
-            </p>
-          </div>
-        )}
-
-        {/* CTA */}
-        {content?.cta && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">CTA</p>
-            <Badge variant="secondary">{content.cta}</Badge>
-          </div>
-        )}
-
-        {/* Image Prompt Preview */}
-        {content?.image_prompt && (
-          <div className="bg-muted/50 rounded-lg p-3 border border-border">
-            <p className="text-xs text-muted-foreground mb-1">Prompt de Imagem</p>
-            <p className="text-xs text-foreground line-clamp-2">
-              {content.image_prompt}
-            </p>
-          </div>
-        )}
-      </CardContent>
-
-      <CardFooter className="pt-3 border-t border-border">
+      {/* Action Buttons */}
+      <div className="p-3 border-t border-border">
         {isPending ? (
           <div className="flex gap-2 w-full">
             <Button
@@ -167,7 +241,7 @@ export function AdPreviewCard({
             </Badge>
           </div>
         )}
-      </CardFooter>
+      </div>
     </Card>
   );
 }
