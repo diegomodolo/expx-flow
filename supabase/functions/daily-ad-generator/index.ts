@@ -43,6 +43,14 @@ interface AdGenerationSchedule {
   clone_percentage: number;
   concept_percentage: number;
   iteration_percentage: number;
+  // Advanced config
+  custom_image_prompt: string | null;
+  reference_image_1: string | null;
+  reference_image_2: string | null;
+  reference_image_3: string | null;
+  reference_image_4: string | null;
+  reference_image_5: string | null;
+  reference_image_6: string | null;
 }
 
 interface ClientData {
@@ -113,7 +121,7 @@ serve(async (req) => {
     // Generate based on type or all types
     if (!generation_type || generation_type === 'clone') {
       const targetCount = generation_type === 'clone' ? (count || 1) : cloneCount;
-      const clones = await generateCloneAds(supabase, client, targetCount);
+      const clones = await generateCloneAds(supabase, client, targetCount, schedule);
       generatedAds.push(...clones);
       if (clones.length === 0 && targetCount > 0) {
         errors.push('Nenhum anúncio de concorrente encontrado para clone.');
@@ -122,13 +130,13 @@ serve(async (req) => {
 
     if (!generation_type || generation_type === 'concept') {
       const targetCount = generation_type === 'concept' ? (count || 1) : conceptCount;
-      const concepts = await generateConceptAds(supabase, client, targetCount);
+      const concepts = await generateConceptAds(supabase, client, targetCount, schedule);
       generatedAds.push(...concepts);
     }
 
     if (!generation_type || generation_type === 'iteration') {
       const targetCount = generation_type === 'iteration' ? (count || 1) : iterationCount;
-      const iterations = await generateIterationAds(supabase, client, targetCount);
+      const iterations = await generateIterationAds(supabase, client, targetCount, schedule);
       generatedAds.push(...iterations);
       if (iterations.length === 0 && targetCount > 0) {
         errors.push('Nenhum anúncio vencedor encontrado para iteração.');
@@ -207,7 +215,19 @@ serve(async (req) => {
   }
 });
 
-// Get reference images from client
+// Get reference images - prioritize schedule images over client images
+function getScheduleReferenceImages(schedule: AdGenerationSchedule | null): string[] {
+  const images: string[] = [];
+  if (schedule?.reference_image_1) images.push(schedule.reference_image_1);
+  if (schedule?.reference_image_2) images.push(schedule.reference_image_2);
+  if (schedule?.reference_image_3) images.push(schedule.reference_image_3);
+  if (schedule?.reference_image_4) images.push(schedule.reference_image_4);
+  if (schedule?.reference_image_5) images.push(schedule.reference_image_5);
+  if (schedule?.reference_image_6) images.push(schedule.reference_image_6);
+  return images;
+}
+
+// Get reference images from client (fallback)
 function getClientReferenceImages(client: ClientData): string[] {
   const images: string[] = [];
   if (client.ai_reference_image_1) images.push(client.ai_reference_image_1);
@@ -217,9 +237,17 @@ function getClientReferenceImages(client: ClientData): string[] {
 }
 
 // Generate creative image using Nano banana model
-async function generateCreativeImage(client: ClientData, adContent: any): Promise<string | null> {
+async function generateCreativeImage(client: ClientData, adContent: any, schedule: AdGenerationSchedule | null = null): Promise<string | null> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  const referenceImages = getClientReferenceImages(client);
+  
+  // Prioritize schedule reference images over client images
+  let referenceImages = getScheduleReferenceImages(schedule);
+  if (referenceImages.length === 0) {
+    referenceImages = getClientReferenceImages(client);
+  }
+  
+  // Get custom prompt from schedule
+  const customPrompt = schedule?.custom_image_prompt || '';
   
   // Build image generation prompt based on client branding and ad content
   const imagePrompt = `
@@ -238,6 +266,7 @@ DIRETRIZES DE ESTILO:
 - Formato quadrado (1:1) ideal para redes sociais
 - Não inclua texto na imagem (será adicionado separadamente)
 
+${customPrompt ? `INSTRUÇÕES PERSONALIZADAS: ${customPrompt}` : ''}
 ${adContent.image_prompt ? `SUGESTÃO ADICIONAL: ${adContent.image_prompt}` : ''}
 `;
 
@@ -396,7 +425,7 @@ function normalizeCTA(cta: string): string {
 }
 
 // Generate clone ads from competitor winning ads
-async function generateCloneAds(supabase: any, client: ClientData, count: number): Promise<any[]> {
+async function generateCloneAds(supabase: any, client: ClientData, count: number, schedule: AdGenerationSchedule | null = null): Promise<any[]> {
   if (count <= 0) return [];
 
   console.log('[daily-ad-generator] Generating', count, 'clone ads for client:', client.id);
@@ -418,7 +447,7 @@ async function generateCloneAds(supabase: any, client: ClientData, count: number
 
   if (!competitorAds || competitorAds.length === 0) {
     console.log('[daily-ad-generator] No competitor ads found, generating placeholder clones');
-    return await generateAICloneAds(supabase, client, count);
+    return await generateAICloneAds(supabase, client, count, schedule);
   }
 
   const ads: any[] = [];
@@ -433,7 +462,7 @@ async function generateCloneAds(supabase: any, client: ClientData, count: number
     const adaptedAd = await adaptCompetitorAd(supabase, client, sourceAd);
     
     // Generate creative image
-    const creativeImageUrl = await generateCreativeImage(client, adaptedAd);
+    const creativeImageUrl = await generateCreativeImage(client, adaptedAd, schedule);
     if (creativeImageUrl) {
       adaptedAd.creative_image_url = creativeImageUrl;
     }
@@ -452,7 +481,7 @@ async function generateCloneAds(supabase: any, client: ClientData, count: number
 }
 
 // Generate concept ads from market research
-async function generateConceptAds(supabase: any, client: ClientData, count: number): Promise<any[]> {
+async function generateConceptAds(supabase: any, client: ClientData, count: number, schedule: AdGenerationSchedule | null = null): Promise<any[]> {
   if (count <= 0) return [];
 
   console.log('[daily-ad-generator] Generating', count, 'concept ads');
@@ -515,7 +544,7 @@ Responda APENAS em JSON válido.`,
           }
           
           // Generate creative image
-          const creativeImageUrl = await generateCreativeImage(client, adContent);
+          const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
           if (creativeImageUrl) {
             adContent.creative_image_url = creativeImageUrl;
           }
@@ -543,7 +572,7 @@ Responda APENAS em JSON válido.`,
 }
 
 // Generate iteration ads from winning client ads
-async function generateIterationAds(supabase: any, client: ClientData, count: number): Promise<any[]> {
+async function generateIterationAds(supabase: any, client: ClientData, count: number, schedule: AdGenerationSchedule | null = null): Promise<any[]> {
   if (count <= 0) return [];
 
   console.log('[daily-ad-generator] Generating', count, 'iteration ads');
@@ -612,7 +641,7 @@ Responda APENAS em JSON válido.`,
           }
           
           // Generate creative image
-          const creativeImageUrl = await generateCreativeImage(client, adContent);
+          const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
           if (creativeImageUrl) {
             adContent.creative_image_url = creativeImageUrl;
           }
@@ -808,7 +837,7 @@ Responda em JSON:
 }
 
 // Helper: Generate AI clone ads when no competitor data exists
-async function generateAICloneAds(supabase: any, client: ClientData, count: number): Promise<any[]> {
+async function generateAICloneAds(supabase: any, client: ClientData, count: number, schedule: AdGenerationSchedule | null = null): Promise<any[]> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const ads: any[] = [];
 
@@ -870,7 +899,7 @@ Responda em JSON:
         }
         
         // Generate creative image
-        const creativeImageUrl = await generateCreativeImage(client, adContent);
+        const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
         if (creativeImageUrl) {
           adContent.creative_image_url = creativeImageUrl;
         }

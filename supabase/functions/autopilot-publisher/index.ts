@@ -18,7 +18,7 @@ serve(async (req) => {
 
     console.log('[autopilot-publisher] Starting autopilot check...');
 
-    // Fetch all active autopilot schedules
+    // Fetch all active autopilot schedules with advanced config
     const { data: schedules, error: schedulesError } = await supabase
       .from('ad_generation_schedules')
       .select('*')
@@ -37,8 +37,21 @@ serve(async (req) => {
     for (const schedule of schedules || []) {
       const minQualityScore = schedule.autopilot_min_quality_score || 80;
       const maxDailyBudget = schedule.autopilot_max_daily_budget || 500;
+      const targetCampaignId = schedule.target_campaign_id;
+      const targetAdsetId = schedule.target_adset_id;
 
-      console.log('[autopilot-publisher] Processing client:', schedule.client_id);
+      console.log('[autopilot-publisher] Processing client:', schedule.client_id, 'Target campaign:', targetCampaignId, 'Target adset:', targetAdsetId);
+
+      // Check if target campaign/adset is configured
+      if (!targetCampaignId) {
+        console.log('[autopilot-publisher] No target campaign configured for client:', schedule.client_id);
+        results.push({
+          client_id: schedule.client_id,
+          published: 0,
+          reason: 'No target campaign configured in factory settings',
+        });
+        continue;
+      }
 
       // Fetch approved ads with high quality score that haven't been published
       const { data: eligibleAds, error: adsError } = await supabase
@@ -93,7 +106,7 @@ serve(async (req) => {
         Math.floor(remainingBudget / estimatedCostPerAd)
       );
 
-      console.log('[autopilot-publisher] Will publish', adsToPublish, 'ads');
+      console.log('[autopilot-publisher] Will publish', adsToPublish, 'ads to campaign:', targetCampaignId);
 
       // Get client Meta credentials
       const { data: client } = await supabase
@@ -112,13 +125,37 @@ serve(async (req) => {
         continue;
       }
 
+      // Get target campaign and adset facebook IDs
+      let targetCampaignFbId = null;
+      let targetAdsetFbId = null;
+
+      if (targetCampaignId) {
+        const { data: campaign } = await supabase
+          .from('campaigns')
+          .select('facebook_id')
+          .eq('id', targetCampaignId)
+          .single();
+        targetCampaignFbId = campaign?.facebook_id;
+      }
+
+      if (targetAdsetId) {
+        const { data: adset } = await supabase
+          .from('ad_sets')
+          .select('facebook_id')
+          .eq('id', targetAdsetId)
+          .single();
+        targetAdsetFbId = adset?.facebook_id;
+      }
+
+      console.log('[autopilot-publisher] Target FB IDs - Campaign:', targetCampaignFbId, 'AdSet:', targetAdsetFbId);
+
       // Publish ads to Meta
       let publishedCount = 0;
       const adsToProcess = eligibleAds.slice(0, adsToPublish);
 
       for (const ad of adsToProcess) {
         try {
-          // Here we would call Meta API to publish
+          // TODO: Here we would call Meta API to publish with targetCampaignFbId and targetAdsetFbId
           // For now, we just mark as published
           const { error: updateError } = await supabase
             .from('ad_generation_queue')
@@ -130,7 +167,7 @@ serve(async (req) => {
 
           if (!updateError) {
             publishedCount++;
-            console.log('[autopilot-publisher] Published ad:', ad.id);
+            console.log('[autopilot-publisher] Published ad:', ad.id, 'to campaign:', targetCampaignFbId);
           }
         } catch (error) {
           console.error('[autopilot-publisher] Error publishing ad:', error);
@@ -142,6 +179,8 @@ serve(async (req) => {
         published: publishedCount,
         eligible: eligibleAds.length,
         budget_remaining: remainingBudget,
+        target_campaign_id: targetCampaignId,
+        target_adset_id: targetAdsetId,
       });
     }
 
