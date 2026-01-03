@@ -641,6 +641,44 @@ export function ApprovalDestinationDialogV2({
 
           {/* Right Column - Preview */}
           <div className="w-1/2 flex flex-col bg-muted/30">
+            {/* Status Section */}
+            {ad && (
+              <div className="px-6 py-3 border-b flex items-center justify-between bg-background/50">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">Status:</Label>
+                  {currentStatusConf && (
+                    <Badge variant="outline" className={currentStatusConf.color}>
+                      {currentStatusConf.label}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={selectedStatus || ad.status}
+                    onValueChange={setSelectedStatus}
+                  >
+                    <SelectTrigger className="w-[140px] h-8">
+                      <SelectValue placeholder="Alterar status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Aberto</SelectItem>
+                      <SelectItem value="approved">Aprovado</SelectItem>
+                      <SelectItem value="rejected">Rejeitado</SelectItem>
+                      <SelectItem value="published">Publicado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStatusChange}
+                    disabled={isUpdatingStatus || !selectedStatus || selectedStatus === ad.status}
+                  >
+                    {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             <div className="px-6 py-3 border-b flex items-center justify-between">
               <Label className="text-sm font-medium">Preview do Anúncio</Label>
               <div className="flex items-center gap-1 bg-background rounded-lg p-1">
@@ -690,73 +728,42 @@ export function ApprovalDestinationDialogV2({
         </div>
 
         <DialogFooter className="px-6 py-4 border-t">
-          <div className="flex items-center justify-between w-full gap-4">
-            {/* Status Change Section */}
-            {ad && (
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">Status:</Label>
-                <Select
-                  value={selectedStatus || ad.status}
-                  onValueChange={setSelectedStatus}
-                >
-                  <SelectTrigger className="w-[140px] h-9">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Aberto</SelectItem>
-                    <SelectItem value="approved">Aprovado</SelectItem>
-                    <SelectItem value="rejected">Rejeitado</SelectItem>
-                    <SelectItem value="published">Publicado</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleStatusChange}
-                  disabled={isUpdatingStatus || !selectedStatus || selectedStatus === ad.status}
-                >
-                  {isUpdatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                </Button>
-              </div>
-            )}
-            
-            <div className="flex items-center gap-4 ml-auto">
-              <div className="text-sm text-muted-foreground">
-                {getSelectedCount() > 0 ? (
-                  <span>
-                    Publicar em <strong>{getSelectedCount()}</strong> destino{getSelectedCount() !== 1 ? 's' : ''}
-                  </span>
+          <div className="flex items-center justify-end w-full gap-4">
+            <div className="text-sm text-muted-foreground">
+              {getSelectedCount() > 0 ? (
+                <span>
+                  Publicar em <strong>{getSelectedCount()}</strong> destino{getSelectedCount() !== 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span className="hidden sm:inline">Selecione os destinos</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
+              <Button 
+                onClick={handlePublish} 
+                disabled={publishing || selectedDestinations.filter(d => d.adSetIds.length > 0).length === 0 || !adConfig.destination_url}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {publishing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Publicando...
+                  </>
+                ) : ad?.status === 'published' ? (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Republicar
+                  </>
                 ) : (
-                  <span className="hidden sm:inline">Selecione os destinos</span>
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Aprovar e Publicar
+                  </>
                 )}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Fechar
-                </Button>
-                <Button 
-                  onClick={handlePublish} 
-                  disabled={publishing || selectedDestinations.filter(d => d.adSetIds.length > 0).length === 0 || !adConfig.destination_url}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {publishing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Publicando...
-                    </>
-                  ) : ad?.status === 'published' ? (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Republicar
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Aprovar e Publicar
-                    </>
-                  )}
-                </Button>
-              </div>
+              </Button>
             </div>
           </div>
         </DialogFooter>

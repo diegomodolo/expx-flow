@@ -2,26 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
-import { Plus, Loader2, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Trash2 } from "lucide-react";
-import { AdPreviewCard } from "@/components/ad-factory/AdPreviewCard";
+import { Plus, Loader2, Sparkles, Copy, Lightbulb, RefreshCw } from "lucide-react";
+import { AdPreviewCard, GeneratedAdType } from "@/components/ad-factory/AdPreviewCard";
 import { ApprovalDestinationDialogV2 } from "@/components/ad-factory/ApprovalDestinationDialogV2";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
   clientId: string;
@@ -82,16 +67,6 @@ interface AdConfig {
   url_params: string;
 }
 
-const statusConfig: Record<
-  GenerationStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }
-> = {
-  pending: { label: "Pendente", variant: "secondary", icon: <Clock className="h-3 w-3" /> },
-  approved: { label: "Aprovado", variant: "default", icon: <Check className="h-3 w-3" /> },
-  rejected: { label: "Rejeitado", variant: "destructive", icon: <X className="h-3 w-3" /> },
-  published: { label: "Publicado", variant: "outline", icon: <Sparkles className="h-3 w-3" /> },
-};
-
 const typeConfig: Record<GenerationType, { label: string; icon: React.ReactNode; color: string }> = {
   clone: { label: "Clone", icon: <Copy className="h-4 w-4" />, color: "bg-blue-500/10 text-blue-600" },
   concept: { label: "Conceito", icon: <Lightbulb className="h-4 w-4" />, color: "bg-purple-500/10 text-purple-600" },
@@ -103,10 +78,9 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<GenerationType>("concept");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedAd, setSelectedAd] = useState<GeneratedAd | null>(null);
 
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [adToPublish, setAdToPublish] = useState<GeneratedAd | null>(null);
+  const [selectedAd, setSelectedAd] = useState<GeneratedAd | null>(null);
 
   const { data: scheduleDefaults } = useQuery({
     queryKey: ["ad-generation-schedule-defaults", clientId],
@@ -188,27 +162,26 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     }
   };
 
-  const openApprovalDialog = (ad: GeneratedAd) => {
+  const openAdDialog = (ad: GeneratedAd) => {
     if (!activeCompany?.company_id) {
       toast.error('Selecione uma empresa ativa primeiro');
       return;
     }
 
-    setSelectedAd(null); // avoid stacking dialogs
-    setAdToPublish(ad);
+    setSelectedAd(ad);
     setApprovalDialogOpen(true);
   };
 
   const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
-    if (!adToPublish || !activeCompany?.company_id) return;
+    if (!selectedAd || !activeCompany?.company_id) return;
 
-    console.log('[FabricaAnunciosGerados] Publishing ad:', adToPublish.id, 'to destinations:', destinations);
+    console.log('[FabricaAnunciosGerados] Publishing ad:', selectedAd.id, 'to destinations:', destinations);
 
     const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
       body: {
         client_id: clientId,
         company_id: activeCompany.company_id,
-        ad_id: adToPublish.id,
+        ad_id: selectedAd.id,
         destinations,
         ad_config: adConfig,
       },
@@ -231,7 +204,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     }
 
     await refetch();
-    setAdToPublish(null);
+    setSelectedAd(null);
     setApprovalDialogOpen(false);
   };
 
@@ -247,30 +220,11 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
       if (error) throw error;
 
-      toast.success(`Status atualizado para "${statusConfig[newStatus].label}"`);
+      toast.success(`Status atualizado!`);
       refetch();
-      setSelectedAd(null);
     } catch (error: any) {
       console.error('Error updating status:', error);
       toast.error('Erro ao atualizar status');
-    }
-  };
-
-  const handleDeleteAd = async (adId: string) => {
-    try {
-      const { error } = await supabase
-        .from('ad_generation_queue')
-        .delete()
-        .eq('id', adId);
-
-      if (error) throw error;
-
-      toast.success('Anúncio excluído com sucesso');
-      refetch();
-      setSelectedAd(null);
-    } catch (error: any) {
-      console.error('Error deleting ad:', error);
-      toast.error('Erro ao excluir anúncio');
     }
   };
 
@@ -281,6 +235,23 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
       </div>
     );
   }
+
+  // Convert GeneratedAd to GeneratedAdType for components
+  const convertToAdType = (ad: GeneratedAd): GeneratedAdType => ({
+    id: ad.id,
+    generation_type: ad.generation_type,
+    generated_content: {
+      headline: ad.generated_content?.headline,
+      body: ad.generated_content?.body || ad.generated_content?.primary_text,
+      cta: ad.generated_content?.call_to_action,
+      image_prompt: ad.generated_content?.image_prompt,
+      image_url: ad.generated_content?.creative_image_url,
+    },
+    status: ad.status,
+    quality_score: ad.quality_score,
+    generated_at: ad.generated_at,
+    concept_description: ad.concept_description || undefined,
+  });
 
   return (
     <div className="space-y-6">
@@ -385,210 +356,46 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {ads.map((ad) => (
-            <div
+            <AdPreviewCard
               key={ad.id}
-              onClick={(e) => {
-                const target = e.target as HTMLElement;
-                // Prevent the card "open details" click when user is clicking action buttons/checkboxes
-                if (target.closest('button') || target.closest('[role="checkbox"]')) return;
-                setSelectedAd(ad);
-              }}
-              className="cursor-pointer"
-            >
-              <AdPreviewCard
-                ad={{
-                  id: ad.id,
-                  generation_type: ad.generation_type,
-                  generated_content: {
-                    headline: (ad.generated_content as any)?.headline,
-                    body: (ad.generated_content as any)?.body || (ad.generated_content as any)?.primary_text,
-                    cta: (ad.generated_content as any)?.call_to_action,
-                    image_prompt: (ad.generated_content as any)?.image_prompt,
-                    image_url: (ad.generated_content as any)?.creative_image_url,
-                  },
-                  status: ad.status,
-                  quality_score: ad.quality_score,
-                  generated_at: ad.generated_at,
-                  concept_description: ad.concept_description || undefined,
-                }}
-                isSelected={false}
-                onSelect={() => {}}
-                onApprove={() => openApprovalDialog(ad)}
-                onReject={() => handleUpdateStatus(ad.id, 'rejected')}
-              />
-            </div>
+              ad={convertToAdType(ad)}
+              isSelected={false}
+              onSelect={() => {}}
+              onApprove={() => openAdDialog(ad)}
+              onReject={() => handleUpdateStatus(ad.id, 'rejected')}
+              onViewDetails={() => openAdDialog(ad)}
+            />
           ))}
         </div>
       )}
 
-      {/* Ad Detail Dialog */}
-      <Dialog open={!!selectedAd} onOpenChange={(open) => !open && setSelectedAd(null)}>
-        <DialogContent className="max-w-2xl">
-          {selectedAd && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2">
-                  <div className={`flex items-center gap-2 px-2 py-1 rounded-md text-sm font-medium ${typeConfig[selectedAd.generation_type]?.color}`}>
-                    {typeConfig[selectedAd.generation_type]?.icon}
-                    {typeConfig[selectedAd.generation_type]?.label}
-                  </div>
-                  <Badge variant={statusConfig[selectedAd.status]?.variant}>
-                    {statusConfig[selectedAd.status]?.label}
-                  </Badge>
-                </div>
-                <DialogTitle className="mt-2">
-                  {(selectedAd.generated_content as any)?.headline || "Sem título"}
-                </DialogTitle>
-                <DialogDescription>
-                  Gerado em {format(new Date(selectedAd.generated_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                </DialogDescription>
-              </DialogHeader>
-
-              <ScrollArea className="max-h-[500px]">
-                <div className="space-y-4 py-4">
-                  {/* Creative Image */}
-                  {(selectedAd.generated_content as any)?.creative_image_url && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Criativo</Label>
-                      <div className="mt-2 rounded-lg overflow-hidden border">
-                        <img 
-                          src={(selectedAd.generated_content as any)?.creative_image_url} 
-                          alt="Criativo do anúncio"
-                          className="w-full h-auto max-h-64 object-contain bg-muted"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Corpo do Anúncio</Label>
-                    <p className="mt-1 text-sm whitespace-pre-wrap">
-                      {(selectedAd.generated_content as any)?.body || (selectedAd.generated_content as any)?.primary_text || "—"}
-                    </p>
-                  </div>
-
-                  {(selectedAd.generated_content as any)?.description && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Descrição</Label>
-                      <p className="mt-1 text-sm">
-                        {(selectedAd.generated_content as any)?.description}
-                      </p>
-                    </div>
-                  )}
-
-                  {(selectedAd.generated_content as any)?.call_to_action && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Call to Action</Label>
-                      <Badge variant="outline" className="mt-1">
-                        {(selectedAd.generated_content as any)?.call_to_action}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {selectedAd.quality_score !== null && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Score de Qualidade</Label>
-                      <div className="mt-1 flex items-center gap-2">
-                        <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary transition-all" 
-                            style={{ width: `${selectedAd.quality_score}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium">{selectedAd.quality_score}%</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedAd.concept_description && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Conceito</Label>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {selectedAd.concept_description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-
-              <div className="flex justify-between gap-2 pt-4 border-t">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Excluir
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir anúncio?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. O anúncio será permanentemente excluído.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={() => handleDeleteAd(selectedAd.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <div className="flex gap-2">
-                  {selectedAd.status === 'pending' && (
-                    <>
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => handleUpdateStatus(selectedAd.id, 'rejected')}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Rejeitar
-                      </Button>
-                      <Button onClick={() => openApprovalDialog(selectedAd)}>
-                        <Check className="h-4 w-4 mr-2" />
-                        Aprovar e Publicar
-                      </Button>
-                    </>
-                  )}
-                  {selectedAd.status === 'approved' && (
-                    <Button onClick={() => openApprovalDialog(selectedAd)}>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Publicar
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <ApprovalDestinationDialogV2
-        open={approvalDialogOpen}
-        onOpenChange={(open) => {
-          setApprovalDialogOpen(open);
-          if (!open) setAdToPublish(null);
-        }}
-        adId={adToPublish?.id || ''}
-        clientId={clientId}
-        companyId={activeCompany?.company_id || ''}
-        defaultCampaignId={scheduleDefaults?.target_campaign_id ?? null}
-        defaultAdSetId={scheduleDefaults?.target_adset_id ?? null}
-        onApprove={handleApproveAndPublish}
-        adContent={
-          adToPublish
-            ? {
-                headline: (adToPublish.generated_content as any)?.headline,
-                primary_text: (adToPublish.generated_content as any)?.primary_text || (adToPublish.generated_content as any)?.body,
-                description: (adToPublish.generated_content as any)?.description,
-                image_url: (adToPublish.generated_content as any)?.creative_image_url,
-              }
-            : undefined
-        }
-      />
+      {activeCompany?.company_id && (
+        <ApprovalDestinationDialogV2
+          open={approvalDialogOpen}
+          onOpenChange={(open) => {
+            setApprovalDialogOpen(open);
+            if (!open) setSelectedAd(null);
+          }}
+          adId={selectedAd?.id || ''}
+          clientId={clientId}
+          companyId={activeCompany.company_id}
+          defaultCampaignId={scheduleDefaults?.target_campaign_id ?? null}
+          defaultAdSetId={scheduleDefaults?.target_adset_id ?? null}
+          onApprove={handleApproveAndPublish}
+          onStatusChange={() => refetch()}
+          ad={selectedAd ? convertToAdType(selectedAd) : null}
+          adContent={
+            selectedAd
+              ? {
+                  headline: selectedAd.generated_content?.headline,
+                  primary_text: selectedAd.generated_content?.primary_text || selectedAd.generated_content?.body,
+                  description: selectedAd.generated_content?.description,
+                  image_url: selectedAd.generated_content?.creative_image_url,
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
