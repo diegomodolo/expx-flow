@@ -5,16 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdGenerationQueue } from "@/hooks/useAdGenerationQueue";
 import { useClients } from "@/hooks/useClients";
 import { toast } from "sonner";
-import { Calendar, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Zap } from "lucide-react";
+import { Clock, Sparkles, Copy, Lightbulb, RefreshCw, Zap, Factory } from "lucide-react";
+import { ClientFactoryCard } from "@/components/ad-factory/ClientFactoryCard";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ConfiguracaoAgenda() {
   const { clients } = useClients();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const { schedule, isLoading, updateSchedule, fetchSchedule } = useAdGenerationQueue(selectedClientId);
+  const [adsCount, setAdsCount] = useState<Record<string, number>>({});
+  const [clientSchedules, setClientSchedules] = useState<Record<string, boolean>>({});
 
   const [formData, setFormData] = useState({
     generation_time: "09:00",
@@ -26,6 +29,41 @@ export default function ConfiguracaoAgenda() {
     autopilot_enabled: false,
     autopilot_min_quality_score: 7.5,
   });
+
+  // Fetch ads count and schedules for all clients
+  useEffect(() => {
+    async function fetchClientsData() {
+      if (!clients || clients.length === 0) return;
+
+      // Fetch ads count
+      const { data: adsData } = await supabase
+        .from("ad_generation_queue")
+        .select("client_id");
+
+      if (adsData) {
+        const counts: Record<string, number> = {};
+        adsData.forEach((item) => {
+          counts[item.client_id] = (counts[item.client_id] || 0) + 1;
+        });
+        setAdsCount(counts);
+      }
+
+      // Fetch schedules status
+      const { data: schedulesData } = await supabase
+        .from("ad_generation_schedules")
+        .select("client_id, is_active");
+
+      if (schedulesData) {
+        const schedules: Record<string, boolean> = {};
+        schedulesData.forEach((item) => {
+          schedules[item.client_id] = item.is_active ?? false;
+        });
+        setClientSchedules(schedules);
+      }
+    }
+
+    fetchClientsData();
+  }, [clients]);
 
   useEffect(() => {
     if (schedule) {
@@ -94,33 +132,30 @@ export default function ConfiguracaoAgenda() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Configuração da Fábrica de Ads</h1>
-          <p className="text-muted-foreground">Configure a geração automática de anúncios para cada cliente</p>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Factory className="h-8 w-8 text-primary" />
+            Configuração da Fábrica de Ads
+          </h1>
+          <p className="text-muted-foreground mt-1">Configure a geração automática de anúncios para cada cliente</p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Selecionar Cliente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-            <SelectTrigger className="w-full max-w-md">
-              <SelectValue placeholder="Escolha um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients?.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      {/* Client selection grid */}
+      <div>
+        <h2 className="text-lg font-medium mb-4">Selecione um cliente</h2>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {clients?.map((client) => (
+            <ClientFactoryCard
+              key={client.id}
+              client={client}
+              adsGenerated={adsCount[client.id] || 0}
+              isActive={clientSchedules[client.id] ?? false}
+              isSelected={selectedClientId === client.id}
+              onClick={() => setSelectedClientId(client.id)}
+            />
+          ))}
+        </div>
+      </div>
 
       {selectedClientId && (
         <>
