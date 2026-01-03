@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useMetaPixels } from "@/hooks/useMetaPixels";
 import { 
   Loader2, 
   Upload, 
@@ -44,7 +45,8 @@ import {
   Settings2,
   Instagram,
   Facebook,
-  Eye
+  Eye,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +131,9 @@ export function ApprovalDestinationDialogV2({
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [previewPlatform, setPreviewPlatform] = useState<'facebook' | 'instagram'>('facebook');
+  
+  // Load pixels for selection
+  const { pixels, loading: loadingPixels, fetchPixels, syncPixels, syncing } = useMetaPixels(clientId, companyId);
 
   // Ad configuration state
   const [adConfig, setAdConfig] = useState<AdConfig>({
@@ -145,6 +150,7 @@ export function ApprovalDestinationDialogV2({
     if (open && clientId) {
       loadData();
       loadDefaults();
+      fetchPixels();
     }
   }, [open, clientId]);
 
@@ -522,14 +528,35 @@ export function ApprovalDestinationDialogV2({
                     <div className="space-y-2">
                       <Label htmlFor="pixel_id" className="flex items-center gap-2 text-sm">
                         <Activity className="h-3.5 w-3.5" />
-                        Pixel ID
+                        Pixel
                       </Label>
-                      <Input
-                        id="pixel_id"
-                        placeholder="ID do Pixel"
-                        value={adConfig.pixel_id}
-                        onChange={(e) => setAdConfig({ ...adConfig, pixel_id: e.target.value })}
-                      />
+                      <div className="flex gap-2">
+                        <Select
+                          value={adConfig.pixel_id || "none"}
+                          onValueChange={(value) => setAdConfig({ ...adConfig, pixel_id: value === "none" ? "" : value })}
+                        >
+                          <SelectTrigger id="pixel_id" className="flex-1">
+                            <SelectValue placeholder="Selecione um pixel" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {pixels.map((pixel) => (
+                              <SelectItem key={pixel.id} value={pixel.pixel_id}>
+                                {pixel.pixel_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => syncPixels()}
+                          disabled={syncing}
+                          title="Sincronizar pixels"
+                        >
+                          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
