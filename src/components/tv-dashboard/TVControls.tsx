@@ -12,7 +12,8 @@ import {
   Sun,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  ZoomIn
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -22,13 +23,17 @@ interface TVControlsProps {
   onRefreshIntervalChange: (interval: number) => void;
   onRefreshNow: () => void;
   isRefreshing: boolean;
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
 }
 
 export function TVControls({ 
   refreshInterval, 
   onRefreshIntervalChange, 
   onRefreshNow,
-  isRefreshing 
+  isRefreshing,
+  zoom = 100,
+  onZoomChange
 }: TVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -91,13 +96,48 @@ export function TVControls({
 
       {/* Controls panel */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 z-50 w-80 bg-card rounded-2xl elevation-3 p-6 space-y-6">
+        <div className="fixed bottom-20 right-4 z-50 w-80 bg-card rounded-2xl elevation-3 p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">Controles TV</h3>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Zoom controls */}
+          {onZoomChange && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ZoomIn className="h-4 w-4" />
+                  <Label>Zoom da Página</Label>
+                </div>
+                <span className="text-sm text-muted-foreground font-medium">
+                  {zoom}%
+                </span>
+              </div>
+              <Slider
+                value={[zoom]}
+                onValueChange={([val]) => onZoomChange(val)}
+                min={50}
+                max={150}
+                step={5}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>50%</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs"
+                  onClick={() => onZoomChange(100)}
+                >
+                  Resetar
+                </Button>
+                <span>150%</span>
+              </div>
+            </div>
+          )}
 
           {/* Refresh controls */}
           <div className="space-y-3">
