@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useClients } from "@/hooks/useClients";
 import { useAdGenerationQueue } from "@/hooks/useAdGenerationQueue";
@@ -9,17 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, RefreshCw, Calendar, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export type AdGenerationType = "clone" | "concept" | "iteration";
 export type AdGenerationStatus = "pending" | "approved" | "rejected" | "published";
 
 export default function RevisaoDiaria() {
   const { clients } = useClients();
+  const { activeCompany } = useCompany();
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<AdGenerationType | "all">("all");
   const [filterStatus, setFilterStatus] = useState<AdGenerationStatus | "all">("pending");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [defaultCampaignId, setDefaultCampaignId] = useState<string | null>(null);
+  const [defaultAdSetId, setDefaultAdSetId] = useState<string | null>(null);
 
   const {
     ads,
@@ -31,6 +36,30 @@ export default function RevisaoDiaria() {
     publishAds,
     refetch,
   } = useAdGenerationQueue(selectedClientId);
+
+  // Load default campaign/adset from schedule when client changes
+  useEffect(() => {
+    const loadDefaults = async () => {
+      if (!selectedClientId) {
+        setDefaultCampaignId(null);
+        setDefaultAdSetId(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('ad_generation_schedules')
+        .select('target_campaign_id, target_adset_id')
+        .eq('client_id', selectedClientId)
+        .single();
+
+      if (data) {
+        setDefaultCampaignId(data.target_campaign_id);
+        setDefaultAdSetId(data.target_adset_id);
+      }
+    };
+
+    loadDefaults();
+  }, [selectedClientId]);
 
   const filteredAds = ads?.filter((ad) => {
     if (filterType !== "all" && ad.generation_type !== filterType) return false;
@@ -203,6 +232,11 @@ export default function RevisaoDiaria() {
           onApprove={(id) => updateAdStatus(id, "approved")}
           onReject={(id) => updateAdStatus(id, "rejected")}
           isLoading={isLoading}
+          clientId={selectedClientId}
+          companyId={activeCompany?.company_id}
+          defaultCampaignId={defaultCampaignId}
+          defaultAdSetId={defaultAdSetId}
+          onRefetch={refetch}
         />
       </div>
     </DashboardLayout>

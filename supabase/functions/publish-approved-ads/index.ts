@@ -6,6 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface PublishDestination {
+  campaignId: string;
+  campaignName: string;
+  adSetIds: string[];
+}
+
+interface PublishRequest {
+  client_id: string;
+  company_id: string;
+  ad_id: string;
+  destinations: PublishDestination[];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,9 +29,15 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { client_id, company_id, ad_ids } = await req.json();
+    const body = await req.json();
+    const { client_id, company_id, ad_id, destinations, ad_ids } = body as PublishRequest & { ad_ids?: string[] };
 
-    console.log('[publish-approved-ads] Starting publish:', { client_id, ad_ids_count: ad_ids?.length });
+    console.log('[publish-approved-ads] Starting publish:', { 
+      client_id, 
+      ad_id, 
+      destinations_count: destinations?.length,
+      legacy_ad_ids: ad_ids?.length 
+    });
 
     // Fetch client with Meta credentials
     const { data: client, error: clientError } = await supabase
@@ -52,7 +71,18 @@ serve(async (req) => {
       );
     }
 
-    // Fetch approved ads to publish
+    // NEW FLOW: Single ad with multiple destinations
+    if (ad_id && destinations && destinations.length > 0) {
+      return await publishAdToMultipleDestinations(
+        supabase,
+        facebookCredential.access_token,
+        client,
+        ad_id,
+        destinations
+      );
+    }
+
+    // LEGACY FLOW: Bulk publish approved ads (for autopilot/batch)
     let query = supabase
       .from('ad_generation_queue')
       .select('*')
@@ -77,19 +107,28 @@ serve(async (req) => {
 
     console.log('[publish-approved-ads] Found', approvedAds.length, 'ads to publish');
 
+    // Get default schedule config for campaign/adset
+    const { data: schedule } = await supabase
+      .from('ad_generation_schedules')
+      .select('target_campaign_id, target_adset_id')
+      .eq('client_id', client_id)
+      .single();
+
     const publishedAds: any[] = [];
     const failedAds: any[] = [];
 
     for (const ad of approvedAds) {
       try {
         const result = await publishAdToMeta(
+          supabase,
           facebookCredential.access_token,
           client,
-          ad
+          ad,
+          schedule?.target_campaign_id,
+          schedule?.target_adset_id
         );
 
         if (result.success) {
-          // Update ad status to published
           await supabase
             .from('ad_generation_queue')
             .update({
@@ -142,37 +181,159 @@ serve(async (req) => {
   }
 });
 
-async function publishAdToMeta(
+// New function: Publish single ad to multiple destinations
+async function publishAdToMultipleDestinations(
+  supabase: any,
   accessToken: string,
   client: any,
-  ad: any
-): Promise<{ success: boolean; meta_ad_id?: string; error?: string }> {
+  adId: string,
+  destinations: PublishDestination[]
+): Promise<Response> {
+  // Fetch the ad
+  const { data: ad, error: adError } = await supabase
+    .from('ad_generation_queue')
+    .select('*')
+    .eq('id', adId)
+    .single();
+
+  if (adError || !ad) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Anúncio não encontrado' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+    );
+  }
+
   const adAccountId = client.ad_account_id || client.facebook_ad_accounts?.facebook_account_id;
   
   if (!adAccountId) {
-    return { success: false, error: 'Ad Account não configurado para este cliente' };
+    return new Response(
+      JSON.stringify({ success: false, error: 'Ad Account não configurado para este cliente' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+    );
   }
 
   const content = ad.generated_content;
+  const results: any[] = [];
+  const errors: any[] = [];
+
+  console.log('[publish-approved-ads] Publishing to', destinations.length, 'campaigns');
+
+  // First, create the ad creative (only once, can be reused)
+  const creativeResult = await createAdCreative(accessToken, client, adAccountId, content);
   
-  console.log('[publish-approved-ads] Publishing ad to Meta:', {
-    ad_account: adAccountId,
-    headline: content.headline,
+  if (!creativeResult.success) {
+    return new Response(
+      JSON.stringify({ success: false, error: creativeResult.error }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+    );
+  }
+
+  const creativeId = creativeResult.creative_id;
+  console.log('[publish-approved-ads] Created creative:', creativeId);
+
+  // Now create ads in each destination
+  for (const destination of destinations) {
+    for (const adSetId of destination.adSetIds) {
+      try {
+        // Get the Facebook ID for this ad set
+        const { data: adSetData } = await supabase
+          .from('ad_sets')
+          .select('facebook_id, name')
+          .eq('id', adSetId)
+          .single();
+
+        if (!adSetData?.facebook_id) {
+          errors.push({
+            campaignId: destination.campaignId,
+            adSetId,
+            error: 'Conjunto de anúncios não tem ID do Facebook',
+          });
+          continue;
+        }
+
+        // Create the ad in this ad set
+        const adResult = await createAd(
+          accessToken,
+          adAccountId,
+          creativeId,
+          adSetData.facebook_id,
+          content.headline || 'AI Generated Ad'
+        );
+
+        if (adResult.success) {
+          results.push({
+            campaignId: destination.campaignId,
+            campaignName: destination.campaignName,
+            adSetId,
+            adSetName: adSetData.name,
+            meta_ad_id: adResult.ad_id,
+          });
+        } else {
+          errors.push({
+            campaignId: destination.campaignId,
+            adSetId,
+            error: adResult.error,
+          });
+        }
+      } catch (error: any) {
+        console.error('[publish-approved-ads] Error creating ad:', error);
+        errors.push({
+          campaignId: destination.campaignId,
+          adSetId,
+          error: error.message,
+        });
+      }
+    }
+  }
+
+  // Update the ad status if at least one publish succeeded
+  if (results.length > 0) {
+    await supabase
+      .from('ad_generation_queue')
+      .update({
+        status: 'published',
+        published_at: new Date().toISOString(),
+        meta_ad_id: results[0].meta_ad_id, // Store first ad ID
+      })
+      .eq('id', adId);
+  }
+
+  console.log('[publish-approved-ads] Multi-destination results:', {
+    published: results.length,
+    failed: errors.length,
   });
 
+  return new Response(
+    JSON.stringify({
+      success: results.length > 0,
+      published: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Create ad creative (reusable across ad sets)
+async function createAdCreative(
+  accessToken: string,
+  client: any,
+  adAccountId: string,
+  content: any
+): Promise<{ success: boolean; creative_id?: string; error?: string }> {
   try {
-    // Step 1: Create Ad Creative
-    const creativePayload = {
-      name: `AI Generated - ${content.headline?.substring(0, 50) || 'Ad'}`,
+    const creativePayload: any = {
+      name: `AI Generated - ${content.headline?.substring(0, 50) || 'Ad'} - ${Date.now()}`,
       object_story_spec: {
         page_id: client.facebook_page_id,
         link_data: {
           link: client.website_url || 'https://example.com',
-          message: content.primary_text,
-          name: content.headline,
-          description: content.description,
+          message: content.body || content.primary_text || '',
+          name: content.headline || '',
+          description: content.description || '',
           call_to_action: {
-            type: mapCallToAction(content.call_to_action),
+            type: mapCallToAction(content.cta || content.call_to_action),
           },
         },
       },
@@ -184,7 +345,9 @@ async function publishAdToMeta(
       creativePayload.object_story_spec.link_data.picture = content.image_url;
     }
 
-    const creativeResponse = await fetch(
+    console.log('[publish-approved-ads] Creating creative with payload:', JSON.stringify(creativePayload, null, 2));
+
+    const response = await fetch(
       `https://graph.facebook.com/v18.0/act_${adAccountId}/adcreatives`,
       {
         method: 'POST',
@@ -193,28 +356,122 @@ async function publishAdToMeta(
       }
     );
 
-    const creativeData = await creativeResponse.json();
+    const data = await response.json();
 
-    if (creativeData.error) {
-      console.error('[publish-approved-ads] Creative error:', creativeData.error);
-      return { success: false, error: creativeData.error.message };
+    if (data.error) {
+      console.error('[publish-approved-ads] Creative error:', data.error);
+      return { success: false, error: data.error.message };
     }
 
-    const creativeId = creativeData.id;
-    console.log('[publish-approved-ads] Created creative:', creativeId);
-
-    // Step 2: Create the Ad (would need a campaign and ad set)
-    // For now, we'll return success with the creative ID
-    // In production, this would also create the campaign structure if needed
-
-    return {
-      success: true,
-      meta_ad_id: creativeId, // Would be the actual ad ID in production
-    };
+    return { success: true, creative_id: data.id };
   } catch (error: any) {
-    console.error('[publish-approved-ads] Meta API error:', error);
+    console.error('[publish-approved-ads] Creative creation error:', error);
     return { success: false, error: error.message };
   }
+}
+
+// Create the actual ad in an ad set with ACTIVE status
+async function createAd(
+  accessToken: string,
+  adAccountId: string,
+  creativeId: string,
+  adSetFacebookId: string,
+  adName: string
+): Promise<{ success: boolean; ad_id?: string; error?: string }> {
+  try {
+    const adPayload = {
+      name: `${adName} - ${Date.now()}`,
+      adset_id: adSetFacebookId,
+      creative: { creative_id: creativeId },
+      status: 'ACTIVE', // Publish as ACTIVE
+      access_token: accessToken,
+    };
+
+    console.log('[publish-approved-ads] Creating ad in adset:', adSetFacebookId);
+
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/act_${adAccountId}/ads`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adPayload),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('[publish-approved-ads] Ad creation error:', data.error);
+      return { success: false, error: data.error.message };
+    }
+
+    console.log('[publish-approved-ads] Ad created:', data.id);
+    return { success: true, ad_id: data.id };
+  } catch (error: any) {
+    console.error('[publish-approved-ads] Ad creation error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Legacy function for batch publishing
+async function publishAdToMeta(
+  supabase: any,
+  accessToken: string,
+  client: any,
+  ad: any,
+  targetCampaignId?: string,
+  targetAdSetId?: string
+): Promise<{ success: boolean; meta_ad_id?: string; error?: string }> {
+  const adAccountId = client.ad_account_id || client.facebook_ad_accounts?.facebook_account_id;
+  
+  if (!adAccountId) {
+    return { success: false, error: 'Ad Account não configurado para este cliente' };
+  }
+
+  // Get facebook_id for the target ad set
+  let adSetFacebookId: string | null = null;
+  if (targetAdSetId) {
+    const { data: adSetData } = await supabase
+      .from('ad_sets')
+      .select('facebook_id')
+      .eq('id', targetAdSetId)
+      .single();
+    adSetFacebookId = adSetData?.facebook_id;
+  }
+
+  if (!adSetFacebookId) {
+    return { success: false, error: 'Conjunto de anúncios não configurado ou sem ID do Facebook' };
+  }
+
+  const content = ad.generated_content;
+  
+  console.log('[publish-approved-ads] Publishing ad to Meta:', {
+    ad_account: adAccountId,
+    headline: content.headline,
+    adset: adSetFacebookId,
+  });
+
+  // Create creative
+  const creativeResult = await createAdCreative(accessToken, client, adAccountId, content);
+  
+  if (!creativeResult.success) {
+    return { success: false, error: creativeResult.error };
+  }
+
+  // Create ad
+  const adResult = await createAd(
+    accessToken,
+    adAccountId,
+    creativeResult.creative_id!,
+    adSetFacebookId,
+    content.headline || 'AI Generated Ad'
+  );
+
+  return {
+    success: adResult.success,
+    meta_ad_id: adResult.ad_id,
+    error: adResult.error,
+  };
 }
 
 function mapCallToAction(cta: string | undefined): string {

@@ -5,23 +5,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Check, X, Copy, RefreshCw, Sparkles, Star, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface AdPreviewCardProps {
-  ad: {
-    id: string;
-    generation_type: string;
-    generated_content: {
-      headline?: string;
-      body?: string;
-      cta?: string;
-      image_prompt?: string;
-      image_url?: string;
-      concept?: string;
-    };
-    status: string;
-    quality_score: number | null;
-    generated_at: string;
-    concept_description?: string;
+export interface GeneratedAdType {
+  id: string;
+  generation_type: string;
+  generated_content: {
+    headline?: string;
+    body?: string;
+    cta?: string;
+    image_prompt?: string;
+    image_url?: string;
+    concept?: string;
   };
+  status: string;
+  quality_score: number | null;
+  generated_at: string;
+  concept_description?: string;
+  client_id?: string;
+  company_id?: string;
+}
+
+interface AdPreviewCardProps {
+  ad: GeneratedAdType;
   isSelected: boolean;
   onSelect: () => void;
   onApprove: () => void;
