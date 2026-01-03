@@ -130,7 +130,7 @@ export function FabricaCriativosGerados({ clientId }: Props) {
           {creatives.map((creative) => (
             <Card key={creative.id} className="overflow-hidden">
               {creative.image_url ? (
-                <div className="aspect-square relative">
+                <div className="aspect-[3/4] relative">
                   <img
                     src={creative.image_url}
                     alt="Creative preview"
@@ -142,7 +142,7 @@ export function FabricaCriativosGerados({ clientId }: Props) {
                   </div>
                 </div>
               ) : (
-                <div className="aspect-square bg-muted flex items-center justify-center">
+                <div className="aspect-[3/4] bg-muted flex items-center justify-center">
                   <Image className="h-12 w-12 text-muted-foreground" />
                 </div>
               )}

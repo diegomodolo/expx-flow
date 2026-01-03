@@ -504,22 +504,31 @@ async function generateCreativeImage(client: ClientData, content: any, schedule:
   const customPrompt = schedule?.custom_image_prompt || '';
 
   const imagePrompt = `
-Crie uma imagem para post de Instagram/Facebook.
+Crie uma imagem publicitária profissional para um post de Instagram/Facebook.
 
+=== DIMENSÕES OBRIGATÓRIAS ===
+FORMATO: 3:4 (vertical/portrait)
+RESOLUÇÃO: 1080x1440 pixels
+IMPORTANTE: A imagem DEVE ser gerada exatamente neste formato 3:4, NÃO quadrado.
+
+=== INFORMAÇÕES DA MARCA ===
 MARCA: ${client.company}
+PRODUTO: ${client.product_name || client.company}
 SETOR: ${client.sector}
 
 CONCEITO DO POST: ${content.caption || ''}
 
-DIRETRIZES:
-- Formato quadrado 1:1 (1080x1080 pixels)
-- Cores vibrantes e atraentes
-- Estilo moderno para redes sociais
+=== DIRETRIZES DE ESTILO ===
+- Cores vibrantes e profissionais
+- Estilo moderno e clean para redes sociais
+- Composição vertical otimizada para mobile
 - NÃO inclua texto na imagem
-- Ultra high resolution
+- Ultra high resolution com detalhes nítidos
 
-${customPrompt ? `INSTRUÇÕES PERSONALIZADAS: ${customPrompt}` : ''}
-${content.image_prompt ? `SUGESTÃO: ${content.image_prompt}` : ''}
+${customPrompt ? `=== INSTRUÇÕES PERSONALIZADAS ===\n${customPrompt}` : ''}
+${content.image_prompt ? `=== SUGESTÃO ADICIONAL ===\n${content.image_prompt}` : ''}
+
+Gere a imagem EXATAMENTE em 1080x1440 pixels (formato 3:4).
 `;
 
   try {
@@ -540,9 +549,14 @@ ${content.image_prompt ? `SUGESTÃO: ${content.image_prompt}` : ''}
               content: [
                 {
                   type: 'text',
-                  text: `Crie uma nova imagem inspirada nesta referência visual, mantendo estilo e identidade.
+                  text: `Crie uma nova imagem publicitária inspirada nesta referência visual, mantendo o mesmo estilo, cores e identidade visual.
 
-${imagePrompt}`,
+${imagePrompt}
+
+IMPORTANTE: 
+- Mantenha a consistência visual com a imagem de referência
+- Crie uma composição NOVA e ORIGINAL para o post
+- A imagem DEVE ser no formato 3:4 (1080x1440 pixels), NÃO quadrado`,
                 },
                 {
                   type: 'image_url',
