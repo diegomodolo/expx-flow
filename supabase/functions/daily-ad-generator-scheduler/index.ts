@@ -84,6 +84,20 @@ serve(async (req) => {
       console.log(`[daily-ad-generator-scheduler] Triggering generation for client ${schedule.clients?.name} (${schedule.client_id})`);
 
       try {
+        // IMPORTANT: Update last_generation_at BEFORE triggering to prevent duplicate executions
+        // This prevents race conditions when multiple cron jobs run within the same window
+        const { error: updateError } = await supabase
+          .from('ad_generation_schedules')
+          .update({ last_generation_at: new Date().toISOString() })
+          .eq('id', schedule.id);
+
+        if (updateError) {
+          console.error(`[daily-ad-generator-scheduler] Error updating last_generation_at for ${schedule.client_id}:`, updateError);
+          throw updateError;
+        }
+
+        console.log(`[daily-ad-generator-scheduler] Marked schedule ${schedule.id} as running to prevent duplicates`);
+
         // Fire-and-forget: Start the generation without waiting for response
         // This prevents timeout issues when generation takes too long
         fetch(`${supabaseUrl}/functions/v1/daily-ad-generator`, {
