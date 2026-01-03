@@ -76,21 +76,24 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         .from('ad_generation_schedules')
         .select('*')
         .eq('client_id', clientId)
-        .single();
+        .maybeSingle();
+
+      if (error) throw error;
 
       if (data) {
-        // Converter decimais do banco (0-1) para percentuais (0-100) na UI
+        // Percentuais são inteiros (0-100) no banco.
+        // autopilot_min_quality_score é numeric(3,2) (0-9.99), então salvamos como 0-1.
         setConfig({
           id: data.id,
           is_active: data.is_active,
           ads_per_day: data.ads_per_day,
-          clone_percentage: Math.round(data.clone_percentage * 100),
-          concept_percentage: Math.round(data.concept_percentage * 100),
-          iteration_percentage: Math.round(data.iteration_percentage * 100),
+          clone_percentage: data.clone_percentage,
+          concept_percentage: data.concept_percentage,
+          iteration_percentage: data.iteration_percentage,
           generation_time: data.generation_time,
           autopilot_enabled: data.autopilot_enabled,
-          autopilot_min_quality_score: Math.round((data.autopilot_min_quality_score || 0.8) * 100),
-          autopilot_max_daily_budget: data.autopilot_max_daily_budget || 500,
+          autopilot_min_quality_score: Math.round(((data.autopilot_min_quality_score ?? 0.8) as number) * 100),
+          autopilot_max_daily_budget: Number(data.autopilot_max_daily_budget ?? 500),
         });
       } else {
         setConfig(defaultConfig);
@@ -108,19 +111,21 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
     setSaving(true);
     try {
-      // Converter percentuais de 0-100 para 0-1 (decimal) para o banco
       const configData = {
         client_id: clientId,
         company_id: activeCompany.company_id,
         is_active: config.is_active,
         ads_per_day: config.ads_per_day,
-        clone_percentage: config.clone_percentage / 100,
-        concept_percentage: config.concept_percentage / 100,
-        iteration_percentage: config.iteration_percentage / 100,
+        // Percentuais são inteiros no banco (0-100)
+        clone_percentage: config.clone_percentage,
+        concept_percentage: config.concept_percentage,
+        iteration_percentage: config.iteration_percentage,
         generation_time: config.generation_time,
         autopilot_enabled: config.autopilot_enabled,
-        autopilot_min_quality_score: config.autopilot_min_quality_score / 100,
-        autopilot_max_daily_budget: config.autopilot_max_daily_budget,
+        // numeric(3,2) no banco (0-9.99): salvar como 0-1 com 2 casas
+        autopilot_min_quality_score: Number((config.autopilot_min_quality_score / 100).toFixed(2)),
+        // numeric(10,2) no banco
+        autopilot_max_daily_budget: Number(config.autopilot_max_daily_budget),
       };
 
       if (config.id) {
