@@ -137,20 +137,30 @@ serve(async (req) => {
 
     // Insert all generated ads into the queue
     if (generatedAds.length > 0) {
-      const adsToInsert = generatedAds.map(ad => ({
-        client_id,
-        company_id,
-        user_id,
-        generation_type: ad.type,
-        source_ad_id: ad.source_ad_id || null,
-        source_competitor_id: ad.source_competitor_id || null,
-        generated_content: ad.content,
-        concept_description: ad.concept_description || null,
-        research_sources: ad.research_sources || null,
-        quality_score: ad.quality_score || null,
-        status: 'pending',
-        scheduled_for: new Date().toISOString(),
-      }));
+      const adsToInsert = generatedAds.map(ad => {
+        // Normalize quality_score to fit NUMERIC(3,2) - max value 9.99
+        // Convert from 0-100 scale to 0-9.99 scale
+        let normalizedScore = null;
+        if (ad.quality_score != null) {
+          normalizedScore = Math.min(9.99, Math.max(0, ad.quality_score / 10));
+          normalizedScore = Math.round(normalizedScore * 100) / 100; // Round to 2 decimals
+        }
+        
+        return {
+          client_id,
+          company_id,
+          user_id,
+          generation_type: ad.type,
+          source_ad_id: ad.source_ad_id || null,
+          source_competitor_id: ad.source_competitor_id || null,
+          generated_content: ad.content,
+          concept_description: ad.concept_description || null,
+          research_sources: ad.research_sources || null,
+          quality_score: normalizedScore,
+          status: 'pending',
+          scheduled_for: new Date().toISOString(),
+        };
+      });
 
       const { error: insertError } = await supabase
         .from('ad_generation_queue')
