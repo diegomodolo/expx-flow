@@ -82,12 +82,12 @@ export default function RepositorioCriativos() {
           {/* Client Filter */}
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+            <Select value={selectedClientId || "all"} onValueChange={(value) => setSelectedClientId(value === "all" ? "" : value)}>
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Todos os clientes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os clientes</SelectItem>
+                <SelectItem value="all">Todos os clientes</SelectItem>
                 {allClients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
