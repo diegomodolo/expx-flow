@@ -18,12 +18,14 @@ serve(async (req) => {
 
     console.log('[daily-ad-generator-scheduler] Starting scheduled check...');
 
-    // Get current hour in BRT (UTC-3)
+    // Get current time in BRT (UTC-3)
     const now = new Date();
     const brtHour = (now.getUTCHours() - 3 + 24) % 24;
-    const currentHour = brtHour.toString().padStart(2, '0') + ':00';
+    const brtMinute = now.getUTCMinutes();
+    const currentTime = brtHour.toString().padStart(2, '0') + ':' + brtMinute.toString().padStart(2, '0') + ':00';
+    const currentHourMinute = brtHour.toString().padStart(2, '0') + ':' + brtMinute.toString().padStart(2, '0');
     
-    console.log('[daily-ad-generator-scheduler] Current BRT hour:', currentHour);
+    console.log('[daily-ad-generator-scheduler] Current BRT time:', currentTime);
 
     // Fetch all active schedules that should run at this hour
     const { data: schedules, error: schedulesError } = await supabase
@@ -41,11 +43,22 @@ serve(async (req) => {
     const results: any[] = [];
 
     for (const schedule of schedules || []) {
-      // Check if current hour matches generation_time
-      const scheduleHour = schedule.generation_time?.substring(0, 5) || '08:00';
+      // Check if current time matches generation_time (compare HH:MM)
+      const scheduleTime = schedule.generation_time?.substring(0, 5) || '08:00';
       
-      if (scheduleHour !== currentHour) {
-        console.log(`[daily-ad-generator-scheduler] Skipping ${schedule.client_id} - scheduled for ${scheduleHour}, current is ${currentHour}`);
+      // Check if we're within the 15-minute window for this schedule
+      const [schedHour, schedMin] = scheduleTime.split(':').map(Number);
+      const [currHour, currMin] = currentHourMinute.split(':').map(Number);
+      
+      const schedTotalMins = schedHour * 60 + schedMin;
+      const currTotalMins = currHour * 60 + currMin;
+      
+      // Only trigger if we're in the same 15-minute window (0-14, 15-29, 30-44, 45-59)
+      const schedWindow = Math.floor(schedMin / 15);
+      const currWindow = Math.floor(currMin / 15);
+      
+      if (schedHour !== currHour || schedWindow !== currWindow) {
+        console.log(`[daily-ad-generator-scheduler] Skipping ${schedule.client_id} - scheduled for ${scheduleTime}, current is ${currentHourMinute}`);
         continue;
       }
 
@@ -102,7 +115,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        current_hour: currentHour,
+        current_time: currentHourMinute,
         processed: results.length,
         results,
       }),
