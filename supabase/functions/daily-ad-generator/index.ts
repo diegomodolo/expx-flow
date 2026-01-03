@@ -537,7 +537,7 @@ function normalizeCTA(cta: string): string {
   return 'LEARN_MORE';
 }
 
-// Generate clone ads from competitor winning ads - PROGRESSIVE VERSION
+// Generate clone ads from competitor winning ads - PARALLEL VERSION
 async function generateCloneAdsProgressive(
   supabase: any, 
   client: ClientData, 
@@ -569,45 +569,76 @@ async function generateCloneAdsProgressive(
     return await generateAICloneAdsProgressive(supabase, client, count, schedule, onAdGenerated);
   }
 
-  let generatedCount = 0;
   const usedAds = new Set();
+  const adsToProcess: { sourceAd: any }[] = [];
 
+  // Collect ads to process
   for (let i = 0; i < Math.min(count, competitorAds.length); i++) {
     const sourceAd = competitorAds[i];
     if (usedAds.has(sourceAd.id)) continue;
     usedAds.add(sourceAd.id);
+    adsToProcess.push({ sourceAd });
+  }
+
+  // STEP 1: Generate all text content in parallel
+  console.log('[daily-ad-generator] Generating text content for', adsToProcess.length, 'clone ads in parallel');
+  const textPromises = adsToProcess.map(({ sourceAd }) => 
+    adaptCompetitorAd(supabase, client, sourceAd).catch(err => {
+      console.error('[daily-ad-generator] Error adapting competitor ad:', err);
+      return null;
+    })
+  );
+  const adaptedAds = await Promise.all(textPromises);
+
+  // Filter out failed adaptations
+  const validAds: { sourceAd: any; adaptedAd: any }[] = [];
+  for (let i = 0; i < adaptedAds.length; i++) {
+    if (adaptedAds[i]) {
+      validAds.push({ sourceAd: adsToProcess[i].sourceAd, adaptedAd: adaptedAds[i] });
+    }
+  }
+
+  // STEP 2: Generate all images in parallel
+  console.log('[daily-ad-generator] Generating', validAds.length, 'images in PARALLEL');
+  const imagePromises = validAds.map(({ adaptedAd }) => 
+    generateCreativeImage(client, adaptedAd, schedule).catch(err => {
+      console.error('[daily-ad-generator] Error generating image:', err);
+      return null;
+    })
+  );
+  const images = await Promise.all(imagePromises);
+
+  // STEP 3: Save ads with images progressively
+  let generatedCount = 0;
+  for (let i = 0; i < validAds.length; i++) {
+    const { sourceAd, adaptedAd } = validAds[i];
+    const creativeImageUrl = images[i];
+    
+    if (creativeImageUrl) {
+      adaptedAd.creative_image_url = creativeImageUrl;
+    }
+    
+    const ad = {
+      type: 'clone',
+      source_ad_id: sourceAd.id,
+      source_competitor_id: sourceAd.competitor_id,
+      content: adaptedAd,
+      concept_description: `Clone do anúncio do concorrente ${sourceAd.competitors?.company_name || 'desconhecido'}. Conceito original: ${sourceAd.ad_title || sourceAd.ad_copy?.substring(0, 100)}`,
+      quality_score: 75,
+    };
 
     try {
-      // Generate adapted version using AI
-      const adaptedAd = await adaptCompetitorAd(supabase, client, sourceAd);
-      
-      // Generate creative image
-      const creativeImageUrl = await generateCreativeImage(client, adaptedAd, schedule);
-      if (creativeImageUrl) {
-        adaptedAd.creative_image_url = creativeImageUrl;
-      }
-      
-      const ad = {
-        type: 'clone',
-        source_ad_id: sourceAd.id,
-        source_competitor_id: sourceAd.competitor_id,
-        content: adaptedAd,
-        concept_description: `Clone do anúncio do concorrente ${sourceAd.competitors?.company_name || 'desconhecido'}. Conceito original: ${sourceAd.ad_title || sourceAd.ad_copy?.substring(0, 100)}`,
-        quality_score: 75,
-      };
-
-      // Save immediately
       await onAdGenerated(ad);
       generatedCount++;
     } catch (error) {
-      console.error('[daily-ad-generator] Error generating clone ad:', error);
+      console.error('[daily-ad-generator] Error saving clone ad:', error);
     }
   }
 
   return generatedCount;
 }
 
-// Generate concept ads from market research - PROGRESSIVE VERSION
+// Generate concept ads from market research - PARALLEL VERSION
 async function generateConceptAdsProgressive(
   supabase: any, 
   client: ClientData, 
@@ -617,7 +648,7 @@ async function generateConceptAdsProgressive(
 ): Promise<number> {
   if (count <= 0) return 0;
 
-  console.log('[daily-ad-generator] Generating', count, 'concept ads');
+  console.log('[daily-ad-generator] Generating', count, 'concept ads in PARALLEL');
 
   // Fetch market research insights
   const { data: insights } = await supabase
@@ -627,12 +658,11 @@ async function generateConceptAdsProgressive(
     .order('relevance_score', { ascending: false })
     .limit(count);
 
-  let generatedCount = 0;
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
-  for (let i = 0; i < count; i++) {
+  // STEP 1: Generate all text content in parallel
+  const textPromises = Array.from({ length: count }, async (_, i) => {
     const insight = insights?.[i % (insights?.length || 1)];
-    
     const conceptPrompt = buildConceptPrompt(client, insight);
 
     try {
@@ -663,52 +693,66 @@ Responda APENAS em JSON válido.`,
       if (response.ok) {
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
+        const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
+        const adContent = JSON.parse(cleanJson);
         
-        try {
-          const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
-          const adContent = JSON.parse(cleanJson);
-          
-          // Normalize CTA
-          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
-          
-          // Ensure body content exists
-          if (!adContent.body && adContent.primary_text) {
-            adContent.body = adContent.primary_text;
-          }
-          
-          // Generate creative image
-          const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
-          if (creativeImageUrl) {
-            adContent.creative_image_url = creativeImageUrl;
-          }
-          
-          const ad = {
-            type: 'concept',
-            content: adContent,
-            concept_description: adContent.concept_explanation || `Conceito baseado em pesquisa de mercado: ${insight?.topic || 'análise geral'}`,
-            research_sources: insight ? [insight] : null,
-            quality_score: 80,
-          };
-
-          // Save immediately
-          await onAdGenerated(ad);
-          generatedCount++;
-        } catch (parseError) {
-          console.error('[daily-ad-generator] JSON parse error:', parseError, 'Content:', content);
+        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+        if (!adContent.body && adContent.primary_text) {
+          adContent.body = adContent.primary_text;
         }
-      } else {
-        const errorText = await response.text();
-        console.error('[daily-ad-generator] AI response error:', response.status, errorText);
+        
+        return { adContent, insight };
       }
     } catch (error) {
-      console.error('[daily-ad-generator] AI generation error:', error);
+      console.error('[daily-ad-generator] Error generating concept text:', error);
+    }
+    return null;
+  });
+
+  const textResults = await Promise.all(textPromises);
+  const validResults = textResults.filter(r => r !== null) as { adContent: any; insight: any }[];
+
+  console.log('[daily-ad-generator] Generated', validResults.length, 'concept texts, now generating images in PARALLEL');
+
+  // STEP 2: Generate all images in parallel
+  const imagePromises = validResults.map(({ adContent }) => 
+    generateCreativeImage(client, adContent, schedule).catch(err => {
+      console.error('[daily-ad-generator] Error generating concept image:', err);
+      return null;
+    })
+  );
+  const images = await Promise.all(imagePromises);
+
+  // STEP 3: Save ads progressively
+  let generatedCount = 0;
+  for (let i = 0; i < validResults.length; i++) {
+    const { adContent, insight } = validResults[i];
+    const creativeImageUrl = images[i];
+    
+    if (creativeImageUrl) {
+      adContent.creative_image_url = creativeImageUrl;
+    }
+    
+    const ad = {
+      type: 'concept',
+      content: adContent,
+      concept_description: adContent.concept_explanation || `Conceito baseado em pesquisa de mercado: ${insight?.topic || 'análise geral'}`,
+      research_sources: insight ? [insight] : null,
+      quality_score: 80,
+    };
+
+    try {
+      await onAdGenerated(ad);
+      generatedCount++;
+    } catch (error) {
+      console.error('[daily-ad-generator] Error saving concept ad:', error);
     }
   }
 
   return generatedCount;
 }
 
-// Generate iteration ads from winning client ads - PROGRESSIVE VERSION
+// Generate iteration ads from winning client ads - PARALLEL VERSION
 async function generateIterationAdsProgressive(
   supabase: any, 
   client: ClientData, 
@@ -718,7 +762,7 @@ async function generateIterationAdsProgressive(
 ): Promise<number> {
   if (count <= 0) return 0;
 
-  console.log('[daily-ad-generator] Generating', count, 'iteration ads');
+  console.log('[daily-ad-generator] Generating', count, 'iteration ads in PARALLEL');
 
   // Fetch winning ads from the client
   const { data: winnerAds } = await supabase
@@ -736,11 +780,9 @@ async function generateIterationAdsProgressive(
     return 0;
   }
 
-  let generatedCount = 0;
-
-  for (let i = 0; i < count; i++) {
+  // STEP 1: Generate all text content in parallel
+  const textPromises = Array.from({ length: count }, async (_, i) => {
     const sourceAd = winnerAds[i % winnerAds.length];
-    
     const iterationPrompt = buildIterationPrompt(client, sourceAd);
 
     try {
@@ -771,49 +813,66 @@ Responda APENAS em JSON válido.`,
       if (response.ok) {
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
+        const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
+        const adContent = JSON.parse(cleanJson);
         
-        try {
-          const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
-          const adContent = JSON.parse(cleanJson);
-          
-          // Normalize CTA
-          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
-          
-          // Ensure body content exists
-          if (!adContent.body && adContent.primary_text) {
-            adContent.body = adContent.primary_text;
-          }
-          
-          // Generate creative image
-          const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
-          if (creativeImageUrl) {
-            adContent.creative_image_url = creativeImageUrl;
-          }
-          
-          const ad = {
-            type: 'iteration',
-            source_ad_id: sourceAd.ad_id,
-            content: adContent,
-            concept_description: `Iteração do anúncio vencedor: ${sourceAd.ad_name}. Variação: ${adContent.variation_type || 'otimização'}`,
-            quality_score: 85,
-          };
-
-          // Save immediately
-          await onAdGenerated(ad);
-          generatedCount++;
-        } catch (parseError) {
-          console.error('[daily-ad-generator] JSON parse error:', parseError);
+        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+        if (!adContent.body && adContent.primary_text) {
+          adContent.body = adContent.primary_text;
         }
+        
+        return { adContent, sourceAd };
       }
     } catch (error) {
-      console.error('[daily-ad-generator] AI generation error:', error);
+      console.error('[daily-ad-generator] Error generating iteration text:', error);
+    }
+    return null;
+  });
+
+  const textResults = await Promise.all(textPromises);
+  const validResults = textResults.filter(r => r !== null) as { adContent: any; sourceAd: any }[];
+
+  console.log('[daily-ad-generator] Generated', validResults.length, 'iteration texts, now generating images in PARALLEL');
+
+  // STEP 2: Generate all images in parallel
+  const imagePromises = validResults.map(({ adContent }) => 
+    generateCreativeImage(client, adContent, schedule).catch(err => {
+      console.error('[daily-ad-generator] Error generating iteration image:', err);
+      return null;
+    })
+  );
+  const images = await Promise.all(imagePromises);
+
+  // STEP 3: Save ads progressively
+  let generatedCount = 0;
+  for (let i = 0; i < validResults.length; i++) {
+    const { adContent, sourceAd } = validResults[i];
+    const creativeImageUrl = images[i];
+    
+    if (creativeImageUrl) {
+      adContent.creative_image_url = creativeImageUrl;
+    }
+    
+    const ad = {
+      type: 'iteration',
+      source_ad_id: sourceAd.ad_id,
+      content: adContent,
+      concept_description: `Iteração do anúncio vencedor: ${sourceAd.ad_name}. Variação: ${adContent.variation_type || 'otimização'}`,
+      quality_score: 85,
+    };
+
+    try {
+      await onAdGenerated(ad);
+      generatedCount++;
+    } catch (error) {
+      console.error('[daily-ad-generator] Error saving iteration ad:', error);
     }
   }
 
   return generatedCount;
 }
 
-// Helper: Generate AI clone ads when no competitor data exists - PROGRESSIVE VERSION
+// Helper: Generate AI clone ads when no competitor data exists - PARALLEL VERSION
 async function generateAICloneAdsProgressive(
   supabase: any, 
   client: ClientData, 
@@ -822,9 +881,11 @@ async function generateAICloneAdsProgressive(
   onAdGenerated: (ad: any) => Promise<void>
 ): Promise<number> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  let generatedCount = 0;
 
-  for (let i = 0; i < count; i++) {
+  console.log('[daily-ad-generator] Generating', count, 'AI clone ads in PARALLEL');
+
+  // STEP 1: Generate all text content in parallel
+  const textPromises = Array.from({ length: count }, async () => {
     const prompt = `
 Crie um anúncio no estilo de grandes marcas do setor ${client.sector}:
 
@@ -873,33 +934,55 @@ Responda em JSON:
         const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
         const adContent = JSON.parse(cleanJson);
         
-        // Normalize CTA
         adContent.call_to_action = normalizeCTA(adContent.call_to_action);
-        
-        // Ensure body exists
         if (!adContent.body && adContent.primary_text) {
           adContent.body = adContent.primary_text;
         }
         
-        // Generate creative image
-        const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
-        if (creativeImageUrl) {
-          adContent.creative_image_url = creativeImageUrl;
-        }
-        
-        const ad = {
-          type: 'clone',
-          content: adContent,
-          concept_description: `Clone baseado em estratégias de sucesso: ${adContent.inspired_by}`,
-          quality_score: 70,
-        };
-
-        // Save immediately
-        await onAdGenerated(ad);
-        generatedCount++;
+        return adContent;
       }
     } catch (error) {
-      console.error('[daily-ad-generator] Error generating AI clone:', error);
+      console.error('[daily-ad-generator] Error generating AI clone text:', error);
+    }
+    return null;
+  });
+
+  const textResults = await Promise.all(textPromises);
+  const validResults = textResults.filter(r => r !== null);
+
+  console.log('[daily-ad-generator] Generated', validResults.length, 'AI clone texts, now generating images in PARALLEL');
+
+  // STEP 2: Generate all images in parallel
+  const imagePromises = validResults.map(adContent => 
+    generateCreativeImage(client, adContent, schedule).catch(err => {
+      console.error('[daily-ad-generator] Error generating AI clone image:', err);
+      return null;
+    })
+  );
+  const images = await Promise.all(imagePromises);
+
+  // STEP 3: Save ads progressively
+  let generatedCount = 0;
+  for (let i = 0; i < validResults.length; i++) {
+    const adContent = validResults[i];
+    const creativeImageUrl = images[i];
+    
+    if (creativeImageUrl) {
+      adContent.creative_image_url = creativeImageUrl;
+    }
+    
+    const ad = {
+      type: 'clone',
+      content: adContent,
+      concept_description: `Clone baseado em estratégias de sucesso: ${adContent.inspired_by}`,
+      quality_score: 70,
+    };
+
+    try {
+      await onAdGenerated(ad);
+      generatedCount++;
+    } catch (error) {
+      console.error('[daily-ad-generator] Error saving AI clone ad:', error);
     }
   }
 
