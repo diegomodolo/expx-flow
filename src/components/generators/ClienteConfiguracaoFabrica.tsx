@@ -25,6 +25,7 @@ import { FabricaCompetidores } from "./FabricaCompetidores";
 import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaAnunciosGerados } from "./FabricaAnunciosGerados";
 import { FabricaConfiguracoesAvancadas } from "./FabricaConfiguracoesAvancadas";
+import { PublishingDefaultsConfig, PublishingDefaults } from "@/components/ad-factory/PublishingDefaultsConfig";
 
 interface ScheduleConfig {
   id?: string;
@@ -48,6 +49,14 @@ interface ScheduleConfig {
   reference_image_4: string | null;
   reference_image_5: string | null;
   reference_image_6: string | null;
+  // Publishing defaults
+  default_destination_url: string | null;
+  default_primary_text: string | null;
+  default_headline: string | null;
+  default_description: string | null;
+  default_cta: string | null;
+  default_pixel_id: string | null;
+  default_url_params: string | null;
 }
 
 const defaultConfig: ScheduleConfig = {
@@ -71,6 +80,14 @@ const defaultConfig: ScheduleConfig = {
   reference_image_4: null,
   reference_image_5: null,
   reference_image_6: null,
+  // Publishing defaults
+  default_destination_url: null,
+  default_primary_text: null,
+  default_headline: null,
+  default_description: null,
+  default_cta: "LEARN_MORE",
+  default_pixel_id: null,
+  default_url_params: null,
 };
 
 interface Props {
@@ -170,6 +187,14 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           reference_image_4: data.reference_image_4 ?? null,
           reference_image_5: data.reference_image_5 ?? null,
           reference_image_6: data.reference_image_6 ?? null,
+          // Publishing defaults
+          default_destination_url: (data as any).default_destination_url ?? null,
+          default_primary_text: (data as any).default_primary_text ?? null,
+          default_headline: (data as any).default_headline ?? null,
+          default_description: (data as any).default_description ?? null,
+          default_cta: (data as any).default_cta ?? "LEARN_MORE",
+          default_pixel_id: (data as any).default_pixel_id ?? null,
+          default_url_params: (data as any).default_url_params ?? null,
         });
       } else {
         setConfig(defaultConfig);
@@ -213,6 +238,14 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         reference_image_4: config.reference_image_4,
         reference_image_5: config.reference_image_5,
         reference_image_6: config.reference_image_6,
+        // Publishing defaults
+        default_destination_url: config.default_destination_url,
+        default_primary_text: config.default_primary_text,
+        default_headline: config.default_headline,
+        default_description: config.default_description,
+        default_cta: config.default_cta,
+        default_pixel_id: config.default_pixel_id,
+        default_url_params: config.default_url_params,
       };
 
       if (config.id) {
@@ -647,6 +680,20 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
               reference_image_6: config.reference_image_6,
             }}
             onChange={(advancedConfig) => setConfig({ ...config, ...advancedConfig })}
+          />
+
+          {/* Configurações Padrão de Publicação */}
+          <PublishingDefaultsConfig
+            config={{
+              default_destination_url: config.default_destination_url,
+              default_primary_text: config.default_primary_text,
+              default_headline: config.default_headline,
+              default_description: config.default_description,
+              default_cta: config.default_cta,
+              default_pixel_id: config.default_pixel_id,
+              default_url_params: config.default_url_params,
+            }}
+            onChange={(publishingConfig) => setConfig({ ...config, ...publishingConfig })}
           />
         </TabsContent>
 

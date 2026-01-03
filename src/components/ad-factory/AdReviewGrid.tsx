@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AdPreviewCard, GeneratedAdType } from "./AdPreviewCard";
-import { ApprovalDestinationDialog } from "./ApprovalDestinationDialog";
+import { ApprovalDestinationDialogV2 } from "./ApprovalDestinationDialogV2";
 import { AdDetailsDialog } from "./AdDetailsDialog";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,16 @@ interface SelectedDestination {
   campaignId: string;
   campaignName: string;
   adSetIds: string[];
+}
+
+interface AdConfig {
+  destination_url: string;
+  primary_text: string;
+  headline: string;
+  description: string;
+  cta: string;
+  pixel_id: string;
+  url_params: string;
 }
 
 export function AdReviewGrid({
@@ -74,7 +84,7 @@ export function AdReviewGrid({
     setApprovalDialogOpen(true);
   };
 
-  const handleApproveAndPublish = async (destinations: SelectedDestination[]) => {
+  const handleApproveAndPublish = async (destinations: SelectedDestination[], adConfig: AdConfig) => {
     if (!selectedAdForApproval || !clientId || !companyId) return;
 
     console.log('[AdReviewGrid] Publishing ad:', selectedAdForApproval.id, 'to destinations:', destinations);
@@ -85,6 +95,7 @@ export function AdReviewGrid({
         company_id: companyId,
         ad_id: selectedAdForApproval.id,
         destinations,
+        ad_config: adConfig,
       },
     });
 
@@ -157,7 +168,7 @@ export function AdReviewGrid({
 
       {clientId && companyId && (
         <>
-          <ApprovalDestinationDialog
+          <ApprovalDestinationDialogV2
             open={approvalDialogOpen}
             onOpenChange={handleDialogClose}
             adId={selectedAdForApproval?.id || ''}
