@@ -45,6 +45,14 @@ interface GeneratedAd {
     call_to_action?: string;
     image_prompt?: string;
     creative_image_url?: string;
+    score_breakdown?: {
+      visual: number;
+      copy: number;
+      headline_cta: number;
+      conformidade: number;
+    };
+    score_explanation?: string;
+    score_flags?: string[];
   };
   concept_description: string | null;
   generated_at: string;
@@ -261,6 +269,9 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
       cta: ad.generated_content?.call_to_action,
       image_prompt: ad.generated_content?.image_prompt,
       image_url: ad.generated_content?.creative_image_url,
+      score_breakdown: ad.generated_content?.score_breakdown,
+      score_explanation: ad.generated_content?.score_explanation,
+      score_flags: ad.generated_content?.score_flags,
     },
     status: ad.status,
     quality_score: ad.quality_score,
