@@ -73,12 +73,23 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { client_id, company_id, user_id, generation_type, count } = await req.json();
+  let historyId: string | null = null;
+  let client_id: string;
+  let company_id: string;
+  let schedule: any = null;
+  let adsToGenerate = 0;
+
+  try {
+    const body = await req.json();
+    client_id = body.client_id;
+    company_id = body.company_id;
+    const user_id = body.user_id;
+    const generation_type = body.generation_type;
+    const count = body.count;
 
     console.log('[daily-ad-generator] Starting generation:', { client_id, company_id, generation_type, count });
 
@@ -97,13 +108,15 @@ serve(async (req) => {
     console.log('[daily-ad-generator] Client data loaded:', client.name, 'Has reference images:', !!client.ai_reference_image_1);
 
     // Get generation schedule or use defaults
-    const { data: schedule } = await supabase
+    const { data: scheduleData } = await supabase
       .from('ad_generation_schedules')
       .select('*')
       .eq('client_id', client_id)
       .single();
 
-    const adsToGenerate = count || schedule?.ads_per_day || 10;
+    schedule = scheduleData;
+
+    adsToGenerate = count || schedule?.ads_per_day || 10;
     const clonePercentage = schedule?.clone_percentage || 20;
     const conceptPercentage = schedule?.concept_percentage || 50;
     const iterationPercentage = schedule?.iteration_percentage || 30;
@@ -115,74 +128,7 @@ serve(async (req) => {
 
     console.log('[daily-ad-generator] Distribution:', { cloneCount, conceptCount, iterationCount });
 
-    const generatedAds: any[] = [];
-    const errors: string[] = [];
-
-    // Generate based on type or all types
-    if (!generation_type || generation_type === 'clone') {
-      const targetCount = generation_type === 'clone' ? (count || 1) : cloneCount;
-      const clones = await generateCloneAds(supabase, client, targetCount, schedule);
-      generatedAds.push(...clones);
-      if (clones.length === 0 && targetCount > 0) {
-        errors.push('Nenhum anúncio de concorrente encontrado para clone.');
-      }
-    }
-
-    if (!generation_type || generation_type === 'concept') {
-      const targetCount = generation_type === 'concept' ? (count || 1) : conceptCount;
-      const concepts = await generateConceptAds(supabase, client, targetCount, schedule);
-      generatedAds.push(...concepts);
-    }
-
-    if (!generation_type || generation_type === 'iteration') {
-      const targetCount = generation_type === 'iteration' ? (count || 1) : iterationCount;
-      const iterations = await generateIterationAds(supabase, client, targetCount, schedule);
-      generatedAds.push(...iterations);
-      if (iterations.length === 0 && targetCount > 0) {
-        errors.push('Nenhum anúncio vencedor encontrado para iteração.');
-      }
-    }
-
-    // Insert all generated ads into the queue
-    if (generatedAds.length > 0) {
-      const adsToInsert = generatedAds.map(ad => {
-        // Normalize quality_score to fit NUMERIC(3,2) - max value 9.99
-        // Convert from 0-100 scale to 0-9.99 scale
-        let normalizedScore = null;
-        if (ad.quality_score != null) {
-          normalizedScore = Math.min(9.99, Math.max(0, ad.quality_score / 10));
-          normalizedScore = Math.round(normalizedScore * 100) / 100; // Round to 2 decimals
-        }
-        
-        return {
-          client_id,
-          company_id,
-          user_id,
-          generation_type: ad.type,
-          source_ad_id: ad.source_ad_id || null,
-          source_competitor_id: ad.source_competitor_id || null,
-          generated_content: ad.content,
-          concept_description: ad.concept_description || null,
-          research_sources: ad.research_sources || null,
-          quality_score: normalizedScore,
-          status: 'pending',
-          scheduled_for: new Date().toISOString(),
-        };
-      });
-
-      const { error: insertError } = await supabase
-        .from('ad_generation_queue')
-        .insert(adsToInsert);
-
-      if (insertError) {
-        console.error('[daily-ad-generator] Error inserting ads:', insertError);
-        throw insertError;
-      }
-
-      console.log('[daily-ad-generator] Inserted', adsToInsert.length, 'ads into queue');
-    }
-
-    // Update schedule last_generation_at
+    // STEP 1: Update last_generation_at IMMEDIATELY to prevent re-execution
     if (schedule) {
       await supabase
         .from('ad_generation_schedules')
@@ -191,53 +137,177 @@ serve(async (req) => {
           next_generation_at: getNextGenerationTime(schedule.generation_time),
         })
         .eq('id', schedule.id);
+      console.log('[daily-ad-generator] Updated last_generation_at to prevent re-execution');
     }
 
-    // Record generation history
+    // STEP 2: Create history entry with "in_progress" status IMMEDIATELY
     const historyEntry = {
       client_id,
       company_id,
       schedule_id: schedule?.id || null,
       ads_requested: adsToGenerate,
-      ads_generated: generatedAds.length,
+      ads_generated: 0,
       execution_type: generation_type ? 'manual' : 'scheduled',
-      status: generatedAds.length === adsToGenerate ? 'completed' : (generatedAds.length > 0 ? 'partial' : 'failed'),
-      error_message: errors.length > 0 ? errors.join('; ') : null,
+      status: 'in_progress',
+      error_message: null,
       execution_details: {
-        distribution: {
-          clones: generatedAds.filter(a => a.type === 'clone').length,
-          concepts: generatedAds.filter(a => a.type === 'concept').length,
-          iterations: generatedAds.filter(a => a.type === 'iteration').length,
-        },
+        distribution: { clones: 0, concepts: 0, iterations: 0 },
         requested_distribution: { cloneCount, conceptCount, iterationCount },
+        started_at: new Date().toISOString(),
       },
     };
 
-    const { error: historyError } = await supabase
+    const { data: historyData, error: historyError } = await supabase
       .from('ad_generation_history')
-      .insert(historyEntry);
+      .insert(historyEntry)
+      .select()
+      .single();
 
     if (historyError) {
-      console.error('[daily-ad-generator] Error recording history:', historyError);
+      console.error('[daily-ad-generator] Error creating history:', historyError);
     } else {
-      console.log('[daily-ad-generator] History recorded successfully');
+      historyId = historyData.id;
+      console.log('[daily-ad-generator] Created history entry with id:', historyId);
     }
+
+    // Helper function to save a single ad and update history progressively
+    const saveAdAndUpdateHistory = async (ad: any, currentDistribution: { clones: number; concepts: number; iterations: number }) => {
+      // Normalize quality_score to fit NUMERIC(3,2) - max value 9.99
+      let normalizedScore = null;
+      if (ad.quality_score != null) {
+        normalizedScore = Math.min(9.99, Math.max(0, ad.quality_score / 10));
+        normalizedScore = Math.round(normalizedScore * 100) / 100;
+      }
+
+      const adToInsert = {
+        client_id,
+        company_id,
+        user_id,
+        generation_type: ad.type,
+        source_ad_id: ad.source_ad_id || null,
+        source_competitor_id: ad.source_competitor_id || null,
+        generated_content: ad.content,
+        concept_description: ad.concept_description || null,
+        research_sources: ad.research_sources || null,
+        quality_score: normalizedScore,
+        status: 'pending',
+        scheduled_for: new Date().toISOString(),
+      };
+
+      const { error: insertError } = await supabase
+        .from('ad_generation_queue')
+        .insert(adToInsert);
+
+      if (insertError) {
+        console.error('[daily-ad-generator] Error inserting ad:', insertError);
+        return false;
+      }
+
+      console.log('[daily-ad-generator] Saved ad of type:', ad.type);
+
+      // Update history with current progress
+      if (historyId) {
+        const totalGenerated = currentDistribution.clones + currentDistribution.concepts + currentDistribution.iterations;
+        await supabase
+          .from('ad_generation_history')
+          .update({
+            ads_generated: totalGenerated,
+            execution_details: {
+              distribution: currentDistribution,
+              requested_distribution: { cloneCount, conceptCount, iterationCount },
+              started_at: historyEntry.execution_details.started_at,
+              last_update: new Date().toISOString(),
+            },
+          })
+          .eq('id', historyId);
+      }
+
+      return true;
+    };
+
+    const generatedAds: any[] = [];
+    const errors: string[] = [];
+    const currentDistribution = { clones: 0, concepts: 0, iterations: 0 };
+
+    // Generate based on type or all types - WITH PROGRESSIVE SAVING
+    if (!generation_type || generation_type === 'clone') {
+      const targetCount = generation_type === 'clone' ? (count || 1) : cloneCount;
+      const clones = await generateCloneAdsProgressive(supabase, client, targetCount, schedule, async (ad) => {
+        currentDistribution.clones++;
+        await saveAdAndUpdateHistory(ad, currentDistribution);
+        generatedAds.push(ad);
+      });
+      if (clones === 0 && targetCount > 0) {
+        errors.push('Nenhum anúncio de concorrente encontrado para clone.');
+      }
+    }
+
+    if (!generation_type || generation_type === 'concept') {
+      const targetCount = generation_type === 'concept' ? (count || 1) : conceptCount;
+      const concepts = await generateConceptAdsProgressive(supabase, client, targetCount, schedule, async (ad) => {
+        currentDistribution.concepts++;
+        await saveAdAndUpdateHistory(ad, currentDistribution);
+        generatedAds.push(ad);
+      });
+    }
+
+    if (!generation_type || generation_type === 'iteration') {
+      const targetCount = generation_type === 'iteration' ? (count || 1) : iterationCount;
+      const iterations = await generateIterationAdsProgressive(supabase, client, targetCount, schedule, async (ad) => {
+        currentDistribution.iterations++;
+        await saveAdAndUpdateHistory(ad, currentDistribution);
+        generatedAds.push(ad);
+      });
+      if (iterations === 0 && targetCount > 0) {
+        errors.push('Nenhum anúncio vencedor encontrado para iteração.');
+      }
+    }
+
+    // STEP 3: Final update to history with completed status
+    if (historyId) {
+      const finalStatus = generatedAds.length === adsToGenerate ? 'completed' : (generatedAds.length > 0 ? 'partial' : 'failed');
+      await supabase
+        .from('ad_generation_history')
+        .update({
+          ads_generated: generatedAds.length,
+          status: finalStatus,
+          error_message: errors.length > 0 ? errors.join('; ') : null,
+          execution_details: {
+            distribution: currentDistribution,
+            requested_distribution: { cloneCount, conceptCount, iterationCount },
+            started_at: historyEntry.execution_details.started_at,
+            completed_at: new Date().toISOString(),
+          },
+        })
+        .eq('id', historyId);
+      console.log('[daily-ad-generator] Final history update:', finalStatus, 'generated:', generatedAds.length);
+    }
+
+    console.log('[daily-ad-generator] Generation completed successfully');
 
     return new Response(
       JSON.stringify({
         success: true,
         generated: generatedAds.length,
         errors: errors.length > 0 ? errors : undefined,
-        distribution: {
-          clones: generatedAds.filter(a => a.type === 'clone').length,
-          concepts: generatedAds.filter(a => a.type === 'concept').length,
-          iterations: generatedAds.filter(a => a.type === 'iteration').length,
-        },
+        distribution: currentDistribution,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[daily-ad-generator] Error:', error);
+
+    // Update history with failed status on error
+    if (historyId) {
+      await supabase
+        .from('ad_generation_history')
+        .update({
+          status: 'failed',
+          error_message: error.message,
+        })
+        .eq('id', historyId);
+    }
+
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -467,6 +537,376 @@ function normalizeCTA(cta: string): string {
   return 'LEARN_MORE';
 }
 
+// Generate clone ads from competitor winning ads - PROGRESSIVE VERSION
+async function generateCloneAdsProgressive(
+  supabase: any, 
+  client: ClientData, 
+  count: number, 
+  schedule: AdGenerationSchedule | null, 
+  onAdGenerated: (ad: any) => Promise<void>
+): Promise<number> {
+  if (count <= 0) return 0;
+
+  console.log('[daily-ad-generator] Generating', count, 'clone ads for client:', client.id);
+
+  // Fetch competitor ads - prioritize those running longer (older date_spotted = proven winners)
+  const { data: competitorAds, error: competitorError } = await supabase
+    .from('competitor_ads')
+    .select('*, competitors(name, company_name)')
+    .eq('client_id', client.id)
+    .eq('is_active', true)
+    .order('date_spotted', { ascending: true })
+    .limit(count * 2);
+
+  if (competitorError) {
+    console.error('[daily-ad-generator] Error fetching competitor ads:', competitorError);
+  }
+
+  console.log('[daily-ad-generator] Found competitor ads:', competitorAds?.length || 0);
+
+  if (!competitorAds || competitorAds.length === 0) {
+    console.log('[daily-ad-generator] No competitor ads found, generating placeholder clones');
+    return await generateAICloneAdsProgressive(supabase, client, count, schedule, onAdGenerated);
+  }
+
+  let generatedCount = 0;
+  const usedAds = new Set();
+
+  for (let i = 0; i < Math.min(count, competitorAds.length); i++) {
+    const sourceAd = competitorAds[i];
+    if (usedAds.has(sourceAd.id)) continue;
+    usedAds.add(sourceAd.id);
+
+    try {
+      // Generate adapted version using AI
+      const adaptedAd = await adaptCompetitorAd(supabase, client, sourceAd);
+      
+      // Generate creative image
+      const creativeImageUrl = await generateCreativeImage(client, adaptedAd, schedule);
+      if (creativeImageUrl) {
+        adaptedAd.creative_image_url = creativeImageUrl;
+      }
+      
+      const ad = {
+        type: 'clone',
+        source_ad_id: sourceAd.id,
+        source_competitor_id: sourceAd.competitor_id,
+        content: adaptedAd,
+        concept_description: `Clone do anúncio do concorrente ${sourceAd.competitors?.company_name || 'desconhecido'}. Conceito original: ${sourceAd.ad_title || sourceAd.ad_copy?.substring(0, 100)}`,
+        quality_score: 75,
+      };
+
+      // Save immediately
+      await onAdGenerated(ad);
+      generatedCount++;
+    } catch (error) {
+      console.error('[daily-ad-generator] Error generating clone ad:', error);
+    }
+  }
+
+  return generatedCount;
+}
+
+// Generate concept ads from market research - PROGRESSIVE VERSION
+async function generateConceptAdsProgressive(
+  supabase: any, 
+  client: ClientData, 
+  count: number, 
+  schedule: AdGenerationSchedule | null,
+  onAdGenerated: (ad: any) => Promise<void>
+): Promise<number> {
+  if (count <= 0) return 0;
+
+  console.log('[daily-ad-generator] Generating', count, 'concept ads');
+
+  // Fetch market research insights
+  const { data: insights } = await supabase
+    .from('market_research_insights')
+    .select('*')
+    .eq('client_id', client.id)
+    .order('relevance_score', { ascending: false })
+    .limit(count);
+
+  let generatedCount = 0;
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  
+  for (let i = 0; i < count; i++) {
+    const insight = insights?.[i % (insights?.length || 1)];
+    
+    const conceptPrompt = buildConceptPrompt(client, insight);
+
+    try {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: `Você é um especialista em marketing digital e criação de anúncios para Facebook/Instagram. 
+Gere anúncios criativos, persuasivos e que convertem.
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
+Responda APENAS em JSON válido.`,
+            },
+            {
+              role: 'user',
+              content: conceptPrompt,
+            },
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        
+        try {
+          const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
+          const adContent = JSON.parse(cleanJson);
+          
+          // Normalize CTA
+          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+          
+          // Ensure body content exists
+          if (!adContent.body && adContent.primary_text) {
+            adContent.body = adContent.primary_text;
+          }
+          
+          // Generate creative image
+          const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
+          if (creativeImageUrl) {
+            adContent.creative_image_url = creativeImageUrl;
+          }
+          
+          const ad = {
+            type: 'concept',
+            content: adContent,
+            concept_description: adContent.concept_explanation || `Conceito baseado em pesquisa de mercado: ${insight?.topic || 'análise geral'}`,
+            research_sources: insight ? [insight] : null,
+            quality_score: 80,
+          };
+
+          // Save immediately
+          await onAdGenerated(ad);
+          generatedCount++;
+        } catch (parseError) {
+          console.error('[daily-ad-generator] JSON parse error:', parseError, 'Content:', content);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('[daily-ad-generator] AI response error:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('[daily-ad-generator] AI generation error:', error);
+    }
+  }
+
+  return generatedCount;
+}
+
+// Generate iteration ads from winning client ads - PROGRESSIVE VERSION
+async function generateIterationAdsProgressive(
+  supabase: any, 
+  client: ClientData, 
+  count: number, 
+  schedule: AdGenerationSchedule | null,
+  onAdGenerated: (ad: any) => Promise<void>
+): Promise<number> {
+  if (count <= 0) return 0;
+
+  console.log('[daily-ad-generator] Generating', count, 'iteration ads');
+
+  // Fetch winning ads from the client
+  const { data: winnerAds } = await supabase
+    .from('ad_performance_winners')
+    .select('*')
+    .eq('client_id', client.id)
+    .eq('is_winner', true)
+    .order('ctr', { ascending: false })
+    .limit(10);
+
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+  if (!winnerAds || winnerAds.length === 0) {
+    console.log('[daily-ad-generator] No winner ads found, skipping iterations');
+    return 0;
+  }
+
+  let generatedCount = 0;
+
+  for (let i = 0; i < count; i++) {
+    const sourceAd = winnerAds[i % winnerAds.length];
+    
+    const iterationPrompt = buildIterationPrompt(client, sourceAd);
+
+    try {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: `Você é um especialista em otimização de anúncios. 
+Crie variações de anúncios vencedores mantendo a essência mas testando novos ângulos.
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
+Responda APENAS em JSON válido.`,
+            },
+            {
+              role: 'user',
+              content: iterationPrompt,
+            },
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        
+        try {
+          const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
+          const adContent = JSON.parse(cleanJson);
+          
+          // Normalize CTA
+          adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+          
+          // Ensure body content exists
+          if (!adContent.body && adContent.primary_text) {
+            adContent.body = adContent.primary_text;
+          }
+          
+          // Generate creative image
+          const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
+          if (creativeImageUrl) {
+            adContent.creative_image_url = creativeImageUrl;
+          }
+          
+          const ad = {
+            type: 'iteration',
+            source_ad_id: sourceAd.ad_id,
+            content: adContent,
+            concept_description: `Iteração do anúncio vencedor: ${sourceAd.ad_name}. Variação: ${adContent.variation_type || 'otimização'}`,
+            quality_score: 85,
+          };
+
+          // Save immediately
+          await onAdGenerated(ad);
+          generatedCount++;
+        } catch (parseError) {
+          console.error('[daily-ad-generator] JSON parse error:', parseError);
+        }
+      }
+    } catch (error) {
+      console.error('[daily-ad-generator] AI generation error:', error);
+    }
+  }
+
+  return generatedCount;
+}
+
+// Helper: Generate AI clone ads when no competitor data exists - PROGRESSIVE VERSION
+async function generateAICloneAdsProgressive(
+  supabase: any, 
+  client: ClientData, 
+  count: number, 
+  schedule: AdGenerationSchedule | null,
+  onAdGenerated: (ad: any) => Promise<void>
+): Promise<number> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  let generatedCount = 0;
+
+  for (let i = 0; i < count; i++) {
+    const prompt = `
+Crie um anúncio no estilo de grandes marcas do setor ${client.sector}:
+
+CLIENTE:
+- Empresa: ${client.company}
+- Produto: ${client.product_name || client.company}
+- Público-alvo: ${client.target_audience || 'não especificado'}
+- Tom de voz: ${client.voice_tone || 'profissional'}
+- Briefing: ${client.ai_briefing?.substring(0, 300) || 'não disponível'}
+
+Inspire-se em estratégias de sucesso do mercado.
+
+IMPORTANTE: O campo "call_to_action" DEVE ser um destes valores exatos: ${VALID_FACEBOOK_CTAS.join(', ')}
+
+Responda em JSON:
+{
+  "headline": "título chamativo e curto (máximo 40 caracteres)",
+  "body": "texto principal do anúncio com 2-3 parágrafos persuasivos (125-250 caracteres idealmente)",
+  "primary_text": "mesmo que body",
+  "description": "descrição curta para link (máximo 30 caracteres)",
+  "call_to_action": "CTA_VALIDO",
+  "ad_type": "image",
+  "inspired_by": "tipo de estratégia (urgência, prova social, exclusividade, etc)",
+  "image_prompt": "prompt detalhado para gerar imagem"
+}`;
+
+    try {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: 'Você é um especialista em marketing. Responda APENAS em JSON válido.' },
+            { role: 'user', content: prompt },
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
+        const adContent = JSON.parse(cleanJson);
+        
+        // Normalize CTA
+        adContent.call_to_action = normalizeCTA(adContent.call_to_action);
+        
+        // Ensure body exists
+        if (!adContent.body && adContent.primary_text) {
+          adContent.body = adContent.primary_text;
+        }
+        
+        // Generate creative image
+        const creativeImageUrl = await generateCreativeImage(client, adContent, schedule);
+        if (creativeImageUrl) {
+          adContent.creative_image_url = creativeImageUrl;
+        }
+        
+        const ad = {
+          type: 'clone',
+          content: adContent,
+          concept_description: `Clone baseado em estratégias de sucesso: ${adContent.inspired_by}`,
+          quality_score: 70,
+        };
+
+        // Save immediately
+        await onAdGenerated(ad);
+        generatedCount++;
+      }
+    } catch (error) {
+      console.error('[daily-ad-generator] Error generating AI clone:', error);
+    }
+  }
+
+  return generatedCount;
+}
+
+// Legacy functions for manual generation (kept for backwards compatibility)
 // Generate clone ads from competitor winning ads
 async function generateCloneAds(supabase: any, client: ClientData, count: number, schedule: AdGenerationSchedule | null = null): Promise<any[]> {
   if (count <= 0) return [];

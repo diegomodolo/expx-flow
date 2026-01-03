@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, History, CheckCircle2, AlertCircle, XCircle, RefreshCw } from "lucide-react";
+import { Loader2, History, CheckCircle2, AlertCircle, XCircle, RefreshCw, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,12 +26,7 @@ export function FabricaHistorico({ clientId }: Props) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadHistory();
-  }, [clientId]);
-
-  const loadHistory = async () => {
-    setLoading(true);
+  const loadHistory = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('ad_generation_history')
@@ -47,7 +42,24 @@ export function FabricaHistorico({ clientId }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  // Polling: refresh every 5 seconds if there's an in_progress entry
+  useEffect(() => {
+    const hasInProgress = history.some(h => h.status === 'in_progress');
+    
+    if (hasInProgress) {
+      const interval = setInterval(() => {
+        loadHistory();
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [history, loadHistory]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -57,8 +69,10 @@ export function FabricaHistorico({ clientId }: Props) {
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
       case 'failed':
         return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'in_progress':
+        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
       default:
-        return null;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -70,6 +84,8 @@ export function FabricaHistorico({ clientId }: Props) {
         return <Badge variant="default" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Parcial</Badge>;
       case 'failed':
         return <Badge variant="destructive">Falhou</Badge>;
+      case 'in_progress':
+        return <Badge variant="default" className="bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse">Gerando...</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -123,9 +139,10 @@ export function FabricaHistorico({ clientId }: Props) {
         <div className="space-y-3">
           {history.map((entry) => {
             const distribution = entry.execution_details?.distribution;
+            const isInProgress = entry.status === 'in_progress';
             
             return (
-              <Card key={entry.id} className="hover:bg-muted/50 transition-colors">
+              <Card key={entry.id} className={`hover:bg-muted/50 transition-colors ${isInProgress ? 'border-blue-500/50 bg-blue-500/5' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -143,7 +160,7 @@ export function FabricaHistorico({ clientId }: Props) {
                           <span className="font-medium text-foreground">{entry.ads_generated}</span>
                           {' '}de{' '}
                           <span>{entry.ads_requested}</span>
-                          {' '}criativos gerados
+                          {' '}criativos {isInProgress ? 'gerados até agora' : 'gerados'}
                         </div>
 
                         {distribution && (
@@ -163,6 +180,13 @@ export function FabricaHistorico({ clientId }: Props) {
                         {entry.error_message && (
                           <p className="text-xs text-red-500 mt-2">
                             {entry.error_message}
+                          </p>
+                        )}
+
+                        {isInProgress && (
+                          <p className="text-xs text-blue-500 mt-2 flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Geração em andamento... Atualizando automaticamente.
                           </p>
                         )}
                       </div>
