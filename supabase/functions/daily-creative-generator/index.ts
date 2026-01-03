@@ -499,6 +499,9 @@ Responda APENAS em JSON válido:
 
 async function generateCreativeImage(client: ClientData, content: any, schedule: CreativeGenerationSchedule | null): Promise<string | null> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
   
   const referenceImages = getScheduleReferenceImages(schedule);
   const customPrompt = schedule?.custom_image_prompt || '';
@@ -532,6 +535,8 @@ Gere a imagem EXATAMENTE em 1080x1440 pixels (formato 3:4).
 `;
 
   try {
+    let imageData: string | null = null;
+
     if (referenceImages.length > 0) {
       console.log('[daily-creative-generator] Generating with reference image');
       
@@ -571,45 +576,98 @@ IMPORTANTE:
 
       if (response.ok) {
         const data = await response.json();
-        const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-        if (imageUrl) {
+        imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (imageData) {
           console.log('[daily-creative-generator] Image generated with reference');
-          return imageUrl;
         }
       }
     }
 
     // Fallback without reference
-    console.log('[daily-creative-generator] Generating without reference');
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: imagePrompt,
-          },
-        ],
-        modalities: ['image', 'text'],
-      }),
-    });
+    if (!imageData) {
+      console.log('[daily-creative-generator] Generating without reference');
+      
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-pro-image-preview',
+          messages: [
+            {
+              role: 'user',
+              content: imagePrompt,
+            },
+          ],
+          modalities: ['image', 'text'],
+        }),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (imageUrl) {
-        console.log('[daily-creative-generator] Image generated');
-        return imageUrl;
+      if (response.ok) {
+        const data = await response.json();
+        imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (imageData) {
+          console.log('[daily-creative-generator] Image generated');
+        }
       }
     }
 
-    return null;
+    if (!imageData) {
+      console.log('[daily-creative-generator] No image data received');
+      return null;
+    }
+
+    // Upload base64 image to Supabase Storage
+    if (imageData.startsWith('data:image')) {
+      console.log('[daily-creative-generator] Uploading base64 image to storage');
+      
+      // Extract base64 data and content type
+      const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!matches) {
+        console.error('[daily-creative-generator] Invalid base64 format');
+        return imageData; // Return as-is if we can't parse it
+      }
+
+      const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+      const base64Data = matches[2];
+      
+      // Convert base64 to Uint8Array
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Generate unique filename
+      const fileName = `creatives/${client.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('client-media')
+        .upload(fileName, bytes, {
+          contentType: `image/${matches[1]}`,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[daily-creative-generator] Upload error:', uploadError);
+        return imageData; // Return base64 as fallback
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('client-media')
+        .getPublicUrl(fileName);
+
+      if (publicUrlData?.publicUrl) {
+        console.log('[daily-creative-generator] Image uploaded to storage:', publicUrlData.publicUrl);
+        return publicUrlData.publicUrl;
+      }
+    }
+
+    return imageData;
   } catch (error) {
     console.error('[daily-creative-generator] Image generation error:', error);
     return null;

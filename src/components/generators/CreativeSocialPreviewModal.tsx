@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreativeQueueItem } from "@/hooks/useCreativeGenerationQueue";
-import { Check, X, Send, Calendar, FileText, Instagram, Facebook, Loader2 } from "lucide-react";
+import { Check, X, Send, Calendar, FileText, Instagram, Facebook } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SendToPresentationModal } from "./SendToPresentationModal";
 import { ScheduleCreativeModal } from "./ScheduleCreativeModal";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { PublishCreativeModal } from "./PublishCreativeModal";
 
 interface Props {
   creative: CreativeQueueItem;
@@ -23,80 +22,7 @@ interface Props {
 export function CreativeSocialPreviewModal({ creative, open, onOpenChange, onStatusChange, onRefresh }: Props) {
   const [showSendToPresentation, setShowSendToPresentation] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-
-  const handlePublishNow = async () => {
-    setPublishing(true);
-    try {
-      // Get client data for Facebook/Instagram accounts
-      const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select('facebook_page_id, instagram_account_id')
-        .eq('id', creative.client_id)
-        .single();
-
-      if (clientError || !client) {
-        throw new Error('Cliente não encontrado');
-      }
-
-      if (!client.facebook_page_id && !client.instagram_account_id) {
-        throw new Error('Configure uma conta do Facebook ou Instagram no cliente');
-      }
-
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Usuário não autenticado');
-
-      const platform = client.instagram_account_id ? 'instagram' : 'facebook';
-
-      // Create scheduled post for immediate publish
-      const { data: post, error: postError } = await supabase
-        .from('scheduled_posts')
-        .insert({
-          client_id: creative.client_id,
-          company_id: creative.company_id,
-          caption: creative.caption || '',
-          media_urls: creative.image_url ? [creative.image_url] : [],
-          content_type: 'image',
-          platforms: [platform],
-          scheduled_at: new Date().toISOString(),
-          status: 'scheduled',
-          created_by: userData.user.id,
-          facebook_page_id: client.facebook_page_id,
-          instagram_account_id: client.instagram_account_id,
-        })
-        .select()
-        .single();
-
-      if (postError) throw postError;
-
-      // Call publish function
-      const { error: publishError } = await supabase.functions.invoke('publish-scheduled-post', {
-        body: { postId: post.id },
-      });
-
-      if (publishError) throw publishError;
-
-      // Update creative status
-      await supabase
-        .from('creative_generation_queue')
-        .update({
-          status: 'published',
-          published_at: new Date().toISOString(),
-          scheduled_post_id: post.id,
-        })
-        .eq('id', creative.id);
-
-      toast.success('Criativo publicado com sucesso!');
-      onRefresh();
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error('Error publishing:', error);
-      toast.error('Erro ao publicar: ' + error.message);
-    } finally {
-      setPublishing(false);
-    }
-  };
+  const [showPublish, setShowPublish] = useState(false);
 
   return (
     <>
@@ -232,12 +158,8 @@ export function CreativeSocialPreviewModal({ creative, open, onOpenChange, onSta
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handlePublishNow} disabled={publishing} className="flex-1">
-                    {publishing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
+                  <Button variant="outline" onClick={() => setShowPublish(true)} className="flex-1">
+                    <Send className="h-4 w-4 mr-2" />
                     Publicar Agora
                   </Button>
                   <Button variant="outline" onClick={() => setShowSchedule(true)} className="flex-1">
@@ -255,12 +177,8 @@ export function CreativeSocialPreviewModal({ creative, open, onOpenChange, onSta
             {/* Ações para status approved */}
             {creative.status === 'approved' && (
               <div className="flex gap-2">
-                <Button onClick={handlePublishNow} disabled={publishing} className="flex-1">
-                  {publishing ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={() => setShowPublish(true)} className="flex-1">
+                  <Send className="h-4 w-4 mr-2" />
                   Publicar Agora
                 </Button>
                 <Button variant="outline" onClick={() => setShowSchedule(true)} className="flex-1">
@@ -310,6 +228,16 @@ export function CreativeSocialPreviewModal({ creative, open, onOpenChange, onSta
         creative={creative}
         open={showSchedule}
         onOpenChange={setShowSchedule}
+        onSuccess={() => {
+          onRefresh();
+          onOpenChange(false);
+        }}
+      />
+
+      <PublishCreativeModal
+        creative={creative}
+        open={showPublish}
+        onOpenChange={setShowPublish}
         onSuccess={() => {
           onRefresh();
           onOpenChange(false);
