@@ -193,6 +193,36 @@ serve(async (req) => {
         .eq('id', schedule.id);
     }
 
+    // Record generation history
+    const historyEntry = {
+      client_id,
+      company_id,
+      schedule_id: schedule?.id || null,
+      ads_requested: adsToGenerate,
+      ads_generated: generatedAds.length,
+      execution_type: generation_type ? 'manual' : 'scheduled',
+      status: generatedAds.length === adsToGenerate ? 'completed' : (generatedAds.length > 0 ? 'partial' : 'failed'),
+      error_message: errors.length > 0 ? errors.join('; ') : null,
+      execution_details: {
+        distribution: {
+          clones: generatedAds.filter(a => a.type === 'clone').length,
+          concepts: generatedAds.filter(a => a.type === 'concept').length,
+          iterations: generatedAds.filter(a => a.type === 'iteration').length,
+        },
+        requested_distribution: { cloneCount, conceptCount, iterationCount },
+      },
+    };
+
+    const { error: historyError } = await supabase
+      .from('ad_generation_history')
+      .insert(historyEntry);
+
+    if (historyError) {
+      console.error('[daily-ad-generator] Error recording history:', historyError);
+    } else {
+      console.log('[daily-ad-generator] History recorded successfully');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

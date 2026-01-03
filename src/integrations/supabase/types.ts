@@ -77,6 +77,73 @@ export type Database = {
           },
         ]
       }
+      ad_generation_history: {
+        Row: {
+          ads_generated: number
+          ads_requested: number
+          client_id: string
+          company_id: string
+          created_at: string
+          error_message: string | null
+          executed_at: string
+          execution_details: Json | null
+          execution_type: string
+          id: string
+          schedule_id: string | null
+          status: string
+        }
+        Insert: {
+          ads_generated?: number
+          ads_requested?: number
+          client_id: string
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string
+          execution_details?: Json | null
+          execution_type?: string
+          id?: string
+          schedule_id?: string | null
+          status?: string
+        }
+        Update: {
+          ads_generated?: number
+          ads_requested?: number
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string
+          execution_details?: Json | null
+          execution_type?: string
+          id?: string
+          schedule_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_generation_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_history_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "ad_generation_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_generation_queue: {
         Row: {
           client_id: string
