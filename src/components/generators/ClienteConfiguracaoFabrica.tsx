@@ -79,16 +79,17 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         .single();
 
       if (data) {
+        // Converter decimais do banco (0-1) para percentuais (0-100) na UI
         setConfig({
           id: data.id,
           is_active: data.is_active,
           ads_per_day: data.ads_per_day,
-          clone_percentage: data.clone_percentage,
-          concept_percentage: data.concept_percentage,
-          iteration_percentage: data.iteration_percentage,
+          clone_percentage: Math.round(data.clone_percentage * 100),
+          concept_percentage: Math.round(data.concept_percentage * 100),
+          iteration_percentage: Math.round(data.iteration_percentage * 100),
           generation_time: data.generation_time,
           autopilot_enabled: data.autopilot_enabled,
-          autopilot_min_quality_score: data.autopilot_min_quality_score || 80,
+          autopilot_min_quality_score: Math.round((data.autopilot_min_quality_score || 0.8) * 100),
           autopilot_max_daily_budget: data.autopilot_max_daily_budget || 500,
         });
       } else {
@@ -107,17 +108,18 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
 
     setSaving(true);
     try {
+      // Converter percentuais de 0-100 para 0-1 (decimal) para o banco
       const configData = {
         client_id: clientId,
         company_id: activeCompany.company_id,
         is_active: config.is_active,
         ads_per_day: config.ads_per_day,
-        clone_percentage: config.clone_percentage,
-        concept_percentage: config.concept_percentage,
-        iteration_percentage: config.iteration_percentage,
+        clone_percentage: config.clone_percentage / 100,
+        concept_percentage: config.concept_percentage / 100,
+        iteration_percentage: config.iteration_percentage / 100,
         generation_time: config.generation_time,
         autopilot_enabled: config.autopilot_enabled,
-        autopilot_min_quality_score: config.autopilot_min_quality_score,
+        autopilot_min_quality_score: config.autopilot_min_quality_score / 100,
         autopilot_max_daily_budget: config.autopilot_max_daily_budget,
       };
 
