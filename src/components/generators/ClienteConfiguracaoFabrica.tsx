@@ -101,6 +101,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
   const [config, setConfig] = useState<ScheduleConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
   
   // Availability states
   const [hasCompetitors, setHasCompetitors] = useState(false);
@@ -196,6 +197,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           default_pixel_id: (data as any).default_pixel_id ?? null,
           default_url_params: (data as any).default_url_params ?? null,
         });
+        setConfigLoaded(true);
       } else {
         setConfig(defaultConfig);
       }
@@ -335,7 +337,11 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
   };
 
   // Effect to reset disabled percentages when availability changes
+  // Only runs for NEW configs (not loaded from DB)
   useEffect(() => {
+    // Skip if config was loaded from database - respect saved values
+    if (configLoaded) return;
+    
     const newConfig = { ...config };
     let changed = false;
     
@@ -374,7 +380,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
       
       setConfig(newConfig);
     }
-  }, [hasCompetitors, hasResearchThemes, hasCampaigns]);
+  }, [hasCompetitors, hasResearchThemes, hasCampaigns, configLoaded]);
 
   if (loading) {
     return (
