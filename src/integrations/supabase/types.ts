@@ -180,12 +180,21 @@ export type Database = {
           company_id: string
           concept_percentage: number
           created_at: string
+          custom_image_prompt: string | null
           generation_time: string
           id: string
           is_active: boolean
           iteration_percentage: number
           last_generation_at: string | null
           next_generation_at: string | null
+          reference_image_1: string | null
+          reference_image_2: string | null
+          reference_image_3: string | null
+          reference_image_4: string | null
+          reference_image_5: string | null
+          reference_image_6: string | null
+          target_adset_id: string | null
+          target_campaign_id: string | null
           updated_at: string
         }
         Insert: {
@@ -199,12 +208,21 @@ export type Database = {
           company_id: string
           concept_percentage?: number
           created_at?: string
+          custom_image_prompt?: string | null
           generation_time?: string
           id?: string
           is_active?: boolean
           iteration_percentage?: number
           last_generation_at?: string | null
           next_generation_at?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          reference_image_4?: string | null
+          reference_image_5?: string | null
+          reference_image_6?: string | null
+          target_adset_id?: string | null
+          target_campaign_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -218,12 +236,21 @@ export type Database = {
           company_id?: string
           concept_percentage?: number
           created_at?: string
+          custom_image_prompt?: string | null
           generation_time?: string
           id?: string
           is_active?: boolean
           iteration_percentage?: number
           last_generation_at?: string | null
           next_generation_at?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          reference_image_4?: string | null
+          reference_image_5?: string | null
+          reference_image_6?: string | null
+          target_adset_id?: string | null
+          target_campaign_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -239,6 +266,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_schedules_target_adset_id_fkey"
+            columns: ["target_adset_id"]
+            isOneToOne: false
+            referencedRelation: "ad_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_schedules_target_campaign_id_fkey"
+            columns: ["target_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
         ]

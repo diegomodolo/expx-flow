@@ -24,6 +24,7 @@ import {
 import { FabricaCompetidores } from "./FabricaCompetidores";
 import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaAnunciosGerados } from "./FabricaAnunciosGerados";
+import { FabricaConfiguracoesAvancadas } from "./FabricaConfiguracoesAvancadas";
 
 interface ScheduleConfig {
   id?: string;
@@ -37,6 +38,16 @@ interface ScheduleConfig {
   autopilot_min_quality_score: number;
   autopilot_max_daily_budget: number;
   always_include_text_in_images: boolean;
+  // Advanced config
+  target_campaign_id: string | null;
+  target_adset_id: string | null;
+  custom_image_prompt: string | null;
+  reference_image_1: string | null;
+  reference_image_2: string | null;
+  reference_image_3: string | null;
+  reference_image_4: string | null;
+  reference_image_5: string | null;
+  reference_image_6: string | null;
 }
 
 const defaultConfig: ScheduleConfig = {
@@ -50,6 +61,16 @@ const defaultConfig: ScheduleConfig = {
   autopilot_min_quality_score: 80,
   autopilot_max_daily_budget: 500,
   always_include_text_in_images: true,
+  // Advanced config defaults
+  target_campaign_id: null,
+  target_adset_id: null,
+  custom_image_prompt: null,
+  reference_image_1: null,
+  reference_image_2: null,
+  reference_image_3: null,
+  reference_image_4: null,
+  reference_image_5: null,
+  reference_image_6: null,
 };
 
 interface Props {
@@ -98,6 +119,16 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           autopilot_min_quality_score: Math.round(((data.autopilot_min_quality_score ?? 0.8) as number) * 100),
           autopilot_max_daily_budget: Number(data.autopilot_max_daily_budget ?? 500),
           always_include_text_in_images: data.always_include_text_in_images ?? true,
+          // Advanced config
+          target_campaign_id: data.target_campaign_id ?? null,
+          target_adset_id: data.target_adset_id ?? null,
+          custom_image_prompt: data.custom_image_prompt ?? null,
+          reference_image_1: data.reference_image_1 ?? null,
+          reference_image_2: data.reference_image_2 ?? null,
+          reference_image_3: data.reference_image_3 ?? null,
+          reference_image_4: data.reference_image_4 ?? null,
+          reference_image_5: data.reference_image_5 ?? null,
+          reference_image_6: data.reference_image_6 ?? null,
         });
       } else {
         setConfig(defaultConfig);
@@ -131,6 +162,16 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
         // numeric(10,2) no banco
         autopilot_max_daily_budget: Number(config.autopilot_max_daily_budget),
         always_include_text_in_images: config.always_include_text_in_images,
+        // Advanced config
+        target_campaign_id: config.target_campaign_id,
+        target_adset_id: config.target_adset_id,
+        custom_image_prompt: config.custom_image_prompt,
+        reference_image_1: config.reference_image_1,
+        reference_image_2: config.reference_image_2,
+        reference_image_3: config.reference_image_3,
+        reference_image_4: config.reference_image_4,
+        reference_image_5: config.reference_image_5,
+        reference_image_6: config.reference_image_6,
       };
 
       if (config.id) {
@@ -430,6 +471,23 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
               </CardContent>
             </Card>
           </div>
+
+          {/* Configurações Avançadas */}
+          <FabricaConfiguracoesAvancadas
+            clientId={clientId}
+            config={{
+              target_campaign_id: config.target_campaign_id,
+              target_adset_id: config.target_adset_id,
+              custom_image_prompt: config.custom_image_prompt,
+              reference_image_1: config.reference_image_1,
+              reference_image_2: config.reference_image_2,
+              reference_image_3: config.reference_image_3,
+              reference_image_4: config.reference_image_4,
+              reference_image_5: config.reference_image_5,
+              reference_image_6: config.reference_image_6,
+            }}
+            onChange={(advancedConfig) => setConfig({ ...config, ...advancedConfig })}
+          />
         </TabsContent>
 
         <TabsContent value="concorrentes">
