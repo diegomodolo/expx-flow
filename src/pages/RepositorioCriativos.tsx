@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown } from "lucide-react";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -39,12 +39,20 @@ export default function RepositorioCriativos() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getSourceBadge = (source: 'fabrica_criativos' | 'gerador_criativos') => {
+  const getSourceBadge = (source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios') => {
     if (source === 'fabrica_criativos') {
       return (
         <Badge variant="outline" className="gap-1 bg-primary/5">
           <Factory className="h-3 w-3" />
-          Fábrica
+          Fábrica Criativos
+        </Badge>
+      );
+    }
+    if (source === 'fabrica_anuncios') {
+      return (
+        <Badge variant="outline" className="gap-1 bg-orange-500/10 text-orange-600 border-orange-500/30">
+          <Megaphone className="h-3 w-3" />
+          Fábrica Anúncios
         </Badge>
       );
     }
@@ -151,10 +159,12 @@ export default function RepositorioCriativos() {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{creatives.length} criativos</span>
           <span>•</span>
-          <span>{creatives.filter(c => c.source === 'fabrica_criativos').length} da Fábrica</span>
+          <span>{creatives.filter(c => c.source === 'fabrica_anuncios').length} da Fábrica de Anúncios</span>
+          <span>•</span>
+          <span>{creatives.filter(c => c.source === 'fabrica_criativos').length} da Fábrica de Criativos</span>
           <span>•</span>
           <span>{creatives.filter(c => c.source === 'gerador_criativos').length} do Gerador</span>
         </div>
