@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Plus, Loader2, Check, X, Clock, Sparkles, Copy, Lightbulb, RefreshCw, Trash2 } from "lucide-react";
 import { AdPreviewCard } from "@/components/ad-factory/AdPreviewCard";
+import { ApprovalDestinationDialog } from "@/components/ad-factory/ApprovalDestinationDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +66,16 @@ interface GeneratedAd {
   reviewed_at: string | null;
 }
 
-const statusConfig: Record<GenerationStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
+interface SelectedDestination {
+  campaignId: string;
+  campaignName: string;
+  adSetIds: string[];
+}
+
+const statusConfig: Record<
+  GenerationStatus,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }
+> = {
   pending: { label: "Pendente", variant: "secondary", icon: <Clock className="h-3 w-3" /> },
   approved: { label: "Aprovado", variant: "default", icon: <Check className="h-3 w-3" /> },
   rejected: { label: "Rejeitado", variant: "destructive", icon: <X className="h-3 w-3" /> },
@@ -84,6 +94,24 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
   const [selectedType, setSelectedType] = useState<GenerationType>("concept");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAd, setSelectedAd] = useState<GeneratedAd | null>(null);
+
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [adToPublish, setAdToPublish] = useState<GeneratedAd | null>(null);
+
+  const { data: scheduleDefaults } = useQuery({
+    queryKey: ["ad-generation-schedule-defaults", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ad_generation_schedules")
+        .select("target_campaign_id, target_adset_id")
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as { target_campaign_id: string | null; target_adset_id: string | null } | null;
+    },
+    enabled: !!clientId,
+  });
 
   const { data: ads, isLoading, refetch } = useQuery({
     queryKey: ['generated-ads', clientId],
@@ -148,6 +176,52 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const openApprovalDialog = (ad: GeneratedAd) => {
+    if (!activeCompany?.company_id) {
+      toast.error('Selecione uma empresa ativa primeiro');
+      return;
+    }
+
+    setSelectedAd(null); // avoid stacking dialogs
+    setAdToPublish(ad);
+    setApprovalDialogOpen(true);
+  };
+
+  const handleApproveAndPublish = async (destinations: SelectedDestination[]) => {
+    if (!adToPublish || !activeCompany?.company_id) return;
+
+    console.log('[FabricaAnunciosGerados] Publishing ad:', adToPublish.id, 'to destinations:', destinations);
+
+    const { data, error } = await supabase.functions.invoke('publish-approved-ads', {
+      body: {
+        client_id: clientId,
+        company_id: activeCompany.company_id,
+        ad_id: adToPublish.id,
+        destinations,
+      },
+    });
+
+    if (error) {
+      console.error('[FabricaAnunciosGerados] Publish error:', error);
+      throw new Error(error.message);
+    }
+
+    if (data && data.success === false && data.error) {
+      throw new Error(data.error);
+    }
+
+    if (data?.published > 0) {
+      toast.success(`Anúncio publicado em ${data.published} destino(s)!`);
+      if (data.failed > 0) toast.warning(`${data.failed} destino(s) falharam`);
+    } else {
+      toast.error('Nenhum anúncio foi publicado');
+    }
+
+    await refetch();
+    setAdToPublish(null);
+    setApprovalDialogOpen(false);
   };
 
   const handleUpdateStatus = async (adId: string, newStatus: GenerationStatus) => {
@@ -300,7 +374,16 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {ads.map((ad) => (
-            <div key={ad.id} onClick={() => setSelectedAd(ad)} className="cursor-pointer">
+            <div
+              key={ad.id}
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                // Prevent the card "open details" click when user is clicking action buttons/checkboxes
+                if (target.closest('button') || target.closest('[role="checkbox"]')) return;
+                setSelectedAd(ad);
+              }}
+              className="cursor-pointer"
+            >
               <AdPreviewCard
                 ad={{
                   id: ad.id,
@@ -319,7 +402,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
                 }}
                 isSelected={false}
                 onSelect={() => {}}
-                onApprove={() => handleUpdateStatus(ad.id, 'approved')}
+                onApprove={() => openApprovalDialog(ad)}
                 onReject={() => handleUpdateStatus(ad.id, 'rejected')}
               />
             </div>
@@ -453,14 +536,14 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
                         <X className="h-4 w-4 mr-2" />
                         Rejeitar
                       </Button>
-                      <Button onClick={() => handleUpdateStatus(selectedAd.id, 'approved')}>
+                      <Button onClick={() => openApprovalDialog(selectedAd)}>
                         <Check className="h-4 w-4 mr-2" />
-                        Aprovar
+                        Aprovar e Publicar
                       </Button>
                     </>
                   )}
                   {selectedAd.status === 'approved' && (
-                    <Button onClick={() => handleUpdateStatus(selectedAd.id, 'published')}>
+                    <Button onClick={() => openApprovalDialog(selectedAd)}>
                       <Sparkles className="h-4 w-4 mr-2" />
                       Publicar
                     </Button>
@@ -471,6 +554,28 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
           )}
         </DialogContent>
       </Dialog>
+
+      <ApprovalDestinationDialog
+        open={approvalDialogOpen}
+        onOpenChange={(open) => {
+          setApprovalDialogOpen(open);
+          if (!open) setAdToPublish(null);
+        }}
+        adId={adToPublish?.id || ''}
+        clientId={clientId}
+        companyId={activeCompany?.company_id || ''}
+        defaultCampaignId={scheduleDefaults?.target_campaign_id ?? null}
+        defaultAdSetId={scheduleDefaults?.target_adset_id ?? null}
+        onApprove={handleApproveAndPublish}
+        adContent={
+          adToPublish
+            ? {
+                headline: (adToPublish.generated_content as any)?.headline,
+                image_url: (adToPublish.generated_content as any)?.creative_image_url,
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }
