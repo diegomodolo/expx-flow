@@ -694,6 +694,8 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
               default_url_params: config.default_url_params,
             }}
             onChange={(publishingConfig) => setConfig({ ...config, ...publishingConfig })}
+            clientId={clientId}
+            companyId={activeCompany?.company_id || ""}
           />
         </TabsContent>
 
