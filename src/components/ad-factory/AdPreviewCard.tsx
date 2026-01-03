@@ -30,6 +30,7 @@ interface AdPreviewCardProps {
   onSelect: () => void;
   onApprove: () => void;
   onReject: () => void;
+  onViewDetails?: () => void;
 }
 
 const typeConfig = {
@@ -56,6 +57,7 @@ export function AdPreviewCard({
   onSelect,
   onApprove,
   onReject,
+  onViewDetails,
 }: AdPreviewCardProps) {
   const config = typeConfig[ad.generation_type as keyof typeof typeConfig] || typeConfig.concept;
   const TypeIcon = config.icon;
@@ -94,8 +96,8 @@ export function AdPreviewCard({
         </div>
       </div>
 
-      {/* Instagram Mockup */}
-      <div className="bg-background">
+      {/* Instagram Mockup - Clickable for details */}
+      <div className="bg-background cursor-pointer" onClick={onViewDetails}>
         {/* Instagram Header */}
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-2">
@@ -240,13 +242,16 @@ export function AdPreviewCard({
         ) : (
           <div className="w-full text-center">
             <Badge
-              variant={ad.status === "approved" ? "default" : "destructive"}
+              variant={ad.status === "approved" || ad.status === "published" ? "default" : "destructive"}
               className={cn(
-                ad.status === "approved" && "bg-green-500",
+                ad.status === "approved" && "bg-blue-500",
+                ad.status === "published" && "bg-green-500",
                 ad.status === "rejected" && "bg-red-500"
               )}
             >
-              {ad.status === "approved" ? "Aprovado" : "Rejeitado"}
+              {ad.status === "approved" && "Aprovado"}
+              {ad.status === "published" && "Publicado"}
+              {ad.status === "rejected" && "Rejeitado"}
             </Badge>
           </div>
         )}
