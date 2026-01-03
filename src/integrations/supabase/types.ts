@@ -2947,6 +2947,260 @@ export type Database = {
         }
         Relationships: []
       }
+      creative_generation_history: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          creatives_generated: number
+          creatives_requested: number
+          error_message: string | null
+          executed_at: string
+          execution_details: Json | null
+          execution_type: string
+          id: string
+          schedule_id: string | null
+          status: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          creatives_generated?: number
+          creatives_requested: number
+          error_message?: string | null
+          executed_at?: string
+          execution_details?: Json | null
+          execution_type?: string
+          id?: string
+          schedule_id?: string | null
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          creatives_generated?: number
+          creatives_requested?: number
+          error_message?: string | null
+          executed_at?: string
+          execution_details?: Json | null
+          execution_type?: string
+          id?: string
+          schedule_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_generation_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_generation_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_generation_history_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "creative_generation_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_generation_queue: {
+        Row: {
+          caption: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          creative_type: string
+          generated_at: string
+          generated_content: Json | null
+          generation_type: string
+          hashtags: string | null
+          id: string
+          image_url: string | null
+          presentation_id: string | null
+          published_at: string | null
+          quality_score: number | null
+          research_theme_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_post_id: string | null
+          source_creative_id: string | null
+          status: string
+          theme: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          creative_type?: string
+          generated_at?: string
+          generated_content?: Json | null
+          generation_type: string
+          hashtags?: string | null
+          id?: string
+          image_url?: string | null
+          presentation_id?: string | null
+          published_at?: string | null
+          quality_score?: number | null
+          research_theme_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_post_id?: string | null
+          source_creative_id?: string | null
+          status?: string
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          creative_type?: string
+          generated_at?: string
+          generated_content?: Json | null
+          generation_type?: string
+          hashtags?: string | null
+          id?: string
+          image_url?: string | null
+          presentation_id?: string | null
+          published_at?: string | null
+          quality_score?: number | null
+          research_theme_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_post_id?: string | null
+          source_creative_id?: string | null
+          status?: string
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_generation_queue_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_generation_queue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_generation_queue_source_creative_id_fkey"
+            columns: ["source_creative_id"]
+            isOneToOne: false
+            referencedRelation: "creative_generation_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_generation_schedules: {
+        Row: {
+          always_include_text_in_images: boolean
+          client_id: string
+          company_id: string
+          concept_percentage: number
+          created_at: string
+          creatives_per_day: number
+          custom_image_prompt: string | null
+          generation_time: string
+          id: string
+          is_active: boolean
+          iteration_percentage: number
+          last_generation_at: string | null
+          next_generation_at: string | null
+          reference_image_1: string | null
+          reference_image_2: string | null
+          reference_image_3: string | null
+          reference_image_4: string | null
+          reference_image_5: string | null
+          reference_image_6: string | null
+          updated_at: string
+        }
+        Insert: {
+          always_include_text_in_images?: boolean
+          client_id: string
+          company_id: string
+          concept_percentage?: number
+          created_at?: string
+          creatives_per_day?: number
+          custom_image_prompt?: string | null
+          generation_time?: string
+          id?: string
+          is_active?: boolean
+          iteration_percentage?: number
+          last_generation_at?: string | null
+          next_generation_at?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          reference_image_4?: string | null
+          reference_image_5?: string | null
+          reference_image_6?: string | null
+          updated_at?: string
+        }
+        Update: {
+          always_include_text_in_images?: boolean
+          client_id?: string
+          company_id?: string
+          concept_percentage?: number
+          created_at?: string
+          creatives_per_day?: number
+          custom_image_prompt?: string | null
+          generation_time?: string
+          id?: string
+          is_active?: boolean
+          iteration_percentage?: number
+          last_generation_at?: string | null
+          next_generation_at?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          reference_image_4?: string | null
+          reference_image_5?: string | null
+          reference_image_6?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_generation_schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_generation_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creative_media: {
         Row: {
           created_at: string
