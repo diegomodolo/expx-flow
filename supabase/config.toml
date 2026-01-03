@@ -268,3 +268,6 @@ verify_jwt = true
 
 [functions.autopilot-publisher]
 verify_jwt = false
+
+[functions.generate-research-themes]
+verify_jwt = true
