@@ -218,7 +218,7 @@ Responda usando a função score_ad.`;
       .eq('client_id', ad.client_id)
       .single();
 
-    if (schedule?.autopilot_enabled && schedule?.target_campaign_id) {
+    if (schedule?.autopilot_enabled && schedule?.target_campaign_id && schedule?.target_adset_id) {
       const minScore = schedule.autopilot_min_quality_score ?? 7.5;
       
       console.log('[score-generated-ad] Autopilot check - Score:', roundedScore, 'Min required:', minScore);
@@ -226,54 +226,116 @@ Responda usando a função score_ad.`;
       if (roundedScore >= minScore) {
         console.log('[score-generated-ad] Autopilot triggered! Publishing ad automatically...');
         
-        // Call publish-approved-ads to publish automatically
-        try {
-          const publishResponse = await fetch(`${supabaseUrl}/functions/v1/publish-approved-ads`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              client_id: ad.client_id,
-              company_id: schedule.company_id || ad.company_id,
-              ad_ids: [ad.id],
-              destinations: [{
-                campaignId: schedule.target_campaign_id,
-                adsetId: schedule.target_adset_id
-              }]
-            }),
-          });
+        // Buscar o facebook_id do adset configurado
+        const { data: adSetData, error: adSetError } = await supabase
+          .from('ad_sets')
+          .select('id, facebook_id, campaign_id')
+          .eq('id', schedule.target_adset_id)
+          .single();
+        
+        if (adSetError || !adSetData?.facebook_id) {
+          console.error('[score-generated-ad] Target adset does not have Facebook ID:', adSetError?.message || 'facebook_id is null');
+          // Não publica se o adset não tiver facebook_id
+        } else {
+          // Buscar o facebook_id da campanha
+          const { data: campaignData } = await supabase
+            .from('campaigns')
+            .select('id, facebook_id, name')
+            .eq('id', schedule.target_campaign_id)
+            .single();
           
-          if (publishResponse.ok) {
-            // Update ad status to published with autopilot note
-            await supabase
-              .from('ad_generation_queue')
-              .update({ 
-                status: 'published',
-                published_at: new Date().toISOString(),
-                generated_content: {
-                  ...updatedContent,
-                  autopilot_published: true,
-                  autopilot_note: `Publicado automaticamente via Autopilot (nota ${roundedScore} >= ${minScore})`
-                }
-              })
-              .eq('id', ad_id);
-            
-            autopublished = true;
-            console.log('[score-generated-ad] Ad autopublished successfully!');
+          if (!campaignData?.facebook_id) {
+            console.error('[score-generated-ad] Target campaign does not have Facebook ID');
           } else {
-            const errorText = await publishResponse.text();
-            console.error('[score-generated-ad] Autopublish failed:', errorText);
+            // Call publish-approved-ads with the correct format
+            try {
+              const publishResponse = await fetch(`${supabaseUrl}/functions/v1/publish-approved-ads`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  client_id: ad.client_id,
+                  company_id: schedule.company_id || ad.company_id,
+                  ad_id: ad.id,  // Singular, formato correto
+                  destinations: [{
+                    campaignId: schedule.target_campaign_id,
+                    campaignName: campaignData.name || 'Autopilot Campaign',
+                    adSetIds: [schedule.target_adset_id]  // Array de IDs, formato correto
+                  }]
+                }),
+              });
+              
+              const publishResult = await publishResponse.json();
+              console.log('[score-generated-ad] Publish response:', JSON.stringify(publishResult));
+              
+              // Verificar sucesso REAL da publicação
+              if (publishResponse.ok && publishResult.success && publishResult.published > 0) {
+                // Extrair o meta_ad_id da resposta
+                const metaAdId = publishResult.results?.[0]?.meta_ad_id || null;
+                
+                // Update ad status to published with autopilot note
+                await supabase
+                  .from('ad_generation_queue')
+                  .update({ 
+                    status: 'published',
+                    published_at: new Date().toISOString(),
+                    meta_ad_id: metaAdId,
+                    generated_content: {
+                      ...updatedContent,
+                      autopilot_published: true,
+                      autopilot_note: `Publicado automaticamente via Autopilot (nota ${roundedScore} >= ${minScore})`
+                    }
+                  })
+                  .eq('id', ad_id);
+                
+                autopublished = true;
+                console.log('[score-generated-ad] Ad autopublished successfully! Meta Ad ID:', metaAdId);
+              } else {
+                // Publicação falhou - NÃO marca como publicado
+                console.error('[score-generated-ad] Autopublish failed - NOT marking as published. Response:', JSON.stringify(publishResult));
+                
+                // Salvar nota sobre falha no generated_content
+                await supabase
+                  .from('ad_generation_queue')
+                  .update({ 
+                    generated_content: {
+                      ...updatedContent,
+                      autopilot_failed: true,
+                      autopilot_error: publishResult.error || 'Falha ao publicar no Meta - verifique os logs'
+                    }
+                  })
+                  .eq('id', ad_id);
+              }
+            } catch (publishError) {
+              console.error('[score-generated-ad] Autopublish error:', publishError);
+              
+              // Salvar erro no generated_content
+              await supabase
+                .from('ad_generation_queue')
+                .update({ 
+                  generated_content: {
+                    ...updatedContent,
+                    autopilot_failed: true,
+                    autopilot_error: `Erro de conexão: ${publishError.message}`
+                  }
+                })
+                .eq('id', ad_id);
+            }
           }
-        } catch (publishError) {
-          console.error('[score-generated-ad] Autopublish error:', publishError);
         }
       } else {
         console.log('[score-generated-ad] Score below minimum, not autopublishing');
       }
     } else {
-      console.log('[score-generated-ad] Autopilot not enabled or no target campaign configured');
+      if (!schedule?.autopilot_enabled) {
+        console.log('[score-generated-ad] Autopilot not enabled');
+      } else if (!schedule?.target_campaign_id) {
+        console.log('[score-generated-ad] No target campaign configured');
+      } else if (!schedule?.target_adset_id) {
+        console.log('[score-generated-ad] No target adset configured');
+      }
     }
 
     return new Response(
