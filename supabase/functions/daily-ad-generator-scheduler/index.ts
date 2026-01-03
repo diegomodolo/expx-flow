@@ -62,14 +62,23 @@ serve(async (req) => {
         continue;
       }
 
-      // Check if already ran today
+      // Check if already ran today (in BRT timezone)
       const lastRun = schedule.last_generation_at ? new Date(schedule.last_generation_at) : null;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       
-      if (lastRun && lastRun >= today) {
-        console.log(`[daily-ad-generator-scheduler] Skipping ${schedule.client_id} - already ran today at ${lastRun.toISOString()}`);
-        continue;
+      // Get today's date at midnight in BRT (UTC-3)
+      const nowUTC = new Date();
+      const todayBRT = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000);
+      todayBRT.setUTCHours(0, 0, 0, 0);
+      
+      // Convert last run to BRT for comparison
+      if (lastRun) {
+        const lastRunBRT = new Date(lastRun.getTime() - 3 * 60 * 60 * 1000);
+        lastRunBRT.setUTCHours(0, 0, 0, 0);
+        
+        if (lastRunBRT.getTime() >= todayBRT.getTime()) {
+          console.log(`[daily-ad-generator-scheduler] Skipping ${schedule.client_id} - already ran today (BRT) at ${lastRun.toISOString()}`);
+          continue;
+        }
       }
 
       console.log(`[daily-ad-generator-scheduler] Triggering generation for client ${schedule.clients?.name} (${schedule.client_id})`);
