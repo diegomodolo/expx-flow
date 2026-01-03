@@ -81,7 +81,7 @@ Para cada tema, você deve identificar:
 2. A dor/problema do público-alvo relacionado ao tema
 3. A oportunidade de comunicação para o anunciante
 4. O sentimento predominante (positive, negative, neutral)
-5. Uma pontuação de relevância de 1 a 100
+5. Uma pontuação de relevância de 1.0 a 9.9 (use valores decimais como 8.5, 9.2, 7.8)
 
 Foque em temas que:
 - Abordem dores reais do público-alvo
@@ -101,7 +101,7 @@ Retorne um array JSON com exatamente 10 objetos, cada um com esta estrutura:
   "pain_point": "Descrição da dor/problema do público (1-2 frases)",
   "opportunity": "Como o anunciante pode explorar isso (1-2 frases)",
   "sentiment": "positive" ou "negative" ou "neutral",
-  "relevance_score": número de 1 a 100
+  "relevance_score": número decimal de 1.0 a 9.9 (ex: 8.5, 9.2, 7.8)
 }
 
 IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicações.`;
@@ -188,10 +188,27 @@ IMPORTANTE: Retorne APENAS o array JSON, sem markdown, sem \`\`\`, sem explicaç
 
     console.log(`Generated ${themes.length} research themes`);
 
+    // Normalize relevance_score to be within 0.1-9.9 range
+    const normalizedThemes = themes.slice(0, 10).map((theme: any) => {
+      let score = Number(theme.relevance_score) || 5;
+      // If score is in 1-100 range, convert to 0.1-9.9
+      if (score > 10) {
+        score = Math.min(9.9, Math.max(0.1, score / 10));
+      }
+      // Ensure it's within valid range
+      score = Math.min(9.9, Math.max(0.1, score));
+      // Round to 1 decimal place
+      score = Math.round(score * 10) / 10;
+      return {
+        ...theme,
+        relevance_score: score
+      };
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
-        themes: themes.slice(0, 10), // Ensure max 10 themes
+        themes: normalizedThemes,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
