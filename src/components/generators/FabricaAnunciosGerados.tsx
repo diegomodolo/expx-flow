@@ -73,11 +73,20 @@ const typeConfig: Record<GenerationType, { label: string; icon: React.ReactNode;
   iteration: { label: "Iteração", icon: <RefreshCw className="h-4 w-4" />, color: "bg-green-500/10 text-green-600" },
 };
 
+const statusFilters = [
+  { value: "all", label: "Todos", icon: null },
+  { value: "pending", label: "Em Aberto", icon: null },
+  { value: "approved", label: "Aprovados", icon: null },
+  { value: "rejected", label: "Rejeitados", icon: null },
+  { value: "published", label: "Publicados", icon: null },
+] as const;
+
 export function FabricaAnunciosGerados({ clientId }: Props) {
   const { activeCompany } = useCompany();
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<GenerationType>("concept");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<GenerationStatus | "all">("pending");
 
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedAd, setSelectedAd] = useState<GeneratedAd | null>(null);
@@ -236,6 +245,12 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     );
   }
 
+  // Filter ads by status
+  const filteredAds = (ads || []).filter((ad) => {
+    if (filterStatus === "all") return true;
+    return ad.status === filterStatus;
+  });
+
   // Convert GeneratedAd to GeneratedAdType for components
   const convertToAdType = (ad: GeneratedAd): GeneratedAdType => ({
     id: ad.id,
@@ -255,11 +270,11 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold">Anúncios Gerados</h3>
           <p className="text-sm text-muted-foreground">
-            {ads?.length || 0} anúncios gerados pela fábrica
+            {filteredAds.length} de {ads?.length || 0} anúncios
           </p>
         </div>
 
@@ -343,6 +358,20 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
         </Dialog>
       </div>
 
+      {/* Status Filters */}
+      <div className="flex flex-wrap gap-2">
+        {statusFilters.map((filter) => (
+          <Button
+            key={filter.value}
+            variant={filterStatus === filter.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterStatus(filter.value)}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
       {!ads?.length ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -353,9 +382,19 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             </p>
           </CardContent>
         </Card>
+      ) : filteredAds.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">Nenhum anúncio neste status</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Altere o filtro para ver outros anúncios.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {ads.map((ad) => (
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {filteredAds.map((ad) => (
             <AdPreviewCard
               key={ad.id}
               ad={convertToAdType(ad)}
@@ -364,6 +403,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
               onApprove={() => openAdDialog(ad)}
               onReject={() => handleUpdateStatus(ad.id, 'rejected')}
               onViewDetails={() => openAdDialog(ad)}
+              compact
             />
           ))}
         </div>
