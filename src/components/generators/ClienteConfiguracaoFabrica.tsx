@@ -674,6 +674,7 @@ export function ClienteConfiguracaoFabrica({ clientId, onSave, onDelete }: Props
           {/* Configurações Avançadas */}
           <FabricaConfiguracoesAvancadas
             clientId={clientId}
+            scheduleId={config.id}
             config={{
               target_campaign_id: config.target_campaign_id,
               target_adset_id: config.target_adset_id,

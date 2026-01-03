@@ -3,11 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Target, Wand2, ImageIcon, Upload, X, Loader2, Plus, Lightbulb, Copy } from "lucide-react";
+import { Target, Wand2, ImageIcon, Upload, X, Loader2, Plus, Lightbulb, Copy, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const SUGGESTED_PROMPT = `Se baseie 100% nas imagens de referência para criar as variações de imagem dos criativos. Todos os criativos de imagem gerado devem ter o texto da headline na imagem. Todos os textos gerados nas imagens devem ser 100% em português do Brasil`;
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
@@ -26,6 +33,14 @@ interface AdSet {
   campaign_id: string;
 }
 
+interface ScheduleDestination {
+  id?: string;
+  campaign_id: string;
+  campaign_name?: string;
+  adset_id: string;
+  adset_name?: string;
+}
+
 interface AdvancedConfig {
   target_campaign_id: string | null;
   target_adset_id: string | null;
@@ -40,19 +55,24 @@ interface AdvancedConfig {
 
 interface Props {
   clientId: string;
+  scheduleId?: string;
   config: AdvancedConfig;
   onChange: (config: AdvancedConfig) => void;
 }
 
-export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Props) {
+export function FabricaConfiguracoesAvancadas({ clientId, scheduleId, config, onChange }: Props) {
   const { activeCompany } = useCompany();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [adSets, setAdSets] = useState<AdSet[]>([]);
+  const [adSetsByCampaign, setAdSetsByCampaign] = useState<Record<string, AdSet[]>>({});
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
-  const [loadingAdSets, setLoadingAdSets] = useState(false);
+  const [loadingAdSets, setLoadingAdSets] = useState<Record<string, boolean>>({});
   const [showReferenceDialog, setShowReferenceDialog] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
   const [instagramAccountId, setInstagramAccountId] = useState<string | null>(null);
+  const [expandedCampaigns, setExpandedCampaigns] = useState<string[]>([]);
+  const [selectedDestinations, setSelectedDestinations] = useState<ScheduleDestination[]>([]);
+  const [loadingDestinations, setLoadingDestinations] = useState(false);
+  const [savingDestinations, setSavingDestinations] = useState(false);
 
   useEffect(() => {
     if (clientId) {
@@ -61,15 +81,54 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
     }
   }, [clientId]);
 
-  // Load ad sets when campaign changes OR on initial load if campaign is already set
   useEffect(() => {
-    if (config.target_campaign_id) {
-      console.log('Loading ad sets for campaign:', config.target_campaign_id);
-      loadAdSets(config.target_campaign_id);
-    } else {
-      setAdSets([]);
+    if (scheduleId) {
+      loadDestinations();
     }
-  }, [config.target_campaign_id, clientId]);
+  }, [scheduleId]);
+
+  const loadDestinations = async () => {
+    if (!scheduleId) return;
+    
+    setLoadingDestinations(true);
+    try {
+      const { data, error } = await supabase
+        .from('ad_generation_schedule_destinations')
+        .select(`
+          id,
+          campaign_id,
+          adset_id,
+          campaigns:campaign_id(name),
+          ad_sets:adset_id(name)
+        `)
+        .eq('schedule_id', scheduleId);
+
+      if (error) throw error;
+
+      const destinations: ScheduleDestination[] = (data || []).map((d: any) => ({
+        id: d.id,
+        campaign_id: d.campaign_id,
+        campaign_name: d.campaigns?.name,
+        adset_id: d.adset_id,
+        adset_name: d.ad_sets?.name,
+      }));
+
+      setSelectedDestinations(destinations);
+
+      // Expand campaigns that have destinations and load their ad sets
+      const campaignIds = [...new Set(destinations.map(d => d.campaign_id))];
+      setExpandedCampaigns(campaignIds);
+      
+      // Load ad sets for campaigns with destinations
+      for (const campaignId of campaignIds) {
+        loadAdSets(campaignId);
+      }
+    } catch (error) {
+      console.error('Error loading destinations:', error);
+    } finally {
+      setLoadingDestinations(false);
+    }
+  };
 
   const loadClientInstagramId = async () => {
     const { data } = await supabase
@@ -103,9 +162,10 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
   };
 
   const loadAdSets = async (campaignId: string) => {
-    setLoadingAdSets(true);
+    if (adSetsByCampaign[campaignId]) return; // Already loaded
+    
+    setLoadingAdSets(prev => ({ ...prev, [campaignId]: true }));
     try {
-      console.log('Fetching ad sets for campaign_id:', campaignId);
       const { data, error } = await supabase
         .from('ad_sets')
         .select('id, name, facebook_id, campaign_id')
@@ -114,28 +174,92 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
         .order('name');
 
       if (error) throw error;
-      console.log('Ad sets loaded:', data?.length || 0, 'items', data);
-      setAdSets(data || []);
+      setAdSetsByCampaign(prev => ({ ...prev, [campaignId]: data || [] }));
     } catch (error) {
       console.error('Error loading ad sets:', error);
     } finally {
-      setLoadingAdSets(false);
+      setLoadingAdSets(prev => ({ ...prev, [campaignId]: false }));
     }
   };
 
-  const handleCampaignChange = (value: string) => {
-    onChange({
-      ...config,
-      target_campaign_id: value === 'none' ? null : value,
-      target_adset_id: null, // Reset ad set when campaign changes
+  const toggleExpandCampaign = (campaignId: string) => {
+    if (!expandedCampaigns.includes(campaignId)) {
+      loadAdSets(campaignId);
+    }
+    setExpandedCampaigns(prev => 
+      prev.includes(campaignId) 
+        ? prev.filter(id => id !== campaignId)
+        : [...prev, campaignId]
+    );
+  };
+
+  const isAdSetSelected = (campaignId: string, adsetId: string) => {
+    return selectedDestinations.some(d => d.campaign_id === campaignId && d.adset_id === adsetId);
+  };
+
+  const toggleAdSet = (campaign: Campaign, adSet: AdSet) => {
+    setSelectedDestinations(prev => {
+      const exists = prev.some(d => d.campaign_id === campaign.id && d.adset_id === adSet.id);
+      if (exists) {
+        return prev.filter(d => !(d.campaign_id === campaign.id && d.adset_id === adSet.id));
+      }
+      return [...prev, {
+        campaign_id: campaign.id,
+        campaign_name: campaign.name,
+        adset_id: adSet.id,
+        adset_name: adSet.name,
+      }];
     });
   };
 
-  const handleAdSetChange = (value: string) => {
-    onChange({
-      ...config,
-      target_adset_id: value === 'none' ? null : value,
-    });
+  const removeDestination = (campaignId: string, adsetId: string) => {
+    setSelectedDestinations(prev => 
+      prev.filter(d => !(d.campaign_id === campaignId && d.adset_id === adsetId))
+    );
+  };
+
+  const saveDestinations = async () => {
+    if (!scheduleId) {
+      toast.error('Salve a configuração primeiro antes de adicionar destinos.');
+      return;
+    }
+
+    setSavingDestinations(true);
+    try {
+      // Delete existing destinations
+      const { error: deleteError } = await supabase
+        .from('ad_generation_schedule_destinations')
+        .delete()
+        .eq('schedule_id', scheduleId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new destinations
+      if (selectedDestinations.length > 0) {
+        const inserts = selectedDestinations.map(d => ({
+          schedule_id: scheduleId,
+          campaign_id: d.campaign_id,
+          adset_id: d.adset_id,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('ad_generation_schedule_destinations')
+          .insert(inserts);
+
+        if (insertError) throw insertError;
+      }
+
+      toast.success('Destinos salvos com sucesso!');
+    } catch (error: any) {
+      console.error('Error saving destinations:', error);
+      toast.error('Erro ao salvar destinos: ' + error.message);
+    } finally {
+      setSavingDestinations(false);
+    }
+  };
+
+  const getSelectedCountForCampaign = (campaignId: string) => {
+    return selectedDestinations.filter(d => d.campaign_id === campaignId).length;
   };
 
   const handlePromptChange = (value: string) => {
@@ -197,7 +321,6 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
   };
 
   const handleReferenceSelect = (images: string[]) => {
-    // Find empty slots and fill them with all selected images at once
     const currentImages = getReferenceImages();
     const newConfig = { ...config };
     let imageIndex = 0;
@@ -210,7 +333,6 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
       }
     }
 
-    // Update all at once to avoid state closure issues
     onChange(newConfig);
   };
 
@@ -227,70 +349,135 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Destino de Publicação
+            Destinos de Publicação
           </CardTitle>
           <CardDescription>
-            Defina em qual campanha e conjunto de anúncios os criativos aprovados serão publicados
+            Selecione as campanhas e conjuntos de anúncios onde os criativos aprovados serão publicados
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          {/* Selected Destinations Summary */}
+          {selectedDestinations.length > 0 && (
             <div className="space-y-2">
-              <Label>Campanha</Label>
-              <Select
-                value={config.target_campaign_id || 'none'}
-                onValueChange={handleCampaignChange}
-                disabled={loadingCampaigns}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma campanha" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma (não publicar)</SelectItem>
-                  {campaigns.map(campaign => (
-                    <SelectItem key={campaign.id} value={campaign.id}>
-                      {campaign.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {campaigns.length === 0 && !loadingCampaigns && (
-                <p className="text-xs text-muted-foreground">
-                  Nenhuma campanha ativa encontrada. Sincronize os dados do Meta.
-                </p>
-              )}
+              <Label className="text-sm font-medium">Destinos selecionados ({selectedDestinations.length})</Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedDestinations.map((dest, idx) => (
+                  <Badge key={idx} variant="secondary" className="gap-1 pr-1">
+                    <span className="max-w-[200px] truncate">
+                      {dest.campaign_name || 'Campanha'} → {dest.adset_name || 'Conjunto'}
+                    </span>
+                    <button
+                      onClick={() => removeDestination(dest.campaign_id, dest.adset_id)}
+                      className="ml-1 p-0.5 hover:bg-destructive/20 rounded"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label>Conjunto de Anúncios</Label>
-              <Select
-                value={config.target_adset_id || 'none'}
-                onValueChange={handleAdSetChange}
-                disabled={!config.target_campaign_id || loadingAdSets}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um conjunto" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {adSets.map(adSet => (
-                    <SelectItem key={adSet.id} value={adSet.id}>
-                      {adSet.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {config.target_campaign_id && adSets.length === 0 && !loadingAdSets && (
-                <p className="text-xs text-muted-foreground">
-                  Nenhum conjunto ativo nesta campanha.
-                </p>
-              )}
+          {/* Campaign/AdSet Selection */}
+          {loadingCampaigns ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
+          ) : campaigns.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              Nenhuma campanha ativa encontrada. Sincronize os dados do Meta.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-2">
+              {campaigns.map(campaign => {
+                const isExpanded = expandedCampaigns.includes(campaign.id);
+                const adSets = adSetsByCampaign[campaign.id] || [];
+                const selectedCount = getSelectedCountForCampaign(campaign.id);
+                const isLoading = loadingAdSets[campaign.id];
+
+                return (
+                  <div 
+                    key={campaign.id}
+                    className={cn(
+                      "border rounded-lg overflow-hidden transition-colors",
+                      selectedCount > 0 && "border-primary bg-primary/5"
+                    )}
+                  >
+                    <Collapsible open={isExpanded} onOpenChange={() => toggleExpandCampaign(campaign.id)}>
+                      <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 text-left hover:bg-muted/50">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="flex-1 font-medium truncate">{campaign.name}</span>
+                        {selectedCount > 0 && (
+                          <Badge variant="default" className="text-xs">
+                            {selectedCount}
+                          </Badge>
+                        )}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-3 pb-3 space-y-1">
+                          {isLoading ? (
+                            <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Carregando conjuntos...
+                            </div>
+                          ) : adSets.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-2">
+                              Nenhum conjunto ativo nesta campanha.
+                            </p>
+                          ) : (
+                            adSets.map(adSet => (
+                              <div 
+                                key={adSet.id}
+                                className={cn(
+                                  "flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 cursor-pointer",
+                                  isAdSetSelected(campaign.id, adSet.id) && "bg-primary/10"
+                                )}
+                                onClick={() => toggleAdSet(campaign, adSet)}
+                              >
+                                <Checkbox
+                                  checked={isAdSetSelected(campaign.id, adSet.id)}
+                                  onCheckedChange={() => toggleAdSet(campaign, adSet)}
+                                />
+                                <span className="text-sm truncate">{adSet.name}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm text-muted-foreground">
+              Os criativos aprovados serão publicados nos destinos selecionados.
+            </p>
+            <Button 
+              onClick={saveDestinations} 
+              disabled={savingDestinations || !scheduleId}
+              size="sm"
+            >
+              {savingDestinations ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Salvar Destinos
+            </Button>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            Os criativos aprovados (manualmente ou pelo autopilot) serão publicados automaticamente nesta campanha e conjunto de anúncios.
-          </p>
+          {!scheduleId && (
+            <Alert>
+              <AlertDescription>
+                Salve a configuração geral primeiro para poder configurar os destinos de publicação.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

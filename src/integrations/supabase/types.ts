@@ -168,6 +168,52 @@ export type Database = {
           },
         ]
       }
+      ad_generation_schedule_destinations: {
+        Row: {
+          adset_id: string
+          campaign_id: string
+          created_at: string
+          id: string
+          schedule_id: string
+        }
+        Insert: {
+          adset_id: string
+          campaign_id: string
+          created_at?: string
+          id?: string
+          schedule_id: string
+        }
+        Update: {
+          adset_id?: string
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          schedule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_generation_schedule_destinations_adset_id_fkey"
+            columns: ["adset_id"]
+            isOneToOne: false
+            referencedRelation: "ad_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_schedule_destinations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_generation_schedule_destinations_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "ad_generation_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_generation_schedules: {
         Row: {
           ads_per_day: number
