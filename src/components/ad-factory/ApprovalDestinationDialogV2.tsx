@@ -216,24 +216,65 @@ export function ApprovalDestinationDialogV2({
 
   const loadDefaults = async () => {
     try {
-      const { data, error } = await supabase
+      // Load schedule defaults
+      const { data: scheduleData, error: scheduleError } = await supabase
         .from('ad_generation_schedules')
-        .select('default_destination_url, default_primary_text, default_headline, default_description, default_cta, default_pixel_id, default_url_params')
+        .select('id, default_destination_url, default_primary_text, default_headline, default_description, default_cta, default_pixel_id, default_url_params')
         .eq('client_id', clientId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (scheduleError) throw scheduleError;
 
-      if (data) {
+      if (scheduleData) {
         setAdConfig(prev => ({
-          destination_url: (data as any).default_destination_url || prev.destination_url,
-          primary_text: prev.primary_text || (data as any).default_primary_text || "",
-          headline: prev.headline || (data as any).default_headline || "",
-          description: prev.description || (data as any).default_description || "",
-          cta: (data as any).default_cta || prev.cta,
-          pixel_id: (data as any).default_pixel_id || prev.pixel_id,
-          url_params: (data as any).default_url_params || prev.url_params,
+          destination_url: (scheduleData as any).default_destination_url || prev.destination_url,
+          primary_text: prev.primary_text || (scheduleData as any).default_primary_text || "",
+          headline: prev.headline || (scheduleData as any).default_headline || "",
+          description: prev.description || (scheduleData as any).default_description || "",
+          cta: (scheduleData as any).default_cta || prev.cta,
+          pixel_id: (scheduleData as any).default_pixel_id || prev.pixel_id,
+          url_params: (scheduleData as any).default_url_params || prev.url_params,
         }));
+
+        // Load saved destinations from the schedule
+        const { data: destinationsData, error: destError } = await supabase
+          .from('ad_generation_schedule_destinations')
+          .select(`
+            campaign_id,
+            adset_id,
+            campaigns:campaign_id (id, name),
+            ad_sets:adset_id (id, name)
+          `)
+          .eq('schedule_id', scheduleData.id);
+
+        if (destError) throw destError;
+
+        if (destinationsData && destinationsData.length > 0) {
+          // Group by campaign
+          const destinationMap: Record<string, SelectedDestination> = {};
+          
+          destinationsData.forEach((dest: any) => {
+            const campaignId = dest.campaign_id;
+            const campaignName = dest.campaigns?.name || '';
+            const adSetId = dest.adset_id;
+            
+            if (!destinationMap[campaignId]) {
+              destinationMap[campaignId] = {
+                campaignId,
+                campaignName,
+                adSetIds: [],
+              };
+            }
+            
+            if (adSetId && !destinationMap[campaignId].adSetIds.includes(adSetId)) {
+              destinationMap[campaignId].adSetIds.push(adSetId);
+            }
+          });
+
+          const defaultDestinations = Object.values(destinationMap);
+          setSelectedDestinations(defaultDestinations);
+          setExpandedCampaigns(defaultDestinations.map(d => d.campaignId));
+        }
       }
     } catch (error) {
       console.error('Error loading defaults:', error);
