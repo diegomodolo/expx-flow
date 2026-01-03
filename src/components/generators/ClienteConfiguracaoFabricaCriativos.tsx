@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image, Upload, X, Wand2, Copy } from "lucide-react";
+import { Clock, Save, Loader2, Trash2, Settings, Lightbulb, Sparkles, Type, RotateCcw, History, Image, Upload, X, Wand2, Copy, Instagram } from "lucide-react";
+import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SUGGESTED_PROMPT = `Se baseie 100% nas imagens de referência para criar as variações de imagem dos criativos. Todos os criativos de imagem gerado devem ter o texto da headline na imagem. Todos os textos gerados nas imagens devem ser 100% em português do Brasil`;
@@ -76,6 +77,7 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [uploading, setUploading] = useState<number | null>(null);
+  const [showReferenceDialog, setShowReferenceDialog] = useState(false);
   
   const [hasResearchThemes, setHasResearchThemes] = useState(false);
   const [hasPreviousCreatives, setHasPreviousCreatives] = useState(false);
@@ -274,6 +276,27 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
   const handleRemoveImage = (index: number) => {
     const fieldName = `reference_image_${index}` as keyof ScheduleConfig;
     setConfig(prev => ({ ...prev, [fieldName]: null }));
+  };
+
+  const handleImportReferences = (urls: string[]) => {
+    // Find empty slots and fill them with imported URLs
+    const currentImages = [1, 2, 3, 4, 5, 6].map(i => 
+      config[`reference_image_${i}` as keyof ScheduleConfig] as string | null
+    );
+    
+    let urlIndex = 0;
+    const newConfig = { ...config };
+    
+    for (let i = 1; i <= 6 && urlIndex < urls.length; i++) {
+      const fieldName = `reference_image_${i}` as keyof ScheduleConfig;
+      if (!currentImages[i - 1]) {
+        (newConfig as any)[fieldName] = urls[urlIndex];
+        urlIndex++;
+      }
+    }
+    
+    setConfig(newConfig);
+    toast.success(`${urlIndex} imagem(ns) importada(s)!`);
   };
 
   const referenceImages = [1, 2, 3, 4, 5, 6].map(i => ({
@@ -558,14 +581,25 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
 
           {/* Terceira linha: Imagens de Referência (6 em uma linha) */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Image className="h-5 w-5" />
-                Imagens de Referência
-              </CardTitle>
-              <CardDescription>
-                Até 6 imagens para a IA usar como referência visual
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="h-5 w-5" />
+                  Imagens de Referência
+                </CardTitle>
+                <CardDescription className="mt-1.5">
+                  Até 6 imagens para a IA usar como referência visual
+                </CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowReferenceDialog(true)}
+                className="shrink-0"
+              >
+                <Instagram className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-6 gap-4">
@@ -636,6 +670,18 @@ export function ClienteConfiguracaoFabricaCriativos({ clientId, onSave, onDelete
           <FabricaCriativosHistorico clientId={clientId} />
         </TabsContent>
       </Tabs>
+
+      {/* Reference Selection Dialog */}
+      {activeCompany?.company_id && (
+        <ReferenceSelectionDialog
+          open={showReferenceDialog}
+          onOpenChange={setShowReferenceDialog}
+          clientId={clientId}
+          companyId={activeCompany.company_id}
+          onSelect={handleImportReferences}
+          maxSelections={6 - referenceImages.filter(r => r.url).length}
+        />
+      )}
     </div>
   );
 }
