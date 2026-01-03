@@ -808,8 +808,8 @@ function FacebookAdPreview({
         </div>
       )}
       
-      {/* Image */}
-      <div className="aspect-square bg-gray-200 relative">
+      {/* Image - 3:4 aspect ratio (new Meta standard) */}
+      <div className="aspect-[3/4] bg-gray-200 relative">
         {imageUrl ? (
           <img src={imageUrl} alt="Ad preview" className="w-full h-full object-cover" />
         ) : (
@@ -861,8 +861,8 @@ function InstagramAdPreview({
         </div>
       </div>
       
-      {/* Image */}
-      <div className="aspect-square bg-gray-200 relative">
+      {/* Image - 3:4 aspect ratio (new Meta standard) */}
+      <div className="aspect-[3/4] bg-gray-200 relative">
         {imageUrl ? (
           <img src={imageUrl} alt="Ad preview" className="w-full h-full object-cover" />
         ) : (
