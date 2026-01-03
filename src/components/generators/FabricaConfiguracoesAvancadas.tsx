@@ -58,13 +58,15 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
     }
   }, [clientId]);
 
+  // Load ad sets when campaign changes OR on initial load if campaign is already set
   useEffect(() => {
     if (config.target_campaign_id) {
+      console.log('Loading ad sets for campaign:', config.target_campaign_id);
       loadAdSets(config.target_campaign_id);
     } else {
       setAdSets([]);
     }
-  }, [config.target_campaign_id]);
+  }, [config.target_campaign_id, clientId]);
 
   const loadClientInstagramId = async () => {
     const { data } = await supabase
@@ -100,6 +102,7 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
   const loadAdSets = async (campaignId: string) => {
     setLoadingAdSets(true);
     try {
+      console.log('Fetching ad sets for campaign_id:', campaignId);
       const { data, error } = await supabase
         .from('ad_sets')
         .select('id, name, facebook_id, campaign_id')
@@ -108,6 +111,7 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
         .order('name');
 
       if (error) throw error;
+      console.log('Ad sets loaded:', data?.length || 0, 'items', data);
       setAdSets(data || []);
     } catch (error) {
       console.error('Error loading ad sets:', error);
