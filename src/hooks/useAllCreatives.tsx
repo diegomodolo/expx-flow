@@ -14,7 +14,7 @@ export interface UnifiedCreative {
   title: string | null;
   status: string;
   created_at: string;
-  source: 'fabrica_criativos' | 'gerador_criativos';
+  source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios';
   creative_type: string | null;
   theme: string | null;
 }
@@ -22,6 +22,14 @@ export interface UnifiedCreative {
 interface Client {
   id: string;
   name: string;
+}
+
+interface AdGeneratedContent {
+  image_url?: string;
+  video_url?: string;
+  body?: string;
+  headline?: string;
+  ad_type?: string;
 }
 
 export function useAllCreatives(clientIdFilter?: string) {
@@ -42,14 +50,15 @@ export function useAllCreatives(clientIdFilter?: string) {
       const { data: clientsData } = await supabase
         .from('clients')
         .select('id, name')
-        .eq('company_id', activeCompany.company_id);
+        .eq('company_id', activeCompany.company_id)
+        .order('name', { ascending: true });
 
       const clientMap = new Map<string, string>();
       (clientsData || []).forEach(c => clientMap.set(c.id, c.name));
       setClients(clientsData || []);
 
-      // Build queries
-      let fabricaQuery = supabase
+      // Build queries for all three sources
+      let fabricaCriativosQuery = supabase
         .from('creative_generation_queue')
         .select('id, client_id, company_id, image_url, video_url, caption, status, created_at, creative_type, theme')
         .eq('company_id', activeCompany.company_id)
@@ -61,22 +70,31 @@ export function useAllCreatives(clientIdFilter?: string) {
         .eq('company_id', activeCompany.company_id)
         .order('created_at', { ascending: false });
 
+      let fabricaAnunciosQuery = supabase
+        .from('ad_generation_queue')
+        .select('id, client_id, company_id, generated_content, status, created_at, generation_type')
+        .eq('company_id', activeCompany.company_id)
+        .order('created_at', { ascending: false });
+
       // Apply client filter if provided
       if (clientIdFilter) {
-        fabricaQuery = fabricaQuery.eq('client_id', clientIdFilter);
+        fabricaCriativosQuery = fabricaCriativosQuery.eq('client_id', clientIdFilter);
         geradorQuery = geradorQuery.eq('client_id', clientIdFilter);
+        fabricaAnunciosQuery = fabricaAnunciosQuery.eq('client_id', clientIdFilter);
       }
 
-      const [fabricaResult, geradorResult] = await Promise.all([
-        fabricaQuery,
+      const [fabricaCriativosResult, geradorResult, fabricaAnunciosResult] = await Promise.all([
+        fabricaCriativosQuery,
         geradorQuery,
+        fabricaAnunciosQuery,
       ]);
 
-      if (fabricaResult.error) throw fabricaResult.error;
+      if (fabricaCriativosResult.error) throw fabricaCriativosResult.error;
       if (geradorResult.error) throw geradorResult.error;
+      if (fabricaAnunciosResult.error) throw fabricaAnunciosResult.error;
 
       // Normalize fábrica de criativos
-      const fabricaCreatives: UnifiedCreative[] = (fabricaResult.data || []).map(item => ({
+      const fabricaCriativosCreatives: UnifiedCreative[] = (fabricaCriativosResult.data || []).map(item => ({
         id: item.id,
         client_id: item.client_id,
         client_name: clientMap.get(item.client_id) || 'Cliente desconhecido',
@@ -109,8 +127,32 @@ export function useAllCreatives(clientIdFilter?: string) {
         theme: item.theme,
       }));
 
+      // Normalize fábrica de anúncios
+      const fabricaAnunciosCreatives: UnifiedCreative[] = (fabricaAnunciosResult.data || []).map(item => {
+        const content = item.generated_content as AdGeneratedContent | null;
+        return {
+          id: item.id,
+          client_id: item.client_id,
+          client_name: clientMap.get(item.client_id) || 'Cliente desconhecido',
+          company_id: item.company_id,
+          image_url: content?.image_url || null,
+          video_url: content?.video_url || null,
+          caption: content?.body || null,
+          title: content?.headline || null,
+          status: item.status,
+          created_at: item.created_at,
+          source: 'fabrica_anuncios' as const,
+          creative_type: content?.ad_type || item.generation_type || null,
+          theme: null,
+        };
+      });
+
       // Combine and sort by created_at (most recent first)
-      const allCreatives = [...fabricaCreatives, ...geradorCreatives].sort(
+      const allCreatives = [
+        ...fabricaCriativosCreatives, 
+        ...geradorCreatives, 
+        ...fabricaAnunciosCreatives
+      ].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -127,7 +169,7 @@ export function useAllCreatives(clientIdFilter?: string) {
     fetchAllCreatives();
   }, [fetchAllCreatives]);
 
-  // Get unique clients that have creatives
+  // Get unique clients that have creatives (already sorted alphabetically from query)
   const clientsWithCreatives = useMemo(() => {
     const uniqueClientIds = new Set(creatives.map(c => c.client_id));
     return clients.filter(c => uniqueClientIds.has(c.id));
