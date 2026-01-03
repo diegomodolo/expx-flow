@@ -6,7 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Target, Wand2, ImageIcon, Upload, X, Loader2, Plus } from "lucide-react";
+import { Target, Wand2, ImageIcon, Upload, X, Loader2, Plus, Lightbulb, Copy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const SUGGESTED_PROMPT = `Se baseie 100% nas imagens de referência para criar as variações de imagem dos criativos. Todos os criativos de imagem gerado devem ter o texto da headline na imagem. Todos os textos gerados nas imagens devem ser 100% em português do Brasil`;
 import { ReferenceSelectionDialog } from "@/components/clients/ReferenceSelectionDialog";
 import { useCompany } from "@/contexts/CompanyContext";
 
@@ -303,6 +306,31 @@ export function FabricaConfiguracoesAvancadas({ clientId, config, onChange }: Pr
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Sugestão de Prompt */}
+          <Alert className="bg-amber-500/10 border-amber-500/30">
+            <Lightbulb className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="font-medium text-sm mb-1">Sugestão de prompt:</p>
+                <p className="text-xs text-muted-foreground italic">
+                  "{SUGGESTED_PROMPT}"
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  handlePromptChange(SUGGESTED_PROMPT);
+                  toast.success("Prompt sugerido aplicado!");
+                }}
+                className="shrink-0"
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                Usar
+              </Button>
+            </AlertDescription>
+          </Alert>
+
           <Textarea
             placeholder="Ex: Usar cores vibrantes e modernas, foco em pessoas sorrindo, estilo minimalista, incluir o produto em destaque..."
             value={config.custom_image_prompt || ''}
