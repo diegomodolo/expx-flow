@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AdPreviewCard, GeneratedAdType } from "./AdPreviewCard";
 import { ApprovalDestinationDialog } from "./ApprovalDestinationDialog";
+import { AdDetailsDialog } from "./AdDetailsDialog";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,7 +40,9 @@ export function AdReviewGrid({
   onRefetch,
 }: AdReviewGridProps) {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedAdForApproval, setSelectedAdForApproval] = useState<GeneratedAdType | null>(null);
+  const [selectedAdForDetails, setSelectedAdForDetails] = useState<GeneratedAdType | null>(null);
 
   const handleApproveClick = (ad: GeneratedAdType) => {
     // Always open the dialog to select destinations
@@ -56,6 +59,19 @@ export function AdReviewGrid({
       setSelectedAdForApproval(null);
     }
     setApprovalDialogOpen(open);
+  };
+
+  const handleViewDetails = (ad: GeneratedAdType) => {
+    setSelectedAdForDetails(ad);
+    setDetailsDialogOpen(true);
+  };
+
+  const handleRepublish = (ad: GeneratedAdType) => {
+    // Close details dialog and open publish dialog
+    setDetailsDialogOpen(false);
+    setSelectedAdForDetails(null);
+    setSelectedAdForApproval(ad);
+    setApprovalDialogOpen(true);
   };
 
   const handleApproveAndPublish = async (destinations: SelectedDestination[]) => {
@@ -134,22 +150,34 @@ export function AdReviewGrid({
             onSelect={() => onSelect(ad.id)}
             onApprove={() => handleApproveClick(ad)}
             onReject={() => onReject(ad.id)}
+            onViewDetails={() => handleViewDetails(ad)}
           />
         ))}
       </div>
 
       {clientId && companyId && (
-        <ApprovalDestinationDialog
-          open={approvalDialogOpen}
-          onOpenChange={handleDialogClose}
-          adId={selectedAdForApproval?.id || ''}
-          clientId={clientId}
-          companyId={companyId}
-          defaultCampaignId={defaultCampaignId}
-          defaultAdSetId={defaultAdSetId}
-          onApprove={handleApproveAndPublish}
-          adContent={selectedAdForApproval?.generated_content}
-        />
+        <>
+          <ApprovalDestinationDialog
+            open={approvalDialogOpen}
+            onOpenChange={handleDialogClose}
+            adId={selectedAdForApproval?.id || ''}
+            clientId={clientId}
+            companyId={companyId}
+            defaultCampaignId={defaultCampaignId}
+            defaultAdSetId={defaultAdSetId}
+            onApprove={handleApproveAndPublish}
+            adContent={selectedAdForApproval?.generated_content}
+          />
+          <AdDetailsDialog
+            open={detailsDialogOpen}
+            onOpenChange={setDetailsDialogOpen}
+            ad={selectedAdForDetails}
+            clientId={clientId}
+            companyId={companyId}
+            onStatusChange={onRefetch}
+            onRepublish={handleRepublish}
+          />
+        </>
       )}
     </>
   );
