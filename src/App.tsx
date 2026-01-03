@@ -90,6 +90,7 @@ import AlertasDoSistema from "./pages/AlertasDoSistema";
 import DashboardTrafego from "./pages/DashboardTrafego";
 import DashboardTrafegoPublic from "./pages/DashboardTrafegoPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
+import RepositorioCriativos from "./pages/RepositorioCriativos";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -374,6 +375,12 @@ const App = () => {
                  <Route path="/geradores/fabrica-anuncios/historico" element={
                   <ProtectedRoute>
                     <HistoricoGeracoes />
+                  </ProtectedRoute>
+                } />
+                 {/* Repositório de Criativos */}
+                 <Route path="/repositorio-criativos" element={
+                  <ProtectedRoute>
+                    <RepositorioCriativos />
                   </ProtectedRoute>
                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}

@@ -28,6 +28,7 @@ import {
   LucideIcon,
   Tv,
   ExternalLink,
+  Images,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useEmployeePermissions, MenuItemType } from "@/hooks/useEmployeePermissions";
@@ -84,6 +85,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
         { title: "Automatizadores", url: "/automatizadores", icon: Zap, permission: "campanhas" as MenuItemType },
         { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
+        { title: "Repositório de Criativos", url: "/repositorio-criativos", icon: Images, permission: "geradores" as MenuItemType },
         { title: "WhatsApp", url: "/notificacoes/whatsapp", icon: MessageCircle, permission: "whatsapp" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
