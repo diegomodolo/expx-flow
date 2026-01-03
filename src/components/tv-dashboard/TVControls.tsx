@@ -13,7 +13,9 @@ import {
   X,
   Eye,
   EyeOff,
-  ZoomIn
+  ZoomIn,
+  Plus,
+  Minus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -116,14 +118,34 @@ export function TVControls({
                   {zoom}%
                 </span>
               </div>
-              <Slider
-                value={[zoom]}
-                onValueChange={([val]) => onZoomChange(val)}
-                min={50}
-                max={150}
-                step={5}
-                className="w-full"
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => onZoomChange(Math.max(50, zoom - 5))}
+                  disabled={zoom <= 50}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Slider
+                  value={[zoom]}
+                  onValueChange={([val]) => onZoomChange(val)}
+                  min={50}
+                  max={150}
+                  step={5}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => onZoomChange(Math.min(150, zoom + 5))}
+                  disabled={zoom >= 150}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>50%</span>
                 <Button 
