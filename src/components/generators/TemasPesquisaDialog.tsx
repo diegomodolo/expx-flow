@@ -24,7 +24,7 @@ export function TemasPesquisaDialog({ clientId, onInsightAdded }: Props) {
     pain_point: "",
     opportunity: "",
     sentiment: "neutral",
-    relevance_score: 50,
+    relevance_score: 5,
     source_url: "",
     source_type: "manual",
     raw_content: "",
@@ -46,7 +46,7 @@ export function TemasPesquisaDialog({ clientId, onInsightAdded }: Props) {
         pain_point: "",
         opportunity: "",
         sentiment: "neutral",
-        relevance_score: 50,
+        relevance_score: 5,
         source_url: "",
         source_type: "manual",
         raw_content: "",
@@ -149,11 +149,11 @@ export function TemasPesquisaDialog({ clientId, onInsightAdded }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>Relevância: {formData.relevance_score}%</Label>
+            <Label>Relevância: {formData.relevance_score}/10</Label>
             <Slider
-              min={0}
-              max={100}
-              step={5}
+              min={1}
+              max={10}
+              step={1}
               value={[formData.relevance_score]}
               onValueChange={([value]) => setFormData({ ...formData, relevance_score: value })}
             />
