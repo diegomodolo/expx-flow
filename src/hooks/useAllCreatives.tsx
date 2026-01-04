@@ -14,9 +14,10 @@ export interface UnifiedCreative {
   title: string | null;
   status: string;
   created_at: string;
-  source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios';
+  source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis';
   creative_type: string | null;
   theme: string | null;
+  slides?: any[]; // Para carrosséis
 }
 
 interface Client {
@@ -38,6 +39,7 @@ export interface TotalCounts {
   fabricaAnuncios: number;
   fabricaCriativos: number;
   geradorCriativos: number;
+  fabricaCarrosseis: number;
   total: number;
 }
 
@@ -50,7 +52,7 @@ export function useAllCreatives(clientIdFilter?: string) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [totalCounts, setTotalCounts] = useState<TotalCounts>({ fabricaAnuncios: 0, fabricaCriativos: 0, geradorCriativos: 0, total: 0 });
+  const [totalCounts, setTotalCounts] = useState<TotalCounts>({ fabricaAnuncios: 0, fabricaCriativos: 0, geradorCriativos: 0, fabricaCarrosseis: 0, total: 0 });
   const pageRef = useRef(0);
   const clientMapRef = useRef<Map<string, string>>(new Map());
   const isFetchingRef = useRef(false);
@@ -75,27 +77,36 @@ export function useAllCreatives(clientIdFilter?: string) {
         .select('id', { count: 'exact', head: true })
         .eq('company_id', activeCompany.company_id);
 
+      let fabricaCarrosseisCountQuery = supabase
+        .from('carousel_generation_queue')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', activeCompany.company_id);
+
       if (clientIdFilter) {
         fabricaCriativosCountQuery = fabricaCriativosCountQuery.eq('client_id', clientIdFilter);
         geradorCountQuery = geradorCountQuery.eq('client_id', clientIdFilter);
         fabricaAnunciosCountQuery = fabricaAnunciosCountQuery.eq('client_id', clientIdFilter);
+        fabricaCarrosseisCountQuery = fabricaCarrosseisCountQuery.eq('client_id', clientIdFilter);
       }
 
-      const [fcCount, gCount, faCount] = await Promise.all([
+      const [fcCount, gCount, faCount, carCount] = await Promise.all([
         fabricaCriativosCountQuery,
         geradorCountQuery,
         fabricaAnunciosCountQuery,
+        fabricaCarrosseisCountQuery,
       ]);
 
       const fabricaCriativos = fcCount.count || 0;
       const geradorCriativos = gCount.count || 0;
       const fabricaAnuncios = faCount.count || 0;
+      const fabricaCarrosseis = carCount.count || 0;
 
       setTotalCounts({
         fabricaCriativos,
         geradorCriativos,
         fabricaAnuncios,
-        total: fabricaCriativos + geradorCriativos + fabricaAnuncios,
+        fabricaCarrosseis,
+        total: fabricaCriativos + geradorCriativos + fabricaAnuncios + fabricaCarrosseis,
       });
     } catch (error) {
       console.error('Error fetching counts:', error);
@@ -149,22 +160,32 @@ export function useAllCreatives(clientIdFilter?: string) {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
+    let fabricaCarrosseisQuery = supabase
+      .from('carousel_generation_queue')
+      .select('id, client_id, company_id, slides, caption, status, created_at, carousel_type, theme, cover_image_url')
+      .eq('company_id', activeCompany.company_id)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
     // Apply client filter if provided
     if (clientIdFilter) {
       fabricaCriativosQuery = fabricaCriativosQuery.eq('client_id', clientIdFilter);
       geradorQuery = geradorQuery.eq('client_id', clientIdFilter);
       fabricaAnunciosQuery = fabricaAnunciosQuery.eq('client_id', clientIdFilter);
+      fabricaCarrosseisQuery = fabricaCarrosseisQuery.eq('client_id', clientIdFilter);
     }
 
-    const [fabricaCriativosResult, geradorResult, fabricaAnunciosResult] = await Promise.all([
+    const [fabricaCriativosResult, geradorResult, fabricaAnunciosResult, fabricaCarrosseisResult] = await Promise.all([
       fabricaCriativosQuery,
       geradorQuery,
       fabricaAnunciosQuery,
+      fabricaCarrosseisQuery,
     ]);
 
     if (fabricaCriativosResult.error) throw fabricaCriativosResult.error;
     if (geradorResult.error) throw geradorResult.error;
     if (fabricaAnunciosResult.error) throw fabricaAnunciosResult.error;
+    if (fabricaCarrosseisResult.error) throw fabricaCarrosseisResult.error;
 
     // Normalize fábrica de criativos
     const fabricaCriativosCreatives: UnifiedCreative[] = (fabricaCriativosResult.data || []).map(item => ({
@@ -222,11 +243,35 @@ export function useAllCreatives(clientIdFilter?: string) {
       };
     });
 
+    // Normalize fábrica de carrosséis
+    const fabricaCarrosseisCreatives: UnifiedCreative[] = (fabricaCarrosseisResult.data || []).map(item => {
+      const slides = item.slides as any[] | null;
+      // Usa a cover_image_url ou a primeira imagem dos slides
+      const firstSlideImage = slides && slides.length > 0 ? slides[0]?.image_url : null;
+      return {
+        id: item.id,
+        client_id: item.client_id,
+        client_name: mapToUse.get(item.client_id) || 'Cliente desconhecido',
+        company_id: item.company_id,
+        image_url: item.cover_image_url || firstSlideImage || null,
+        video_url: null,
+        caption: item.caption,
+        title: item.theme || 'Carrossel',
+        status: item.status,
+        created_at: item.created_at,
+        source: 'fabrica_carrosseis' as const,
+        creative_type: item.carousel_type,
+        theme: item.theme,
+        slides: slides || [],
+      };
+    });
+
     // Combine and sort by created_at (most recent first)
     const pageCreatives = [
       ...fabricaCriativosCreatives, 
       ...geradorCreatives, 
-      ...fabricaAnunciosCreatives
+      ...fabricaAnunciosCreatives,
+      ...fabricaCarrosseisCreatives
     ].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -237,7 +282,8 @@ export function useAllCreatives(clientIdFilter?: string) {
     // Check if we have more data
     const totalFetched = (fabricaCriativosResult.data?.length || 0) + 
                          (geradorResult.data?.length || 0) + 
-                         (fabricaAnunciosResult.data?.length || 0);
+                         (fabricaAnunciosResult.data?.length || 0) +
+                         (fabricaCarrosseisResult.data?.length || 0);
     
     return { creatives: limitedCreatives, hasMoreData: totalFetched >= limit };
   }, [activeCompany?.company_id, clientIdFilter]);
