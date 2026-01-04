@@ -10,12 +10,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid, ChevronLeft, ChevronRight, ImageOff, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SendToScheduleModal } from "@/components/repositorio-criativos/SendToScheduleModal";
 import { SendToPresentationModal } from "@/components/repositorio-criativos/SendToPresentationModal";
+import { RegenerateCarouselModal } from "@/components/repositorio-criativos/RegenerateCarouselModal";
 
 type SourceFilter = 'all' | 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis';
 type StatusFilter = 'all' | 'pending' | 'approved' | 'published' | 'rejected' | 'completed' | 'generating';
@@ -30,6 +31,7 @@ export default function RepositorioCriativos() {
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   // Reset slide index when selecting a new creative
@@ -47,6 +49,25 @@ export default function RepositorioCriativos() {
     }
     // Fallback to single image
     return creative.image_url ? [creative.image_url] : [];
+  };
+
+  // Count missing images in carousel
+  const getMissingImagesInfo = (creative: UnifiedCreative): { missing: number; total: number } => {
+    if (creative.source !== 'fabrica_carrosseis' || !creative.slides) {
+      return { missing: 0, total: 0 };
+    }
+    const total = creative.slides.length;
+    const missing = creative.slides.filter(slide => !slide.image_url).length;
+    return { missing, total };
+  };
+
+  // Refresh creatives after regeneration
+  const handleRegenerateComplete = () => {
+    // Close modals and reset
+    setShowRegenerateModal(false);
+    setSelectedCreative(null);
+    // The page will reload creatives automatically due to state change
+    window.location.reload();
   };
 
   const handlePrevSlide = () => {
@@ -599,6 +620,38 @@ export default function RepositorioCriativos() {
                   </div>
                 )}
 
+                {/* Missing Images Warning for Carousels */}
+                {(() => {
+                  const { missing, total } = getMissingImagesInfo(selectedCreative);
+                  if (missing > 0) {
+                    return (
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                        <div className="flex items-center gap-2">
+                          <ImageOff className="h-5 w-5 text-orange-500" />
+                          <div>
+                            <p className="text-sm font-medium text-orange-600">
+                              {missing} de {total} slides sem imagem
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Clique para regenerar as imagens faltantes
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowRegenerateModal(true)}
+                          className="gap-1 border-orange-500/30 text-orange-600 hover:bg-orange-500/10"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Regenerar
+                        </Button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Actions */}
                 <div className="flex flex-wrap justify-end gap-2 pt-2">
                   <Button 
@@ -657,6 +710,18 @@ export default function RepositorioCriativos() {
             onSuccess={() => {
               setShowPresentationModal(false);
             }}
+          />
+        )}
+
+        {/* Regenerate Carousel Images Modal */}
+        {selectedCreative && selectedCreative.source === 'fabrica_carrosseis' && (
+          <RegenerateCarouselModal
+            open={showRegenerateModal}
+            onOpenChange={setShowRegenerateModal}
+            carouselId={selectedCreative.id}
+            missingCount={getMissingImagesInfo(selectedCreative).missing}
+            totalSlides={getMissingImagesInfo(selectedCreative).total}
+            onComplete={handleRegenerateComplete}
           />
         )}
       </div>
