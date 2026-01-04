@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UnifiedCreative } from "@/hooks/useAllCreatives";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,9 +18,19 @@ interface Props {
 
 export function SendToScheduleModal({ creative, open, onOpenChange, onSuccess }: Props) {
   const [scheduling, setScheduling] = useState(false);
-  const [platform, setPlatform] = useState<'instagram' | 'facebook'>('instagram');
+  const [platforms, setPlatforms] = useState<('instagram' | 'facebook')[]>(['instagram']);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('10:00');
+
+  const togglePlatform = (platform: 'instagram' | 'facebook') => {
+    setPlatforms(prev => {
+      if (prev.includes(platform)) {
+        if (prev.length === 1) return prev; // Keep at least one
+        return prev.filter(p => p !== platform);
+      }
+      return [...prev, platform];
+    });
+  };
 
   const handleSchedule = async () => {
     if (!scheduleDate || !scheduleTime) {
@@ -41,9 +51,12 @@ export function SendToScheduleModal({ creative, open, onOpenChange, onSuccess }:
         throw new Error('Cliente não encontrado');
       }
 
-      const accountId = platform === 'instagram' ? client.instagram_account_id : client.facebook_page_id;
-      if (!accountId) {
-        throw new Error(`Configure uma conta do ${platform === 'instagram' ? 'Instagram' : 'Facebook'} no cliente`);
+      // Validate accounts for selected platforms
+      for (const platform of platforms) {
+        const accountId = platform === 'instagram' ? client.instagram_account_id : client.facebook_page_id;
+        if (!accountId) {
+          throw new Error(`Configure uma conta do ${platform === 'instagram' ? 'Instagram' : 'Facebook'} no cliente`);
+        }
       }
 
       // Get current user
@@ -61,12 +74,12 @@ export function SendToScheduleModal({ creative, open, onOpenChange, onSuccess }:
           caption: creative.caption || '',
           media_urls: creative.image_url ? [creative.image_url] : [],
           content_type: creative.video_url ? 'video' : 'image',
-          platforms: [platform],
+          platforms: platforms,
           scheduled_at: scheduledAt,
           status: 'scheduled',
           created_by: userData.user.id,
-          facebook_page_id: platform === 'facebook' ? client.facebook_page_id : null,
-          instagram_account_id: platform === 'instagram' ? client.instagram_account_id : null,
+          facebook_page_id: platforms.includes('facebook') ? client.facebook_page_id : null,
+          instagram_account_id: platforms.includes('instagram') ? client.instagram_account_id : null,
         });
 
       if (postError) throw postError;
@@ -100,27 +113,30 @@ export function SendToScheduleModal({ creative, open, onOpenChange, onSuccess }:
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Plataforma</Label>
-            <Select value={platform} onValueChange={(v) => setPlatform(v as 'instagram' | 'facebook')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="instagram">
-                  <div className="flex items-center gap-2">
-                    <Instagram className="h-4 w-4" />
-                    Instagram
-                  </div>
-                </SelectItem>
-                <SelectItem value="facebook">
-                  <div className="flex items-center gap-2">
-                    <Facebook className="h-4 w-4" />
-                    Facebook
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <Label>Plataformas</Label>
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={platforms.includes('instagram')}
+                  onCheckedChange={() => togglePlatform('instagram')}
+                />
+                <div className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4" />
+                  Instagram
+                </div>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <Checkbox
+                  checked={platforms.includes('facebook')}
+                  onCheckedChange={() => togglePlatform('facebook')}
+                />
+                <div className="flex items-center gap-2">
+                  <Facebook className="h-4 w-4" />
+                  Facebook
+                </div>
+              </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
