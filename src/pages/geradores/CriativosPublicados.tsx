@@ -26,6 +26,8 @@ import {
 interface PublishedCreative {
   id: string;
   client_id: string;
+  image_url: string | null;
+  caption: string | null;
   generated_content: {
     image_url?: string;
     caption?: string;
@@ -72,6 +74,8 @@ export default function CriativosPublicados() {
         .select(`
           id,
           client_id,
+          image_url,
+          caption,
           generated_content,
           status,
           published_at,
@@ -169,23 +173,18 @@ export default function CriativosPublicados() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                {creative.generated_content?.image_url ? (
+                {creative.image_url ? (
                   <div 
                     className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden mb-3 cursor-pointer"
                     onClick={() => setSelectedCreative(creative)}
                   >
                     <img 
-                      src={creative.generated_content.image_url} 
+                      src={creative.image_url}
                       alt="Criativo"
+                      loading="lazy"
                       className="object-cover w-full h-full"
                       onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                        const placeholder = document.createElement('p');
-                        placeholder.className = 'text-muted-foreground text-sm';
-                        placeholder.textContent = 'Imagem indisponível';
-                        target.parentElement?.appendChild(placeholder);
+                        e.currentTarget.src = "/placeholder.svg";
                       }}
                     />
                     <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -198,9 +197,9 @@ export default function CriativosPublicados() {
                   </div>
                 )}
 
-                {creative.generated_content?.caption && (
+                {(creative.caption || creative.generated_content?.caption) && (
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                    {creative.generated_content.caption}
+                    {creative.caption || creative.generated_content?.caption}
                   </p>
                 )}
 
@@ -220,20 +219,20 @@ export default function CriativosPublicados() {
           </DialogHeader>
           {selectedCreative && (
             <div className="space-y-4">
-              {selectedCreative.generated_content?.image_url && (
+              {selectedCreative.image_url && (
                 <div className="aspect-[3/4] max-h-[60vh] mx-auto overflow-hidden rounded-lg bg-muted">
                   <img 
-                    src={selectedCreative.generated_content.image_url}
+                    src={selectedCreative.image_url}
                     alt="Criativo"
                     className="w-full h-full object-cover"
                   />
                 </div>
               )}
-              {selectedCreative.generated_content?.caption && (
+              {(selectedCreative.caption || selectedCreative.generated_content?.caption) && (
                 <div>
                   <p className="text-sm font-medium mb-1">Legenda:</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedCreative.generated_content.caption}
+                    {selectedCreative.caption || selectedCreative.generated_content?.caption}
                   </p>
                 </div>
               )}
