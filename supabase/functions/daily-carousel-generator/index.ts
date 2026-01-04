@@ -326,7 +326,7 @@ async function generateCarouselImages(
     try {
       console.log(`[daily-carousel-generator] Generating image for slide ${i + 1}/${carousel.slides.length}`);
       
-      const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram.
+      const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
 ${styleContext}
 
 SLIDE ${slide.slide_number}:
@@ -334,12 +334,15 @@ Headline: ${slide.headline}
 Texto: ${slide.body_text}
 Descrição visual: ${slide.visual_description}
 
-IMPORTANTE:
-- Formato quadrado (1:1) para Instagram
-- Texto legível e bem posicionado
-- Design moderno e limpo
-- NÃO incluir textos longos na imagem, apenas elementos visuais e no máximo a headline curta
-- Cores que combinem com a identidade da marca ${client.company}`;
+REGRAS OBRIGATÓRIAS:
+- Formato VERTICAL 3:4 aspect ratio (altura maior que largura)
+- Resolução ideal: 1080x1440 pixels
+- Texto em PORTUGUÊS BRASILEIRO perfeito, sem erros ortográficos
+- Texto legível, grande e bem posicionado
+- Design moderno, clean e profissional
+- NÃO incluir textos longos, apenas a headline curta e impactante
+- Cores que combinem com a identidade da marca ${client.company}
+- Ultra high resolution`;
 
       const imageUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY);
       
@@ -372,7 +375,7 @@ IMPORTANTE:
 
 async function generateImageWithNanoBanana(prompt: string, apiKey: string): Promise<string | null> {
   try {
-    console.log('[daily-carousel-generator] Calling Nano Banana (gemini-2.5-flash-image-preview) for image generation...');
+    console.log('[daily-carousel-generator] Calling Nano Banana (gemini-3-pro-image-preview) for image generation...');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -381,7 +384,7 @@ async function generateImageWithNanoBanana(prompt: string, apiKey: string): Prom
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: 'google/gemini-3-pro-image-preview',
         messages: [
           { role: 'user', content: prompt }
         ],
