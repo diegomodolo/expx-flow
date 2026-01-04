@@ -23,6 +23,14 @@ export default function Geradores() {
       path: "/geradores/fabrica-anuncios",
     },
     {
+      id: "fabrica-criativos",
+      title: "Fábrica de Criativos",
+      description: "Geração automatizada de criativos visuais com IA, revisão e publicação",
+      icon: Palette,
+      color: "pink",
+      path: "/geradores/fabrica-criativos",
+    },
+    {
       id: "planejamento",
       title: "Planejador de Conteúdo",
       description: "Planeje suas postagens mensais com ajuda da IA integrada",
@@ -45,14 +53,6 @@ export default function Geradores() {
       icon: Sparkles,
       color: "purple",
       path: "/geradores/conteudo",
-    },
-    {
-      id: "criativos",
-      title: "Gerador de Criativos",
-      description: "Crie criativos visuais profissionais com inteligência artificial",
-      icon: Palette,
-      color: "pink",
-      path: "/geradores/criativos",
     },
     {
       id: "apresentacoes",

@@ -49,6 +49,13 @@ import DashboardFabrica from "./pages/geradores/DashboardFabrica";
 import HistoricoGeracoes from "./pages/geradores/HistoricoGeracoes";
 import HistoricoPublicacoesAutopilot from "./pages/geradores/HistoricoPublicacoesAutopilot";
 import FabricaAnuncios from "./pages/geradores/FabricaAnuncios";
+import FabricaCriativos from "./pages/geradores/FabricaCriativos";
+import DashboardFabricaCriativos from "./pages/geradores/DashboardFabricaCriativos";
+import RevisaoDiariaCriativos from "./pages/geradores/RevisaoDiariaCriativos";
+import ConfiguracaoFabricaCriativos from "./pages/geradores/ConfiguracaoFabricaCriativos";
+import TemasFabricaCriativos from "./pages/geradores/TemasFabricaCriativos";
+import HistoricoGeracoesCriativos from "./pages/geradores/HistoricoGeracoesCriativos";
+import CriativosPublicados from "./pages/geradores/CriativosPublicados";
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -358,6 +365,19 @@ const App = () => {
                   <Route path="vencedores" element={<AnunciosVencedores />} />
                   <Route path="historico" element={<HistoricoGeracoes />} />
                   <Route path="publicacoes-autopilot" element={<HistoricoPublicacoesAutopilot />} />
+                </Route>
+                 {/* Fábrica de Criativos - Rotas aninhadas */}
+                 <Route path="/geradores/fabrica-criativos" element={
+                  <ProtectedRoute>
+                    <FabricaCriativos />
+                  </ProtectedRoute>
+                }>
+                  <Route path="dashboard" element={<DashboardFabricaCriativos />} />
+                  <Route path="revisao-diaria" element={<RevisaoDiariaCriativos />} />
+                  <Route path="configuracao" element={<ConfiguracaoFabricaCriativos />} />
+                  <Route path="temas" element={<TemasFabricaCriativos />} />
+                  <Route path="historico" element={<HistoricoGeracoesCriativos />} />
+                  <Route path="publicados" element={<CriativosPublicados />} />
                 </Route>
                  {/* Repositório de Criativos */}
                  <Route path="/repositorio-criativos" element={
