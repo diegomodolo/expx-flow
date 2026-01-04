@@ -1,10 +1,11 @@
 import React from 'react';
-import { Crown, TrendingUp, DollarSign, Target, Play } from 'lucide-react';
+import { Crown, TrendingUp, DollarSign, Target, Play, Trophy, Flame } from 'lucide-react';
 
 interface ChampionCreative {
   id: string;
   type: 'image' | 'video';
   url: string;
+  thumbnailUrl?: string;
   title: string;
   clientName: string;
   clientAvatar: string | null;
@@ -15,16 +16,155 @@ interface ChampionCreative {
   spend: number;
   conversions: number;
   platform: 'Meta' | 'Google';
+  championType: 'conversions' | 'ctr';
 }
 
 interface SocialTVChampionCreativeProps {
-  creative: ChampionCreative | null;
+  creativeByConversions: ChampionCreative | null;
+  creativeByCtr: ChampionCreative | null;
 }
 
-export function SocialTVChampionCreative({ creative }: SocialTVChampionCreativeProps) {
-  if (!creative) {
+function ChampionCard({ 
+  creative, 
+  badge, 
+  badgeIcon: BadgeIcon, 
+  badgeColor,
+  isFullWidth = false 
+}: { 
+  creative: ChampionCreative;
+  badge: string;
+  badgeIcon: React.ElementType;
+  badgeColor: string;
+  isFullWidth?: boolean;
+}) {
+  const mediaUrl = creative.thumbnailUrl || creative.url;
+  const hasValidMedia = mediaUrl && 
+    !mediaUrl.includes('facebook.com/') &&
+    (mediaUrl.includes('.jpg') || 
+     mediaUrl.includes('.jpeg') || 
+     mediaUrl.includes('.png') || 
+     mediaUrl.includes('.gif') || 
+     mediaUrl.includes('.webp') ||
+     mediaUrl.includes('.mp4') ||
+     mediaUrl.includes('scontent') ||
+     mediaUrl.includes('fbcdn') ||
+     mediaUrl.includes('supabase.co/storage'));
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl ${isFullWidth ? 'flex-1' : 'flex-1'}`}>
+      {/* Background */}
+      <div className="absolute inset-0">
+        {hasValidMedia ? (
+          creative.type === 'video' && !creative.thumbnailUrl ? (
+            <video
+              src={mediaUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={mediaUrl}
+              alt={creative.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // On error, hide the image and show gradient fallback
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )
+        ) : (
+          // Gradient fallback when no valid media
+          <div className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500" />
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+      </div>
+
+      {/* Champion badge */}
+      <div className="absolute top-3 left-3 z-10">
+        <div className={`flex items-center gap-2 ${badgeColor} px-3 py-1.5 rounded-full shadow-lg`}>
+          <BadgeIcon className="w-4 h-4 text-white" />
+          <span className="text-xs font-bold text-white uppercase tracking-wider">
+            {badge}
+          </span>
+        </div>
+      </div>
+
+      {/* Video indicator */}
+      {creative.type === 'video' && (
+        <div className="absolute top-3 right-3 z-10">
+          <div className="flex items-center gap-1 bg-black/50 px-2 py-1 rounded-full">
+            <Play className="w-3 h-3 text-white fill-white" />
+            <span className="text-[10px] text-white font-medium">Vídeo</span>
+          </div>
+        </div>
+      )}
+
+      {/* Content overlay */}
+      <div className="relative z-10 p-4 pt-16 flex flex-col justify-end min-h-[280px]">
+        {/* Client & Gestor info */}
+        <div className="flex items-center gap-2 mb-3">
+          {creative.clientAvatar ? (
+            <img
+              src={creative.clientAvatar}
+              alt={creative.clientName}
+              className="w-10 h-10 rounded-full border-2 border-white/30 object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-white/30">
+              <span className="text-sm font-bold text-white">
+                {creative.clientName.charAt(0)}
+              </span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-white truncate">{creative.clientName}</h3>
+            <div className="flex items-center gap-1">
+              {creative.gestorAvatar && (
+                <img
+                  src={creative.gestorAvatar}
+                  alt={creative.gestorName}
+                  className="w-4 h-4 rounded-full"
+                />
+              )}
+              <span className="text-xs text-purple-200/80 truncate">
+                {creative.gestorName}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-sm font-bold text-white mb-3 line-clamp-2">
+          {creative.title}
+        </h2>
+
+        {/* Metrics */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+            <TrendingUp className="w-4 h-4 text-green-400 mx-auto mb-0.5" />
+            <p className="text-sm font-bold text-white">{creative.ctr.toFixed(1)}%</p>
+            <p className="text-[10px] text-purple-200/60">CTR</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+            <Target className="w-4 h-4 text-blue-400 mx-auto mb-0.5" />
+            <p className="text-sm font-bold text-white">{creative.conversions}</p>
+            <p className="text-[10px] text-purple-200/60">Conversões</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SocialTVChampionCreative({ creativeByConversions, creativeByCtr }: SocialTVChampionCreativeProps) {
+  // No champions at all
+  if (!creativeByConversions && !creativeByCtr) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-purple-900/50 to-black/50">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-purple-900/50 to-black/50 rounded-2xl">
         <Crown className="w-16 h-16 text-yellow-500/30 mb-4" />
         <p className="text-lg text-purple-200/50 text-center">
           Nenhum criativo campeão no momento
@@ -36,117 +176,167 @@ export function SocialTVChampionCreative({ creative }: SocialTVChampionCreativeP
     );
   }
 
-  return (
-    <div className="flex-1 relative overflow-hidden">
-      {/* Background creative */}
-      <div className="absolute inset-0">
-        {creative.type === 'video' ? (
-          <video
-            src={creative.url}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <img
-            src={creative.url}
-            alt={creative.title}
-            className="w-full h-full object-cover"
-          />
-        )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-      </div>
+  // Check if both champions are the same ad
+  const sameAd = creativeByConversions?.id === creativeByCtr?.id;
 
-      {/* Champion badge */}
-      <div className="absolute top-4 left-4 z-10">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 rounded-full shadow-lg shadow-yellow-500/30">
-          <Crown className="w-5 h-5 text-white" />
-          <span className="text-sm font-bold text-white uppercase tracking-wider">
-            Criativo Campeão
-          </span>
-        </div>
-      </div>
+  // Only one champion or same ad - show single full-width card
+  if (sameAd && creativeByConversions) {
+    return (
+      <div className="flex-1 flex">
+        <div className="flex-1 relative overflow-hidden rounded-2xl">
+          {/* Background */}
+          <div className="absolute inset-0">
+            {(() => {
+              const mediaUrl = creativeByConversions.thumbnailUrl || creativeByConversions.url;
+              const hasValidMedia = mediaUrl && 
+                !mediaUrl.includes('facebook.com/') &&
+                (mediaUrl.includes('.jpg') || 
+                 mediaUrl.includes('.jpeg') || 
+                 mediaUrl.includes('.png') || 
+                 mediaUrl.includes('scontent') ||
+                 mediaUrl.includes('fbcdn') ||
+                 mediaUrl.includes('supabase.co/storage'));
 
-      {/* Video indicator */}
-      {creative.type === 'video' && (
-        <div className="absolute top-4 right-4 z-10">
-          <div className="flex items-center gap-1 bg-black/50 px-3 py-1.5 rounded-full">
-            <Play className="w-4 h-4 text-white fill-white" />
-            <span className="text-xs text-white font-medium">Vídeo</span>
+              if (hasValidMedia) {
+                return creativeByConversions.type === 'video' && !creativeByConversions.thumbnailUrl ? (
+                  <video
+                    src={mediaUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={mediaUrl}
+                    alt={creativeByConversions.title}
+                    className="w-full h-full object-cover"
+                  />
+                );
+              }
+              return <div className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500" />;
+            })()}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
           </div>
-        </div>
-      )}
 
-      {/* Content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
-        {/* Client & Gestor info */}
-        <div className="flex items-center gap-3 mb-4">
-          {creative.clientAvatar ? (
-            <img
-              src={creative.clientAvatar}
-              alt={creative.clientName}
-              className="w-12 h-12 rounded-full border-2 border-white/30 object-cover"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-white/30">
-              <span className="text-lg font-bold text-white">
-                {creative.clientName.charAt(0)}
+          {/* Dual badges */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 rounded-full shadow-lg shadow-yellow-500/30">
+              <Trophy className="w-5 h-5 text-white" />
+              <span className="text-sm font-bold text-white uppercase tracking-wider">
+                Mais Leads
               </span>
+            </div>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-full shadow-lg shadow-green-500/30">
+              <Flame className="w-5 h-5 text-white" />
+              <span className="text-sm font-bold text-white uppercase tracking-wider">
+                Melhor CTR
+              </span>
+            </div>
+          </div>
+
+          {/* Video indicator */}
+          {creativeByConversions.type === 'video' && (
+            <div className="absolute top-4 right-4 z-10">
+              <div className="flex items-center gap-1 bg-black/50 px-3 py-1.5 rounded-full">
+                <Play className="w-4 h-4 text-white fill-white" />
+                <span className="text-xs text-white font-medium">Vídeo</span>
+              </div>
             </div>
           )}
-          <div>
-            <h3 className="text-lg font-bold text-white">{creative.clientName}</h3>
-            <div className="flex items-center gap-2">
-              {creative.gestorAvatar ? (
+
+          {/* Content overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+            {/* Client & Gestor info */}
+            <div className="flex items-center gap-3 mb-4">
+              {creativeByConversions.clientAvatar ? (
                 <img
-                  src={creative.gestorAvatar}
-                  alt={creative.gestorName}
-                  className="w-5 h-5 rounded-full"
+                  src={creativeByConversions.clientAvatar}
+                  alt={creativeByConversions.clientName}
+                  className="w-12 h-12 rounded-full border-2 border-white/30 object-cover"
                 />
-              ) : null}
-              <span className="text-sm text-purple-200/80">
-                Gestor: {creative.gestorName}
-              </span>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-white/30">
+                  <span className="text-lg font-bold text-white">
+                    {creativeByConversions.clientName.charAt(0)}
+                  </span>
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold text-white">{creativeByConversions.clientName}</h3>
+                <div className="flex items-center gap-2">
+                  {creativeByConversions.gestorAvatar && (
+                    <img
+                      src={creativeByConversions.gestorAvatar}
+                      alt={creativeByConversions.gestorName}
+                      className="w-5 h-5 rounded-full"
+                    />
+                  )}
+                  <span className="text-sm text-purple-200/80">
+                    Gestor: {creativeByConversions.gestorName}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Title */}
-        <h2 className="text-xl font-bold text-white mb-4 line-clamp-2">
-          {creative.title}
-        </h2>
+            {/* Title */}
+            <h2 className="text-xl font-bold text-white mb-4 line-clamp-2">
+              {creativeByConversions.title}
+            </h2>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-            <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-1" />
-            <p className="text-lg font-bold text-white">{creative.ctr.toFixed(2)}%</p>
-            <p className="text-xs text-purple-200/60">CTR</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-            <Target className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-            <p className="text-lg font-bold text-white">{creative.conversions}</p>
-            <p className="text-xs text-purple-200/60">Conversões</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-            <DollarSign className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-            <p className="text-lg font-bold text-white">
-              R$ {creative.spend.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-            </p>
-            <p className="text-xs text-purple-200/60">Investido</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
-            <div className="w-5 h-5 mx-auto mb-1 rounded bg-blue-600 flex items-center justify-center">
-              <span className="text-xs font-bold text-white">M</span>
+            {/* Metrics */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-1" />
+                <p className="text-lg font-bold text-white">{creativeByConversions.ctr.toFixed(2)}%</p>
+                <p className="text-xs text-purple-200/60">CTR</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                <Target className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                <p className="text-lg font-bold text-white">{creativeByConversions.conversions}</p>
+                <p className="text-xs text-purple-200/60">Conversões</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                <DollarSign className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
+                <p className="text-lg font-bold text-white">
+                  R$ {creativeByConversions.spend.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-purple-200/60">Investido</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                <div className="w-5 h-5 mx-auto mb-1 rounded bg-blue-600 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">M</span>
+                </div>
+                <p className="text-lg font-bold text-white">{creativeByConversions.platform}</p>
+                <p className="text-xs text-purple-200/60">Plataforma</p>
+              </div>
             </div>
-            <p className="text-lg font-bold text-white">{creative.platform}</p>
-            <p className="text-xs text-purple-200/60">Plataforma</p>
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Two different champions - show side by side
+  return (
+    <div className="flex-1 flex gap-4">
+      {creativeByConversions && (
+        <ChampionCard
+          creative={creativeByConversions}
+          badge="Mais Leads"
+          badgeIcon={Trophy}
+          badgeColor="bg-gradient-to-r from-yellow-500 to-orange-500 shadow-yellow-500/30"
+        />
+      )}
+      {creativeByCtr && (
+        <ChampionCard
+          creative={creativeByCtr}
+          badge="Melhor CTR"
+          badgeIcon={Flame}
+          badgeColor="bg-gradient-to-r from-green-500 to-emerald-500 shadow-green-500/30"
+        />
+      )}
     </div>
   );
 }
