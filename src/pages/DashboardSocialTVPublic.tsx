@@ -4,37 +4,40 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, AlertTriangle, Tv } from 'lucide-react';
 import { SocialTVHeader } from '@/components/social-tv-dashboard/SocialTVHeader';
-import { SocialTVChampionCreative } from '@/components/social-tv-dashboard/SocialTVChampionCreative';
+import { SocialTVPerformanceHighlight } from '@/components/social-tv-dashboard/SocialTVPerformanceHighlight';
 import { SocialTVGestorRanking } from '@/components/social-tv-dashboard/SocialTVGestorRanking';
 import { SocialTVSquadRanking } from '@/components/social-tv-dashboard/SocialTVSquadRanking';
 import { SocialTVTickerBar } from '@/components/social-tv-dashboard/SocialTVTickerBar';
 import { SocialTVMetricsBadges } from '@/components/social-tv-dashboard/SocialTVMetricsBadges';
 import { SocialTVControls } from '@/components/social-tv-dashboard/SocialTVControls';
 
-interface ChampionCreative {
+interface PerformanceMetrics {
+  totalLeads: number;
+  totalSpend: number;
+  avgCtr: number;
+  activeClients: number;
+  totalAds: number;
+}
+
+interface FeaturedClient {
   id: string;
-  type: 'image' | 'video';
-  url: string;
-  thumbnailUrl?: string;
-  title: string;
-  clientName: string;
-  clientAvatar: string | null;
-  gestorName: string;
+  name: string;
+  avatar: string | null;
+  gestorName: string | null;
   gestorAvatar: string | null;
-  ctr: number;
-  roas: number;
-  spend: number;
-  conversions: number;
-  platform: 'Meta' | 'Google';
-  championType: 'conversions' | 'ctr';
+  teamName: string | null;
+  teamColor: string | null;
+  status: string;
+  totalSpend: number;
+  avgCtr: number;
+  totalAds: number;
 }
 
 interface SocialTVDashboardData {
   company: { id: string; name: string };
   lastSync: string;
-  championByConversions: ChampionCreative | null;
-  championByCtr: ChampionCreative | null;
-  championCreative: ChampionCreative | null; // legacy
+  performanceMetrics: PerformanceMetrics;
+  featuredClient: FeaturedClient | null;
   gestorRanking: Array<{
     id: string;
     name: string;
@@ -62,15 +65,6 @@ interface SocialTVDashboardData {
     gestorName: string;
     gestorAvatar: string | null;
     timestamp: string;
-  }>;
-  featuredCreatives: Array<{
-    id: string;
-    type: 'image' | 'video' | 'carousel';
-    url: string;
-    thumbnailUrl?: string;
-    clientName: string;
-    status: string;
-    ctr: number;
   }>;
   metrics: {
     totalCreatives: number;
@@ -180,6 +174,15 @@ export default function DashboardSocialTVPublic() {
     left: isRotated ? `calc(50% - 50vh)` : 0,
   };
 
+  // Default values if data is missing
+  const performanceMetrics = data.performanceMetrics || {
+    totalLeads: 0,
+    totalSpend: 0,
+    avgCtr: 0,
+    activeClients: 0,
+    totalAds: 0
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-pink-900 overflow-hidden">
       <div style={containerStyle} className="flex flex-col">
@@ -188,11 +191,11 @@ export default function DashboardSocialTVPublic() {
 
         {/* Main Content - Vertical Layout */}
         <div className="flex-1 flex flex-col overflow-hidden relative pb-12">
-          {/* Champion Creative - 50% */}
+          {/* Performance Highlight - 50% */}
           <div className="flex-1 min-h-0 px-4" style={{ flex: '1 1 50%' }}>
-            <SocialTVChampionCreative 
-              creativeByConversions={data.championByConversions}
-              creativeByCtr={data.championByCtr}
+            <SocialTVPerformanceHighlight 
+              performanceMetrics={performanceMetrics}
+              featuredClient={data.featuredClient}
             />
           </div>
 
