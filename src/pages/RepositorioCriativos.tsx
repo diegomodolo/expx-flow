@@ -10,14 +10,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X } from "lucide-react";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { SendToScheduleModal } from "@/components/repositorio-criativos/SendToScheduleModal";
 import { SendToPresentationModal } from "@/components/repositorio-criativos/SendToPresentationModal";
 
-type SourceFilter = 'all' | 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios';
+type SourceFilter = 'all' | 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis';
 type StatusFilter = 'all' | 'pending' | 'approved' | 'published' | 'rejected' | 'completed' | 'generating';
 
 export default function RepositorioCriativos() {
@@ -90,7 +90,7 @@ export default function RepositorioCriativos() {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getSourceBadge = (source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios') => {
+  const getSourceBadge = (source: 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios' | 'fabrica_carrosseis') => {
     if (source === 'fabrica_criativos') {
       return (
         <Badge variant="outline" className="gap-1 bg-primary/5">
@@ -104,6 +104,14 @@ export default function RepositorioCriativos() {
         <Badge variant="outline" className="gap-1 bg-orange-500/10 text-orange-600 border-orange-500/30">
           <Megaphone className="h-3 w-3" />
           Fábrica Anúncios
+        </Badge>
+      );
+    }
+    if (source === 'fabrica_carrosseis') {
+      return (
+        <Badge variant="outline" className="gap-1 bg-purple-500/10 text-purple-600 border-purple-500/30">
+          <LayoutGrid className="h-3 w-3" />
+          Fábrica Carrosséis
         </Badge>
       );
     }
@@ -239,6 +247,7 @@ export default function RepositorioCriativos() {
               <SelectItem value="all">Todas as origens</SelectItem>
               <SelectItem value="fabrica_anuncios">Fábrica de Anúncios</SelectItem>
               <SelectItem value="fabrica_criativos">Fábrica de Criativos</SelectItem>
+              <SelectItem value="fabrica_carrosseis">Fábrica de Carrosséis</SelectItem>
               <SelectItem value="gerador_criativos">Gerador de Criativos</SelectItem>
             </SelectContent>
           </Select>
@@ -276,6 +285,8 @@ export default function RepositorioCriativos() {
           <span>{totalCounts.fabricaAnuncios} da Fábrica de Anúncios</span>
           <span>•</span>
           <span>{totalCounts.fabricaCriativos} da Fábrica de Criativos</span>
+          <span>•</span>
+          <span>{totalCounts.fabricaCarrosseis} da Fábrica de Carrosséis</span>
           <span>•</span>
           <span>{totalCounts.geradorCriativos} do Gerador</span>
           {hasActiveFilters && (
