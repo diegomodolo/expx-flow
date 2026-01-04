@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { CarouselPreviewModal } from "./CarouselPreviewModal";
 import { CarouselGenerationProgressModal } from "./CarouselGenerationProgressModal";
+import { PublishCarouselModal } from "./PublishCarouselModal";
 import type { CarouselType } from "@/hooks/useCarouselGenerationStream";
 import {
   DropdownMenu,
@@ -98,6 +99,7 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
   const [selectedCarousel, setSelectedCarousel] = useState<Carousel | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [publishCarousel, setPublishCarousel] = useState<Carousel | null>(null);
 
   const [generationOpen, setGenerationOpen] = useState(false);
   const [generationType, setGenerationType] = useState<CarouselType | undefined>(undefined);
@@ -195,10 +197,9 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
     }
   };
 
-  const handlePublishNow = (carouselId: string) => {
-    // For now, just mark as published - in the future this will integrate with Meta API
-    updateStatus.mutate({ id: carouselId, status: 'published' });
-    toast.success("Carrossel publicado com sucesso!");
+  const handlePublishNow = (carousel: Carousel) => {
+    setSelectedCarousel(null); // Close preview modal
+    setPublishCarousel(carousel); // Open publish modal
   };
 
   const handleSchedule = (carouselId: string) => {
@@ -445,9 +446,22 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
           onStatusChange={(newStatus) => {
             handleStatusChange(selectedCarousel.id, newStatus);
           }}
-          onPublishNow={() => handlePublishNow(selectedCarousel.id)}
+          onPublishNow={() => handlePublishNow(selectedCarousel)}
           onSchedule={() => handleSchedule(selectedCarousel.id)}
           onSendToPresentation={() => handleSendToPresentation(selectedCarousel.id)}
+        />
+      )}
+
+      {/* Publish Modal */}
+      {publishCarousel && (
+        <PublishCarouselModal
+          carousel={publishCarousel}
+          open={!!publishCarousel}
+          onOpenChange={(open) => !open && setPublishCarousel(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["carousel-client-queue"] });
+            setPublishCarousel(null);
+          }}
         />
       )}
     </>
