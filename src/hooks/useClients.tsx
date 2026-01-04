@@ -63,6 +63,12 @@ export interface Client {
   dashboard_token?: string;
   is_canceled?: boolean;
   canceled_at?: string;
+  gestor_id?: string;
+  gestor?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
   facebook_ad_accounts?: {
     id: string;
     account_name: string;
@@ -524,6 +530,11 @@ export function useClients(options?: { includeCanceled?: boolean }) {
             id,
             name,
             color
+          ),
+          gestor:employees!gestor_id (
+            id,
+            name,
+            avatar
           )
         `)
         .eq("company_id", activeCompany.company_id);
@@ -721,7 +732,9 @@ export function useClients(options?: { includeCanceled?: boolean }) {
         'tiktok_monthly_budget', 'tiktok_payment_type', 'tiktok_recharge_day',
         'twitter_monthly_budget', 'twitter_payment_type', 'twitter_recharge_day',
         // Cancellation fields
-        'is_canceled', 'canceled_at'
+        'is_canceled', 'canceled_at',
+        // Gestor field
+        'gestor_id'
       ];
       
       // Filtrar apenas campos permitidos e converter strings vazias em null para UUIDs
@@ -731,7 +744,7 @@ export function useClients(options?: { includeCanceled?: boolean }) {
           let value = updates[key as keyof Client];
           
           // Converter strings vazias para null em campos UUID
-          if ((key === 'ad_account_id' || key === 'google_account_id' || key === 'team_id' || key === 'facebook_page_id' || key === 'instagram_account_id') && value === "") {
+          if ((key === 'ad_account_id' || key === 'google_account_id' || key === 'team_id' || key === 'facebook_page_id' || key === 'instagram_account_id' || key === 'gestor_id') && value === "") {
             value = null;
           }
           

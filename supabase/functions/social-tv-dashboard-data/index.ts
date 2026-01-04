@@ -156,26 +156,34 @@ serve(async (req) => {
       };
     }
 
-    // Get gestor ranking (by conversions)
+    // Get gestor ranking (by conversions) - using gestor_id from clients table
     const { data: clientsWithGestores } = await supabase
       .from('clients')
       .select(`
+        gestor_id,
         user_id,
+        gestor:employees!gestor_id(id, name, avatar, user_id),
         campaigns(conversions, spend)
       `)
       .eq('company_id', company.id)
       .eq('is_canceled', false);
 
-    // Aggregate by user_id
-    const gestorStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number }>();
+    // Aggregate by gestor_id (or fallback to user_id)
+    const gestorStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number; gestorUserId?: string }>();
     
     if (clientsWithGestores) {
       for (const client of clientsWithGestores) {
-        const userId = client.user_id;
-        if (!gestorStats.has(userId)) {
-          gestorStats.set(userId, { conversions: 0, clientsCount: 0, totalSpend: 0 });
+        // Use gestor_id if set, otherwise fallback to user_id
+        const gestor = client.gestor as any;
+        const gestorId = gestor?.id || client.user_id;
+        const gestorUserId = gestor?.user_id || client.user_id;
+        
+        if (!gestorId) continue;
+        
+        if (!gestorStats.has(gestorId)) {
+          gestorStats.set(gestorId, { conversions: 0, clientsCount: 0, totalSpend: 0, gestorUserId });
         }
-        const stats = gestorStats.get(userId)!;
+        const stats = gestorStats.get(gestorId)!;
         stats.clientsCount++;
         
         const campaigns = client.campaigns as any[] || [];
@@ -187,11 +195,21 @@ serve(async (req) => {
     }
 
     // Get gestor names and sort by conversions
+    // First, get employee info for those who are gestores
     const gestorIds = Array.from(gestorStats.keys());
+    const gestorUserIds = Array.from(gestorStats.values()).map(s => s.gestorUserId).filter(Boolean) as string[];
+    
+    // Get employee data
+    const { data: employeeData } = await supabase
+      .from('employees')
+      .select('id, name, avatar, user_id')
+      .in('id', gestorIds);
+    
+    // Get profile data as fallback for gestores that don't have employee records
     const { data: gestorProfiles } = await supabase
       .from('profiles')
       .select('user_id, full_name, avatar_url')
-      .in('user_id', gestorIds);
+      .in('user_id', gestorUserIds);
 
     const gestorRanking: GestorRanking[] = [];
     let position = 1;
@@ -200,12 +218,16 @@ serve(async (req) => {
       .sort((a, b) => b[1].conversions - a[1].conversions)
       .slice(0, 5);
 
-    for (const [userId, stats] of sortedGestores) {
-      const profile = gestorProfiles?.find(p => p.user_id === userId);
+    for (const [gestorId, stats] of sortedGestores) {
+      // First try to find employee data
+      const employee = employeeData?.find(e => e.id === gestorId);
+      // Then fallback to profile data
+      const profile = gestorProfiles?.find(p => p.user_id === stats.gestorUserId || p.user_id === gestorId);
+      
       gestorRanking.push({
-        id: userId,
-        name: profile?.full_name || 'Gestor',
-        avatar: profile?.avatar_url || null,
+        id: gestorId,
+        name: employee?.name || profile?.full_name || 'Gestor',
+        avatar: employee?.avatar || profile?.avatar_url || null,
         position: position++,
         conversions: stats.conversions,
         clientsCount: stats.clientsCount,

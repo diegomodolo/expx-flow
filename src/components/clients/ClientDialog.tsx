@@ -17,8 +17,9 @@ import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useGoogleAdsIntegration } from "@/hooks/useGoogleAdsIntegration";
 import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
+import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ClientBriefingTab } from "./ClientBriefingTab";
@@ -58,6 +59,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const { adAccounts: googleAdAccounts } = useGoogleAdsIntegration();
   const { clients } = useClients();
   const { teams } = useTeams();
+  const { employees } = useEmployees();
   const { activeCompany } = useCompany();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState<SectionType>('cadastro');
@@ -112,6 +114,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
         is_canceled: client.is_canceled || false,
+        gestor_id: client.gestor_id || "none",
       };
     }
     return {
@@ -162,6 +165,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       twitter_payment_type: "prepaid",
       twitter_recharge_day: undefined as number | undefined,
       is_canceled: false,
+      gestor_id: "none",
     };
   });
   const [loading, setLoading] = useState(false);
@@ -291,6 +295,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
         is_canceled: client.is_canceled || false,
+        gestor_id: client.gestor_id || "none",
       });
       setLocalClient(client);
       
@@ -346,6 +351,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: "prepaid",
         twitter_recharge_day: undefined,
         is_canceled: false,
+        gestor_id: "none",
       });
       setLocalClient(undefined);
       setRechargeDayValue("none");
@@ -392,6 +398,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       const submitData = {
         ...formData,
         team_id: formData.team_id === 'none' ? null : formData.team_id,
+        gestor_id: formData.gestor_id === 'none' ? null : formData.gestor_id,
         ai_briefing: localClient?.ai_briefing,
         briefing_generated_at: localClient?.briefing_generated_at,
         is_canceled: isCanceled,
@@ -784,6 +791,43 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Gestor Responsável */}
+            <div className="space-y-2">
+              <Label htmlFor="gestor">
+                <div className="flex items-center gap-2">
+                  <UserCog className="w-4 h-4" />
+                  Gestor Responsável
+                </div>
+              </Label>
+              <Select
+                value={formData.gestor_id}
+                onValueChange={(value) => setFormData({ ...formData, gestor_id: value })}
+                disabled={readOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o gestor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum gestor</SelectItem>
+                  {employees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-5 h-5">
+                          <AvatarImage src={employee.profile_avatar_url || employee.avatar} alt={employee.name} />
+                          <AvatarFallback className="text-xs">{employee.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span>{employee.name}</span>
+                        <span className="text-xs text-muted-foreground">({employee.role})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O gestor responsável aparece no ranking do Dashboard Social TV
+              </p>
             </div>
 
             {/* Motivo de Inatividade */}
