@@ -2,7 +2,10 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -107,7 +110,10 @@ export function CarouselPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden" aria-describedby={undefined}>
+        <VisuallyHidden>
+          <DialogTitle>Preview do Carrossel</DialogTitle>
+        </VisuallyHidden>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">Preview do Carrossel</h2>

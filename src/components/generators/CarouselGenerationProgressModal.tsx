@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,7 +136,10 @@ export function CarouselGenerationProgressModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0" aria-describedby={undefined}>
+        <VisuallyHidden>
+          <DialogTitle>Gerando carrossel</DialogTitle>
+        </VisuallyHidden>
         <div className="border-b p-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-base font-semibold">Gerando carrossel</h2>
