@@ -108,7 +108,7 @@ export function ImportCreativesModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Importar Criativos da Fábrica</DialogTitle>
           <DialogDescription>
@@ -137,8 +137,8 @@ export function ImportCreativesModal({
               </Badge>
             </div>
 
-            <ScrollArea className="flex-1 -mx-6 px-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4">
+            <ScrollArea className="flex-1 h-full">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4 px-1">
                 {creatives.map((creative) => {
                   const isSelected = selectedIds.has(creative.id);
                   return (
