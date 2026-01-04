@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Layers, Loader2, Check, X, Eye, BookOpen, Users, Sparkles, LayoutGrid } from "lucide-react";
+import { Layers, Loader2, Check, X, Eye, BookOpen, Users, Sparkles, LayoutGrid, Wand2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { CarouselPreviewModal } from "./CarouselPreviewModal";
+import { useCarouselGeneration } from "@/hooks/useCarouselGeneration";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Slide {
   position: number;
@@ -60,6 +67,23 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
   const [selectedCarousel, setSelectedCarousel] = useState<Carousel | null>(null);
+  const { isGenerating, generateCarousels } = useCarouselGeneration();
+
+  const handleGenerate = async (type?: "tutorial" | "comparison" | "behind_scenes" | "curated_list") => {
+    if (!activeCompany?.company_id) return;
+
+    const result = await generateCarousels({
+      clientId,
+      companyId: activeCompany.company_id,
+      carouselType: type,
+      count: 1,
+    });
+
+    if (result.success && result.generated > 0) {
+      toast.success(`${result.generated} carrossel(s) gerado(s)!`);
+      queryClient.invalidateQueries({ queryKey: ['carousel-client-queue'] });
+    }
+  };
 
   const { data: carousels, isLoading } = useQuery({
     queryKey: ['carousel-client-queue', clientId, activeCompany?.company_id],
@@ -124,9 +148,43 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Layers className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">Nenhum carrossel gerado</h3>
-          <p className="text-muted-foreground text-center mt-2">
-            Os carrosseis gerados aparecerão aqui para revisão
+          <p className="text-muted-foreground text-center mt-2 mb-4">
+            Clique no botão abaixo para gerar seu primeiro carrossel
           </p>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={isGenerating}>
+                {isGenerating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-2" />
+                )}
+                Gerar Carrossel
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              <DropdownMenuItem onClick={() => handleGenerate()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Automático
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleGenerate('tutorial')}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Tutorial/Hack
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleGenerate('comparison')}>
+                <Users className="h-4 w-4 mr-2" />
+                Nós vs. Eles
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleGenerate('behind_scenes')}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Bastidores
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleGenerate('curated_list')}>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Curadoria
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardContent>
       </Card>
     );
@@ -134,6 +192,44 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
 
   return (
     <>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-medium">Carrosséis Gerados</h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button disabled={isGenerating}>
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4 mr-2" />
+              )}
+              Gerar Carrossel
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleGenerate()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Automático (baseado em config)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleGenerate('tutorial')}>
+              <BookOpen className="h-4 w-4 mr-2" />
+              Tutorial/Hack
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleGenerate('comparison')}>
+              <Users className="h-4 w-4 mr-2" />
+              Nós vs. Eles
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleGenerate('behind_scenes')}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Bastidores
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleGenerate('curated_list')}>
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Curadoria
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {carousels.map((carousel) => {
           const TypeIcon = typeIcons[carousel.carousel_type] || Layers;
