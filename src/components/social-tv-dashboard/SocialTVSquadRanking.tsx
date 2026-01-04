@@ -71,6 +71,22 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
     }
   };
 
+  // Get squad initials from name (first 2 characters or first letters of words)
+  const getSquadInitials = (name: string) => {
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // Check if icon is an emoji (simple check for non-ASCII characters)
+  const isEmoji = (str: string | null) => {
+    if (!str) return false;
+    // Emojis are typically non-ASCII and short
+    return str.length <= 4 && /[^\x00-\x7F]/.test(str);
+  };
+
   // Show top 3 in podium style, rest in list
   const top3 = squads.slice(0, 3);
   const rest = squads.slice(3);
@@ -92,9 +108,11 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                 className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-gray-300"
                 style={{ backgroundColor: getSquadColor(top3[1].color, 2) + '40' }}
               >
-                <span className="text-2xl">
-                  {top3[1].icon || '👥'}
-                </span>
+                {isEmoji(top3[1].icon) ? (
+                  <span className="text-2xl">{top3[1].icon}</span>
+                ) : (
+                  <span className="text-lg font-bold text-white">{getSquadInitials(top3[1].name)}</span>
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
                 <span className="text-xs font-bold text-gray-800">2</span>
@@ -120,9 +138,11 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                   backgroundColor: getSquadColor(top3[0].color, 1) + '40'
                 }}
               >
-                <span className="text-3xl">
-                  {top3[0].icon || '👥'}
-                </span>
+                {isEmoji(top3[0].icon) ? (
+                  <span className="text-3xl">{top3[0].icon}</span>
+                ) : (
+                  <span className="text-2xl font-bold text-white">{getSquadInitials(top3[0].name)}</span>
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-yellow-400 flex items-center justify-center shadow-lg shadow-yellow-500/30">
                 <Trophy className="w-4 h-4 text-yellow-900" />
@@ -144,9 +164,11 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                 className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-amber-600"
                 style={{ backgroundColor: getSquadColor(top3[2].color, 3) + '40' }}
               >
-                <span className="text-xl">
-                  {top3[2].icon || '👥'}
-                </span>
+                {isEmoji(top3[2].icon) ? (
+                  <span className="text-xl">{top3[2].icon}</span>
+                ) : (
+                  <span className="text-base font-bold text-white">{getSquadInitials(top3[2].name)}</span>
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-600 flex items-center justify-center">
                 <span className="text-xs font-bold text-white">3</span>
@@ -174,9 +196,11 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                 className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: getSquadColor(squad.color, squad.position) + '40' }}
               >
-                <span className="text-sm">
-                  {squad.icon || '👥'}
-                </span>
+                {isEmoji(squad.icon) ? (
+                  <span className="text-sm">{squad.icon}</span>
+                ) : (
+                  <span className="text-xs font-bold text-white">{getSquadInitials(squad.name)}</span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{squad.name}</p>
