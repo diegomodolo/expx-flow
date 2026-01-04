@@ -292,3 +292,9 @@ verify_jwt = false
 
 [functions.validate-portuguese]
 verify_jwt = true
+
+[functions.daily-carousel-generator]
+verify_jwt = false
+
+[functions.daily-carousel-generator-scheduler]
+verify_jwt = false
