@@ -32,6 +32,17 @@ interface GestorRanking {
   totalSpend: number;
 }
 
+interface SquadRanking {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  position: number;
+  conversions: number;
+  clientsCount: number;
+  totalSpend: number;
+}
+
 interface RecentWin {
   id: string;
   type: 'sale' | 'lead';
@@ -235,6 +246,63 @@ serve(async (req) => {
       });
     }
 
+    // Get squad ranking (by conversions) - using team_id from clients table
+    const { data: clientsWithSquads } = await supabase
+      .from('clients')
+      .select(`
+        team_id,
+        team:teams!team_id(id, name, icon, color),
+        campaigns(conversions, spend)
+      `)
+      .eq('company_id', company.id)
+      .eq('is_canceled', false)
+      .not('team_id', 'is', null);
+
+    // Aggregate by team_id (squad)
+    const squadStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number; teamData?: any }>();
+    
+    if (clientsWithSquads) {
+      for (const client of clientsWithSquads) {
+        const team = client.team as any;
+        const teamId = team?.id || client.team_id;
+        
+        if (!teamId) continue;
+        
+        if (!squadStats.has(teamId)) {
+          squadStats.set(teamId, { conversions: 0, clientsCount: 0, totalSpend: 0, teamData: team });
+        }
+        const stats = squadStats.get(teamId)!;
+        stats.clientsCount++;
+        
+        const campaigns = client.campaigns as any[] || [];
+        for (const campaign of campaigns) {
+          stats.conversions += campaign.conversions || 0;
+          stats.totalSpend += campaign.spend || 0;
+        }
+      }
+    }
+
+    // Build squad ranking
+    const squadRanking: SquadRanking[] = [];
+    let squadPosition = 1;
+    
+    const sortedSquads = Array.from(squadStats.entries())
+      .sort((a, b) => b[1].conversions - a[1].conversions)
+      .slice(0, 5);
+
+    for (const [squadId, stats] of sortedSquads) {
+      squadRanking.push({
+        id: squadId,
+        name: stats.teamData?.name || 'Squad',
+        icon: stats.teamData?.icon || null,
+        color: stats.teamData?.color || null,
+        position: squadPosition++,
+        conversions: stats.conversions,
+        clientsCount: stats.clientsCount,
+        totalSpend: stats.totalSpend
+      });
+    }
+
     // Get recent wins (recent conversions from campaigns)
     const { data: recentCampaigns } = await supabase
       .from('campaigns')
@@ -330,6 +398,7 @@ serve(async (req) => {
       lastSync: new Date().toISOString(),
       championCreative,
       gestorRanking,
+      squadRanking,
       recentWins,
       featuredCreatives,
       metrics: {

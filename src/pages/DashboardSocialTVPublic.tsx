@@ -6,6 +6,7 @@ import { Loader2, AlertTriangle, Tv } from 'lucide-react';
 import { SocialTVHeader } from '@/components/social-tv-dashboard/SocialTVHeader';
 import { SocialTVChampionCreative } from '@/components/social-tv-dashboard/SocialTVChampionCreative';
 import { SocialTVGestorRanking } from '@/components/social-tv-dashboard/SocialTVGestorRanking';
+import { SocialTVSquadRanking } from '@/components/social-tv-dashboard/SocialTVSquadRanking';
 import { SocialTVTickerBar } from '@/components/social-tv-dashboard/SocialTVTickerBar';
 import { SocialTVMetricsBadges } from '@/components/social-tv-dashboard/SocialTVMetricsBadges';
 import { SocialTVControls } from '@/components/social-tv-dashboard/SocialTVControls';
@@ -32,6 +33,16 @@ interface SocialTVDashboardData {
     id: string;
     name: string;
     avatar: string | null;
+    position: number;
+    conversions: number;
+    clientsCount: number;
+    totalSpend: number;
+  }>;
+  squadRanking: Array<{
+    id: string;
+    name: string;
+    icon: string | null;
+    color: string | null;
     position: number;
     conversions: number;
     clientsCount: number;
@@ -176,9 +187,14 @@ export default function DashboardSocialTVPublic() {
             <SocialTVChampionCreative creative={data.championCreative} />
           </div>
 
-          {/* Gestor Ranking - 35% */}
-          <div style={{ flex: '0 0 35%' }}>
-            <SocialTVGestorRanking gestores={data.gestorRanking} />
+          {/* Rankings - 35% - Side by side */}
+          <div style={{ flex: '0 0 35%' }} className="flex gap-4 px-4">
+            <div className="flex-1 rounded-xl overflow-hidden">
+              <SocialTVGestorRanking gestores={data.gestorRanking} />
+            </div>
+            <div className="flex-1 rounded-xl overflow-hidden">
+              <SocialTVSquadRanking squads={data.squadRanking || []} />
+            </div>
           </div>
 
           {/* Metrics - 15% */}
