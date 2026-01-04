@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContentPlans, ContentPlan, ContentPlanPost } from "@/hooks/useContentPlans";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ import {
 import { ContentPlanPostCard } from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
 import { ImportCreativesModal } from "./ImportCreativesModal";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download } from "lucide-react";
+import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface ContentPlanEditorProps {
@@ -47,6 +48,8 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   
 
   const { data: plan, isLoading, refetch } = useQuery({
@@ -73,6 +76,50 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
       toast.success("Planejamento salvo!");
     } catch (error) {
       toast.error("Erro ao salvar planejamento");
+    }
+  };
+
+  const generatePublicLink = async () => {
+    if (!plan) return;
+    
+    setIsGeneratingLink(true);
+    try {
+      // Generate a token if it doesn't exist
+      let token = (plan as any).public_token;
+      
+      if (!token) {
+        token = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
+        
+        const { error } = await supabase
+          .from("content_plans")
+          .update({ 
+            public_token: token,
+            public_shared_at: new Date().toISOString()
+          })
+          .eq("id", planId);
+        
+        if (error) throw error;
+        refetch();
+      }
+      
+      const publicUrl = `${window.location.origin}/content-review?token=${token}`;
+      await navigator.clipboard.writeText(publicUrl);
+      setLinkCopied(true);
+      toast.success("Link copiado para a área de transferência!");
+      
+      setTimeout(() => setLinkCopied(false), 3000);
+    } catch (error) {
+      console.error("Error generating link:", error);
+      toast.error("Erro ao gerar link");
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const openPublicLink = () => {
+    const token = (plan as any)?.public_token;
+    if (token) {
+      window.open(`${window.location.origin}/content-review?token=${token}`, '_blank');
     }
   };
 
@@ -265,7 +312,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button onClick={handleAddPost} size="sm" className="gap-2">
                   <Plus className="w-4 h-4" />
                   Adicionar Post
@@ -279,9 +326,44 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   <Download className="w-4 h-4" />
                   Importar da Fábrica
                 </Button>
-                <Badge variant="outline" className="ml-auto">
-                  {plan.posts?.length || 0} posts
-                </Badge>
+
+                {/* Public Review Link - Only show when in review */}
+                {plan.status === "em_revisao" && (
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Button
+                      onClick={generatePublicLink}
+                      size="sm"
+                      variant="secondary"
+                      className="gap-2"
+                      disabled={isGeneratingLink}
+                    >
+                      {isGeneratingLink ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : linkCopied ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                      {linkCopied ? "Copiado!" : "Copiar Link"}
+                    </Button>
+                    {(plan as any).public_token && (
+                      <Button
+                        onClick={openPublicLink}
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1 px-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {plan.status !== "em_revisao" && (
+                  <Badge variant="outline" className="ml-auto">
+                    {plan.posts?.length || 0} posts
+                  </Badge>
+                )}
               </div>
             </div>
 

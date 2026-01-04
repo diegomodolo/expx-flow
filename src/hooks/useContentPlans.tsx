@@ -26,6 +26,9 @@ export interface ContentPlanPost {
   scheduled_date: string | null;
   status: "rascunho" | "finalizado" | "enviado_criativo";
   image_url: string | null;
+  review_status: string | null;
+  review_feedback: string | null;
+  reviewed_at: string | null;
   created_at: string;
   updated_at: string;
   slides?: ContentPlanSlide[];

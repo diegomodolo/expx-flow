@@ -98,6 +98,7 @@ import DashboardTrafego from "./pages/DashboardTrafego";
 import DashboardTrafegoPublic from "./pages/DashboardTrafegoPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
+import PublicContentReview from "./pages/PublicContentReview";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
@@ -134,6 +135,7 @@ const App = () => {
               <Route path="/crm/:token/login" element={<CRMLogin />} />
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
               <Route path="/tv/:token" element={<DashboardTrafegoPublic />} />
+              <Route path="/content-review" element={<PublicContentReview />} />
               
                {/* Protected routes */}
                <Route path="/dashboard" element={

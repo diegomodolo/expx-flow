@@ -283,3 +283,9 @@ verify_jwt = false
 
 [functions.daily-creative-generator-scheduler]
 verify_jwt = false
+
+[functions.analyze-creative-caption]
+verify_jwt = true
+
+[functions.public-content-review]
+verify_jwt = false
