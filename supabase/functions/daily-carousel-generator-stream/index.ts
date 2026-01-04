@@ -184,7 +184,8 @@ serve(async (req) => {
             cover_image_url: null,
             generated_content: { ...carousel, slides: carousel.slides },
             schedule_id: schedule?.id || null,
-            status: "generating",
+            // 'generating' não é um status permitido pela tabela; usamos 'editing' durante a geração
+            status: "editing",
             generated_at: generatedAt,
           })
           .select("id")
