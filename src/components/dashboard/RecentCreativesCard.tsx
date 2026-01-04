@@ -37,7 +37,7 @@ export function RecentCreativesCard() {
         .eq("company_id", activeCompany.company_id)
         .in("status", ["approved", "pending"])
         .order("generated_at", { ascending: false })
-        .limit(3);
+        .limit(4);
 
       if (imageCreatives) {
         for (const creative of imageCreatives) {
@@ -72,7 +72,7 @@ export function RecentCreativesCard() {
         .eq("company_id", activeCompany.company_id)
         .in("status", ["approved", "pending"])
         .order("generated_at", { ascending: false })
-        .limit(3);
+        .limit(4);
 
       if (carousels) {
         for (const carousel of carousels) {

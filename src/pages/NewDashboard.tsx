@@ -6,26 +6,24 @@ import { useTaskAutomation } from '@/hooks/useTaskAutomation';
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { useClients } from "@/hooks/useClients";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { MyDayCard } from "@/components/dashboard/MyDayCard";
 import { TeamHighlights } from "@/components/dashboard/TeamHighlights";
 import { RecentCreativesCard } from "@/components/dashboard/RecentCreativesCard";
+import { ActiveAlertsCard } from "@/components/dashboard/ActiveAlertsCard";
+import { WeekCalendarCard } from "@/components/dashboard/WeekCalendarCard";
+import { TeamNotesCard } from "@/components/dashboard/TeamNotesCard";
+import { FeaturedCampaignsCard } from "@/components/dashboard/FeaturedCampaignsCard";
 import { 
   TrendingUp, 
-  TrendingDown, 
   DollarSign, 
   Users, 
   Target, 
-  AlertTriangle, 
-  CheckCircle,
   RefreshCw,
-  Bell,
 } from "lucide-react";
 
 export default function NewDashboard() {
@@ -43,10 +41,8 @@ export default function NewDashboard() {
   const { syncCampaigns, syncing, progress } = useFacebookCampaignSync();
 
   // Hook para alertas automáticos
-  const { alerts, loading: alertsLoading, generateAlerts } = useDashboardAlerts();
-  const { convertAlertToTask } = useTaskAutomation();
+  const { generateAlerts } = useDashboardAlerts();
   
-  const [convertedActions, setConvertedActions] = useState<Set<string>>(new Set());
   const [alertsGenerated, setAlertsGenerated] = useState(false);
 
   useEffect(() => {
@@ -103,16 +99,6 @@ export default function NewDashboard() {
     return null;
   };
 
-  const handleConvertActionToTask = (alert: any) => {
-    setConvertedActions(prev => new Set([...prev, alert.id]));
-    convertAlertToTask(alert);
-  };
-
-  // Separar alertas por tipo
-  const dangerAlerts = alerts.filter(alert => alert.type === 'danger' && !convertedActions.has(alert.id));
-  const opportunityAlerts = alerts.filter(alert => alert.type === 'opportunity' && !convertedActions.has(alert.id));
-  const criticalAlertsCount = dangerAlerts.length;
-
   return (
     <DashboardLayout>
       {/* Header */}
@@ -142,15 +128,18 @@ export default function NewDashboard() {
       {/* Main Content - 3 Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column - Quick Actions & My Day */}
+        {/* Left Column - Quick Actions, My Day & Featured Campaigns */}
         <div className="lg:col-span-3 space-y-6">
           <QuickActions />
           <MyDayCard />
+          <FeaturedCampaignsCard />
         </div>
 
-        {/* Center Column - Activity Feed */}
-        <div className="lg:col-span-6">
-          <ActivityFeed />
+        {/* Center Column - Alerts, Calendar & Team Notes */}
+        <div className="lg:col-span-6 space-y-6">
+          <ActiveAlertsCard />
+          <WeekCalendarCard />
+          <TeamNotesCard />
         </div>
 
         {/* Right Column - Stats & Highlights */}
@@ -187,38 +176,6 @@ export default function NewDashboard() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Alerts Summary */}
-          {(criticalAlertsCount > 0 || opportunityAlerts.length > 0) && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-primary" />
-                  Alertas
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {criticalAlertsCount > 0 && (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-red-700 dark:text-red-400">Críticos</span>
-                    </div>
-                    <Badge variant="destructive">{criticalAlertsCount}</Badge>
-                  </div>
-                )}
-                {opportunityAlerts.length > 0 && (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span className="text-sm text-green-700 dark:text-green-400">Oportunidades</span>
-                    </div>
-                    <Badge className="bg-green-500">{opportunityAlerts.length}</Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           <RecentCreativesCard />
           <TeamHighlights />
