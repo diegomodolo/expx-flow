@@ -289,3 +289,6 @@ verify_jwt = true
 
 [functions.public-content-review]
 verify_jwt = false
+
+[functions.validate-portuguese]
+verify_jwt = true
