@@ -8,16 +8,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone } from "lucide-react";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { SendToScheduleModal } from "@/components/repositorio-criativos/SendToScheduleModal";
+import { SendToPresentationModal } from "@/components/repositorio-criativos/SendToPresentationModal";
 
 export default function RepositorioCriativos() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const { creatives, allClients, loading, loadingMore, hasMore, loadMore, totalCounts } = useAllCreatives(selectedClientId || undefined);
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showPresentationModal, setShowPresentationModal] = useState(false);
 
   const selectedClientName = useMemo(() => {
     if (!selectedClientId) return "Todos os clientes";
@@ -356,7 +360,21 @@ export default function RepositorioCriativos() {
                 )}
 
                 {/* Actions */}
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex flex-wrap justify-end gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowScheduleModal(true)}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Enviar para Agendamento
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowPresentationModal(true)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Enviar para Apresentação
+                  </Button>
                   {selectedCreative.image_url && (
                     <Button 
                       variant="outline" 
@@ -377,6 +395,30 @@ export default function RepositorioCriativos() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Schedule Modal */}
+        {selectedCreative && (
+          <SendToScheduleModal
+            creative={selectedCreative}
+            open={showScheduleModal}
+            onOpenChange={setShowScheduleModal}
+            onSuccess={() => {
+              setShowScheduleModal(false);
+            }}
+          />
+        )}
+
+        {/* Presentation Modal */}
+        {selectedCreative && (
+          <SendToPresentationModal
+            creative={selectedCreative}
+            open={showPresentationModal}
+            onOpenChange={setShowPresentationModal}
+            onSuccess={() => {
+              setShowPresentationModal(false);
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
