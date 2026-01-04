@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BarChart3, Eye, Settings, Trophy, History, Factory, ArrowLeft } from "lucide-react";
+import { BarChart3, Eye, Settings, Trophy, History, Factory, ArrowLeft, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AutopilotPublishHistory } from "@/components/generators/AutopilotPublishHistory";
 
 export default function FabricaAnuncios() {
   const navigate = useNavigate();
@@ -56,6 +55,14 @@ export default function FabricaAnuncios() {
       color: "purple",
       path: "/geradores/fabrica-anuncios/historico",
     },
+    {
+      id: "publicacoes-autopilot",
+      title: "Histórico de Publicações Autopilot",
+      description: "Veja todos os criativos publicados automaticamente via autopilot",
+      icon: Rocket,
+      color: "teal",
+      path: "/geradores/fabrica-anuncios/publicacoes-autopilot",
+    },
   ];
 
   return (
@@ -95,8 +102,6 @@ export default function FabricaAnuncios() {
             />
           ))}
         </div>
-
-        <AutopilotPublishHistory />
       </div>
     </DashboardLayout>
   );
