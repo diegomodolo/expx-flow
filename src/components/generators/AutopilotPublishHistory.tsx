@@ -346,7 +346,7 @@ export function AutopilotPublishHistory() {
                     </div>
 
                     {/* Imagem do post */}
-                    <div className="aspect-square bg-muted relative">
+                    <div className="aspect-[3/4] bg-muted relative">
                       {getAdImageUrl(selectedAd) ? (
                         <img
                           src={getAdImageUrl(selectedAd)!}
