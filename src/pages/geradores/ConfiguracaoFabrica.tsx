@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Factory, Zap, Settings2, Save, X } from "lucide-react";
+import { Plus, Loader2, Factory, Zap, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 import { ClienteConfiguracaoFabrica } from "@/components/generators/ClienteConfiguracaoFabrica";
@@ -28,13 +28,6 @@ interface ScheduleWithClient {
   ads_generated?: number;
 }
 
-interface EditingState {
-  id: string;
-  is_active: boolean;
-  ads_per_day: number;
-  generation_time: string;
-}
-
 export default function ConfiguracaoFabrica() {
   const { activeCompany } = useCompany();
   const { clients } = useClients();
@@ -43,8 +36,7 @@ export default function ConfiguracaoFabrica() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [configClientId, setConfigClientId] = useState<string | null>(null);
-  const [editingRow, setEditingRow] = useState<EditingState | null>(null);
-  const [saving, setSaving] = useState(false);
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   const loadSchedules = async () => {
     if (!activeCompany?.company_id) return;
@@ -120,63 +112,34 @@ export default function ConfiguracaoFabrica() {
       .slice(0, 2);
   };
 
-  const startEditing = (schedule: ScheduleWithClient) => {
-    setEditingRow({
-      id: schedule.id,
-      is_active: schedule.is_active,
-      ads_per_day: schedule.ads_per_day,
-      generation_time: schedule.generation_time,
-    });
-  };
-
-  const cancelEditing = () => {
-    setEditingRow(null);
-  };
-
-  const saveEditing = async () => {
-    if (!editingRow) return;
-    
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('ad_generation_schedules')
-        .update({
-          is_active: editingRow.is_active,
-          ads_per_day: editingRow.ads_per_day,
-          generation_time: editingRow.generation_time,
-        })
-        .eq('id', editingRow.id);
-
-      if (error) throw error;
-
-      toast.success("Configuração atualizada");
-      setEditingRow(null);
-      loadSchedules();
-    } catch (error) {
-      console.error('Error saving schedule:', error);
-      toast.error("Erro ao salvar configuração");
-    } finally {
-      setSaving(false);
+  const updateScheduleField = async (scheduleId: string, field: string, value: any) => {
+    // Clear existing timer for this field
+    const timerKey = `${scheduleId}-${field}`;
+    if (debounceTimers.current[timerKey]) {
+      clearTimeout(debounceTimers.current[timerKey]);
     }
-  };
 
-  const handleQuickToggle = async (scheduleId: string, newValue: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('ad_generation_schedules')
-        .update({ is_active: newValue })
-        .eq('id', scheduleId);
+    // Update local state immediately
+    setSchedules(prev => prev.map(s => 
+      s.id === scheduleId ? { ...s, [field]: value } : s
+    ));
 
-      if (error) throw error;
+    // Debounce the API call
+    debounceTimers.current[timerKey] = setTimeout(async () => {
+      try {
+        const { error } = await supabase
+          .from('ad_generation_schedules')
+          .update({ [field]: value })
+          .eq('id', scheduleId);
 
-      setSchedules(prev => prev.map(s => 
-        s.id === scheduleId ? { ...s, is_active: newValue } : s
-      ));
-      toast.success(newValue ? "Fábrica ativada" : "Fábrica desativada");
-    } catch (error) {
-      console.error('Error toggling schedule:', error);
-      toast.error("Erro ao atualizar status");
-    }
+        if (error) throw error;
+        toast.success("Configuração salva");
+      } catch (error) {
+        console.error('Error updating schedule:', error);
+        toast.error("Erro ao salvar");
+        loadSchedules(); // Reload to revert
+      }
+    }, 800);
   };
 
   if (configClientId) {
@@ -252,132 +215,83 @@ export default function ConfiguracaoFabrica() {
                 <TableHead className="text-center">Anúncios/dia</TableHead>
                 <TableHead className="text-center">Gerados</TableHead>
                 <TableHead className="text-center">Autopilot</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {schedules.map((schedule) => {
-                const isEditing = editingRow?.id === schedule.id;
-                
-                return (
-                  <TableRow key={schedule.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={schedule.client_avatar || ""} alt={schedule.client_name} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-body-small">
-                            {getInitials(schedule.client_name || '')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-body-medium font-medium text-foreground truncate">
-                            {schedule.client_name}
+              {schedules.map((schedule) => (
+                <TableRow key={schedule.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={schedule.client_avatar || ""} alt={schedule.client_name} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-body-small">
+                          {getInitials(schedule.client_name || '')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-body-medium font-medium text-foreground truncate">
+                          {schedule.client_name}
+                        </p>
+                        {schedule.client_sector && (
+                          <p className="text-body-small text-muted-foreground truncate">
+                            {schedule.client_sector}
                           </p>
-                          {schedule.client_sector && (
-                            <p className="text-body-small text-muted-foreground truncate">
-                              {schedule.client_sector}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    
-                    <TableCell className="text-center">
-                      {isEditing ? (
-                        <Switch
-                          checked={editingRow.is_active}
-                          onCheckedChange={(checked) => 
-                            setEditingRow(prev => prev ? { ...prev, is_active: checked } : null)
-                          }
-                        />
-                      ) : (
-                        <Switch
-                          checked={schedule.is_active}
-                          onCheckedChange={(checked) => handleQuickToggle(schedule.id, checked)}
-                        />
-                      )}
-                    </TableCell>
-                    
-                    <TableCell className="text-center">
-                      {isEditing ? (
-                        <Input
-                          type="time"
-                          value={editingRow.generation_time}
-                          onChange={(e) => 
-                            setEditingRow(prev => prev ? { ...prev, generation_time: e.target.value } : null)
-                          }
-                          className="w-24 mx-auto text-center"
-                        />
-                      ) : (
-                        <span className="text-body-medium">{schedule.generation_time}</span>
-                      )}
-                    </TableCell>
-                    
-                    <TableCell className="text-center">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          min={1}
-                          max={50}
-                          value={editingRow.ads_per_day}
-                          onChange={(e) => 
-                            setEditingRow(prev => prev ? { ...prev, ads_per_day: parseInt(e.target.value) || 1 } : null)
-                          }
-                          className="w-16 mx-auto text-center"
-                        />
-                      ) : (
-                        <span className="text-body-medium">{schedule.ads_per_day}</span>
-                      )}
-                    </TableCell>
-                    
-                    <TableCell className="text-center">
-                      <span className="text-body-medium font-medium">{schedule.ads_generated}</span>
-                    </TableCell>
-                    
-                    <TableCell className="text-center">
-                      {schedule.autopilot_enabled && (
-                        <Zap className="h-4 w-4 text-warning mx-auto" />
-                      )}
-                    </TableCell>
-                    
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={cancelEditing}
-                              className="h-8 w-8"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={saveEditing}
-                              disabled={saving}
-                              className="h-8 w-8 text-success hover:text-success"
-                            >
-                              <Save className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setConfigClientId(schedule.client_id)}
-                            className="h-8 w-8"
-                            title="Configurações avançadas"
-                          >
-                            <Settings2 className="h-4 w-4" />
-                          </Button>
                         )}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                    </div>
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={schedule.is_active}
+                      onCheckedChange={(checked) => updateScheduleField(schedule.id, 'is_active', checked)}
+                    />
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    <Input
+                      type="time"
+                      value={schedule.generation_time}
+                      onChange={(e) => updateScheduleField(schedule.id, 'generation_time', e.target.value)}
+                      className="w-28 mx-auto text-center"
+                    />
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={schedule.ads_per_day}
+                      onChange={(e) => updateScheduleField(schedule.id, 'ads_per_day', parseInt(e.target.value) || 1)}
+                      className="w-20 mx-auto text-center"
+                    />
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    <span className="text-body-medium font-medium">{schedule.ads_generated}</span>
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    {schedule.autopilot_enabled && (
+                      <Zap className="h-4 w-4 text-warning mx-auto" />
+                    )}
+                  </TableCell>
+                  
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setConfigClientId(schedule.client_id)}
+                      className="h-8 w-8"
+                      title="Configurações avançadas"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </Card>
