@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Rocket, Eye, X } from "lucide-react";
+import { Loader2, Rocket, Eye, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -29,6 +29,7 @@ interface PublishedAd {
   generated_content: {
     headline?: string;
     primary_text?: string;
+    body?: string;
     description?: string;
     image_url?: string;
   };
@@ -62,7 +63,7 @@ export function AutopilotPublishHistory() {
     const fetchPublishedAds = async () => {
       setLoading(true);
       try {
-        // Primeiro buscar os anúncios publicados
+        // Buscar anúncios publicados com informações do schedule (onde está campanha/conjunto)
         const { data: adsData, error: adsError } = await supabase
           .from("ad_generation_queue")
           .select(`
@@ -71,6 +72,7 @@ export function AutopilotPublishHistory() {
             generated_content,
             quality_score,
             meta_ad_id,
+            client_id,
             clients:client_id (
               id,
               name,
@@ -86,43 +88,43 @@ export function AutopilotPublishHistory() {
 
         if (adsError) throw adsError;
 
-        // Buscar informações de campanha e conjunto através do meta_ad_id
-        const formattedData: PublishedAd[] = [];
+        // Buscar schedules para obter campanha/conjunto de cada cliente
+        const clientIds = [...new Set((adsData || []).map(a => a.client_id))];
+        
+        const { data: schedulesData } = await supabase
+          .from("ad_generation_schedules")
+          .select(`
+            client_id,
+            target_campaign_id,
+            target_adset_id,
+            campaigns:target_campaign_id (id, name),
+            ad_sets:target_adset_id (id, name)
+          `)
+          .in("client_id", clientIds);
 
-        for (const item of adsData || []) {
-          let campaign = null;
-          let adset = null;
+        // Criar mapa de schedules por client_id
+        const scheduleMap = new Map();
+        (schedulesData || []).forEach((s: any) => {
+          scheduleMap.set(s.client_id, {
+            campaign: s.campaigns,
+            adset: s.ad_sets
+          });
+        });
 
-          // Se tiver meta_ad_id, buscar os dados do anúncio no Meta
-          if (item.meta_ad_id) {
-            const { data: adData } = await supabase
-              .from("ads")
-              .select(`
-                campaign_id,
-                ad_set_id,
-                campaigns:campaign_id (id, name),
-                ad_sets:ad_set_id (id, name)
-              `)
-              .eq("facebook_id", item.meta_ad_id)
-              .single();
-
-            if (adData) {
-              campaign = adData.campaigns as any;
-              adset = adData.ad_sets as any;
-            }
-          }
-
-          formattedData.push({
+        const formattedData: PublishedAd[] = (adsData || []).map((item: any) => {
+          const scheduleInfo = scheduleMap.get(item.client_id) || {};
+          
+          return {
             id: item.id,
             published_at: item.published_at,
             generated_content: item.generated_content as PublishedAd["generated_content"],
             quality_score: item.quality_score,
             meta_ad_id: item.meta_ad_id,
             client: item.clients as any,
-            campaign,
-            adset,
-          });
-        }
+            campaign: scheduleInfo.campaign || null,
+            adset: scheduleInfo.adset || null,
+          };
+        });
 
         setPublishedAds(formattedData);
       } catch (error) {
@@ -147,6 +149,10 @@ export function AutopilotPublishHistory() {
   const truncateText = (text: string | undefined, maxLength: number) => {
     if (!text) return "-";
     return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+  };
+
+  const getAdText = (ad: PublishedAd) => {
+    return ad.generated_content?.primary_text || ad.generated_content?.body || "";
   };
 
   return (
@@ -226,7 +232,7 @@ export function AutopilotPublishHistory() {
                       </TableCell>
                       <TableCell>
                         <p className="text-sm text-muted-foreground truncate max-w-[300px]">
-                          {truncateText(ad.generated_content?.primary_text, 60)}
+                          {truncateText(getAdText(ad), 60)}
                         </p>
                       </TableCell>
                       <TableCell className="text-center">
@@ -288,8 +294,8 @@ export function AutopilotPublishHistory() {
 
       {/* Preview Dialog */}
       <Dialog open={!!selectedAd} onOpenChange={() => setSelectedAd(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Preview do Criativo
@@ -297,134 +303,190 @@ export function AutopilotPublishHistory() {
           </DialogHeader>
 
           {selectedAd && (
-            <div className="space-y-6">
-              {/* Imagem do criativo */}
-              {selectedAd.generated_content?.image_url && (
-                <div className="rounded-lg overflow-hidden border border-border">
-                  <img
-                    src={selectedAd.generated_content.image_url}
-                    alt="Creative preview"
-                    className="w-full h-auto max-h-[300px] object-contain bg-muted"
-                  />
-                </div>
-              )}
-
-              {/* Conteúdo do criativo */}
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Headline
-                  </label>
-                  <p className="mt-1 text-base font-semibold">
-                    {selectedAd.generated_content?.headline || "-"}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Texto Principal
-                  </label>
-                  <p className="mt-1 text-sm text-foreground whitespace-pre-wrap">
-                    {selectedAd.generated_content?.primary_text || "-"}
-                  </p>
-                </div>
-
-                {selectedAd.generated_content?.description && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Descrição
-                    </label>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {selectedAd.generated_content.description}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Informações de publicação */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <h4 className="font-medium text-sm">Detalhes da Publicação</h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Cliente
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={selectedAd.client?.avatar || ""} />
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {selectedAd.client ? getInitials(selectedAd.client.name) : "??"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">
-                        {selectedAd.client?.name || "Cliente removido"}
-                      </span>
+            <div className="p-6 pt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Instagram/Meta Mockup */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    Preview do Anúncio
+                  </h4>
+                  <div className="bg-background border border-border rounded-lg overflow-hidden max-w-[350px] mx-auto shadow-lg">
+                    {/* Header do post */}
+                    <div className="flex items-center justify-between p-3 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={selectedAd.client?.avatar || ""} />
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {selectedAd.client ? getInitials(selectedAd.client.name) : "??"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-semibold leading-tight">
+                            {selectedAd.client?.name || "Anunciante"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Patrocinado</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Data de Publicação
-                    </label>
-                    <p className="text-sm font-medium">
-                      {format(new Date(selectedAd.published_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Campanha
-                    </label>
-                    <p className="text-sm font-medium">
-                      {selectedAd.campaign?.name || (
-                        <span className="text-muted-foreground italic">Não vinculado</span>
+                    {/* Imagem do post */}
+                    <div className="aspect-square bg-muted relative">
+                      {selectedAd.generated_content?.image_url ? (
+                        <img
+                          src={selectedAd.generated_content.image_url}
+                          alt="Creative preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          <div className="text-center">
+                            <Rocket className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Sem imagem</p>
+                          </div>
+                        </div>
                       )}
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Conjunto de Anúncios
-                    </label>
-                    <p className="text-sm font-medium">
-                      {selectedAd.adset?.name || (
-                        <span className="text-muted-foreground italic">Não vinculado</span>
-                      )}
-                    </p>
-                  </div>
-
-                  {selectedAd.quality_score && (
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Quality Score
-                      </label>
-                      <Badge
-                        className={
-                          selectedAd.quality_score >= 8
-                            ? "bg-green-500/10 text-green-600 border-green-500/20"
-                            : selectedAd.quality_score >= 6
-                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                            : ""
-                        }
-                      >
-                        {selectedAd.quality_score.toFixed(1)}
-                      </Badge>
                     </div>
-                  )}
 
-                  {selectedAd.meta_ad_id && (
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Meta Ad ID
-                      </label>
-                      <p className="text-sm font-mono text-muted-foreground">
-                        {selectedAd.meta_ad_id}
+                    {/* Ações do post */}
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <Heart className="h-6 w-6 cursor-pointer hover:text-red-500 transition-colors" />
+                          <MessageCircle className="h-6 w-6 cursor-pointer" />
+                          <Send className="h-6 w-6 cursor-pointer" />
+                        </div>
+                        <Bookmark className="h-6 w-6 cursor-pointer" />
+                      </div>
+
+                      {/* Headline */}
+                      {selectedAd.generated_content?.headline && (
+                        <p className="font-semibold text-sm">
+                          {selectedAd.generated_content.headline}
+                        </p>
+                      )}
+
+                      {/* Legenda */}
+                      <div className="text-sm">
+                        <span className="font-semibold">
+                          {selectedAd.client?.name?.toLowerCase().replace(/\s+/g, '') || "anunciante"}
+                        </span>{" "}
+                        <span className="whitespace-pre-wrap">
+                          {truncateText(getAdText(selectedAd), 150)}
+                        </span>
+                      </div>
+
+                      {/* Data */}
+                      <p className="text-xs text-muted-foreground uppercase">
+                        {format(new Date(selectedAd.published_at), "d 'de' MMMM", { locale: ptBR })}
                       </p>
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                {/* Detalhes da publicação */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    Detalhes da Publicação
+                  </h4>
+
+                  <div className="space-y-4 bg-muted/30 rounded-lg p-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Cliente
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={selectedAd.client?.avatar || ""} />
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {selectedAd.client ? getInitials(selectedAd.client.name) : "??"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">
+                          {selectedAd.client?.name || "Cliente removido"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Campanha
+                      </label>
+                      <p className="text-sm font-medium">
+                        {selectedAd.campaign?.name || (
+                          <span className="text-muted-foreground italic">Não encontrado</span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Conjunto de Anúncios
+                      </label>
+                      <p className="text-sm font-medium">
+                        {selectedAd.adset?.name || (
+                          <span className="text-muted-foreground italic">Não encontrado</span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Data de Publicação
+                      </label>
+                      <p className="text-sm font-medium">
+                        {format(new Date(selectedAd.published_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+
+                    {selectedAd.quality_score && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Quality Score
+                        </label>
+                        <div>
+                          <Badge
+                            className={
+                              selectedAd.quality_score >= 8
+                                ? "bg-green-500/10 text-green-600 border-green-500/20"
+                                : selectedAd.quality_score >= 6
+                                ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                : ""
+                            }
+                          >
+                            {selectedAd.quality_score.toFixed(1)}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedAd.meta_ad_id && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Meta Ad ID
+                        </label>
+                        <p className="text-sm font-mono text-muted-foreground">
+                          {selectedAd.meta_ad_id}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Legenda completa */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Legenda Completa
+                    </label>
+                    <div className="bg-muted/30 rounded-lg p-3 max-h-[200px] overflow-y-auto">
+                      <p className="text-sm whitespace-pre-wrap">
+                        {getAdText(selectedAd) || "-"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
