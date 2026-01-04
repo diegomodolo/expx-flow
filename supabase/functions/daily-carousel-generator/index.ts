@@ -28,6 +28,10 @@ interface CarouselSchedule {
   reference_image_4: string | null;
   reference_image_5: string | null;
   reference_image_6: string | null;
+  reference_image_7: string | null;
+  reference_image_8: string | null;
+  reference_image_9: string | null;
+  reference_image_10: string | null;
 }
 
 interface ClientData {
@@ -48,6 +52,7 @@ interface CarouselSlide {
   body_text: string;
   visual_description: string;
   cta?: string;
+  image_url?: string;
 }
 
 interface GeneratedCarousel {
@@ -58,6 +63,7 @@ interface GeneratedCarousel {
   caption: string;
   hashtags: string;
   cta_text: string;
+  cover_image_url?: string;
 }
 
 const CAROUSEL_TYPES = ['tutorial', 'comparison', 'behind_scenes', 'curated_list'] as const;
@@ -160,6 +166,10 @@ serve(async (req) => {
           );
 
           if (carousel) {
+            // Generate images for slides
+            console.log('[daily-carousel-generator] Generating images for carousel slides...');
+            const carouselWithImages = await generateCarouselImages(carousel, client, schedule);
+
             // Save to queue
             const { data: savedCarousel, error: insertError } = await supabase
               .from('carousel_generation_queue')
@@ -168,12 +178,13 @@ serve(async (req) => {
                 company_id,
                 user_id,
                 carousel_type: type,
-                theme: carousel.theme,
-                slides: carousel.slides,
-                caption: carousel.caption,
-                hashtags: carousel.hashtags,
-                cta_text: carousel.cta_text,
-                generated_content: carousel,
+                theme: carouselWithImages.theme,
+                slides: carouselWithImages.slides,
+                caption: carouselWithImages.caption,
+                hashtags: carouselWithImages.hashtags,
+                cta_text: carouselWithImages.cta_text,
+                cover_image_url: carouselWithImages.cover_image_url || null,
+                generated_content: carouselWithImages,
                 schedule_id: schedule?.id || null,
                 status: 'pending',
               })
@@ -185,7 +196,7 @@ serve(async (req) => {
               errors.push(`Failed to save ${type} carousel: ${insertError.message}`);
             } else {
               console.log('[daily-carousel-generator] Saved carousel:', savedCarousel?.id);
-              generatedCarousels.push({ id: savedCarousel?.id, type, ...carousel });
+              generatedCarousels.push({ id: savedCarousel?.id, type, ...carouselWithImages });
             }
           }
         } catch (error: any) {
@@ -289,6 +300,158 @@ function getNextGenerationTime(generationTime: string): string {
   }
   
   return next.toISOString();
+}
+
+async function generateCarouselImages(
+  carousel: GeneratedCarousel,
+  client: ClientData,
+  schedule: CarouselSchedule | null
+): Promise<GeneratedCarousel> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+  if (!LOVABLE_API_KEY) {
+    console.warn('[daily-carousel-generator] LOVABLE_API_KEY not set, skipping image generation');
+    return carousel;
+  }
+
+  const updatedSlides: CarouselSlide[] = [];
+  let coverImageUrl: string | undefined;
+
+  // Build style context for image generation
+  const styleContext = buildImageStylePrompt(schedule, client);
+
+  for (let i = 0; i < carousel.slides.length; i++) {
+    const slide = carousel.slides[i];
+    
+    try {
+      console.log(`[daily-carousel-generator] Generating image for slide ${i + 1}/${carousel.slides.length}`);
+      
+      const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram.
+${styleContext}
+
+SLIDE ${slide.slide_number}:
+Headline: ${slide.headline}
+Texto: ${slide.body_text}
+Descrição visual: ${slide.visual_description}
+
+IMPORTANTE:
+- Formato quadrado (1:1) para Instagram
+- Texto legível e bem posicionado
+- Design moderno e limpo
+- NÃO incluir textos longos na imagem, apenas elementos visuais e no máximo a headline curta
+- Cores que combinem com a identidade da marca ${client.company}`;
+
+      const imageUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY);
+      
+      updatedSlides.push({
+        ...slide,
+        image_url: imageUrl || undefined,
+      });
+
+      // Use first slide's image as cover
+      if (i === 0 && imageUrl) {
+        coverImageUrl = imageUrl;
+      }
+
+      // Small delay between image generations to avoid rate limiting
+      if (i < carousel.slides.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } catch (error) {
+      console.error(`[daily-carousel-generator] Error generating image for slide ${i + 1}:`, error);
+      updatedSlides.push(slide);
+    }
+  }
+
+  return {
+    ...carousel,
+    slides: updatedSlides,
+    cover_image_url: coverImageUrl,
+  };
+}
+
+async function generateImageWithNanoBanana(prompt: string, apiKey: string): Promise<string | null> {
+  try {
+    console.log('[daily-carousel-generator] Calling Nano Banana (gemini-2.5-flash-image-preview) for image generation...');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        modalities: ['image', 'text'],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[daily-carousel-generator] Image generation API error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        console.warn('[daily-carousel-generator] Rate limit hit for image generation');
+        return null;
+      }
+      if (response.status === 402) {
+        console.warn('[daily-carousel-generator] Payment required for image generation');
+        return null;
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    const images = data.choices?.[0]?.message?.images;
+    
+    if (images && images.length > 0) {
+      const imageUrl = images[0]?.image_url?.url;
+      if (imageUrl) {
+        console.log('[daily-carousel-generator] Image generated successfully (base64)');
+        return imageUrl;
+      }
+    }
+
+    console.warn('[daily-carousel-generator] No image returned from API');
+    return null;
+  } catch (error) {
+    console.error('[daily-carousel-generator] Error calling image generation API:', error);
+    return null;
+  }
+}
+
+function buildImageStylePrompt(schedule: CarouselSchedule | null, client: ClientData): string {
+  const styles: string[] = [];
+  
+  styles.push(`Marca: ${client.company}`);
+  styles.push(`Setor: ${client.sector}`);
+  
+  if (schedule) {
+    if (schedule.use_dark_mode) {
+      styles.push('Estilo: Dark mode com fundo escuro (#1a1a2e ou similar) e texto claro');
+    } else {
+      styles.push('Estilo: Light mode com fundo claro e texto escuro');
+    }
+
+    if (schedule.show_ui_screenshots) {
+      styles.push('Incluir elementos de interface/mockups quando apropriado');
+    }
+
+    if (schedule.include_proof_social) {
+      styles.push('Incluir elementos de prova social (ícones de check, números, badges)');
+    }
+
+    if (schedule.custom_image_prompt) {
+      styles.push(`Instrução adicional: ${schedule.custom_image_prompt}`);
+    }
+  } else {
+    styles.push('Estilo: Moderno, clean, com alto contraste');
+  }
+
+  return styles.join('\n');
 }
 
 async function generateCarousel(
