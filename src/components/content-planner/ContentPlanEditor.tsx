@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/resizable";
 import { ContentPlanPostCard } from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar } from "lucide-react";
+import { ImportCreativesModal } from "./ImportCreativesModal";
+import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface ContentPlanEditorProps {
@@ -45,6 +46,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [planStatus, setPlanStatus] = useState<"rascunho" | "em_revisao" | "aprovado">("rascunho");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   
 
   const { data: plan, isLoading, refetch } = useQuery({
@@ -109,6 +111,36 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     } else {
       toast.info("Selecione um post para inserir o conteúdo");
     }
+  };
+
+  const handleImportCreatives = async (creatives: { image_url: string; caption: string }[]) => {
+    const maxOrder = plan?.posts?.reduce((max, p) => Math.max(max, p.order_index), -1) ?? -1;
+    
+    for (let i = 0; i < creatives.length; i++) {
+      const creative = creatives[i];
+      await addPost.mutateAsync({
+        content_plan_id: planId,
+        order_index: maxOrder + 1 + i,
+      });
+    }
+    
+    // Refetch to get the new post IDs
+    const updatedPlan = await refetch();
+    const newPosts = updatedPlan.data?.posts?.slice(-creatives.length) || [];
+    
+    // Update each post with the creative data
+    for (let i = 0; i < newPosts.length && i < creatives.length; i++) {
+      const post = newPosts[i];
+      const creative = creatives[i];
+      await updatePost.mutateAsync({
+        id: post.id,
+        image_url: creative.image_url,
+        caption: creative.caption,
+      });
+    }
+    
+    refetch();
+    toast.success(`${creatives.length} criativo(s) importado(s) com sucesso!`);
   };
 
   if (isLoading) {
@@ -204,6 +236,15 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   <Plus className="w-4 h-4" />
                   Adicionar Post
                 </Button>
+                <Button 
+                  onClick={() => setShowImportModal(true)} 
+                  size="sm" 
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Importar da Fábrica
+                </Button>
                 <Badge variant="outline" className="ml-auto">
                   {plan.posts?.length || 0} posts
                 </Badge>
@@ -257,6 +298,13 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
           />
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <ImportCreativesModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        clientId={plan.client_id}
+        onImport={handleImportCreatives}
+      />
     </div>
   );
 }

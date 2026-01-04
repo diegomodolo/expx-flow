@@ -348,6 +348,20 @@ O conteúdo deve:
 
           <CollapsibleContent>
             <div className="p-4 space-y-4">
+              {/* Post Image */}
+              {post.image_url && (
+                <div className="space-y-2">
+                  <Label>Imagem do Criativo</Label>
+                  <div className="aspect-[3/4] max-w-[200px] rounded-lg overflow-hidden bg-muted border">
+                    <img
+                      src={post.image_url}
+                      alt="Imagem do post"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Objective */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
