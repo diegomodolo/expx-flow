@@ -35,27 +35,36 @@ export function useSystemAlerts() {
     queryFn: async () => {
       if (!activeCompany?.id) return [];
 
-      const { data, error } = await supabase
-        .from('system_alerts')
-        .select(`
-          *,
-          clients (
-            name,
-            company
-          )
-        `)
-        .eq('company_id', activeCompany.id)
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('system_alerts')
+          .select(`
+            *,
+            clients (
+              name,
+              company
+            )
+          `)
+          .eq('company_id', activeCompany.id)
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching system alerts:', error);
-        throw error;
+        if (error) {
+          // Silently handle errors to not disrupt UX
+          console.warn('System alerts fetch failed:', error.message);
+          return [];
+        }
+
+        return data as SystemAlert[];
+      } catch (err) {
+        // Handle network errors silently
+        console.warn('System alerts network error');
+        return [];
       }
-
-      return data as SystemAlert[];
     },
     enabled: !!activeCompany?.id,
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 60000,
+    retry: 1,
+    staleTime: 30000,
   });
 
   const unreadCount = alerts.filter(a => !a.is_read).length;
