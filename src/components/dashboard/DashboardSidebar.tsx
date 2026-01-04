@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSystemAlerts } from "@/hooks/useSystemAlerts";
 import { useCompanyTvDashboardToken } from "@/hooks/useCompanyTvDashboardToken";
+import { useSocialTvDashboardToken } from "@/hooks/useSocialTvDashboardToken";
 
 interface MenuItem {
   title: string;
@@ -85,6 +86,7 @@ const menuCategories: MenuCategory[] = [
       items: [
         { title: "Agendamento", url: "/agendamento", icon: CalendarClock, permission: "campanhas" as MenuItemType },
         { title: "Automatizadores", url: "/automatizadores", icon: Zap, permission: "campanhas" as MenuItemType },
+        { title: "Dashboard TV", url: "#social-tv-dashboard", icon: Tv, permission: "geradores" as MenuItemType, isExternal: true },
         { title: "Geradores", url: "/geradores", icon: Wand2, permission: "geradores" as MenuItemType },
         { title: "Planejador de Conteúdo", url: "/geradores/planejamento-conteudo", icon: FileText, permission: "geradores" as MenuItemType },
         { title: "Repositório de Criativos", url: "/repositorio-criativos", icon: Images, permission: "geradores" as MenuItemType },
@@ -133,6 +135,7 @@ export function DashboardSidebar() {
   const { hasPermission, permissionsLoading, isOwner } = useEmployeePermissions();
   const { unresolvedCriticalCount } = useSystemAlerts();
   const { token: tvToken, generateToken, generating: generatingToken } = useCompanyTvDashboardToken();
+  const { token: socialTvToken, generateToken: generateSocialTvToken, generating: generatingSocialTvToken } = useSocialTvDashboardToken();
   
   // Track which categories are expanded
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
@@ -259,7 +262,7 @@ export function DashboardSidebar() {
                 <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                   <div className={cn("space-y-0.5", open ? "ml-4 mt-1" : "mt-1")}>
                     {category.items.map((item) => {
-                      // Handle external Dashboard TV link
+                      // Handle external Dashboard TV link (Marketing & Tráfego)
                       if (item.isExternal && item.url === '#tv-dashboard') {
                         const handleTvDashboardClick = async (e: React.MouseEvent) => {
                           e.preventDefault();
@@ -293,6 +296,48 @@ export function DashboardSidebar() {
                               <>
                                 <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
                                   {generatingToken ? 'Gerando...' : item.title}
+                                </span>
+                                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                              </>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      // Handle external Social TV Dashboard link (Conteúdo & Social)
+                      if (item.isExternal && item.url === '#social-tv-dashboard') {
+                        const handleSocialTvDashboardClick = async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          if (socialTvToken) {
+                            window.open(`/social-tv/${socialTvToken}`, '_blank');
+                          } else {
+                            const newToken = await generateSocialTvToken();
+                            if (newToken) {
+                              window.open(`/social-tv/${newToken}`, '_blank');
+                            }
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={item.url}
+                            onClick={handleSocialTvDashboardClick}
+                            disabled={generatingSocialTvToken}
+                            className={cn(
+                              "flex items-center py-2 rounded-full transition-all duration-150 w-full",
+                              open ? "gap-3 px-4" : "justify-center px-0",
+                              "text-muted-foreground hover:bg-muted/50"
+                            )}
+                            title={!open ? item.title : undefined}
+                          >
+                            <item.icon 
+                              className="w-4 h-4 flex-shrink-0 text-muted-foreground" 
+                              strokeWidth={1.5}
+                            />
+                            {open && (
+                              <>
+                                <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
+                                  {generatingSocialTvToken ? 'Gerando...' : item.title}
                                 </span>
                                 <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
                               </>

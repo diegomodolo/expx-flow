@@ -1,0 +1,321 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface ChampionCreative {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  title: string;
+  clientName: string;
+  clientAvatar: string | null;
+  gestorName: string;
+  gestorAvatar: string | null;
+  ctr: number;
+  roas: number;
+  spend: number;
+  conversions: number;
+  platform: 'Meta' | 'Google';
+}
+
+interface GestorRanking {
+  id: string;
+  name: string;
+  avatar: string | null;
+  position: number;
+  conversions: number;
+  clientsCount: number;
+  totalSpend: number;
+}
+
+interface RecentWin {
+  id: string;
+  type: 'sale' | 'lead';
+  value: number;
+  clientName: string;
+  gestorName: string;
+  gestorAvatar: string | null;
+  timestamp: string;
+}
+
+interface FeaturedCreative {
+  id: string;
+  type: 'image' | 'video' | 'carousel';
+  url: string;
+  thumbnailUrl?: string;
+  clientName: string;
+  status: string;
+  ctr: number;
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+      console.error('No token provided');
+      return new Response(
+        JSON.stringify({ error: 'Token is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Social TV Dashboard data requested for token:', token);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Find company by social TV token
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('social_tv_dashboard_token', token)
+      .single();
+
+    if (companyError || !company) {
+      console.error('Company not found:', companyError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Found company:', company.name);
+
+    // Get champion creative (highest CTR in last 24h)
+    const { data: championAd } = await supabase
+      .from('ads')
+      .select(`
+        id,
+        name,
+        image_url,
+        video_url,
+        ctr,
+        spend,
+        conversions,
+        client_id,
+        clients!inner(name, avatar, user_id)
+      `)
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .gt('ctr', 0)
+      .order('ctr', { ascending: false })
+      .limit(1)
+      .single();
+
+    let championCreative: ChampionCreative | null = null;
+    if (championAd) {
+      const client = championAd.clients as any;
+      
+      // Get gestor info
+      const { data: gestor } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('user_id', client.user_id)
+        .single();
+
+      championCreative = {
+        id: championAd.id,
+        type: championAd.video_url ? 'video' : 'image',
+        url: championAd.video_url || championAd.image_url || '',
+        title: championAd.name,
+        clientName: client.name,
+        clientAvatar: client.avatar,
+        gestorName: gestor?.full_name || 'Gestor',
+        gestorAvatar: gestor?.avatar_url || null,
+        ctr: championAd.ctr || 0,
+        roas: 0,
+        spend: championAd.spend || 0,
+        conversions: championAd.conversions || 0,
+        platform: 'Meta'
+      };
+    }
+
+    // Get gestor ranking (by conversions)
+    const { data: clientsWithGestores } = await supabase
+      .from('clients')
+      .select(`
+        user_id,
+        campaigns(conversions, spend)
+      `)
+      .eq('company_id', company.id)
+      .eq('is_canceled', false);
+
+    // Aggregate by user_id
+    const gestorStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number }>();
+    
+    if (clientsWithGestores) {
+      for (const client of clientsWithGestores) {
+        const userId = client.user_id;
+        if (!gestorStats.has(userId)) {
+          gestorStats.set(userId, { conversions: 0, clientsCount: 0, totalSpend: 0 });
+        }
+        const stats = gestorStats.get(userId)!;
+        stats.clientsCount++;
+        
+        const campaigns = client.campaigns as any[] || [];
+        for (const campaign of campaigns) {
+          stats.conversions += campaign.conversions || 0;
+          stats.totalSpend += campaign.spend || 0;
+        }
+      }
+    }
+
+    // Get gestor names and sort by conversions
+    const gestorIds = Array.from(gestorStats.keys());
+    const { data: gestorProfiles } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, avatar_url')
+      .in('user_id', gestorIds);
+
+    const gestorRanking: GestorRanking[] = [];
+    let position = 1;
+    
+    const sortedGestores = Array.from(gestorStats.entries())
+      .sort((a, b) => b[1].conversions - a[1].conversions)
+      .slice(0, 5);
+
+    for (const [userId, stats] of sortedGestores) {
+      const profile = gestorProfiles?.find(p => p.user_id === userId);
+      gestorRanking.push({
+        id: userId,
+        name: profile?.full_name || 'Gestor',
+        avatar: profile?.avatar_url || null,
+        position: position++,
+        conversions: stats.conversions,
+        clientsCount: stats.clientsCount,
+        totalSpend: stats.totalSpend
+      });
+    }
+
+    // Get recent wins (recent conversions from campaigns)
+    const { data: recentCampaigns } = await supabase
+      .from('campaigns')
+      .select(`
+        id,
+        name,
+        conversions,
+        spend,
+        updated_at,
+        clients!inner(name, user_id)
+      `)
+      .eq('company_id', company.id)
+      .gt('conversions', 0)
+      .order('updated_at', { ascending: false })
+      .limit(10);
+
+    const recentWins: RecentWin[] = [];
+    if (recentCampaigns) {
+      for (const campaign of recentCampaigns) {
+        const client = campaign.clients as any;
+        const { data: gestor } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('user_id', client.user_id)
+          .single();
+
+        recentWins.push({
+          id: campaign.id,
+          type: 'lead',
+          value: campaign.conversions || 0,
+          clientName: client.name,
+          gestorName: gestor?.full_name || 'Gestor',
+          gestorAvatar: gestor?.avatar_url || null,
+          timestamp: campaign.updated_at
+        });
+      }
+    }
+
+    // Get featured creatives (top performing ads)
+    const { data: featuredAds } = await supabase
+      .from('ads')
+      .select(`
+        id,
+        name,
+        image_url,
+        video_url,
+        ctr,
+        clients!inner(name)
+      `)
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .or('image_url.neq.null,video_url.neq.null')
+      .order('ctr', { ascending: false })
+      .limit(10);
+
+    const featuredCreatives: FeaturedCreative[] = (featuredAds || []).map((ad, index) => ({
+      id: ad.id,
+      type: ad.video_url ? 'video' : 'image',
+      url: ad.video_url || ad.image_url || '',
+      clientName: (ad.clients as any).name,
+      status: index === 0 ? 'Melhor CTR' : index < 3 ? 'Em alta' : 'Ativo',
+      ctr: ad.ctr || 0
+    }));
+
+    // Get global metrics
+    const { data: adsCount } = await supabase
+      .from('ads')
+      .select('id', { count: 'exact' })
+      .eq('company_id', company.id);
+
+    const { data: activeAdsCount } = await supabase
+      .from('ads')
+      .select('id', { count: 'exact' })
+      .eq('company_id', company.id)
+      .eq('is_active', true);
+
+    const { data: avgCtrData } = await supabase
+      .from('ads')
+      .select('ctr')
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .gt('ctr', 0);
+
+    const avgCtr = avgCtrData && avgCtrData.length > 0
+      ? avgCtrData.reduce((sum, ad) => sum + (ad.ctr || 0), 0) / avgCtrData.length
+      : 0;
+
+    const response = {
+      company: {
+        id: company.id,
+        name: company.name
+      },
+      lastSync: new Date().toISOString(),
+      championCreative,
+      gestorRanking,
+      recentWins,
+      featuredCreatives,
+      metrics: {
+        totalCreatives: adsCount?.length || 0,
+        creativesActive: activeAdsCount?.length || 0,
+        avgEngagement: avgCtr,
+        totalConversions: gestorRanking.reduce((sum, g) => sum + g.conversions, 0)
+      }
+    };
+
+    console.log('Social TV Dashboard data fetched successfully');
+
+    return new Response(
+      JSON.stringify(response),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Error fetching social TV dashboard data:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

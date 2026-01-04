@@ -2592,6 +2592,7 @@ export type Database = {
           name: string
           phone: string | null
           slug: string | null
+          social_tv_dashboard_token: string | null
           tv_dashboard_token: string | null
           updated_at: string
         }
@@ -2604,6 +2605,7 @@ export type Database = {
           name: string
           phone?: string | null
           slug?: string | null
+          social_tv_dashboard_token?: string | null
           tv_dashboard_token?: string | null
           updated_at?: string
         }
@@ -2616,6 +2618,7 @@ export type Database = {
           name?: string
           phone?: string | null
           slug?: string | null
+          social_tv_dashboard_token?: string | null
           tv_dashboard_token?: string | null
           updated_at?: string
         }
@@ -10477,6 +10480,7 @@ export type Database = {
       generate_client_dashboard_token: { Args: never; Returns: string }
       generate_crm_access_token: { Args: never; Returns: string }
       generate_funnel_public_token: { Args: never; Returns: string }
+      generate_social_tv_dashboard_token: { Args: never; Returns: string }
       generate_tv_dashboard_token: { Args: never; Returns: string }
       get_cnae_summary: {
         Args: { p_company_id: string }
@@ -10513,6 +10517,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      set_social_tv_dashboard_token: {
+        Args: { p_company_id: string; p_token: string }
+        Returns: undefined
       }
       set_tv_dashboard_token: {
         Args: { p_company_id: string; p_token: string }
