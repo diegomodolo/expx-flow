@@ -8,16 +8,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { SendToScheduleModal } from "@/components/repositorio-criativos/SendToScheduleModal";
 import { SendToPresentationModal } from "@/components/repositorio-criativos/SendToPresentationModal";
 
+type SourceFilter = 'all' | 'fabrica_criativos' | 'gerador_criativos' | 'fabrica_anuncios';
+type StatusFilter = 'all' | 'pending' | 'approved' | 'published' | 'rejected' | 'completed' | 'generating';
+
 export default function RepositorioCriativos() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [searchQuery, setSearchQuery] = useState("");
   const { creatives, allClients, loading, loadingMore, hasMore, loadMore, totalCounts } = useAllCreatives(selectedClientId || undefined);
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -28,6 +36,45 @@ export default function RepositorioCriativos() {
     const client = allClients.find(c => c.id === selectedClientId);
     return client?.name || "Todos os clientes";
   }, [selectedClientId, allClients]);
+
+  // Filtrar criativos localmente
+  const filteredCreatives = useMemo(() => {
+    return creatives.filter(creative => {
+      // Filtro por origem/tipo de fábrica
+      if (sourceFilter !== 'all' && creative.source !== sourceFilter) {
+        return false;
+      }
+      
+      // Filtro por status
+      if (statusFilter !== 'all' && creative.status !== statusFilter) {
+        return false;
+      }
+      
+      // Filtro por busca textual (legenda, título, tema)
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesCaption = creative.caption?.toLowerCase().includes(query);
+        const matchesTitle = creative.title?.toLowerCase().includes(query);
+        const matchesTheme = creative.theme?.toLowerCase().includes(query);
+        const matchesClient = creative.client_name?.toLowerCase().includes(query);
+        
+        if (!matchesCaption && !matchesTitle && !matchesTheme && !matchesClient) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [creatives, sourceFilter, statusFilter, searchQuery]);
+
+  const hasActiveFilters = sourceFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim() !== '';
+
+  const clearAllFilters = () => {
+    setSourceFilter('all');
+    setStatusFilter('all');
+    setSearchQuery('');
+    setSelectedClientId('');
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -100,66 +147,126 @@ export default function RepositorioCriativos() {
             </p>
           </div>
 
-          {/* Client Filter - Combobox with search */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={comboboxOpen}
-                  className="w-[250px] justify-between"
-                >
-                  <span className="truncate">{selectedClientName}</span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0">
-                <Command>
-                  <CommandInput placeholder="Buscar cliente..." />
-                  <CommandList>
-                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                    <CommandGroup>
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por legenda, título, tema..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Client Filter */}
+          <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={comboboxOpen}
+                className="w-[200px] justify-between"
+              >
+                <User className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
+                <span className="truncate flex-1 text-left">{selectedClientName}</span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0">
+              <Command>
+                <CommandInput placeholder="Buscar cliente..." />
+                <CommandList>
+                  <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="all"
+                      onSelect={() => {
+                        setSelectedClientId("");
+                        setComboboxOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedClientId === "" ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      Todos os clientes
+                    </CommandItem>
+                    {allClients.map((client) => (
                       <CommandItem
-                        value="all"
+                        key={client.id}
+                        value={client.name}
                         onSelect={() => {
-                          setSelectedClientId("");
+                          setSelectedClientId(client.id);
                           setComboboxOpen(false);
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            selectedClientId === "" ? "opacity-100" : "opacity-0"
+                            selectedClientId === client.id ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        Todos os clientes
+                        {client.name}
                       </CommandItem>
-                      {allClients.map((client) => (
-                        <CommandItem
-                          key={client.id}
-                          value={client.name}
-                          onSelect={() => {
-                            setSelectedClientId(client.id);
-                            setComboboxOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedClientId === client.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {client.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {/* Source Filter */}
+          <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}>
+            <SelectTrigger className="w-[180px]">
+              <Factory className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as origens</SelectItem>
+              <SelectItem value="fabrica_anuncios">Fábrica de Anúncios</SelectItem>
+              <SelectItem value="fabrica_criativos">Fábrica de Criativos</SelectItem>
+              <SelectItem value="gerador_criativos">Gerador de Criativos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+            <SelectTrigger className="w-[160px]">
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="approved">Aprovado</SelectItem>
+              <SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="published">Publicado</SelectItem>
+              <SelectItem value="rejected">Rejeitado</SelectItem>
+              <SelectItem value="generating">Gerando</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-muted-foreground">
+              <X className="h-4 w-4 mr-1" />
+              Limpar filtros
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -171,10 +278,10 @@ export default function RepositorioCriativos() {
           <span>{totalCounts.fabricaCriativos} da Fábrica de Criativos</span>
           <span>•</span>
           <span>{totalCounts.geradorCriativos} do Gerador</span>
-          {creatives.length > 0 && (
+          {hasActiveFilters && (
             <>
               <span>•</span>
-              <span className="text-primary font-medium">Mostrando {creatives.length}</span>
+              <span className="text-primary font-medium">{filteredCreatives.length} filtrados</span>
             </>
           )}
         </div>
@@ -192,19 +299,26 @@ export default function RepositorioCriativos() {
               </Card>
             ))}
           </div>
-        ) : creatives.length === 0 ? (
+        ) : filteredCreatives.length === 0 ? (
           <Card className="p-12 text-center">
             <Images className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium">Nenhum criativo encontrado</h3>
             <p className="text-muted-foreground mt-1">
-              {selectedClientId 
-                ? "Este cliente ainda não possui criativos gerados."
-                : "Comece gerando criativos através da Fábrica ou Gerador de Criativos."}
+              {hasActiveFilters
+                ? "Nenhum criativo corresponde aos filtros selecionados."
+                : selectedClientId 
+                  ? "Este cliente ainda não possui criativos gerados."
+                  : "Comece gerando criativos através da Fábrica ou Gerador de Criativos."}
             </p>
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={clearAllFilters} className="mt-4">
+                Limpar filtros
+              </Button>
+            )}
           </Card>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {creatives.map((creative) => (
+            {filteredCreatives.map((creative) => (
               <Card 
                 key={`${creative.source}-${creative.id}`} 
                 className="overflow-hidden group hover:shadow-md transition-shadow cursor-pointer"
