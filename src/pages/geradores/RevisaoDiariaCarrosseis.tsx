@@ -1,0 +1,260 @@
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useCompany } from "@/contexts/CompanyContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check, X, Eye, Layers, Loader2, BookOpen, Users, Sparkles, LayoutGrid } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { CarouselPreviewModal } from "@/components/generators/CarouselPreviewModal";
+import { Json } from "@/integrations/supabase/types";
+
+interface Slide {
+  position: number;
+  type: string;
+  headline?: string;
+  body?: string;
+  image_url?: string;
+  [key: string]: any;
+}
+
+interface Carousel {
+  id: string;
+  carousel_type: string;
+  slides: Slide[];
+  caption: string | null;
+  cta_text: string | null;
+  theme: string | null;
+  status: string;
+  generated_at: string;
+  client_id: string;
+  clients?: { name: string } | null;
+}
+
+const typeIcons: Record<string, typeof BookOpen> = {
+  tutorial: BookOpen,
+  comparison: Users,
+  behind_scenes: Sparkles,
+  curated_list: LayoutGrid,
+};
+
+const typeLabels: Record<string, string> = {
+  tutorial: "Tutorial/Hack",
+  comparison: "Nós vs. Eles",
+  behind_scenes: "Bastidores",
+  curated_list: "Curadoria",
+};
+
+const typeColors: Record<string, string> = {
+  tutorial: "bg-blue-100 text-blue-700",
+  comparison: "bg-orange-100 text-orange-700",
+  behind_scenes: "bg-purple-100 text-purple-700",
+  curated_list: "bg-green-100 text-green-700",
+};
+
+export default function RevisaoDiariaCarrosseis() {
+  const { activeCompany } = useCompany();
+  const queryClient = useQueryClient();
+  const [selectedCarousel, setSelectedCarousel] = useState<Carousel | null>(null);
+
+  const { data: carousels, isLoading } = useQuery({
+    queryKey: ['pending-carousels', activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return [];
+
+      const { data, error } = await supabase
+        .from('carousel_generation_queue')
+        .select(`
+          id,
+          carousel_type,
+          slides,
+          caption,
+          cta_text,
+          theme,
+          status,
+          generated_at,
+          client_id,
+          clients (name)
+        `)
+        .eq('company_id', activeCompany.company_id)
+        .eq('status', 'pending')
+        .order('generated_at', { ascending: false });
+
+      if (error) throw error;
+      
+      return (data || []).map(item => ({
+        ...item,
+        slides: (item.slides as unknown as Slide[]) || []
+      })) as Carousel[];
+    },
+    enabled: !!activeCompany?.company_id,
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from('carousel_generation_queue')
+        .update({ 
+          status, 
+          reviewed_at: new Date().toISOString() 
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ['pending-carousels'] });
+      toast.success(status === 'approved' ? 'Carrossel aprovado!' : 'Carrossel rejeitado');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao atualizar: ' + error.message);
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Revisão Diária</h1>
+          <p className="text-muted-foreground">Revise e aprove os carrosseis gerados</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-48 w-full mb-4" />
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Revisão Diária</h1>
+          <p className="text-muted-foreground">Revise e aprove os carrosseis gerados</p>
+        </div>
+        <Badge variant="outline" className="text-lg px-4 py-2">
+          {carousels?.length || 0} pendentes
+        </Badge>
+      </div>
+
+      {carousels && carousels.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Layers className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">Nenhum carrossel pendente</h3>
+            <p className="text-muted-foreground text-center mt-2">
+              Os carrosseis gerados aparecerão aqui para revisão
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {carousels?.map((carousel) => {
+            const TypeIcon = typeIcons[carousel.carousel_type] || Layers;
+            const firstSlide = carousel.slides[0];
+            
+            return (
+              <Card key={carousel.id} className="overflow-hidden">
+                <div 
+                  className="aspect-square bg-muted relative cursor-pointer group"
+                  onClick={() => setSelectedCarousel(carousel)}
+                >
+                  {firstSlide?.image_url ? (
+                    <img 
+                      src={firstSlide.image_url} 
+                      alt="Capa do carrossel"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-500/5">
+                      <Layers className="h-16 w-16 text-violet-500/50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Eye className="h-8 w-8 text-white" />
+                  </div>
+                  <Badge className={`absolute top-2 left-2 ${typeColors[carousel.carousel_type]}`}>
+                    <TypeIcon className="h-3 w-3 mr-1" />
+                    {typeLabels[carousel.carousel_type]}
+                  </Badge>
+                  <Badge className="absolute top-2 right-2 bg-background/80">
+                    {carousel.slides.length} slides
+                  </Badge>
+                </div>
+                
+                <CardContent className="p-4">
+                  <p className="font-medium text-sm mb-1 truncate">
+                    {carousel.clients?.name || 'Cliente'}
+                  </p>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    {firstSlide?.headline || carousel.theme || 'Sem título'}
+                  </p>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => updateStatus.mutate({ id: carousel.id, status: 'rejected' })}
+                      disabled={updateStatus.isPending}
+                    >
+                      {updateStatus.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <X className="h-4 w-4 mr-1" />
+                          Rejeitar
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => updateStatus.mutate({ id: carousel.id, status: 'approved' })}
+                      disabled={updateStatus.isPending}
+                    >
+                      {updateStatus.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          Aprovar
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedCarousel && (
+        <CarouselPreviewModal
+          carousel={selectedCarousel}
+          open={!!selectedCarousel}
+          onOpenChange={(open) => !open && setSelectedCarousel(null)}
+          onApprove={() => {
+            updateStatus.mutate({ id: selectedCarousel.id, status: 'approved' });
+            setSelectedCarousel(null);
+          }}
+          onReject={() => {
+            updateStatus.mutate({ id: selectedCarousel.id, status: 'rejected' });
+            setSelectedCarousel(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}

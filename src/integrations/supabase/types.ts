@@ -1661,6 +1661,205 @@ export type Database = {
           },
         ]
       }
+      carousel_generation_queue: {
+        Row: {
+          caption: string | null
+          carousel_type: string
+          client_id: string
+          company_id: string
+          cover_image_url: string | null
+          created_at: string
+          cta_text: string | null
+          generated_at: string
+          generated_content: Json | null
+          hashtags: string | null
+          id: string
+          published_at: string | null
+          quality_score: number | null
+          research_theme_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          schedule_id: string | null
+          slides: Json
+          status: string
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          carousel_type: string
+          client_id: string
+          company_id: string
+          cover_image_url?: string | null
+          created_at?: string
+          cta_text?: string | null
+          generated_at?: string
+          generated_content?: Json | null
+          hashtags?: string | null
+          id?: string
+          published_at?: string | null
+          quality_score?: number | null
+          research_theme_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          schedule_id?: string | null
+          slides?: Json
+          status?: string
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          carousel_type?: string
+          client_id?: string
+          company_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          cta_text?: string | null
+          generated_at?: string
+          generated_content?: Json | null
+          hashtags?: string | null
+          id?: string
+          published_at?: string | null
+          quality_score?: number | null
+          research_theme_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          schedule_id?: string | null
+          slides?: Json
+          status?: string
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carousel_generation_queue_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carousel_generation_queue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carousel_generation_queue_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "carousel_generation_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carousel_generation_schedules: {
+        Row: {
+          behind_scenes_percentage: number
+          carousels_per_day: number
+          client_id: string
+          company_id: string
+          comparison_percentage: number
+          created_at: string
+          curated_list_percentage: number
+          custom_image_prompt: string | null
+          generation_time: string
+          id: string
+          include_proof_social: boolean
+          include_save_bait: boolean
+          is_active: boolean
+          last_generation_at: string | null
+          next_generation_at: string | null
+          reference_image_1: string | null
+          reference_image_2: string | null
+          reference_image_3: string | null
+          reference_image_4: string | null
+          reference_image_5: string | null
+          reference_image_6: string | null
+          show_ui_screenshots: boolean
+          slides_per_carousel: number
+          tutorial_percentage: number
+          updated_at: string
+          use_dark_mode: boolean
+        }
+        Insert: {
+          behind_scenes_percentage?: number
+          carousels_per_day?: number
+          client_id: string
+          company_id: string
+          comparison_percentage?: number
+          created_at?: string
+          curated_list_percentage?: number
+          custom_image_prompt?: string | null
+          generation_time?: string
+          id?: string
+          include_proof_social?: boolean
+          include_save_bait?: boolean
+          is_active?: boolean
+          last_generation_at?: string | null
+          next_generation_at?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          reference_image_4?: string | null
+          reference_image_5?: string | null
+          reference_image_6?: string | null
+          show_ui_screenshots?: boolean
+          slides_per_carousel?: number
+          tutorial_percentage?: number
+          updated_at?: string
+          use_dark_mode?: boolean
+        }
+        Update: {
+          behind_scenes_percentage?: number
+          carousels_per_day?: number
+          client_id?: string
+          company_id?: string
+          comparison_percentage?: number
+          created_at?: string
+          curated_list_percentage?: number
+          custom_image_prompt?: string | null
+          generation_time?: string
+          id?: string
+          include_proof_social?: boolean
+          include_save_bait?: boolean
+          is_active?: boolean
+          last_generation_at?: string | null
+          next_generation_at?: string | null
+          reference_image_1?: string | null
+          reference_image_2?: string | null
+          reference_image_3?: string | null
+          reference_image_4?: string | null
+          reference_image_5?: string | null
+          reference_image_6?: string | null
+          show_ui_screenshots?: boolean
+          slides_per_carousel?: number
+          tutorial_percentage?: number
+          updated_at?: string
+          use_dark_mode?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carousel_generation_schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carousel_generation_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       change_audit_log: {
         Row: {
           campaign_id: string | null
