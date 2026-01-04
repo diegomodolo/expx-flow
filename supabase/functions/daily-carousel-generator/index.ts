@@ -148,7 +148,9 @@ serve(async (req) => {
         .eq('id', schedule.id);
     }
 
-    const generatedCarousels: any[] = [];
+    // Importante: NÃO retornar o conteúdo completo (inclui imagens em base64) na resposta,
+    // senão o payload fica enorme e o navegador pode derrubar a conexão.
+    const generatedCarousels: Array<{ id: string; type: string; theme: string | null }> = [];
     const errors: string[] = [];
 
     // Generate carousels based on distribution
@@ -196,7 +198,13 @@ serve(async (req) => {
               errors.push(`Failed to save ${type} carousel: ${insertError.message}`);
             } else {
               console.log('[daily-carousel-generator] Saved carousel:', savedCarousel?.id);
-              generatedCarousels.push({ id: savedCarousel?.id, type, ...carouselWithImages });
+              if (savedCarousel?.id) {
+                generatedCarousels.push({
+                  id: savedCarousel.id,
+                  type,
+                  theme: carouselWithImages.theme ?? null,
+                });
+              }
             }
           }
         } catch (error: any) {
