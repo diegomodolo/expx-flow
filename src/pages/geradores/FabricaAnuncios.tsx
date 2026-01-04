@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
 import { BarChart3, Eye, Settings, Trophy, History, Factory, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AutopilotPublishHistory } from "@/components/generators/AutopilotPublishHistory";
 
 export default function FabricaAnuncios() {
   const navigate = useNavigate();
@@ -94,6 +95,8 @@ export default function FabricaAnuncios() {
             />
           ))}
         </div>
+
+        <AutopilotPublishHistory />
       </div>
     </DashboardLayout>
   );
