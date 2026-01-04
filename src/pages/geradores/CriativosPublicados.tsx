@@ -171,20 +171,29 @@ export default function CriativosPublicados() {
               <CardContent className="p-4 pt-0">
                 {creative.generated_content?.image_url ? (
                   <div 
-                    className="relative aspect-square bg-muted rounded-lg overflow-hidden mb-3 cursor-pointer"
+                    className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden mb-3 cursor-pointer"
                     onClick={() => setSelectedCreative(creative)}
                   >
                     <img 
                       src={creative.generated_content.image_url} 
                       alt="Criativo"
                       className="object-cover w-full h-full"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                        const placeholder = document.createElement('p');
+                        placeholder.className = 'text-muted-foreground text-sm';
+                        placeholder.textContent = 'Imagem indisponível';
+                        target.parentElement?.appendChild(placeholder);
+                      }}
                     />
                     <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Eye className="h-8 w-8 text-white" />
                     </div>
                   </div>
                 ) : (
-                  <div className="aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center">
+                  <div className="aspect-[3/4] bg-muted rounded-lg mb-3 flex items-center justify-center">
                     <p className="text-muted-foreground text-sm">Sem imagem</p>
                   </div>
                 )}
@@ -212,11 +221,13 @@ export default function CriativosPublicados() {
           {selectedCreative && (
             <div className="space-y-4">
               {selectedCreative.generated_content?.image_url && (
-                <img 
-                  src={selectedCreative.generated_content.image_url}
-                  alt="Criativo"
-                  className="w-full rounded-lg"
-                />
+                <div className="aspect-[3/4] max-h-[60vh] mx-auto overflow-hidden rounded-lg bg-muted">
+                  <img 
+                    src={selectedCreative.generated_content.image_url}
+                    alt="Criativo"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               )}
               {selectedCreative.generated_content?.caption && (
                 <div>
