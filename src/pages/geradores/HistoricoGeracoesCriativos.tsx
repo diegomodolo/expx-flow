@@ -5,17 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, Filter, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 
 interface HistoryEntry {
   id: string;
@@ -141,20 +135,14 @@ export default function HistoricoGeracoesCriativos() {
           <p className="text-muted-foreground">Timeline de gerações automáticas</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-48">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filtrar por cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os clientes</SelectItem>
-              {clients?.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ClientSearchCombobox
+            clients={clients || []}
+            value={clientFilter}
+            onValueChange={setClientFilter}
+            includeAllOption
+            allOptionLabel="Todos os clientes"
+            className="w-56"
+          />
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
