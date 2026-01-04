@@ -35,9 +35,12 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  ImageOff,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { RegenerateCarouselModal } from "@/components/repositorio-criativos/RegenerateCarouselModal";
 
 interface Slide {
   slide_number?: number;
@@ -110,10 +113,27 @@ export function CarouselPreviewModal({
 }: CarouselPreviewModalProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [previewPlatform, setPreviewPlatform] = useState<'instagram' | 'facebook'>('instagram');
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
 
   const slides = carousel.slides || [];
   const slide = slides[currentSlide];
   const statusConfig = STATUS_BADGES[carousel.status] || STATUS_BADGES.pending;
+
+  // Check for missing images
+  const getMissingImagesInfo = () => {
+    const totalSlides = slides.length;
+    const slidesWithImages = slides.filter(s => s.image_url && s.image_url.trim() !== '').length;
+    const missingCount = totalSlides - slidesWithImages;
+    return { totalSlides, slidesWithImages, missingCount, hasMissing: missingCount > 0 };
+  };
+
+  const missingInfo = getMissingImagesInfo();
+
+  const handleRegenerateComplete = () => {
+    setShowRegenerateModal(false);
+    // Reload the page to refresh carousel data
+    window.location.reload();
+  };
 
   const goToPrevious = () => {
     setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
@@ -228,6 +248,27 @@ export function CarouselPreviewModal({
                     </div>
                   )}
                 </div>
+
+                {/* Regenerate Missing Images Button */}
+                {missingInfo.hasMissing && (
+                  <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 mb-2">
+                      <ImageOff className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        {missingInfo.missingCount} de {missingInfo.totalSlides} imagens pendentes
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600"
+                      onClick={() => setShowRegenerateModal(true)}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Regenerar Imagens Faltantes
+                    </Button>
+                  </div>
+                )}
 
                 <Separator />
 
@@ -457,6 +498,16 @@ export function CarouselPreviewModal({
           </div>
         </div>
       </DialogContent>
+
+      {/* Regenerate Modal */}
+      <RegenerateCarouselModal
+        open={showRegenerateModal}
+        onOpenChange={setShowRegenerateModal}
+        carouselId={carousel.id}
+        missingCount={missingInfo.missingCount}
+        totalSlides={missingInfo.totalSlides}
+        onComplete={handleRegenerateComplete}
+      />
     </Dialog>
   );
 }
