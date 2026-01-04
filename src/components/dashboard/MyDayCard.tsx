@@ -32,6 +32,7 @@ export function MyDayCard() {
     queryFn: async () => {
       if (!activeCompany?.company_id || !user?.id) return [];
 
+      // Query tasks assigned to user OR created by user if not assigned to anyone
       const { data, error } = await supabase
         .from("tasks")
         .select(`
@@ -43,7 +44,7 @@ export function MyDayCard() {
           related_client_id
         `)
         .eq("company_id", activeCompany.company_id)
-        .eq("assigned_user_id", user.id)
+        .or(`assigned_user_id.eq.${user.id},and(user_id.eq.${user.id},assigned_user_id.is.null)`)
         .in("status", ["todo", "progress"])
         .order("due_date", { ascending: true, nullsFirst: false })
         .limit(8);
