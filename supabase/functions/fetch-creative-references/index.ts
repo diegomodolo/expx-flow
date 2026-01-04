@@ -13,6 +13,16 @@ interface RequestBody {
   limit?: number;
   adCursor?: string;
   instagramCursor?: string;
+  carouselCursor?: string;
+  includeCarousels?: boolean;
+}
+
+interface CarouselItem {
+  id: string;
+  imageUrl: string;
+  caption: string;
+  children: { id: string; imageUrl: string; mediaType: string }[];
+  timestamp: string;
 }
 
 serve(async (req) => {
@@ -25,7 +35,16 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     const body: RequestBody = await req.json();
-    const { clientId, instagramAccountId, companyId, limit = 20, adCursor, instagramCursor } = body;
+    const { 
+      clientId, 
+      instagramAccountId, 
+      companyId, 
+      limit = 20, 
+      adCursor, 
+      instagramCursor,
+      carouselCursor,
+      includeCarousels = true
+    } = body;
 
     if (!companyId) {
       return new Response(
@@ -98,6 +117,7 @@ serve(async (req) => {
           success: true, 
           adCreatives: [], 
           instagramPosts: [],
+          instagramCarousels: [],
           message: "Integração com Facebook não configurada"
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -107,8 +127,10 @@ serve(async (req) => {
     const accessToken = integration.access_token;
     const adCreatives: { id: string; imageUrl: string; name: string; type: 'ad' }[] = [];
     const instagramPosts: { id: string; imageUrl: string; caption: string; type: 'instagram' }[] = [];
+    const instagramCarousels: CarouselItem[] = [];
     let nextAdCursor: string | null = null;
     let nextInstagramCursor: string | null = null;
+    let nextCarouselCursor: string | null = null;
 
     // Fetch Ad Creatives if we have an ad account
     if (adAccountId) {
@@ -243,9 +265,9 @@ serve(async (req) => {
           for (const post of sortedItems) {
             if (instagramPosts.length >= limit) break;
             
-            // Only include IMAGE and CAROUSEL_ALBUM (skip VIDEO/REELS)
+            // Only include IMAGE (skip CAROUSEL_ALBUM and VIDEO/REELS for this tab)
             const mediaType = post.media_type?.toUpperCase();
-            const isImagePost = mediaType === "IMAGE" || mediaType === "CAROUSEL_ALBUM";
+            const isImagePost = mediaType === "IMAGE";
 
             if (!isImagePost) continue;
 
@@ -286,19 +308,129 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Returning ${adCreatives.length} ad creatives and ${instagramPosts.length} Instagram posts`);
+    // Fetch Instagram Carousels if we have an Instagram account and includeCarousels is true
+    if (instagramId && includeCarousels) {
+      console.log(`Fetching Instagram carousels for account: ${instagramId}, cursor: ${carouselCursor || 'initial'}`);
+
+      try {
+        // Build URL with cursor if provided
+        let mediaUrl = `https://graph.facebook.com/v20.0/${instagramId}/media?fields=id,media_type,media_url,thumbnail_url,caption,permalink,timestamp,children{id,media_type,media_url}&limit=50&access_token=${accessToken}`;
+        
+        if (carouselCursor) {
+          mediaUrl = carouselCursor;
+        }
+
+        const maxPages = 5;
+        let page = 0;
+        let nextUrl: string | null = mediaUrl;
+
+        // Keep fetching until we have enough carousels or run out of pages
+        while (nextUrl && instagramCarousels.length < limit && page < maxPages) {
+          page += 1;
+          console.log(`Carousel pagination: fetching page ${page}, current carousels: ${instagramCarousels.length}`);
+
+          const mediaResponse = await fetch(nextUrl);
+          const mediaData = await mediaResponse.json();
+
+          if (mediaData.error) {
+            console.error("Error fetching Instagram carousels:", mediaData.error);
+            break;
+          }
+
+          const items: any[] = Array.isArray(mediaData.data) ? mediaData.data : [];
+          console.log(`Found ${items.length} Instagram posts from API for carousel check (page ${page})`);
+
+          if (items.length === 0) {
+            console.log("No more items from API, stopping pagination");
+            nextUrl = null;
+            break;
+          }
+
+          // Sort by timestamp descending (most recent first)
+          const sortedItems = items.sort((a: any, b: any) => {
+            const dateA = new Date(a.timestamp || 0).getTime();
+            const dateB = new Date(b.timestamp || 0).getTime();
+            return dateB - dateA;
+          });
+
+          for (const post of sortedItems) {
+            if (instagramCarousels.length >= limit) break;
+            
+            // Only include CAROUSEL_ALBUM
+            const mediaType = post.media_type?.toUpperCase();
+            if (mediaType !== "CAROUSEL_ALBUM") continue;
+
+            // Avoid duplicates
+            if (instagramCarousels.some(c => c.id === post.id)) continue;
+
+            // Get children (slides) of the carousel
+            const children: { id: string; imageUrl: string; mediaType: string }[] = [];
+            
+            if (post.children?.data && Array.isArray(post.children.data)) {
+              for (const child of post.children.data) {
+                const childMediaType = child.media_type?.toUpperCase();
+                // Only include IMAGE children, skip VIDEO
+                if (childMediaType === "IMAGE" && child.media_url) {
+                  children.push({
+                    id: child.id,
+                    imageUrl: child.media_url,
+                    mediaType: childMediaType
+                  });
+                }
+              }
+            }
+
+            // Only add carousel if it has at least one image child
+            if (children.length > 0) {
+              instagramCarousels.push({
+                id: post.id,
+                imageUrl: children[0].imageUrl, // First image as cover
+                caption: post.caption
+                  ? post.caption.substring(0, 100) + (post.caption.length > 100 ? "..." : "")
+                  : "Carrossel do Instagram",
+                children,
+                timestamp: post.timestamp
+              });
+            }
+          }
+
+          // Save next cursor for next iteration
+          if (mediaData?.paging?.next) {
+            nextUrl = mediaData.paging.next;
+          } else {
+            nextUrl = null;
+          }
+        }
+
+        // Set next cursor for pagination if we have more data available
+        if (nextUrl) {
+          nextCarouselCursor = nextUrl;
+        }
+
+        console.log(
+          `Found ${instagramCarousels.length} Instagram carousels (after ${page} pages)`
+        );
+      } catch (e) {
+        console.error("Error in Instagram carousel fetch:", e);
+      }
+    }
+
+    console.log(`Returning ${adCreatives.length} ad creatives, ${instagramPosts.length} Instagram posts, and ${instagramCarousels.length} carousels`);
 
     return new Response(
       JSON.stringify({
         success: true,
         adCreatives,
         instagramPosts,
+        instagramCarousels,
         hasAdAccount: !!adAccountId,
         hasInstagram: !!instagramId,
         nextAdCursor,
         nextInstagramCursor,
+        nextCarouselCursor,
         hasMoreAds: !!nextAdCursor,
-        hasMoreInstagram: !!nextInstagramCursor
+        hasMoreInstagram: !!nextInstagramCursor,
+        hasMoreCarousels: !!nextCarouselCursor
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
