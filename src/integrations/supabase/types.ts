@@ -77,6 +77,53 @@ export type Database = {
           },
         ]
       }
+      activity_feed: {
+        Row: {
+          activity_type: string
+          company_id: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_feed_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_generation_history: {
         Row: {
           ads_generated: number
@@ -10415,6 +10462,19 @@ export type Database = {
       is_company_admin_or_owner: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_activity: {
+        Args: {
+          p_activity_type: string
+          p_company_id: string
+          p_description?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
       }
       set_tv_dashboard_token: {
         Args: { p_company_id: string; p_token: string }

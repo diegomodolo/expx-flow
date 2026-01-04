@@ -5,97 +5,50 @@ import { useDashboardAlerts } from "@/hooks/useDashboardAlerts";
 import { useTaskAutomation } from '@/hooks/useTaskAutomation';
 import { useFacebookCampaignSync } from "@/hooks/useFacebookCampaignSync";
 import { useClients } from "@/hooks/useClients";
-import { useLeadQuality } from "@/hooks/useLeadQuality";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { AccountHealthRadar } from "@/components/dashboard/AccountHealthRadar";
-import { DailyRoutinePanel } from "@/components/dashboard/DailyRoutinePanel";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  PointElement,
-} from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  PointElement
-);
 import { SyncPeriodDialog, SyncOptions } from "@/components/facebook/SyncPeriodDialog";
 import { SyncProgressModal } from "@/components/clients/SyncProgressModal";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { MyDayCard } from "@/components/dashboard/MyDayCard";
+import { TeamHighlights } from "@/components/dashboard/TeamHighlights";
+import { RecentCreativesCard } from "@/components/dashboard/RecentCreativesCard";
 import { 
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
   Users, 
   Target, 
-  BarChart3, 
   AlertTriangle, 
   CheckCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-  Eye,
-  MousePointer,
-  ShoppingCart,
-  Repeat,
-  Calendar,
   RefreshCw,
-  Award,
+  Bell,
 } from "lucide-react";
 
 export default function NewDashboard() {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
-  const [rankingTab, setRankingTab] = useState("cpa");
 
   const {
     metrics,
     clientsPerformance,
     campaignRankings,
-    funnelMetrics,
     loading,
     refetch
   } = useDashboardData();
 
   const { clients } = useClients();
   const { syncCampaigns, syncing, progress } = useFacebookCampaignSync();
-  const { data: leadQualityData, loading: leadQualityLoading } = useLeadQuality();
-
-  // Dados do funil com informações reais
-  const funnelData = [
-    { name: 'Alcance', value: funnelMetrics?.reach || 0, color: '#8b5cf6' },
-    { name: 'Clicks', value: funnelMetrics?.clicks || 0, color: '#6366f1' },
-    { name: 'Leads', value: funnelMetrics?.leads || 0, color: '#10b981' }
-  ];
-
-  // Usar dados existentes
-  const topClientsByROI = clientsPerformance || [];
-  const topCampaignsByCPA = campaignRankings || [];
 
   // Hook para alertas automáticos
-  const { alerts, loading: alertsLoading, isReady: alertsReady, generateAlerts } = useDashboardAlerts();
+  const { alerts, loading: alertsLoading, generateAlerts } = useDashboardAlerts();
   const { convertAlertToTask } = useTaskAutomation();
   
-  // Estado para controlar ações convertidas em tarefas
   const [convertedActions, setConvertedActions] = useState<Set<string>>(new Set());
   const [alertsGenerated, setAlertsGenerated] = useState(false);
 
-  // Buscar alertas automaticamente quando os dados necessários estão disponíveis (apenas uma vez)
   useEffect(() => {
     if (!loading && metrics && campaignRankings && clientsPerformance && !alertsGenerated) {
       setAlertsGenerated(true);
@@ -103,14 +56,12 @@ export default function NewDashboard() {
     }
   }, [loading, metrics, campaignRankings, clientsPerformance, alertsGenerated, generateAlerts]);
 
-  // Calcular informações da última sincronização
   const getLastSyncInfo = () => {
     if (!clients || clients.length === 0) return null;
     
     const clientsWithSync = clients.filter(client => client.last_sync_at);
     if (clientsWithSync.length === 0) return null;
 
-    // Encontrar a sincronização mais recente
     const mostRecentSync = clientsWithSync.reduce((latest, client) => {
       return new Date(client.last_sync_at!) > new Date(latest.last_sync_at!) ? client : latest;
     });
@@ -123,13 +74,6 @@ export default function NewDashboard() {
 
   const lastSyncInfo = getLastSyncInfo();
 
-  // Função auxiliar para calcular mudança percentual
-  const calculateChange = (current: number, previous: number) => {
-    if (!previous || previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
-  };
-
-  // Função auxiliar para formatar moeda
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -137,11 +81,8 @@ export default function NewDashboard() {
     }).format(value);
   };
 
-  // Sincronizar todos os clientes
   const syncAllClientsLocal = async (options: SyncOptions) => {
-    if (!clients || clients.length === 0) {
-      return;
-    }
+    if (!clients || clients.length === 0) return;
 
     for (const client of clients) {
       if (client.ad_account_id) {
@@ -153,36 +94,32 @@ export default function NewDashboard() {
       }
     }
     
-    // Recarregar dados após sincronização
     await refetch();
   };
 
   const handleSyncConfirm = async (options: SyncOptions): Promise<string | null> => {
     setSyncDialogOpen(false);
     await syncAllClientsLocal(options);
-    return null; // TODO: Implement job tracking for bulk sync
+    return null;
   };
 
-  // Função para converter ação em tarefa
   const handleConvertActionToTask = (alert: any) => {
-    // Adicionar ação à lista de convertidas imediatamente para remover da UI
     setConvertedActions(prev => new Set([...prev, alert.id]));
-    
-    // Converter ação em tarefa
     convertAlertToTask(alert);
   };
 
   // Separar alertas por tipo
-  const dangerAlerts = alerts.filter(alert => alert.type === 'danger');
-  const opportunityAlerts = alerts.filter(alert => alert.type === 'opportunity');
+  const dangerAlerts = alerts.filter(alert => alert.type === 'danger' && !convertedActions.has(alert.id));
+  const opportunityAlerts = alerts.filter(alert => alert.type === 'opportunity' && !convertedActions.has(alert.id));
+  const criticalAlertsCount = dangerAlerts.length;
 
   return (
     <DashboardLayout>
-      {/* Header - Google Style */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
         <div>
-          <h1 className="text-headline-lg text-foreground">Dashboard</h1>
-          <p className="text-body-md text-muted-foreground mt-1">Visão geral de performance</p>
+          <h1 className="text-headline-lg text-foreground">Olá! 👋</h1>
+          <p className="text-body-md text-muted-foreground mt-1">Confira as novidades e atividades recentes</p>
         </div>
         
         <div className="flex items-center gap-3 mt-4 lg:mt-0">
@@ -202,717 +139,101 @@ export default function NewDashboard() {
         </div>
       </div>
 
-      {/* Conteúdo do Dashboard */}
-      <div className="space-y-6">
-        {/* KPI Cards - Google Style */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Investimento Total */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <DollarSign className="w-5 h-5 text-primary" />
-              <span className={`text-label-md px-2 py-0.5 rounded-full ${
-                metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 
-                  ? 'text-google-green-600 bg-google-green-50' 
-                  : 'text-google-red-600 bg-google-red-50'
-              }`}>
-                {metrics && calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment) >= 0 ? '+' : ''}
-                {metrics ? calculateChange(metrics.totalInvestment, metrics.previousPeriodInvestment).toFixed(1) : 0}%
-              </span>
-            </div>
-            <p className="text-body-sm text-muted-foreground mb-1">Investimento Total</p>
-            <p className="text-headline-md text-foreground">
-              {formatCurrency(metrics?.totalInvestment || 0)}
-            </p>
-          </div>
-
-          {/* Leads Gerados */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <Users className="w-5 h-5 text-google-green-500" />
-              <span className={`text-label-md px-2 py-0.5 rounded-full ${
-                metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 
-                  ? 'text-google-green-600 bg-google-green-50' 
-                  : 'text-google-red-600 bg-google-red-50'
-              }`}>
-                {metrics && calculateChange(metrics.totalLeads, metrics.previousPeriodLeads) >= 0 ? '+' : ''}
-                {metrics ? calculateChange(metrics.totalLeads, metrics.previousPeriodLeads).toFixed(1) : 0}%
-              </span>
-            </div>
-            <p className="text-body-sm text-muted-foreground mb-1">Leads Gerados</p>
-            <p className="text-headline-md text-foreground">{metrics?.totalLeads || 0}</p>
-          </div>
-
-          {/* CPA Médio */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <Target className="w-5 h-5 text-google-yellow-500" />
-              <span className={`text-label-md px-2 py-0.5 rounded-full ${
-                metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 
-                  ? 'text-google-green-600 bg-google-green-50' 
-                  : 'text-google-red-600 bg-google-red-50'
-              }`}>
-                {metrics && calculateChange(metrics.averageCPA, metrics.previousPeriodCPA) <= 0 ? '' : '+'}
-                {metrics ? calculateChange(metrics.averageCPA, metrics.previousPeriodCPA).toFixed(1) : 0}%
-              </span>
-            </div>
-            <p className="text-body-sm text-muted-foreground mb-1">CPA Médio</p>
-            <p className="text-headline-md text-foreground">
-              {formatCurrency(metrics?.averageCPA || 0)}
-            </p>
-          </div>
-
-          {/* CTR Médio */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <MousePointer className="w-5 h-5 text-google-blue-500" />
-              <span className={`text-label-md px-2 py-0.5 rounded-full ${
-                metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 
-                  ? 'text-google-green-600 bg-google-green-50' 
-                  : 'text-google-red-600 bg-google-red-50'
-              }`}>
-                {metrics && calculateChange(metrics.averageCTR, metrics.previousPeriodCTR) >= 0 ? '+' : ''}
-                {metrics ? calculateChange(metrics.averageCTR, metrics.previousPeriodCTR).toFixed(1) : 0}%
-              </span>
-            </div>
-            <p className="text-body-sm text-muted-foreground mb-1">Taxa de Cliques</p>
-            <p className="text-headline-md text-foreground">
-              {metrics?.averageCTR ? `${metrics.averageCTR.toFixed(2)}%` : '0%'}
-            </p>
-          </div>
-
-          {/* MQL Rate */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <Award className="w-5 h-5 text-google-green-500" />
-              <span className={`text-label-md px-2 py-0.5 rounded-full ${
-                leadQualityData.mqlPercentage >= 70 
-                  ? 'text-google-green-600 bg-google-green-50' 
-                  : leadQualityData.mqlPercentage >= 50
-                  ? 'text-google-yellow-600 bg-google-yellow-50'
-                  : 'text-google-red-600 bg-google-red-50'
-              }`}>
-                {leadQualityData.disqualifiedLeads > 0 ? 'Com Filtro' : 'Sem Dados'}
-              </span>
-            </div>
-            <p className="text-body-sm text-muted-foreground mb-1">MQL Rate</p>
-            <p className="text-headline-md text-foreground">
-              {leadQualityLoading ? '...' : `${leadQualityData.mqlPercentage.toFixed(1)}%`}
-            </p>
-            {leadQualityData.totalLeads > 0 && (
-              <p className="text-body-sm text-muted-foreground mt-1">
-                {leadQualityData.totalLeads - leadQualityData.disqualifiedLeads} de {leadQualityData.totalLeads} leads
-              </p>
-            )}
-          </div>
+      {/* Main Content - 3 Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column - Quick Actions & My Day */}
+        <div className="lg:col-span-3 space-y-6">
+          <QuickActions />
+          <MyDayCard />
         </div>
 
-        {/* Gráficos de Performance - Google Style */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Gráfico 1: Top Clientes por Investimento vs Leads */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-5 h-5 text-primary" />
-              <h2 className="text-title-lg text-foreground">Top Clientes - Investimento vs Leads</h2>
-            </div>
-            
-            <div className="h-[350px] w-full">
-              <Bar
-                data={{
-                  labels: topClientsByROI.slice(0, 8).map(client => 
-                    client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name
-                  ),
-                  datasets: [
-                    {
-                      label: 'Investimento',
-                      data: topClientsByROI.slice(0, 8).map(client => client.investment),
-                      backgroundColor: 'hsl(217, 91%, 60%)',
-                      borderColor: 'hsl(217, 91%, 60%)',
-                      borderWidth: 0,
-                      borderRadius: 4,
-                      yAxisID: 'y',
-                    },
-                    {
-                      label: 'Leads',
-                      data: topClientsByROI.slice(0, 8).map(client => client.leads_generated),
-                      backgroundColor: 'hsl(142, 71%, 45%)',
-                      borderColor: 'hsl(142, 71%, 45%)',
-                      borderWidth: 0,
-                      borderRadius: 4,
-                      yAxisID: 'y1',
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  layout: {
-                    padding: 0,
-                  },
-                  plugins: {
-                    legend: {
-                      position: 'top' as const,
-                      labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        padding: 20,
-                        font: {
-                          family: 'Google Sans, Inter, sans-serif',
-                          size: 12,
-                        },
-                      },
-                    },
-                    tooltip: {
-                      backgroundColor: 'hsl(213, 5%, 16%)',
-                      titleFont: { family: 'Google Sans, Inter, sans-serif' },
-                      bodyFont: { family: 'Google Sans, Inter, sans-serif' },
-                      cornerRadius: 8,
-                      padding: 12,
-                      callbacks: {
-                        label: (context) => {
-                          const label = context.dataset.label || '';
-                          const value = context.parsed.y;
-                          return `${label}: ${label === 'Investimento' ? formatCurrency(value) : value}`;
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    x: {
-                      display: true,
-                      grid: { display: false },
-                      ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: { family: 'Google Sans, Inter, sans-serif', size: 11 },
-                      },
-                    },
-                    y: {
-                      type: 'linear' as const,
-                      display: false,
-                      position: 'left' as const,
-                    },
-                    y1: {
-                      type: 'linear' as const,
-                      display: false,
-                      position: 'right' as const,
-                      grid: { drawOnChartArea: false },
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Gráfico 2: CPL vs Investimento por Cliente */}
-          <div className="bg-card rounded-xl p-5 shadow-google-sm hover:shadow-google-md transition-shadow">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="text-title-lg text-foreground">CPL vs Investimento por Cliente</h2>
-            </div>
-            
-            <div className="h-[350px] w-full">
-              <Line
-                data={{
-                  labels: (() => {
-                    const sortedClients = [...topClientsByROI]
-                      .filter(client => client.investment > 0 && client.avg_cpl > 0)
-                      .sort((a, b) => a.investment - b.investment);
-                    return sortedClients.slice(0, 8).map(client => 
-                      client.name.length > 15 ? client.name.substring(0, 15) + '...' : client.name
-                    );
-                  })(),
-                  datasets: [
-                    {
-                      label: 'Investimento',
-                       data: (() => {
-                         const sortedClients = [...topClientsByROI]
-                           .filter(client => client.investment > 0 && client.avg_cpl > 0)
-                           .sort((a, b) => a.investment - b.investment);
-                         return sortedClients.slice(0, 8).map(client => client.investment);
-                       })(),
-                      borderColor: 'hsl(217, 91%, 60%)',
-                      backgroundColor: 'hsl(217, 91%, 60%)',
-                      borderWidth: 2,
-                      pointBackgroundColor: 'hsl(217, 91%, 60%)',
-                      pointBorderColor: 'white',
-                      pointBorderWidth: 2,
-                      pointRadius: 5,
-                      tension: 0.3,
-                      yAxisID: 'y',
-                    },
-                    {
-                      label: 'CPL',
-                       data: (() => {
-                         const sortedClients = [...topClientsByROI]
-                           .filter(client => client.investment > 0 && client.avg_cpl > 0)
-                           .sort((a, b) => a.investment - b.investment);
-                         return sortedClients.slice(0, 8).map(client => client.avg_cpl);
-                       })(),
-                      borderColor: 'hsl(36, 100%, 50%)',
-                      backgroundColor: 'hsl(36, 100%, 50%)',
-                      borderWidth: 2,
-                      pointBackgroundColor: 'hsl(36, 100%, 50%)',
-                      pointBorderColor: 'white',
-                      pointBorderWidth: 2,
-                      pointRadius: 5,
-                      tension: 0.3,
-                      yAxisID: 'y1',
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  layout: { padding: 0 },
-                  plugins: {
-                    legend: {
-                      position: 'top' as const,
-                      labels: {
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        padding: 20,
-                        font: { family: 'Google Sans, Inter, sans-serif', size: 12 },
-                      },
-                    },
-                    tooltip: {
-                      backgroundColor: 'hsl(213, 5%, 16%)',
-                      titleFont: { family: 'Google Sans, Inter, sans-serif' },
-                      bodyFont: { family: 'Google Sans, Inter, sans-serif' },
-                      cornerRadius: 8,
-                      padding: 12,
-                      callbacks: {
-                        label: (context) => {
-                          const label = context.dataset.label || '';
-                          const value = context.parsed.y;
-                          return `${label}: ${formatCurrency(value)}`;
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    x: {
-                      display: true,
-                      grid: { display: false },
-                      ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: { family: 'Google Sans, Inter, sans-serif', size: 11 },
-                      },
-                    },
-                    y: { type: 'linear' as const, display: false, position: 'left' as const },
-                    y1: {
-                      type: 'linear' as const,
-                      display: false,
-                      position: 'right' as const,
-                      grid: { drawOnChartArea: false },
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
+        {/* Center Column - Activity Feed */}
+        <div className="lg:col-span-6">
+          <ActivityFeed />
         </div>
 
-        {/* Top 5 Clientes - Google Style */}
-        <div className="bg-card rounded-xl p-5 shadow-google-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top 5 Clientes por Investimento */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-primary" />
-                <h2 className="text-title-lg text-foreground">Top 5 por Investimento</h2>
-              </div>
-
-              <div className="space-y-2">
-                {topClientsByROI.slice(0, 5).map((client, index) => (
-                  <div key={client.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
-                      index === 0 ? 'bg-google-blue-100 text-google-blue-600' :
-                      index === 1 ? 'bg-google-green-100 text-google-green-600' :
-                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
-                      'bg-secondary text-muted-foreground'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-md font-medium text-foreground truncate">{client.name}</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        {client.leads_generated} leads • CPA: {formatCurrency(client.avg_cpl)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-body-md font-medium text-foreground">{formatCurrency(client.investment)}</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        {((client.investment / (topClientsByROI.reduce((sum, c) => sum + c.investment, 0))) * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Top 5 Clientes por Resultado de Leads */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="w-5 h-5 text-primary" />
-                <h2 className="text-title-lg text-foreground">Top 5 por Resultados de Leads</h2>
-              </div>
-
-              <div className="space-y-2">
-                {[...topClientsByROI]
-                  .sort((a, b) => b.leads_generated - a.leads_generated)
-                  .slice(0, 5)
-                  .map((client, index) => (
-                  <div key={`leads-${client.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
-                      index === 0 ? 'bg-google-green-100 text-google-green-600' :
-                      index === 1 ? 'bg-google-blue-100 text-google-blue-600' :
-                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
-                      'bg-secondary text-muted-foreground'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-md font-medium text-foreground truncate">{client.name}</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        CPA: {formatCurrency(client.avg_cpl)} • {client.active_campaigns} campanhas
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-body-md font-medium text-foreground">{client.leads_generated} leads</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        {((client.leads_generated / (topClientsByROI.reduce((sum, c) => sum + c.leads_generated, 0))) * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance por Etapas do Funil */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Target className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-card-foreground">Performance por Etapas do Funil</h2>
-          </div>
-
-          <div className="grid grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-sm font-medium">Alcance</CardTitle>
-                <div className="text-2xl font-bold text-blue-600">
-                  {funnelMetrics?.reach?.toLocaleString() || '0'}
+        {/* Right Column - Stats & Highlights */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Mini KPIs */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Investimento</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Pessoas alcançadas
-                </p>
-              </CardHeader>
-            </Card>
-            
-            <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-sm font-medium">Clicks</CardTitle>
-                <div className="text-2xl font-bold text-purple-600">
-                  {funnelMetrics?.clicks?.toLocaleString() || '0'}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Cliques nos anúncios
-                </p>
-              </CardHeader>
-            </Card>
-            
-            <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-sm font-medium">Leads</CardTitle>
-                <div className="text-2xl font-bold text-green-600">
-                  {funnelMetrics?.leads?.toLocaleString() || '0'}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  CPL: {formatCurrency(funnelMetrics?.cpl || 0)}
-                </p>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-
-        {/* Painel de Rotinas e Saúde das Contas - Grid lado a lado */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Rotinas do Dia */}
-          <DailyRoutinePanel />
-          
-          {/* Account Health Radar - Radar de Saúde das Contas */}
-          <AccountHealthRadar maxItems={6} showStats={true} />
-        </div>
-
-        {/* Alertas & Oportunidades - Google Style */}
-        <div className="bg-card rounded-xl p-5 shadow-google-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-primary" />
-            <h2 className="text-title-lg text-foreground">Alertas & Oportunidades</h2>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Problemas */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="w-4 h-4 text-google-red-500" />
-                <h3 className="text-body-md font-medium text-foreground">Problemas ({dangerAlerts.length})</h3>
+                <span className="text-sm font-semibold">{formatCurrency(metrics?.totalInvestment || 0)}</span>
               </div>
-              <div className="space-y-2">
-                {alertsLoading && !alertsReady ? (
-                  <div className="p-4 rounded-lg bg-google-red-50 dark:bg-google-red-900/20">
-                    <div className="flex items-center justify-center">
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2 text-google-red-500" />
-                      <span className="text-body-sm text-google-red-600">Analisando campanhas...</span>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-green-500" />
+                  <span className="text-sm text-muted-foreground">Leads</span>
+                </div>
+                <span className="text-sm font-semibold">{metrics?.totalLeads || 0}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm text-muted-foreground">CPA Médio</span>
+                </div>
+                <span className="text-sm font-semibold">{formatCurrency(metrics?.averageCPA || 0)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Alerts Summary */}
+          {(criticalAlertsCount > 0 || opportunityAlerts.length > 0) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-primary" />
+                  Alertas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {criticalAlertsCount > 0 && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-red-700 dark:text-red-400">Críticos</span>
                     </div>
+                    <Badge variant="destructive">{criticalAlertsCount}</Badge>
                   </div>
-                ) : dangerAlerts.length === 0 ? (
-                  <div className="p-4 rounded-lg bg-google-green-50 dark:bg-google-green-900/20">
-                    <p className="text-body-sm text-google-green-600 text-center">Nenhum problema detectado! 🎉</p>
-                  </div>
-                ) : (
-                  dangerAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert, index) => (
-                    <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-red-100 text-google-red-600">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
-                        <p className="text-body-sm text-muted-foreground truncate">
-                          {alert.client} • {alert.campaign}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-body-md font-medium text-google-red-600">R$ {alert.value || '0'}</p>
-                        <p className="text-body-sm text-muted-foreground">CPA</p>
-                      </div>
-                    </div>
-                  ))
                 )}
-              </div>
-            </div>
-
-            {/* Oportunidades */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <CheckCircle className="w-4 h-4 text-google-green-500" />
-                <h3 className="text-body-md font-medium text-foreground">Oportunidades ({opportunityAlerts.length})</h3>
-              </div>
-              <div className="space-y-2">
-                {alertsLoading && !alertsReady ? (
-                  <div className="p-4 rounded-lg bg-google-green-50 dark:bg-google-green-900/20">
-                    <div className="flex items-center justify-center">
-                      <RefreshCw className="w-4 h-4 animate-spin mr-2 text-google-green-500" />
-                      <span className="text-body-sm text-google-green-600">Buscando oportunidades...</span>
+                {opportunityAlerts.length > 0 && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-green-700 dark:text-green-400">Oportunidades</span>
                     </div>
+                    <Badge className="bg-green-500">{opportunityAlerts.length}</Badge>
                   </div>
-                ) : opportunityAlerts.length === 0 ? (
-                  <div className="p-4 rounded-lg bg-secondary/50">
-                    <p className="text-body-sm text-muted-foreground text-center">Nenhuma oportunidade detectada no momento.</p>
-                  </div>
-                ) : (
-                  opportunityAlerts.filter(alert => !convertedActions.has(alert.id)).map((alert, index) => (
-                    <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-green-100 text-google-green-600">
-                        <TrendingUp className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
-                        <p className="text-body-sm text-muted-foreground truncate">
-                          {alert.client} • {alert.campaign}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-body-md font-medium text-google-green-600">+{alert.value || '0'}%</p>
-                        <p className="text-body-sm text-muted-foreground">ROI</p>
-                      </div>
-                    </div>
-                  ))
                 )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ranking de Campanhas - Google Style */}
-        <div className="bg-card rounded-xl p-5 shadow-google-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            <h2 className="text-title-lg text-foreground">Ranking de Campanhas</h2>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top 5 Campanhas por CPA */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Target className="w-4 h-4 text-primary" />
-                <h3 className="text-body-md font-medium text-foreground">Top 5 por CPA</h3>
-              </div>
-
-              <div className="space-y-2">
-                {topCampaignsByCPA.slice(0, 5).map((campaign, index) => (
-                  <div key={campaign.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
-                      index === 0 ? 'bg-google-green-100 text-google-green-600' :
-                      index === 1 ? 'bg-google-blue-100 text-google-blue-600' :
-                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
-                      'bg-secondary text-muted-foreground'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-md font-medium text-foreground truncate">{campaign.name}</p>
-                      <p className="text-body-sm text-muted-foreground truncate">
-                        {campaign.client_name} • {campaign.conversions} leads
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-body-md font-medium text-foreground">{formatCurrency(campaign.cpa)}</p>
-                      <p className="text-body-sm text-muted-foreground">CPA</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Top 5 Campanhas por Leads */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-4 h-4 text-primary" />
-                <h3 className="text-body-md font-medium text-foreground">Top 5 por Leads</h3>
-              </div>
-
-              <div className="space-y-2">
-                {[...topCampaignsByCPA]
-                  .sort((a, b) => b.conversions - a.conversions)
-                  .slice(0, 5)
-                  .map((campaign, index) => (
-                  <div key={`leads-${campaign.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-label-lg ${
-                      index === 0 ? 'bg-google-green-100 text-google-green-600' :
-                      index === 1 ? 'bg-google-blue-100 text-google-blue-600' :
-                      index === 2 ? 'bg-google-yellow-100 text-google-yellow-600' :
-                      'bg-secondary text-muted-foreground'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-md font-medium text-foreground truncate">{campaign.name}</p>
-                      <p className="text-body-sm text-muted-foreground truncate">
-                        {campaign.client_name} • CPA: {formatCurrency(campaign.cpa)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-body-md font-medium text-foreground">{campaign.conversions} leads</p>
-                      <p className="text-body-sm text-muted-foreground">
-                        {((campaign.conversions / topCampaignsByCPA.reduce((sum, c) => sum + c.conversions, 0)) * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ações Recomendadas do Dia - Google Style */}
-        <div className="bg-card rounded-xl p-5 shadow-google-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Calendar className="w-5 h-5 text-primary" />
-            <h2 className="text-title-lg text-foreground">Ações Recomendadas do Dia</h2>
-          </div>
-
-          {(opportunityAlerts.filter(a => !convertedActions.has(a.id)).length === 0 && 
-            dangerAlerts.filter(a => !convertedActions.has(a.id)).length === 0) ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-google-green-100 dark:bg-google-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="text-google-green-500 w-8 h-8" />
-              </div>
-              <p className="text-body-md text-muted-foreground">Todas as ações foram executadas</p>
-              <p className="text-body-sm text-muted-foreground/80 mt-1">Próxima verificação em 2 horas</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {/* Oportunidades */}
-              {opportunityAlerts
-                .filter(alert => !convertedActions.has(alert.id))
-                .slice(0, 3)
-                .map((alert) => (
-                <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-green-100 text-google-green-600">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
-                    <p className="text-body-sm text-muted-foreground truncate">
-                      {alert.client} • {alert.campaign}
-                    </p>
-                  </div>
-                  <div className="text-right mr-2">
-                    <p className="text-body-md font-medium text-google-green-600">+{alert.value || '0'}%</p>
-                    <p className="text-body-sm text-muted-foreground">ROI</p>
-                  </div>
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleConvertActionToTask(alert)}
-                    className="rounded-full text-google-green-600 border-google-green-200 hover:bg-google-green-50"
-                  >
-                    Criar Tarefa
-                  </Button>
-                </div>
-              ))}
-              
-              {/* Problemas */}
-              {dangerAlerts
-                .filter(alert => !convertedActions.has(alert.id))
-                .slice(0, 2)
-                .map((alert) => (
-                <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-google-red-100 text-google-red-600">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-md font-medium text-foreground truncate">{alert.title}</p>
-                    <p className="text-body-sm text-muted-foreground truncate">
-                      {alert.client} • {alert.campaign}
-                    </p>
-                  </div>
-                  <div className="text-right mr-2">
-                    <p className="text-body-md font-medium text-google-red-600">R$ {alert.value || '0'}</p>
-                    <p className="text-body-sm text-muted-foreground">CPA</p>
-                  </div>
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleConvertActionToTask(alert)}
-                    className="rounded-full text-google-red-600 border-google-red-200 hover:bg-google-red-50"
-                  >
-                    Criar Tarefa
-                  </Button>
-                </div>
-              ))}
-            </div>
+              </CardContent>
+            </Card>
           )}
+
+          <RecentCreativesCard />
+          <TeamHighlights />
         </div>
       </div>
 
-      {/* Sync Dialog */}
-      <SyncPeriodDialog
+      {/* Dialogs */}
+      <SyncPeriodDialog 
         open={syncDialogOpen}
         onOpenChange={setSyncDialogOpen}
         onConfirm={handleSyncConfirm}
-        syncing={syncing}
         title="Sincronizar Todos os Clientes"
       />
 
-      {/* Sync Progress Modal */}
-      <SyncProgressModal
-        open={syncing}
-        progress={progress}
-      />
+      <SyncProgressModal open={syncing} progress={progress} />
     </DashboardLayout>
   );
 }
