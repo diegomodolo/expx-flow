@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
@@ -32,6 +32,13 @@ interface AdGeneratedContent {
   ad_type?: string;
 }
 
+export interface TotalCounts {
+  fabricaAnuncios: number;
+  fabricaCriativos: number;
+  geradorCriativos: number;
+  total: number;
+}
+
 const PAGE_SIZE = 20;
 
 export function useAllCreatives(clientIdFilter?: string) {
@@ -41,8 +48,57 @@ export function useAllCreatives(clientIdFilter?: string) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
-  const [clientMap, setClientMap] = useState<Map<string, string>>(new Map());
+  const [totalCounts, setTotalCounts] = useState<TotalCounts>({ fabricaAnuncios: 0, fabricaCriativos: 0, geradorCriativos: 0, total: 0 });
+  const pageRef = useRef(0);
+  const clientMapRef = useRef<Map<string, string>>(new Map());
+  const isFetchingRef = useRef(false);
+
+  // Fetch total counts (lightweight query)
+  const fetchTotalCounts = useCallback(async () => {
+    if (!activeCompany?.company_id) return;
+
+    try {
+      let fabricaCriativosCountQuery = supabase
+        .from('creative_generation_queue')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', activeCompany.company_id);
+
+      let geradorCountQuery = supabase
+        .from('visual_creatives')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', activeCompany.company_id);
+
+      let fabricaAnunciosCountQuery = supabase
+        .from('ad_generation_queue')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', activeCompany.company_id);
+
+      if (clientIdFilter) {
+        fabricaCriativosCountQuery = fabricaCriativosCountQuery.eq('client_id', clientIdFilter);
+        geradorCountQuery = geradorCountQuery.eq('client_id', clientIdFilter);
+        fabricaAnunciosCountQuery = fabricaAnunciosCountQuery.eq('client_id', clientIdFilter);
+      }
+
+      const [fcCount, gCount, faCount] = await Promise.all([
+        fabricaCriativosCountQuery,
+        geradorCountQuery,
+        fabricaAnunciosCountQuery,
+      ]);
+
+      const fabricaCriativos = fcCount.count || 0;
+      const geradorCriativos = gCount.count || 0;
+      const fabricaAnuncios = faCount.count || 0;
+
+      setTotalCounts({
+        fabricaCriativos,
+        geradorCriativos,
+        fabricaAnuncios,
+        total: fabricaCriativos + geradorCriativos + fabricaAnuncios,
+      });
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  }, [activeCompany?.company_id, clientIdFilter]);
 
   const fetchClients = useCallback(async () => {
     if (!activeCompany?.company_id) return new Map<string, string>();
@@ -56,19 +112,18 @@ export function useAllCreatives(clientIdFilter?: string) {
     const map = new Map<string, string>();
     (clientsData || []).forEach(c => map.set(c.id, c.name));
     setClients(clientsData || []);
-    setClientMap(map);
+    clientMapRef.current = map;
     return map;
   }, [activeCompany?.company_id]);
 
   const fetchCreativesPage = useCallback(async (pageNum: number, existingClientMap?: Map<string, string>): Promise<{ creatives: UnifiedCreative[]; hasMoreData: boolean }> => {
     if (!activeCompany?.company_id) {
-      setLoading(false);
       return { creatives: [], hasMoreData: false };
     }
 
     const offset = pageNum * PAGE_SIZE;
     const limit = PAGE_SIZE;
-    const mapToUse = existingClientMap || clientMap;
+    const mapToUse = existingClientMap || clientMapRef.current;
 
     // Build queries for all three sources with pagination
     let fabricaCriativosQuery = supabase
@@ -181,20 +236,26 @@ export function useAllCreatives(clientIdFilter?: string) {
                          (fabricaAnunciosResult.data?.length || 0);
     
     return { creatives: limitedCreatives, hasMoreData: totalFetched >= limit };
-  }, [activeCompany?.company_id, clientIdFilter, clientMap]);
+  }, [activeCompany?.company_id, clientIdFilter]);
 
   const fetchInitial = useCallback(async () => {
-    if (!activeCompany?.company_id) {
+    if (!activeCompany?.company_id || isFetchingRef.current) {
       setLoading(false);
       return;
     }
 
+    isFetchingRef.current = true;
     setLoading(true);
-    setPage(0);
+    pageRef.current = 0;
     setHasMore(true);
     
     try {
-      const map = await fetchClients();
+      // Fetch counts and clients in parallel
+      const [map] = await Promise.all([
+        fetchClients(),
+        fetchTotalCounts(),
+      ]);
+      
       const result = await fetchCreativesPage(0, map);
       setCreatives(result.creatives);
       setHasMore(result.hasMoreData);
@@ -203,18 +264,19 @@ export function useAllCreatives(clientIdFilter?: string) {
       toast.error('Erro ao carregar criativos');
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [activeCompany?.company_id, fetchClients, fetchCreativesPage]);
+  }, [activeCompany?.company_id, fetchClients, fetchCreativesPage, fetchTotalCounts]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
     try {
-      const nextPage = page + 1;
+      const nextPage = pageRef.current + 1;
       const result = await fetchCreativesPage(nextPage);
       setCreatives(prev => [...prev, ...result.creatives]);
-      setPage(nextPage);
+      pageRef.current = nextPage;
       setHasMore(result.hasMoreData);
     } catch (error: any) {
       console.error('Error loading more creatives:', error);
@@ -222,7 +284,7 @@ export function useAllCreatives(clientIdFilter?: string) {
     } finally {
       setLoadingMore(false);
     }
-  }, [page, loadingMore, hasMore, fetchCreativesPage]);
+  }, [loadingMore, hasMore, fetchCreativesPage]);
 
   useEffect(() => {
     fetchInitial();
@@ -241,6 +303,7 @@ export function useAllCreatives(clientIdFilter?: string) {
     loading,
     loadingMore,
     hasMore,
+    totalCounts,
     loadMore,
     refetch: fetchInitial,
   };

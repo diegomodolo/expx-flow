@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export default function RepositorioCriativos() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
-  const { creatives, allClients, loading, loadingMore, hasMore, loadMore } = useAllCreatives(selectedClientId || undefined);
+  const { creatives, allClients, loading, loadingMore, hasMore, loadMore, totalCounts } = useAllCreatives(selectedClientId || undefined);
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
 
   const selectedClientName = useMemo(() => {
@@ -160,13 +160,19 @@ export default function RepositorioCriativos() {
 
         {/* Stats */}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{creatives.length} criativos</span>
+          <span className="font-medium text-foreground">{totalCounts.total} criativos no total</span>
           <span>•</span>
-          <span>{creatives.filter(c => c.source === 'fabrica_anuncios').length} da Fábrica de Anúncios</span>
+          <span>{totalCounts.fabricaAnuncios} da Fábrica de Anúncios</span>
           <span>•</span>
-          <span>{creatives.filter(c => c.source === 'fabrica_criativos').length} da Fábrica de Criativos</span>
+          <span>{totalCounts.fabricaCriativos} da Fábrica de Criativos</span>
           <span>•</span>
-          <span>{creatives.filter(c => c.source === 'gerador_criativos').length} do Gerador</span>
+          <span>{totalCounts.geradorCriativos} do Gerador</span>
+          {creatives.length > 0 && (
+            <>
+              <span>•</span>
+              <span className="text-primary font-medium">Mostrando {creatives.length}</span>
+            </>
+          )}
         </div>
 
         {/* Grid */}
