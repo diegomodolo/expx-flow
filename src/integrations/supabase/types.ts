@@ -2710,6 +2710,7 @@ export type Database = {
           created_at: string
           headline: string | null
           id: string
+          image_url: string | null
           objective: string | null
           order_index: number
           post_type: string
@@ -2725,6 +2726,7 @@ export type Database = {
           created_at?: string
           headline?: string | null
           id?: string
+          image_url?: string | null
           objective?: string | null
           order_index?: number
           post_type?: string
@@ -2740,6 +2742,7 @@ export type Database = {
           created_at?: string
           headline?: string | null
           id?: string
+          image_url?: string | null
           objective?: string | null
           order_index?: number
           post_type?: string

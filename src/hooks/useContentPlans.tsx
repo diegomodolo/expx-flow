@@ -25,6 +25,7 @@ export interface ContentPlanPost {
   script: any | null;
   scheduled_date: string | null;
   status: "rascunho" | "finalizado" | "enviado_criativo";
+  image_url: string | null;
   created_at: string;
   updated_at: string;
   slides?: ContentPlanSlide[];
