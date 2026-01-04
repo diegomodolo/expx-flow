@@ -6,8 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Factory, Zap, Clock, ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Plus, Loader2, Factory, Zap, Clock, Sparkles, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 import { ClienteConfiguracaoFabrica } from "@/components/generators/ClienteConfiguracaoFabrica";
@@ -117,55 +116,41 @@ export default function ConfiguracaoFabrica() {
   if (configClientId) {
     const client = clients.find(c => c.id === configClientId);
     return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => setConfigClientId(null)}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-headline-small font-medium text-foreground">Configurar Fábrica</h1>
-              <p className="text-body-medium text-muted-foreground">{client?.name}</p>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => setConfigClientId(null)}
+            className="gap-2"
+          >
+            Voltar para Lista
+          </Button>
+          <div>
+            <h1 className="text-headline-small font-medium text-foreground">Configurar Fábrica</h1>
+            <p className="text-body-medium text-muted-foreground">{client?.name}</p>
           </div>
-          <ClienteConfiguracaoFabrica 
-            clientId={configClientId} 
-            onSave={handleConfigSaved}
-          />
         </div>
-      </DashboardLayout>
+        <ClienteConfiguracaoFabrica 
+          clientId={configClientId} 
+          onSave={handleConfigSaved}
+        />
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header Google Style */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/geradores/fabrica-anuncios')}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-headline-small font-medium text-foreground">Configuração da Fábrica</h1>
-              <p className="text-body-medium text-muted-foreground">Gerencie as fábricas de anúncios por cliente</p>
-            </div>
-          </div>
-          <Button 
-            onClick={() => setCreateDialogOpen(true)} 
-            disabled={availableClients.length === 0}
-            className="gap-2"
-          >
+    <div className="space-y-6">
+      {/* Header Google Style */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-headline-small font-medium text-foreground">Configuração da Fábrica</h1>
+          <p className="text-body-medium text-muted-foreground">Gerencie as fábricas de anúncios por cliente</p>
+        </div>
+        <Button 
+          onClick={() => setCreateDialogOpen(true)} 
+          disabled={availableClients.length === 0}
+          className="gap-2"
+        >
             <Plus className="h-4 w-4" />
             Nova Fábrica
           </Button>
@@ -323,7 +308,6 @@ export default function ConfiguracaoFabrica() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
