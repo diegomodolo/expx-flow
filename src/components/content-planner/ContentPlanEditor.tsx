@@ -116,8 +116,37 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const handleImportCreatives = async (creatives: { image_url: string; caption: string }[]) => {
     const maxOrder = plan?.posts?.reduce((max, p) => Math.max(max, p.order_index), -1) ?? -1;
     
+    // First, analyze all captions with AI to generate metadata
+    let aiResults: { objective: string; headline: string; subheadline: string }[] = [];
+    
+    const captions = creatives.map(c => c.caption);
+    const hasAnyCaptions = captions.some(c => c && c.trim() !== "");
+    
+    if (hasAnyCaptions) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-creative-caption`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ captions }),
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          aiResults = data.results || [];
+        }
+      } catch (error) {
+        console.error("Error analyzing captions:", error);
+      }
+    }
+    
+    // Create posts
     for (let i = 0; i < creatives.length; i++) {
-      const creative = creatives[i];
       await addPost.mutateAsync({
         content_plan_id: planId,
         order_index: maxOrder + 1 + i,
@@ -128,14 +157,19 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     const updatedPlan = await refetch();
     const newPosts = updatedPlan.data?.posts?.slice(-creatives.length) || [];
     
-    // Update each post with the creative data
+    // Update each post with the creative data and AI-generated metadata
     for (let i = 0; i < newPosts.length && i < creatives.length; i++) {
       const post = newPosts[i];
       const creative = creatives[i];
+      const aiData = aiResults[i] || { objective: "", headline: "", subheadline: "" };
+      
       await updatePost.mutateAsync({
         id: post.id,
         image_url: creative.image_url,
         caption: creative.caption,
+        objective: aiData.objective,
+        headline: aiData.headline,
+        subheadline: aiData.subheadline,
       });
     }
     
