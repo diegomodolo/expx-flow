@@ -32,7 +32,7 @@ import { FabricaTemasPesquisa } from "./FabricaTemasPesquisa";
 import { FabricaCarrosseisGerados } from "./FabricaCarrosseisGerados";
 import { FabricaCarrosseisHistorico } from "./FabricaCarrosseisHistorico";
 
-const SUGGESTED_PROMPT = `Crie carrosseis seguindo as melhores práticas para empresas de software/SaaS. Use estilo dark mode com alto contraste. Inclua headlines claras e legíveis em cada slide. Mostre screenshots da interface quando relevante. Todos os textos devem ser 100% em português do Brasil.`;
+const SUGGESTED_PROMPT = `Se baseie 100% nas imagens de referência para criar carrosseis seguindo as melhores práticas para empresas de software/SaaS. Inclua headlines claras e legíveis em cada slide. Mostre screenshots da interface quando relevante. Todos os textos devem ser 100% em português do Brasil. Seja muito fiel ao logotipo do cliente que esta presente nas imagens de referencia, NUNCA tente gerar um logotipo diferente.`;
 
 interface ScheduleConfig {
   id?: string;
