@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,14 +67,25 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
   const { activeCompany } = useCompany();
   const queryClient = useQueryClient();
   const [selectedCarousel, setSelectedCarousel] = useState<Carousel | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const { isGenerating, generateCarousels } = useCarouselGeneration();
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null);
+    });
+  }, []);
+
   const handleGenerate = async (type?: "tutorial" | "comparison" | "behind_scenes" | "curated_list") => {
-    if (!activeCompany?.company_id) return;
+    if (!activeCompany?.company_id || !userId) {
+      toast.error('Erro: usuário não autenticado');
+      return;
+    }
 
     const result = await generateCarousels({
       clientId,
       companyId: activeCompany.company_id,
+      userId,
       carouselType: type,
       count: 1,
     });
