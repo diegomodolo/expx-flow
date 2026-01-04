@@ -1,18 +1,20 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, Copy, Check, ArrowDown } from "lucide-react";
+import { Sparkles, Send, Loader2, Copy, Check, ArrowDown, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface ContentPlanAIChatProps {
   clientId: string;
   clientName: string;
   clientBriefing?: string;
+  contentPlanId: string;
   onInsertContent: (content: string, field: string) => void;
 }
 
@@ -36,14 +38,97 @@ export function ContentPlanAIChat({
   clientId,
   clientName,
   clientBriefing,
+  contentPlanId,
   onInsertContent,
 }: ContentPlanAIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { activeCompany } = useCompany();
+  const companyId = activeCompany?.company_id;
+
+  // Load chat history on mount
+  const loadChatHistory = useCallback(async () => {
+    if (!contentPlanId || !companyId) return;
+    
+    setIsLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from("content_plan_chat_messages")
+        .select("*")
+        .eq("content_plan_id", contentPlanId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setMessages(
+          data.map((msg) => ({
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            timestamp: new Date(msg.created_at),
+          }))
+        );
+      }
+    } catch (error: any) {
+      console.error("Error loading chat history:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [contentPlanId, companyId]);
+
+  useEffect(() => {
+    loadChatHistory();
+  }, [loadChatHistory]);
+
+  // Save message to database
+  const saveMessage = async (role: "user" | "assistant", content: string): Promise<string | null> => {
+    if (!contentPlanId || !companyId) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from("content_plan_chat_messages")
+        .insert({
+          content_plan_id: contentPlanId,
+          client_id: clientId,
+          company_id: companyId,
+          role,
+          content,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      return data?.id || null;
+    } catch (error: any) {
+      console.error("Error saving message:", error);
+      return null;
+    }
+  };
+
+  // Clear chat history
+  const handleClearHistory = async () => {
+    if (!contentPlanId) return;
+
+    try {
+      const { error } = await supabase
+        .from("content_plan_chat_messages")
+        .delete()
+        .eq("content_plan_id", contentPlanId);
+
+      if (error) throw error;
+
+      setMessages([]);
+      toast.success("Histórico limpo");
+    } catch (error: any) {
+      toast.error("Erro ao limpar histórico: " + error.message);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,23 +139,28 @@ export function ContentPlanAIChat({
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const userContent = input.trim();
+    setInput("");
+    setIsLoading(true);
+
+    // Save user message to DB first
+    const userMsgId = await saveMessage("user", userContent);
+    
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: userMsgId || Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: userContent,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("content-plan-chat", {
         body: {
           messages: [
             ...messages.map((m) => ({ role: m.role, content: m.content })),
-            { role: "user", content: userMessage.content },
+            { role: "user", content: userContent },
           ],
           clientId,
         },
@@ -78,10 +168,15 @@ export function ContentPlanAIChat({
 
       if (error) throw error;
 
+      const assistantContent = data.content || data.message || "Desculpe, não consegui processar sua solicitação.";
+      
+      // Save assistant message to DB
+      const assistantMsgId = await saveMessage("assistant", assistantContent);
+
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: assistantMsgId || (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.content || data.message || "Desculpe, não consegui processar sua solicitação.",
+        content: assistantContent,
         timestamp: new Date(),
       };
 
@@ -116,16 +211,29 @@ export function ContentPlanAIChat({
     <div className="h-full flex flex-col bg-muted/20">
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b bg-background">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
-            <Sparkles className="w-5 h-5 text-primary" />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Assistente IA</h3>
+              <p className="text-xs text-muted-foreground">
+                Vinculado a {clientName}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">Assistente IA</h3>
-            <p className="text-xs text-muted-foreground">
-              Vinculado a {clientName}
-            </p>
-          </div>
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={handleClearHistory}
+              title="Limpar histórico"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         {!clientBriefing && (
@@ -155,7 +263,12 @@ export function ContentPlanAIChat({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        {messages.length === 0 ? (
+        {isLoadingHistory ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground/50 mb-4" />
+            <p className="text-xs text-muted-foreground">Carregando histórico...</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="w-12 h-12 text-muted-foreground/30 mb-4" />
             <h4 className="text-sm font-medium text-muted-foreground mb-1">

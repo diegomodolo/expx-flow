@@ -511,6 +511,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
             clientId={plan.client_id}
             clientName={plan.clients?.name || ""}
             clientBriefing={clientBriefing}
+            contentPlanId={plan.id}
             onInsertContent={handleInsertFromAI}
           />
         </ResizablePanel>

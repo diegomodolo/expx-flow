@@ -2703,6 +2703,58 @@ export type Database = {
           },
         ]
       }
+      content_plan_chat_messages: {
+        Row: {
+          client_id: string
+          company_id: string
+          content: string
+          content_plan_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          content: string
+          content_plan_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          content?: string
+          content_plan_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plan_chat_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plan_chat_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_plan_chat_messages_content_plan_id_fkey"
+            columns: ["content_plan_id"]
+            isOneToOne: false
+            referencedRelation: "content_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_plan_posts: {
         Row: {
           caption: string | null
