@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw, ExternalLink } from "lucide-react";
+import { Plus, RefreshCw, ExternalLink, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import {
@@ -29,6 +30,7 @@ interface Schedule {
   clients?: {
     name: string;
     company: string;
+    avatar: string | null;
   };
 }
 
@@ -70,7 +72,7 @@ export default function ConfiguracaoFabricaCriativos() {
           generation_time,
           creatives_per_day,
           last_generation_at,
-          clients (name, company)
+          clients (name, company, avatar)
         `)
         .eq("company_id", companyId)
         .order("clients(name)");
@@ -248,9 +250,17 @@ export default function ConfiguracaoFabricaCriativos() {
                   key={schedule.id} 
                   className="grid grid-cols-[1fr,100px,100px,80px,60px] gap-4 py-3 px-3 items-center hover:bg-muted/50 rounded-md"
                 >
-                  <div>
-                    <p className="font-medium">{schedule.clients?.name}</p>
-                    <p className="text-xs text-muted-foreground">{schedule.clients?.company}</p>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={schedule.clients?.avatar || undefined} alt={schedule.clients?.name} />
+                      <AvatarFallback className="text-xs">
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{schedule.clients?.name}</p>
+                      <p className="text-xs text-muted-foreground">{schedule.clients?.company}</p>
+                    </div>
                   </div>
 
                   <Input
