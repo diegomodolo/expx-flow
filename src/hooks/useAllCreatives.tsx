@@ -62,19 +62,22 @@ export function useAllCreatives(clientIdFilter?: string) {
         .from('creative_generation_queue')
         .select('id, client_id, company_id, image_url, video_url, caption, status, created_at, creative_type, theme')
         .eq('company_id', activeCompany.company_id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       let geradorQuery = supabase
         .from('visual_creatives')
         .select('id, client_id, company_id, image_url, video_url, caption, title, status, created_at, creative_type, theme')
         .eq('company_id', activeCompany.company_id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       let fabricaAnunciosQuery = supabase
         .from('ad_generation_queue')
         .select('id, client_id, company_id, generated_content, status, created_at, generation_type')
         .eq('company_id', activeCompany.company_id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       // Apply client filter if provided
       if (clientIdFilter) {
