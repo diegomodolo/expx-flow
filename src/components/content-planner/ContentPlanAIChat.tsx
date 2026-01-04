@@ -24,11 +24,12 @@ interface Message {
 }
 
 const quickPrompts = [
-  { label: "Headlines", prompt: "Sugira 5 headlines criativas para posts sobre" },
-  { label: "Hashtags", prompt: "Gere 15 hashtags relevantes para o segmento de" },
-  { label: "Legendas", prompt: "Crie uma legenda engajadora sobre" },
-  { label: "Ideias de Posts", prompt: "Sugira 10 ideias de posts para" },
-  { label: "CTAs", prompt: "Sugira 5 calls-to-action criativos para" },
+  { label: "Melhor Criativo", prompt: "Qual foi o criativo que melhor performou nos últimos 30 dias? Explique o porquê." },
+  { label: "Mais Engajamento", prompt: "Qual post gerou mais engajamento recentemente? Analise o que funcionou." },
+  { label: "Temas Cadastrados", prompt: "Quais são os temas cadastrados para este cliente? Sugira novos posts baseados neles." },
+  { label: "Headlines", prompt: "Sugira 5 headlines criativas baseadas nos criativos que mais performam." },
+  { label: "Ideias de Posts", prompt: "Sugira 10 ideias de posts baseadas no briefing e performance histórica." },
+  { label: "Análise CTR", prompt: "Quais criativos têm o melhor CTR? O que eles têm em comum?" },
 ];
 
 export function ContentPlanAIChat({
@@ -65,26 +66,13 @@ export function ContentPlanAIChat({
     setIsLoading(true);
 
     try {
-      const systemPrompt = `Você é um assistente de copywriting especializado em criar conteúdo para redes sociais.
-
-Cliente: ${clientName}
-${clientBriefing ? `\nContexto do cliente:\n${clientBriefing}` : ""}
-
-Instruções:
-- Seja criativo e estratégico nas suas sugestões
-- Use linguagem adequada para redes sociais
-- Inclua hashtags relevantes quando apropriado
-- Forneça opções variadas quando solicitado
-- Considere o tom de voz e público-alvo do cliente
-- Responda em português brasileiro`;
-
       const { data, error } = await supabase.functions.invoke("content-plan-chat", {
         body: {
           messages: [
             ...messages.map((m) => ({ role: m.role, content: m.content })),
             { role: "user", content: userMessage.content },
           ],
-          systemPrompt,
+          clientId,
         },
       });
 
