@@ -56,6 +56,9 @@ interface ContentPlanPostCardProps {
   onDelete: () => void;
   onRefetch: () => void;
   clientBriefing?: string;
+  validationErrors?: {
+    [field: string]: string | undefined;
+  };
 }
 
 const postTypeConfig = {
@@ -111,6 +114,7 @@ export function ContentPlanPostCard({
   onDelete,
   onRefetch,
   clientBriefing,
+  validationErrors,
 }: ContentPlanPostCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -395,7 +399,12 @@ O conteúdo deve:
               {/* Objective */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Objetivo</Label>
+                  <Label className={validationErrors?.objective ? "text-destructive" : ""}>
+                    Objetivo
+                    {validationErrors?.objective && (
+                      <span className="ml-2 text-xs font-normal">⚠️ Erro encontrado</span>
+                    )}
+                  </Label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -415,13 +424,22 @@ O conteúdo deve:
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
                   placeholder="Ex: Gerar leads, aumentar engajamento..."
+                  className={validationErrors?.objective ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
+                {validationErrors?.objective && (
+                  <p className="text-xs text-destructive">{validationErrors.objective}</p>
+                )}
               </div>
 
               {/* Headline */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Headline</Label>
+                  <Label className={validationErrors?.headline ? "text-destructive" : ""}>
+                    Headline
+                    {validationErrors?.headline && (
+                      <span className="ml-2 text-xs font-normal">⚠️ Erro encontrado</span>
+                    )}
+                  </Label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -441,13 +459,22 @@ O conteúdo deve:
                   value={headline}
                   onChange={(e) => setHeadline(e.target.value)}
                   placeholder="Título principal do post"
+                  className={validationErrors?.headline ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
+                {validationErrors?.headline && (
+                  <p className="text-xs text-destructive">{validationErrors.headline}</p>
+                )}
               </div>
 
               {/* Subheadline */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Subheadline</Label>
+                  <Label className={validationErrors?.subheadline ? "text-destructive" : ""}>
+                    Subheadline
+                    {validationErrors?.subheadline && (
+                      <span className="ml-2 text-xs font-normal">⚠️ Erro encontrado</span>
+                    )}
+                  </Label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -467,13 +494,22 @@ O conteúdo deve:
                   value={subheadline}
                   onChange={(e) => setSubheadline(e.target.value)}
                   placeholder="Subtítulo complementar"
+                  className={validationErrors?.subheadline ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
+                {validationErrors?.subheadline && (
+                  <p className="text-xs text-destructive">{validationErrors.subheadline}</p>
+                )}
               </div>
 
               {/* Caption */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Legenda</Label>
+                  <Label className={validationErrors?.caption ? "text-destructive" : ""}>
+                    Legenda
+                    {validationErrors?.caption && (
+                      <span className="ml-2 text-xs font-normal">⚠️ Erro encontrado</span>
+                    )}
+                  </Label>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -494,11 +530,17 @@ O conteúdo deve:
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Legenda completa com hashtags..."
                   rows={4}
+                  className={validationErrors?.caption ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
-                {caption && (
-                  <p className="text-xs text-muted-foreground">
-                    {caption.length} caracteres
-                  </p>
+                <div className="flex items-center justify-between">
+                  {caption && (
+                    <p className="text-xs text-muted-foreground">
+                      {caption.length} caracteres
+                    </p>
+                  )}
+                </div>
+                {validationErrors?.caption && (
+                  <p className="text-xs text-destructive">{validationErrors.caption}</p>
                 )}
               </div>
 

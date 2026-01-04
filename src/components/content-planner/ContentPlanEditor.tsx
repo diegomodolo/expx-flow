@@ -20,8 +20,14 @@ import {
 import { ContentPlanPostCard } from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
 import { ImportCreativesModal } from "./ImportCreativesModal";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink } from "lucide-react";
+import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+
+export interface PortugueseValidationErrors {
+  [postId: string]: {
+    [field: string]: string | undefined;
+  };
+}
 
 interface ContentPlanEditorProps {
   planId: string;
@@ -50,7 +56,9 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  
+  const [isValidatingPortuguese, setIsValidatingPortuguese] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<PortugueseValidationErrors>({});
+  const [totalValidationErrors, setTotalValidationErrors] = useState(0);
 
   const { data: plan, isLoading, refetch } = useQuery({
     queryKey: ["content-plan-detail", planId],
@@ -120,6 +128,74 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     const token = (plan as any)?.public_token;
     if (token) {
       window.open(`${window.location.origin}/content-review?token=${token}`, '_blank');
+    }
+  };
+
+  const handleValidatePortuguese = async () => {
+    if (!plan?.posts || plan.posts.length === 0) {
+      toast.info("Não há posts para validar");
+      return;
+    }
+
+    setIsValidatingPortuguese(true);
+    setValidationErrors({});
+    setTotalValidationErrors(0);
+
+    try {
+      const postsData = plan.posts.map(post => ({
+        postId: post.id,
+        objective: post.objective,
+        headline: post.headline,
+        subheadline: post.subheadline,
+        caption: post.caption,
+      }));
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-portuguese`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ posts: postsData }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao validar");
+      }
+
+      const data = await response.json();
+      
+      // Transform results into error map
+      const errorsMap: PortugueseValidationErrors = {};
+      data.results?.forEach((result: any) => {
+        const postErrors: { [field: string]: string | undefined } = {};
+        result.errors?.forEach((err: any) => {
+          if (err.hasError) {
+            postErrors[err.field] = err.errorDetails;
+          }
+        });
+        if (Object.keys(postErrors).length > 0) {
+          errorsMap[result.postId] = postErrors;
+        }
+      });
+
+      setValidationErrors(errorsMap);
+      setTotalValidationErrors(data.totalErrors || 0);
+
+      if (data.totalErrors === 0) {
+        toast.success("Nenhum erro de português encontrado!");
+      } else {
+        toast.warning(`${data.totalErrors} erro(s) de português encontrado(s)`);
+      }
+    } catch (error) {
+      console.error("Error validating:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao validar português");
+    } finally {
+      setIsValidatingPortuguese(false);
     }
   };
 
@@ -326,6 +402,30 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   <Download className="w-4 h-4" />
                   Importar da Fábrica
                 </Button>
+                
+                {/* Validate Portuguese Button */}
+                <Button
+                  onClick={handleValidatePortuguese}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  disabled={isValidatingPortuguese || !plan.posts?.length}
+                >
+                  {isValidatingPortuguese ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <SpellCheck className="w-4 h-4" />
+                  )}
+                  Validar Português
+                </Button>
+
+                {/* Validation Errors Badge */}
+                {totalValidationErrors > 0 && (
+                  <Badge variant="destructive" className="gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    {totalValidationErrors} erro(s)
+                  </Badge>
+                )}
 
                 {/* Public Review Link - Only show when in review */}
                 {plan.status === "em_revisao" && (
@@ -359,7 +459,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   </div>
                 )}
 
-                {plan.status !== "em_revisao" && (
+                {plan.status !== "em_revisao" && totalValidationErrors === 0 && (
                   <Badge variant="outline" className="ml-auto">
                     {plan.posts?.length || 0} posts
                   </Badge>
@@ -381,6 +481,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     onDelete={() => handleDeletePost(post.id)}
                     onRefetch={refetch}
                     clientBriefing={clientBriefing}
+                    validationErrors={validationErrors[post.id]}
                   />
                 ))
               ) : (
