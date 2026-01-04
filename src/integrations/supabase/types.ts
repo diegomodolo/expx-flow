@@ -2714,6 +2714,9 @@ export type Database = {
           objective: string | null
           order_index: number
           post_type: string
+          review_feedback: string | null
+          review_status: string | null
+          reviewed_at: string | null
           scheduled_date: string | null
           script: Json | null
           status: string
@@ -2730,6 +2733,9 @@ export type Database = {
           objective?: string | null
           order_index?: number
           post_type?: string
+          review_feedback?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
           scheduled_date?: string | null
           script?: Json | null
           status?: string
@@ -2746,6 +2752,9 @@ export type Database = {
           objective?: string | null
           order_index?: number
           post_type?: string
+          review_feedback?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
           scheduled_date?: string | null
           script?: Json | null
           status?: string
@@ -2805,6 +2814,8 @@ export type Database = {
           id: string
           month: number
           name: string
+          public_shared_at: string | null
+          public_token: string | null
           status: string
           updated_at: string
           user_id: string
@@ -2817,6 +2828,8 @@ export type Database = {
           id?: string
           month: number
           name: string
+          public_shared_at?: string | null
+          public_token?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -2829,6 +2842,8 @@ export type Database = {
           id?: string
           month?: number
           name?: string
+          public_shared_at?: string | null
+          public_token?: string | null
           status?: string
           updated_at?: string
           user_id?: string

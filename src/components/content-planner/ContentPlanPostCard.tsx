@@ -40,6 +40,9 @@ import {
   GripVertical,
   Loader2,
   Calendar,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -307,6 +310,20 @@ O conteúdo deve:
               Post {index + 1}
             </span>
 
+            {/* Review Status Badge */}
+            {post.review_status === "approved" && (
+              <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Aprovado
+              </Badge>
+            )}
+            {post.review_status === "rejected" && (
+              <Badge className="bg-red-500/10 text-red-600 border-red-500/20 gap-1">
+                <XCircle className="w-3 h-3" />
+                Reprovado
+              </Badge>
+            )}
+
             <div className="flex-1" />
 
             <Select
@@ -348,6 +365,19 @@ O conteúdo deve:
 
           <CollapsibleContent>
             <div className="p-4 space-y-4">
+              {/* Review Feedback Alert */}
+              {post.review_status === "rejected" && post.review_feedback && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-red-600">Feedback do revisor:</p>
+                      <p className="text-sm text-red-600/80 mt-1">{post.review_feedback}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Post Image */}
               {post.image_url && (
                 <div className="space-y-2">
