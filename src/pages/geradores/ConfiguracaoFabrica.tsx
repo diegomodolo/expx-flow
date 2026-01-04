@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Plus, Loader2, Factory, Zap, Clock, ArrowRight } from "lucide-react";
+import { Plus, Loader2, Factory, Zap, Clock, ArrowLeft, Sparkles, CheckCircle2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientSearchCombobox } from "@/components/generators/ClientSearchCombobox";
 import { ClienteConfiguracaoFabrica } from "@/components/generators/ClienteConfiguracaoFabrica";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface ScheduleWithClient {
   id: string;
@@ -21,6 +23,9 @@ interface ScheduleWithClient {
   generation_time: string;
   client_name?: string;
   client_company?: string;
+  client_avatar?: string | null;
+  client_sector?: string | null;
+  ads_generated?: number;
 }
 
 export default function ConfiguracaoFabrica() {
@@ -45,6 +50,18 @@ export default function ConfiguracaoFabrica() {
 
       if (error) throw error;
 
+      // Get ads generated count for each client
+      const clientIds = (data || []).map(s => s.client_id);
+      const { data: adsData } = await supabase
+        .from('ad_generation_queue')
+        .select('client_id')
+        .in('client_id', clientIds);
+
+      const adsCountByClient: Record<string, number> = {};
+      (adsData || []).forEach(ad => {
+        adsCountByClient[ad.client_id] = (adsCountByClient[ad.client_id] || 0) + 1;
+      });
+
       // Map client names to schedules
       const schedulesWithClients = (data || []).map(schedule => {
         const client = clients.find(c => c.id === schedule.client_id);
@@ -52,6 +69,9 @@ export default function ConfiguracaoFabrica() {
           ...schedule,
           client_name: client?.name || 'Cliente não encontrado',
           client_company: client?.company || '',
+          client_avatar: client?.avatar,
+          client_sector: client?.sector,
+          ads_generated: adsCountByClient[schedule.client_id] || 0,
         };
       });
 
@@ -85,18 +105,32 @@ export default function ConfiguracaoFabrica() {
     setConfigClientId(null);
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (configClientId) {
     const client = clients.find(c => c.id === configClientId);
     return (
       <DashboardLayout>
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => setConfigClientId(null)}>
-              ← Voltar
+            <Button 
+              variant="ghost" 
+              onClick={() => setConfigClientId(null)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">Configurar Fábrica</h1>
-              <p className="text-muted-foreground">{client?.name}</p>
+              <h1 className="text-headline-small font-medium text-foreground">Configurar Fábrica</h1>
+              <p className="text-body-medium text-muted-foreground">{client?.name}</p>
             </div>
           </div>
           <ClienteConfiguracaoFabrica 
@@ -111,13 +145,28 @@ export default function ConfiguracaoFabrica() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header Google Style */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Configuração da Fábrica</h1>
-            <p className="text-muted-foreground">Gerencie as fábricas de anúncios por cliente</p>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/geradores/fabrica-anuncios')}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            <div>
+              <h1 className="text-headline-small font-medium text-foreground">Configuração da Fábrica</h1>
+              <p className="text-body-medium text-muted-foreground">Gerencie as fábricas de anúncios por cliente</p>
+            </div>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} disabled={availableClients.length === 0}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={() => setCreateDialogOpen(true)} 
+            disabled={availableClients.length === 0}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
             Nova Fábrica
           </Button>
         </div>
@@ -127,61 +176,115 @@ export default function ConfiguracaoFabrica() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : schedules.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Factory className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Nenhuma fábrica configurada</h3>
-              <p className="text-muted-foreground mb-4">
-                Crie uma fábrica de anúncios para começar a gerar anúncios automaticamente
+          <Card className="border-dashed">
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Factory className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-title-large font-medium text-foreground mb-2">Nenhuma fábrica configurada</h3>
+              <p className="text-body-medium text-muted-foreground mb-6 text-center max-w-md">
+                Crie uma fábrica de anúncios para começar a gerar anúncios automaticamente para seus clientes
               </p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
                 Criar primeira fábrica
               </Button>
-            </CardContent>
+            </div>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {schedules.map((schedule) => (
               <Card 
                 key={schedule.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className={cn(
+                  "relative overflow-hidden cursor-pointer transition-all duration-200",
+                  "border hover:border-primary/50 hover:shadow-google-1"
+                )}
                 onClick={() => setConfigClientId(schedule.client_id)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{schedule.client_name}</CardTitle>
-                      <CardDescription>{schedule.client_company}</CardDescription>
+                {/* Status indicator bar */}
+                <div
+                  className={cn(
+                    "absolute top-0 left-0 right-0 h-1",
+                    schedule.is_active ? "bg-success" : "bg-muted-foreground/30"
+                  )}
+                />
+
+                <div className="p-4 pt-5">
+                  <div className="flex items-start gap-3">
+                    {/* Avatar */}
+                    <Avatar className="h-12 w-12 ring-2 ring-border">
+                      <AvatarImage src={schedule.client_avatar || ""} alt={schedule.client_name} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium text-body-medium">
+                        {getInitials(schedule.client_name || '')}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-title-medium font-medium text-foreground truncate">
+                        {schedule.client_name}
+                      </h3>
+                      {schedule.client_sector && (
+                        <p className="text-body-small text-muted-foreground truncate">
+                          {schedule.client_sector}
+                        </p>
+                      )}
                     </div>
-                    <Badge variant={schedule.is_active ? "default" : "secondary"}>
-                      {schedule.is_active ? "Ativa" : "Inativa"}
+
+                    {/* Status badge */}
+                    <Badge
+                      variant={schedule.is_active ? "default" : "secondary"}
+                      className={cn(
+                        "shrink-0 text-label-small px-2 py-0.5",
+                        schedule.is_active && "bg-success hover:bg-success/90"
+                      )}
+                    >
+                      {schedule.is_active ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Ativa
+                        </>
+                      ) : (
+                        "Inativa"
+                      )}
                     </Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {schedule.generation_time}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Settings className="h-4 w-4" />
-                      {schedule.ads_per_day} anúncios/dia
-                    </div>
-                    {schedule.autopilot_enabled && (
-                      <div className="flex items-center gap-1 text-yellow-600">
-                        <Zap className="h-4 w-4" />
-                        Autopilot
+
+                  {/* Stats row */}
+                  <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
+                        <Sparkles className="h-4 w-4 text-primary" />
                       </div>
-                    )}
+                      <div>
+                        <p className="text-label-small text-muted-foreground">Anúncios gerados</p>
+                        <p className="text-title-medium font-semibold text-foreground">
+                          {schedule.ads_generated}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-body-small text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{schedule.generation_time}</span>
+                      </div>
+                      {schedule.autopilot_enabled && (
+                        <div className="flex items-center gap-1 text-warning">
+                          <Zap className="h-3.5 w-3.5" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button variant="ghost" size="sm">
-                      Configurar <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
+
+                  {/* Ads per day info */}
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-body-small text-muted-foreground">
+                      {schedule.ads_per_day} anúncios por dia
+                    </p>
                   </div>
-                </CardContent>
+                </div>
               </Card>
             ))}
           </div>
@@ -191,11 +294,11 @@ export default function ConfiguracaoFabrica() {
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Nova Fábrica de Anúncios</DialogTitle>
+              <DialogTitle className="text-title-large">Nova Fábrica de Anúncios</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Selecione o cliente</label>
+                <label className="text-label-large font-medium mb-2 block">Selecione o cliente</label>
                 <ClientSearchCombobox
                   clients={availableClients}
                   value={selectedClientId}
@@ -205,7 +308,7 @@ export default function ConfiguracaoFabrica() {
                 />
               </div>
               {availableClients.length === 0 && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-body-small text-muted-foreground">
                   Todos os clientes já possuem fábricas configuradas.
                 </p>
               )}
