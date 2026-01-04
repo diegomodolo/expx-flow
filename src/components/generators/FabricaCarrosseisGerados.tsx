@@ -149,34 +149,65 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const updateData: Record<string, any> = {
+        status,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Add reviewed_at only for approval/rejection
+      if (status === 'approved' || status === 'rejected') {
+        updateData.reviewed_at = new Date().toISOString();
+      }
+      
+      // Add published_at for published status
+      if (status === 'published') {
+        updateData.published_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from("carousel_generation_queue")
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
+      return status;
     },
-    onSuccess: (_, { status }) => {
+    onSuccess: (status) => {
       queryClient.invalidateQueries({ queryKey: ["carousel-client-queue"] });
-      toast.success(status === "approved" ? "Carrossel aprovado!" : "Carrossel rejeitado");
+      const messages: Record<string, string> = {
+        approved: "Carrossel aprovado!",
+        rejected: "Carrossel rejeitado",
+        pending: "Status alterado para pendente",
+        published: "Carrossel marcado como publicado!",
+      };
+      toast.success(messages[status] || "Status atualizado");
     },
     onError: (error: any) => {
       toast.error("Erro ao atualizar: " + error.message);
     },
   });
 
-  const handlePublishNow = () => {
-    toast.info("Funcionalidade de publicação será implementada em breve");
+  const handleStatusChange = (carouselId: string, newStatus: string) => {
+    updateStatus.mutate({ id: carouselId, status: newStatus });
+    // Update selected carousel locally for immediate UI feedback
+    if (selectedCarousel && selectedCarousel.id === carouselId) {
+      setSelectedCarousel({ ...selectedCarousel, status: newStatus });
+    }
   };
 
-  const handleSchedule = () => {
+  const handlePublishNow = (carouselId: string) => {
+    // For now, just mark as published - in the future this will integrate with Meta API
+    updateStatus.mutate({ id: carouselId, status: 'published' });
+    toast.success("Carrossel publicado com sucesso!");
+  };
+
+  const handleSchedule = (carouselId: string) => {
+    // TODO: Open schedule modal
     toast.info("Funcionalidade de agendamento será implementada em breve");
   };
 
-  const handleSendToPresentation = () => {
+  const handleSendToPresentation = (carouselId: string) => {
+    // TODO: Navigate to presentation or create one
     toast.info("Funcionalidade de envio para apresentação será implementada em breve");
   };
 
@@ -405,25 +436,18 @@ export function FabricaCarrosseisGerados({ clientId }: Props) {
           carousel={selectedCarousel}
           open={!!selectedCarousel}
           onOpenChange={(open) => !open && setSelectedCarousel(null)}
-          onApprove={
-            selectedCarousel.status === "pending"
-              ? () => {
-                  updateStatus.mutate({ id: selectedCarousel.id, status: "approved" });
-                  setSelectedCarousel(null);
-                }
-              : undefined
-          }
-          onReject={
-            selectedCarousel.status === "pending"
-              ? () => {
-                  updateStatus.mutate({ id: selectedCarousel.id, status: "rejected" });
-                  setSelectedCarousel(null);
-                }
-              : undefined
-          }
-          onPublishNow={handlePublishNow}
-          onSchedule={handleSchedule}
-          onSendToPresentation={handleSendToPresentation}
+          onApprove={() => {
+            handleStatusChange(selectedCarousel.id, "approved");
+          }}
+          onReject={() => {
+            handleStatusChange(selectedCarousel.id, "rejected");
+          }}
+          onStatusChange={(newStatus) => {
+            handleStatusChange(selectedCarousel.id, newStatus);
+          }}
+          onPublishNow={() => handlePublishNow(selectedCarousel.id)}
+          onSchedule={() => handleSchedule(selectedCarousel.id)}
+          onSendToPresentation={() => handleSendToPresentation(selectedCarousel.id)}
         />
       )}
     </>

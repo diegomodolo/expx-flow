@@ -3,18 +3,23 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ChevronLeft,
   ChevronRight,
-  Check,
-  X,
   Layers,
   Heart,
   MessageCircle,
@@ -26,6 +31,10 @@ import {
   FileText,
   Instagram,
   Facebook,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,6 +73,7 @@ interface CarouselPreviewModalProps {
   onPublishNow?: () => void;
   onSchedule?: () => void;
   onSendToPresentation?: () => void;
+  onStatusChange?: (status: string) => void;
 }
 
 const typeLabels: Record<string, string> = {
@@ -73,11 +83,18 @@ const typeLabels: Record<string, string> = {
   curated_list: "Curadoria",
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pendente", color: "bg-muted text-muted-foreground" },
-  approved: { label: "Aprovado", color: "bg-green-500 text-white" },
-  rejected: { label: "Reprovado", color: "bg-red-500 text-white" },
-  published: { label: "Publicado", color: "bg-blue-500 text-white" },
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pendente", icon: Clock, color: "text-yellow-600" },
+  { value: "approved", label: "Aprovado", icon: CheckCircle, color: "text-green-600" },
+  { value: "rejected", label: "Rejeitado", icon: XCircle, color: "text-red-600" },
+  { value: "published", label: "Publicado", icon: Send, color: "text-blue-600" },
+];
+
+const STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  pending: { label: "Pendente", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  approved: { label: "Aprovado", className: "bg-green-100 text-green-700 border-green-200" },
+  rejected: { label: "Rejeitado", className: "bg-red-100 text-red-700 border-red-200" },
+  published: { label: "Publicado", className: "bg-blue-100 text-blue-700 border-blue-200" },
 };
 
 export function CarouselPreviewModal({
@@ -89,13 +106,14 @@ export function CarouselPreviewModal({
   onPublishNow,
   onSchedule,
   onSendToPresentation,
+  onStatusChange,
 }: CarouselPreviewModalProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [previewPlatform, setPreviewPlatform] = useState<'instagram' | 'facebook'>('instagram');
 
   const slides = carousel.slides || [];
   const slide = slides[currentSlide];
-  const statusConfig = STATUS_LABELS[carousel.status] || STATUS_LABELS.pending;
+  const statusConfig = STATUS_BADGES[carousel.status] || STATUS_BADGES.pending;
 
   const goToPrevious = () => {
     setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
@@ -108,195 +126,334 @@ export function CarouselPreviewModal({
   const clientName = carousel.clients?.name || 'marca_oficial';
   const accountName = clientName.toLowerCase().replace(/\s+/g, '_');
 
+  const handleStatusChange = (newStatus: string) => {
+    if (onStatusChange) {
+      onStatusChange(newStatus);
+    } else if (newStatus === 'approved' && onApprove) {
+      onApprove();
+    } else if (newStatus === 'rejected' && onReject) {
+      onReject();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[95vh] p-0 overflow-hidden" aria-describedby={undefined}>
+      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden" hideCloseButton>
         <VisuallyHidden>
           <DialogTitle>Preview do Carrossel</DialogTitle>
         </VisuallyHidden>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Preview do Carrossel</h2>
-          <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
-        </div>
 
-        {/* Platform Tabs */}
-        <div className="px-4 pt-2">
-          <Tabs value={previewPlatform} onValueChange={(v) => setPreviewPlatform(v as 'instagram' | 'facebook')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="instagram" className="flex items-center gap-2">
-                <Instagram className="h-4 w-4" />
-                Instagram
-              </TabsTrigger>
-              <TabsTrigger value="facebook" className="flex items-center gap-2">
-                <Facebook className="h-4 w-4" />
-                Facebook
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Content */}
-        <ScrollArea className="flex-1 max-h-[calc(95vh-280px)]">
-          <div className="flex justify-center p-4">
-            {/* Post Mockup */}
-            <div className="w-full max-w-md bg-background border rounded-lg shadow-sm overflow-hidden">
-              {/* Post Header */}
-              <div className="flex items-center gap-3 p-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 flex items-center justify-center">
-                  <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center">
-                    <span className="text-xs font-medium">
-                      {accountName.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <span className="font-medium text-sm">{accountName}</span>
-                <MoreHorizontal className="h-5 w-5 ml-auto text-muted-foreground" />
+        <div className="flex flex-col lg:flex-row h-full max-h-[95vh]">
+          {/* Left Column - Controls and Info */}
+          <div className="w-full lg:w-[380px] flex flex-col border-r bg-muted/30">
+            {/* Header */}
+            <div className="p-4 border-b bg-background">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Detalhes do Carrossel</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
               </div>
+              
+              {/* Status Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                <Select value={carousel.status} onValueChange={handleStatusChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const StatusIcon = STATUS_OPTIONS.find(s => s.value === carousel.status)?.icon || Clock;
+                          const statusColor = STATUS_OPTIONS.find(s => s.value === carousel.status)?.color || "";
+                          return (
+                            <>
+                              <StatusIcon className={`h-4 w-4 ${statusColor}`} />
+                              <span>{STATUS_BADGES[carousel.status]?.label || "Pendente"}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${option.color}`} />
+                            <span>{option.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-              {/* Image - Aspect Ratio 3:4 */}
-              <div className="relative aspect-[3/4] bg-muted">
-                {slide?.image_url ? (
-                  <img
-                    src={slide.image_url}
-                    alt={`Slide ${currentSlide + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-500/5 p-6">
-                    <Layers className="h-16 w-16 text-violet-500/50 mb-4" />
-                    {slide?.headline && (
-                      <p className="text-center font-semibold text-lg">{slide.headline}</p>
-                    )}
-                    {(slide?.body_text || slide?.body) && (
-                      <p className="text-center text-sm text-muted-foreground mt-2">
-                        {slide.body_text || slide.body}
-                      </p>
-                    )}
+            {/* Scrollable Content */}
+            <ScrollArea className="flex-1">
+              <div className="p-4 space-y-4">
+                {/* Metadata */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tipo</label>
+                    <p className="text-sm font-medium mt-1">{typeLabels[carousel.carousel_type] || carousel.carousel_type}</p>
                   </div>
-                )}
-
-                {/* Navigation Arrows */}
-                {slides.length > 1 && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
-                      onClick={goToPrevious}
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
-                      onClick={goToNext}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-
-                    {/* Slide Dots */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                      {slides.map((_, idx) => (
-                        <button
-                          key={idx}
-                          className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                            idx === currentSlide ? 'bg-white' : 'bg-white/50'
-                          }`}
-                          onClick={() => setCurrentSlide(idx)}
-                        />
-                      ))}
+                  
+                  {carousel.theme && (
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tema</label>
+                      <p className="text-sm font-medium mt-1">{carousel.theme}</p>
                     </div>
-                  </>
-                )}
-              </div>
+                  )}
 
-              {/* Post Actions */}
-              <div className="p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Heart className="h-6 w-6" />
-                    <MessageCircle className="h-6 w-6" />
-                    <Share2 className="h-6 w-6" />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Slides</label>
+                    <p className="text-sm font-medium mt-1">{slides.length} slides</p>
                   </div>
-                  <Bookmark className="h-6 w-6" />
+
+                  {carousel.generated_at && (
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gerado em</label>
+                      <p className="text-sm font-medium mt-1">
+                        {format(new Date(carousel.generated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                <Separator />
 
                 {/* Caption */}
-                <div className="text-sm">
-                  <span className="font-medium">{accountName}</span>{' '}
-                  <span className="text-foreground">
-                    {carousel.caption || slide?.body_text || slide?.body || 'Sem legenda'}
-                  </span>
-                </div>
+                {carousel.caption && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Legenda</label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{carousel.caption}</p>
+                  </div>
+                )}
 
                 {/* Hashtags */}
                 {carousel.hashtags && (
-                  <p className="text-sm text-blue-500">{carousel.hashtags}</p>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Hashtags</label>
+                    <p className="text-sm mt-1 text-primary">{carousel.hashtags}</p>
+                  </div>
                 )}
+
+                {/* CTA */}
+                {carousel.cta_text && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CTA</label>
+                    <p className="text-sm mt-1">{carousel.cta_text}</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Action Buttons */}
+            <div className="p-4 border-t bg-background space-y-3">
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90"
+                onClick={onPublishNow}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Publicar Agora
+              </Button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={onSchedule}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Agendar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={onSendToPresentation}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Apresentação
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Metadata */}
-          <div className="px-4 pb-4">
-            <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-              <Badge variant="outline">{typeLabels[carousel.carousel_type] || carousel.carousel_type}</Badge>
-              {carousel.theme && <Badge variant="outline">{carousel.theme}</Badge>}
-              {carousel.generated_at && (
-                <span>Gerado em {format(new Date(carousel.generated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-              )}
+          {/* Right Column - Preview */}
+          <div className="flex-1 flex flex-col bg-background min-w-0">
+            {/* Platform Tabs */}
+            <div className="p-4 border-b">
+              <Tabs value={previewPlatform} onValueChange={(v) => setPreviewPlatform(v as 'instagram' | 'facebook')}>
+                <TabsList className="grid w-full max-w-xs grid-cols-2">
+                  <TabsTrigger value="instagram" className="flex items-center gap-2">
+                    <Instagram className="h-4 w-4" />
+                    Instagram
+                  </TabsTrigger>
+                  <TabsTrigger value="facebook" className="flex items-center gap-2">
+                    <Facebook className="h-4 w-4" />
+                    Facebook
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-          </div>
-        </ScrollArea>
 
-        {/* Action Buttons */}
-        <div className="border-t p-4 space-y-3 bg-background">
-          {carousel.status === 'pending' && (onApprove || onReject) && (
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
-                className="bg-green-500 hover:bg-green-600 text-white"
-                onClick={onApprove}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Aprovar
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={onReject}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Rejeitar
-              </Button>
-            </div>
-          )}
+            {/* Preview Content */}
+            <ScrollArea className="flex-1">
+              <div className="flex justify-center p-6">
+                {/* Post Mockup */}
+                <div className="w-full max-w-sm bg-background border rounded-xl shadow-lg overflow-hidden">
+                  {/* Post Header */}
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 p-[2px]">
+                      <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                        <span className="text-xs font-semibold">
+                          {accountName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <span className="font-semibold text-sm">{accountName}</span>
+                    </div>
+                    <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                  </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <Button 
-              variant="outline" 
-              onClick={onPublishNow}
-              disabled={!onPublishNow}
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Publicar Agora
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={onSchedule}
-              disabled={!onSchedule}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Agendar
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={onSendToPresentation}
-              disabled={!onSendToPresentation}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Apresentação
-            </Button>
+                  {/* Image - Aspect Ratio 4:5 (Instagram standard) */}
+                  <div className="relative aspect-[4/5] bg-muted">
+                    {slide?.image_url ? (
+                      <img
+                        src={slide.image_url}
+                        alt={`Slide ${currentSlide + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-violet-500/20 to-violet-500/5 p-6">
+                        <Layers className="h-16 w-16 text-violet-500/50 mb-4" />
+                        {slide?.headline && (
+                          <p className="text-center font-semibold text-lg">{slide.headline}</p>
+                        )}
+                        {(slide?.body_text || slide?.body) && (
+                          <p className="text-center text-sm text-muted-foreground mt-2">
+                            {slide.body_text || slide.body}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Navigation Arrows */}
+                    {slides.length > 1 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
+                          onClick={goToPrevious}
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full h-8 w-8"
+                          onClick={goToNext}
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </Button>
+
+                        {/* Slide Dots */}
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {slides.map((_, idx) => (
+                            <button
+                              key={idx}
+                              className={`w-1.5 h-1.5 rounded-full transition-all ${
+                                idx === currentSlide ? 'bg-white scale-125' : 'bg-white/50'
+                              }`}
+                              onClick={() => setCurrentSlide(idx)}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Slide Counter */}
+                        <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                          {currentSlide + 1}/{slides.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Post Actions */}
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Heart className="h-6 w-6 hover:text-red-500 cursor-pointer transition-colors" />
+                        <MessageCircle className="h-6 w-6 hover:text-primary cursor-pointer transition-colors" />
+                        <Share2 className="h-6 w-6 hover:text-primary cursor-pointer transition-colors" />
+                      </div>
+                      <Bookmark className="h-6 w-6 hover:text-primary cursor-pointer transition-colors" />
+                    </div>
+
+                    {/* Likes */}
+                    <p className="text-sm font-semibold">1.234 curtidas</p>
+
+                    {/* Caption */}
+                    <div className="text-sm">
+                      <span className="font-semibold">{accountName}</span>{' '}
+                      <span className="text-foreground">
+                        {carousel.caption || slide?.body_text || slide?.body || 'Sem legenda'}
+                      </span>
+                    </div>
+
+                    {/* Hashtags */}
+                    {carousel.hashtags && (
+                      <p className="text-sm text-primary">{carousel.hashtags}</p>
+                    )}
+
+                    {/* View Comments */}
+                    <p className="text-sm text-muted-foreground">Ver todos os 42 comentários</p>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+
+            {/* Slide Thumbnails */}
+            {slides.length > 1 && (
+              <div className="p-4 border-t bg-muted/30">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {slides.map((s, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentSlide(idx)}
+                      className={`relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        idx === currentSlide 
+                          ? 'border-primary ring-2 ring-primary/20' 
+                          : 'border-transparent hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      {s.image_url ? (
+                        <img
+                          src={s.image_url}
+                          alt={`Slide ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Layers className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-0.5">
+                        {idx + 1}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
