@@ -120,25 +120,21 @@ serve(async (req) => {
 
     // Get champion creative (highest CTR with valid media URL)
     // NOTE: many ads may have ctr/spend but no stored media URL; we only pick ones with media.
-    const { data: adsWithPossibleMedia } = await supabase
+    const { data: adsWithPossibleMedia, error: adsWithPossibleMediaError } = await supabase
       .from('ads')
-      .select(`
-        id,
-        name,
-        image_url,
-        video_url,
-        ctr,
-        spend,
-        conversions,
-        client_id,
-        clients!inner(name, avatar, user_id, gestor_id)
-      `)
+      // NOTE: don't embed clients here; ads table may not have an FK relationship configured for PostgREST embeds
+      .select('id,name,image_url,video_url,ctr,spend,conversions,client_id')
       .eq('company_id', company.id)
       .eq('is_active', true)
       .gt('ctr', 0)
-      .or('image_url.not.is.null,video_url.not.is.null')
       .order('ctr', { ascending: false })
-      .limit(500);
+      .limit(2000);
+
+    if (adsWithPossibleMediaError) {
+      console.error('Champion query error:', adsWithPossibleMediaError);
+    }
+
+    console.log('Champion: fetched=', adsWithPossibleMedia?.length || 0);
 
     // Filter to only ads with valid (non-empty) media URLs
     const championAd = (adsWithPossibleMedia || []).find((ad) =>
@@ -150,22 +146,32 @@ serve(async (req) => {
 
     let championCreative: ChampionCreative | null = null;
     if (championAd) {
-      const client = championAd.clients as any;
-      
-      // Get gestor info
-      const { data: gestor } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('user_id', client.user_id)
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('name, avatar, user_id')
+        .eq('id', championAd.client_id)
         .single();
+
+      if (clientError) {
+        console.error('Champion client error:', clientError);
+      }
+
+      // Get gestor info (fallback to profile of client owner)
+      const { data: gestor } = clientData?.user_id
+        ? await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('user_id', clientData.user_id)
+            .single()
+        : { data: null };
 
       championCreative = {
         id: championAd.id,
         type: championAd.video_url ? 'video' : 'image',
         url: championAd.video_url || championAd.image_url || '',
         title: championAd.name,
-        clientName: client.name,
-        clientAvatar: client.avatar,
+        clientName: clientData?.name || 'Cliente',
+        clientAvatar: clientData?.avatar || null,
         gestorName: gestor?.full_name || 'Gestor',
         gestorAvatar: gestor?.avatar_url || null,
         ctr: championAd.ctr || 0,
@@ -351,21 +357,18 @@ serve(async (req) => {
     }
 
     // Get featured creatives (top performing ads)
-    const { data: featuredAdsRaw } = await supabase
+    const { data: featuredAdsRaw, error: featuredAdsError } = await supabase
       .from('ads')
-      .select(`
-        id,
-        name,
-        image_url,
-        video_url,
-        ctr,
-        clients!inner(name)
-      `)
+      // NOTE: don't embed clients here; ads table may not have an FK relationship configured for PostgREST embeds
+      .select('id,name,image_url,video_url,ctr,client_id')
       .eq('company_id', company.id)
       .eq('is_active', true)
-      .or('image_url.not.is.null,video_url.not.is.null')
       .order('ctr', { ascending: false })
-      .limit(200);
+      .limit(2000);
+
+    if (featuredAdsError) {
+      console.error('Featured ads query error:', featuredAdsError);
+    }
 
     const featuredAds = (featuredAdsRaw || [])
       .filter((ad) =>
@@ -374,11 +377,23 @@ serve(async (req) => {
       )
       .slice(0, 10);
 
-    const featuredCreatives: FeaturedCreative[] = (featuredAds || []).map((ad, index) => ({
+    const featuredClientIds = Array.from(
+      new Set((featuredAds || []).map((ad) => ad.client_id).filter(Boolean))
+    ) as string[];
+
+    const { data: featuredClients } = featuredClientIds.length
+      ? await supabase.from('clients').select('id, name').in('id', featuredClientIds)
+      : { data: [] };
+
+    const clientNameById = new Map<string, string>(
+      (featuredClients || []).map((c: any) => [c.id, c.name])
+    );
+
+    const featuredCreatives: FeaturedCreative[] = (featuredAds || []).map((ad: any, index: number) => ({
       id: ad.id,
       type: ad.video_url ? 'video' : 'image',
       url: ad.video_url || ad.image_url || '',
-      clientName: (ad.clients as any).name,
+      clientName: clientNameById.get(ad.client_id) || 'Cliente',
       status: index === 0 ? 'Melhor CTR' : index < 3 ? 'Em alta' : 'Ativo',
       ctr: ad.ctr || 0
     }));
