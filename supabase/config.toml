@@ -301,3 +301,6 @@ verify_jwt = false
 
 [functions.daily-carousel-generator-scheduler]
 verify_jwt = false
+
+[functions.regenerate-carousel-images]
+verify_jwt = false
