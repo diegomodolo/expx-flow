@@ -1776,11 +1776,15 @@ export type Database = {
           last_generation_at: string | null
           next_generation_at: string | null
           reference_image_1: string | null
+          reference_image_10: string | null
           reference_image_2: string | null
           reference_image_3: string | null
           reference_image_4: string | null
           reference_image_5: string | null
           reference_image_6: string | null
+          reference_image_7: string | null
+          reference_image_8: string | null
+          reference_image_9: string | null
           show_ui_screenshots: boolean
           slides_per_carousel: number
           tutorial_percentage: number
@@ -1804,11 +1808,15 @@ export type Database = {
           last_generation_at?: string | null
           next_generation_at?: string | null
           reference_image_1?: string | null
+          reference_image_10?: string | null
           reference_image_2?: string | null
           reference_image_3?: string | null
           reference_image_4?: string | null
           reference_image_5?: string | null
           reference_image_6?: string | null
+          reference_image_7?: string | null
+          reference_image_8?: string | null
+          reference_image_9?: string | null
           show_ui_screenshots?: boolean
           slides_per_carousel?: number
           tutorial_percentage?: number
@@ -1832,11 +1840,15 @@ export type Database = {
           last_generation_at?: string | null
           next_generation_at?: string | null
           reference_image_1?: string | null
+          reference_image_10?: string | null
           reference_image_2?: string | null
           reference_image_3?: string | null
           reference_image_4?: string | null
           reference_image_5?: string | null
           reference_image_6?: string | null
+          reference_image_7?: string | null
+          reference_image_8?: string | null
+          reference_image_9?: string | null
           show_ui_screenshots?: boolean
           slides_per_carousel?: number
           tutorial_percentage?: number
