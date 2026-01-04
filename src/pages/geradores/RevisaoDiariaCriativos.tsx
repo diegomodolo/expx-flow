@@ -41,12 +41,15 @@ interface Creative {
   };
 }
 
+const PAGE_SIZE = 20;
+
 export default function RevisaoDiariaCriativos() {
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
   const queryClient = useQueryClient();
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [selectedCreative, setSelectedCreative] = useState<Creative | null>(null);
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
   const { data: clients } = useQuery({
     queryKey: ["clients-with-creatives", companyId],
@@ -94,6 +97,15 @@ export default function RevisaoDiariaCriativos() {
     enabled: !!companyId,
   });
 
+  // Reset display count when filter changes
+  const handleFilterChange = (value: string) => {
+    setClientFilter(value);
+    setDisplayCount(PAGE_SIZE);
+  };
+
+  const displayedCreatives = creatives?.slice(0, displayCount) || [];
+  const hasMore = (creatives?.length || 0) > displayCount;
+
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
@@ -124,8 +136,8 @@ export default function RevisaoDiariaCriativos() {
           <h1 className="text-2xl font-bold text-foreground">Revisão Diária</h1>
           <p className="text-muted-foreground">Revise e aprove criativos pendentes</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {[...Array(10)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-48 w-full rounded-lg mb-4" />
@@ -147,7 +159,7 @@ export default function RevisaoDiariaCriativos() {
           <p className="text-muted-foreground">Revise e aprove criativos pendentes</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={clientFilter} onValueChange={setClientFilter}>
+          <Select value={clientFilter} onValueChange={handleFilterChange}>
             <SelectTrigger className="w-48">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Filtrar por cliente" />
@@ -174,8 +186,9 @@ export default function RevisaoDiariaCriativos() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {creatives?.map((creative) => (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {displayedCreatives.map((creative) => (
             <Card key={creative.id} className="overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -239,8 +252,20 @@ export default function RevisaoDiariaCriativos() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+          
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setDisplayCount(prev => prev + PAGE_SIZE)}
+              >
+                Carregar mais ({(creatives?.length || 0) - displayCount} restantes)
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       <Dialog open={!!selectedCreative} onOpenChange={() => setSelectedCreative(null)}>
