@@ -26,8 +26,10 @@ interface Client {
 
 interface AdGeneratedContent {
   image_url?: string;
+  creative_image_url?: string; // Campo usado pela Fábrica de Anúncios
   video_url?: string;
   body?: string;
+  primary_text?: string;
   headline?: string;
   ad_type?: string;
 }
@@ -201,14 +203,16 @@ export function useAllCreatives(clientIdFilter?: string) {
     // Normalize fábrica de anúncios
     const fabricaAnunciosCreatives: UnifiedCreative[] = (fabricaAnunciosResult.data || []).map(item => {
       const content = item.generated_content as AdGeneratedContent | null;
+      // A imagem pode estar em creative_image_url ou image_url
+      const imageUrl = content?.creative_image_url || content?.image_url || null;
       return {
         id: item.id,
         client_id: item.client_id,
         client_name: mapToUse.get(item.client_id) || 'Cliente desconhecido',
         company_id: item.company_id,
-        image_url: content?.image_url || null,
+        image_url: imageUrl,
         video_url: content?.video_url || null,
-        caption: content?.body || null,
+        caption: content?.body || content?.primary_text || null,
         title: content?.headline || null,
         status: item.status,
         created_at: item.created_at,
