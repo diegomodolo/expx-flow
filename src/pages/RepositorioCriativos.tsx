@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export default function RepositorioCriativos() {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
-  const { creatives, allClients, loading } = useAllCreatives(selectedClientId || undefined);
+  const { creatives, allClients, loading, loadingMore, hasMore, loadMore } = useAllCreatives(selectedClientId || undefined);
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
 
   const selectedClientName = useMemo(() => {
@@ -255,6 +255,20 @@ export default function RepositorioCriativos() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {!loading && creatives.length > 0 && hasMore && (
+          <div className="flex justify-center pt-4">
+            <Button 
+              variant="outline" 
+              onClick={loadMore} 
+              disabled={loadingMore}
+              className="min-w-[200px]"
+            >
+              {loadingMore ? "Carregando..." : "Carregar mais"}
+            </Button>
           </div>
         )}
 
