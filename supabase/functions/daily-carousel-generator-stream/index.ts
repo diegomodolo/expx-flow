@@ -448,7 +448,8 @@ REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        // Usando o modelo mais avançado para melhor qualidade de texto em português
+        model: "google/gemini-3-pro-image-preview",
         messages: [{ role: "user", content: messageContent }],
         modalities: ["image", "text"],
       }),
