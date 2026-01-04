@@ -24,6 +24,16 @@ interface CarouselSchedule {
   include_proof_social: boolean;
   include_save_bait: boolean;
   custom_image_prompt: string | null;
+  reference_image_1: string | null;
+  reference_image_2: string | null;
+  reference_image_3: string | null;
+  reference_image_4: string | null;
+  reference_image_5: string | null;
+  reference_image_6: string | null;
+  reference_image_7: string | null;
+  reference_image_8: string | null;
+  reference_image_9: string | null;
+  reference_image_10: string | null;
 }
 
 interface ClientData {
@@ -215,12 +225,16 @@ serve(async (req) => {
         }
 
         const styleContext = buildImageStylePrompt(schedule, client);
+        const referenceImages = getReferenceImages(schedule);
+        
+        console.log("[daily-carousel-generator-stream] Found reference images:", referenceImages.length);
 
         for (let i = 0; i < carousel.slides.length; i++) {
           send({ type: "slide_start", index: i + 1, total: carousel.slides.length });
 
           const slide = carousel.slides[i];
           try {
+            const hasReferences = referenceImages.length > 0;
             const imagePrompt = `Crie uma imagem profissional para carrossel do Instagram no formato VERTICAL 3:4 (1080x1440 pixels).
 ${styleContext}
 
@@ -236,9 +250,13 @@ REGRAS OBRIGATÓRIAS:
 - Texto legível, grande e bem posicionado
 - Design moderno, clean e profissional
 - NÃO incluir textos longos, apenas a headline curta e impactante
+${hasReferences ? `- MUITO IMPORTANTE: Siga EXATAMENTE o estilo visual das imagens de referência anexadas
+- REPRODUZA o logotipo/marca IDÊNTICO ao das referências (mesma fonte, cores, posição)
+- MANTENHA a paleta de cores e estética das referências
+- COPIE o estilo de layout, tipografia e composição` : ''}
 - Ultra high resolution`;
 
-            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY);
+            const dataUrl = await generateImageWithNanoBanana(imagePrompt, LOVABLE_API_KEY, referenceImages);
             if (!dataUrl) throw new Error("No image returned");
 
             const publicUrl = await uploadDataUrlToStorage({
@@ -383,9 +401,45 @@ function parseDataUrl(dataUrl: string): { bytes: Uint8Array; contentType: string
   return { bytes, contentType };
 }
 
-async function generateImageWithNanoBanana(prompt: string, apiKey: string): Promise<string | null> {
+async function generateImageWithNanoBanana(
+  prompt: string,
+  apiKey: string,
+  referenceImages: string[] = []
+): Promise<string | null> {
   try {
-    console.log("[daily-carousel-generator-stream] Calling Nano Banana (gemini-3-pro-image-preview) for image generation...");
+    console.log("[daily-carousel-generator-stream] Calling Nano Banana for image generation...");
+    console.log("[daily-carousel-generator-stream] Reference images count:", referenceImages.length);
+
+    // Build the message content - text prompt + reference images
+    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+
+    // Add reference images first (if any) - the AI should use these as style/visual reference
+    for (const imgUrl of referenceImages) {
+      if (imgUrl) {
+        messageContent.push({
+          type: "image_url",
+          image_url: { url: imgUrl },
+        });
+      }
+    }
+
+    // Enhanced prompt with strong reference instructions
+    const enhancedPrompt = referenceImages.length > 0
+      ? `${prompt}
+
+REFERÊNCIAS VISUAIS OBRIGATÓRIAS (veja as imagens anexadas):
+- SIGA FIELMENTE o estilo visual das imagens de referência anexadas
+- REPRODUZA EXATAMENTE o logotipo/marca presente nas referências (cores, fonte, posicionamento)
+- MANTENHA a paleta de cores das referências
+- COPIE o estilo de layout e composição das referências
+- USE a mesma tipografia ou estilo tipográfico das referências
+- O logotipo deve aparecer no mesmo local e tamanho das referências`
+      : prompt;
+
+    messageContent.push({
+      type: "text",
+      text: enhancedPrompt,
+    });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -394,8 +448,8 @@ async function generateImageWithNanoBanana(prompt: string, apiKey: string): Prom
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: prompt }],
+        model: "google/gemini-2.5-flash-image-preview",
+        messages: [{ role: "user", content: messageContent }],
         modalities: ["image", "text"],
       }),
     });
@@ -455,6 +509,24 @@ function buildImageStylePrompt(schedule: CarouselSchedule | null, client: Client
   }
 
   return styles.join("\n");
+}
+
+function getReferenceImages(schedule: CarouselSchedule | null): string[] {
+  if (!schedule) return [];
+  
+  const refs: string[] = [];
+  if (schedule.reference_image_1) refs.push(schedule.reference_image_1);
+  if (schedule.reference_image_2) refs.push(schedule.reference_image_2);
+  if (schedule.reference_image_3) refs.push(schedule.reference_image_3);
+  if (schedule.reference_image_4) refs.push(schedule.reference_image_4);
+  if (schedule.reference_image_5) refs.push(schedule.reference_image_5);
+  if (schedule.reference_image_6) refs.push(schedule.reference_image_6);
+  if (schedule.reference_image_7) refs.push(schedule.reference_image_7);
+  if (schedule.reference_image_8) refs.push(schedule.reference_image_8);
+  if (schedule.reference_image_9) refs.push(schedule.reference_image_9);
+  if (schedule.reference_image_10) refs.push(schedule.reference_image_10);
+  
+  return refs;
 }
 
 async function generateCarousel(
