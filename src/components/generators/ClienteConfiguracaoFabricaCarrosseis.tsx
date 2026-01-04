@@ -58,6 +58,10 @@ interface ScheduleConfig {
   reference_image_4: string | null;
   reference_image_5: string | null;
   reference_image_6: string | null;
+  reference_image_7: string | null;
+  reference_image_8: string | null;
+  reference_image_9: string | null;
+  reference_image_10: string | null;
 }
 
 const defaultConfig: ScheduleConfig = {
@@ -80,6 +84,10 @@ const defaultConfig: ScheduleConfig = {
   reference_image_4: null,
   reference_image_5: null,
   reference_image_6: null,
+  reference_image_7: null,
+  reference_image_8: null,
+  reference_image_9: null,
+  reference_image_10: null,
 };
 
 interface Props {
@@ -156,6 +164,10 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
           reference_image_4: data.reference_image_4 ?? null,
           reference_image_5: data.reference_image_5 ?? null,
           reference_image_6: data.reference_image_6 ?? null,
+          reference_image_7: (data as any).reference_image_7 ?? null,
+          reference_image_8: (data as any).reference_image_8 ?? null,
+          reference_image_9: (data as any).reference_image_9 ?? null,
+          reference_image_10: (data as any).reference_image_10 ?? null,
         });
       } else {
         setConfig(defaultConfig);
@@ -195,6 +207,10 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
         reference_image_4: config.reference_image_4,
         reference_image_5: config.reference_image_5,
         reference_image_6: config.reference_image_6,
+        reference_image_7: config.reference_image_7,
+        reference_image_8: config.reference_image_8,
+        reference_image_9: config.reference_image_9,
+        reference_image_10: config.reference_image_10,
       };
 
       if (config.id) {
@@ -299,14 +315,14 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
   };
 
   const handleImportReferences = (urls: string[]) => {
-    const currentImages = [1, 2, 3, 4, 5, 6].map(i => 
+    const currentImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => 
       config[`reference_image_${i}` as keyof ScheduleConfig] as string | null
     );
     
     let urlIndex = 0;
     const newConfig = { ...config };
     
-    for (let i = 1; i <= 6 && urlIndex < urls.length; i++) {
+    for (let i = 1; i <= 10 && urlIndex < urls.length; i++) {
       const fieldName = `reference_image_${i}` as keyof ScheduleConfig;
       if (!currentImages[i - 1]) {
         (newConfig as any)[fieldName] = urls[urlIndex];
@@ -318,7 +334,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
     toast.success(`${urlIndex} imagem(ns) importada(s)!`);
   };
 
-  const referenceImages = [1, 2, 3, 4, 5, 6].map(i => ({
+  const referenceImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => ({
     index: i,
     url: config[`reference_image_${i}` as keyof ScheduleConfig] as string | null,
   }));
@@ -600,7 +616,7 @@ export function ClienteConfiguracaoFabricaCarrosseis({ clientId, onSave, onDelet
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-5 gap-3">
                 {referenceImages.map(({ index, url }) => (
                   <div key={index} className="relative aspect-square">
                     {url ? (
