@@ -10,10 +10,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid } from "lucide-react";
+import { Images, Filter, Eye, Download, Calendar, User, Sparkles, Factory, Check, ChevronsUpDown, Megaphone, FileText, Search, X, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 import { SendToScheduleModal } from "@/components/repositorio-criativos/SendToScheduleModal";
 import { SendToPresentationModal } from "@/components/repositorio-criativos/SendToPresentationModal";
 
@@ -30,6 +30,36 @@ export default function RepositorioCriativos() {
   const [selectedCreative, setSelectedCreative] = useState<UnifiedCreative | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPresentationModal, setShowPresentationModal] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // Reset slide index when selecting a new creative
+  const handleSelectCreative = (creative: UnifiedCreative) => {
+    setSelectedCreative(creative);
+    setCurrentSlideIndex(0);
+  };
+
+  // Get all images for carousel navigation
+  const getCarouselImages = (creative: UnifiedCreative): string[] => {
+    if (creative.source === 'fabrica_carrosseis' && creative.slides && creative.slides.length > 0) {
+      return creative.slides
+        .map(slide => slide.image_url)
+        .filter((url): url is string => !!url);
+    }
+    // Fallback to single image
+    return creative.image_url ? [creative.image_url] : [];
+  };
+
+  const handlePrevSlide = () => {
+    if (!selectedCreative) return;
+    const images = getCarouselImages(selectedCreative);
+    setCurrentSlideIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNextSlide = () => {
+    if (!selectedCreative) return;
+    const images = getCarouselImages(selectedCreative);
+    setCurrentSlideIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+  };
 
   const selectedClientName = useMemo(() => {
     if (!selectedClientId) return "Todos os clientes";
@@ -333,7 +363,7 @@ export default function RepositorioCriativos() {
               <Card 
                 key={`${creative.source}-${creative.id}`} 
                 className="overflow-hidden group hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedCreative(creative)}
+                onClick={() => handleSelectCreative(creative)}
               >
                 {/* Image */}
                 <div className="aspect-[3/4] relative bg-muted">
@@ -419,26 +449,111 @@ export default function RepositorioCriativos() {
 
             {selectedCreative && (
               <div className="space-y-4">
-                {/* Image/Video */}
-                <div className="rounded-lg overflow-hidden bg-muted">
-                  {selectedCreative.image_url ? (
-                    <img
-                      src={selectedCreative.image_url}
-                      alt={selectedCreative.title || 'Criativo'}
-                      className="w-full max-h-[60vh] object-contain"
-                    />
-                  ) : selectedCreative.video_url ? (
-                    <video
-                      src={selectedCreative.video_url}
-                      controls
-                      className="w-full max-h-[60vh]"
-                    />
-                  ) : (
-                    <div className="h-48 flex items-center justify-center">
-                      <Images className="h-12 w-12 text-muted-foreground/30" />
-                    </div>
-                  )}
+                {/* Image/Video with Carousel Navigation */}
+                <div className="rounded-lg overflow-hidden bg-muted relative">
+                  {(() => {
+                    const carouselImages = getCarouselImages(selectedCreative);
+                    const isCarousel = carouselImages.length > 1;
+                    const currentImage = carouselImages[currentSlideIndex] || selectedCreative.image_url;
+
+                    if (currentImage) {
+                      return (
+                        <>
+                          <img
+                            src={currentImage}
+                            alt={selectedCreative.title || `Slide ${currentSlideIndex + 1}`}
+                            className="w-full max-h-[60vh] object-contain"
+                          />
+                          
+                          {/* Navigation Arrows for Carousel */}
+                          {isCarousel && (
+                            <>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full opacity-80 hover:opacity-100"
+                                onClick={handlePrevSlide}
+                              >
+                                <ChevronLeft className="w-5 h-5" />
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full opacity-80 hover:opacity-100"
+                                onClick={handleNextSlide}
+                              >
+                                <ChevronRight className="w-5 h-5" />
+                              </Button>
+                              
+                              {/* Slide Indicators */}
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                {carouselImages.map((_, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setCurrentSlideIndex(idx)}
+                                    className={cn(
+                                      "w-2.5 h-2.5 rounded-full transition-colors",
+                                      idx === currentSlideIndex ? "bg-white" : "bg-white/50 hover:bg-white/70"
+                                    )}
+                                  />
+                                ))}
+                              </div>
+                              
+                              {/* Slide Counter */}
+                              <Badge className="absolute top-3 right-3 bg-black/60">
+                                {currentSlideIndex + 1} / {carouselImages.length}
+                              </Badge>
+                            </>
+                          )}
+                        </>
+                      );
+                    } else if (selectedCreative.video_url) {
+                      return (
+                        <video
+                          src={selectedCreative.video_url}
+                          controls
+                          className="w-full max-h-[60vh]"
+                        />
+                      );
+                    } else {
+                      return (
+                        <div className="h-48 flex items-center justify-center">
+                          <Images className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
+
+                {/* Thumbnails for Carousel */}
+                {(() => {
+                  const carouselImages = getCarouselImages(selectedCreative);
+                  if (carouselImages.length > 1) {
+                    return (
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {carouselImages.map((img, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentSlideIndex(idx)}
+                            className={cn(
+                              "shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors",
+                              idx === currentSlideIndex
+                                ? "border-primary"
+                                : "border-transparent hover:border-muted-foreground/50"
+                            )}
+                          >
+                            <img
+                              src={img}
+                              alt={`Slide ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-4">
