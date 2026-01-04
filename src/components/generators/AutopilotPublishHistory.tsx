@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -32,6 +33,7 @@ interface PublishedAd {
     body?: string;
     description?: string;
     image_url?: string;
+    creative_image_url?: string;
   };
   quality_score: number | null;
   meta_ad_id: string | null;
@@ -153,6 +155,14 @@ export function AutopilotPublishHistory() {
 
   const getAdText = (ad: PublishedAd) => {
     return ad.generated_content?.primary_text || ad.generated_content?.body || "";
+  };
+
+  const getAdImageUrl = (ad: PublishedAd) => {
+    return (
+      ad.generated_content?.image_url ||
+      ad.generated_content?.creative_image_url ||
+      null
+    );
   };
 
   return (
@@ -300,6 +310,9 @@ export function AutopilotPublishHistory() {
               <Eye className="h-5 w-5" />
               Preview do Criativo
             </DialogTitle>
+            <DialogDescription>
+              Visualização do criativo no formato de publicação (mockup).
+            </DialogDescription>
           </DialogHeader>
 
           {selectedAd && (
@@ -334,11 +347,12 @@ export function AutopilotPublishHistory() {
 
                     {/* Imagem do post */}
                     <div className="aspect-square bg-muted relative">
-                      {selectedAd.generated_content?.image_url ? (
+                      {getAdImageUrl(selectedAd) ? (
                         <img
-                          src={selectedAd.generated_content.image_url}
-                          alt="Creative preview"
+                          src={getAdImageUrl(selectedAd)!}
+                          alt={`Imagem do criativo publicado para ${selectedAd.client?.name || "cliente"}`}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -354,7 +368,7 @@ export function AutopilotPublishHistory() {
                     <div className="p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <Heart className="h-6 w-6 cursor-pointer hover:text-red-500 transition-colors" />
+                          <Heart className="h-6 w-6 cursor-pointer hover:text-destructive transition-colors" />
                           <MessageCircle className="h-6 w-6 cursor-pointer" />
                           <Send className="h-6 w-6 cursor-pointer" />
                         </div>
