@@ -50,9 +50,9 @@ const quickActions: QuickAction[] = [
     bgColor: "bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50",
   },
   {
-    label: "Automações",
-    icon: Zap,
-    path: "/automacoes",
+    label: "Clientes",
+    icon: Users,
+    path: "/clientes",
     color: "text-pink-600 dark:text-pink-400",
     bgColor: "bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50",
   },
