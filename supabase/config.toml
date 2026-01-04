@@ -296,5 +296,8 @@ verify_jwt = true
 [functions.daily-carousel-generator]
 verify_jwt = false
 
+[functions.daily-carousel-generator-stream]
+verify_jwt = false
+
 [functions.daily-carousel-generator-scheduler]
 verify_jwt = false
