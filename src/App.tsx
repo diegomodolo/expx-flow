@@ -47,8 +47,8 @@ import ConfiguracaoFabrica from "./pages/geradores/ConfiguracaoFabrica";
 import AnunciosVencedores from "./pages/geradores/AnunciosVencedores";
 import DashboardFabrica from "./pages/geradores/DashboardFabrica";
 import HistoricoGeracoes from "./pages/geradores/HistoricoGeracoes";
+import HistoricoPublicacoesAutopilot from "./pages/geradores/HistoricoPublicacoesAutopilot";
 import FabricaAnuncios from "./pages/geradores/FabricaAnuncios";
-
 import PlanejamentoConteudo from "./pages/PlanejamentoConteudo";
 import AgentesIA from "./pages/AgentesIA";
 import AgentChat from "./pages/AgentChat";
@@ -375,6 +375,11 @@ const App = () => {
                  <Route path="/geradores/fabrica-anuncios/historico" element={
                   <ProtectedRoute>
                     <HistoricoGeracoes />
+                  </ProtectedRoute>
+                } />
+                 <Route path="/geradores/fabrica-anuncios/publicacoes-autopilot" element={
+                  <ProtectedRoute>
+                    <HistoricoPublicacoesAutopilot />
                   </ProtectedRoute>
                 } />
                  {/* Repositório de Criativos */}
