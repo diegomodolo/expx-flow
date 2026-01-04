@@ -84,22 +84,45 @@ ${client.ai_briefing || 'Sem briefing configurado'}
         });
       }
 
-      // 3. Fetch top performing ads (last 30 days)
+      // 3. Build a map of campaign IDs to names for reference
+      const campaignMap: Record<string, string> = {};
+      campaigns?.forEach(c => {
+        campaignMap[c.id] = c.name;
+      });
+
+      // 4. Fetch ALL campaigns (not just active) for better context
+      const { data: allCampaigns } = await supabase
+        .from('campaigns')
+        .select('id, name, status, objective, spend, impressions, clicks, ctr, conversions, cpa')
+        .eq('client_id', clientId)
+        .order('spend', { ascending: false })
+        .limit(50);
+
+      if (allCampaigns) {
+        allCampaigns.forEach(c => {
+          campaignMap[c.id] = c.name;
+        });
+      }
+
+      // 5. Fetch top performing ads with campaign context
       const { data: topAds } = await supabase
         .from('ads')
         .select('*')
         .eq('client_id', clientId)
         .eq('is_active', true)
         .order('conversions', { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (topAds && topAds.length > 0) {
         clientContext += `
-## TOP 5 CRIATIVOS COM MELHOR PERFORMANCE (por conversões)
+## TOP 10 CRIATIVOS COM MELHOR PERFORMANCE (por conversões)
 `;
         topAds.forEach((ad, i) => {
+          const campaignName = campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
           clientContext += `
 ### ${i + 1}. ${ad.name}
+- **CAMPANHA**: ${campaignName}
+- Campaign ID: ${ad.campaign_id}
 - Tipo: ${ad.creative_type || 'N/A'}
 - Status: ${ad.status}
 - Texto Principal: ${ad.creative_body?.substring(0, 200) || 'N/A'}${ad.creative_body && ad.creative_body.length > 200 ? '...' : ''}
@@ -119,7 +142,36 @@ ${client.ai_briefing || 'Sem briefing configurado'}
         });
       }
 
-      // 4. Fetch top ads by CTR
+      // 6. Also fetch ads grouped by campaign for specific campaign queries
+      if (campaigns && campaigns.length > 0) {
+        clientContext += `
+## CRIATIVOS POR CAMPANHA (Top 3 de cada campanha ativa)
+`;
+        for (const camp of campaigns.slice(0, 5)) {
+          const { data: campaignAds } = await supabase
+            .from('ads')
+            .select('*')
+            .eq('campaign_id', camp.id)
+            .eq('is_active', true)
+            .order('conversions', { ascending: false })
+            .limit(3);
+
+          if (campaignAds && campaignAds.length > 0) {
+            clientContext += `
+### Campanha: ${camp.name}
+`;
+            campaignAds.forEach((ad, i) => {
+              clientContext += `
+${i + 1}. **${ad.name}**
+   - Conversões: ${ad.conversions || 0} | CTR: ${ad.ctr?.toFixed(2) || 0}% | CPA: R$ ${ad.cpa?.toFixed(2) || 'N/A'}
+   - Texto: ${ad.creative_body?.substring(0, 100) || 'N/A'}${ad.creative_body && ad.creative_body.length > 100 ? '...' : ''}
+`;
+            });
+          }
+        }
+      }
+
+      // 7. Fetch top ads by CTR
       const { data: topCtrAds } = await supabase
         .from('ads')
         .select('*')
@@ -134,8 +186,10 @@ ${client.ai_briefing || 'Sem briefing configurado'}
 ## TOP 5 CRIATIVOS POR CTR (Taxa de Clique)
 `;
         topCtrAds.forEach((ad, i) => {
+          const campaignName = campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
           clientContext += `
 ### ${i + 1}. ${ad.name} - CTR: ${ad.ctr?.toFixed(2)}%
+- **CAMPANHA**: ${campaignName}
 - Texto: ${ad.creative_body?.substring(0, 150) || 'N/A'}${ad.creative_body && ad.creative_body.length > 150 ? '...' : ''}
 - Título: ${ad.creative_title || 'N/A'}
 - Cliques: ${ad.clicks?.toLocaleString() || '0'}
@@ -144,7 +198,7 @@ ${client.ai_briefing || 'Sem briefing configurado'}
         });
       }
 
-      // 5. Fetch top ads by engagement (likes + comments + shares)
+      // 8. Fetch top ads by engagement (likes + comments + shares)
       const { data: engagementAds } = await supabase
         .from('ads')
         .select('*')
@@ -159,15 +213,17 @@ ${client.ai_briefing || 'Sem briefing configurado'}
 `;
         engagementAds.forEach((ad, i) => {
           const totalEngagement = (ad.likes || 0) + (ad.comments || 0) + (ad.shares || 0);
+          const campaignName = campaignMap[ad.campaign_id] || `Campaign ID: ${ad.campaign_id}`;
           clientContext += `
 ### ${i + 1}. ${ad.name} - Total: ${totalEngagement} interações
+- **CAMPANHA**: ${campaignName}
 - Likes: ${ad.likes || '0'} | Comentários: ${ad.comments || '0'} | Compartilhamentos: ${ad.shares || '0'}
 - Texto: ${ad.creative_body?.substring(0, 150) || 'N/A'}${ad.creative_body && ad.creative_body.length > 150 ? '...' : ''}
 `;
         });
       }
 
-      // 6. Fetch themes from creative_generation_queue
+      // 9. Fetch themes from creative_generation_queue
       const { data: themes } = await supabase
         .from('creative_generation_queue')
         .select('theme')
@@ -185,7 +241,7 @@ ${uniqueThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
         }
       }
 
-      // 7. Fetch themes from visual_creatives
+      // 10. Fetch themes from visual_creatives
       const { data: visualThemes } = await supabase
         .from('visual_creatives')
         .select('theme, title, objective')
@@ -203,7 +259,7 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
         }
       }
 
-      // 8. Fetch recent scheduled posts performance
+      // 11. Fetch recent scheduled posts performance
       const { data: recentPosts } = await supabase
         .from('scheduled_posts')
         .select('*')
@@ -226,7 +282,7 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
         });
       }
 
-      // 9. Fetch Instagram auto posts
+      // 12. Fetch Instagram auto posts
       const { data: instaPosts } = await supabase
         .from('instagram_auto_posts')
         .select('*')
@@ -248,7 +304,7 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
         });
       }
 
-      // 10. Calculate overall performance metrics
+      // 13. Calculate overall performance metrics
       const { data: allAds } = await supabase
         .from('ads')
         .select('spend, impressions, clicks, conversions, cpa, ctr')
