@@ -18,11 +18,13 @@ serve(async (req) => {
 
     console.log('Checking for scheduled posts to publish...');
 
-    // Find posts that are scheduled and due
+    // Find posts that are scheduled and due (exclude 'publishing' to avoid race conditions)
     const { data: postsToPublish, error: fetchError } = await supabase
       .from('scheduled_posts')
       .select('id, scheduled_at, company_id')
       .eq('status', 'scheduled')
+      .neq('status', 'publishing') // Exclude posts already being processed
+      .neq('status', 'published')  // Exclude already published posts
       .lte('scheduled_at', new Date().toISOString())
       .order('scheduled_at', { ascending: true })
       .limit(10); // Process max 10 posts per run

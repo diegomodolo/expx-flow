@@ -291,6 +291,33 @@ serve(async (req) => {
 
     console.log(`Publishing scheduled post ${postId}`);
 
+    // ATOMIC LOCK: Try to update status to 'publishing' only if it's still 'scheduled'
+    // This prevents duplicate publishing if called simultaneously
+    const { data: lockResult, error: lockError } = await supabase
+      .from('scheduled_posts')
+      .update({ status: 'publishing' })
+      .eq('id', postId)
+      .in('status', ['scheduled', 'pending']) // Only lock if not already being processed
+      .select('id')
+      .maybeSingle();
+
+    if (lockError) {
+      console.error('Error acquiring lock:', lockError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Error acquiring publish lock' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    if (!lockResult) {
+      // Post was already picked up by another process or already published
+      console.log(`Post ${postId} is already being processed or was published`);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Post already being processed or published', skipped: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     // Get the scheduled post with related data
     const { data: post, error: postError } = await supabase
       .from('scheduled_posts')
@@ -304,17 +331,16 @@ serve(async (req) => {
 
     if (postError || !post) {
       console.error('Post not found:', postError);
+      // Reset status if post not found
+      await supabase
+        .from('scheduled_posts')
+        .update({ status: 'scheduled' })
+        .eq('id', postId);
       return new Response(
         JSON.stringify({ success: false, error: 'Post not found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
-
-    // Update status to publishing
-    await supabase
-      .from('scheduled_posts')
-      .update({ status: 'publishing' })
-      .eq('id', postId);
 
     const results: any = {
       facebook: null,
