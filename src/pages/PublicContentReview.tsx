@@ -331,7 +331,7 @@ export default function PublicContentReview() {
                 {/* Caption */}
                 {post.caption && (
                   <div className="text-xs text-muted-foreground border-t pt-3">
-                    <p className="line-clamp-4">{post.caption}</p>
+                    <p className="whitespace-pre-wrap">{post.caption}</p>
                   </div>
                 )}
 
