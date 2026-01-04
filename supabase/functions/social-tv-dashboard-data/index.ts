@@ -60,7 +60,21 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get('token');
+
+    // Accept token via query param (?token=) OR JSON body ({ token })
+    let token = url.searchParams.get('token');
+
+    if (!token && req.method !== 'GET') {
+      try {
+        const contentType = req.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const body = await req.json().catch(() => null);
+          token = body?.token ?? null;
+        }
+      } catch (e) {
+        // ignore body parse errors
+      }
+    }
 
     if (!token) {
       console.error('No token provided');
