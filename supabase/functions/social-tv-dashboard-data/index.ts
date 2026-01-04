@@ -118,8 +118,9 @@ serve(async (req) => {
 
     console.log('Found company:', company.name);
 
-    // Get champion creative (highest CTR in last 24h)
-    const { data: championAd } = await supabase
+    // Get champion creative (highest CTR with valid media URL)
+    // First try to find ads with image_url or video_url
+    const { data: adsWithMedia } = await supabase
       .from('ads')
       .select(`
         id,
@@ -130,14 +131,19 @@ serve(async (req) => {
         spend,
         conversions,
         client_id,
-        clients!inner(name, avatar, user_id)
+        clients!inner(name, avatar, user_id, gestor_id)
       `)
       .eq('company_id', company.id)
       .eq('is_active', true)
       .gt('ctr', 0)
       .order('ctr', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(20);
+
+    // Filter to only ads with valid media URLs
+    const championAd = adsWithMedia?.find(ad => 
+      (ad.image_url && ad.image_url.trim() !== '') || 
+      (ad.video_url && ad.video_url.trim() !== '')
+    ) || null;
 
     let championCreative: ChampionCreative | null = null;
     if (championAd) {
