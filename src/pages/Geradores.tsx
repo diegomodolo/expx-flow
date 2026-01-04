@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { GeneratorCard } from "@/components/content-generator/GeneratorCard";
-import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Factory } from "lucide-react";
+import { BookOpen, Sparkles, Palette, Presentation, Wand2, FileText, Factory, Layers } from "lucide-react";
 
 export default function Geradores() {
   const navigate = useNavigate();
@@ -29,6 +29,14 @@ export default function Geradores() {
       icon: Palette,
       color: "pink",
       path: "/geradores/fabrica-criativos",
+    },
+    {
+      id: "fabrica-carrosseis",
+      title: "Fábrica de Carrosseis",
+      description: "Geração de carrosseis para Instagram seguindo boas práticas para SaaS",
+      icon: Layers,
+      color: "purple",
+      path: "/geradores/fabrica-carrosseis",
     },
     {
       id: "planejamento",

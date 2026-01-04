@@ -264,6 +264,12 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
       href: `/clientes/${clientId}/fabrica-criativos`,
       icon: Palette,
       description: "Geração automática de criativos para redes sociais"
+    },
+    {
+      title: "Fábrica de Carrosseis",
+      href: `/clientes/${clientId}/fabrica-carrosseis`,
+      icon: Layers,
+      description: "Geração automática de carrosseis para Instagram"
     }
   ];
 
