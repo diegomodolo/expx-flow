@@ -119,8 +119,8 @@ serve(async (req) => {
     console.log('Found company:', company.name);
 
     // Get champion creative (highest CTR with valid media URL)
-    // First try to find ads with image_url or video_url
-    const { data: adsWithMedia } = await supabase
+    // NOTE: many ads may have ctr/spend but no stored media URL; we only pick ones with media.
+    const { data: adsWithPossibleMedia } = await supabase
       .from('ads')
       .select(`
         id,
@@ -136,14 +136,17 @@ serve(async (req) => {
       .eq('company_id', company.id)
       .eq('is_active', true)
       .gt('ctr', 0)
+      .or('image_url.not.is.null,video_url.not.is.null')
       .order('ctr', { ascending: false })
-      .limit(20);
+      .limit(500);
 
-    // Filter to only ads with valid media URLs
-    const championAd = adsWithMedia?.find(ad => 
-      (ad.image_url && ad.image_url.trim() !== '') || 
-      (ad.video_url && ad.video_url.trim() !== '')
+    // Filter to only ads with valid (non-empty) media URLs
+    const championAd = (adsWithPossibleMedia || []).find((ad) =>
+      (typeof ad.image_url === 'string' && ad.image_url.trim() !== '') ||
+      (typeof ad.video_url === 'string' && ad.video_url.trim() !== '')
     ) || null;
+
+    console.log('Champion: candidates=', adsWithPossibleMedia?.length || 0, 'selected=', championAd?.id || null);
 
     let championCreative: ChampionCreative | null = null;
     if (championAd) {
@@ -348,7 +351,7 @@ serve(async (req) => {
     }
 
     // Get featured creatives (top performing ads)
-    const { data: featuredAds } = await supabase
+    const { data: featuredAdsRaw } = await supabase
       .from('ads')
       .select(`
         id,
@@ -360,9 +363,16 @@ serve(async (req) => {
       `)
       .eq('company_id', company.id)
       .eq('is_active', true)
-      .or('image_url.neq.null,video_url.neq.null')
+      .or('image_url.not.is.null,video_url.not.is.null')
       .order('ctr', { ascending: false })
-      .limit(10);
+      .limit(200);
+
+    const featuredAds = (featuredAdsRaw || [])
+      .filter((ad) =>
+        (typeof ad.image_url === 'string' && ad.image_url.trim() !== '') ||
+        (typeof ad.video_url === 'string' && ad.video_url.trim() !== '')
+      )
+      .slice(0, 10);
 
     const featuredCreatives: FeaturedCreative[] = (featuredAds || []).map((ad, index) => ({
       id: ad.id,
