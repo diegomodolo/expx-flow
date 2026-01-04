@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useClients } from "@/hooks/useClients";
 import { useAdGenerationQueue } from "@/hooks/useAdGenerationQueue";
 import { AdReviewGrid } from "@/components/ad-factory/AdReviewGrid";
@@ -120,8 +119,7 @@ export default function RevisaoDiaria() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -238,7 +236,6 @@ export default function RevisaoDiaria() {
           defaultAdSetId={defaultAdSetId}
           onRefetch={refetch}
         />
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }

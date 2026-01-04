@@ -346,42 +346,19 @@ const App = () => {
                     <PlanejamentoConteudo />
                   </ProtectedRoute>
                 } />
-                 {/* Fábrica de Anúncios - Menu principal */}
+                 {/* Fábrica de Anúncios - Rotas aninhadas */}
                  <Route path="/geradores/fabrica-anuncios" element={
                   <ProtectedRoute>
                     <FabricaAnuncios />
                   </ProtectedRoute>
-                } />
-                 <Route path="/geradores/fabrica-anuncios/dashboard" element={
-                  <ProtectedRoute>
-                    <DashboardFabrica />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/fabrica-anuncios/revisao-diaria" element={
-                  <ProtectedRoute>
-                    <RevisaoDiaria />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/fabrica-anuncios/configuracao" element={
-                  <ProtectedRoute>
-                    <ConfiguracaoFabrica />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/fabrica-anuncios/vencedores" element={
-                  <ProtectedRoute>
-                    <AnunciosVencedores />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/fabrica-anuncios/historico" element={
-                  <ProtectedRoute>
-                    <HistoricoGeracoes />
-                  </ProtectedRoute>
-                } />
-                 <Route path="/geradores/fabrica-anuncios/publicacoes-autopilot" element={
-                  <ProtectedRoute>
-                    <HistoricoPublicacoesAutopilot />
-                  </ProtectedRoute>
-                } />
+                }>
+                  <Route path="dashboard" element={<DashboardFabrica />} />
+                  <Route path="revisao-diaria" element={<RevisaoDiaria />} />
+                  <Route path="configuracao" element={<ConfiguracaoFabrica />} />
+                  <Route path="vencedores" element={<AnunciosVencedores />} />
+                  <Route path="historico" element={<HistoricoGeracoes />} />
+                  <Route path="publicacoes-autopilot" element={<HistoricoPublicacoesAutopilot />} />
+                </Route>
                  {/* Repositório de Criativos */}
                  <Route path="/repositorio-criativos" element={
                   <ProtectedRoute>
