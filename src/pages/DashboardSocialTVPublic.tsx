@@ -11,24 +11,30 @@ import { SocialTVTickerBar } from '@/components/social-tv-dashboard/SocialTVTick
 import { SocialTVMetricsBadges } from '@/components/social-tv-dashboard/SocialTVMetricsBadges';
 import { SocialTVControls } from '@/components/social-tv-dashboard/SocialTVControls';
 
+interface ChampionCreative {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  thumbnailUrl?: string;
+  title: string;
+  clientName: string;
+  clientAvatar: string | null;
+  gestorName: string;
+  gestorAvatar: string | null;
+  ctr: number;
+  roas: number;
+  spend: number;
+  conversions: number;
+  platform: 'Meta' | 'Google';
+  championType: 'conversions' | 'ctr';
+}
+
 interface SocialTVDashboardData {
   company: { id: string; name: string };
   lastSync: string;
-  championCreative: {
-    id: string;
-    type: 'image' | 'video';
-    url: string;
-    title: string;
-    clientName: string;
-    clientAvatar: string | null;
-    gestorName: string;
-    gestorAvatar: string | null;
-    ctr: number;
-    roas: number;
-    spend: number;
-    conversions: number;
-    platform: 'Meta' | 'Google';
-  } | null;
+  championByConversions: ChampionCreative | null;
+  championByCtr: ChampionCreative | null;
+  championCreative: ChampionCreative | null; // legacy
   gestorRanking: Array<{
     id: string;
     name: string;
@@ -183,8 +189,11 @@ export default function DashboardSocialTVPublic() {
         {/* Main Content - Vertical Layout */}
         <div className="flex-1 flex flex-col overflow-hidden relative pb-12">
           {/* Champion Creative - 50% */}
-          <div className="flex-1 min-h-0" style={{ flex: '1 1 50%' }}>
-            <SocialTVChampionCreative creative={data.championCreative} />
+          <div className="flex-1 min-h-0 px-4" style={{ flex: '1 1 50%' }}>
+            <SocialTVChampionCreative 
+              creativeByConversions={data.championByConversions}
+              creativeByCtr={data.championByCtr}
+            />
           </div>
 
           {/* Rankings - 35% - Side by side */}

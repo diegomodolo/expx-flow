@@ -10,6 +10,7 @@ interface ChampionCreative {
   id: string;
   type: 'image' | 'video';
   url: string;
+  thumbnailUrl?: string;
   title: string;
   clientName: string;
   clientAvatar: string | null;
@@ -20,6 +21,7 @@ interface ChampionCreative {
   spend: number;
   conversions: number;
   platform: 'Meta' | 'Google';
+  championType: 'conversions' | 'ctr';
 }
 
 interface GestorRanking {
@@ -61,6 +63,68 @@ interface FeaturedCreative {
   clientName: string;
   status: string;
   ctr: number;
+}
+
+// Helper function to fetch thumbnail from Meta Graph API
+async function fetchMetaThumbnail(facebookAdId: string, accessToken: string): Promise<string | null> {
+  try {
+    console.log(`Fetching Meta thumbnail for ad: ${facebookAdId}`);
+    
+    // Try to get creative thumbnail
+    const response = await fetch(
+      `https://graph.facebook.com/v20.0/${facebookAdId}?fields=creative{thumbnail_url,image_url,effective_object_story_id}&access_token=${accessToken}`
+    );
+    
+    if (!response.ok) {
+      console.error(`Meta API error for ${facebookAdId}:`, response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log(`Meta API response for ${facebookAdId}:`, JSON.stringify(data).slice(0, 200));
+    
+    // Try to extract thumbnail from creative
+    if (data.creative?.thumbnail_url) {
+      return data.creative.thumbnail_url;
+    }
+    if (data.creative?.image_url) {
+      return data.creative.image_url;
+    }
+    
+    // If we have effective_object_story_id, try to get the story attachment
+    if (data.creative?.effective_object_story_id) {
+      const storyId = data.creative.effective_object_story_id;
+      const storyResponse = await fetch(
+        `https://graph.facebook.com/v20.0/${storyId}?fields=full_picture,picture&access_token=${accessToken}`
+      );
+      
+      if (storyResponse.ok) {
+        const storyData = await storyResponse.json();
+        if (storyData.full_picture) return storyData.full_picture;
+        if (storyData.picture) return storyData.picture;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error fetching Meta thumbnail for ${facebookAdId}:`, error);
+    return null;
+  }
+}
+
+// Helper to check if URL is a valid direct media URL
+function isValidMediaUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  
+  // Check if it's a valid image/video URL (not just a Facebook page link)
+  const isDirectMedia = /\.(jpg|jpeg|png|gif|webp|mp4|mov|webm)/i.test(trimmed) ||
+    trimmed.includes('scontent') || // Facebook CDN
+    trimmed.includes('fbcdn') ||    // Facebook CDN
+    trimmed.includes('supabase.co/storage'); // Supabase storage
+  
+  return isDirectMedia;
 }
 
 serve(async (req) => {
@@ -118,45 +182,59 @@ serve(async (req) => {
 
     console.log('Found company:', company.name);
 
-    // Get champion creative (highest CTR with valid media URL)
-    // NOTE: many ads may have ctr/spend but no stored media URL; we only pick ones with media.
-    const { data: adsWithPossibleMedia, error: adsWithPossibleMediaError } = await supabase
-      .from('ads')
-      // NOTE: don't embed clients here; ads table may not have an FK relationship configured for PostgREST embeds
-      .select('id,name,image_url,video_url,ctr,spend,conversions,client_id')
+    // Fetch Facebook integration for this company (to get access token for Meta API)
+    const { data: fbIntegration } = await supabase
+      .from('facebook_integrations')
+      .select('access_token, token_expires_at')
       .eq('company_id', company.id)
       .eq('is_active', true)
-      .gt('ctr', 0)
-      .order('ctr', { ascending: false })
+      .single();
+    
+    const fbAccessToken = fbIntegration?.access_token || null;
+    const tokenExpired = fbIntegration?.token_expires_at 
+      ? new Date(fbIntegration.token_expires_at) < new Date() 
+      : true;
+    
+    console.log(`Facebook integration: ${fbAccessToken ? 'found' : 'not found'}, expired: ${tokenExpired}`);
+
+    // Get all active ads with metrics
+    const { data: allAds, error: allAdsError } = await supabase
+      .from('ads')
+      .select('id, facebook_id, name, image_url, video_url, ctr, spend, conversions, client_id')
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .order('conversions', { ascending: false })
       .limit(2000);
 
-    if (adsWithPossibleMediaError) {
-      console.error('Champion query error:', adsWithPossibleMediaError);
+    if (allAdsError) {
+      console.error('Ads query error:', allAdsError);
     }
 
-    console.log('Champion: fetched=', adsWithPossibleMedia?.length || 0);
+    console.log('Total active ads fetched:', allAds?.length || 0);
 
-    // Filter to only ads with valid (non-empty) media URLs
-    const championAd = (adsWithPossibleMedia || []).find((ad) =>
-      (typeof ad.image_url === 'string' && ad.image_url.trim() !== '') ||
-      (typeof ad.video_url === 'string' && ad.video_url.trim() !== '')
-    ) || null;
+    // Find champion by conversions (most conversions)
+    const sortedByConversions = [...(allAds || [])].sort((a, b) => (b.conversions || 0) - (a.conversions || 0));
+    const championByConversionsAd = sortedByConversions.find(ad => (ad.conversions || 0) > 0) || sortedByConversions[0] || null;
 
-    console.log('Champion: candidates=', adsWithPossibleMedia?.length || 0, 'selected=', championAd?.id || null);
+    // Find champion by CTR (highest CTR)
+    const sortedByCtr = [...(allAds || [])].sort((a, b) => (b.ctr || 0) - (a.ctr || 0));
+    const championByCtrAd = sortedByCtr.find(ad => (ad.ctr || 0) > 0) || sortedByCtr[0] || null;
 
-    let championCreative: ChampionCreative | null = null;
-    if (championAd) {
-      const { data: clientData, error: clientError } = await supabase
+    console.log('Champion by conversions:', championByConversionsAd?.id, 'conversions:', championByConversionsAd?.conversions);
+    console.log('Champion by CTR:', championByCtrAd?.id, 'ctr:', championByCtrAd?.ctr);
+
+    // Helper function to build champion creative object
+    async function buildChampionCreative(ad: any, championType: 'conversions' | 'ctr'): Promise<ChampionCreative | null> {
+      if (!ad) return null;
+
+      // Get client data
+      const { data: clientData } = await supabase
         .from('clients')
         .select('name, avatar, user_id')
-        .eq('id', championAd.client_id)
+        .eq('id', ad.client_id)
         .single();
 
-      if (clientError) {
-        console.error('Champion client error:', clientError);
-      }
-
-      // Get gestor info (fallback to profile of client owner)
+      // Get gestor info
       const { data: gestor } = clientData?.user_id
         ? await supabase
             .from('profiles')
@@ -165,22 +243,55 @@ serve(async (req) => {
             .single()
         : { data: null };
 
-      championCreative = {
-        id: championAd.id,
-        type: championAd.video_url ? 'video' : 'image',
-        url: championAd.video_url || championAd.image_url || '',
-        title: championAd.name,
+      // Determine media URL
+      let mediaUrl = ad.video_url || ad.image_url || '';
+      let thumbnailUrl: string | undefined = undefined;
+      const hasValidLocalMedia = isValidMediaUrl(ad.image_url) || isValidMediaUrl(ad.video_url);
+
+      // If no valid local media and we have Facebook token, try to fetch from Meta API
+      if (!hasValidLocalMedia && fbAccessToken && !tokenExpired && ad.facebook_id) {
+        console.log(`No valid local media for ad ${ad.id}, trying Meta API...`);
+        const metaThumbnail = await fetchMetaThumbnail(ad.facebook_id, fbAccessToken);
+        if (metaThumbnail) {
+          thumbnailUrl = metaThumbnail;
+          mediaUrl = metaThumbnail;
+          console.log(`Got Meta thumbnail for ad ${ad.id}: ${metaThumbnail.slice(0, 50)}...`);
+        }
+      } else if (hasValidLocalMedia) {
+        mediaUrl = isValidMediaUrl(ad.video_url) ? ad.video_url : ad.image_url;
+      }
+
+      return {
+        id: ad.id,
+        type: ad.video_url && isValidMediaUrl(ad.video_url) ? 'video' : 'image',
+        url: mediaUrl,
+        thumbnailUrl,
+        title: ad.name || 'Criativo',
         clientName: clientData?.name || 'Cliente',
         clientAvatar: clientData?.avatar || null,
         gestorName: gestor?.full_name || 'Gestor',
         gestorAvatar: gestor?.avatar_url || null,
-        ctr: championAd.ctr || 0,
+        ctr: ad.ctr || 0,
         roas: 0,
-        spend: championAd.spend || 0,
-        conversions: championAd.conversions || 0,
-        platform: 'Meta'
+        spend: ad.spend || 0,
+        conversions: ad.conversions || 0,
+        platform: 'Meta',
+        championType
       };
     }
+
+    // Build both champions
+    const championByConversions = await buildChampionCreative(championByConversionsAd, 'conversions');
+    const championByCtr = await buildChampionCreative(championByCtrAd, 'ctr');
+
+    // Check if they are the same ad
+    const sameAd = championByConversionsAd?.id === championByCtrAd?.id;
+
+    console.log('Champions built:', {
+      byConversions: championByConversions?.id,
+      byCtr: championByCtr?.id,
+      sameAd
+    });
 
     // Get gestor ranking (by conversions) - using gestor_id from clients table
     const { data: clientsWithGestores } = await supabase
@@ -359,8 +470,7 @@ serve(async (req) => {
     // Get featured creatives (top performing ads)
     const { data: featuredAdsRaw, error: featuredAdsError } = await supabase
       .from('ads')
-      // NOTE: don't embed clients here; ads table may not have an FK relationship configured for PostgREST embeds
-      .select('id,name,image_url,video_url,ctr,client_id')
+      .select('id, facebook_id, name, image_url, video_url, ctr, client_id')
       .eq('company_id', company.id)
       .eq('is_active', true)
       .order('ctr', { ascending: false })
@@ -370,15 +480,26 @@ serve(async (req) => {
       console.error('Featured ads query error:', featuredAdsError);
     }
 
-    const featuredAds = (featuredAdsRaw || [])
-      .filter((ad) =>
-        (typeof ad.image_url === 'string' && ad.image_url.trim() !== '') ||
-        (typeof ad.video_url === 'string' && ad.video_url.trim() !== '')
-      )
-      .slice(0, 10);
+    // Filter to ads with valid media or try to get from Meta API
+    const featuredAdsWithMedia: any[] = [];
+    for (const ad of (featuredAdsRaw || []).slice(0, 50)) {
+      const hasValidMedia = isValidMediaUrl(ad.image_url) || isValidMediaUrl(ad.video_url);
+      
+      if (hasValidMedia) {
+        featuredAdsWithMedia.push(ad);
+      } else if (fbAccessToken && !tokenExpired && ad.facebook_id && featuredAdsWithMedia.length < 10) {
+        // Try to get thumbnail from Meta API
+        const metaThumbnail = await fetchMetaThumbnail(ad.facebook_id, fbAccessToken);
+        if (metaThumbnail) {
+          featuredAdsWithMedia.push({ ...ad, image_url: metaThumbnail, thumbnailUrl: metaThumbnail });
+        }
+      }
+      
+      if (featuredAdsWithMedia.length >= 10) break;
+    }
 
     const featuredClientIds = Array.from(
-      new Set((featuredAds || []).map((ad) => ad.client_id).filter(Boolean))
+      new Set((featuredAdsWithMedia || []).map((ad) => ad.client_id).filter(Boolean))
     ) as string[];
 
     const { data: featuredClients } = featuredClientIds.length
@@ -389,10 +510,11 @@ serve(async (req) => {
       (featuredClients || []).map((c: any) => [c.id, c.name])
     );
 
-    const featuredCreatives: FeaturedCreative[] = (featuredAds || []).map((ad: any, index: number) => ({
+    const featuredCreatives: FeaturedCreative[] = (featuredAdsWithMedia || []).map((ad: any, index: number) => ({
       id: ad.id,
-      type: ad.video_url ? 'video' : 'image',
+      type: ad.video_url && isValidMediaUrl(ad.video_url) ? 'video' : 'image',
       url: ad.video_url || ad.image_url || '',
+      thumbnailUrl: ad.thumbnailUrl,
       clientName: clientNameById.get(ad.client_id) || 'Cliente',
       status: index === 0 ? 'Melhor CTR' : index < 3 ? 'Em alta' : 'Ativo',
       ctr: ad.ctr || 0
@@ -427,7 +549,10 @@ serve(async (req) => {
         name: company.name
       },
       lastSync: new Date().toISOString(),
-      championCreative,
+      championByConversions,
+      championByCtr,
+      // Keep legacy field for backwards compatibility
+      championCreative: championByConversions || championByCtr,
       gestorRanking,
       squadRanking,
       recentWins,
