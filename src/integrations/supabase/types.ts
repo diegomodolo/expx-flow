@@ -2236,6 +2236,7 @@ export type Database = {
           dashboard_token: string | null
           email: string
           facebook_page_id: string | null
+          gestor_id: string | null
           google_account_id: string | null
           google_monthly_budget: number | null
           google_payment_type: string | null
@@ -2302,6 +2303,7 @@ export type Database = {
           dashboard_token?: string | null
           email: string
           facebook_page_id?: string | null
+          gestor_id?: string | null
           google_account_id?: string | null
           google_monthly_budget?: number | null
           google_payment_type?: string | null
@@ -2368,6 +2370,7 @@ export type Database = {
           dashboard_token?: string | null
           email?: string
           facebook_page_id?: string | null
+          gestor_id?: string | null
           google_account_id?: string | null
           google_monthly_budget?: number | null
           google_payment_type?: string | null
@@ -2435,6 +2438,13 @@ export type Database = {
             columns: ["facebook_page_id"]
             isOneToOne: false
             referencedRelation: "facebook_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_gestor_id_fkey"
+            columns: ["gestor_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
