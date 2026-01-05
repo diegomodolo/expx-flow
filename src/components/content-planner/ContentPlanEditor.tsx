@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useContentPlans, ContentPlan, ContentPlanPost } from "@/hooks/useContentPlans";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { ContentPlanPostCard } from "./ContentPlanPostCard";
+import { ContentPlanPostCard, ContentPlanPostCardRef } from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
 import { ImportCreativesModal } from "./ImportCreativesModal";
 import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle } from "lucide-react";
@@ -51,7 +51,8 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   
   const [planName, setPlanName] = useState("");
   const [planStatus, setPlanStatus] = useState<"rascunho" | "em_revisao" | "aprovado">("rascunho");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasUnsavedPlanChanges, setHasUnsavedPlanChanges] = useState(false);
+  const [postsWithChanges, setPostsWithChanges] = useState<Set<string>>(new Set());
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -59,6 +60,13 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [isValidatingPortuguese, setIsValidatingPortuguese] = useState(false);
   const [validationErrors, setValidationErrors] = useState<PortugueseValidationErrors>({});
   const [totalValidationErrors, setTotalValidationErrors] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Refs for all post cards to collect pending changes
+  const postCardRefs = useRef<Map<string, ContentPlanPostCardRef>>(new Map());
+
+  // Check if there are any unsaved changes (plan or posts)
+  const hasUnsavedChanges = hasUnsavedPlanChanges || postsWithChanges.size > 0;
 
   const { data: plan, isLoading, refetch } = useQuery({
     queryKey: ["content-plan-detail", planId],
@@ -73,17 +81,54 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     }
   }, [plan]);
 
+  // Track changes per post
+  const handlePostHasChangesChange = useCallback((postId: string, hasChanges: boolean) => {
+    setPostsWithChanges(prev => {
+      const newSet = new Set(prev);
+      if (hasChanges) {
+        newSet.add(postId);
+      } else {
+        newSet.delete(postId);
+      }
+      return newSet;
+    });
+  }, []);
+
   const handleSavePlan = async () => {
+    setIsSaving(true);
     try {
-      await updatePlan.mutateAsync({
-        id: planId,
-        name: planName,
-        status: planStatus,
+      // Save plan metadata if changed
+      if (hasUnsavedPlanChanges) {
+        await updatePlan.mutateAsync({
+          id: planId,
+          name: planName,
+          status: planStatus,
+        });
+      }
+
+      // Save all posts with pending changes
+      const savePromises: Promise<void>[] = [];
+      postCardRefs.current.forEach((ref, postId) => {
+        const pendingChanges = ref.getPendingChanges();
+        if (pendingChanges) {
+          savePromises.push(
+            updatePost.mutateAsync({ id: pendingChanges.postId, ...pendingChanges.data })
+              .then(() => ref.resetChanges())
+          );
+        }
       });
-      setHasUnsavedChanges(false);
+
+      if (savePromises.length > 0) {
+        await Promise.all(savePromises);
+      }
+
+      setHasUnsavedPlanChanges(false);
+      setPostsWithChanges(new Set());
       toast.success("Planejamento salvo!");
     } catch (error) {
       toast.error("Erro ao salvar planejamento");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -339,7 +384,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                       value={planName}
                       onChange={(e) => {
                         setPlanName(e.target.value);
-                        setHasUnsavedChanges(true);
+                        setHasUnsavedPlanChanges(true);
                       }}
                       className="text-lg font-semibold bg-transparent border-none p-0 h-auto focus-visible:ring-0"
                     />
@@ -359,7 +404,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     value={planStatus}
                     onValueChange={(v: typeof planStatus) => {
                       setPlanStatus(v);
-                      setHasUnsavedChanges(true);
+                      setHasUnsavedPlanChanges(true);
                     }}
                   >
                     <SelectTrigger className="w-[140px]">
@@ -374,15 +419,20 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
 
                   <Button
                     onClick={handleSavePlan}
-                    disabled={!hasUnsavedChanges || updatePlan.isPending}
+                    disabled={!hasUnsavedChanges || isSaving}
                     className="gap-2"
                   >
-                    {updatePlan.isPending ? (
+                    {isSaving ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Save className="w-4 h-4" />
                     )}
                     Salvar
+                    {postsWithChanges.size > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                        {postsWithChanges.size}
+                      </Badge>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -473,6 +523,13 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                 plan.posts.map((post, index) => (
                   <ContentPlanPostCard
                     key={post.id}
+                    ref={(el) => {
+                      if (el) {
+                        postCardRefs.current.set(post.id, el);
+                      } else {
+                        postCardRefs.current.delete(post.id);
+                      }
+                    }}
                     post={post}
                     index={index}
                     isActive={activePostId === post.id}
@@ -482,6 +539,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     onRefetch={refetch}
                     clientBriefing={clientBriefing}
                     validationErrors={validationErrors[post.id]}
+                    onHasChangesChange={handlePostHasChangesChange}
                   />
                 ))
               ) : (
