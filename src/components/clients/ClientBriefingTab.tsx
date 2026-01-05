@@ -174,6 +174,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
           )}
           
           <Button
+            type="button"
             onClick={generateBriefing}
             disabled={generating || !formData.website_url || !client?.id}
             className="flex items-center gap-2"
@@ -214,6 +215,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
               {isEditing ? (
                 <>
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     onClick={cancelEdit}
@@ -222,6 +224,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
                     Cancelar
                   </Button>
                   <Button
+                    type="button"
                     size="sm"
                     onClick={saveBriefing}
                     disabled={saving}
@@ -237,6 +240,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
                 </>
               ) : (
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleEdit}
@@ -276,6 +280,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
             <h4 className="text-md font-medium">Briefing do Cliente</h4>
             <div className="flex items-center gap-2">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={cancelEdit}
@@ -284,6 +289,7 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
                 Cancelar
               </Button>
               <Button
+                type="button"
                 size="sm"
                 onClick={saveBriefing}
                 disabled={saving || !briefingContent.trim()}
@@ -320,13 +326,13 @@ export function ClientBriefingTab({ client, formData, onBriefingUpdate }: Client
           </p>
           <div className="flex items-center justify-center gap-3">
             {formData.website_url && client?.id && (
-              <Button onClick={generateBriefing} disabled={generating}>
+              <Button type="button" onClick={generateBriefing} disabled={generating}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Gerar via IA
               </Button>
             )}
             {client?.id && (
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
+              <Button type="button" variant="outline" onClick={() => setIsEditing(true)}>
                 <PenLine className="w-4 h-4 mr-2" />
                 Escrever Manualmente
               </Button>
