@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.social-tv-dashboard-data]
 verify_jwt = false
 
+[functions.radar-tv-dashboard-data]
+verify_jwt = false
+
 [functions.execute-campaign-automations]
 verify_jwt = false
 

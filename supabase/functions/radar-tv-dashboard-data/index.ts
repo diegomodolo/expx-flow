@@ -1,0 +1,354 @@
+// Radar TV Dashboard Data Edge Function - Public access for TV display
+// Shows opportunities and risks across all clients
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
+interface ClientRisk {
+  id: string;
+  name: string;
+  avatar: string | null;
+  riskType: 'performance' | 'budget' | 'balance' | 'inactive';
+  severity: 'critical' | 'warning';
+  message: string;
+  value: string;
+  trend?: 'up' | 'down' | 'stable';
+}
+
+interface ClientOpportunity {
+  id: string;
+  name: string;
+  avatar: string | null;
+  opportunityType: 'scale' | 'optimization' | 'expansion';
+  message: string;
+  potentialGain: string;
+  currentValue: string;
+}
+
+interface RadarMetrics {
+  totalClients: number;
+  clientsAtRisk: number;
+  clientsWithOpportunities: number;
+  criticalAlerts: number;
+  warningAlerts: number;
+  totalBudget: number;
+  totalSpend: number;
+  budgetUtilization: number;
+  avgCPA: number;
+  totalConversions: number;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const token = url.searchParams.get('token');
+
+    if (!token) {
+      console.error('[radar-tv] No token provided');
+      return new Response(
+        JSON.stringify({ error: 'Token não fornecido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[radar-tv] Fetching data for token: ${token.substring(0, 4)}...`);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Find company by radar token
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('radar_tv_dashboard_token', token)
+      .single();
+
+    if (companyError || !company) {
+      console.error('[radar-tv] Company not found:', companyError);
+      return new Response(
+        JSON.stringify({ error: 'Token inválido ou empresa não encontrada' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[radar-tv] Company found: ${company.name}`);
+
+    // Fetch all necessary data in parallel
+    const [
+      clientsResult,
+      metaCampaignsResult,
+      googleCampaignsResult,
+      syncInfoResult,
+    ] = await Promise.all([
+      // All active clients
+      supabase
+        .from('clients')
+        .select(`
+          id, name, avatar, status, calculated_status, status_explanation,
+          monthly_budget, meta_monthly_budget, google_monthly_budget,
+          leads_generated, avg_cpl, target_cpl,
+          ad_account_id, google_account_id,
+          facebook_ad_accounts(balance, account_status)
+        `)
+        .eq('company_id', company.id)
+        .eq('is_canceled', false),
+
+      // Meta campaigns
+      supabase
+        .from('campaigns')
+        .select('id, name, client_id, spend, conversions, cpa, ctr, status, is_active')
+        .eq('company_id', company.id),
+
+      // Google campaigns
+      supabase
+        .from('google_campaigns')
+        .select('id, name, client_id, spend, conversions, cpa, ctr, status, is_active')
+        .eq('company_id', company.id),
+
+      // Sync info
+      supabase
+        .from('clients')
+        .select('last_sync_at, last_sync_period')
+        .eq('company_id', company.id)
+        .not('last_sync_at', 'is', null)
+        .order('last_sync_at', { ascending: false })
+        .limit(1),
+    ]);
+
+    const clients = clientsResult.data || [];
+    const metaCampaigns = metaCampaignsResult.data || [];
+    const googleCampaigns = googleCampaignsResult.data || [];
+    const syncInfo = syncInfoResult.data?.[0] || null;
+
+    // Build client spend map
+    const clientSpend: Record<string, { meta: number; google: number; total: number; conversions: number }> = {};
+    
+    metaCampaigns.forEach(c => {
+      if (c.client_id) {
+        if (!clientSpend[c.client_id]) {
+          clientSpend[c.client_id] = { meta: 0, google: 0, total: 0, conversions: 0 };
+        }
+        clientSpend[c.client_id].meta += (c.spend || 0);
+        clientSpend[c.client_id].total += (c.spend || 0);
+        clientSpend[c.client_id].conversions += (c.conversions || 0);
+      }
+    });
+
+    googleCampaigns.forEach(c => {
+      if (c.client_id) {
+        if (!clientSpend[c.client_id]) {
+          clientSpend[c.client_id] = { meta: 0, google: 0, total: 0, conversions: 0 };
+        }
+        clientSpend[c.client_id].google += (c.spend || 0);
+        clientSpend[c.client_id].total += (c.spend || 0);
+        clientSpend[c.client_id].conversions += (c.conversions || 0);
+      }
+    });
+
+    // Calculate risks and opportunities
+    const risks: ClientRisk[] = [];
+    const opportunities: ClientOpportunity[] = [];
+
+    clients.forEach(client => {
+      const spend = clientSpend[client.id] || { meta: 0, google: 0, total: 0, conversions: 0 };
+      const budget = (client.meta_monthly_budget || 0) + (client.google_monthly_budget || 0) || client.monthly_budget || 0;
+      const budgetUtilization = budget > 0 ? (spend.total / budget) * 100 : 0;
+      const cpa = spend.conversions > 0 ? spend.total / spend.conversions : 0;
+      const targetCpl = client.target_cpl || 0;
+
+      // Check for risks
+      // 1. Performance risk (red/yellow status)
+      if (client.calculated_status === 'red' || client.status === 'red') {
+        risks.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          riskType: 'performance',
+          severity: 'critical',
+          message: client.status_explanation || 'Performance crítica detectada',
+          value: cpa > 0 ? `CPA: R$ ${cpa.toFixed(2)}` : 'Sem conversões',
+          trend: 'down'
+        });
+      } else if (client.calculated_status === 'yellow' || client.status === 'yellow') {
+        risks.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          riskType: 'performance',
+          severity: 'warning',
+          message: client.status_explanation || 'Performance abaixo do esperado',
+          value: cpa > 0 ? `CPA: R$ ${cpa.toFixed(2)}` : 'Baixas conversões',
+          trend: 'down'
+        });
+      }
+
+      // 2. Budget risk (over budget)
+      if (budgetUtilization > 100) {
+        risks.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          riskType: 'budget',
+          severity: budgetUtilization > 120 ? 'critical' : 'warning',
+          message: `Orçamento excedido em ${(budgetUtilization - 100).toFixed(0)}%`,
+          value: `R$ ${spend.total.toFixed(2)} / R$ ${budget.toFixed(2)}`,
+          trend: 'up'
+        });
+      }
+
+      // 3. Balance risk (Meta ad account low balance)
+      const fbAccount = Array.isArray(client.facebook_ad_accounts) 
+        ? client.facebook_ad_accounts[0] 
+        : client.facebook_ad_accounts;
+      
+      if (fbAccount && typeof fbAccount.balance === 'number') {
+        const balance = fbAccount.balance;
+        const dailySpend = spend.meta / 30;
+        const daysRemaining = dailySpend > 0 ? balance / dailySpend : 999;
+        
+        if (daysRemaining < 3 && balance < 500) {
+          risks.push({
+            id: client.id,
+            name: client.name,
+            avatar: client.avatar,
+            riskType: 'balance',
+            severity: daysRemaining < 1 ? 'critical' : 'warning',
+            message: `Saldo para ${daysRemaining.toFixed(1)} dias`,
+            value: `R$ ${balance.toFixed(2)}`,
+            trend: 'down'
+          });
+        }
+      }
+
+      // 4. Inactive risk (no active campaigns)
+      const hasActiveCampaigns = metaCampaigns.some(c => c.client_id === client.id && c.is_active) ||
+                                  googleCampaigns.some(c => c.client_id === client.id && c.is_active);
+      
+      if (!hasActiveCampaigns && client.status !== 'inativo') {
+        risks.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          riskType: 'inactive',
+          severity: 'warning',
+          message: 'Sem campanhas ativas',
+          value: 'Nenhuma campanha rodando'
+        });
+      }
+
+      // Check for opportunities
+      // 1. Scale opportunity (good CPA, budget available)
+      if (cpa > 0 && targetCpl > 0 && cpa < targetCpl * 0.8 && budgetUtilization < 80) {
+        const potentialIncrease = Math.min((budget - spend.total), budget * 0.3);
+        opportunities.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          opportunityType: 'scale',
+          message: `CPA ${((1 - cpa/targetCpl) * 100).toFixed(0)}% abaixo da meta - escalar investimento`,
+          potentialGain: `+R$ ${potentialIncrease.toFixed(0)} em budget`,
+          currentValue: `CPA: R$ ${cpa.toFixed(2)}`
+        });
+      }
+
+      // 2. Optimization opportunity (high spend, mediocre CPA)
+      if (spend.total > 5000 && cpa > 0 && targetCpl > 0 && cpa > targetCpl * 1.1 && cpa < targetCpl * 1.5) {
+        const potentialSavings = spend.total * 0.15;
+        opportunities.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          opportunityType: 'optimization',
+          message: 'Potencial de otimização identificado',
+          potentialGain: `Economia de R$ ${potentialSavings.toFixed(0)}`,
+          currentValue: `CPA: R$ ${cpa.toFixed(2)} (meta: R$ ${targetCpl.toFixed(2)})`
+        });
+      }
+
+      // 3. Expansion opportunity (low budget utilization, good performance)
+      if (budgetUtilization < 50 && cpa > 0 && targetCpl > 0 && cpa <= targetCpl) {
+        opportunities.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          opportunityType: 'expansion',
+          message: `Apenas ${budgetUtilization.toFixed(0)}% do orçamento utilizado`,
+          potentialGain: `+R$ ${(budget * 0.5 - spend.total).toFixed(0)} disponível`,
+          currentValue: `Utilização: ${budgetUtilization.toFixed(0)}%`
+        });
+      }
+    });
+
+    // Calculate overall metrics
+    const totalBudget = clients.reduce((sum, c) => {
+      return sum + ((c.meta_monthly_budget || 0) + (c.google_monthly_budget || 0) || c.monthly_budget || 0);
+    }, 0);
+
+    const totalSpend = Object.values(clientSpend).reduce((sum, s) => sum + s.total, 0);
+    const totalConversions = Object.values(clientSpend).reduce((sum, s) => sum + s.conversions, 0);
+
+    const metrics: RadarMetrics = {
+      totalClients: clients.length,
+      clientsAtRisk: new Set(risks.map(r => r.id)).size,
+      clientsWithOpportunities: new Set(opportunities.map(o => o.id)).size,
+      criticalAlerts: risks.filter(r => r.severity === 'critical').length,
+      warningAlerts: risks.filter(r => r.severity === 'warning').length,
+      totalBudget,
+      totalSpend,
+      budgetUtilization: totalBudget > 0 ? (totalSpend / totalBudget) * 100 : 0,
+      avgCPA: totalConversions > 0 ? totalSpend / totalConversions : 0,
+      totalConversions
+    };
+
+    // Sort risks by severity and opportunities by potential
+    const sortedRisks = risks
+      .sort((a, b) => {
+        if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+        if (a.severity !== 'critical' && b.severity === 'critical') return 1;
+        return 0;
+      })
+      .slice(0, 12);
+
+    const sortedOpportunities = opportunities.slice(0, 8);
+
+    // Risk distribution by type
+    const riskDistribution = {
+      performance: risks.filter(r => r.riskType === 'performance').length,
+      budget: risks.filter(r => r.riskType === 'budget').length,
+      balance: risks.filter(r => r.riskType === 'balance').length,
+      inactive: risks.filter(r => r.riskType === 'inactive').length
+    };
+
+    console.log(`[radar-tv] Returning ${sortedRisks.length} risks, ${sortedOpportunities.length} opportunities`);
+
+    return new Response(
+      JSON.stringify({
+        companyName: company.name,
+        lastSyncAt: syncInfo?.last_sync_at || null,
+        syncPeriod: syncInfo?.last_sync_period || null,
+        metrics,
+        risks: sortedRisks,
+        opportunities: sortedOpportunities,
+        riskDistribution
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[radar-tv] Error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Erro interno do servidor' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

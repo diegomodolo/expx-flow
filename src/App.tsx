@@ -104,6 +104,7 @@ import AlertasDoSistema from "./pages/AlertasDoSistema";
 import DashboardTrafego from "./pages/DashboardTrafego";
 import DashboardTrafegoPublic from "./pages/DashboardTrafegoPublic";
 import DashboardSocialTVPublic from "./pages/DashboardSocialTVPublic";
+import DashboardRadarTVPublic from "./pages/DashboardRadarTVPublic";
 import KeywordPlannerPage from "./pages/KeywordPlanner";
 import RepositorioCriativos from "./pages/RepositorioCriativos";
 import PublicContentReview from "./pages/PublicContentReview";
@@ -144,6 +145,7 @@ const App = () => {
               <Route path="/crm/:token/*" element={<CRMPublicView />} />
               <Route path="/tv/:token" element={<DashboardTrafegoPublic />} />
               <Route path="/social-tv/:token" element={<DashboardSocialTVPublic />} />
+              <Route path="/radar-tv/:token" element={<DashboardRadarTVPublic />} />
               <Route path="/content-review" element={<PublicContentReview />} />
               
                {/* Protected routes */}
