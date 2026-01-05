@@ -57,6 +57,8 @@ interface FeaturedClient {
   totalSpend: number;
   avgCtr: number;
   totalAds: number;
+  totalConversions: number;
+  totalCampaigns: number;
 }
 
 serve(async (req) => {
@@ -200,6 +202,7 @@ serve(async (req) => {
       }
 
       if (client) {
+        // Count active ads for featured client
         const { count: featuredAdsCount, error: featuredAdsError } = await supabase
           .from('ads')
           .select('id', { count: 'exact', head: true })
@@ -211,21 +214,64 @@ serve(async (req) => {
           console.error('Error counting featured client ads:', featuredAdsError);
         }
 
+        // Count campaigns for featured client
+        const { count: featuredCampaignsCount, error: featuredCampaignsError } = await supabase
+          .from('campaigns')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', company.id)
+          .eq('client_id', client.id)
+          .eq('is_active', true);
+
+        if (featuredCampaignsError) {
+          console.error('Error counting featured client campaigns:', featuredCampaignsError);
+        }
+
+        // Get conversions total for featured client
+        const { data: featuredCampaignsData } = await supabase
+          .from('campaigns')
+          .select('conversions')
+          .eq('company_id', company.id)
+          .eq('client_id', client.id)
+          .eq('is_active', true);
+
+        const featuredConversions = (featuredCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
+
         const gestor = client.gestor as any;
         const team = client.team as any;
+
+        // Fetch gestor profile to get updated name
+        let gestorName = gestor?.name || null;
+        let gestorAvatar = gestor?.avatar || null;
+        
+        if (gestor?.user_id) {
+          const { data: gestorProfile } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('user_id', gestor.user_id)
+            .maybeSingle();
+          
+          if (gestorProfile?.full_name) {
+            gestorName = gestorProfile.full_name;
+          }
+          if (gestorProfile?.avatar_url) {
+            gestorAvatar = gestorProfile.avatar_url;
+          }
+        }
 
         featuredClient = {
           id: client.id,
           name: client.name,
           avatar: client.avatar,
-          gestorName: gestor?.name || null,
-          gestorAvatar: gestor?.avatar || null,
+          gestorName,
+          gestorAvatar,
           teamName: team?.name || null,
           teamColor: team?.color || null,
           status: client.calculated_status || 'ativo',
           totalSpend: Number(topAggRow?.spend_sum ?? 0),
           avgCtr: Number(topAggRow?.ctr_avg ?? 0),
           totalAds: featuredAdsCount ?? 0,
+          totalConversions: featuredConversions,
+          totalCampaigns: featuredCampaignsCount ?? 0,
         };
       }
     }
