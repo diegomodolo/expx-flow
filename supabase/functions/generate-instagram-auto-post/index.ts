@@ -927,6 +927,9 @@ Responda APENAS com a legenda pronta.`;
         ? `\nTEMA DO POST: ${selectedTheme.topic}${selectedTheme.pain_point ? `\nPontos do tema: ${selectedTheme.pain_point}` : ''}`
         : '';
       
+      // CRITICAL: Pass the SCHEDULED DATE (when post will be published), NOT the current generation date
+      console.log(`Caption generation: using scheduled date ${scheduledDateFormatted} (NOT today's date)`);
+      
       captionPrompt = postType === 'carousel'
         ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides:
 
@@ -934,6 +937,9 @@ BRIEFING: ${config.carousel_prompt || config.post_briefing}${themeForCaption}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
+
+⚠️ DATA DE PUBLICAÇÃO DO POST (quando será POSTADO, não quando está sendo gerado):
+${scheduledDateFormatted}
 
 REQUISITOS:
 - 150-350 caracteres (pode ser um pouco mais para carrossel)
@@ -943,7 +949,7 @@ REQUISITOS:
 - Call-to-action para engajamento
 - USE informações da base de conhecimento se disponível
 - A legenda deve refletir o TEMA selecionado se fornecido
-- NÃO inclua datas ou dias da semana na legenda, A MENOS que o briefing EXPLICITAMENTE peça para mencionar a data. Se pedir, use: ${scheduledDateFormatted}
+- ⚠️ IMPORTANTE SOBRE DATAS: Se o briefing pedir para mencionar o dia/data, use EXATAMENTE: "${scheduledDateFormatted}". Esta é a data em que o post será publicado. NÃO use a data de hoje, NÃO use outra data. Se o briefing NÃO pedir data, não inclua datas na legenda.
 
 Responda APENAS com a legenda pronta.`
         : `Crie uma legenda para post do Instagram:
@@ -953,6 +959,9 @@ ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e 
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
 
+⚠️ DATA DE PUBLICAÇÃO DO POST (quando será POSTADO, não quando está sendo gerado):
+${scheduledDateFormatted}
+
 REQUISITOS:
 - 150-280 caracteres
 - 3-5 emojis estratégicos
@@ -960,7 +969,7 @@ REQUISITOS:
 - Call-to-action sutil
 - USE informações da base de conhecimento se disponível
 - A legenda deve refletir o TEMA selecionado se fornecido
-- NÃO inclua datas ou dias da semana na legenda, A MENOS que o briefing EXPLICITAMENTE peça para mencionar a data. Se pedir, use: ${scheduledDateFormatted}
+- ⚠️ IMPORTANTE SOBRE DATAS: Se o briefing pedir para mencionar o dia/data, use EXATAMENTE: "${scheduledDateFormatted}". Esta é a data em que o post será publicado. NÃO use a data de hoje, NÃO use outra data. Se o briefing NÃO pedir data, não inclua datas na legenda.
 
 Responda APENAS com a legenda pronta.`;
     }
