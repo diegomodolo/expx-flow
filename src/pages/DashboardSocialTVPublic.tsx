@@ -171,16 +171,38 @@ export default function DashboardSocialTVPublic() {
     totalAds: 0
   };
 
+  const getRotationStyles = () => {
+    const baseScale = zoom / 100;
+    const isVertical = rotation === 90 || rotation === 270;
+    
+    if (isVertical) {
+      return {
+        transform: `rotate(${rotation}deg) scale(${baseScale})`,
+        transformOrigin: 'center center',
+        width: '100vh',
+        height: '100vw',
+        position: 'fixed' as const,
+        top: '50%',
+        left: '50%',
+        marginTop: '-50vw',
+        marginLeft: '-50vh',
+      };
+    }
+    
+    return {
+      transform: `rotate(${rotation}deg) scale(${baseScale})`,
+      transformOrigin: 'top left',
+      width: `${10000 / zoom}%`,
+      height: `${10000 / zoom}%`,
+    };
+  };
+
   return (
     <div className="h-screen bg-background overflow-hidden">
-      {/* Zoomable container - Same behavior as TV Dashboard */}
+      {/* Zoomable and rotatable container */}
       <div 
-        className="h-full flex flex-col origin-top-left"
-        style={{ 
-          transform: `scale(${zoom / 100})`,
-          width: `${10000 / zoom}%`,
-          height: `${10000 / zoom}%`,
-        }}
+        className="h-full flex flex-col"
+        style={getRotationStyles()}
       >
         {/* Header */}
         <SocialTVHeader companyName={data.company.name} />
