@@ -50,7 +50,18 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get('token');
+
+    // Accept token via query (GET) or JSON body (POST/invoke)
+    let token: string | null = url.searchParams.get('token');
+
+    if (!token) {
+      try {
+        const body = await req.json().catch(() => null);
+        token = body?.token ?? null;
+      } catch {
+        // ignore
+      }
+    }
 
     if (!token) {
       console.error('[radar-tv] No token provided');

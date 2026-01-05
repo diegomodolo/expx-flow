@@ -9,6 +9,7 @@ import { RadarTVRisksList } from "@/components/radar-tv-dashboard/RadarTVRisksLi
 import { RadarTVOpportunitiesList } from "@/components/radar-tv-dashboard/RadarTVOpportunitiesList";
 import { RadarTVRiskDistribution } from "@/components/radar-tv-dashboard/RadarTVRiskDistribution";
 import { RadarTVControls } from "@/components/radar-tv-dashboard/RadarTVControls";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RadarTVDashboardData {
   companyName: string;
@@ -72,16 +73,27 @@ export default function DashboardRadarTVPublic() {
   const { data, isLoading, error, refetch, isFetching } = useQuery<RadarTVDashboardData>({
     queryKey: ['radar-tv-dashboard', token],
     queryFn: async () => {
-      const response = await fetch(
-        `https://ejwpfztkspbvmuwwiwmk.supabase.co/functions/v1/radar-tv-dashboard-data?token=${token}`
-      );
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao carregar dados');
+      const { data, error } = await supabase.functions.invoke('radar-tv-dashboard-data', {
+        body: { token: token! },
+      });
+
+      if (error) {
+        let message = error.message || 'Erro ao carregar dados';
+
+        const ctx = (error as any)?.context;
+        if (ctx) {
+          try {
+            const errorData = await ctx.json();
+            message = errorData?.error || message;
+          } catch {
+            // ignore parse errors
+          }
+        }
+
+        throw new Error(message);
       }
-      
-      return response.json();
+
+      return data as RadarTVDashboardData;
     },
     enabled: !!token,
     refetchInterval: refreshInterval,
