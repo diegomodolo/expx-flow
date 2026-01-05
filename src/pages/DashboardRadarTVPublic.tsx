@@ -189,10 +189,11 @@ export default function DashboardRadarTVPublic() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RadarTVRisksList risks={data.risks} />
-          <RadarTVRiskDistribution distribution={data.riskDistribution} />
+          <RadarTVOpportunitiesList opportunities={data.opportunities} />
         </div>
 
-        <RadarTVOpportunitiesList opportunities={data.opportunities} />
+        <RadarTVRiskDistribution distribution={data.riskDistribution} />
+
       </div>
 
       <RadarTVControls
