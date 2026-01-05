@@ -107,7 +107,7 @@ serve(async (req) => {
         .select(`
           id, name, avatar, status, calculated_status, status_explanation,
           monthly_budget, meta_monthly_budget, google_monthly_budget,
-          leads_generated, avg_cpl, target_cpl,
+          leads_generated, avg_cpl,
           ad_account_id, google_account_id,
           facebook_ad_accounts(balance, account_status)
         `)
@@ -140,6 +140,8 @@ serve(async (req) => {
     const metaCampaigns = metaCampaignsResult.data || [];
     const googleCampaigns = googleCampaignsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
+
+    console.log(`[radar-tv] Found ${clients.length} clients, ${metaCampaigns.length} meta campaigns, ${googleCampaigns.length} google campaigns`);
 
     // Build client spend map
     const clientSpend: Record<string, { meta: number; google: number; total: number; conversions: number }> = {};
@@ -175,35 +177,36 @@ serve(async (req) => {
       const budget = (client.meta_monthly_budget || 0) + (client.google_monthly_budget || 0) || client.monthly_budget || 0;
       const budgetUtilization = budget > 0 ? (spend.total / budget) * 100 : 0;
       const cpa = spend.conversions > 0 ? spend.total / spend.conversions : 0;
-      const targetCpl = client.target_cpl || 0;
+      const avgCpl = client.avg_cpl || 0;
 
-      // Check for risks
-      // 1. Performance risk (red/yellow status)
-      if (client.calculated_status === 'red' || client.status === 'red') {
+      // Check for risks based on calculated_status
+      // 1. Performance risk (red status)
+      if (client.calculated_status === 'red') {
         risks.push({
           id: client.id,
           name: client.name,
           avatar: client.avatar,
           riskType: 'performance',
           severity: 'critical',
-          message: client.status_explanation || 'Performance crítica detectada',
+          message: client.status_explanation?.split('\n')[0] || 'Performance crítica detectada',
           value: cpa > 0 ? `CPA: R$ ${cpa.toFixed(2)}` : 'Sem conversões',
           trend: 'down'
         });
-      } else if (client.calculated_status === 'yellow' || client.status === 'yellow') {
+      } else if (client.calculated_status === 'yellow') {
+        // 2. Yellow status - warning
         risks.push({
           id: client.id,
           name: client.name,
           avatar: client.avatar,
           riskType: 'performance',
           severity: 'warning',
-          message: client.status_explanation || 'Performance abaixo do esperado',
+          message: client.status_explanation?.split('\n')[0] || 'Performance abaixo do esperado',
           value: cpa > 0 ? `CPA: R$ ${cpa.toFixed(2)}` : 'Baixas conversões',
           trend: 'down'
         });
       }
 
-      // 2. Budget risk (over budget)
+      // 3. Budget risk (over budget)
       if (budgetUtilization > 100) {
         risks.push({
           id: client.id,
@@ -217,7 +220,7 @@ serve(async (req) => {
         });
       }
 
-      // 3. Balance risk (Meta ad account low balance)
+      // 4. Balance risk (Meta ad account low balance)
       const fbAccount = Array.isArray(client.facebook_ad_accounts) 
         ? client.facebook_ad_accounts[0] 
         : client.facebook_ad_accounts;
@@ -241,53 +244,23 @@ serve(async (req) => {
         }
       }
 
-      // 4. Inactive risk (no active campaigns)
-      const hasActiveCampaigns = metaCampaigns.some(c => c.client_id === client.id && c.is_active) ||
-                                  googleCampaigns.some(c => c.client_id === client.id && c.is_active);
-      
-      if (!hasActiveCampaigns && client.status !== 'inativo') {
-        risks.push({
-          id: client.id,
-          name: client.name,
-          avatar: client.avatar,
-          riskType: 'inactive',
-          severity: 'warning',
-          message: 'Sem campanhas ativas',
-          value: 'Nenhuma campanha rodando'
-        });
-      }
-
       // Check for opportunities
-      // 1. Scale opportunity (good CPA, budget available)
-      if (cpa > 0 && targetCpl > 0 && cpa < targetCpl * 0.8 && budgetUtilization < 80) {
+      // 1. Green status with good performance - scale opportunity
+      if (client.calculated_status === 'green' && spend.conversions > 5 && budgetUtilization < 80) {
         const potentialIncrease = Math.min((budget - spend.total), budget * 0.3);
         opportunities.push({
           id: client.id,
           name: client.name,
           avatar: client.avatar,
           opportunityType: 'scale',
-          message: `CPA ${((1 - cpa/targetCpl) * 100).toFixed(0)}% abaixo da meta - escalar investimento`,
+          message: 'Cliente com boa performance - potencial para escalar',
           potentialGain: `+R$ ${potentialIncrease.toFixed(0)} em budget`,
-          currentValue: `CPA: R$ ${cpa.toFixed(2)}`
+          currentValue: cpa > 0 ? `CPA: R$ ${cpa.toFixed(2)}` : `${spend.conversions} conversões`
         });
       }
 
-      // 2. Optimization opportunity (high spend, mediocre CPA)
-      if (spend.total > 5000 && cpa > 0 && targetCpl > 0 && cpa > targetCpl * 1.1 && cpa < targetCpl * 1.5) {
-        const potentialSavings = spend.total * 0.15;
-        opportunities.push({
-          id: client.id,
-          name: client.name,
-          avatar: client.avatar,
-          opportunityType: 'optimization',
-          message: 'Potencial de otimização identificado',
-          potentialGain: `Economia de R$ ${potentialSavings.toFixed(0)}`,
-          currentValue: `CPA: R$ ${cpa.toFixed(2)} (meta: R$ ${targetCpl.toFixed(2)})`
-        });
-      }
-
-      // 3. Expansion opportunity (low budget utilization, good performance)
-      if (budgetUtilization < 50 && cpa > 0 && targetCpl > 0 && cpa <= targetCpl) {
+      // 2. Low budget utilization opportunity
+      if (budgetUtilization > 0 && budgetUtilization < 50 && client.calculated_status !== 'red') {
         opportunities.push({
           id: client.id,
           name: client.name,
@@ -296,6 +269,20 @@ serve(async (req) => {
           message: `Apenas ${budgetUtilization.toFixed(0)}% do orçamento utilizado`,
           potentialGain: `+R$ ${(budget * 0.5 - spend.total).toFixed(0)} disponível`,
           currentValue: `Utilização: ${budgetUtilization.toFixed(0)}%`
+        });
+      }
+
+      // 3. Optimization opportunity - high spend but could improve
+      if (spend.total > 3000 && avgCpl > 0 && cpa > avgCpl * 1.2 && client.calculated_status !== 'green') {
+        const potentialSavings = spend.total * 0.15;
+        opportunities.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          opportunityType: 'optimization',
+          message: 'Potencial de otimização identificado',
+          potentialGain: `Economia de R$ ${potentialSavings.toFixed(0)}`,
+          currentValue: `CPA: R$ ${cpa.toFixed(2)} (média: R$ ${avgCpl.toFixed(2)})`
         });
       }
     });
@@ -308,10 +295,14 @@ serve(async (req) => {
     const totalSpend = Object.values(clientSpend).reduce((sum, s) => sum + s.total, 0);
     const totalConversions = Object.values(clientSpend).reduce((sum, s) => sum + s.conversions, 0);
 
+    // Count unique clients at risk (not counting same client twice for different risk types)
+    const uniqueRiskClientIds = new Set(risks.map(r => r.id));
+    const uniqueOpportunityClientIds = new Set(opportunities.map(o => o.id));
+
     const metrics: RadarMetrics = {
       totalClients: clients.length,
-      clientsAtRisk: new Set(risks.map(r => r.id)).size,
-      clientsWithOpportunities: new Set(opportunities.map(o => o.id)).size,
+      clientsAtRisk: uniqueRiskClientIds.size,
+      clientsWithOpportunities: uniqueOpportunityClientIds.size,
       criticalAlerts: risks.filter(r => r.severity === 'critical').length,
       warningAlerts: risks.filter(r => r.severity === 'warning').length,
       totalBudget,
@@ -340,7 +331,7 @@ serve(async (req) => {
       inactive: risks.filter(r => r.riskType === 'inactive').length
     };
 
-    console.log(`[radar-tv] Returning ${sortedRisks.length} risks, ${sortedOpportunities.length} opportunities`);
+    console.log(`[radar-tv] Returning ${sortedRisks.length} risks, ${sortedOpportunities.length} opportunities, ${metrics.totalClients} clients`);
 
     return new Response(
       JSON.stringify({
