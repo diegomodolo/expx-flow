@@ -125,9 +125,11 @@ export function ThemesSection({ configId, clientId }: ThemesSectionProps) {
       <Card>
         <CardContent className="p-8 text-center">
           <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            Esta configuração não está associada a um cliente.
-            Os temas são gerenciados por cliente.
+          <p className="text-muted-foreground mb-2">
+            Nenhum cliente vinculado a esta automação.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Vá em <strong>Configuração</strong> e vincule um cliente para poder gerenciar os temas de conteúdo.
           </p>
         </CardContent>
       </Card>
