@@ -55,6 +55,14 @@ export default function Geradores() {
       path: "/geradores/campanhas",
     },
     {
+      id: "criativos",
+      title: "Gerador de Criativos",
+      description: "Crie criativos visuais e textos para anúncios com inteligência artificial",
+      icon: Palette,
+      color: "pink",
+      path: "/geradores/criativos",
+    },
+    {
       id: "conteudo",
       title: "Gerador de Conteúdo",
       description: "Crie conteúdo profissional para redes sociais, anúncios e campanhas",
