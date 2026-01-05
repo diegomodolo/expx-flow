@@ -39,6 +39,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useSystemAlerts } from "@/hooks/useSystemAlerts";
 import { useCompanyTvDashboardToken } from "@/hooks/useCompanyTvDashboardToken";
 import { useSocialTvDashboardToken } from "@/hooks/useSocialTvDashboardToken";
+import { useRadarTvDashboardToken } from "@/hooks/useRadarTvDashboardToken";
 
 interface MenuItem {
   title: string;
@@ -123,6 +124,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Campanhas Unificadas", url: "/campanhas-unificadas", icon: Activity, permission: "campanhas" as MenuItemType },
         { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "dashboard" as MenuItemType, isExternal: true },
         { title: "Keyword Planner", url: "/keyword-planner", icon: Sparkles, permission: "campanhas" as MenuItemType },
+        { title: "Radar TV", url: "#radar-tv-dashboard", icon: Activity, permission: "dashboard" as MenuItemType, isExternal: true },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
@@ -136,6 +138,7 @@ export function DashboardSidebar() {
   const { unresolvedCriticalCount } = useSystemAlerts();
   const { token: tvToken, generateToken, generating: generatingToken } = useCompanyTvDashboardToken();
   const { token: socialTvToken, generateToken: generateSocialTvToken, generating: generatingSocialTvToken } = useSocialTvDashboardToken();
+  const { token: radarTvToken, generateToken: generateRadarTvToken, generating: generatingRadarTvToken } = useRadarTvDashboardToken();
   
   // Track which categories are expanded
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(() => {
@@ -338,6 +341,48 @@ export function DashboardSidebar() {
                               <>
                                 <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
                                   {generatingSocialTvToken ? 'Gerando...' : item.title}
+                                </span>
+                                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                              </>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      // Handle external Radar TV Dashboard link (Marketing & Tráfego)
+                      if (item.isExternal && item.url === '#radar-tv-dashboard') {
+                        const handleRadarTvDashboardClick = async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          if (radarTvToken) {
+                            window.open(`/radar-tv/${radarTvToken}`, '_blank');
+                          } else {
+                            const newToken = await generateRadarTvToken();
+                            if (newToken) {
+                              window.open(`/radar-tv/${newToken}`, '_blank');
+                            }
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={item.url}
+                            onClick={handleRadarTvDashboardClick}
+                            disabled={generatingRadarTvToken}
+                            className={cn(
+                              "flex items-center py-2 rounded-full transition-all duration-150 w-full",
+                              open ? "gap-3 px-4" : "justify-center px-0",
+                              "text-muted-foreground hover:bg-muted/50"
+                            )}
+                            title={!open ? item.title : undefined}
+                          >
+                            <item.icon 
+                              className="w-4 h-4 flex-shrink-0 text-muted-foreground" 
+                              strokeWidth={1.5}
+                            />
+                            {open && (
+                              <>
+                                <span className="text-sm tracking-wide whitespace-nowrap text-foreground">
+                                  {generatingRadarTvToken ? 'Gerando...' : item.title}
                                 </span>
                                 <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
                               </>

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database, Radar } from "lucide-react";
+import { Building, Bell, CreditCard, Facebook, Calendar, Shield, Gauge, RefreshCw, MessageCircle, Database } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 
 interface SettingsLayoutProps {
@@ -82,12 +82,6 @@ const settingsNavItems = [
     href: "/configuracoes/listacnae",
     icon: Database,
     description: "Importar empresas da base CNPJ",
-  },
-  {
-    title: "Radar TV",
-    href: "/configuracoes/radar-tv",
-    icon: Radar,
-    description: "Dashboard TV de riscos e oportunidades",
   },
 ];
 
