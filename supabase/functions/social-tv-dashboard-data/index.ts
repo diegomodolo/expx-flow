@@ -440,7 +440,7 @@ serve(async (req) => {
         conversions,
         spend,
         updated_at,
-        clients!inner(name, user_id)
+        clients!inner(name, gestor_id)
       `)
       .eq('company_id', company.id)
       .gt('conversions', 0)
@@ -451,19 +451,45 @@ serve(async (req) => {
     if (recentCampaigns) {
       for (const campaign of recentCampaigns) {
         const client = campaign.clients as any;
-        const { data: gestor } = await supabase
-          .from('profiles')
-          .select('full_name, avatar_url')
-          .eq('user_id', client.user_id)
-          .single();
+        
+        // Get gestor info from employees table using gestor_id
+        let gestorName = 'Gestor';
+        let gestorAvatar = null;
+        
+        if (client.gestor_id) {
+          const { data: employee } = await supabase
+            .from('employees')
+            .select('name, avatar, user_id')
+            .eq('id', client.gestor_id)
+            .single();
+          
+          if (employee) {
+            gestorName = employee.name;
+            gestorAvatar = employee.avatar;
+            
+            // Try to get profile avatar if employee has user_id
+            if (employee.user_id) {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('user_id', employee.user_id)
+                .single();
+              
+              if (profile) {
+                gestorName = profile.full_name || gestorName;
+                gestorAvatar = profile.avatar_url || gestorAvatar;
+              }
+            }
+          }
+        }
 
         recentWins.push({
           id: campaign.id,
           type: 'lead',
           value: campaign.conversions || 0,
           clientName: client.name,
-          gestorName: gestor?.full_name || 'Gestor',
-          gestorAvatar: gestor?.avatar_url || null,
+          gestorName,
+          gestorAvatar,
           timestamp: campaign.updated_at
         });
       }
