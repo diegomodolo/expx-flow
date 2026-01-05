@@ -218,7 +218,7 @@ export default function DashboardSocialTVPublic() {
           </div>
 
           {/* Rankings - 35% - Side by side */}
-          <div style={{ flex: '0 0 35%' }} className="flex gap-4 px-4">
+          <div style={{ flex: '0 0 35%' }} className="flex gap-4 px-4 mt-6">
             <div className="flex-1 rounded-xl overflow-hidden">
               <SocialTVGestorRanking gestores={data.gestorRanking} />
             </div>

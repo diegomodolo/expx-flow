@@ -189,6 +189,8 @@ serve(async (req) => {
           calculated_status,
           gestor_id,
           team_id,
+          ad_account_id,
+          google_account_id,
           gestor:employees!gestor_id(id, name, avatar, user_id),
           team:teams!team_id(id, name, color)
         `)
@@ -214,7 +216,7 @@ serve(async (req) => {
           console.error('Error counting featured client ads:', featuredAdsError);
         }
 
-        // Count campaigns for featured client
+        // Count active campaigns for featured client
         const { count: featuredCampaignsCount, error: featuredCampaignsError } = await supabase
           .from('campaigns')
           .select('id', { count: 'exact', head: true })
@@ -226,15 +228,31 @@ serve(async (req) => {
           console.error('Error counting featured client campaigns:', featuredCampaignsError);
         }
 
-        // Get conversions total for featured client
-        const { data: featuredCampaignsData } = await supabase
+        // Get conversions total for featured client - ALL CAMPAIGNS (same logic as clients page)
+        // Meta campaigns
+        const { data: metaCampaignsData } = await supabase
           .from('campaigns')
           .select('conversions')
           .eq('company_id', company.id)
           .eq('client_id', client.id)
-          .eq('is_active', true);
+          .eq('source', 'meta');
 
-        const featuredConversions = (featuredCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
+        const metaConversions = (metaCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+        // Google campaigns  
+        const { data: googleCampaignsData } = await supabase
+          .from('campaigns')
+          .select('conversions')
+          .eq('company_id', company.id)
+          .eq('client_id', client.id)
+          .eq('source', 'google');
+
+        const googleConversions = (googleCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+        // Consolidated conversions = Meta + Google (same as clients page)
+        const featuredConversions = metaConversions + googleConversions;
+        
+        console.log(`Featured client ${client.name}: Meta conversions=${metaConversions}, Google conversions=${googleConversions}, Total=${featuredConversions}`);
 
         const gestor = client.gestor as any;
         const team = client.team as any;
