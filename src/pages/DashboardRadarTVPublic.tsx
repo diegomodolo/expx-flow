@@ -64,10 +64,19 @@ export default function DashboardRadarTVPublic() {
     const saved = localStorage.getItem('radar-tv-zoom');
     return saved ? parseInt(saved) : 100;
   });
+  const [rotation, setRotation] = useState(() => {
+    const saved = localStorage.getItem('radar-tv-rotation');
+    return saved ? parseInt(saved) : 0;
+  });
 
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom);
     localStorage.setItem('radar-tv-zoom', newZoom.toString());
+  };
+
+  const handleRotationChange = (newRotation: number) => {
+    setRotation(newRotation);
+    localStorage.setItem('radar-tv-rotation', newRotation.toString());
   };
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<RadarTVDashboardData>({
@@ -146,8 +155,23 @@ export default function DashboardRadarTVPublic() {
     );
   }
 
+  const isRotated = rotation === 90 || rotation === 270;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div 
+      className="min-h-screen bg-background overflow-hidden"
+      style={{
+        transform: `rotate(${rotation}deg)`,
+        transformOrigin: rotation === 90 ? 'top left' : rotation === 270 ? 'bottom right' : 'center',
+        width: isRotated ? '100vh' : '100%',
+        height: isRotated ? '100vw' : '100%',
+        position: isRotated ? 'absolute' : 'relative',
+        top: rotation === 90 ? 0 : rotation === 270 ? 'auto' : undefined,
+        left: rotation === 90 ? '100vw' : undefined,
+        bottom: rotation === 270 ? '100vh' : undefined,
+        right: rotation === 270 ? 0 : undefined,
+      }}
+    >
       <div 
         className="p-6 space-y-6 origin-top-left"
         style={{ 
@@ -185,6 +209,8 @@ export default function DashboardRadarTVPublic() {
         isRefreshing={isFetching}
         zoom={zoom}
         onZoomChange={handleZoomChange}
+        rotation={rotation}
+        onRotationChange={handleRotationChange}
       />
     </div>
   );
