@@ -43,6 +43,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Save,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -67,42 +68,41 @@ const postTypeConfig = {
   reels: { label: "Reels", icon: Film, color: "bg-pink-100 text-pink-700" },
 };
 
-// Custom hook for debounced updates
-function useDebouncedField(
-  initialValue: string,
-  onUpdate: (value: string) => void,
-  delay: number = 500
-) {
+// Custom hook for local field state without auto-save
+function useLocalField(initialValue: string) {
   const [localValue, setLocalValue] = useState(initialValue);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const [hasChanges, setHasChanges] = useState(false);
+  const initialRef = useRef(initialValue);
 
-  // Sync with external value when it changes
+  // Only sync with external value when the post id changes (initial load)
+  // We track this by comparing with the initial ref
   useEffect(() => {
-    setLocalValue(initialValue);
+    // Only reset if the initial value actually changed from a different source
+    // (e.g., AI generation or post reload)
+    if (initialValue !== initialRef.current) {
+      setLocalValue(initialValue);
+      initialRef.current = initialValue;
+      setHasChanges(false);
+    }
   }, [initialValue]);
 
   const handleChange = useCallback((value: string) => {
     setLocalValue(value);
-    
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    timeoutRef.current = setTimeout(() => {
-      onUpdate(value);
-    }, delay);
-  }, [onUpdate, delay]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
+    setHasChanges(value !== initialRef.current);
   }, []);
 
-  return [localValue, handleChange] as const;
+  const resetChanges = useCallback(() => {
+    initialRef.current = localValue;
+    setHasChanges(false);
+  }, [localValue]);
+
+  const forceSync = useCallback((value: string) => {
+    setLocalValue(value);
+    initialRef.current = value;
+    setHasChanges(false);
+  }, []);
+
+  return { value: localValue, setValue: handleChange, hasChanges, resetChanges, forceSync };
 }
 
 // SlideCard component with debounced inputs to prevent lag
@@ -243,30 +243,53 @@ export function ContentPlanPostCard({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [generatingField, setGeneratingField] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
 
-  // Debounced fields
-  const [objective, setObjective] = useDebouncedField(
-    post.objective || "",
-    (value) => onUpdate({ objective: value })
+  // Local field state without auto-save
+  const objectiveField = useLocalField(post.objective || "");
+  const headlineField = useLocalField(post.headline || "");
+  const subheadlineField = useLocalField(post.subheadline || "");
+  const captionField = useLocalField(post.caption || "");
+  const scriptField = useLocalField(
+    typeof post.script === "string" ? post.script : JSON.stringify(post.script || "", null, 2)
   );
-  const [headline, setHeadline] = useDebouncedField(
-    post.headline || "",
-    (value) => onUpdate({ headline: value })
-  );
-  const [subheadline, setSubheadline] = useDebouncedField(
-    post.subheadline || "",
-    (value) => onUpdate({ subheadline: value })
-  );
-  const [caption, setCaption] = useDebouncedField(
-    post.caption || "",
-    (value) => onUpdate({ caption: value })
-  );
-  const [script, setScript] = useDebouncedField(
-    typeof post.script === "string" ? post.script : JSON.stringify(post.script || "", null, 2),
-    (value) => onUpdate({ script: value })
-  );
+
+  // Check if there are any unsaved changes
+  const hasUnsavedChanges = 
+    objectiveField.hasChanges || 
+    headlineField.hasChanges || 
+    subheadlineField.hasChanges || 
+    captionField.hasChanges || 
+    scriptField.hasChanges;
+
+  // Save all fields at once
+  const handleSavePost = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdate({
+        objective: objectiveField.value,
+        headline: headlineField.value,
+        subheadline: subheadlineField.value,
+        caption: captionField.value,
+        script: scriptField.value,
+      });
+      
+      // Reset change tracking after successful save
+      objectiveField.resetChanges();
+      headlineField.resetChanges();
+      subheadlineField.resetChanges();
+      captionField.resetChanges();
+      scriptField.resetChanges();
+      
+      toast.success("Post salvo!");
+    } catch (error) {
+      toast.error("Erro ao salvar post");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const typeConfig = postTypeConfig[post.post_type];
   const TypeIcon = typeConfig.icon;
@@ -302,14 +325,16 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       if (error) throw error;
 
       const content = data.content || data.message || "";
-      onUpdate({ [field]: content });
       
-      // Update local state immediately
-      if (field === "objective") setObjective(content);
-      if (field === "headline") setHeadline(content);
-      if (field === "subheadline") setSubheadline(content);
-      if (field === "caption") setCaption(content);
-      if (field === "script") setScript(content);
+      // Update local state and mark as having changes
+      if (field === "objective") objectiveField.forceSync(content);
+      if (field === "headline") headlineField.forceSync(content);
+      if (field === "subheadline") subheadlineField.forceSync(content);
+      if (field === "caption") captionField.forceSync(content);
+      if (field === "script") scriptField.forceSync(content);
+      
+      // Also save to database immediately for AI-generated content
+      await onUpdate({ [field]: content });
       
       toast.success(`${field} gerado com sucesso!`);
     } catch (error: any) {
@@ -452,6 +477,14 @@ O conteúdo deve:
               </Badge>
             )}
 
+            {/* Unsaved Changes Indicator */}
+            {hasUnsavedChanges && (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Não salvo
+              </Badge>
+            )}
+
             <div className="flex-1" />
 
             <Select
@@ -467,6 +500,25 @@ O conteúdo deve:
                 <SelectItem value="reels">Reels</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Save Button */}
+            <Button
+              variant={hasUnsavedChanges ? "default" : "ghost"}
+              size="sm"
+              className={`h-8 gap-1 ${hasUnsavedChanges ? "" : "text-muted-foreground"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSavePost();
+              }}
+              disabled={!hasUnsavedChanges || isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {hasUnsavedChanges ? "Salvar" : "Salvo"}
+            </Button>
 
             <Button
               variant="ghost"
@@ -545,8 +597,8 @@ O conteúdo deve:
                   </Button>
                 </div>
                 <Input
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
+                  value={objectiveField.value}
+                  onChange={(e) => objectiveField.setValue(e.target.value)}
                   placeholder="Ex: Gerar leads, aumentar engajamento..."
                   className={validationErrors?.objective ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
@@ -580,8 +632,8 @@ O conteúdo deve:
                   </Button>
                 </div>
                 <Input
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
+                  value={headlineField.value}
+                  onChange={(e) => headlineField.setValue(e.target.value)}
                   placeholder="Título principal do post"
                   className={validationErrors?.headline ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
@@ -615,8 +667,8 @@ O conteúdo deve:
                   </Button>
                 </div>
                 <Input
-                  value={subheadline}
-                  onChange={(e) => setSubheadline(e.target.value)}
+                  value={subheadlineField.value}
+                  onChange={(e) => subheadlineField.setValue(e.target.value)}
                   placeholder="Subtítulo complementar"
                   className={validationErrors?.subheadline ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
@@ -650,16 +702,16 @@ O conteúdo deve:
                   </Button>
                 </div>
                 <Textarea
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
+                  value={captionField.value}
+                  onChange={(e) => captionField.setValue(e.target.value)}
                   placeholder="Legenda completa com hashtags..."
                   rows={4}
                   className={validationErrors?.caption ? "border-destructive ring-destructive/20 ring-2" : ""}
                 />
                 <div className="flex items-center justify-between">
-                  {caption && (
+                  {captionField.value && (
                     <p className="text-xs text-muted-foreground">
-                      {caption.length} caracteres
+                      {captionField.value.length} caracteres
                     </p>
                   )}
                 </div>
@@ -727,8 +779,8 @@ O conteúdo deve:
                     </Button>
                   </div>
                   <Textarea
-                    value={script}
-                    onChange={(e) => setScript(e.target.value)}
+                    value={scriptField.value}
+                    onChange={(e) => scriptField.setValue(e.target.value)}
                     placeholder="Descreva o roteiro do vídeo..."
                     rows={6}
                   />
