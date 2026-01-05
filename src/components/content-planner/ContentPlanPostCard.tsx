@@ -105,6 +105,130 @@ function useDebouncedField(
   return [localValue, handleChange] as const;
 }
 
+// SlideCard component with debounced inputs to prevent lag
+interface SlideCardProps {
+  slide: ContentPlanSlide;
+  slideIndex: number;
+  onUpdateSlide: (slideId: string, data: Partial<ContentPlanSlide>) => void;
+  onDeleteSlide: (slideId: string) => void;
+  onGenerateWithAI: (slideId: string, field: "headline" | "content", slideIndex: number) => void;
+  generatingSlideField: { slideId: string; field: string } | null;
+}
+
+function SlideCard({
+  slide,
+  slideIndex,
+  onUpdateSlide,
+  onDeleteSlide,
+  onGenerateWithAI,
+  generatingSlideField,
+}: SlideCardProps) {
+  const [localHeadline, setLocalHeadline] = useState(slide.headline || "");
+  const [localContent, setLocalContent] = useState(slide.content || "");
+  const headlineTimeoutRef = useRef<NodeJS.Timeout>();
+  const contentTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Sync with external values when they change (e.g., after AI generation)
+  useEffect(() => {
+    setLocalHeadline(slide.headline || "");
+  }, [slide.headline]);
+
+  useEffect(() => {
+    setLocalContent(slide.content || "");
+  }, [slide.content]);
+
+  const handleHeadlineChange = useCallback((value: string) => {
+    setLocalHeadline(value);
+    if (headlineTimeoutRef.current) {
+      clearTimeout(headlineTimeoutRef.current);
+    }
+    headlineTimeoutRef.current = setTimeout(() => {
+      onUpdateSlide(slide.id, { headline: value });
+    }, 500);
+  }, [slide.id, onUpdateSlide]);
+
+  const handleContentChange = useCallback((value: string) => {
+    setLocalContent(value);
+    if (contentTimeoutRef.current) {
+      clearTimeout(contentTimeoutRef.current);
+    }
+    contentTimeoutRef.current = setTimeout(() => {
+      onUpdateSlide(slide.id, { content: value });
+    }, 500);
+  }, [slide.id, onUpdateSlide]);
+
+  useEffect(() => {
+    return () => {
+      if (headlineTimeoutRef.current) clearTimeout(headlineTimeoutRef.current);
+      if (contentTimeoutRef.current) clearTimeout(contentTimeoutRef.current);
+    };
+  }, []);
+
+  return (
+    <Card className="p-3 bg-muted/30">
+      <div className="flex items-center gap-2 mb-2">
+        <Badge variant="outline" className="text-xs">
+          Slide {slideIndex + 1}
+        </Badge>
+        <div className="flex-1" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-destructive"
+          onClick={() => onDeleteSlide(slide.id)}
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center gap-1">
+          <Input
+            value={localHeadline}
+            onChange={(e) => handleHeadlineChange(e.target.value)}
+            placeholder="Título do slide"
+            className="h-8 text-sm flex-1"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+            onClick={() => onGenerateWithAI(slide.id, "headline", slideIndex)}
+            disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline"}
+          >
+            {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline" ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Sparkles className="w-3 h-3" />
+            )}
+          </Button>
+        </div>
+        <div className="flex items-start gap-1">
+          <Textarea
+            value={localContent}
+            onChange={(e) => handleContentChange(e.target.value)}
+            placeholder="Conteúdo do slide"
+            rows={2}
+            className="text-sm flex-1"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+            onClick={() => onGenerateWithAI(slide.id, "content", slideIndex)}
+            disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content"}
+          >
+            {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content" ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Sparkles className="w-3 h-3" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function ContentPlanPostCard({
   post,
   index,
@@ -563,71 +687,15 @@ O conteúdo deve:
                   {post.slides && post.slides.length > 0 ? (
                     <div className="space-y-3">
                       {post.slides.map((slide, slideIndex) => (
-                        <Card key={slide.id} className="p-3 bg-muted/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="text-xs">
-                              Slide {slideIndex + 1}
-                            </Badge>
-                            <div className="flex-1" />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive"
-                              onClick={() => handleDeleteSlide(slide.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1">
-                              <Input
-                                value={slide.headline || ""}
-                                onChange={(e) =>
-                                  handleUpdateSlide(slide.id, { headline: e.target.value })
-                                }
-                                placeholder="Título do slide"
-                                className="h-8 text-sm flex-1"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 flex-shrink-0"
-                                onClick={() => handleGenerateSlideWithAI(slide.id, "headline", slideIndex)}
-                                disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline"}
-                              >
-                                {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline" ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Sparkles className="w-3 h-3" />
-                                )}
-                              </Button>
-                            </div>
-                            <div className="flex items-start gap-1">
-                              <Textarea
-                                value={slide.content || ""}
-                                onChange={(e) =>
-                                  handleUpdateSlide(slide.id, { content: e.target.value })
-                                }
-                                placeholder="Conteúdo do slide"
-                                rows={2}
-                                className="text-sm flex-1"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 flex-shrink-0"
-                                onClick={() => handleGenerateSlideWithAI(slide.id, "content", slideIndex)}
-                                disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content"}
-                              >
-                                {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content" ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Sparkles className="w-3 h-3" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </Card>
+                        <SlideCard
+                          key={slide.id}
+                          slide={slide}
+                          slideIndex={slideIndex}
+                          onUpdateSlide={handleUpdateSlide}
+                          onDeleteSlide={handleDeleteSlide}
+                          onGenerateWithAI={handleGenerateSlideWithAI}
+                          generatingSlideField={generatingSlideField}
+                        />
                       ))}
                     </div>
                   ) : (
