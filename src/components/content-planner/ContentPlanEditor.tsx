@@ -478,7 +478,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                 )}
 
                 {/* Public Review Link - Only show when in review */}
-                {plan.status === "em_revisao" && (
+                {planStatus === "em_revisao" && (
                   <div className="flex items-center gap-1 ml-auto">
                     <Button
                       onClick={generatePublicLink}
