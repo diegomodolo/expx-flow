@@ -21,6 +21,8 @@ interface FeaturedClient {
   totalSpend: number;
   avgCtr: number;
   totalAds: number;
+  totalConversions?: number;
+  totalCampaigns?: number;
 }
 
 interface SocialTVPerformanceHighlightProps {
@@ -144,14 +146,14 @@ export function SocialTVPerformanceHighlight({
       </div>
 
       {/* Featured Client Section */}
-      <div className="flex-1 min-h-0 mb-6">
+      <div className="flex-1 min-h-0 mb-8">
         <h2 className="text-lg font-bold text-white/90 mb-3 flex items-center gap-2">
           <Star className="w-5 h-5 text-yellow-400" />
           Cliente Destaque
         </h2>
         
         {featuredClient ? (
-          <div className="relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+          <div className="relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 h-full min-h-[280px]">
             {/* Background gradient based on team color */}
             <div 
               className="absolute inset-0 opacity-20"
@@ -168,12 +170,12 @@ export function SocialTVPerformanceHighlight({
               <span className="text-sm font-bold text-white">DESTAQUE</span>
             </div>
 
-            <div className="relative z-10 flex flex-col p-6">
+            <div className="relative z-10 flex flex-col justify-between h-full p-8">
               {/* Client Info - Larger and more prominent */}
-              <div className="flex items-center gap-6 mb-6">
+              <div className="flex items-center gap-8 mb-8">
                 {/* Avatar - Bigger */}
                 <div 
-                  className="w-24 h-24 rounded-2xl flex items-center justify-center text-4xl font-bold text-white shadow-xl flex-shrink-0"
+                  className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold text-white shadow-xl flex-shrink-0"
                   style={{ 
                     backgroundColor: featuredClient.teamColor || '#8B5CF6',
                     border: '4px solid rgba(255,255,255,0.25)'
@@ -192,34 +194,34 @@ export function SocialTVPerformanceHighlight({
 
                 {/* Name and Gestor - More prominent */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-3xl font-bold text-white truncate mb-2">
+                  <h3 className="text-4xl font-bold text-white truncate mb-3">
                     {featuredClient.name}
                   </h3>
-                  <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-3 mt-3">
                     {featuredClient.gestorAvatar ? (
                       <img 
                         src={featuredClient.gestorAvatar} 
                         alt={featuredClient.gestorName || 'Gestor'}
-                        className="w-7 h-7 rounded-full object-cover border-2 border-white/20"
+                        className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center border-2 border-white/20">
-                        <span className="text-xs font-bold text-white">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center border-2 border-white/20">
+                        <span className="text-sm font-bold text-white">
                           {(featuredClient.gestorName || 'G').charAt(0)}
                         </span>
                       </div>
                     )}
-                    <span className="text-base text-white/80">
+                    <span className="text-lg text-white/80">
                       Gestor: <span className="font-semibold text-white">{featuredClient.gestorName || 'Não atribuído'}</span>
                     </span>
                   </div>
                   {featuredClient.teamName && (
-                    <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-3 mt-3">
                       <div 
-                        className="w-4 h-4 rounded-full"
+                        className="w-5 h-5 rounded-full"
                         style={{ backgroundColor: featuredClient.teamColor || '#8B5CF6' }}
                       />
-                      <span className="text-base text-white/80">{featuredClient.teamName}</span>
+                      <span className="text-lg text-white/80">{featuredClient.teamName}</span>
                     </div>
                   )}
                 </div>
@@ -227,19 +229,19 @@ export function SocialTVPerformanceHighlight({
 
               {/* Mini Metrics */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white/10 rounded-xl p-4 text-center">
-                  <p className="text-xl font-bold text-white">{formatCurrency(featuredClient.totalSpend)}</p>
-                  <p className="text-xs text-white/50 uppercase mt-1">Investimento</p>
+                <div className="bg-white/10 rounded-xl p-5 text-center">
+                  <p className="text-2xl font-bold text-white">{formatNumber(featuredClient.totalConversions || 0)}</p>
+                  <p className="text-xs text-white/50 uppercase mt-1">Conversões</p>
                 </div>
-                <div className="bg-white/10 rounded-xl p-4 text-center">
-                  <p className="text-xl font-bold text-white">{featuredClient.avgCtr.toFixed(2)}%</p>
+                <div className="bg-white/10 rounded-xl p-5 text-center">
+                  <p className="text-2xl font-bold text-white">{featuredClient.avgCtr.toFixed(2)}%</p>
                   <p className="text-xs text-white/50 uppercase mt-1">CTR</p>
                 </div>
-                <div className="bg-white/10 rounded-xl p-4 text-center">
-                  <p className="text-xl font-bold text-white">{featuredClient.totalAds}</p>
-                  <p className="text-xs text-white/50 uppercase mt-1">Anúncios</p>
+                <div className="bg-white/10 rounded-xl p-5 text-center">
+                  <p className="text-2xl font-bold text-white">{featuredClient.totalCampaigns || 0}</p>
+                  <p className="text-xs text-white/50 uppercase mt-1">Campanhas</p>
                 </div>
-                <div className="bg-white/10 rounded-xl p-4 text-center">
+                <div className="bg-white/10 rounded-xl p-5 text-center">
                   <div className={`inline-block px-3 py-1 rounded-full ${getStatusColor(featuredClient.status)}`}>
                     <p className="text-sm font-bold text-white">{getStatusLabel(featuredClient.status)}</p>
                   </div>
@@ -249,7 +251,7 @@ export function SocialTVPerformanceHighlight({
             </div>
           </div>
         ) : (
-          <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center py-12">
+          <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center py-16">
             <div className="text-center text-white/40">
               <Star className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>Nenhum cliente em destaque</p>
