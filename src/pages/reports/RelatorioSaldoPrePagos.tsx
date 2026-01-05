@@ -40,6 +40,7 @@ interface ClientePrepago {
   id: string;
   name: string;
   company: string;
+  teamId: string | null;
   balance: number;
   rechargeDay: number | null;
   dailySpend: number;
@@ -54,7 +55,24 @@ const RelatorioSaldoPrePagos = () => {
   const { activeCompany } = useCompany();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [squadFilter, setSquadFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("daysRemaining");
+
+  // Buscar squads/times
+  const { data: squads } = useQuery({
+    queryKey: ['squads', activeCompany?.company_id],
+    queryFn: async () => {
+      if (!activeCompany?.company_id) return [];
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id, name')
+        .eq('company_id', activeCompany.company_id)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!activeCompany?.company_id,
+  });
 
   // Buscar clientes pré-pagos com seus saldos e gastos
   const { data: clientesPrePagos, isLoading } = useQuery({
@@ -69,6 +87,7 @@ const RelatorioSaldoPrePagos = () => {
           id,
           name,
           company,
+          team_id,
           meta_payment_type,
           meta_recharge_day,
           ad_account:facebook_ad_accounts!clients_ad_account_id_fkey (
@@ -147,6 +166,7 @@ const RelatorioSaldoPrePagos = () => {
             id: client.id,
             name: client.name,
             company: client.company,
+            teamId: client.team_id,
             balance: totalBalance,
             rechargeDay,
             dailySpend,
@@ -183,7 +203,8 @@ const RelatorioSaldoPrePagos = () => {
       const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            client.company.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesSquad = squadFilter === 'all' || client.teamId === squadFilter;
+      return matchesSearch && matchesStatus && matchesSquad;
     });
 
     // Ordenar
@@ -201,7 +222,7 @@ const RelatorioSaldoPrePagos = () => {
     });
 
     return filtered;
-  }, [clientesPrePagos, searchTerm, statusFilter, sortBy]);
+  }, [clientesPrePagos, searchTerm, statusFilter, squadFilter, sortBy]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -314,10 +335,23 @@ const RelatorioSaldoPrePagos = () => {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Todos os Status</SelectItem>
                   <SelectItem value="suficiente">Suficiente</SelectItem>
                   <SelectItem value="apertado">Apertado</SelectItem>
                   <SelectItem value="insuficiente">Insuficiente</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={squadFilter} onValueChange={setSquadFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Squad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Squads</SelectItem>
+                  {squads?.map((squad) => (
+                    <SelectItem key={squad.id} value={squad.id}>
+                      {squad.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
