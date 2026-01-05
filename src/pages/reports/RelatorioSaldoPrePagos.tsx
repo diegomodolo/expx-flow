@@ -62,7 +62,7 @@ const RelatorioSaldoPrePagos = () => {
     queryFn: async () => {
       if (!activeCompany?.company_id) return [];
 
-      // Buscar clientes com contas pré-pagas
+      // Buscar clientes com contas pré-pagas usando a relação correta via ad_account_id
       const { data: clients, error } = await supabase
         .from('clients')
         .select(`
@@ -71,7 +71,7 @@ const RelatorioSaldoPrePagos = () => {
           company,
           meta_payment_type,
           meta_recharge_day,
-          facebook_ad_accounts(
+          ad_account:facebook_ad_accounts!clients_ad_account_id_fkey (
             balance,
             is_prepaid,
             recharge_day
@@ -84,25 +84,20 @@ const RelatorioSaldoPrePagos = () => {
 
       // Filtrar apenas clientes pré-pagos
       const prepaidClients = clients?.filter(client => {
-        const rawAccounts = client.facebook_ad_accounts as unknown;
-        const accounts = Array.isArray(rawAccounts) ? rawAccounts as Array<{ balance: number; is_prepaid: boolean; recharge_day: number }> : null;
-        const hasPrepaidAccount = accounts?.some(acc => acc.is_prepaid);
-        return client.meta_payment_type === 'prepaid' || hasPrepaidAccount;
+        const account = client.ad_account as { balance: number; is_prepaid: boolean; recharge_day: number } | null;
+        return client.meta_payment_type === 'prepaid' || account?.is_prepaid;
       }) || [];
 
       // Para cada cliente, buscar o gasto das campanhas ativas nos últimos 30 dias
       const clientesComDados: ClientePrepago[] = await Promise.all(
         prepaidClients.map(async (client) => {
-          const rawAccounts = client.facebook_ad_accounts as unknown;
-          const accounts = Array.isArray(rawAccounts) ? rawAccounts as Array<{ balance: number; is_prepaid: boolean; recharge_day: number }> : null;
+          const account = client.ad_account as { balance: number; is_prepaid: boolean; recharge_day: number } | null;
           
-          // Somar saldo de todas as contas do cliente
-          const totalBalance = accounts?.reduce(
-            (sum, acc) => sum + (acc.balance || 0), 0
-          ) || 0;
+          // Pegar saldo da conta
+          const totalBalance = account?.balance || 0;
 
-          // Pegar dia de recarga (prioridade: conta > cliente)
-          const rechargeDay = accounts?.[0]?.recharge_day || 
+          // Pegar dia de recarga (prioridade: conta de anúncio > cliente)
+          const rechargeDay = account?.recharge_day || 
                               client.meta_recharge_day || 
                               null;
 
