@@ -178,10 +178,21 @@ ${imagePrompt}${slideContext}
 IMPORTANT - SCHEDULED POST DATE: ${scheduledDateFormatted}
 If the image should contain a date (as indicated in the prompt), use EXACTLY this date: ${scheduledDateFormatted}
 
-${referenceImages.length > 0 ? `CRITICAL - REFERENCE IMAGES PROVIDED:
-Study the reference images above carefully and match their EXACT visual style:
-- Match their color palette, aesthetic, and overall design language
-- The generated image should look like it belongs to the same visual brand` : ''}
+${referenceImages.length > 0 ? `CRITICAL - REFERENCE IMAGES PROVIDED (YOU MUST FOLLOW THESE):
+I have provided ${referenceImages.length} reference image(s) above. You MUST:
+
+1. ANALYZE each reference image carefully before generating
+2. CREATE A VISUAL VARIATION that maintains the SAME aesthetic identity:
+   - Use the EXACT SAME color palette (same hues, saturation, tones)
+   - Match the typography style if text is present (same font weight, style)
+   - Replicate the composition style (layout, spacing, visual hierarchy)
+   - Keep the same background treatment (gradients, textures, patterns)
+   - Match the overall mood and atmosphere
+3. The generated image should look like it was created by the SAME designer/brand
+4. Think of this as creating "another image from the same campaign"
+5. DO NOT deviate from the visual identity established in the reference images
+
+The goal is consistency: someone looking at the reference and generated image should immediately recognize they belong to the same visual family.` : ''}
 
 Generate the image now. Return image only.`;
 
@@ -424,6 +435,26 @@ Deno.serve(async (req) => {
       console.log('RSS-based generation: YouTube and PDF knowledge SKIPPED');
     }
 
+    // Fetch a random theme from market_research_insights if available
+    let selectedTheme: { topic: string; pain_point: string | null } | null = null;
+    
+    if (client?.id) {
+      const { data: themes, error: themesError } = await supabase
+        .from('market_research_insights')
+        .select('topic, pain_point')
+        .eq('client_id', client.id)
+        .order('created_at', { ascending: false });
+
+      if (!themesError && themes && themes.length > 0) {
+        // Pick a random theme
+        const randomIndex = Math.floor(Math.random() * themes.length);
+        selectedTheme = themes[randomIndex];
+        console.log('Selected random theme:', selectedTheme.topic);
+      } else {
+        console.log('No themes found for client, will generate without specific theme');
+      }
+    }
+
     // Use config reference images first, fallback to client images
     const hasConfigRefImages = config.reference_image_1 || config.reference_image_2 || config.reference_image_3;
     const referenceImages: string[] = [];
@@ -547,9 +578,15 @@ ${rssContent.published_at ? `DATA DE PUBLICAÇÃO: ${new Date(rssContent.publish
 REGRAS DE ESTILO/ESTRUTURA (use para formato visual, NÃO para inventar conteúdo):
 ${rssFeedPrompt}`;
       } else {
-        // Normal flow: use the config prompt as primary
+        // Normal flow: use the config prompt as primary, include selected theme if available
+        const themeInstruction = selectedTheme 
+          ? `\n\nTEMA SELECIONADO PARA ESTE POST (use como foco principal do conteúdo):
+Tópico: ${selectedTheme.topic}
+${selectedTheme.pain_point ? `Pontos a abordar: ${selectedTheme.pain_point}` : ''}`
+          : '';
+        
         contentInstruction = `BRIEFING DA POSTAGEM:
-${config.carousel_prompt || config.post_briefing}
+${config.carousel_prompt || config.post_briefing}${themeInstruction}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração):${knowledgeContext.substring(0, 3000)}` : ''}`;
       }
 
@@ -677,8 +714,14 @@ ${rssContent.description || 'Sem conteúdo adicional disponível'}
 REGRAS DE ESTILO (use para formato visual, NÃO para inventar conteúdo):
 ${rssFeedPrompt}`;
       } else {
-        // Normal flow
-        singleContentInstruction = `BRIEFING: ${config.single_post_prompt || config.post_briefing}
+        // Normal flow - include selected theme if available
+        const themeInstruction = selectedTheme 
+          ? `\n\nTEMA SELECIONADO PARA ESTE POST (use como foco principal do conteúdo):
+Tópico: ${selectedTheme.topic}
+${selectedTheme.pain_point ? `Pontos a abordar: ${selectedTheme.pain_point}` : ''}`
+          : '';
+        
+        singleContentInstruction = `BRIEFING: ${config.single_post_prompt || config.post_briefing}${themeInstruction}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como inspiração e fonte de dados):${knowledgeContext.substring(0, 3000)}` : ''}`;
       }
 
@@ -825,11 +868,15 @@ REQUISITOS:
 
 Responda APENAS com a legenda pronta.`;
     } else {
-      // Normal caption generation (non-RSS)
+      // Normal caption generation (non-RSS) - include theme if available
+      const themeForCaption = selectedTheme 
+        ? `\nTEMA DO POST: ${selectedTheme.topic}${selectedTheme.pain_point ? `\nPontos do tema: ${selectedTheme.pain_point}` : ''}`
+        : '';
+      
       captionPrompt = postType === 'carousel'
         ? `Crie uma legenda para um CARROSSEL do Instagram com ${numberOfImages} slides:
 
-BRIEFING: ${config.carousel_prompt || config.post_briefing}
+BRIEFING: ${config.carousel_prompt || config.post_briefing}${themeForCaption}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
@@ -841,12 +888,13 @@ REQUISITOS:
 - Mencione que é um carrossel (ex: "Deslize para ver mais →")
 - Call-to-action para engajamento
 - USE informações da base de conhecimento se disponível
+- A legenda deve refletir o TEMA selecionado se fornecido
 - NÃO inclua datas ou dias da semana na legenda, A MENOS que o briefing EXPLICITAMENTE peça para mencionar a data. Se pedir, use: ${scheduledDateFormatted}
 
 Responda APENAS com a legenda pronta.`
         : `Crie uma legenda para post do Instagram:
 
-BRIEFING: ${config.single_post_prompt || config.post_briefing}
+BRIEFING: ${config.single_post_prompt || config.post_briefing}${themeForCaption}
 ${knowledgeContext ? `\nBASE DE CONHECIMENTO (use como referência para dados e informações):${knowledgeContext.substring(0, 2500)}` : ''}
 SETOR: ${clientSector}
 PÚBLICO-ALVO: ${clientTargetAudience}
@@ -857,6 +905,7 @@ REQUISITOS:
 - 3-5 hashtags relevantes
 - Call-to-action sutil
 - USE informações da base de conhecimento se disponível
+- A legenda deve refletir o TEMA selecionado se fornecido
 - NÃO inclua datas ou dias da semana na legenda, A MENOS que o briefing EXPLICITAMENTE peça para mencionar a data. Se pedir, use: ${scheduledDateFormatted}
 
 Responda APENAS com a legenda pronta.`;

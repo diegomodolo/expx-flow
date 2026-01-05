@@ -15,6 +15,7 @@ import { ConfigSection } from '@/components/instagram/autopost/sections/ConfigSe
 import { HistorySection } from '@/components/instagram/autopost/sections/HistorySection';
 import { ReferenceImagesSection } from '@/components/instagram/autopost/sections/ReferenceImagesSection';
 import { ScheduleSection } from '@/components/instagram/autopost/sections/ScheduleSection';
+import { ThemesSection } from '@/components/instagram/autopost/sections/ThemesSection';
 import { Instagram, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
 
 interface InstagramAutoPostsManagerProps {
@@ -173,6 +174,14 @@ export function InstagramAutoPostsManager({
 
       case 'schedule':
         return <ScheduleSection configId={configId} />;
+
+      case 'themes':
+        return (
+          <ThemesSection 
+            configId={configId}
+            clientId={clientId || undefined}
+          />
+        );
 
       case 'reference-images':
         return (
