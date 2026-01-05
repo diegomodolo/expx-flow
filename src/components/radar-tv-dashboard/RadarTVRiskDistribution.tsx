@@ -60,8 +60,8 @@ export function RadarTVRiskDistribution({ distribution }: RadarTVRiskDistributio
     <Card className="p-4">
       <h3 className="font-semibold mb-4">Distribuição de Riscos</h3>
       
-      <div className="flex">
-        <div className="w-1/2 h-[180px]">
+      <div className="flex flex-col">
+        <div className="h-[180px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -89,7 +89,7 @@ export function RadarTVRiskDistribution({ distribution }: RadarTVRiskDistributio
           </ResponsiveContainer>
         </div>
 
-        <div className="w-1/2 flex flex-col justify-center gap-2">
+        <div className="grid grid-cols-2 gap-2 mt-4">
           {Object.entries(distribution).map(([key, value]) => {
             if (value === 0) return null;
             const Icon = RISK_ICONS[key as keyof typeof RISK_ICONS];
@@ -104,7 +104,7 @@ export function RadarTVRiskDistribution({ distribution }: RadarTVRiskDistributio
                   style={{ backgroundColor: color }}
                 />
                 <Icon className="h-4 w-4 shrink-0" style={{ color }} />
-                <span className="text-sm flex-1">{label}</span>
+                <span className="text-sm">{label}</span>
                 <span className="text-sm font-medium">{value}</span>
                 <span className="text-xs text-muted-foreground">({percentage}%)</span>
               </div>
