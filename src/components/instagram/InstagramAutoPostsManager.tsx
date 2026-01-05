@@ -106,6 +106,33 @@ export function InstagramAutoPostsManager({
     enabled: !!config?.facebook_page_id
   });
 
+  const { data: availableClients } = useQuery({
+    queryKey: ['clients-for-config', config?.company_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('clients')
+        .select('id, name, company, avatar')
+        .eq('company_id', config!.company_id)
+        .eq('is_canceled', false)
+        .order('name');
+      return data || [];
+    },
+    enabled: !!config?.company_id
+  });
+
+  const { data: selectedClient } = useQuery({
+    queryKey: ['selected-client', config?.client_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('clients')
+        .select('id, name, company, avatar')
+        .eq('id', config!.client_id!)
+        .single();
+      return data;
+    },
+    enabled: !!config?.client_id
+  });
+
   const handleToggleEnabled = (enabled: boolean) => {
     updateConfig({ is_enabled: enabled });
   };
@@ -167,6 +194,8 @@ export function InstagramAutoPostsManager({
             availableInstagramAccounts={availableInstagramAccounts || []}
             availableFacebookPages={availableFacebookPages || []}
             selectedFacebookPage={selectedFacebookPage}
+            availableClients={availableClients || []}
+            selectedClient={selectedClient}
             onUpdateConfig={(updates) => updateConfig(updates as any)}
             isUpdating={isUpdating}
           />
@@ -179,7 +208,7 @@ export function InstagramAutoPostsManager({
         return (
           <ThemesSection 
             configId={configId}
-            clientId={clientId || undefined}
+            clientId={config.client_id || clientId || undefined}
           />
         );
 

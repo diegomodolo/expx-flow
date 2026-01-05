@@ -6,12 +6,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Settings, Edit, Loader2, Image, Images, Facebook, Rss } from 'lucide-react';
+import { Settings, Edit, Loader2, Image, Images, Facebook, Rss, Users } from 'lucide-react';
 
 interface FacebookPage {
   id: string;
   page_name: string;
   page_id: string;
+}
+
+interface Client {
+  id: string;
+  name: string;
+  company: string;
+  avatar: string | null;
 }
 
 interface ConfigSectionProps {
@@ -23,6 +30,7 @@ interface ConfigSectionProps {
     rss_feed_prompt?: string | null;
     also_post_to_facebook?: boolean;
     facebook_page_id?: string | null;
+    client_id?: string | null;
   };
   instagramAccount: {
     username: string;
@@ -36,6 +44,8 @@ interface ConfigSectionProps {
   }>;
   availableFacebookPages?: FacebookPage[];
   selectedFacebookPage?: FacebookPage | null;
+  availableClients?: Client[];
+  selectedClient?: Client | null;
   onUpdateConfig: (updates: { 
     name?: string | null; 
     post_briefing?: string; 
@@ -45,6 +55,7 @@ interface ConfigSectionProps {
     instagram_account_id?: string;
     also_post_to_facebook?: boolean;
     facebook_page_id?: string | null;
+    client_id?: string | null;
   }) => void;
   isUpdating: boolean;
 }
@@ -56,6 +67,8 @@ export function ConfigSection({
   availableInstagramAccounts,
   availableFacebookPages = [],
   selectedFacebookPage,
+  availableClients = [],
+  selectedClient,
   onUpdateConfig,
   isUpdating,
 }: ConfigSectionProps) {
@@ -67,6 +80,7 @@ export function ConfigSection({
   const [editInstagramAccountId, setEditInstagramAccountId] = useState('');
   const [editAlsoPostToFacebook, setEditAlsoPostToFacebook] = useState(false);
   const [editFacebookPageId, setEditFacebookPageId] = useState<string | null>(null);
+  const [editClientId, setEditClientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -77,6 +91,7 @@ export function ConfigSection({
       setEditInstagramAccountId(instagramAccountId);
       setEditAlsoPostToFacebook(config.also_post_to_facebook || false);
       setEditFacebookPageId(config.facebook_page_id || null);
+      setEditClientId(config.client_id || null);
     }
   }, [config, instagramAccountId]);
 
@@ -89,6 +104,7 @@ export function ConfigSection({
       instagram_account_id: editInstagramAccountId,
       also_post_to_facebook: editAlsoPostToFacebook,
       facebook_page_id: editAlsoPostToFacebook ? editFacebookPageId : null,
+      client_id: editClientId,
     });
     setIsEditing(false);
   };
@@ -129,6 +145,36 @@ export function ConfigSection({
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 placeholder="Nome da automação"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
+                Cliente Vinculado
+              </Label>
+              <Select value={editClientId || ''} onValueChange={(value) => setEditClientId(value || null)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableClients?.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-5 h-5">
+                          <AvatarImage src={client.avatar || ''} />
+                          <AvatarFallback className="text-xs">
+                            {client.name?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {client.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Vincule um cliente para usar os temas de conteúdo dele na geração de posts
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -258,6 +304,24 @@ export function ConfigSection({
           </>
         ) : (
           <>
+            {selectedClient && (
+              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <Label className="text-xs font-medium">Cliente Vinculado</Label>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Avatar className="w-5 h-5">
+                    <AvatarImage src={selectedClient.avatar || ''} />
+                    <AvatarFallback className="text-xs">
+                      {selectedClient.name?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">{selectedClient.name}</span>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label className="text-muted-foreground text-xs">Conta do Instagram</Label>
               <div className="flex items-center gap-2 mt-1">
