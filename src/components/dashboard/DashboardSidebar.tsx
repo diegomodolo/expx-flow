@@ -125,6 +125,7 @@ const menuCategories: MenuCategory[] = [
         { title: "Dashboard TV", url: "#tv-dashboard", icon: Tv, permission: "dashboard" as MenuItemType, isExternal: true },
         { title: "Keyword Planner", url: "/keyword-planner", icon: Sparkles, permission: "campanhas" as MenuItemType },
         { title: "Radar TV", url: "#radar-tv-dashboard", icon: Activity, permission: "dashboard" as MenuItemType, isExternal: true },
+        { title: "Relatórios Marketing", url: "/marketing/relatorios", icon: BarChart3, permission: "campanhas" as MenuItemType },
       ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),
     },
   ].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR')),

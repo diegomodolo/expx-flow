@@ -36,6 +36,8 @@ import RelatorioProdutividadeSquads from "./pages/reports/RelatorioProdutividade
 import RelatorioRHColaboradores from "./pages/reports/RelatorioRHColaboradores";
 import RelatorioAlertasCriticos from "./pages/reports/RelatorioAlertasCriticos";
 import RelatorioSnapshotsPerformance from "./pages/reports/RelatorioSnapshotsPerformance";
+import RelatorioSaldoPrePagos from "./pages/reports/RelatorioSaldoPrePagos";
+import RelatoriosMarketing from "./pages/marketing/RelatoriosMarketing";
 import GeradorCampanhas from "./pages/GeradorCampanhas";
 import GeradorConteudo from "./pages/GeradorConteudo";
 import GeradorCriativos from "./pages/GeradorCriativos";
@@ -545,6 +547,16 @@ const App = () => {
                  <Route path="/keyword-planner" element={
                    <ProtectedRoute>
                      <KeywordPlannerPage />
+                   </ProtectedRoute>
+                  } />
+                 <Route path="/marketing/relatorios" element={
+                   <ProtectedRoute>
+                     <RelatoriosMarketing />
+                   </ProtectedRoute>
+                 } />
+                 <Route path="/marketing/relatorios/saldo-pre-pagos" element={
+                   <ProtectedRoute>
+                     <RelatorioSaldoPrePagos />
                    </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={
