@@ -15,7 +15,8 @@ import {
   EyeOff,
   ZoomIn,
   Plus,
-  Minus
+  Minus,
+  RotateCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -27,6 +28,8 @@ interface RadarTVControlsProps {
   isRefreshing: boolean;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
+  rotation?: number;
+  onRotationChange?: (rotation: number) => void;
 }
 
 export function RadarTVControls({ 
@@ -35,7 +38,9 @@ export function RadarTVControls({
   onRefreshNow,
   isRefreshing,
   zoom = 100,
-  onZoomChange
+  onZoomChange,
+  rotation = 0,
+  onRotationChange
 }: RadarTVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -140,6 +145,23 @@ export function RadarTVControls({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+          )}
+
+          {onRotationChange && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RotateCw className="h-4 w-4" />
+                <Label>Rotação 90°</Label>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onRotationChange((rotation + 90) % 360)}
+                className="h-8 px-3"
+              >
+                {rotation}°
+              </Button>
             </div>
           )}
 
