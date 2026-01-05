@@ -159,11 +159,14 @@ const RelatorioSaldoPrePagos = () => {
           }
 
           // Determinar status
+          // Se não há gasto, sempre é suficiente
           let status: 'suficiente' | 'apertado' | 'insuficiente' = 'suficiente';
-          if (daysRemaining < daysUntilRecharge) {
-            status = 'insuficiente';
-          } else if (daysRemaining < daysUntilRecharge + 3) {
-            status = 'apertado';
+          if (dailySpend > 0) {
+            if (daysRemaining < daysUntilRecharge) {
+              status = 'insuficiente';
+            } else if (daysRemaining < daysUntilRecharge + 3) {
+              status = 'apertado';
+            }
           }
 
           return {
