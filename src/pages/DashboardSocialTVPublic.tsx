@@ -121,11 +121,11 @@ export default function DashboardSocialTVPublic() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center p-8">
-          <Tv className="w-16 h-16 text-purple-400/50 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Token não encontrado</h1>
-          <p className="text-purple-200/60">Verifique o link de acesso ao dashboard.</p>
+          <Tv className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">Token não encontrado</h1>
+          <p className="text-muted-foreground">Verifique o link de acesso ao dashboard.</p>
         </div>
       </div>
     );
@@ -133,10 +133,10 @@ export default function DashboardSocialTVPublic() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-          <p className="text-purple-200/80">Carregando Feed da Vitória...</p>
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando Feed da Vitória...</p>
         </div>
       </div>
     );
@@ -144,16 +144,16 @@ export default function DashboardSocialTVPublic() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center p-8">
-          <AlertTriangle className="w-16 h-16 text-red-400/50 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Erro ao carregar</h1>
-          <p className="text-purple-200/60 mb-4">
+          <AlertTriangle className="w-16 h-16 text-destructive/50 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar</h1>
+          <p className="text-muted-foreground mb-4">
             {error instanceof Error ? error.message : 'Token inválido ou expirado.'}
           </p>
           <button
             onClick={() => refetch()}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
           >
             Tentar novamente
           </button>
@@ -161,18 +161,6 @@ export default function DashboardSocialTVPublic() {
       </div>
     );
   }
-
-  // Calculate dimensions for rotation
-  const isRotated = rotation === 90 || rotation === 270;
-  const containerStyle: React.CSSProperties = {
-    transform: `rotate(${rotation}deg) scale(${zoom / 100})`,
-    transformOrigin: 'center center',
-    width: isRotated ? '100vh' : '100vw',
-    height: isRotated ? '100vw' : '100vh',
-    position: 'fixed',
-    top: isRotated ? `calc(50% - 50vw)` : 0,
-    left: isRotated ? `calc(50% - 50vh)` : 0,
-  };
 
   // Default values if data is missing
   const performanceMetrics = data.performanceMetrics || {
@@ -184,8 +172,16 @@ export default function DashboardSocialTVPublic() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-pink-900 overflow-hidden">
-      <div style={containerStyle} className="flex flex-col">
+    <div className="h-screen bg-background overflow-hidden">
+      {/* Zoomable container - Same behavior as TV Dashboard */}
+      <div 
+        className="h-full flex flex-col origin-top-left"
+        style={{ 
+          transform: `scale(${zoom / 100})`,
+          width: `${10000 / zoom}%`,
+          height: `${10000 / zoom}%`,
+        }}
+      >
         {/* Header */}
         <SocialTVHeader companyName={data.company.name} />
 
@@ -219,7 +215,7 @@ export default function DashboardSocialTVPublic() {
         </div>
       </div>
 
-      {/* Controls - Always visible, not affected by rotation */}
+      {/* Controls - Always visible, not affected by zoom */}
       <SocialTVControls
         refreshInterval={refreshInterval}
         onRefreshIntervalChange={setRefreshInterval}

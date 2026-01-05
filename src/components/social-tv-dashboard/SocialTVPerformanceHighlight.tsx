@@ -92,29 +92,21 @@ export function SocialTVPerformanceHighlight({
       icon: Target,
       label: 'Conversões',
       value: formatNumber(performanceMetrics.totalLeads),
-      color: 'from-pink-500 to-rose-600',
-      iconBg: 'bg-pink-500/20',
     },
     {
       icon: DollarSign,
       label: 'Investimento',
       value: formatCurrency(performanceMetrics.totalSpend),
-      color: 'from-emerald-500 to-green-600',
-      iconBg: 'bg-emerald-500/20',
     },
     {
       icon: TrendingUp,
       label: 'CTR Médio',
       value: `${performanceMetrics.avgCtr.toFixed(2)}%`,
-      color: 'from-blue-500 to-cyan-600',
-      iconBg: 'bg-blue-500/20',
     },
     {
       icon: Users,
       label: 'Clientes Ativos',
       value: formatNumber(performanceMetrics.activeClients),
-      color: 'from-purple-500 to-violet-600',
-      iconBg: 'bg-purple-500/20',
     },
   ];
 
@@ -122,23 +114,22 @@ export function SocialTVPerformanceHighlight({
     <div className="h-full flex flex-col gap-4 py-2">
       {/* Performance Metrics Section */}
       <div className="flex-shrink-0">
-        <h2 className="text-lg font-bold text-white/90 mb-3 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-purple-400" />
+        <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-primary" />
           Performance em Tempo Real
         </h2>
         <div className="grid grid-cols-4 gap-3">
           {metrics.map((metric, index) => (
             <div
               key={index}
-              className="relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4"
+              className="relative overflow-hidden rounded-xl bg-card border border-border p-4"
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${metric.color} opacity-10`} />
               <div className="relative z-10">
-                <div className={`w-10 h-10 rounded-lg ${metric.iconBg} flex items-center justify-center mb-2`}>
-                  <metric.icon className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                  <metric.icon className="w-5 h-5 text-primary" />
                 </div>
-                <p className="text-2xl font-bold text-white">{metric.value}</p>
-                <p className="text-xs text-white/60 uppercase tracking-wider">{metric.label}</p>
+                <p className="text-2xl font-bold text-foreground">{metric.value}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{metric.label}</p>
               </div>
             </div>
           ))}
@@ -147,25 +138,25 @@ export function SocialTVPerformanceHighlight({
 
       {/* Featured Client Section */}
       <div className="flex-1 min-h-0 mb-8">
-        <h2 className="text-lg font-bold text-white/90 mb-3 flex items-center gap-2">
-          <Star className="w-5 h-5 text-yellow-400" />
+        <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <Star className="w-5 h-5 text-yellow-500" />
           Cliente Destaque
         </h2>
         
         {featuredClient ? (
-          <div className="relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 h-full min-h-[280px]">
+          <div className="relative overflow-hidden rounded-xl bg-card border border-border h-full min-h-[280px]">
             {/* Background gradient based on team color */}
             <div 
-              className="absolute inset-0 opacity-20"
+              className="absolute inset-0 opacity-10"
               style={{ 
                 background: featuredClient.teamColor 
                   ? `linear-gradient(135deg, ${featuredClient.teamColor}40, transparent)`
-                  : 'linear-gradient(135deg, rgba(168, 85, 247, 0.4), transparent)'
+                  : 'linear-gradient(135deg, hsl(var(--primary) / 0.4), transparent)'
               }}
             />
             
             {/* Badge */}
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full">
+            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 rounded-full">
               <Crown className="w-4 h-4 text-white" />
               <span className="text-sm font-bold text-white">DESTAQUE</span>
             </div>
@@ -177,8 +168,8 @@ export function SocialTVPerformanceHighlight({
                 <div 
                   className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold text-white shadow-xl flex-shrink-0"
                   style={{ 
-                    backgroundColor: featuredClient.teamColor || '#8B5CF6',
-                    border: '4px solid rgba(255,255,255,0.25)'
+                    backgroundColor: featuredClient.teamColor || 'hsl(var(--primary))',
+                    border: '4px solid hsl(var(--border))'
                   }}
                 >
                   {featuredClient.avatar ? (
@@ -194,7 +185,7 @@ export function SocialTVPerformanceHighlight({
 
                 {/* Name and Gestor - More prominent */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-4xl font-bold text-white truncate mb-3">
+                  <h3 className="text-4xl font-bold text-foreground truncate mb-3">
                     {featuredClient.name}
                   </h3>
                   <div className="flex items-center gap-3 mt-3">
@@ -202,26 +193,26 @@ export function SocialTVPerformanceHighlight({
                       <img 
                         src={featuredClient.gestorAvatar} 
                         alt={featuredClient.gestorName || 'Gestor'}
-                        className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                        className="w-8 h-8 rounded-full object-cover border-2 border-border"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center border-2 border-white/20">
-                        <span className="text-sm font-bold text-white">
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center border-2 border-border">
+                        <span className="text-sm font-bold text-primary-foreground">
                           {(featuredClient.gestorName || 'G').charAt(0)}
                         </span>
                       </div>
                     )}
-                    <span className="text-lg text-white/80">
-                      Gestor: <span className="font-semibold text-white">{featuredClient.gestorName || 'Não atribuído'}</span>
+                    <span className="text-lg text-muted-foreground">
+                      Gestor: <span className="font-semibold text-foreground">{featuredClient.gestorName || 'Não atribuído'}</span>
                     </span>
                   </div>
                   {featuredClient.teamName && (
                     <div className="flex items-center gap-3 mt-3">
                       <div 
                         className="w-5 h-5 rounded-full"
-                        style={{ backgroundColor: featuredClient.teamColor || '#8B5CF6' }}
+                        style={{ backgroundColor: featuredClient.teamColor || 'hsl(var(--primary))' }}
                       />
-                      <span className="text-lg text-white/80">{featuredClient.teamName}</span>
+                      <span className="text-lg text-muted-foreground">{featuredClient.teamName}</span>
                     </div>
                   )}
                 </div>
@@ -229,30 +220,30 @@ export function SocialTVPerformanceHighlight({
 
               {/* Mini Metrics */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white/10 rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-white">{formatNumber(featuredClient.totalConversions || 0)}</p>
-                  <p className="text-xs text-white/50 uppercase mt-1">Conversões</p>
+                <div className="bg-muted rounded-xl p-5 text-center">
+                  <p className="text-2xl font-bold text-foreground">{formatNumber(featuredClient.totalConversions || 0)}</p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">Conversões</p>
                 </div>
-                <div className="bg-white/10 rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-white">{featuredClient.avgCtr.toFixed(2)}%</p>
-                  <p className="text-xs text-white/50 uppercase mt-1">CTR</p>
+                <div className="bg-muted rounded-xl p-5 text-center">
+                  <p className="text-2xl font-bold text-foreground">{featuredClient.avgCtr.toFixed(2)}%</p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">CTR</p>
                 </div>
-                <div className="bg-white/10 rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-white">{featuredClient.totalCampaigns || 0}</p>
-                  <p className="text-xs text-white/50 uppercase mt-1">Campanhas</p>
+                <div className="bg-muted rounded-xl p-5 text-center">
+                  <p className="text-2xl font-bold text-foreground">{featuredClient.totalCampaigns || 0}</p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">Campanhas</p>
                 </div>
-                <div className="bg-white/10 rounded-xl p-5 text-center">
+                <div className="bg-muted rounded-xl p-5 text-center">
                   <div className={`inline-block px-3 py-1 rounded-full ${getStatusColor(featuredClient.status)}`}>
                     <p className="text-sm font-bold text-white">{getStatusLabel(featuredClient.status)}</p>
                   </div>
-                  <p className="text-xs text-white/50 uppercase mt-1">Status</p>
+                  <p className="text-xs text-muted-foreground uppercase mt-1">Status</p>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center py-16">
-            <div className="text-center text-white/40">
+          <div className="rounded-xl bg-card border border-border flex items-center justify-center py-16">
+            <div className="text-center text-muted-foreground">
               <Star className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>Nenhum cliente em destaque</p>
             </div>

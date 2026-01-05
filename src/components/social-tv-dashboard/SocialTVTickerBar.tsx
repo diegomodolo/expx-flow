@@ -40,11 +40,11 @@ export function SocialTVTickerBar({ wins }: SocialTVTickerBarProps) {
   const duplicatedWins = [...wins, ...wins];
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-r from-green-900/95 via-emerald-900/95 to-green-900/95 backdrop-blur-sm border-t border-green-500/30 overflow-hidden">
+    <div className="absolute bottom-0 left-0 right-0 bg-card border-t border-border overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2">
-        <div className="flex items-center gap-1 flex-shrink-0 pr-4 border-r border-green-500/30">
-          <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
-          <span className="text-xs font-bold text-green-200 uppercase tracking-wider">
+        <div className="flex items-center gap-1 flex-shrink-0 pr-4 border-r border-border">
+          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+          <span className="text-xs font-bold text-foreground uppercase tracking-wider">
             Últimas Vitórias
           </span>
         </div>
@@ -57,19 +57,19 @@ export function SocialTVTickerBar({ wins }: SocialTVTickerBarProps) {
                 className="flex items-center gap-3 flex-shrink-0"
               >
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-400" />
-                  <span className="text-sm font-semibold text-white">
+                  <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-semibold text-foreground">
                     {win.value} {win.type === 'lead' ? 'leads' : 'vendas'}
                   </span>
                 </div>
-                <span className="text-sm text-green-200/80">
+                <span className="text-sm text-muted-foreground">
                   {win.clientName}
                 </span>
-                <span className="text-xs text-green-300/50">•</span>
-                <span className="text-sm text-green-200/60">
+                <span className="text-xs text-muted-foreground/50">•</span>
+                <span className="text-sm text-muted-foreground">
                   {win.gestorName}
                 </span>
-                <span className="text-xs text-green-300/40">
+                <span className="text-xs text-muted-foreground/50">
                   {formatTimestamp(win.timestamp)}
                 </span>
               </div>

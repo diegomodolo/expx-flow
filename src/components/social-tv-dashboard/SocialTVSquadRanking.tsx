@@ -19,12 +19,12 @@ interface SocialTVSquadRankingProps {
 export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
   if (squads.length === 0) {
     return (
-      <div className="p-6 bg-gradient-to-b from-purple-900/30 to-black/30 h-full">
+      <div className="p-6 bg-card border border-border rounded-xl h-full">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5 text-cyan-500" />
-          <h2 className="text-lg font-bold text-white">Ranking de Squads</h2>
+          <Users className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Ranking de Squads</h2>
         </div>
-        <p className="text-sm text-purple-200/50 text-center py-4">
+        <p className="text-sm text-muted-foreground text-center py-4">
           Nenhuma squad com conversões ainda
         </p>
       </div>
@@ -36,12 +36,12 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
       case 1:
         return <Trophy className="w-6 h-6 text-yellow-400" />;
       case 2:
-        return <Medal className="w-6 h-6 text-gray-300" />;
+        return <Medal className="w-6 h-6 text-gray-400" />;
       case 3:
         return <Award className="w-6 h-6 text-amber-600" />;
       default:
         return (
-          <span className="w-6 h-6 rounded-full bg-purple-800/50 flex items-center justify-center text-sm font-bold text-purple-200">
+          <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
             {position}
           </span>
         );
@@ -51,13 +51,13 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
   const getPositionBg = (position: number) => {
     switch (position) {
       case 1:
-        return 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30';
+        return 'bg-yellow-500/10 border-yellow-500/30';
       case 2:
-        return 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30';
+        return 'bg-gray-500/10 border-gray-400/30';
       case 3:
-        return 'bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30';
+        return 'bg-amber-500/10 border-amber-600/30';
       default:
-        return 'bg-white/5 border-white/10';
+        return 'bg-muted/50 border-border';
     }
   };
 
@@ -67,7 +67,7 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
       case 1: return '#facc15'; // yellow
       case 2: return '#9ca3af'; // gray
       case 3: return '#d97706'; // amber
-      default: return '#a855f7'; // purple
+      default: return 'hsl(var(--primary))';
     }
   };
 
@@ -92,10 +92,10 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
   const rest = squads.slice(3);
 
   return (
-    <div className="p-6 bg-gradient-to-b from-cyan-900/30 to-black/30 h-full">
+    <div className="p-6 bg-card border border-border rounded-xl h-full">
       <div className="flex items-center gap-2 mb-4">
-        <Users className="w-5 h-5 text-cyan-500" />
-        <h2 className="text-lg font-bold text-white">Ranking de Squads</h2>
+        <Users className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-bold text-foreground">Ranking de Squads</h2>
       </div>
 
       {/* Top 3 Podium */}
@@ -105,24 +105,24 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
           <div className="flex flex-col items-center">
             <div className="relative mb-2">
               <div 
-                className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-gray-300"
+                className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-gray-400"
                 style={{ backgroundColor: getSquadColor(top3[1].color, 2) + '40' }}
               >
                 {isEmoji(top3[1].icon) ? (
                   <span className="text-2xl">{top3[1].icon}</span>
                 ) : (
-                  <span className="text-lg font-bold text-white">{getSquadInitials(top3[1].name)}</span>
+                  <span className="text-lg font-bold text-foreground">{getSquadInitials(top3[1].name)}</span>
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center">
                 <span className="text-xs font-bold text-gray-800">2</span>
               </div>
             </div>
-            <p className="text-sm font-medium text-white text-center truncate max-w-[80px]">
+            <p className="text-sm font-medium text-foreground text-center truncate max-w-[80px]">
               {top3[1].name}
             </p>
-            <p className="text-xs text-gray-300">{top3[1].conversions} conv.</p>
-            <div className="w-16 h-16 bg-gradient-to-t from-gray-500/30 to-gray-400/20 rounded-t-lg mt-2" />
+            <p className="text-xs text-muted-foreground">{top3[1].conversions} conv.</p>
+            <div className="w-16 h-16 bg-gray-500/20 rounded-t-lg mt-2" />
           </div>
         )}
 
@@ -141,18 +141,18 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                 {isEmoji(top3[0].icon) ? (
                   <span className="text-3xl">{top3[0].icon}</span>
                 ) : (
-                  <span className="text-2xl font-bold text-white">{getSquadInitials(top3[0].name)}</span>
+                  <span className="text-2xl font-bold text-foreground">{getSquadInitials(top3[0].name)}</span>
                 )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-yellow-400 flex items-center justify-center shadow-lg shadow-yellow-500/30">
                 <Trophy className="w-4 h-4 text-yellow-900" />
               </div>
             </div>
-            <p className="text-sm font-bold text-white text-center truncate max-w-[100px]">
+            <p className="text-sm font-bold text-foreground text-center truncate max-w-[100px]">
               {top3[0].name}
             </p>
-            <p className="text-xs text-yellow-300">{top3[0].conversions} conv.</p>
-            <div className="w-20 h-24 bg-gradient-to-t from-yellow-500/30 to-yellow-400/20 rounded-t-lg mt-2" />
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">{top3[0].conversions} conv.</p>
+            <div className="w-20 h-24 bg-yellow-500/20 rounded-t-lg mt-2" />
           </div>
         )}
 
@@ -167,18 +167,18 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                 {isEmoji(top3[2].icon) ? (
                   <span className="text-xl">{top3[2].icon}</span>
                 ) : (
-                  <span className="text-base font-bold text-white">{getSquadInitials(top3[2].name)}</span>
+                  <span className="text-base font-bold text-foreground">{getSquadInitials(top3[2].name)}</span>
                 )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-600 flex items-center justify-center">
                 <span className="text-xs font-bold text-white">3</span>
               </div>
             </div>
-            <p className="text-sm font-medium text-white text-center truncate max-w-[70px]">
+            <p className="text-sm font-medium text-foreground text-center truncate max-w-[70px]">
               {top3[2].name}
             </p>
-            <p className="text-xs text-amber-300">{top3[2].conversions} conv.</p>
-            <div className="w-14 h-12 bg-gradient-to-t from-amber-600/30 to-amber-500/20 rounded-t-lg mt-2" />
+            <p className="text-xs text-amber-600 dark:text-amber-400">{top3[2].conversions} conv.</p>
+            <div className="w-14 h-12 bg-amber-600/20 rounded-t-lg mt-2" />
           </div>
         )}
       </div>
@@ -199,19 +199,19 @@ export function SocialTVSquadRanking({ squads }: SocialTVSquadRankingProps) {
                 {isEmoji(squad.icon) ? (
                   <span className="text-sm">{squad.icon}</span>
                 ) : (
-                  <span className="text-xs font-bold text-white">{getSquadInitials(squad.name)}</span>
+                  <span className="text-xs font-bold text-foreground">{getSquadInitials(squad.name)}</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{squad.name}</p>
-                <div className="flex items-center gap-2 text-xs text-purple-200/60">
+                <p className="text-sm font-medium text-foreground truncate">{squad.name}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Target className="w-3 h-3" />
                   <span>{squad.clientsCount} clientes</span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-green-400">{squad.conversions}</p>
-                <p className="text-xs text-purple-200/60">conv.</p>
+                <p className="text-sm font-bold text-green-600 dark:text-green-400">{squad.conversions}</p>
+                <p className="text-xs text-muted-foreground">conv.</p>
               </div>
             </div>
           ))}
