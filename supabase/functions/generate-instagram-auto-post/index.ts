@@ -160,7 +160,12 @@ async function generateSingleImage(
     try {
       const messageContent: any[] = [];
       
-      for (const refImageUrl of referenceImages) {
+      console.log(`[generateSingleImage] Processing ${referenceImages.length} reference images...`);
+      
+      // Add reference images FIRST with explicit labeling
+      for (let i = 0; i < referenceImages.length; i++) {
+        const refImageUrl = referenceImages[i];
+        console.log(`[generateSingleImage] Reference image ${i + 1}: ${refImageUrl.substring(0, 80)}...`);
         messageContent.push({
           type: 'image_url',
           image_url: { url: refImageUrl }
@@ -171,28 +176,65 @@ async function generateSingleImage(
         ? `\n\nThis is SLIDE ${slideNumber} of ${totalSlides} in a carousel. Make sure it connects visually with other slides while having its own distinct focus.`
         : '';
       
-      const geminiPrompt = `Generate a vertical 3:4 Instagram feed image (1080x1350 pixels).
+      // Build a MUCH stronger prompt that emphasizes COPYING the reference style exactly
+      const referenceInstructions = referenceImages.length > 0 ? `
+═══════════════════════════════════════════════════════════════════════════════════════
+🚨🚨🚨 MANDATORY INSTRUCTION - COPY REFERENCE IMAGES EXACTLY 🚨🚨🚨
+═══════════════════════════════════════════════════════════════════════════════════════
 
+I have provided ${referenceImages.length} REFERENCE IMAGES above. These are your MANDATORY STYLE TEMPLATE.
+
+⚠️ THE OUTPUT IMAGE MUST BE A VISUAL CARBON COPY OF THE REFERENCES ⚠️
+
+You MUST REPLICATE these elements with 100% fidelity:
+
+🎨 1. COLOR PALETTE - COPY EXACTLY:
+   - Look at the reference images and identify ALL colors used
+   - Use those EXACT SAME COLORS in your output - NOT similar colors, the SAME colors
+   - If references use red (#E53935) and green (#4CAF50), use those EXACT shades
+   - Match color ratios (if red is dominant in references, red must be dominant in output)
+
+✏️ 2. TYPOGRAPHY - COPY EXACTLY:
+   - Same font weight (bold stays bold, thin stays thin)
+   - Same text size hierarchy (large headlines, smaller subtext)
+   - Same text positioning (centered, left-aligned, overlaid on images)
+   - Same text colors and any text effects (shadows, outlines)
+
+📐 3. LAYOUT & COMPOSITION - COPY EXACTLY:
+   - Same structural layout (where elements are positioned)
+   - Same spacing and margins between elements
+   - Same visual hierarchy (what draws attention first, second, third)
+   - If references show device mockups, YOUR OUTPUT MUST INCLUDE DEVICE MOCKUPS
+   - If references show product photos, YOUR OUTPUT MUST INCLUDE PRODUCT PHOTOS
+
+🎭 4. GRAPHIC ELEMENTS - COPY EXACTLY:
+   - Same icon styles (if any)
+   - Same badge/button styles
+   - Same decorative elements (arrows, shapes, borders)
+   - Same logo treatment and placement if visible
+
+🌄 5. BACKGROUND - COPY EXACTLY:
+   - Same background type (solid color, gradient, pattern, photo)
+   - Same background colors
+   - Same level of visual complexity
+
+═══════════════════════════════════════════════════════════════════════════════════════
+⚠️ YOUR OUTPUT SHOULD BE INDISTINGUISHABLE IN STYLE FROM THE REFERENCES ⚠️
+⚠️ IT SHOULD LOOK LIKE THE NEXT POST IN THE SAME INSTAGRAM FEED ⚠️
+═══════════════════════════════════════════════════════════════════════════════════════
+
+` : '';
+
+      const geminiPrompt = `${referenceInstructions}
+NOW, create a vertical 3:4 Instagram feed image (1080x1350 pixels).
+
+CONTENT TO INCLUDE (with IDENTICAL STYLE to the reference images above):
 ${imagePrompt}${slideContext}
 
-IMPORTANT - SCHEDULED POST DATE: ${scheduledDateFormatted}
-If the image should contain a date (as indicated in the prompt), use EXACTLY this date: ${scheduledDateFormatted}
+SCHEDULED POST DATE: ${scheduledDateFormatted}
+If the image should contain a date, use EXACTLY: ${scheduledDateFormatted}
 
-${referenceImages.length > 0 ? `CRITICAL - REFERENCE IMAGES PROVIDED (YOU MUST FOLLOW THESE):
-I have provided ${referenceImages.length} reference image(s) above. You MUST:
-
-1. ANALYZE each reference image carefully before generating
-2. CREATE A VISUAL VARIATION that maintains the SAME aesthetic identity:
-   - Use the EXACT SAME color palette (same hues, saturation, tones)
-   - Match the typography style if text is present (same font weight, style)
-   - Replicate the composition style (layout, spacing, visual hierarchy)
-   - Keep the same background treatment (gradients, textures, patterns)
-   - Match the overall mood and atmosphere
-3. The generated image should look like it was created by the SAME designer/brand
-4. Think of this as creating "another image from the same campaign"
-5. DO NOT deviate from the visual identity established in the reference images
-
-The goal is consistency: someone looking at the reference and generated image should immediately recognize they belong to the same visual family.` : ''}
+FINAL REMINDER: The visual style must be a PERFECT MATCH to the reference images. Only the specific content/text changes, NOT the style.
 
 Generate the image now. Return image only.`;
 
@@ -201,6 +243,7 @@ Generate the image now. Return image only.`;
         text: geminiPrompt
       });
 
+      console.log(`[generateSingleImage] Prompt length: ${geminiPrompt.length} chars`);
       console.log(`Image generation attempt ${attempt}/${maxRetries} for slide ${slideNumber || 1}...`);
 
       const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
