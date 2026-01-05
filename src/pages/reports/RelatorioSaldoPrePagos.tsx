@@ -31,7 +31,10 @@ import {
   ArrowLeft,
   TrendingDown,
   Calendar,
-  Loader2
+  Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "@/lib/crmReportUtils";
@@ -56,7 +59,8 @@ const RelatorioSaldoPrePagos = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [squadFilter, setSquadFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("daysRemaining");
+  const [sortBy, setSortBy] = useState<string>("rechargeDay");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Buscar squads/times
   const { data: squads } = useQuery({
@@ -209,20 +213,42 @@ const RelatorioSaldoPrePagos = () => {
 
     // Ordenar
     filtered.sort((a, b) => {
+      let comparison = 0;
       switch (sortBy) {
+        case 'rechargeDay':
+          const dayA = a.rechargeDay ?? 999;
+          const dayB = b.rechargeDay ?? 999;
+          comparison = dayA - dayB;
+          break;
         case 'daysRemaining':
-          return a.daysRemaining - b.daysRemaining;
+          comparison = a.daysRemaining - b.daysRemaining;
+          break;
         case 'balance':
-          return b.balance - a.balance;
+          comparison = a.balance - b.balance;
+          break;
+        case 'dailySpend':
+          comparison = a.dailySpend - b.dailySpend;
+          break;
         case 'name':
-          return a.name.localeCompare(b.name);
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'nextRechargeDate':
+          const dateA = a.nextRechargeDate?.getTime() ?? 999999999999;
+          const dateB = b.nextRechargeDate?.getTime() ?? 999999999999;
+          comparison = dateA - dateB;
+          break;
+        case 'status':
+          const statusOrder = { insuficiente: 0, apertado: 1, suficiente: 2 };
+          comparison = statusOrder[a.status] - statusOrder[b.status];
+          break;
         default:
-          return 0;
+          comparison = 0;
       }
+      return sortDirection === 'asc' ? comparison : -comparison;
     });
 
     return filtered;
-  }, [clientesPrePagos, searchTerm, statusFilter, squadFilter, sortBy]);
+  }, [clientesPrePagos, searchTerm, statusFilter, squadFilter, sortBy, sortDirection]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -240,6 +266,24 @@ const RelatorioSaldoPrePagos = () => {
   const formatDate = (date: Date | null) => {
     if (!date) return '-';
     return date.toLocaleDateString('pt-BR');
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) {
+      return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-3 h-3 ml-1" /> 
+      : <ArrowDown className="w-3 h-3 ml-1" />;
   };
 
   return (
@@ -354,16 +398,6 @@ const RelatorioSaldoPrePagos = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daysRemaining">Dias Restantes</SelectItem>
-                  <SelectItem value="balance">Saldo</SelectItem>
-                  <SelectItem value="name">Nome</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
         </Card>
@@ -391,13 +425,69 @@ const RelatorioSaldoPrePagos = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Saldo Atual</TableHead>
-                    <TableHead className="text-right">Gasto/Dia</TableHead>
-                    <TableHead className="text-center">Dia Recarga</TableHead>
-                    <TableHead className="text-right">Duração Prevista</TableHead>
-                    <TableHead className="text-center">Próxima Recarga</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
+                        Cliente
+                        <SortIcon column="name" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('balance')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Saldo Atual
+                        <SortIcon column="balance" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('dailySpend')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Gasto/Dia
+                        <SortIcon column="dailySpend" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('rechargeDay')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Dia Recarga
+                        <SortIcon column="rechargeDay" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('daysRemaining')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Duração Prevista
+                        <SortIcon column="daysRemaining" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('nextRechargeDate')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Próxima Recarga
+                        <SortIcon column="nextRechargeDate" />
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-center cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Status
+                        <SortIcon column="status" />
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
