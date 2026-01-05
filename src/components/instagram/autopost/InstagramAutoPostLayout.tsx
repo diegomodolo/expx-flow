@@ -9,7 +9,8 @@ import {
   Youtube, 
   FileText, 
   History,
-  Rss
+  Rss,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +39,12 @@ const navItems: NavItem[] = [
     title: 'Grade de Agendamento',
     icon: Clock,
     description: 'Dias e horários de postagem',
+  },
+  {
+    id: 'themes',
+    title: 'Temas de Conteúdo',
+    icon: Lightbulb,
+    description: 'Temas para geração de criativos',
   },
   {
     id: 'reference-images',
