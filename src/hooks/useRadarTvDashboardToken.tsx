@@ -10,20 +10,20 @@ export function useRadarTvDashboardToken() {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    if (activeCompany?.id) {
+    if (activeCompany?.company_id) {
       fetchToken();
     }
-  }, [activeCompany?.id]);
+  }, [activeCompany?.company_id]);
 
   const fetchToken = async () => {
-    if (!activeCompany?.id) return;
+    if (!activeCompany?.company_id) return;
     
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('companies')
         .select('radar_tv_dashboard_token')
-        .eq('id', activeCompany.id)
+        .eq('id', activeCompany.company_id)
         .single();
 
       if (error) throw error;
@@ -36,7 +36,7 @@ export function useRadarTvDashboardToken() {
   };
 
   const generateToken = async (): Promise<string | null> => {
-    if (!activeCompany?.id) return null;
+    if (!activeCompany?.company_id) return null;
     
     setGenerating(true);
   try {
@@ -54,7 +54,7 @@ export function useRadarTvDashboardToken() {
       // Use secure RPC to set the token
       const { error: setError } = await (supabase
         .rpc as any)('set_radar_tv_dashboard_token', {
-          p_company_id: activeCompany.id,
+          p_company_id: activeCompany.company_id,
           p_token: newToken
         });
 
