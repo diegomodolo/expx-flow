@@ -115,12 +115,9 @@ serve(async (req) => {
     console.log('Found company:', company.name);
 
     // ========== PERFORMANCE METRICS ==========
-    // Use PostgREST aggregates (avoids the 1k row cap)
+    // Use RPC function for aggregates (avoids PostgREST aggregate restriction)
     const { data: perfAgg, error: perfAggError } = await supabase
-      .from('campaigns')
-      .select('spend_sum:spend.sum(), ctr_avg:ctr.avg(), conversions_sum:conversions.sum()')
-      .eq('company_id', company.id)
-      .eq('is_active', true);
+      .rpc('social_tv_performance_aggregates', { p_company_id: company.id });
 
     if (perfAggError) {
       console.error('Error fetching performance aggregates:', perfAggError);
@@ -128,9 +125,9 @@ serve(async (req) => {
 
     const perfRow = (perfAgg && perfAgg[0]) as any;
 
-    const totalSpend = Number(perfRow?.spend_sum ?? 0);
-    const totalLeads = Number(perfRow?.conversions_sum ?? 0);
-    const avgCtr = Number(perfRow?.ctr_avg ?? 0);
+    const totalSpend = Number(perfRow?.total_spend ?? 0);
+    const totalLeads = Number(perfRow?.total_conversions ?? 0);
+    const avgCtr = Number(perfRow?.avg_ctr ?? 0);
 
     // Count active ads (exact, >1000)
     const { count: totalAdsCount, error: totalAdsError } = await supabase
@@ -167,17 +164,11 @@ serve(async (req) => {
     console.log('Performance metrics:', performanceMetrics);
 
     // ========== FEATURED CLIENT ==========
-    // Top client by total spend (aggregate + then fetch details)
+    // Top client by total spend using RPC (avoids PostgREST aggregate restriction)
     let featuredClient: FeaturedClient | null = null;
 
     const { data: topClientAgg, error: topClientAggError } = await supabase
-      .from('campaigns')
-      .select('client_id, spend_sum:spend.sum(), ctr_avg:ctr.avg(), campaigns_count:id.count()')
-      .eq('company_id', company.id)
-      .eq('is_active', true)
-      .not('client_id', 'is', null)
-      .order('spend_sum', { ascending: false })
-      .limit(1);
+      .rpc('social_tv_featured_client_aggregates', { p_company_id: company.id });
 
     if (topClientAggError) {
       console.error('Error fetching featured client aggregates:', topClientAggError);

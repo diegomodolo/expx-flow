@@ -10536,6 +10536,23 @@ export type Database = {
         Args: { p_company_id: string; p_token: string }
         Returns: undefined
       }
+      social_tv_featured_client_aggregates: {
+        Args: { p_company_id: string }
+        Returns: {
+          avg_ctr: number
+          campaigns_count: number
+          client_id: string
+          total_spend: number
+        }[]
+      }
+      social_tv_performance_aggregates: {
+        Args: { p_company_id: string }
+        Returns: {
+          avg_ctr: number
+          total_conversions: number
+          total_spend: number
+        }[]
+      }
     }
     Enums: {
       ad_generation_status: "pending" | "approved" | "rejected" | "published"
