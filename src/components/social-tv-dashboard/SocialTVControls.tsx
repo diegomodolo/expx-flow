@@ -12,7 +12,8 @@ import {
   Plus,
   Minus,
   Eye,
-  EyeOff
+  EyeOff,
+  RotateCw
 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,8 @@ export function SocialTVControls({
   isRefreshing = false,
   zoom,
   onZoomChange,
+  rotation,
+  onRotationChange,
 }: SocialTVControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -214,6 +217,27 @@ export function SocialTVControls({
               checked={theme === 'dark'}
               onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
             />
+          </div>
+
+          {/* Rotation Control */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <RotateCw className="h-4 w-4 text-primary" />
+              <Label>Rotação da Tela</Label>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {([0, 90, 180, 270] as const).map((deg) => (
+                <Button
+                  key={deg}
+                  variant={rotation === deg ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onRotationChange(deg)}
+                  className="text-xs"
+                >
+                  {deg}°
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Fullscreen Toggle */}
