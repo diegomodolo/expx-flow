@@ -228,31 +228,38 @@ serve(async (req) => {
           console.error('Error counting featured client campaigns:', featuredCampaignsError);
         }
 
-        // Get conversions total for featured client - ALL CAMPAIGNS (same logic as clients page)
-        // Meta campaigns
+        // Get conversions and CTR for featured client - ALL CAMPAIGNS (same logic as clients page)
+        // Meta campaigns (from campaigns table)
         const { data: metaCampaignsData } = await supabase
           .from('campaigns')
-          .select('conversions')
+          .select('conversions, ctr, spend')
           .eq('company_id', company.id)
-          .eq('client_id', client.id)
-          .eq('source', 'meta');
+          .eq('client_id', client.id);
 
         const metaConversions = (metaCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
+        const metaSpend = (metaCampaignsData || []).reduce((sum, c) => sum + (c.spend || 0), 0);
+        const metaCtrSum = (metaCampaignsData || []).reduce((sum, c) => sum + (c.ctr || 0), 0);
+        const metaCtrCount = (metaCampaignsData || []).filter(c => c.ctr && c.ctr > 0).length;
 
-        // Google campaigns  
+        // Google campaigns (from google_campaigns table)
         const { data: googleCampaignsData } = await supabase
-          .from('campaigns')
-          .select('conversions')
+          .from('google_campaigns')
+          .select('conversions, ctr, spend')
           .eq('company_id', company.id)
-          .eq('client_id', client.id)
-          .eq('source', 'google');
+          .eq('client_id', client.id);
 
         const googleConversions = (googleCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
+        const googleSpend = (googleCampaignsData || []).reduce((sum, c) => sum + (c.spend || 0), 0);
+        const googleCtrSum = (googleCampaignsData || []).reduce((sum, c) => sum + (c.ctr || 0), 0);
+        const googleCtrCount = (googleCampaignsData || []).filter(c => c.ctr && c.ctr > 0).length;
 
-        // Consolidated conversions = Meta + Google (same as clients page)
+        // Consolidated metrics = Meta + Google (same as clients page)
         const featuredConversions = metaConversions + googleConversions;
+        const featuredSpend = metaSpend + googleSpend;
+        const totalCtrCount = metaCtrCount + googleCtrCount;
+        const featuredAvgCtr = totalCtrCount > 0 ? (metaCtrSum + googleCtrSum) / totalCtrCount : 0;
         
-        console.log(`Featured client ${client.name}: Meta conversions=${metaConversions}, Google conversions=${googleConversions}, Total=${featuredConversions}`);
+        console.log(`Featured client ${client.name}: Meta conversions=${metaConversions}, Google conversions=${googleConversions}, Total=${featuredConversions}, AvgCTR=${featuredAvgCtr}`);
 
         const gestor = client.gestor as any;
         const team = client.team as any;
@@ -285,8 +292,8 @@ serve(async (req) => {
           teamName: team?.name || null,
           teamColor: team?.color || null,
           status: client.calculated_status || 'ativo',
-          totalSpend: Number(topAggRow?.spend_sum ?? 0),
-          avgCtr: Number(topAggRow?.ctr_avg ?? 0),
+          totalSpend: featuredSpend,
+          avgCtr: featuredAvgCtr,
           totalAds: featuredAdsCount ?? 0,
           totalConversions: featuredConversions,
           totalCampaigns: featuredCampaignsCount ?? 0,
