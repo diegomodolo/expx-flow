@@ -89,12 +89,15 @@ const statusFilters = [
   { value: "published", label: "Publicados", icon: null },
 ] as const;
 
+const PAGE_SIZE = 10;
+
 export function FabricaAnunciosGerados({ clientId }: Props) {
   const { activeCompany } = useCompany();
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<GenerationType>("concept");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<GenerationStatus | "all">("pending");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedAd, setSelectedAd] = useState<GeneratedAd | null>(null);
@@ -121,8 +124,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
         .from('ad_generation_queue')
         .select('*')
         .eq('client_id', clientId)
-        .order('generated_at', { ascending: false })
-        .limit(50);
+        .order('generated_at', { ascending: false });
 
       if (error) throw error;
       return data as GeneratedAd[];
@@ -259,6 +261,20 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
     return ad.status === filterStatus;
   });
 
+  // Paginate the filtered ads
+  const visibleAds = filteredAds.slice(0, visibleCount);
+  const hasMore = filteredAds.length > visibleCount;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + PAGE_SIZE);
+  };
+
+  // Reset visible count when filter changes
+  const handleFilterChange = (status: GenerationStatus | "all") => {
+    setFilterStatus(status);
+    setVisibleCount(PAGE_SIZE);
+  };
+
   // Convert GeneratedAd to GeneratedAdType for components
   const convertToAdType = (ad: GeneratedAd): GeneratedAdType => ({
     id: ad.id,
@@ -376,7 +392,7 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
             key={filter.value}
             variant={filterStatus === filter.value ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilterStatus(filter.value)}
+            onClick={() => handleFilterChange(filter.value)}
           >
             {filter.label}
           </Button>
@@ -404,19 +420,28 @@ export function FabricaAnunciosGerados({ clientId }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filteredAds.map((ad) => (
-            <AdPreviewCard
-              key={ad.id}
-              ad={convertToAdType(ad)}
-              isSelected={false}
-              onSelect={() => {}}
-              onApprove={() => openAdDialog(ad)}
-              onReject={() => handleUpdateStatus(ad.id, 'rejected')}
-              onViewDetails={() => openAdDialog(ad)}
-              compact
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {visibleAds.map((ad) => (
+              <AdPreviewCard
+                key={ad.id}
+                ad={convertToAdType(ad)}
+                isSelected={false}
+                onSelect={() => {}}
+                onApprove={() => openAdDialog(ad)}
+                onReject={() => handleUpdateStatus(ad.id, 'rejected')}
+                onViewDetails={() => openAdDialog(ad)}
+                compact
+              />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={handleLoadMore}>
+                Carregar mais ({filteredAds.length - visibleCount} restantes)
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
