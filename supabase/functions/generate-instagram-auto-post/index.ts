@@ -152,6 +152,7 @@ async function generateSingleImage(
   clientTargetAudience: string,
   slideNumber?: number,
   totalSlides?: number,
+  includeDateInImage: boolean = false,
   maxRetries: number = 3
 ): Promise<string> {
   let lastError: Error | null = null;
@@ -225,14 +226,22 @@ You MUST REPLICATE these elements with 100% fidelity:
 
 ` : '';
 
+      // Date instruction - CRITICAL: enforce no date if config says so
+      const dateInstruction = includeDateInImage 
+        ? `SCHEDULED POST DATE: ${scheduledDateFormatted}
+If the image should contain a date, use EXACTLY: ${scheduledDateFormatted}`
+        : `🚫 CRITICAL - NO DATES ALLOWED 🚫
+DO NOT include ANY dates, days of the week, or calendar references in the image.
+The image must be TIMELESS - no "Friday", no "January 9", no "2026", no date references whatsoever.
+If the content prompt mentions a date, IGNORE IT and create the image without any date text.`;
+
       const geminiPrompt = `${referenceInstructions}
 NOW, create a vertical 3:4 Instagram feed image (1080x1350 pixels).
 
 CONTENT TO INCLUDE (with IDENTICAL STYLE to the reference images above):
 ${imagePrompt}${slideContext}
 
-SCHEDULED POST DATE: ${scheduledDateFormatted}
-If the image should contain a date, use EXACTLY: ${scheduledDateFormatted}
+${dateInstruction}
 
 FINAL REMINDER: The visual style must be a PERFECT MATCH to the reference images. Only the specific content/text changes, NOT the style.
 
@@ -564,6 +573,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('Config loaded:', clientName, '| Post type:', postType, '| Images:', numberOfImages);
+    console.log('Include date in image:', config.include_date_in_image || false);
     console.log('Next post scheduled at:', scheduledAt.toISOString());
 
     // Convert scheduledAt (UTC) to Brasília timezone to get correct day/date
@@ -838,7 +848,8 @@ Responda APENAS com o prompt em inglês.`
         clientSector,
         clientTargetAudience,
         postType === 'carousel' ? i + 1 : undefined,
-        postType === 'carousel' ? imagePrompts.length : undefined
+        postType === 'carousel' ? imagePrompts.length : undefined,
+        config.include_date_in_image || false
       );
       
       const imageUrl = await uploadImageToStorage(base64Url, configId, postType === 'carousel' ? i : undefined);

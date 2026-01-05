@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Settings, Edit, Loader2, Image, Images, Facebook, Rss, Users } from 'lucide-react';
+import { Settings, Edit, Loader2, Image, Images, Facebook, Rss, Users, Calendar } from 'lucide-react';
 
 interface FacebookPage {
   id: string;
@@ -31,6 +31,7 @@ interface ConfigSectionProps {
     also_post_to_facebook?: boolean;
     facebook_page_id?: string | null;
     client_id?: string | null;
+    include_date_in_image?: boolean;
   };
   instagramAccount: {
     username: string;
@@ -56,6 +57,7 @@ interface ConfigSectionProps {
     also_post_to_facebook?: boolean;
     facebook_page_id?: string | null;
     client_id?: string | null;
+    include_date_in_image?: boolean;
   }) => void;
   isUpdating: boolean;
 }
@@ -81,6 +83,7 @@ export function ConfigSection({
   const [editAlsoPostToFacebook, setEditAlsoPostToFacebook] = useState(false);
   const [editFacebookPageId, setEditFacebookPageId] = useState<string | null>(null);
   const [editClientId, setEditClientId] = useState<string | null>(null);
+  const [editIncludeDateInImage, setEditIncludeDateInImage] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -92,6 +95,7 @@ export function ConfigSection({
       setEditAlsoPostToFacebook(config.also_post_to_facebook || false);
       setEditFacebookPageId(config.facebook_page_id || null);
       setEditClientId(config.client_id || null);
+      setEditIncludeDateInImage(config.include_date_in_image || false);
     }
   }, [config, instagramAccountId]);
 
@@ -105,6 +109,7 @@ export function ConfigSection({
       also_post_to_facebook: editAlsoPostToFacebook,
       facebook_page_id: editAlsoPostToFacebook ? editFacebookPageId : null,
       client_id: editClientId,
+      include_date_in_image: editIncludeDateInImage,
     });
     setIsEditing(false);
   };
@@ -247,6 +252,25 @@ export function ConfigSection({
               <p className="text-xs text-muted-foreground">
                 Este prompt será usado EXCLUSIVAMENTE ao gerar posts a partir do feed RSS. O conteúdo virá da notícia - use este campo para definir estilo visual e estrutura.
               </p>
+            </div>
+
+            {/* Include date in image toggle */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-orange-500" />
+                  <div>
+                    <Label>Incluir data na imagem</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Se desativado, a IA NÃO vai incluir datas nas imagens geradas
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={editIncludeDateInImage}
+                  onCheckedChange={setEditIncludeDateInImage}
+                />
+              </div>
             </div>
 
             {/* Cross-posting to Facebook */}
