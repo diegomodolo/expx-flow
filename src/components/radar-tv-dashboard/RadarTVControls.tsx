@@ -149,19 +149,24 @@ export function RadarTVControls({
           )}
 
           {onRotationChange && (
-            <div className="flex items-center justify-between">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <RotateCw className="h-4 w-4" />
-                <Label>Rotação 90°</Label>
+                <RotateCw className="h-4 w-4 text-primary" />
+                <Label>Rotação da Tela</Label>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onRotationChange((rotation + 90) % 360)}
-                className="h-8 px-3"
-              >
-                {rotation}°
-              </Button>
+              <div className="grid grid-cols-4 gap-2">
+                {([0, 90, 180, 270] as const).map((deg) => (
+                  <Button
+                    key={deg}
+                    variant={rotation === deg ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => onRotationChange(deg)}
+                    className="text-xs"
+                  >
+                    {deg}°
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
 
