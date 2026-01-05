@@ -115,85 +115,114 @@ serve(async (req) => {
     console.log('Found company:', company.name);
 
     // ========== PERFORMANCE METRICS ==========
-    // Get aggregated metrics from ads
-    const { data: adsMetrics } = await supabase
-      .from('ads')
-      .select('id, spend, ctr, conversions')
+    // Use PostgREST aggregates (avoids the 1k row cap)
+    const { data: perfAgg, error: perfAggError } = await supabase
+      .from('campaigns')
+      .select('spend_sum:spend.sum(), ctr_avg:ctr.avg(), conversions_sum:conversions.sum()')
       .eq('company_id', company.id)
       .eq('is_active', true);
 
-    const totalSpend = (adsMetrics || []).reduce((sum, ad) => sum + (ad.spend || 0), 0);
-    const totalLeads = (adsMetrics || []).reduce((sum, ad) => sum + (ad.conversions || 0), 0);
-    const totalAds = (adsMetrics || []).length;
-    const avgCtr = totalAds > 0 
-      ? (adsMetrics || []).reduce((sum, ad) => sum + (ad.ctr || 0), 0) / totalAds
-      : 0;
+    if (perfAggError) {
+      console.error('Error fetching performance aggregates:', perfAggError);
+    }
 
-    // Count active clients
-    const { data: activeClientsData, count: activeClientsCount } = await supabase
+    const perfRow = (perfAgg && perfAgg[0]) as any;
+
+    const totalSpend = Number(perfRow?.spend_sum ?? 0);
+    const totalLeads = Number(perfRow?.conversions_sum ?? 0);
+    const avgCtr = Number(perfRow?.ctr_avg ?? 0);
+
+    // Count active ads (exact, >1000)
+    const { count: totalAdsCount, error: totalAdsError } = await supabase
+      .from('ads')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', company.id)
+      .eq('is_active', true);
+
+    if (totalAdsError) {
+      console.error('Error counting active ads:', totalAdsError);
+    }
+
+    const totalAds = totalAdsCount ?? 0;
+
+    // Count active clients (exact, >1000)
+    const { count: activeClientsCount, error: activeClientsError } = await supabase
       .from('clients')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('company_id', company.id)
       .eq('is_canceled', false);
+
+    if (activeClientsError) {
+      console.error('Error counting active clients:', activeClientsError);
+    }
 
     const performanceMetrics: PerformanceMetrics = {
       totalLeads,
       totalSpend,
       avgCtr,
       activeClients: activeClientsCount || 0,
-      totalAds
+      totalAds,
     };
 
     console.log('Performance metrics:', performanceMetrics);
 
     // ========== FEATURED CLIENT ==========
-    // Get client with highest total spend from active ads
-    const { data: clientsWithAds } = await supabase
-      .from('clients')
-      .select(`
-        id,
-        name,
-        avatar,
-        calculated_status,
-        gestor_id,
-        team_id,
-        gestor:employees!gestor_id(id, name, avatar),
-        team:teams!team_id(id, name, color)
-      `)
-      .eq('company_id', company.id)
-      .eq('is_canceled', false);
+    // Top client by total spend (aggregate + then fetch details)
+    let featuredClient: FeaturedClient | null = null;
 
-    // Get ads grouped by client
-    const { data: adsByClient } = await supabase
-      .from('ads')
-      .select('client_id, spend, ctr')
+    const { data: topClientAgg, error: topClientAggError } = await supabase
+      .from('campaigns')
+      .select('client_id, spend_sum:spend.sum(), ctr_avg:ctr.avg(), campaigns_count:id.count()')
       .eq('company_id', company.id)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .not('client_id', 'is', null)
+      .order('spend_sum', { ascending: false })
+      .limit(1);
 
-    // Aggregate spend per client
-    const clientSpendMap = new Map<string, { totalSpend: number; totalCtr: number; adsCount: number }>();
-    for (const ad of (adsByClient || [])) {
-      if (!ad.client_id) continue;
-      if (!clientSpendMap.has(ad.client_id)) {
-        clientSpendMap.set(ad.client_id, { totalSpend: 0, totalCtr: 0, adsCount: 0 });
-      }
-      const stats = clientSpendMap.get(ad.client_id)!;
-      stats.totalSpend += ad.spend || 0;
-      stats.totalCtr += ad.ctr || 0;
-      stats.adsCount++;
+    if (topClientAggError) {
+      console.error('Error fetching featured client aggregates:', topClientAggError);
     }
 
-    // Find the client with highest spend
-    let featuredClient: FeaturedClient | null = null;
-    let maxSpend = 0;
+    const topAggRow = (topClientAgg && topClientAgg[0]) as any;
+    const topClientId: string | undefined = topAggRow?.client_id ?? undefined;
 
-    for (const client of (clientsWithAds || [])) {
-      const stats = clientSpendMap.get(client.id);
-      if (stats && stats.totalSpend > maxSpend) {
-        maxSpend = stats.totalSpend;
+    if (topClientId) {
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select(`
+          id,
+          name,
+          avatar,
+          calculated_status,
+          gestor_id,
+          team_id,
+          gestor:employees!gestor_id(id, name, avatar, user_id),
+          team:teams!team_id(id, name, color)
+        `)
+        .eq('id', topClientId)
+        .eq('company_id', company.id)
+        .eq('is_canceled', false)
+        .maybeSingle();
+
+      if (clientError) {
+        console.error('Error fetching featured client details:', clientError);
+      }
+
+      if (client) {
+        const { count: featuredAdsCount, error: featuredAdsError } = await supabase
+          .from('ads')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', company.id)
+          .eq('client_id', client.id)
+          .eq('is_active', true);
+
+        if (featuredAdsError) {
+          console.error('Error counting featured client ads:', featuredAdsError);
+        }
+
         const gestor = client.gestor as any;
         const team = client.team as any;
-        
+
         featuredClient = {
           id: client.id,
           name: client.name,
@@ -203,9 +232,9 @@ serve(async (req) => {
           teamName: team?.name || null,
           teamColor: team?.color || null,
           status: client.calculated_status || 'ativo',
-          totalSpend: stats.totalSpend,
-          avgCtr: stats.adsCount > 0 ? stats.totalCtr / stats.adsCount : 0,
-          totalAds: stats.adsCount
+          totalSpend: Number(topAggRow?.spend_sum ?? 0),
+          avgCtr: Number(topAggRow?.ctr_avg ?? 0),
+          totalAds: featuredAdsCount ?? 0,
         };
       }
     }
@@ -276,8 +305,8 @@ serve(async (req) => {
       
       gestorRanking.push({
         id: gestorId,
-        name: employee?.name || profile?.full_name || 'Gestor',
-        avatar: employee?.avatar || profile?.avatar_url || null,
+        name: profile?.full_name || employee?.name || 'Gestor',
+        avatar: profile?.avatar_url || employee?.avatar || null,
         position: position++,
         conversions: stats.conversions,
         clientsCount: stats.clientsCount,
