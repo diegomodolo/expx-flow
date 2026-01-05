@@ -2601,6 +2601,7 @@ export type Database = {
           logo: string | null
           name: string
           phone: string | null
+          radar_tv_dashboard_token: string | null
           slug: string | null
           social_tv_dashboard_token: string | null
           tv_dashboard_token: string | null
@@ -2614,6 +2615,7 @@ export type Database = {
           logo?: string | null
           name: string
           phone?: string | null
+          radar_tv_dashboard_token?: string | null
           slug?: string | null
           social_tv_dashboard_token?: string | null
           tv_dashboard_token?: string | null
@@ -2627,6 +2629,7 @@ export type Database = {
           logo?: string | null
           name?: string
           phone?: string | null
+          radar_tv_dashboard_token?: string | null
           slug?: string | null
           social_tv_dashboard_token?: string | null
           tv_dashboard_token?: string | null
