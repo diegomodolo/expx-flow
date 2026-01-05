@@ -6000,6 +6000,7 @@ export type Database = {
           created_by: string
           facebook_page_id: string | null
           id: string
+          include_date_in_image: boolean
           instagram_account_id: string
           is_enabled: boolean | null
           last_post_at: string | null
@@ -6028,6 +6029,7 @@ export type Database = {
           created_by: string
           facebook_page_id?: string | null
           id?: string
+          include_date_in_image?: boolean
           instagram_account_id: string
           is_enabled?: boolean | null
           last_post_at?: string | null
@@ -6056,6 +6058,7 @@ export type Database = {
           created_by?: string
           facebook_page_id?: string | null
           id?: string
+          include_date_in_image?: boolean
           instagram_account_id?: string
           is_enabled?: boolean | null
           last_post_at?: string | null
