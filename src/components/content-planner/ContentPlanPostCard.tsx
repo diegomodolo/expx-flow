@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from "react";
 import { ContentPlanPost, ContentPlanSlide, useContentPlans } from "@/hooks/useContentPlans";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Save,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -60,6 +59,12 @@ interface ContentPlanPostCardProps {
   validationErrors?: {
     [field: string]: string | undefined;
   };
+  onHasChangesChange?: (postId: string, hasChanges: boolean) => void;
+}
+
+export interface ContentPlanPostCardRef {
+  getPendingChanges: () => { postId: string; data: Partial<ContentPlanPost> } | null;
+  resetChanges: () => void;
 }
 
 const postTypeConfig = {
@@ -229,7 +234,7 @@ function SlideCard({
   );
 }
 
-export function ContentPlanPostCard({
+export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPlanPostCardProps>(({
   post,
   index,
   isActive,
@@ -239,11 +244,11 @@ export function ContentPlanPostCard({
   onRefetch,
   clientBriefing,
   validationErrors,
-}: ContentPlanPostCardProps) {
+  onHasChangesChange,
+}, ref) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [generatingField, setGeneratingField] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
 
@@ -264,32 +269,34 @@ export function ContentPlanPostCard({
     captionField.hasChanges || 
     scriptField.hasChanges;
 
-  // Save all fields at once
-  const handleSavePost = async () => {
-    setIsSaving(true);
-    try {
-      await onUpdate({
-        objective: objectiveField.value,
-        headline: headlineField.value,
-        subheadline: subheadlineField.value,
-        caption: captionField.value,
-        script: scriptField.value,
-      });
-      
-      // Reset change tracking after successful save
+  // Notify parent about changes
+  useEffect(() => {
+    onHasChangesChange?.(post.id, hasUnsavedChanges);
+  }, [hasUnsavedChanges, post.id, onHasChangesChange]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getPendingChanges: () => {
+      if (!hasUnsavedChanges) return null;
+      return {
+        postId: post.id,
+        data: {
+          objective: objectiveField.value,
+          headline: headlineField.value,
+          subheadline: subheadlineField.value,
+          caption: captionField.value,
+          script: scriptField.value,
+        },
+      };
+    },
+    resetChanges: () => {
       objectiveField.resetChanges();
       headlineField.resetChanges();
       subheadlineField.resetChanges();
       captionField.resetChanges();
       scriptField.resetChanges();
-      
-      toast.success("Post salvo!");
-    } catch (error) {
-      toast.error("Erro ao salvar post");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+  }), [hasUnsavedChanges, post.id, objectiveField, headlineField, subheadlineField, captionField, scriptField]);
 
   const typeConfig = postTypeConfig[post.post_type];
   const TypeIcon = typeConfig.icon;
@@ -500,25 +507,6 @@ O conteúdo deve:
                 <SelectItem value="reels">Reels</SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Save Button */}
-            <Button
-              variant={hasUnsavedChanges ? "default" : "ghost"}
-              size="sm"
-              className={`h-8 gap-1 ${hasUnsavedChanges ? "" : "text-muted-foreground"}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSavePost();
-              }}
-              disabled={!hasUnsavedChanges || isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {hasUnsavedChanges ? "Salvar" : "Salvo"}
-            </Button>
 
             <Button
               variant="ghost"
@@ -826,4 +814,6 @@ O conteúdo deve:
       </AlertDialog>
     </>
   );
-}
+});
+
+ContentPlanPostCard.displayName = "ContentPlanPostCard";
