@@ -178,7 +178,7 @@ async function checkOperationStatus(
   accessToken: string,
   operationName: string,
   projectId: string,
-): Promise<{ done: boolean; videoBase64?: string; error?: string }> {
+): Promise<{ done: boolean; videoBase64?: string; videoGcsUri?: string; mimeType?: string; error?: string }> {
   const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${VEO_MODEL}:fetchPredictOperation`;
 
   const response = await fetch(endpoint, {
@@ -205,14 +205,16 @@ async function checkOperationStatus(
     return { done: true, error: data.error.message || JSON.stringify(data.error) };
   }
 
-  // Extract video base64
+  const resp = data.response ?? data;
+
+  // 1) Try to extract inline base64 (older/alternate response shapes)
   let videoBase64: string | undefined;
-  const predictions = data.response?.predictions || data.predictions || [];
+  const predictions = resp?.predictions || data.predictions || [];
   if (predictions.length > 0) {
     videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
   }
   if (!videoBase64) {
-    const samples = data.response?.generatedSamples || data.generatedSamples || [];
+    const samples = resp?.generatedSamples || data.generatedSamples || [];
     if (samples.length > 0) {
       videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
     }
@@ -222,28 +224,87 @@ async function checkOperationStatus(
     return { done: true, videoBase64 };
   }
 
+  // 2) Veo commonly returns a GCS URI (recommended path)
+  const videos = resp?.videos || resp?.generatedVideos || resp?.generated_videos || [];
+  if (Array.isArray(videos) && videos.length > 0) {
+    const v = videos[0];
+    const videoGcsUri = v.gcsUri || v.uri || v.video?.gcsUri || v.video?.uri;
+    const mimeType = v.mimeType || v.video?.mimeType;
+    if (videoGcsUri) {
+      return { done: true, videoGcsUri, mimeType };
+    }
+  }
+
+  // 3) Fallback: look for uri/gcsUri in predictions/video
+  if (predictions.length > 0) {
+    const v = predictions[0]?.video;
+    const videoGcsUri = v?.gcsUri || v?.uri;
+    const mimeType = v?.mimeType;
+    if (videoGcsUri) {
+      return { done: true, videoGcsUri, mimeType };
+    }
+  }
+
   return { done: true, error: "Video format not recognized" };
 }
 
-// Upload video to storage
-async function uploadVideoToStorage(
-  supabase: any,
-  base64Video: string,
-  clientId: string,
-  fileName: string,
-): Promise<string> {
-  const filePath = `${clientId}/reels/${fileName}`;
+function decodeBase64DataUriToBytes(input: string): { bytes: Uint8Array; contentType: string } {
+  // Supports both raw base64 and data URIs like: data:video/mp4;base64,AAAA...
+  let contentType = "video/mp4";
+  let base64 = input;
 
-  const binaryString = atob(base64Video);
+  if (input.startsWith("data:")) {
+    const match = input.match(/^data:([^;]+);base64,(.*)$/s);
+    if (match) {
+      contentType = match[1];
+      base64 = match[2];
+    }
+  }
+
+  const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
 
+  return { bytes, contentType };
+}
+
+async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Promise<Uint8Array> {
+  const match = gcsUri.match(/^gs:\/\/([^/]+)\/(.+)$/);
+  if (!match) throw new Error(`Invalid gcsUri: ${gcsUri}`);
+
+  const bucket = match[1];
+  const objectPath = match[2];
+  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectPath)}?alt=media`;
+
+  const resp = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`Failed to download GCS video: ${resp.status} ${t}`);
+  }
+
+  const buf = await resp.arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+// Upload video to storage
+async function uploadVideoToStorage(
+  supabase: any,
+  videoBytes: Uint8Array,
+  clientId: string,
+  fileName: string,
+  contentType: string,
+): Promise<string> {
+  const filePath = `${clientId}/reels/${fileName}`;
+
   const { error } = await supabase.storage
     .from("visual-creatives")
-    .upload(filePath, bytes, {
-      contentType: "video/mp4",
+    .upload(filePath, videoBytes, {
+      contentType,
       upsert: true,
     });
 
