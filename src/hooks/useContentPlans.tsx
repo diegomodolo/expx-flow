@@ -46,7 +46,15 @@ export interface ContentPlan {
   created_at: string;
   updated_at: string;
   posts?: ContentPlanPost[];
-  clients?: { name: string; company: string };
+  clients?: { 
+    id?: string;
+    name: string; 
+    company: string; 
+    avatar?: string;
+    team_id?: string;
+    teams?: { id: string; name: string };
+    ai_briefing?: string;
+  };
 }
 
 export function useContentPlans(clientId?: string) {
@@ -63,7 +71,7 @@ export function useContentPlans(clientId?: string) {
         .from("content_plans")
         .select(`
           *,
-          clients:client_id (name, company)
+          clients:client_id (id, name, company, avatar, team_id, teams:team_id (id, name))
         `)
         .eq("company_id", activeCompany.company_id)
         .order("created_at", { ascending: false });
