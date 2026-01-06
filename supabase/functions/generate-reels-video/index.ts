@@ -466,25 +466,38 @@ serve(async (req) => {
         if (scene.status === "generating" && scene.operationName) {
           try {
             const status = await checkOperationStatus(accessToken, scene.operationName, projectId);
-            
+
             if (status.done) {
               if (status.error) {
                 scene.status = "error";
                 scene.error = status.error;
                 hasError = true;
-              } else if (status.videoBase64) {
-                // Upload video for this scene
+              } else if (status.videoBase64 || status.videoGcsUri) {
                 const resolvedClientId = progress.clientId || clientId;
                 if (!resolvedClientId) {
                   throw new Error("clientId not available for video upload");
                 }
 
+                let videoBytes: Uint8Array;
+                let contentType = status.mimeType || "video/mp4";
+
+                if (status.videoBase64) {
+                  const decoded = decodeBase64DataUriToBytes(status.videoBase64);
+                  videoBytes = decoded.bytes;
+                  contentType = decoded.contentType || contentType;
+                } else {
+                  videoBytes = await downloadGcsVideoToBytes(accessToken, status.videoGcsUri as string);
+                }
+
+                const ext = contentType.includes("webm") ? "webm" : "mp4";
                 const videoUrl = await uploadVideoToStorage(
                   supabase,
-                  status.videoBase64,
+                  videoBytes,
                   resolvedClientId,
-                  `scene-${scene.sceneNumber}-${Date.now()}.mp4`,
+                  `scene-${scene.sceneNumber}-${Date.now()}.${ext}`,
+                  contentType,
                 );
+
                 scene.videoUrl = videoUrl;
                 scene.status = "completed";
                 progress.currentScene = (progress.currentScene || 0) + 1;
