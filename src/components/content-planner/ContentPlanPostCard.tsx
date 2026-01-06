@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { InstagramPostPreviewModal } from "@/components/instagram/InstagramPostPreviewModal";
 import { SendPostsToPresentationDialog } from "./SendPostsToPresentationDialog";
+import { ReelsVideoGenerator } from "./ReelsVideoGenerator";
 import {
   ChevronDown,
   ChevronUp,
@@ -1295,30 +1296,44 @@ O conteúdo deve:
 
               {/* Reels Script */}
               {post.post_type === "reels" && (
-                <div className="space-y-2 pt-4 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label>Roteiro do Reels</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={() => handleGenerateWithAI("script")}
-                      disabled={generatingField === "script"}
-                    >
-                      {generatingField === "script" ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-3 h-3" />
-                      )}
-                      IA
-                    </Button>
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Roteiro do Reels</Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => handleGenerateWithAI("script")}
+                        disabled={generatingField === "script"}
+                      >
+                        {generatingField === "script" ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        IA
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={scriptField.value}
+                      onChange={(e) => scriptField.setValue(e.target.value)}
+                      placeholder="Descreva o roteiro do vídeo..."
+                      rows={6}
+                    />
                   </div>
-                  <Textarea
-                    value={scriptField.value}
-                    onChange={(e) => scriptField.setValue(e.target.value)}
-                    placeholder="Descreva o roteiro do vídeo..."
-                    rows={6}
-                  />
+
+                  {/* Reels Video Generator */}
+                  {clientId && activeCompany?.company_id && (
+                    <ReelsVideoGenerator
+                      postId={post.id}
+                      clientId={clientId}
+                      companyId={activeCompany.company_id}
+                      script={scriptField.value}
+                      headline={headlineField.value}
+                      subheadline={subheadlineField.value}
+                    />
+                  )}
                 </div>
               )}
 

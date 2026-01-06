@@ -3040,6 +3040,9 @@ export type Database = {
           objective: string | null
           order_index: number
           post_type: string
+          reels_generation_progress: Json | null
+          reels_generation_status: string | null
+          reels_video_url: string | null
           review_feedback: string | null
           review_status: string | null
           reviewed_at: string | null
@@ -3059,6 +3062,9 @@ export type Database = {
           objective?: string | null
           order_index?: number
           post_type?: string
+          reels_generation_progress?: Json | null
+          reels_generation_status?: string | null
+          reels_video_url?: string | null
           review_feedback?: string | null
           review_status?: string | null
           reviewed_at?: string | null
@@ -3078,6 +3084,9 @@ export type Database = {
           objective?: string | null
           order_index?: number
           post_type?: string
+          reels_generation_progress?: Json | null
+          reels_generation_status?: string | null
+          reels_video_url?: string | null
           review_feedback?: string | null
           review_status?: string | null
           reviewed_at?: string | null
