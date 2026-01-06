@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,8 +21,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video, RefreshCw, ChevronLeft, ChevronRight, Upload, Trash2 } from "lucide-react";
 import { useReelsVideoGeneration } from "@/hooks/useReelsVideoGeneration";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface ReelsVideoGeneratorProps {
@@ -31,6 +34,8 @@ interface ReelsVideoGeneratorProps {
   headline?: string;
   subheadline?: string;
   disabled?: boolean;
+  uploadedVideoUrl?: string | null;
+  onUploadedVideoChange?: (url: string | null) => void;
 }
 
 export function ReelsVideoGenerator({
@@ -41,9 +46,13 @@ export function ReelsVideoGenerator({
   headline,
   subheadline,
   disabled = false,
+  uploadedVideoUrl,
+  onUploadedVideoChange,
 }: ReelsVideoGeneratorProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [regeneratingScenes, setRegeneratingScenes] = useState<number[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     state,
     startGeneration,
@@ -114,10 +123,115 @@ export function ReelsVideoGenerator({
     }
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      toast.error("Por favor, selecione um arquivo de vídeo");
+      return;
+    }
+
+    // Validate file size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("O vídeo deve ter no máximo 100MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${postId}-${Date.now()}.${fileExt}`;
+      const filePath = `reels/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('reels-videos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('reels-videos')
+        .getPublicUrl(filePath);
+
+      // Update the post in database
+      const { error: updateError } = await supabase
+        .from('content_plan_posts')
+        .update({ reels_uploaded_video_url: urlData.publicUrl })
+        .eq('id', postId);
+
+      if (updateError) throw updateError;
+
+      onUploadedVideoChange?.(urlData.publicUrl);
+      toast.success("Vídeo enviado com sucesso!");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error("Erro ao enviar vídeo: " + error.message);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveUploadedVideo = async () => {
+    try {
+      const { error } = await supabase
+        .from('content_plan_posts')
+        .update({ reels_uploaded_video_url: null })
+        .eq('id', postId);
+
+      if (error) throw error;
+
+      onUploadedVideoChange?.(null);
+      toast.success("Vídeo removido");
+    } catch (error: any) {
+      toast.error("Erro ao remover vídeo: " + error.message);
+    }
+  };
+
   const { progress } = state;
   const completedScenes = progress?.scenes?.filter(s => s.status === "completed").length || 0;
   const totalScenes = progress?.totalScenes || 0;
   const progressPercent = totalScenes > 0 ? (completedScenes / totalScenes) * 100 : 0;
+
+  // If there's an uploaded video, show it instead of generated scenes
+  if (uploadedVideoUrl) {
+    return (
+      <div className="space-y-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+            <Video className="w-4 h-4" />
+            <span className="text-sm font-medium">Vídeo completo enviado</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRemoveUploadedVideo}
+            className="text-xs text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-3 h-3 mr-1" />
+            Remover
+          </Button>
+        </div>
+
+        <div className="relative aspect-[9/16] max-w-[280px] mx-auto bg-black rounded-xl overflow-hidden shadow-lg">
+          <video
+            src={uploadedVideoUrl}
+            className="w-full h-full object-cover"
+            controls
+            playsInline
+          />
+        </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          Este vídeo será exibido no preview para aprovação.
+        </p>
+      </div>
+    );
+  }
 
   // Render completed state with video carousel player
   if (isCompleted && progress?.scenes) {
@@ -391,19 +505,56 @@ export function ReelsVideoGenerator({
     );
   }
 
-  // Render idle state - show generate button
+  // Render idle state - show generate button and upload option
   return (
     <>
-      <Button
-        variant="secondary"
-        size="sm"
-        className="gap-1.5 w-full"
-        onClick={() => setShowConfirmDialog(true)}
-        disabled={disabled || !script || script.trim().length < 20}
-      >
-        <Video className="w-4 h-4" />
-        Gerar Vídeo do Reels
-      </Button>
+      <div className="space-y-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="gap-1.5 w-full"
+          onClick={() => setShowConfirmDialog(true)}
+          disabled={disabled || !script || script.trim().length < 20}
+        >
+          <Video className="w-4 h-4" />
+          Gerar Vídeo do Reels
+        </Button>
+
+        {/* Upload complete video option */}
+        <div className="relative">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleVideoUpload}
+            className="hidden"
+            id={`video-upload-${postId}`}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 w-full"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Enviar Vídeo Completo
+              </>
+            )}
+          </Button>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground text-center">
+          Gere cenas com IA ou envie seu próprio vídeo (máx. 100MB)
+        </p>
+      </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>

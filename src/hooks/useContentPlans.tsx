@@ -30,6 +30,9 @@ export interface ContentPlanPost {
   review_status: string | null;
   review_feedback: string | null;
   reviewed_at: string | null;
+  reels_uploaded_video_url?: string | null;
+  reels_generation_status?: string | null;
+  reels_generation_progress?: any | null;
   created_at: string;
   updated_at: string;
   slides?: ContentPlanSlide[];

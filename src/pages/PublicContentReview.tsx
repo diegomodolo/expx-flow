@@ -68,6 +68,7 @@ interface Post {
   reels_video_url?: string | null;
   reels_generation_status?: string | null;
   reels_generation_progress?: ReelsProgress | null;
+  reels_uploaded_video_url?: string | null;
 }
 
 interface Plan {
@@ -342,6 +343,25 @@ export default function PublicContentReview() {
                 {/* Reels Video Player */}
                 {post.post_type === 'reels' ? (
                   (() => {
+                    // Priority: uploaded video > generated scenes
+                    if (post.reels_uploaded_video_url) {
+                      return (
+                        <>
+                          <video
+                            src={post.reels_uploaded_video_url}
+                            controls
+                            className="w-full h-full object-cover"
+                            poster={post.image_url || undefined}
+                          />
+                          {/* Play icon overlay */}
+                          <div className="absolute top-12 left-2 bg-primary/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-medium text-primary-foreground flex items-center gap-1">
+                            <Play className="w-3 h-3" />
+                            Reels
+                          </div>
+                        </>
+                      );
+                    }
+
                     const progress = post.reels_generation_progress as ReelsProgress | null;
                     const completedScenes = progress?.scenes?.filter(s => s.status === 'completed' && s.videoUrl) || [];
                     const currentIndex = getReelsVideoIndex(post.id);
