@@ -297,22 +297,39 @@ async function checkOperationStatus(
   console.log("[checkOperationStatus] Top-level keys:", Object.keys(data));
   console.log("[checkOperationStatus] Response keys:", resp ? Object.keys(resp) : "N/A");
 
-  // 1) Try to extract inline base64 (older/alternate response shapes)
+  // 1) Try to extract inline base64 (common in GenerateVideoResponse)
   let videoBase64: string | undefined;
-  const predictions = resp?.predictions || data.predictions || [];
-  if (predictions.length > 0) {
-    videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
+  let base64MimeType: string | undefined;
+
+  // Most common shape (as seen in logs): response.videos[0].bytesBase64Encoded
+  const videoObj = resp?.videos?.[0] ?? resp?.result?.videos?.[0];
+  if (videoObj?.bytesBase64Encoded) {
+    videoBase64 = videoObj.bytesBase64Encoded;
+    base64MimeType = videoObj.mimeType || videoObj.mime_type;
   }
+
+  // Alternate shapes
   if (!videoBase64) {
-    const samples = resp?.generatedSamples || resp?.generated_samples || data.generatedSamples || data.generated_samples || [];
-    if (samples.length > 0) {
-      videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
+    const predictions = resp?.predictions || data.predictions || [];
+    if (predictions.length > 0) {
+      videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
+      base64MimeType = predictions[0].mimeType || predictions[0].mime_type || predictions[0].video?.mimeType || predictions[0].video?.mime_type;
+    }
+
+    if (!videoBase64) {
+      const samples = resp?.generatedSamples || resp?.generated_samples || data.generatedSamples || data.generated_samples || [];
+      if (samples.length > 0) {
+        videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
+        base64MimeType = samples[0].mimeType || samples[0].mime_type || samples[0].video?.mimeType || samples[0].video?.mime_type;
+      }
     }
   }
+
   if (videoBase64) {
     console.log("[checkOperationStatus] Found base64 video");
-    return { done: true, videoBase64 };
+    return { done: true, videoBase64, mimeType: base64MimeType };
   }
+
 
   // 2) Veo commonly returns a URI (usually gs://...) in several possible locations.
   const candidates: any[] = [
