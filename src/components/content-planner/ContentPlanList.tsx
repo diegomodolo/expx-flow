@@ -21,12 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Calendar, FileText, Trash2, Edit, Loader2 } from "lucide-react";
+import { Search, Calendar, FileText, Trash2, Edit, Loader2, Plus, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface ContentPlanListProps {
   onSelectPlan: (planId: string) => void;
+  onCreateNew?: () => void;
 }
 
 const statusLabels = {
@@ -40,7 +42,8 @@ const monthNames = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
-export function ContentPlanList({ onSelectPlan }: ContentPlanListProps) {
+export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListProps) {
+  const navigate = useNavigate();
   const { plans, isLoading, deletePlan } = useContentPlans();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -74,6 +77,38 @@ export function ContentPlanList({ onSelectPlan }: ContentPlanListProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/geradores")}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-500/5">
+              <FileText className="w-8 h-8 text-amber-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                Planejador de Conteúdo
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Planeje suas postagens mensais com ajuda da IA
+              </p>
+            </div>
+          </div>
+        </div>
+        {onCreateNew && (
+          <Button onClick={onCreateNew} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Planejamento
+          </Button>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
