@@ -278,8 +278,16 @@ ${slidePrompt}
 
 ${messageContent.length > 0 ? `REFERENCE IMAGES PROVIDED:
 ${hasSpecificReference ? `- **CRITICAL**: A SPECIFIC reference image was provided for THIS creative. You MUST closely follow this reference image's style, composition, colors, and visual elements.
-- This is NOT a generic brand reference - it was specifically chosen for this creative.
-- Replicate the visual approach, layout style, and aesthetic of this reference as closely as possible.` : `- Study the reference images carefully and match their visual style
+${context?.contextOnly?.isSlideReference ? `
+CAROUSEL SLIDE CONSISTENCY (HIGHEST PRIORITY):
+- This is a reference from a PREVIOUS SLIDE in the SAME carousel
+- You MUST match the EXACT visual style: same colors, typography, background style, layout structure
+- Use the SAME graphic elements, design approach, and visual language
+- This slide MUST look like it belongs to the same carousel set as the reference
+- Only change the text content - keep EVERYTHING else visually identical
+- The slides should be visually cohesive and clearly part of the same series
+` : `- This is NOT a generic brand reference - it was specifically chosen for this creative.
+- Replicate the visual approach, layout style, and aesthetic of this reference as closely as possible.`}` : `- Study the reference images carefully and match their visual style
 - Follow the same color palette, typography style, and design language`}
 ${clientData.avatar ? '- The first image is the client LOGO - incorporate it subtly if appropriate' : ''}
 - The generated image should look like it belongs to the same brand family` : ''}

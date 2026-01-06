@@ -36,6 +36,7 @@ import {
   Trash2,
   Sparkles,
   Image,
+  Images,
   Film,
   Layers,
   Plus,
@@ -131,6 +132,7 @@ interface SlideCardProps {
   clientBriefing?: string;
   postObjective?: string;
   postHeadline?: string;
+  allSlides: ContentPlanSlide[];
   onUpdateSlide: (slideId: string, data: Partial<ContentPlanSlide>) => void;
   onDeleteSlide: (slideId: string) => void;
   onGenerateWithAI: (slideId: string, field: "headline" | "content", slideIndex: number) => void;
@@ -147,6 +149,7 @@ function SlideCard({
   clientBriefing,
   postObjective,
   postHeadline,
+  allSlides,
   onUpdateSlide,
   onDeleteSlide,
   onGenerateWithAI,
@@ -224,6 +227,17 @@ function SlideCard({
       // Texto que DEVE aparecer na imagem (headline + content do slide)
       const approvedText = [localHeadline, localContent].filter(Boolean).join('\n');
       
+      // Buscar slides anteriores com imagem para usar como referência visual
+      const previousSlidesWithImages = allSlides
+        .slice(0, slideIndex)
+        .filter(s => s.image_url)
+        .map(s => s.image_url as string);
+      
+      // Usar a última imagem gerada como referência principal para consistência
+      const referenceImages = previousSlidesWithImages.length > 0 
+        ? [previousSlidesWithImages[previousSlidesWithImages.length - 1]]
+        : [];
+      
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
           clientId: clientId,
@@ -232,12 +246,15 @@ function SlideCard({
           theme: localHeadline || postHeadline || 'Slide de Carrossel',
           approvedText: approvedText || undefined,
           extraPrompt: extraPrompt.trim() || undefined,
+          references: referenceImages,
           context: {
             title: localHeadline,
             description: localContent,
             contextOnly: {
               slideIndex: slideIndex + 1,
+              totalSlides: allSlides.length,
               postObjective: postObjective,
+              isSlideReference: referenceImages.length > 0,
             },
           },
         },
@@ -470,6 +487,10 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState("");
   const [showSendToPresentationDialog, setShowSendToPresentationDialog] = useState(false);
+  const [generatingAllSlides, setGeneratingAllSlides] = useState(false);
+  const [allSlidesProgress, setAllSlidesProgress] = useState({ current: 0, total: 0 });
+  const [showAllSlidesPromptDialog, setShowAllSlidesPromptDialog] = useState(false);
+  const [allSlidesExtraPrompt, setAllSlidesExtraPrompt] = useState("");
   
   const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
@@ -737,6 +758,97 @@ O conteúdo deve:
     await onUpdate({ image_url: null });
     onRefetch();
     toast.success('Imagem removida');
+  };
+
+  // Gerar todas as imagens dos slides do carrossel sequencialmente
+  const handleGenerateAllSlideImages = async () => {
+    if (!clientId || !activeCompany?.company_id || !post.slides) {
+      toast.error("Informações do cliente ou slides não disponíveis");
+      return;
+    }
+
+    const slidesWithoutImages = post.slides.filter(s => !s.image_url);
+    if (slidesWithoutImages.length === 0) {
+      toast.info("Todos os slides já possuem imagens");
+      return;
+    }
+
+    setGeneratingAllSlides(true);
+    setShowAllSlidesPromptDialog(false);
+    setAllSlidesProgress({ current: 0, total: slidesWithoutImages.length });
+
+    try {
+      // Pegar a lista atualizada de slides
+      let currentSlides = [...(post.slides || [])];
+      
+      for (let i = 0; i < post.slides.length; i++) {
+        const slide = post.slides[i];
+        
+        // Pular slides que já têm imagem
+        if (slide.image_url) continue;
+
+        // Atualizar progresso
+        const slidesGenerated = currentSlides.filter(s => s.image_url).length - post.slides.filter(s => s.image_url).length;
+        setAllSlidesProgress({ current: slidesGenerated + 1, total: slidesWithoutImages.length });
+
+        // Buscar o último slide com imagem para usar como referência
+        const lastSlideWithImage = currentSlides
+          .slice(0, i)
+          .reverse()
+          .find(s => s.image_url);
+        
+        const referenceImages = lastSlideWithImage?.image_url 
+          ? [lastSlideWithImage.image_url] 
+          : [];
+
+        const approvedText = [slide.headline, slide.content].filter(Boolean).join('\n');
+
+        const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
+          body: {
+            clientId: clientId,
+            companyId: activeCompany.company_id,
+            creativeType: 'instagram_feed',
+            theme: slide.headline || post.headline || 'Slide de Carrossel',
+            approvedText: approvedText || undefined,
+            extraPrompt: allSlidesExtraPrompt.trim() || undefined,
+            references: referenceImages,
+            context: {
+              title: slide.headline,
+              description: slide.content,
+              contextOnly: {
+                slideIndex: i + 1,
+                totalSlides: post.slides.length,
+                postObjective: post.objective,
+                isSlideReference: referenceImages.length > 0,
+              },
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        if (data?.imageUrl) {
+          await updateSlide.mutateAsync({
+            id: slide.id,
+            image_url: data.imageUrl
+          });
+          // Atualizar lista local com a nova imagem
+          currentSlides = currentSlides.map(s => 
+            s.id === slide.id ? { ...s, image_url: data.imageUrl } : s
+          );
+        }
+      }
+
+      onRefetch();
+      toast.success(`${slidesWithoutImages.length} imagens geradas com sucesso!`);
+      setAllSlidesExtraPrompt("");
+    } catch (error: any) {
+      console.error('Error generating all slide images:', error);
+      toast.error('Erro ao gerar imagens: ' + (error.message || 'Erro desconhecido'));
+    } finally {
+      setGeneratingAllSlides(false);
+      setAllSlidesProgress({ current: 0, total: 0 });
+    }
   };
 
   return (
@@ -1113,17 +1225,41 @@ O conteúdo deve:
               {/* Carousel Slides */}
               {post.post_type === "carrossel" && (
                 <div className="space-y-3 pt-4 border-t">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <Label className="text-base font-semibold">Slides do Carrossel</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      onClick={handleAddSlide}
-                    >
-                      <Plus className="w-3 h-3" />
-                      Slide
-                    </Button>
+                    <div className="flex gap-2">
+                      {hasCreativeFactory && post.slides && post.slides.some(s => !s.image_url) && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => setShowAllSlidesPromptDialog(true)}
+                          disabled={generatingAllSlides}
+                        >
+                          {generatingAllSlides ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              {allSlidesProgress.current}/{allSlidesProgress.total}
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-3 h-3" />
+                              <Images className="w-3 h-3" />
+                              Gerar Todas
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={handleAddSlide}
+                      >
+                        <Plus className="w-3 h-3" />
+                        Slide
+                      </Button>
+                    </div>
                   </div>
 
                   {post.slides && post.slides.length > 0 ? (
@@ -1139,6 +1275,7 @@ O conteúdo deve:
                           clientBriefing={clientBriefing}
                           postObjective={post.objective || undefined}
                           postHeadline={post.headline || undefined}
+                          allSlides={post.slides || []}
                           onUpdateSlide={handleUpdateSlide}
                           onDeleteSlide={handleDeleteSlide}
                           onGenerateWithAI={handleGenerateSlideWithAI}
@@ -1270,6 +1407,49 @@ O conteúdo deve:
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Generate All Slides Dialog */}
+      <AlertDialog open={showAllSlidesPromptDialog} onOpenChange={setShowAllSlidesPromptDialog}>
+        <AlertDialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-primary" />
+              <Images className="w-5 h-5 text-primary" />
+              Gerar Todas as Imagens
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Gere imagens para todos os slides sem imagem. Cada slide usará o anterior como referência para manter consistência visual.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4">
+            <Textarea
+              placeholder="Instruções extras para todas as imagens (opcional)..."
+              value={allSlidesExtraPrompt}
+              onChange={(e) => setAllSlidesExtraPrompt(e.target.value)}
+              className="min-h-[80px]"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAllSlidesExtraPrompt("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleGenerateAllSlideImages}
+              disabled={generatingAllSlides}
+              className="gap-2"
+            >
+              {generatingAllSlides ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Gerar Imagens
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Send to Presentation Dialog */}
       {clientId && (
         <SendPostsToPresentationDialog
