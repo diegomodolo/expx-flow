@@ -607,13 +607,7 @@ ${post.subheadline ? `Subheadline: ${post.subheadline}` : ""}`.trim();
       subheadline: `${baseContext ? `Contexto:\n${baseContext}\n\n` : ""}Gere APENAS UMA subheadline que complemente a headline acima e reforce o objetivo. Mantenha o mesmo tom e linguagem. NÃO inclua formatação, numeração ou opções. Responda SOMENTE com o texto.`,
       caption: `${baseContext ? `Contexto:\n${baseContext}\n\n` : ""}Gere APENAS UMA legenda completa para este post, alinhada com o objetivo, headline e subheadline acima. Inclua: texto engajador, call-to-action e hashtags relevantes (mínimo 10 hashtags). NÃO inclua variações ou opções. Responda SOMENTE com a legenda.`,
       objective: "Gere APENAS o objetivo do post em uma frase direta e concisa. NÃO inclua títulos, justificativas ou formatação. Exemplo: 'Aumentar o engajamento e educar o público sobre finanças pessoais'. Responda SOMENTE com a frase do objetivo.",
-      script: `${baseContext ? `Contexto:\n${baseContext}\n\n` : ""}Gere um roteiro completo para um Reels do Instagram com duração de 15-30 segundos, alinhado com o objetivo e headline. 
-Inclua:
-- CENA 1, CENA 2, etc. com descrição visual
-- Texto/fala para cada cena
-- Sugestão de música/áudio
-- Timing aproximado de cada cena
-Seja criativo e engajador!`,
+      script: `${baseContext ? `Contexto:\n${baseContext}\n\n` : ""}Gere um roteiro curto para Reels (15-30s). Formato: CENA 1 (Xs): [ação] - "fala". Máximo 4 cenas. Seja direto.`,
     };
     return prompts[field] || "";
   };
