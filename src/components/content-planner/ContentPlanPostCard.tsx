@@ -599,7 +599,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       headline: "Gere uma headline impactante para este post de redes sociais. Seja criativo, conciso e use linguagem que engaje o público.",
       subheadline: "Gere uma subheadline complementar à headline que reforce a mensagem principal.",
       caption: "Gere uma legenda completa para este post incluindo: texto engajador, call-to-action e hashtags relevantes (mínimo 10 hashtags).",
-      objective: "Sugira um objetivo estratégico claro para este post (ex: gerar leads, aumentar engajamento, educar o público).",
+      objective: "Gere APENAS o objetivo do post em uma frase direta e concisa. NÃO inclua títulos, justificativas ou formatação. Exemplo: 'Aumentar o engajamento e educar o público sobre finanças pessoais'. Responda SOMENTE com a frase do objetivo.",
       script: `Gere um roteiro completo para um Reels do Instagram com duração de 15-30 segundos. 
 Inclua:
 - CENA 1, CENA 2, etc. com descrição visual
