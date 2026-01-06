@@ -76,8 +76,9 @@ export function useReelsVideoGeneration() {
 
         const progress = data.progress as ReelsProgress;
         const completedScenes = progress?.scenes?.filter(s => s.status === "completed").length || 0;
+        const errorScenes = progress?.scenes?.filter(s => s.status === "error").length || 0;
         const totalScenes = progress?.totalScenes || 0;
-        const remainingScenes = totalScenes - completedScenes;
+        const remainingScenes = totalScenes - completedScenes - errorScenes;
         
         // Estimate ~60 seconds per scene
         const estimatedSeconds = remainingScenes * 60;
@@ -85,14 +86,27 @@ export function useReelsVideoGeneration() {
           ? `~${Math.ceil(estimatedSeconds / 60)} min restantes`
           : `~${estimatedSeconds}s restantes`;
 
+        // Determine UI status - safety fallback for inconsistent backend state
+        let uiStatus = data.status;
+        if (data.allDone && data.status === "generating") {
+          // Backend says all done but status is still generating - force correct status
+          if (errorScenes > 0 && completedScenes === 0) {
+            uiStatus = "error";
+          } else if (completedScenes > 0) {
+            uiStatus = "completed";
+          } else {
+            uiStatus = "error"; // No scenes completed = error
+          }
+        }
+
         setState({
-          status: data.status,
+          status: uiStatus,
           progress,
-          estimatedTime: data.status === "generating" ? estimatedTime : null,
+          estimatedTime: uiStatus === "generating" ? estimatedTime : null,
         });
 
         // Stop polling if done
-        if (data.status === "completed" || data.status === "error" || data.allDone) {
+        if (uiStatus === "completed" || uiStatus === "error" || data.allDone) {
           stopPolling();
         }
       } catch (err) {
