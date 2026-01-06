@@ -178,7 +178,14 @@ async function checkOperationStatus(
   accessToken: string,
   operationName: string,
   projectId: string,
-): Promise<{ done: boolean; videoBase64?: string; videoGcsUri?: string; mimeType?: string; error?: string }> {
+): Promise<{
+  done: boolean;
+  videoBase64?: string;
+  videoGcsUri?: string;
+  videoUri?: string;
+  mimeType?: string;
+  error?: string;
+}> {
   const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${LOCATION}/publishers/google/models/${VEO_MODEL}:fetchPredictOperation`;
 
   const response = await fetch(endpoint, {
@@ -214,34 +221,37 @@ async function checkOperationStatus(
     videoBase64 = predictions[0].bytesBase64Encoded || predictions[0].video?.bytesBase64Encoded;
   }
   if (!videoBase64) {
-    const samples = resp?.generatedSamples || data.generatedSamples || [];
+    const samples = resp?.generatedSamples || resp?.generated_samples || data.generatedSamples || data.generated_samples || [];
     if (samples.length > 0) {
       videoBase64 = samples[0].video?.bytesBase64Encoded || samples[0].bytesBase64Encoded;
     }
   }
-
   if (videoBase64) {
     return { done: true, videoBase64 };
   }
 
-  // 2) Veo commonly returns a GCS URI (recommended path)
-  const videos = resp?.videos || resp?.generatedVideos || resp?.generated_videos || [];
-  if (Array.isArray(videos) && videos.length > 0) {
-    const v = videos[0];
-    const videoGcsUri = v.gcsUri || v.uri || v.video?.gcsUri || v.video?.uri;
-    const mimeType = v.mimeType || v.video?.mimeType;
-    if (videoGcsUri) {
-      return { done: true, videoGcsUri, mimeType };
-    }
-  }
+  // 2) Veo commonly returns a URI (usually gs://...) in several possible locations.
+  const candidates: any[] = [
+    resp?.videos?.[0],
+    resp?.result?.videos?.[0],
+    resp?.generatedVideos?.[0],
+    resp?.generated_videos?.[0],
+    resp?.generatedVideos?.[0]?.video,
+    resp?.generated_videos?.[0]?.video,
+    resp?.result?.generatedVideos?.[0]?.video,
+    resp?.result?.generated_videos?.[0]?.video,
+    predictions?.[0]?.video,
+  ].filter(Boolean);
 
-  // 3) Fallback: look for uri/gcsUri in predictions/video
-  if (predictions.length > 0) {
-    const v = predictions[0]?.video;
-    const videoGcsUri = v?.gcsUri || v?.uri;
-    const mimeType = v?.mimeType;
-    if (videoGcsUri) {
-      return { done: true, videoGcsUri, mimeType };
+  for (const c of candidates) {
+    const uri = c.gcsUri || c.uri || c.video?.gcsUri || c.video?.uri;
+    const mimeType = c.mimeType || c.mime_type || c.video?.mimeType || c.video?.mime_type;
+
+    if (typeof uri === "string" && uri.length > 0) {
+      if (uri.startsWith("gs://")) {
+        return { done: true, videoGcsUri: uri, mimeType };
+      }
+      return { done: true, videoUri: uri, mimeType };
     }
   }
 
@@ -268,6 +278,32 @@ function decodeBase64DataUriToBytes(input: string): { bytes: Uint8Array; content
   }
 
   return { bytes, contentType };
+}
+
+async function downloadVideoUriToBytes(
+  accessToken: string,
+  uri: string,
+): Promise<{ bytes: Uint8Array; contentType?: string }> {
+  if (uri.startsWith("gs://")) {
+    const bytes = await downloadGcsVideoToBytes(accessToken, uri);
+    return { bytes };
+  }
+
+  const headers: HeadersInit = {};
+  // If it's a GCS HTTPS URL (or similar), the token may be required.
+  if (uri.includes("storage.googleapis.com")) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
+  const resp = await fetch(uri, Object.keys(headers).length ? { headers } : undefined);
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`Failed to download video URI: ${resp.status} ${t}`);
+  }
+
+  const contentType = resp.headers.get("content-type") || undefined;
+  const buf = await resp.arrayBuffer();
+  return { bytes: new Uint8Array(buf), contentType };
 }
 
 async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Promise<Uint8Array> {
@@ -472,7 +508,7 @@ serve(async (req) => {
                 scene.status = "error";
                 scene.error = status.error;
                 hasError = true;
-              } else if (status.videoBase64 || status.videoGcsUri) {
+              } else if (status.videoBase64 || status.videoGcsUri || status.videoUri) {
                 const resolvedClientId = progress.clientId || clientId;
                 if (!resolvedClientId) {
                   throw new Error("clientId not available for video upload");
@@ -486,7 +522,10 @@ serve(async (req) => {
                   videoBytes = decoded.bytes;
                   contentType = decoded.contentType || contentType;
                 } else {
-                  videoBytes = await downloadGcsVideoToBytes(accessToken, status.videoGcsUri as string);
+                  const uri = (status.videoGcsUri || status.videoUri) as string;
+                  const downloaded = await downloadVideoUriToBytes(accessToken, uri);
+                  videoBytes = downloaded.bytes;
+                  contentType = downloaded.contentType || contentType;
                 }
 
                 const ext = contentType.includes("webm") ? "webm" : "mp4";
@@ -507,7 +546,23 @@ serve(async (req) => {
             }
           } catch (error: any) {
             console.error(`Error checking scene ${scene.sceneNumber}:`, error);
-            // Don't mark as error on transient failures
+
+            const msg = String(error?.message || error);
+            // If we can't parse/download/upload the result, it's not transient for this run.
+            if (
+              msg.includes("Video format not recognized") ||
+              msg.includes("Invalid gcsUri") ||
+              msg.includes("Failed to download") ||
+              msg.includes("Failed to upload")
+            ) {
+              scene.status = "error";
+              scene.error = msg;
+              hasError = true;
+            } else {
+              // Treat unknown failures as transient
+              allDone = false;
+            }
+
             allDone = false;
           }
         } else if (scene.status === "pending") {
