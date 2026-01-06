@@ -201,7 +201,7 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
 
       {/* Table */}
       {filteredPlans && filteredPlans.length > 0 ? (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-auto max-h-[calc(100vh-280px)]">
           <Table>
             <TableHeader>
               <TableRow>
