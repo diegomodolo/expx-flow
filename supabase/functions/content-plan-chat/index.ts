@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { messages, clientId, companyId } = await req.json();
+    const { messages, clientId, companyId, systemPrompt: customSystemPrompt, useCustomSystemPrompt } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       throw new Error('Messages array is required');
@@ -332,8 +332,13 @@ ${uniqueVisualThemes.map((theme, i) => `${i + 1}. ${theme}`).join('\n')}
       }
     }
 
-    // Build system prompt with all context
-    const systemPrompt = `Você é um assistente de copywriting e estratégia de marketing digital especializado em criar conteúdo para redes sociais.
+    // Use custom system prompt if provided, otherwise use the comprehensive one
+    let finalSystemPrompt: string;
+    
+    if (useCustomSystemPrompt && customSystemPrompt) {
+      finalSystemPrompt = customSystemPrompt;
+    } else {
+      finalSystemPrompt = `Você é um assistente de copywriting e estratégia de marketing digital especializado em criar conteúdo para redes sociais.
 
 ${clientContext}
 
@@ -356,9 +361,10 @@ Você tem acesso a todos os dados do cliente acima e pode:
 - Responda em português brasileiro
 - Quando perguntado sobre performance, cite dados específicos dos criativos
 - Sugira temas baseados no que já foi cadastrado e no que performa bem`;
+    }
 
     const formattedMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: finalSystemPrompt },
       ...messages.map((msg: { role: string; content: string }) => ({
         role: msg.role,
         content: msg.content
