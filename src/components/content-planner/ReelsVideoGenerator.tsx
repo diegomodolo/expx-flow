@@ -318,6 +318,40 @@ export function ReelsVideoGenerator({
             ? "Deslize para ver todas as cenas. Você pode baixar e editar no seu editor favorito."
             : "O vídeo está pronto. Você pode baixá-lo e editá-lo no seu editor favorito."}
         </p>
+
+        {/* Upload complete video option - available even with generated scenes */}
+        <div className="pt-2 border-t border-green-200 dark:border-green-800">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleVideoUpload}
+            className="hidden"
+            id={`video-upload-${postId}`}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 w-full"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Enviar Vídeo Final Editado
+              </>
+            )}
+          </Button>
+          <p className="text-[10px] text-muted-foreground text-center mt-1">
+            Envie o vídeo final editado para substituir as cenas geradas (máx. 100MB)
+          </p>
+        </div>
       </div>
     );
   }
