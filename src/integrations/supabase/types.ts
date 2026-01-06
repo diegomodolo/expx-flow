@@ -3103,6 +3103,7 @@ export type Database = {
           created_at: string
           headline: string | null
           id: string
+          image_url: string | null
           order_index: number
           post_id: string
         }
@@ -3111,6 +3112,7 @@ export type Database = {
           created_at?: string
           headline?: string | null
           id?: string
+          image_url?: string | null
           order_index?: number
           post_id: string
         }
@@ -3119,6 +3121,7 @@ export type Database = {
           created_at?: string
           headline?: string | null
           id?: string
+          image_url?: string | null
           order_index?: number
           post_id?: string
         }
