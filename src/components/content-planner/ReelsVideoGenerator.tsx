@@ -199,22 +199,66 @@ export function ReelsVideoGenerator({
 
   // Render error state
   if (hasError) {
+    const errorScenes = progress?.scenes?.filter(s => s.status === "error") || [];
+    const completedVideos = progress?.scenes?.filter(s => s.status === "completed" && s.videoUrl) || [];
+
     return (
-      <div className="space-y-2 p-3 bg-destructive/5 rounded-lg border border-destructive/20">
+      <div className="space-y-3 p-3 bg-destructive/5 rounded-lg border border-destructive/20">
         <div className="flex items-center gap-2 text-destructive">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm font-medium">Erro na geração</span>
         </div>
+        
         <p className="text-xs text-muted-foreground">
           {progress?.error || "Ocorreu um erro ao gerar os vídeos. Tente novamente."}
         </p>
+
+        {/* Show completed videos if any */}
+        {completedVideos.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-green-600 dark:text-green-400">
+              {completedVideos.length} cena(s) gerada(s) com sucesso:
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {completedVideos.map((scene) => (
+                <div
+                  key={scene.sceneNumber}
+                  className="relative aspect-[9/16] bg-black rounded overflow-hidden"
+                >
+                  <video
+                    src={scene.videoUrl!}
+                    className="w-full h-full object-cover"
+                    controls
+                    playsInline
+                  />
+                  <Badge className="absolute top-1 left-1 text-[10px]">
+                    Cena {scene.sceneNumber}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Show error details per scene */}
+        {errorScenes.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-destructive">Erros por cena:</p>
+            {errorScenes.map((scene) => (
+              <p key={scene.sceneNumber} className="text-[10px] text-muted-foreground truncate">
+                Cena {scene.sceneNumber}: {scene.error || "Erro desconhecido"}
+              </p>
+            ))}
+          </div>
+        )}
+
         <Button
           variant="outline"
           size="sm"
           onClick={() => cancelGeneration(postId)}
           className="w-full text-xs"
         >
-          Tentar novamente
+          {completedVideos.length > 0 ? "Limpar e tentar novamente" : "Tentar novamente"}
         </Button>
       </div>
     );

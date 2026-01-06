@@ -173,6 +173,83 @@ async function startSceneGeneration(
   return data.name; // operation name for polling
 }
 
+// ========== VERTEX PROTOBUF JSON NORMALIZER ==========
+// Vertex AI often returns protobuf-wrapped JSON. This unwraps it.
+function normalizeVertexValue(val: any): any {
+  if (val === null || val === undefined) return val;
+  if (typeof val !== "object") return val;
+
+  // Handle protobuf wrappers
+  if ("stringValue" in val) return val.stringValue;
+  if ("numberValue" in val) return val.numberValue;
+  if ("boolValue" in val) return val.boolValue;
+  if ("nullValue" in val) return null;
+
+  if ("listValue" in val && val.listValue?.values) {
+    return val.listValue.values.map(normalizeVertexValue);
+  }
+
+  if ("structValue" in val && val.structValue?.fields) {
+    const result: Record<string, any> = {};
+    for (const [k, v] of Object.entries(val.structValue.fields)) {
+      result[k] = normalizeVertexValue(v);
+    }
+    return result;
+  }
+
+  // If it's an array, normalize each element
+  if (Array.isArray(val)) {
+    return val.map(normalizeVertexValue);
+  }
+
+  // If it's a plain object, normalize each field
+  const result: Record<string, any> = {};
+  for (const [k, v] of Object.entries(val)) {
+    result[k] = normalizeVertexValue(v);
+  }
+  return result;
+}
+
+// Deep-walk an object looking for video URIs
+function findVideoUri(obj: any, depth = 0): { uri: string; mimeType?: string } | null {
+  if (depth > 10 || obj === null || obj === undefined) return null;
+
+  if (typeof obj === "string") {
+    if (obj.startsWith("gs://") || (obj.startsWith("https://") && (obj.includes("storage.googleapis.com") || obj.includes(".mp4") || obj.includes(".webm")))) {
+      return { uri: obj };
+    }
+    return null;
+  }
+
+  if (typeof obj !== "object") return null;
+
+  // Check direct properties that commonly hold URIs
+  const uriProps = ["gcsUri", "uri", "videoUri", "video_uri", "url"];
+  for (const prop of uriProps) {
+    if (typeof obj[prop] === "string" && obj[prop].length > 5) {
+      const val = obj[prop];
+      if (val.startsWith("gs://") || val.startsWith("https://")) {
+        return { uri: val, mimeType: obj.mimeType || obj.mime_type };
+      }
+    }
+  }
+
+  // Recurse into arrays and objects
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findVideoUri(item, depth + 1);
+      if (found) return found;
+    }
+  } else {
+    for (const key of Object.keys(obj)) {
+      const found = findVideoUri(obj[key], depth + 1);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 // Check operation status
 async function checkOperationStatus(
   accessToken: string,
@@ -202,17 +279,23 @@ async function checkOperationStatus(
     throw new Error(`Operation check error: ${errorText}`);
   }
 
-  const data = await response.json();
+  const rawData = await response.json();
 
-  if (!data.done && !data.response && !data.error) {
+  if (!rawData.done && !rawData.response && !rawData.error) {
     return { done: false };
   }
 
-  if (data.error) {
-    return { done: true, error: data.error.message || JSON.stringify(data.error) };
+  if (rawData.error) {
+    return { done: true, error: rawData.error.message || JSON.stringify(rawData.error) };
   }
 
+  // Normalize the entire response to handle protobuf wrappers
+  const data = normalizeVertexValue(rawData);
   const resp = data.response ?? data;
+
+  console.log("[checkOperationStatus] operationName:", operationName);
+  console.log("[checkOperationStatus] Top-level keys:", Object.keys(data));
+  console.log("[checkOperationStatus] Response keys:", resp ? Object.keys(resp) : "N/A");
 
   // 1) Try to extract inline base64 (older/alternate response shapes)
   let videoBase64: string | undefined;
@@ -227,6 +310,7 @@ async function checkOperationStatus(
     }
   }
   if (videoBase64) {
+    console.log("[checkOperationStatus] Found base64 video");
     return { done: true, videoBase64 };
   }
 
@@ -238,16 +322,21 @@ async function checkOperationStatus(
     resp?.generated_videos?.[0],
     resp?.generatedVideos?.[0]?.video,
     resp?.generated_videos?.[0]?.video,
+    resp?.result?.generatedVideos?.[0],
     resp?.result?.generatedVideos?.[0]?.video,
+    resp?.result?.generated_videos?.[0],
     resp?.result?.generated_videos?.[0]?.video,
     predictions?.[0]?.video,
+    predictions?.[0]?.videos?.[0],
+    predictions?.[0],
   ].filter(Boolean);
 
   for (const c of candidates) {
-    const uri = c.gcsUri || c.uri || c.video?.gcsUri || c.video?.uri;
+    const uri = c.gcsUri || c.uri || c.video?.gcsUri || c.video?.uri || c.videoUri || c.video_uri;
     const mimeType = c.mimeType || c.mime_type || c.video?.mimeType || c.video?.mime_type;
 
     if (typeof uri === "string" && uri.length > 0) {
+      console.log("[checkOperationStatus] Found video URI from candidates:", uri);
       if (uri.startsWith("gs://")) {
         return { done: true, videoGcsUri: uri, mimeType };
       }
@@ -255,7 +344,20 @@ async function checkOperationStatus(
     }
   }
 
-  return { done: true, error: "Video format not recognized" };
+  // 3) Deep-walk fallback: search entire response for video URIs
+  const foundUri = findVideoUri(resp) || findVideoUri(data);
+  if (foundUri) {
+    console.log("[checkOperationStatus] Found video URI via deep-walk:", foundUri.uri);
+    if (foundUri.uri.startsWith("gs://")) {
+      return { done: true, videoGcsUri: foundUri.uri, mimeType: foundUri.mimeType };
+    }
+    return { done: true, videoUri: foundUri.uri, mimeType: foundUri.mimeType };
+  }
+
+  // Log detailed info when video not found
+  console.error("[checkOperationStatus] Video not found. Full response (truncated):", JSON.stringify(resp).substring(0, 3000));
+
+  return { done: true, error: "Video format not recognized - check logs for response structure" };
 }
 
 function decodeBase64DataUriToBytes(input: string): { bytes: Uint8Array; contentType: string } {
@@ -284,6 +386,8 @@ async function downloadVideoUriToBytes(
   accessToken: string,
   uri: string,
 ): Promise<{ bytes: Uint8Array; contentType?: string }> {
+  console.log("[downloadVideoUriToBytes] Downloading:", uri);
+
   if (uri.startsWith("gs://")) {
     const bytes = await downloadGcsVideoToBytes(accessToken, uri);
     return { bytes };
@@ -303,6 +407,7 @@ async function downloadVideoUriToBytes(
 
   const contentType = resp.headers.get("content-type") || undefined;
   const buf = await resp.arrayBuffer();
+  console.log("[downloadVideoUriToBytes] Downloaded bytes:", buf.byteLength);
   return { bytes: new Uint8Array(buf), contentType };
 }
 
@@ -314,6 +419,8 @@ async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Pro
   const objectPath = match[2];
   const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectPath)}?alt=media`;
 
+  console.log("[downloadGcsVideoToBytes] Fetching from GCS:", url);
+
   const resp = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -324,6 +431,7 @@ async function downloadGcsVideoToBytes(accessToken: string, gcsUri: string): Pro
   }
 
   const buf = await resp.arrayBuffer();
+  console.log("[downloadGcsVideoToBytes] Downloaded bytes:", buf.byteLength);
   return new Uint8Array(buf);
 }
 
@@ -352,6 +460,7 @@ async function uploadVideoToStorage(
     .from("visual-creatives")
     .getPublicUrl(filePath);
 
+  console.log("[uploadVideoToStorage] Uploaded to:", publicUrl.publicUrl);
   return publicUrl.publicUrl;
 }
 
@@ -491,10 +600,11 @@ serve(async (req) => {
         );
       }
 
-      // Check status of pending scenes
+      // Initialize hasError based on existing scene statuses (fix for stuck generating)
+      let hasError = scenes.some((s: any) => s.status === "error");
+
+      // Check status of pending/generating scenes
       const accessToken = await getGCPAccessToken(serviceAccount);
-      let allDone = true;
-      let hasError = false;
 
       for (let i = 0; i < scenes.length; i++) {
         const scene = scenes[i];
@@ -508,6 +618,7 @@ serve(async (req) => {
                 scene.status = "error";
                 scene.error = status.error;
                 hasError = true;
+                console.log(`[status] Scene ${scene.sceneNumber} failed:`, status.error);
               } else if (status.videoBase64 || status.videoGcsUri || status.videoUri) {
                 const resolvedClientId = progress.clientId || clientId;
                 if (!resolvedClientId) {
@@ -540,45 +651,41 @@ serve(async (req) => {
                 scene.videoUrl = videoUrl;
                 scene.status = "completed";
                 progress.currentScene = (progress.currentScene || 0) + 1;
+                console.log(`[status] Scene ${scene.sceneNumber} completed:`, videoUrl);
               }
-            } else {
-              allDone = false;
             }
           } catch (error: any) {
             console.error(`Error checking scene ${scene.sceneNumber}:`, error);
 
             const msg = String(error?.message || error);
-            // If we can't parse/download/upload the result, it's not transient for this run.
-            if (
-              msg.includes("Video format not recognized") ||
-              msg.includes("Invalid gcsUri") ||
-              msg.includes("Failed to download") ||
-              msg.includes("Failed to upload")
-            ) {
-              scene.status = "error";
-              scene.error = msg;
-              hasError = true;
-            } else {
-              // Treat unknown failures as transient
-              allDone = false;
-            }
-
-            allDone = false;
+            // If we can't parse/download/upload the result, mark as error
+            scene.status = "error";
+            scene.error = msg;
+            hasError = true;
           }
-        } else if (scene.status === "pending") {
-          allDone = false;
         }
       }
 
-      // Update status
-      let newStatus = "generating";
-      if (allDone) {
-        const completedScenes = scenes.filter((s: any) => s.status === "completed");
-        if (completedScenes.length === scenes.length) {
-          newStatus = "completed";
-        } else if (hasError) {
+      // Compute terminal status correctly
+      const completedCount = scenes.filter((s: any) => s.status === "completed").length;
+      const errorCount = scenes.filter((s: any) => s.status === "error").length;
+      const pendingOrGenerating = scenes.filter((s: any) => s.status === "pending" || s.status === "generating").length;
+      const allTerminal = pendingOrGenerating === 0;
+
+      let newStatus: string;
+      if (allTerminal) {
+        if (errorCount > 0 && completedCount === 0) {
           newStatus = "error";
+          progress.error = `Falha na geração: ${errorCount} cena(s) com erro`;
+        } else if (errorCount > 0) {
+          newStatus = "completed"; // Partial success
+          progress.error = `${completedCount} cena(s) gerada(s), ${errorCount} com erro`;
+        } else {
+          newStatus = "completed";
+          progress.error = null;
         }
+      } else {
+        newStatus = "generating";
       }
 
       await updateProgress(supabase, postId, newStatus, progress);
@@ -587,8 +694,9 @@ serve(async (req) => {
         JSON.stringify({
           status: newStatus,
           progress,
-          allDone,
-          completedScenes: scenes.filter((s: any) => s.status === "completed").length,
+          allDone: allTerminal,
+          completedScenes: completedCount,
+          errorScenes: errorCount,
           totalScenes: scenes.length,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
