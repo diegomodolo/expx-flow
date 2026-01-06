@@ -43,9 +43,14 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Upload,
+  Wand2,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ImageUploader } from "@/components/ui/image-uploader";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface ContentPlanPostCardProps {
   post: ContentPlanPost;
@@ -60,6 +65,8 @@ interface ContentPlanPostCardProps {
     [field: string]: string | undefined;
   };
   onHasChangesChange?: (postId: string, hasChanges: boolean) => void;
+  clientId?: string;
+  hasCreativeFactory?: boolean;
 }
 
 export interface ContentPlanPostCardRef {
@@ -245,11 +252,15 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   clientBriefing,
   validationErrors,
   onHasChangesChange,
+  clientId,
+  hasCreativeFactory,
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [generatingField, setGeneratingField] = useState<string | null>(null);
+  const [generatingCreative, setGeneratingCreative] = useState(false);
   
+  const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
 
   // Local field state without auto-save
@@ -448,6 +459,59 @@ O conteúdo deve:
     onRefetch();
   };
 
+  // Handle generate creative from factory
+  const handleGenerateCreative = async () => {
+    if (!clientId || !activeCompany?.company_id) {
+      toast.error("Informações do cliente não disponíveis");
+      return;
+    }
+
+    setGeneratingCreative(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
+        body: {
+          clientId: clientId,
+          companyId: activeCompany.company_id,
+          creativeType: 'instagram_feed',
+          theme: post.headline || post.objective || 'Post Estático',
+          context: {
+            title: post.headline,
+            description: post.subheadline,
+            copy: post.caption,
+            objective: post.objective,
+          },
+        },
+      });
+      
+      if (error) throw error;
+      
+      if (data?.imageUrl) {
+        await onUpdate({ image_url: data.imageUrl });
+        onRefetch();
+        toast.success('Criativo gerado com sucesso!');
+      } else {
+        throw new Error('Nenhuma imagem foi gerada');
+      }
+    } catch (error: any) {
+      console.error('Error generating creative:', error);
+      toast.error('Erro ao gerar criativo: ' + (error.message || 'Erro desconhecido'));
+    } finally {
+      setGeneratingCreative(false);
+    }
+  };
+
+  const handleImageUploaded = async (url: string) => {
+    await onUpdate({ image_url: url });
+    onRefetch();
+    toast.success('Imagem enviada com sucesso!');
+  };
+
+  const handleRemoveImage = async () => {
+    await onUpdate({ image_url: null });
+    onRefetch();
+    toast.success('Imagem removida');
+  };
+
   return (
     <>
       <Card
@@ -546,8 +610,97 @@ O conteúdo deve:
                 </div>
               )}
 
-              {/* Post Image */}
-              {post.image_url && (
+              {/* Post Image - Upload and Generate for Static Posts */}
+              {post.post_type === "estatico" && (
+                <div className="space-y-3">
+                  <Label>Imagem do Post</Label>
+                  
+                  {post.image_url ? (
+                    <div className="flex gap-4">
+                      <div className="relative group">
+                        <div className="aspect-[3/4] w-[160px] rounded-lg overflow-hidden bg-muted border">
+                          <img
+                            src={post.image_url}
+                            alt="Imagem do post"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveImage();
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <ImageUploader
+                          bucket="client-media"
+                          folder={`content-plans/${post.id}`}
+                          currentImageUrl={post.image_url}
+                          onImageUploaded={handleImageUploaded}
+                          onImageRemoved={handleRemoveImage}
+                          className="w-full"
+                        />
+                        {hasCreativeFactory && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateCreative();
+                            }}
+                            disabled={generatingCreative}
+                          >
+                            {generatingCreative ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Wand2 className="w-4 h-4" />
+                            )}
+                            Gerar Nova
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <ImageUploader
+                        bucket="client-media"
+                        folder={`content-plans/${post.id}`}
+                        onImageUploaded={handleImageUploaded}
+                        onImageRemoved={handleRemoveImage}
+                        className="flex-1"
+                      />
+                      {hasCreativeFactory && (
+                        <Button
+                          variant="secondary"
+                          className="gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGenerateCreative();
+                          }}
+                          disabled={generatingCreative}
+                        >
+                          {generatingCreative ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Wand2 className="w-4 h-4" />
+                          )}
+                          Gerar com Fábrica
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Post Image for non-static posts (read-only) */}
+              {post.post_type !== "estatico" && post.image_url && (
                 <div className="space-y-2">
                   <Label>Imagem do Criativo</Label>
                   <div className="aspect-[3/4] max-w-[200px] rounded-lg overflow-hidden bg-muted border">

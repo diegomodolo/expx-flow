@@ -74,6 +74,21 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     enabled: !!planId,
   });
 
+  // Check if client has creative factory configured
+  const { data: hasCreativeFactory } = useQuery({
+    queryKey: ["creative-factory-check", plan?.client_id],
+    queryFn: async () => {
+      if (!plan?.client_id) return false;
+      const { data } = await supabase
+        .from("ad_generation_schedules")
+        .select("id")
+        .eq("client_id", plan.client_id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!plan?.client_id,
+  });
+
   useEffect(() => {
     if (plan) {
       setPlanName(plan.name);
@@ -540,6 +555,8 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     clientBriefing={clientBriefing}
                     validationErrors={validationErrors[post.id]}
                     onHasChangesChange={handlePostHasChangesChange}
+                    clientId={plan.client_id}
+                    hasCreativeFactory={hasCreativeFactory || false}
                   />
                 ))
               ) : (
