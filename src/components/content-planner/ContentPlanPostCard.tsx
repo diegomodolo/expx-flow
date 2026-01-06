@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InstagramPostPreviewModal } from "@/components/instagram/InstagramPostPreviewModal";
+import { SendPostsToPresentationDialog } from "./SendPostsToPresentationDialog";
 import {
   ChevronDown,
   ChevronUp,
@@ -47,6 +48,7 @@ import {
   Upload,
   Wand2,
   X,
+  Presentation,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -263,6 +265,7 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState("");
+  const [showSendToPresentationDialog, setShowSendToPresentationDialog] = useState(false);
   
   const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
@@ -556,10 +559,26 @@ O conteúdo deve:
 
             {/* Review Status Badge */}
             {post.review_status === "approved" && (
-              <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Aprovado
-              </Badge>
+              <>
+                <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Aprovado
+                </Badge>
+                {clientId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Enviar para Apresentação"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSendToPresentationDialog(true);
+                    }}
+                  >
+                    <Presentation className="w-4 h-4" />
+                  </Button>
+                )}
+              </>
             )}
             {post.review_status === "rejected" && (
               <Badge className="bg-red-500/10 text-red-600 border-red-500/20 gap-1">
@@ -1040,6 +1059,22 @@ O conteúdo deve:
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Send to Presentation Dialog */}
+      {clientId && (
+        <SendPostsToPresentationDialog
+          open={showSendToPresentationDialog}
+          onOpenChange={setShowSendToPresentationDialog}
+          clientId={clientId}
+          posts={[{
+            id: post.id,
+            image_url: post.image_url,
+            headline: post.headline,
+            subheadline: post.subheadline,
+            caption: post.caption,
+            post_type: post.post_type,
+          }]}
+        />
+      )}
     </>
   );
 });
