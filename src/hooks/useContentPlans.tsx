@@ -109,7 +109,7 @@ export function useContentPlans(clientId?: string) {
         }
         const counts = countsMap.get(planId)!;
         counts.total++;
-        if (post.review_status === "aprovado") {
+        if (post.review_status === "approved") {
           counts.approved++;
         }
       });
