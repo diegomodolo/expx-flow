@@ -470,17 +470,24 @@ O conteúdo deve:
 
     setGeneratingCreative(true);
     try {
+      // Texto que DEVE aparecer na imagem (apenas headline + subheadline)
+      const approvedText = [post.headline, post.subheadline].filter(Boolean).join('\n');
+      
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
           clientId: clientId,
           companyId: activeCompany.company_id,
           creativeType: 'instagram_feed',
           theme: post.headline || post.objective || 'Post Estático',
+          approvedText: approvedText || undefined,
           context: {
             title: post.headline,
             description: post.subheadline,
-            copy: post.caption,
-            objective: post.objective,
+            // Estes campos são APENAS para contexto da IA, NÃO devem aparecer na imagem
+            contextOnly: {
+              objective: post.objective,
+              caption: post.caption,
+            },
           },
         },
       });

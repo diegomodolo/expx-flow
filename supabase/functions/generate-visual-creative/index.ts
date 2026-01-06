@@ -124,11 +124,19 @@ Deno.serve(async (req) => {
       description = '',
       copy = '',
       targetAudience = '',
-      objective = ''
+      objective = '',
+      contextOnly = {} // Campos que são APENAS contexto, NÃO devem aparecer na imagem
     } = context;
 
-    const textToUse = approvedText || copy || title || theme;
-    console.log('Text to use in image:', textToUse);
+    // IMPORTANTE: approvedText tem prioridade - é o texto que DEVE aparecer na imagem
+    // Se não houver approvedText, usa title (headline) como fallback
+    // copy (caption) e objective NÃO devem aparecer na imagem
+    const textToUse = approvedText || title || '';
+    const contextObjective = contextOnly?.objective || objective || '';
+    const contextCaption = contextOnly?.caption || copy || '';
+    
+    console.log('Text to display in image (approvedText):', textToUse);
+    console.log('Context only (NOT for image):', { objective: contextObjective, caption: contextCaption });
 
     // Normalizar creativeType (front usa snake_case; manter compatibilidade com kebab-case)
     const normalizedCreativeType = String(creativeType || '').trim().replace(/-/g, '_');
@@ -260,9 +268,11 @@ ${clientBriefing ? `- Brand Guidelines: ${clientBriefing.substring(0, 300)}` : '
 
 CAMPAIGN DETAILS:
 - Theme: ${theme}
-- Title: ${title}
-- Description: ${description}
-- Objective: ${objective}
+
+CONTEXT ONLY (for understanding the campaign, DO NOT display on image):
+- Campaign objective: ${contextObjective}
+- Social media caption: ${contextCaption}
+- These are for understanding the context ONLY - do NOT include this text in the image
 
 ${slidePrompt}
 
