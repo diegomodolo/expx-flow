@@ -1332,6 +1332,11 @@ O conteúdo deve:
                       script={scriptField.value}
                       headline={headlineField.value}
                       subheadline={subheadlineField.value}
+                      uploadedVideoUrl={post.reels_uploaded_video_url}
+                      onUploadedVideoChange={(url) => {
+                        onUpdate({ reels_uploaded_video_url: url });
+                        onRefetch();
+                      }}
                     />
                   )}
                 </div>
