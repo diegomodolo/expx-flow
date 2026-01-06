@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video, RefreshCw } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { useReelsVideoGeneration } from "@/hooks/useReelsVideoGeneration";
 import { toast } from "sonner";
 
@@ -112,9 +119,13 @@ export function ReelsVideoGenerator({
   const totalScenes = progress?.totalScenes || 0;
   const progressPercent = totalScenes > 0 ? (completedScenes / totalScenes) * 100 : 0;
 
-  // Render completed state with video previews
+  // Render completed state with video carousel player
   if (isCompleted && progress?.scenes) {
     const completedVideos = progress.scenes.filter(s => s.videoUrl);
+
+    if (completedVideos.length === 0) {
+      return null;
+    }
 
     return (
       <div className="space-y-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -135,27 +146,63 @@ export function ReelsVideoGenerator({
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {completedVideos.map((scene) => (
-            <div
-              key={scene.sceneNumber}
-              className="relative aspect-[9/16] bg-black rounded overflow-hidden"
-            >
-              <video
-                src={scene.videoUrl!}
-                className="w-full h-full object-cover"
-                controls
-                playsInline
-              />
-              <Badge className="absolute top-1 left-1 text-[10px]">
-                Cena {scene.sceneNumber}
-              </Badge>
+        {/* Reels Video Carousel Player */}
+        {completedVideos.length === 1 ? (
+          // Single video - show directly
+          <div className="relative aspect-[9/16] max-w-[280px] mx-auto bg-black rounded-xl overflow-hidden shadow-lg">
+            <video
+              src={completedVideos[0].videoUrl!}
+              className="w-full h-full object-cover"
+              controls
+              playsInline
+              poster=""
+            />
+            <Badge className="absolute top-2 left-2 bg-black/60 text-white text-[10px]">
+              Cena {completedVideos[0].sceneNumber}
+            </Badge>
+          </div>
+        ) : (
+          // Multiple videos - carousel
+          <div className="relative max-w-[320px] mx-auto">
+            <Carousel className="w-full">
+              <CarouselContent>
+                {completedVideos.map((scene) => (
+                  <CarouselItem key={scene.sceneNumber}>
+                    <div className="relative aspect-[9/16] bg-black rounded-xl overflow-hidden shadow-lg">
+                      <video
+                        src={scene.videoUrl!}
+                        className="w-full h-full object-cover"
+                        controls
+                        playsInline
+                        poster=""
+                      />
+                      <Badge className="absolute top-2 left-2 bg-black/60 text-white text-[10px]">
+                        Cena {scene.sceneNumber} de {completedVideos.length}
+                      </Badge>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-0 -translate-x-1/2 h-8 w-8" />
+              <CarouselNext className="right-0 translate-x-1/2 h-8 w-8" />
+            </Carousel>
+            
+            {/* Carousel dots indicator */}
+            <div className="flex justify-center gap-1.5 mt-3">
+              {completedVideos.map((_, idx) => (
+                <div
+                  key={idx}
+                  className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40"
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground text-center">
-          Os vídeos das cenas estão prontos. Você pode baixá-los e editá-los no seu editor de vídeo favorito.
+          {completedVideos.length > 1 
+            ? "Deslize para ver todas as cenas. Você pode baixar e editar no seu editor favorito."
+            : "O vídeo está pronto. Você pode baixá-lo e editá-lo no seu editor favorito."}
         </p>
       </div>
     );
@@ -239,30 +286,49 @@ export function ReelsVideoGenerator({
           {progress?.error || "Ocorreu um erro ao gerar os vídeos. Tente novamente."}
         </p>
 
-        {/* Show completed videos if any */}
+        {/* Show completed videos if any - using carousel */}
         {completedVideos.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs text-green-600 dark:text-green-400">
               {completedVideos.length} cena(s) gerada(s) com sucesso:
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              {completedVideos.map((scene) => (
-                <div
-                  key={scene.sceneNumber}
-                  className="relative aspect-[9/16] bg-black rounded overflow-hidden"
-                >
-                  <video
-                    src={scene.videoUrl!}
-                    className="w-full h-full object-cover"
-                    controls
-                    playsInline
-                  />
-                  <Badge className="absolute top-1 left-1 text-[10px]">
-                    Cena {scene.sceneNumber}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+            {completedVideos.length === 1 ? (
+              <div className="relative aspect-[9/16] max-w-[200px] mx-auto bg-black rounded-lg overflow-hidden">
+                <video
+                  src={completedVideos[0].videoUrl!}
+                  className="w-full h-full object-cover"
+                  controls
+                  playsInline
+                />
+                <Badge className="absolute top-1 left-1 text-[10px] bg-black/60">
+                  Cena {completedVideos[0].sceneNumber}
+                </Badge>
+              </div>
+            ) : (
+              <div className="relative max-w-[220px] mx-auto">
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {completedVideos.map((scene) => (
+                      <CarouselItem key={scene.sceneNumber}>
+                        <div className="relative aspect-[9/16] bg-black rounded-lg overflow-hidden">
+                          <video
+                            src={scene.videoUrl!}
+                            className="w-full h-full object-cover"
+                            controls
+                            playsInline
+                          />
+                          <Badge className="absolute top-1 left-1 text-[10px] bg-black/60">
+                            Cena {scene.sceneNumber}
+                          </Badge>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 -translate-x-1/2 h-7 w-7" />
+                  <CarouselNext className="right-0 translate-x-1/2 h-7 w-7" />
+                </Carousel>
+              </div>
+            )}
           </div>
         )}
 
