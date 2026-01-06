@@ -569,6 +569,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
             },
           ],
           systemPrompt,
+          clientId,
+          useCustomSystemPrompt: true,
         },
       });
 
