@@ -125,24 +125,42 @@ function useLocalField(initialValue: string) {
 interface SlideCardProps {
   slide: ContentPlanSlide;
   slideIndex: number;
+  postId: string;
+  clientId?: string;
+  hasCreativeFactory?: boolean;
+  clientBriefing?: string;
+  postObjective?: string;
+  postHeadline?: string;
   onUpdateSlide: (slideId: string, data: Partial<ContentPlanSlide>) => void;
   onDeleteSlide: (slideId: string) => void;
   onGenerateWithAI: (slideId: string, field: "headline" | "content", slideIndex: number) => void;
   generatingSlideField: { slideId: string; field: string } | null;
+  onRefetch: () => void;
 }
 
 function SlideCard({
   slide,
   slideIndex,
+  postId,
+  clientId,
+  hasCreativeFactory,
+  clientBriefing,
+  postObjective,
+  postHeadline,
   onUpdateSlide,
   onDeleteSlide,
   onGenerateWithAI,
   generatingSlideField,
+  onRefetch,
 }: SlideCardProps) {
   const [localHeadline, setLocalHeadline] = useState(slide.headline || "");
   const [localContent, setLocalContent] = useState(slide.content || "");
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
+  const [extraPrompt, setExtraPrompt] = useState("");
   const headlineTimeoutRef = useRef<NodeJS.Timeout>();
   const contentTimeoutRef = useRef<NodeJS.Timeout>();
+  const { activeCompany } = useCompany();
 
   // Sync with external values when they change (e.g., after AI generation)
   useEffect(() => {
@@ -180,68 +198,232 @@ function SlideCard({
     };
   }, []);
 
+  const handleImageUploaded = async (url: string) => {
+    await onUpdateSlide(slide.id, { image_url: url });
+    onRefetch();
+    toast.success('Imagem do slide enviada!');
+  };
+
+  const handleRemoveImage = async () => {
+    await onUpdateSlide(slide.id, { image_url: null });
+    onRefetch();
+    toast.success('Imagem do slide removida');
+  };
+
+  const handleGenerateSlideImage = async () => {
+    if (!clientId || !activeCompany?.company_id) {
+      toast.error("Informações do cliente não disponíveis");
+      return;
+    }
+
+    setGeneratingImage(true);
+    setShowExtraPromptDialog(false);
+
+    try {
+      // Texto que DEVE aparecer na imagem (headline + content do slide)
+      const approvedText = [localHeadline, localContent].filter(Boolean).join('\n');
+      
+      const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
+        body: {
+          clientId: clientId,
+          companyId: activeCompany.company_id,
+          creativeType: 'instagram_feed',
+          theme: localHeadline || postHeadline || 'Slide de Carrossel',
+          approvedText: approvedText || undefined,
+          extraPrompt: extraPrompt.trim() || undefined,
+          context: {
+            title: localHeadline,
+            description: localContent,
+            contextOnly: {
+              slideIndex: slideIndex + 1,
+              postObjective: postObjective,
+            },
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        await onUpdateSlide(slide.id, { image_url: data.imageUrl });
+        onRefetch();
+        toast.success('Imagem do slide gerada com sucesso!');
+        setExtraPrompt("");
+      } else {
+        throw new Error('Nenhuma imagem foi gerada');
+      }
+    } catch (error: any) {
+      console.error('Error generating slide image:', error);
+      toast.error('Erro ao gerar imagem: ' + (error.message || 'Erro desconhecido'));
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
   return (
-    <Card className="p-3 bg-muted/30">
-      <div className="flex items-center gap-2 mb-2">
-        <Badge variant="outline" className="text-xs">
-          Slide {slideIndex + 1}
-        </Badge>
-        <div className="flex-1" />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-destructive"
-          onClick={() => onDeleteSlide(slide.id)}
-        >
-          <Trash2 className="w-3 h-3" />
-        </Button>
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center gap-1">
-          <Input
-            value={localHeadline}
-            onChange={(e) => handleHeadlineChange(e.target.value)}
-            placeholder="Título do slide"
-            className="h-8 text-sm flex-1"
-          />
+    <>
+      <Card className="p-3 bg-muted/30">
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="outline" className="text-xs">
+            Slide {slideIndex + 1}
+          </Badge>
+          <div className="flex-1" />
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 flex-shrink-0"
-            onClick={() => onGenerateWithAI(slide.id, "headline", slideIndex)}
-            disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline"}
+            className="h-6 w-6 text-destructive"
+            onClick={() => onDeleteSlide(slide.id)}
           >
-            {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline" ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <Sparkles className="w-3 h-3" />
-            )}
+            <Trash2 className="w-3 h-3" />
           </Button>
         </div>
-        <div className="flex items-start gap-1">
-          <Textarea
-            value={localContent}
-            onChange={(e) => handleContentChange(e.target.value)}
-            placeholder="Conteúdo do slide"
-            rows={2}
-            className="text-sm flex-1"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 flex-shrink-0"
-            onClick={() => onGenerateWithAI(slide.id, "content", slideIndex)}
-            disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content"}
-          >
-            {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content" ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-3">
+          {/* Slide Image Section */}
+          <div className="space-y-2">
+            {slide.image_url ? (
+              <div className="relative group">
+                <div className="aspect-[4/5] w-full rounded-lg overflow-hidden bg-muted border">
+                  <img
+                    src={slide.image_url}
+                    alt={`Slide ${slideIndex + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
             ) : (
-              <Sparkles className="w-3 h-3" />
+              <div className="aspect-[4/5] w-full rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Image className="w-6 h-6" />
+                <span className="text-xs">Sem imagem</span>
+              </div>
             )}
-          </Button>
+            
+            <div className="flex flex-col gap-1">
+              <ImageUploader
+                bucket="client-media"
+                folder={`content-plans/${postId}/slides`}
+                currentImageUrl={slide.image_url || undefined}
+                onImageUploaded={handleImageUploaded}
+                onImageRemoved={handleRemoveImage}
+                className="w-full"
+              />
+              {hasCreativeFactory && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1 text-xs h-7"
+                  onClick={() => setShowExtraPromptDialog(true)}
+                  disabled={generatingImage}
+                >
+                  {generatingImage ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-3 h-3" />
+                  )}
+                  {slide.image_url ? "Gerar Nova" : "Gerar"}
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          {/* Slide Text Fields */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Input
+                value={localHeadline}
+                onChange={(e) => handleHeadlineChange(e.target.value)}
+                placeholder="Título do slide"
+                className="h-8 text-sm flex-1"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+                onClick={() => onGenerateWithAI(slide.id, "headline", slideIndex)}
+                disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline"}
+              >
+                {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "headline" ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+              </Button>
+            </div>
+            <div className="flex items-start gap-1">
+              <Textarea
+                value={localContent}
+                onChange={(e) => handleContentChange(e.target.value)}
+                placeholder="Conteúdo do slide"
+                rows={3}
+                className="text-sm flex-1"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+                onClick={() => onGenerateWithAI(slide.id, "content", slideIndex)}
+                disabled={generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content"}
+              >
+                {generatingSlideField?.slideId === slide.id && generatingSlideField?.field === "content" ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      {/* Extra Prompt Dialog for Slide Image Generation */}
+      <AlertDialog open={showExtraPromptDialog} onOpenChange={setShowExtraPromptDialog}>
+        <AlertDialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-primary" />
+              Gerar Imagem do Slide {slideIndex + 1}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Adicione instruções extras para a IA ou deixe em branco para gerar com as configurações padrão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4">
+            <Textarea
+              placeholder="Ex: Use cores mais vibrantes, estilo minimalista..."
+              value={extraPrompt}
+              onChange={(e) => setExtraPrompt(e.target.value)}
+              className="min-h-[80px]"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setExtraPrompt("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleGenerateSlideImage}
+              disabled={generatingImage}
+              className="gap-2"
+            >
+              {generatingImage ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Gerar Imagem
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -938,10 +1120,17 @@ O conteúdo deve:
                           key={slide.id}
                           slide={slide}
                           slideIndex={slideIndex}
+                          postId={post.id}
+                          clientId={clientId}
+                          hasCreativeFactory={hasCreativeFactory}
+                          clientBriefing={clientBriefing}
+                          postObjective={post.objective || undefined}
+                          postHeadline={post.headline || undefined}
                           onUpdateSlide={handleUpdateSlide}
                           onDeleteSlide={handleDeleteSlide}
                           onGenerateWithAI={handleGenerateSlideWithAI}
                           generatingSlideField={generatingSlideField}
+                          onRefetch={onRefetch}
                         />
                       ))}
                     </div>

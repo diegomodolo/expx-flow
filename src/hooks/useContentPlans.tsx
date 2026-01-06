@@ -10,6 +10,7 @@ export interface ContentPlanSlide {
   order_index: number;
   headline: string | null;
   content: string | null;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -122,7 +123,10 @@ export function useContentPlans(clientId?: string) {
         .order("order_index", { ascending: true });
 
       if (slidesError) throw slidesError;
-      slides = slidesData || [];
+      slides = (slidesData || []).map((s: any) => ({
+        ...s,
+        image_url: s.image_url || null,
+      })) as ContentPlanSlide[];
     }
 
     // Attach slides to their respective posts
