@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -29,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, FileText, Trash2, Edit, Loader2, Plus, ArrowLeft } from "lucide-react";
+import { Search, FileText, Trash2, Edit, Loader2, Plus, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -207,6 +208,7 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
                 <TableHead className="w-[250px]">Cliente</TableHead>
                 <TableHead>Planejamento</TableHead>
                 <TableHead>Mês/Ano</TableHead>
+                <TableHead>Aprovação</TableHead>
                 <TableHead>Squad</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
@@ -247,6 +249,30 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
                     <span className="text-muted-foreground">
                       {monthNames[plan.month - 1]} {plan.year}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const total = plan.total_posts || 0;
+                      const approved = plan.approved_posts || 0;
+                      const percentage = total > 0 ? Math.round((approved / total) * 100) : 0;
+                      const isComplete = percentage === 100;
+                      
+                      return (
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          {isComplete ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                          ) : (
+                            <Progress 
+                              value={percentage} 
+                              className="h-2 flex-1"
+                            />
+                          )}
+                          <span className={`text-xs font-medium shrink-0 ${isComplete ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {percentage}%
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {plan.clients?.teams ? (
