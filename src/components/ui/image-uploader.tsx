@@ -14,6 +14,7 @@ interface ImageUploaderProps {
   maxSize?: number; // in MB
   acceptedTypes?: string[];
   className?: string;
+  compact?: boolean; // Only show button, no preview circle
 }
 
 export const ImageUploader = ({
@@ -25,6 +26,7 @@ export const ImageUploader = ({
   maxSize = 5,
   acceptedTypes = ["image/jpeg", "image/png", "image/webp"],
   className = "",
+  compact = false,
 }: ImageUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
@@ -132,6 +134,41 @@ export const ImageUploader = ({
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
+
+  // Compact mode: only show the button
+  if (compact) {
+    return (
+      <div className={className}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={acceptedTypes.join(",")}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={triggerFileInput}
+          disabled={uploading}
+          className="text-xs h-7 w-full gap-1"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Enviando...
+            </>
+          ) : (
+            <>
+              <Upload className="h-3 w-3" />
+              Enviar
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
