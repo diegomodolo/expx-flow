@@ -28,12 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InstagramPostPreviewModal } from "@/components/instagram/InstagramPostPreviewModal";
 import {
   ChevronDown,
   ChevronUp,
@@ -958,33 +953,13 @@ O conteúdo deve:
         </Collapsible>
       </Card>
 
-      {/* Image Preview Modal */}
-      <Dialog open={showImagePreview} onOpenChange={setShowImagePreview}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-2">
-            <DialogTitle>Preview do Post</DialogTitle>
-          </DialogHeader>
-          <div className="px-4 pb-4">
-            {/* Instagram-style preview */}
-            <div className="bg-black rounded-lg overflow-hidden">
-              <div className="aspect-[4/5] w-full">
-                {post.image_url && (
-                  <img
-                    src={post.image_url}
-                    alt="Preview do post"
-                    className="w-full h-full object-contain"
-                  />
-                )}
-              </div>
-            </div>
-            {(captionField.value || post.caption) && (
-              <div className="mt-3 p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground line-clamp-4">{captionField.value || post.caption}</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Instagram Preview Modal */}
+      <InstagramPostPreviewModal
+        open={showImagePreview}
+        onOpenChange={setShowImagePreview}
+        imageUrl={post.image_url || ''}
+        caption={captionField.value || post.caption || ''}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
