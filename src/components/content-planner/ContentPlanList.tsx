@@ -211,7 +211,6 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
                 <TableHead>Aprovação</TableHead>
                 <TableHead>Squad</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Criado em</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -287,11 +286,6 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
                     <Badge variant={statusLabels[plan.status].variant}>
                       {statusLabels[plan.status].label}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {format(new Date(plan.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
