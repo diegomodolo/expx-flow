@@ -598,8 +598,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
 
   const getAIPrompt = (field: string, post: ContentPlanPost) => {
     const prompts: Record<string, string> = {
-      headline: "Gere uma headline impactante para este post de redes sociais. Seja criativo, conciso e use linguagem que engaje o público.",
-      subheadline: "Gere uma subheadline complementar à headline que reforce a mensagem principal.",
+      headline: "Gere APENAS UMA headline impactante e concisa para este post. NÃO inclua numeração, variações, opções ou formatação. NÃO use asteriscos ou emojis. Responda SOMENTE com o texto da headline.",
+      subheadline: "Gere APENAS UMA subheadline complementar à headline. NÃO inclua formatação, numeração ou opções. Responda SOMENTE com o texto.",
       caption: "Gere uma legenda completa para este post incluindo: texto engajador, call-to-action e hashtags relevantes (mínimo 10 hashtags).",
       objective: "Gere APENAS o objetivo do post em uma frase direta e concisa. NÃO inclua títulos, justificativas ou formatação. Exemplo: 'Aumentar o engajamento e educar o público sobre finanças pessoais'. Responda SOMENTE com a frase do objetivo.",
       script: `Gere um roteiro completo para um Reels do Instagram com duração de 15-30 segundos. 
