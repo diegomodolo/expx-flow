@@ -133,9 +133,9 @@ export function ReelsVideoGenerator({
       return;
     }
 
-    // Validate file size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      toast.error("O vídeo deve ter no máximo 100MB");
+    // Validate file size (max 1GB)
+    if (file.size > 1024 * 1024 * 1024) {
+      toast.error("O vídeo deve ter no máximo 1GB");
       return;
     }
 
@@ -349,7 +349,7 @@ export function ReelsVideoGenerator({
             )}
           </Button>
           <p className="text-[10px] text-muted-foreground text-center mt-1">
-            Envie o vídeo final editado para substituir as cenas geradas (máx. 100MB)
+            Envie o vídeo final editado para substituir as cenas geradas (máx. 1GB)
           </p>
         </div>
       </div>
@@ -586,7 +586,7 @@ export function ReelsVideoGenerator({
         </div>
 
         <p className="text-[10px] text-muted-foreground text-center">
-          Gere cenas com IA ou envie seu próprio vídeo (máx. 100MB)
+          Gere cenas com IA ou envie seu próprio vídeo (máx. 1GB)
         </p>
       </div>
 
