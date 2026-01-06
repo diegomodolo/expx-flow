@@ -157,6 +157,7 @@ function SlideCard({
   const [localContent, setLocalContent] = useState(slide.content || "");
   const [generatingImage, setGeneratingImage] = useState(false);
   const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState("");
   const headlineTimeoutRef = useRef<NodeJS.Timeout>();
   const contentTimeoutRef = useRef<NodeJS.Timeout>();
@@ -283,18 +284,21 @@ function SlideCard({
           <div className="space-y-2">
             {slide.image_url ? (
               <div className="relative group">
-                <div className="aspect-[4/5] w-full rounded-lg overflow-hidden bg-muted border">
+                <div 
+                  className="aspect-[4/5] w-full rounded-lg overflow-hidden bg-muted border cursor-pointer"
+                  onClick={() => setShowImagePreview(true)}
+                >
                   <img
                     src={slide.image_url}
                     alt={`Slide ${slideIndex + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                   />
                 </div>
                 <Button
                   variant="destructive"
                   size="icon"
                   className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={handleRemoveImage}
+                  onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
                 >
                   <X className="w-3 h-3" />
                 </Button>
@@ -424,6 +428,14 @@ function SlideCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Instagram Preview Modal for Slide */}
+      <InstagramPostPreviewModal
+        open={showImagePreview}
+        onOpenChange={setShowImagePreview}
+        imageUrl={slide.image_url || ''}
+        caption={`${localHeadline}\n\n${localContent}`.trim()}
+      />
     </>
   );
 }
