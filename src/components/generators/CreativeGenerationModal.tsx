@@ -15,13 +15,15 @@ import { Sparkles, Loader2, Check, X } from "lucide-react";
 interface CreativeGenerationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: (count: number) => Promise<void>;
+  onGenerate: () => Promise<void>;
+  onComplete?: () => void;
 }
 
 export function CreativeGenerationModal({
   open,
   onOpenChange,
   onGenerate,
+  onComplete,
 }: CreativeGenerationModalProps) {
   const [count, setCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,7 +38,7 @@ export function CreativeGenerationModal({
     for (let i = 0; i < count; i++) {
       setCurrentIndex(i + 1);
       try {
-        await onGenerate(1);
+        await onGenerate();
         setResults((prev) => [...prev, { index: i + 1, success: true }]);
       } catch (error: any) {
         setResults((prev) => [...prev, { index: i + 1, success: false, error: error.message }]);
@@ -44,6 +46,7 @@ export function CreativeGenerationModal({
     }
 
     setIsGenerating(false);
+    onComplete?.();
   };
 
   const handleClose = () => {

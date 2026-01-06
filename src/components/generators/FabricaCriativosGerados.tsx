@@ -70,12 +70,7 @@ export function FabricaCriativosGerados({ clientId }: Props) {
 
     if (response.error) throw response.error;
     
-    fetchCreatives();
-  };
-
-  const handleGenerationComplete = () => {
-    toast.success('Geração concluída!');
-    fetchCreatives();
+    // NÃO chamar fetchCreatives aqui - será chamado quando o modal fechar
   };
 
   // Contadores por status
@@ -244,11 +239,9 @@ export function FabricaCriativosGerados({ clientId }: Props) {
 
       <CreativeGenerationModal
         open={showGenerationModal}
-        onOpenChange={(open) => {
-          setShowGenerationModal(open);
-          if (!open) fetchCreatives();
-        }}
+        onOpenChange={setShowGenerationModal}
         onGenerate={handleGenerateSingle}
+        onComplete={fetchCreatives}
       />
     </div>
   );
