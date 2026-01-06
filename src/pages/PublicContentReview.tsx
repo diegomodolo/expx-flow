@@ -24,8 +24,19 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+
+interface Slide {
+  id: string;
+  post_id: string;
+  order_index: number;
+  headline: string | null;
+  content: string | null;
+  image_url: string | null;
+}
 
 interface Post {
   id: string;
@@ -39,6 +50,7 @@ interface Post {
   review_status: string | null;
   review_feedback: string | null;
   reviewed_at: string | null;
+  slides?: Slide[];
 }
 
 interface Plan {
@@ -71,6 +83,13 @@ export default function PublicContentReview() {
   const [rejectingPostId, setRejectingPostId] = useState<string | null>(null);
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
+  const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
+
+  const getCarouselIndex = (postId: string) => carouselIndexes[postId] || 0;
+  
+  const setCarouselIndex = (postId: string, index: number) => {
+    setCarouselIndexes(prev => ({ ...prev, [postId]: index }));
+  };
 
   useEffect(() => {
     if (token) {
@@ -294,18 +313,77 @@ export default function PublicContentReview() {
                   : ""
               }`}
             >
-              {/* Image */}
+              {/* Image / Carousel */}
               <div className="aspect-[3/4] bg-muted relative">
-                {post.image_url ? (
-                  <img
-                    src={post.image_url}
-                    alt={post.headline || `Post ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+                {post.post_type === 'carrossel' && post.slides && post.slides.length > 0 ? (
+                  <>
+                    {/* Carousel image */}
+                    {post.slides[getCarouselIndex(post.id)]?.image_url ? (
+                      <img
+                        src={post.slides[getCarouselIndex(post.id)].image_url!}
+                        alt={post.slides[getCarouselIndex(post.id)]?.headline || `Slide ${getCarouselIndex(post.id) + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
+                      </div>
+                    )}
+
+                    {/* Carousel navigation */}
+                    {post.slides.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCarouselIndex(post.id, Math.max(0, getCarouselIndex(post.id) - 1))}
+                          disabled={getCarouselIndex(post.id) === 0}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setCarouselIndex(post.id, Math.min(post.slides!.length - 1, getCarouselIndex(post.id) + 1))}
+                          disabled={getCarouselIndex(post.id) === post.slides.length - 1}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+
+                        {/* Carousel indicators */}
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {post.slides.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCarouselIndex(post.id, idx)}
+                              className={`w-2 h-2 rounded-full transition-colors ${
+                                idx === getCarouselIndex(post.id)
+                                  ? 'bg-white'
+                                  : 'bg-white/50 hover:bg-white/75'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Slide counter */}
+                    <div className="absolute bottom-3 right-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-medium">
+                      {getCarouselIndex(post.id) + 1}/{post.slides.length}
+                    </div>
+                  </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
-                  </div>
+                  <>
+                    {post.image_url ? (
+                      <img
+                        src={post.image_url}
+                        alt={post.headline || `Post ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="w-16 h-16 text-muted-foreground/30" />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Post number */}
