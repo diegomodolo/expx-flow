@@ -20,7 +20,8 @@ import {
 import { ContentPlanPostCard, ContentPlanPostCardRef } from "./ContentPlanPostCard";
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
 import { ImportCreativesModal } from "./ImportCreativesModal";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle } from "lucide-react";
+import { SendPostsToPresentationDialog } from "./SendPostsToPresentationDialog";
+import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle, Presentation } from "lucide-react";
 import { toast } from "sonner";
 
 export interface PortugueseValidationErrors {
@@ -61,6 +62,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [validationErrors, setValidationErrors] = useState<PortugueseValidationErrors>({});
   const [totalValidationErrors, setTotalValidationErrors] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSendAllToPresentationDialog, setShowSendAllToPresentationDialog] = useState(false);
 
   // Refs for all post cards to collect pending changes
   const postCardRefs = useRef<Map<string, ContentPlanPostCardRef>>(new Map());
@@ -484,6 +486,19 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   Validar Português
                 </Button>
 
+                {/* Send All Approved to Presentation */}
+                {plan.posts?.some(p => p.review_status === "approved") && (
+                  <Button
+                    onClick={() => setShowSendAllToPresentationDialog(true)}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Presentation className="w-4 h-4" />
+                    Enviar Aprovados
+                  </Button>
+                )}
+
                 {/* Validation Errors Badge */}
                 {totalValidationErrors > 0 && (
                   <Badge variant="destructive" className="gap-1">
@@ -597,6 +612,20 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
         onOpenChange={setShowImportModal}
         clientId={plan.client_id}
         onImport={handleImportCreatives}
+      />
+
+      <SendPostsToPresentationDialog
+        open={showSendAllToPresentationDialog}
+        onOpenChange={setShowSendAllToPresentationDialog}
+        clientId={plan.client_id}
+        posts={plan.posts?.filter(p => p.review_status === "approved").map(p => ({
+          id: p.id,
+          image_url: p.image_url,
+          headline: p.headline,
+          subheadline: p.subheadline,
+          caption: p.caption,
+          post_type: p.post_type,
+        })) || []}
       />
     </div>
   );
