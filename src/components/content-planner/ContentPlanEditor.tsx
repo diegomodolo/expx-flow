@@ -21,7 +21,7 @@ import { ContentPlanPostCard, ContentPlanPostCardRef } from "./ContentPlanPostCa
 import { ContentPlanAIChat } from "./ContentPlanAIChat";
 import { ImportCreativesModal } from "./ImportCreativesModal";
 import { SendPostsToPresentationDialog } from "./SendPostsToPresentationDialog";
-import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle, Presentation } from "lucide-react";
+import { Loader2, Plus, Save, ArrowLeft, Sparkles, Send, Calendar, Download, Link2, Copy, Check, ExternalLink, SpellCheck, AlertTriangle, Presentation, ChevronsUpDown, ChevronsDownUp } from "lucide-react";
 import { toast } from "sonner";
 
 export interface PortugueseValidationErrors {
@@ -63,6 +63,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
   const [totalValidationErrors, setTotalValidationErrors] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [showSendAllToPresentationDialog, setShowSendAllToPresentationDialog] = useState(false);
+  const [allCollapsed, setAllCollapsed] = useState(false);
 
   // Refs for all post cards to collect pending changes
   const postCardRefs = useRef<Map<string, ContentPlanPostCardRef>>(new Map());
@@ -460,6 +461,28 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                   <Plus className="w-4 h-4" />
                   Adicionar Post
                 </Button>
+                
+                {/* Collapse/Expand All Toggle */}
+                {plan.posts && plan.posts.length > 0 && (
+                  <Button
+                    onClick={() => setAllCollapsed(!allCollapsed)}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {allCollapsed ? (
+                      <>
+                        <ChevronsUpDown className="w-4 h-4" />
+                        Expandir Todos
+                      </>
+                    ) : (
+                      <>
+                        <ChevronsDownUp className="w-4 h-4" />
+                        Colapsar Todos
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button 
                   onClick={() => setShowImportModal(true)} 
                   size="sm" 
@@ -572,6 +595,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
                     onHasChangesChange={handlePostHasChangesChange}
                     clientId={plan.client_id}
                     hasCreativeFactory={hasCreativeFactory || false}
+                    forceCollapsed={allCollapsed}
                   />
                 ))
               ) : (
