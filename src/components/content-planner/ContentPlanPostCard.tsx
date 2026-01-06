@@ -306,20 +306,21 @@ function SlideCard({
               </div>
             )}
             
-            <div className="flex flex-col gap-1">
+            <div className="flex gap-1">
               <ImageUploader
                 bucket="client-media"
                 folder={`content-plans/${postId}/slides`}
                 currentImageUrl={slide.image_url || undefined}
                 onImageUploaded={handleImageUploaded}
                 onImageRemoved={handleRemoveImage}
-                className="w-full"
+                className="flex-1"
+                compact
               />
               {hasCreativeFactory && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full gap-1 text-xs h-7"
+                  className="flex-1 gap-1 text-xs h-7"
                   onClick={() => setShowExtraPromptDialog(true)}
                   disabled={generatingImage}
                 >
@@ -328,7 +329,7 @@ function SlideCard({
                   ) : (
                     <Wand2 className="w-3 h-3" />
                   )}
-                  {slide.image_url ? "Gerar Nova" : "Gerar"}
+                  Gerar
                 </Button>
               )}
             </div>
