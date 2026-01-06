@@ -50,6 +50,8 @@ export interface ContentPlan {
   created_at: string;
   updated_at: string;
   posts?: ContentPlanPost[];
+  total_posts?: number;
+  approved_posts?: number;
   clients?: { 
     id?: string;
     name: string; 
@@ -86,7 +88,40 @@ export function useContentPlans(clientId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ContentPlan[];
+
+      // Fetch post counts for each plan
+      const planIds = data?.map(p => p.id) || [];
+      if (planIds.length === 0) return data as ContentPlan[];
+
+      const { data: postCounts, error: countError } = await supabase
+        .from("content_plan_posts")
+        .select("content_plan_id, review_status")
+        .in("content_plan_id", planIds);
+
+      if (countError) throw countError;
+
+      // Calculate counts per plan
+      const countsMap = new Map<string, { total: number; approved: number }>();
+      postCounts?.forEach(post => {
+        const planId = post.content_plan_id;
+        if (!countsMap.has(planId)) {
+          countsMap.set(planId, { total: 0, approved: 0 });
+        }
+        const counts = countsMap.get(planId)!;
+        counts.total++;
+        if (post.review_status === "aprovado") {
+          counts.approved++;
+        }
+      });
+
+      // Attach counts to plans
+      const plansWithCounts = data?.map(plan => ({
+        ...plan,
+        total_posts: countsMap.get(plan.id)?.total || 0,
+        approved_posts: countsMap.get(plan.id)?.approved || 0,
+      }));
+
+      return plansWithCounts as ContentPlan[];
     },
     enabled: !!activeCompany?.company_id,
   });
