@@ -70,6 +70,7 @@ interface ContentPlanPostCardProps {
   onHasChangesChange?: (postId: string, hasChanges: boolean) => void;
   clientId?: string;
   hasCreativeFactory?: boolean;
+  forceCollapsed?: boolean;
 }
 
 export interface ContentPlanPostCardRef {
@@ -257,8 +258,16 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   onHasChangesChange,
   clientId,
   hasCreativeFactory,
+  forceCollapsed,
 }, ref) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(forceCollapsed !== undefined ? !forceCollapsed : true);
+  
+  // Sync with forceCollapsed prop
+  useEffect(() => {
+    if (forceCollapsed !== undefined) {
+      setIsExpanded(!forceCollapsed);
+    }
+  }, [forceCollapsed]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [generatingField, setGeneratingField] = useState<string | null>(null);
   const [generatingCreative, setGeneratingCreative] = useState(false);
