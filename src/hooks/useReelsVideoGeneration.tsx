@@ -185,6 +185,42 @@ export function useReelsVideoGeneration() {
     reset();
   }, [stopPolling, reset]);
 
+  const regenerateScenes = useCallback(async (postId: string, sceneNumbers: number[]) => {
+    setState(prev => ({
+      ...prev,
+      status: "generating",
+      estimatedTime: `Regenerando ${sceneNumbers.length} cena(s)...`,
+    }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-reels-video", {
+        body: {
+          action: "regenerate_scenes",
+          postId,
+          sceneNumbers,
+        },
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to regenerate scenes");
+      }
+
+      // Start polling for progress
+      startPolling(postId);
+
+      return data;
+    } catch (err: any) {
+      setState(prev => ({
+        ...prev,
+        status: "error",
+        progress: { ...prev.progress!, error: err.message },
+      }));
+      throw err;
+    }
+  }, [startPolling]);
+
   // Load existing progress on mount
   const loadExistingProgress = useCallback(async (postId: string) => {
     try {
@@ -230,6 +266,7 @@ export function useReelsVideoGeneration() {
     state,
     startGeneration,
     cancelGeneration,
+    regenerateScenes,
     reset,
     loadExistingProgress,
     isGenerating: state.status === "analyzing" || state.status === "generating",

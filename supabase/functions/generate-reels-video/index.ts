@@ -720,6 +720,92 @@ serve(async (req) => {
       );
     }
 
+    // ACTION: REGENERATE_SCENES - Regenerate specific failed scenes
+    if (action === "regenerate_scenes") {
+      const { sceneNumbers } = body;
+      
+      if (!postId || !sceneNumbers || !Array.isArray(sceneNumbers) || sceneNumbers.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "postId and sceneNumbers array are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      console.log(`[regenerate_scenes] Regenerating scenes ${sceneNumbers.join(", ")} for post:`, postId);
+
+      // Get current progress from database
+      const { data: post, error: fetchError } = await supabase
+        .from("content_plan_posts")
+        .select("reels_generation_status, reels_generation_progress")
+        .eq("id", postId)
+        .single();
+
+      if (fetchError || !post) {
+        return new Response(
+          JSON.stringify({ error: "Post not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const progress = post.reels_generation_progress || {};
+      const scenes = progress.scenes || [];
+
+      if (scenes.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No scenes found to regenerate" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Get access token
+      const accessToken = await getGCPAccessToken(serviceAccount);
+
+      // Start regeneration for specified scenes
+      const regeneratePromises = sceneNumbers.map(async (sceneNum: number) => {
+        const sceneIndex = scenes.findIndex((s: any) => s.sceneNumber === sceneNum);
+        if (sceneIndex === -1) {
+          return { sceneNumber: sceneNum, error: "Scene not found" };
+        }
+
+        const scene = scenes[sceneIndex];
+        
+        try {
+          // Restart generation with the existing prompt
+          const operationName = await startSceneGeneration(accessToken, projectId, scene.prompt);
+          
+          scenes[sceneIndex].operationName = operationName;
+          scenes[sceneIndex].status = "generating";
+          scenes[sceneIndex].error = null;
+          scenes[sceneIndex].videoUrl = null;
+          
+          console.log(`[regenerate_scenes] Scene ${sceneNum} regeneration started:`, operationName);
+          return { sceneNumber: sceneNum, operationName, error: null };
+        } catch (error: any) {
+          scenes[sceneIndex].status = "error";
+          scenes[sceneIndex].error = error.message;
+          console.error(`[regenerate_scenes] Scene ${sceneNum} failed to start:`, error.message);
+          return { sceneNumber: sceneNum, operationName: null, error: error.message };
+        }
+      });
+
+      const results = await Promise.all(regeneratePromises);
+
+      // Clear any previous error message
+      progress.error = null;
+
+      // Update progress
+      await updateProgress(supabase, postId, "generating", progress);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          postId,
+          regeneratedScenes: results,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // ACTION: RESET - Cancel/reset generation
     if (action === "reset") {
       await updateProgress(supabase, postId, "idle", {});
