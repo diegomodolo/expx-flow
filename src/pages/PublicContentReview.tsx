@@ -26,6 +26,8 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  Play,
+  Film,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +38,18 @@ interface Slide {
   headline: string | null;
   content: string | null;
   image_url: string | null;
+}
+
+interface ReelsScene {
+  index: number;
+  status: string;
+  videoUrl?: string;
+  error?: string;
+}
+
+interface ReelsProgress {
+  totalScenes?: number;
+  scenes?: ReelsScene[];
 }
 
 interface Post {
@@ -51,6 +65,9 @@ interface Post {
   review_feedback: string | null;
   reviewed_at: string | null;
   slides?: Slide[];
+  reels_video_url?: string | null;
+  reels_generation_status?: string | null;
+  reels_generation_progress?: ReelsProgress | null;
 }
 
 interface Plan {
@@ -84,11 +101,18 @@ export default function PublicContentReview() {
   const [rejectFeedback, setRejectFeedback] = useState("");
   const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
+  const [reelsVideoIndexes, setReelsVideoIndexes] = useState<Record<string, number>>({});
 
   const getCarouselIndex = (postId: string) => carouselIndexes[postId] || 0;
   
   const setCarouselIndex = (postId: string, index: number) => {
     setCarouselIndexes(prev => ({ ...prev, [postId]: index }));
+  };
+
+  const getReelsVideoIndex = (postId: string) => reelsVideoIndexes[postId] || 0;
+  
+  const setReelsVideoIndex = (postId: string, index: number) => {
+    setReelsVideoIndexes(prev => ({ ...prev, [postId]: index }));
   };
 
   useEffect(() => {
@@ -313,9 +337,86 @@ export default function PublicContentReview() {
                   : ""
               }`}
             >
-              {/* Image / Carousel */}
+              {/* Image / Carousel / Reels Video */}
               <div className="aspect-[3/4] bg-muted relative">
-                {post.post_type === 'carrossel' && post.slides && post.slides.length > 0 ? (
+                {/* Reels Video Player */}
+                {post.post_type === 'reels' ? (
+                  (() => {
+                    const progress = post.reels_generation_progress as ReelsProgress | null;
+                    const completedScenes = progress?.scenes?.filter(s => s.status === 'completed' && s.videoUrl) || [];
+                    const currentIndex = getReelsVideoIndex(post.id);
+                    const currentScene = completedScenes[currentIndex];
+
+                    if (completedScenes.length === 0) {
+                      // No videos generated yet
+                      return (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                          <Film className="w-16 h-16 text-muted-foreground/30" />
+                          <span className="text-sm text-muted-foreground">Vídeo em processamento</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        {/* Video player */}
+                        <video
+                          key={currentScene?.videoUrl}
+                          src={currentScene?.videoUrl}
+                          controls
+                          className="w-full h-full object-cover"
+                          poster={post.image_url || undefined}
+                        />
+
+                        {/* Navigation for multiple videos */}
+                        {completedScenes.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => setReelsVideoIndex(post.id, Math.max(0, currentIndex - 1))}
+                              disabled={currentIndex === 0}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors z-10"
+                            >
+                              <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => setReelsVideoIndex(post.id, Math.min(completedScenes.length - 1, currentIndex + 1))}
+                              disabled={currentIndex === completedScenes.length - 1}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30 hover:bg-background transition-colors z-10"
+                            >
+                              <ChevronRight className="w-5 h-5" />
+                            </button>
+
+                            {/* Video indicators */}
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                              {completedScenes.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => setReelsVideoIndex(post.id, idx)}
+                                  className={`w-2 h-2 rounded-full transition-colors ${
+                                    idx === currentIndex
+                                      ? 'bg-white'
+                                      : 'bg-white/50 hover:bg-white/75'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+
+                            {/* Video counter */}
+                            <div className="absolute bottom-3 right-2 bg-background/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-medium z-10">
+                              {currentIndex + 1}/{completedScenes.length}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Play icon overlay */}
+                        <div className="absolute top-12 left-2 bg-primary/80 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-medium text-primary-foreground flex items-center gap-1">
+                          <Play className="w-3 h-3" />
+                          Reels
+                        </div>
+                      </>
+                    );
+                  })()
+                ) : post.post_type === 'carrossel' && post.slides && post.slides.length > 0 ? (
                   <>
                     {/* Carousel image */}
                     {post.slides[getCarouselIndex(post.id)]?.image_url ? (
