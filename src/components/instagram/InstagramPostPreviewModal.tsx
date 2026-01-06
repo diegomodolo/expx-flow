@@ -115,7 +115,7 @@ export function InstagramPostPreviewModal({
 
             <div className="text-sm text-black dark:text-white">
               <span className="font-semibold mr-1">{username}</span>
-              <span className="whitespace-pre-wrap break-words">{caption}</span>
+              <span className="whitespace-pre-wrap break-words line-clamp-3">{caption}</span>
             </div>
 
             <p className="text-xs text-gray-400 uppercase">Agora</p>
