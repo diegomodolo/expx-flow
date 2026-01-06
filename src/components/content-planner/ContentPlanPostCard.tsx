@@ -29,6 +29,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ChevronDown,
   ChevronUp,
   Trash2,
@@ -259,6 +265,7 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [generatingField, setGeneratingField] = useState<string | null>(null);
   const [generatingCreative, setGeneratingCreative] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
   
   const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
@@ -618,7 +625,13 @@ O conteúdo deve:
                   {post.image_url ? (
                     <div className="flex gap-4">
                       <div className="relative group">
-                        <div className="aspect-[3/4] w-[160px] rounded-lg overflow-hidden bg-muted border">
+                        <div 
+                          className="aspect-[3/4] w-[160px] rounded-lg overflow-hidden bg-muted border cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowImagePreview(true);
+                          }}
+                        >
                           <img
                             src={post.image_url}
                             alt="Imagem do post"
@@ -944,6 +957,34 @@ O conteúdo deve:
           </CollapsibleContent>
         </Collapsible>
       </Card>
+
+      {/* Image Preview Modal */}
+      <Dialog open={showImagePreview} onOpenChange={setShowImagePreview}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle>Preview do Post</DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-4">
+            {/* Instagram-style preview */}
+            <div className="bg-black rounded-lg overflow-hidden">
+              <div className="aspect-[4/5] w-full">
+                {post.image_url && (
+                  <img
+                    src={post.image_url}
+                    alt="Preview do post"
+                    className="w-full h-full object-contain"
+                  />
+                )}
+              </div>
+            </div>
+            {(captionField.value || post.caption) && (
+              <div className="mt-3 p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground line-clamp-4">{captionField.value || post.caption}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
