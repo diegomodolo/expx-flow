@@ -311,9 +311,11 @@ serve(async (req) => {
 
       // Initialize progress
       const progress = {
+        clientId: clientId || null,
+        companyId: companyId || null,
         totalScenes: scenes.length,
         currentScene: 0,
-        scenes: scenes.map((s, i) => ({
+        scenes: scenes.map((s) => ({
           sceneNumber: s.sceneNumber,
           status: "pending",
           prompt: s.prompt,
@@ -370,7 +372,7 @@ serve(async (req) => {
       // Get current progress from database
       const { data: post, error: fetchError } = await supabase
         .from("content_plan_posts")
-        .select("reels_generation_status, reels_generation_progress, client_id")
+        .select("reels_generation_status, reels_generation_progress")
         .eq("id", postId)
         .single();
 
@@ -411,10 +413,15 @@ serve(async (req) => {
                 hasError = true;
               } else if (status.videoBase64) {
                 // Upload video for this scene
+                const resolvedClientId = progress.clientId || clientId;
+                if (!resolvedClientId) {
+                  throw new Error("clientId not available for video upload");
+                }
+
                 const videoUrl = await uploadVideoToStorage(
                   supabase,
                   status.videoBase64,
-                  post.client_id || clientId,
+                  resolvedClientId,
                   `scene-${scene.sceneNumber}-${Date.now()}.mp4`,
                 );
                 scene.videoUrl = videoUrl;
