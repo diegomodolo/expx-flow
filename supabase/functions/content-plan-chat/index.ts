@@ -385,7 +385,7 @@ Você tem acesso a todos os dados do cliente acima e pode:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: useCustomSystemPrompt ? 'google/gemini-2.5-flash-lite' : 'google/gemini-2.5-flash',
         messages: formattedMessages,
       }),
     });

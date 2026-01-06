@@ -472,7 +472,7 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   hasCreativeFactory,
   forceCollapsed,
 }, ref) => {
-  const [isExpanded, setIsExpanded] = useState(forceCollapsed !== undefined ? !forceCollapsed : true);
+  const [isExpanded, setIsExpanded] = useState(forceCollapsed !== undefined ? !forceCollapsed : false);
   
   // Sync with forceCollapsed prop
   useEffect(() => {
