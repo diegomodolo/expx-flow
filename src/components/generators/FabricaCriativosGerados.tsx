@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCompany } from "@/contexts/CompanyContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CreativeGenerationModal } from "./CreativeGenerationModal";
 
 interface Props {
   clientId: string;
@@ -22,8 +23,8 @@ export function FabricaCriativosGerados({ clientId }: Props) {
   const { creatives, loading, fetchCreatives, updateStatus } = useCreativeGenerationQueue(clientId);
   const { activeCompany } = useCompany();
   const [selectedCreative, setSelectedCreative] = useState<CreativeQueueItem | null>(null);
-  const [generating, setGenerating] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
+  const [showGenerationModal, setShowGenerationModal] = useState(false);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -53,32 +54,28 @@ export function FabricaCriativosGerados({ clientId }: Props) {
     }
   };
 
-  const handleGenerateManual = async () => {
-    if (!activeCompany?.company_id) return;
+  const handleGenerateSingle = async () => {
+    if (!activeCompany?.company_id) throw new Error("Empresa não encontrada");
 
-    setGenerating(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      const response = await supabase.functions.invoke('daily-creative-generator', {
-        body: {
-          client_id: clientId,
-          company_id: activeCompany.company_id,
-          user_id: userData.user?.id,
-          count: 1,
-        },
-      });
+    const { data: userData } = await supabase.auth.getUser();
+    
+    const response = await supabase.functions.invoke('daily-creative-generator', {
+      body: {
+        client_id: clientId,
+        company_id: activeCompany.company_id,
+        user_id: userData.user?.id,
+        count: 1,
+      },
+    });
 
-      if (response.error) throw response.error;
+    if (response.error) throw response.error;
+    
+    fetchCreatives();
+  };
 
-      toast.success('Criativo gerado com sucesso!');
-      fetchCreatives();
-    } catch (error: any) {
-      console.error('Error generating creative:', error);
-      toast.error('Erro ao gerar criativo: ' + error.message);
-    } finally {
-      setGenerating(false);
-    }
+  const handleGenerationComplete = () => {
+    toast.success('Geração concluída!');
+    fetchCreatives();
   };
 
   // Contadores por status
@@ -116,13 +113,9 @@ export function FabricaCriativosGerados({ clientId }: Props) {
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
-          <Button onClick={handleGenerateManual} disabled={generating}>
-            {generating ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            Gerar Criativo
+          <Button onClick={() => setShowGenerationModal(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Gerar Criativos
           </Button>
         </div>
       </div>
@@ -248,6 +241,15 @@ export function FabricaCriativosGerados({ clientId }: Props) {
           onRefresh={fetchCreatives}
         />
       )}
+
+      <CreativeGenerationModal
+        open={showGenerationModal}
+        onOpenChange={(open) => {
+          setShowGenerationModal(open);
+          if (!open) fetchCreatives();
+        }}
+        onGenerate={handleGenerateSingle}
+      />
     </div>
   );
 }
