@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useContentPlans, ContentPlan } from "@/hooks/useContentPlans";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -21,10 +21,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Calendar, FileText, Trash2, Edit, Loader2, Plus, ArrowLeft } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, FileText, Trash2, Edit, Loader2, Plus, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { useTeams } from "@/hooks/useTeams";
+import { useClients } from "@/hooks/useClients";
 
 interface ContentPlanListProps {
   onSelectPlan: (planId: string) => void;
@@ -45,20 +55,45 @@ const monthNames = [
 export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListProps) {
   const navigate = useNavigate();
   const { plans, isLoading, deletePlan } = useContentPlans();
+  const { teams } = useTeams();
+  const { clients } = useClients();
+  
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [squadFilter, setSquadFilter] = useState<string>("all");
+  const [clientFilter, setClientFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const filteredPlans = plans?.filter((plan) => {
-    const matchesSearch =
-      plan.name.toLowerCase().includes(search.toLowerCase()) ||
-      plan.clients?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      plan.clients?.company?.toLowerCase().includes(search.toLowerCase());
+  // Get unique clients that have content plans
+  const clientsWithPlans = useMemo(() => {
+    if (!plans || !clients) return [];
+    const clientIds = new Set(plans.map(p => p.client_id));
+    return clients.filter(c => clientIds.has(c.id));
+  }, [plans, clients]);
 
-    const matchesStatus = statusFilter === "all" || plan.status === statusFilter;
+  const filteredPlans = useMemo(() => {
+    if (!plans) return [];
+    
+    return plans.filter((plan) => {
+      const matchesSearch =
+        plan.name.toLowerCase().includes(search.toLowerCase()) ||
+        plan.clients?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        plan.clients?.company?.toLowerCase().includes(search.toLowerCase());
 
-    return matchesSearch && matchesStatus;
-  });
+      const matchesStatus = statusFilter === "all" || plan.status === statusFilter;
+      
+      const matchesSquad = squadFilter === "all" || (() => {
+        if (squadFilter === "none") {
+          return !plan.clients?.team_id;
+        }
+        return plan.clients?.team_id === squadFilter;
+      })();
+      
+      const matchesClient = clientFilter === "all" || plan.client_id === clientFilter;
+
+      return matchesSearch && matchesStatus && matchesSquad && matchesClient;
+    });
+  }, [plans, search, statusFilter, squadFilter, clientFilter]);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -110,8 +145,8 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, cliente..."
@@ -120,8 +155,9 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
             className="pl-10"
           />
         </div>
+        
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -131,74 +167,136 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
             <SelectItem value="aprovado">Aprovado</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={squadFilter} onValueChange={setSquadFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Squad" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os squads</SelectItem>
+            <SelectItem value="none">Sem squad</SelectItem>
+            {teams?.map((team) => (
+              <SelectItem key={team.id} value={team.id}>
+                {team.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Cliente" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os clientes</SelectItem>
+            {clientsWithPlans.map((client) => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Plans Grid */}
+      {/* Table */}
       {filteredPlans && filteredPlans.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPlans.map((plan) => (
-            <Card
-              key={plan.id}
-              className="p-4 hover:shadow-md transition-shadow cursor-pointer group"
-              onClick={() => onSelectPlan(plan.id)}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                    <FileText className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground line-clamp-1">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">Cliente</TableHead>
+                <TableHead>Planejamento</TableHead>
+                <TableHead>Mês/Ano</TableHead>
+                <TableHead>Squad</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Criado em</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredPlans.map((plan) => (
+                <TableRow
+                  key={plan.id}
+                  className="cursor-pointer"
+                  onClick={() => onSelectPlan(plan.id)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={plan.clients?.avatar || undefined} />
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                          {plan.clients?.name?.substring(0, 2).toUpperCase() || "CL"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground line-clamp-1">
+                          {plan.clients?.name || "Cliente"}
+                        </span>
+                        <span className="text-xs text-muted-foreground line-clamp-1">
+                          {plan.clients?.company}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-medium text-foreground line-clamp-1">
                       {plan.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      {plan.clients?.name || plan.clients?.company}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={statusLabels[plan.status].variant}>
-                  {statusLabels[plan.status].label}
-                </Badge>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  {monthNames[plan.month - 1]} {plan.year}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t">
-                <span className="text-xs text-muted-foreground">
-                  Criado em {format(new Date(plan.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                </span>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectPlan(plan.id);
-                    }}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteId(plan.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-muted-foreground">
+                      {monthNames[plan.month - 1]} {plan.year}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {plan.clients?.teams ? (
+                      <Badge variant="outline" className="text-xs">
+                        {plan.clients.teams.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusLabels[plan.status].variant}>
+                      {statusLabels[plan.status].label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(plan.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectPlan(plan.id);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteId(plan.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -207,7 +305,7 @@ export function ContentPlanList({ onSelectPlan, onCreateNew }: ContentPlanListPr
             Nenhum planejamento encontrado
           </h3>
           <p className="text-sm text-muted-foreground">
-            {search || statusFilter !== "all"
+            {search || statusFilter !== "all" || squadFilter !== "all" || clientFilter !== "all"
               ? "Tente ajustar os filtros de busca"
               : "Crie seu primeiro planejamento de conteúdo"}
           </p>
