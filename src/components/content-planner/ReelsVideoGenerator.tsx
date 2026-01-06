@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video } from "lucide-react";
+import { Film, Loader2, Play, X, CheckCircle2, AlertCircle, Video, RefreshCw } from "lucide-react";
 import { useReelsVideoGeneration } from "@/hooks/useReelsVideoGeneration";
 import { toast } from "sonner";
 
@@ -36,10 +36,12 @@ export function ReelsVideoGenerator({
   disabled = false,
 }: ReelsVideoGeneratorProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [regeneratingScenes, setRegeneratingScenes] = useState<number[]>([]);
   const {
     state,
     startGeneration,
     cancelGeneration,
+    regenerateScenes,
     loadExistingProgress,
     isGenerating,
     isCompleted,
@@ -78,7 +80,31 @@ export function ReelsVideoGenerator({
 
   const handleCancel = async () => {
     await cancelGeneration(postId);
+    setRegeneratingScenes([]);
     toast.info("Geração cancelada");
+  };
+
+  const handleRegenerateScenes = async (sceneNumbers: number[]) => {
+    setRegeneratingScenes(sceneNumbers);
+    try {
+      await regenerateScenes(postId, sceneNumbers);
+      toast.success(`Regenerando ${sceneNumbers.length} cena(s)...`);
+    } catch (error: any) {
+      toast.error("Erro ao regenerar: " + error.message);
+      setRegeneratingScenes([]);
+    }
+  };
+
+  const handleRegenerateSingleScene = (sceneNumber: number) => {
+    handleRegenerateScenes([sceneNumber]);
+  };
+
+  const handleRegenerateAllFailed = () => {
+    const failedScenes = progress?.scenes?.filter(s => s.status === "error") || [];
+    const sceneNumbers = failedScenes.map(s => s.sceneNumber);
+    if (sceneNumbers.length > 0) {
+      handleRegenerateScenes(sceneNumbers);
+    }
   };
 
   const { progress } = state;
@@ -240,14 +266,49 @@ export function ReelsVideoGenerator({
           </div>
         )}
 
-        {/* Show error details per scene */}
+        {/* Show error details per scene with regenerate buttons */}
         {errorScenes.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-destructive">Erros por cena:</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-destructive">Cenas com erro:</p>
+              {errorScenes.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRegenerateAllFailed}
+                  disabled={regeneratingScenes.length > 0}
+                  className="h-6 text-[10px] px-2"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Regenerar todas
+                </Button>
+              )}
+            </div>
             {errorScenes.map((scene) => (
-              <p key={scene.sceneNumber} className="text-[10px] text-muted-foreground truncate">
-                Cena {scene.sceneNumber}: {scene.error || "Erro desconhecido"}
-              </p>
+              <div key={scene.sceneNumber} className="flex items-center justify-between bg-background/50 p-2 rounded">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium">Cena {scene.sceneNumber}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {scene.error || "Erro desconhecido"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRegenerateSingleScene(scene.sceneNumber)}
+                  disabled={regeneratingScenes.includes(scene.sceneNumber)}
+                  className="h-7 text-[10px] px-2 ml-2 shrink-0"
+                >
+                  {regeneratingScenes.includes(scene.sceneNumber) ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Regenerar
+                    </>
+                  )}
+                </Button>
+              </div>
             ))}
           </div>
         )}
@@ -258,7 +319,7 @@ export function ReelsVideoGenerator({
           onClick={() => cancelGeneration(postId)}
           className="w-full text-xs"
         >
-          {completedVideos.length > 0 ? "Limpar e tentar novamente" : "Tentar novamente"}
+          Limpar tudo
         </Button>
       </div>
     );
