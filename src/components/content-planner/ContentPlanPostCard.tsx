@@ -261,6 +261,8 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [generatingField, setGeneratingField] = useState<string | null>(null);
   const [generatingCreative, setGeneratingCreative] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
+  const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
+  const [extraPrompt, setExtraPrompt] = useState("");
   
   const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
@@ -469,6 +471,8 @@ O conteúdo deve:
     }
 
     setGeneratingCreative(true);
+    setShowExtraPromptDialog(false);
+    
     try {
       // Texto que DEVE aparecer na imagem (apenas headline + subheadline)
       const approvedText = [post.headline, post.subheadline].filter(Boolean).join('\n');
@@ -480,6 +484,7 @@ O conteúdo deve:
           creativeType: 'instagram_feed',
           theme: post.headline || post.objective || 'Post Estático',
           approvedText: approvedText || undefined,
+          extraPrompt: extraPrompt.trim() || undefined,
           context: {
             title: post.headline,
             description: post.subheadline,
@@ -498,6 +503,7 @@ O conteúdo deve:
         await onUpdate({ image_url: data.imageUrl });
         onRefetch();
         toast.success('Criativo gerado com sucesso!');
+        setExtraPrompt(""); // Limpar instruções após sucesso
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
@@ -507,6 +513,11 @@ O conteúdo deve:
     } finally {
       setGeneratingCreative(false);
     }
+  };
+  
+  // Abre modal de instruções extras para gerar nova imagem
+  const handleOpenExtraPromptDialog = () => {
+    setShowExtraPromptDialog(true);
   };
 
   const handleImageUploaded = async (url: string) => {
@@ -668,7 +679,7 @@ O conteúdo deve:
                             className="gap-2"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleGenerateCreative();
+                              handleOpenExtraPromptDialog();
                             }}
                             disabled={generatingCreative}
                           >
@@ -984,6 +995,47 @@ O conteúdo deve:
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Extra Prompt Dialog for Generate New */}
+      <AlertDialog open={showExtraPromptDialog} onOpenChange={setShowExtraPromptDialog}>
+        <AlertDialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-primary" />
+              Gerar Nova Imagem
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Adicione instruções extras para a IA ou deixe em branco para gerar com as configurações padrão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4">
+            <Textarea
+              placeholder="Ex: Use cores mais vibrantes, adicione elementos de tecnologia, estilo minimalista..."
+              value={extraPrompt}
+              onChange={(e) => setExtraPrompt(e.target.value)}
+              className="min-h-[100px]"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setExtraPrompt("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleGenerateCreative}
+              disabled={generatingCreative}
+              className="gap-2"
+            >
+              {generatingCreative ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Gerar Imagem
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
