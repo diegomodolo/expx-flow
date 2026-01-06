@@ -80,7 +80,7 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
     queryFn: async () => {
       if (!plan?.client_id) return false;
       const { data } = await supabase
-        .from("ad_generation_schedules")
+        .from("creative_generation_schedules")
         .select("id")
         .eq("client_id", plan.client_id)
         .maybeSingle();
