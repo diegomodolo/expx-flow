@@ -361,7 +361,10 @@ serve(async (req) => {
     // ACTION: STATUS - Check progress of all scenes
     if (action === "status") {
       if (!postId) {
-        throw new Error("postId is required");
+        return new Response(
+          JSON.stringify({ error: "postId is required", status: "idle", progress: {} }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       // Get current progress from database
@@ -372,7 +375,11 @@ serve(async (req) => {
         .single();
 
       if (fetchError || !post) {
-        throw new Error("Post not found");
+        console.error("Post not found for status check:", postId, fetchError);
+        return new Response(
+          JSON.stringify({ status: "idle", progress: {}, error: "Post not found" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       const progress = post.reels_generation_progress || {};

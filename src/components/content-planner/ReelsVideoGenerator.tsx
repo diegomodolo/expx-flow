@@ -48,7 +48,9 @@ export function ReelsVideoGenerator({
 
   // Load existing progress on mount
   useEffect(() => {
-    loadExistingProgress(postId);
+    if (postId) {
+      loadExistingProgress(postId);
+    }
   }, [postId, loadExistingProgress]);
 
   const handleStartGeneration = async () => {
