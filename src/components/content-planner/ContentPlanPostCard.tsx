@@ -627,26 +627,32 @@ ${post.subheadline ? `Subheadline: ${post.subheadline}` : ""}`.trim();
       const slide = post.slides?.find(s => s.id === slideId);
       const totalSlides = post.slides?.length || 1;
       
+      // Construir contexto dos slides anteriores
+      const previousSlidesContext = post.slides
+        ?.filter((_, idx) => idx < slideIndex)
+        .map((s, idx) => `Slide ${idx + 1}: Título: "${s.headline || '(vazio)'}" | Conteúdo: "${s.content || '(vazio)'}"`)
+        .join('\n') || '';
+
       const systemPrompt = `Você é um copywriter profissional especializado em carrosséis do Instagram.
 Contexto do cliente: ${clientBriefing}
 ${post.objective ? `Objetivo do post: ${post.objective}` : ""}
-${post.headline ? `Headline do carrossel: ${post.headline}` : ""}
+${post.headline ? `Headline principal do carrossel: ${post.headline}` : ""}
+${post.subheadline ? `Subheadline do carrossel: ${post.subheadline}` : ""}
+${post.caption ? `Legenda do carrossel: ${post.caption}` : ""}
+
+SLIDES ANTERIORES:
+${previousSlidesContext || "(Este é o primeiro slide)"}
 
 Este é o slide ${slideIndex + 1} de ${totalSlides} slides.
-${slide?.headline ? `Título atual do slide: ${slide.headline}` : ""}
-${slide?.content ? `Conteúdo atual do slide: ${slide.content}` : ""}
+${slide?.headline && field === 'content' ? `Título deste slide: ${slide.headline}` : ""}
+
+IMPORTANTE: Mantenha consistência narrativa com os slides anteriores. Não repita informações.
 
 Responda APENAS com o texto solicitado, sem explicações adicionais.`;
 
       const prompts: Record<string, string> = {
-        headline: `Gere um título curto e impactante para o slide ${slideIndex + 1} de ${totalSlides} do carrossel. 
-O título deve ser chamativo, ter no máximo 5-7 palavras e manter coerência com os outros slides.`,
-        content: `Gere o conteúdo/texto para o slide ${slideIndex + 1} de ${totalSlides} do carrossel.
-O conteúdo deve:
-- Ser conciso (2-3 frases no máximo)
-- Complementar o título do slide
-- Manter o fluxo narrativo do carrossel
-- Agregar valor ao leitor`,
+        headline: `Gere um título curto e impactante para o slide ${slideIndex + 1} de ${totalSlides}. Máximo 5-7 palavras.`,
+        content: `Gere o conteúdo para o slide ${slideIndex + 1} de ${totalSlides}. Máximo 2-3 frases concisas.`,
       };
 
       const { data, error } = await supabase.functions.invoke("content-plan-chat", {
@@ -658,6 +664,7 @@ O conteúdo deve:
             },
           ],
           systemPrompt,
+          useCustomSystemPrompt: true,
         },
       });
 
