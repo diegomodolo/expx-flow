@@ -71,8 +71,32 @@ serve(async (req) => {
         throw postsError;
       }
 
+      // Fetch slides for carousel posts
+      const postIds = (posts || []).map(p => p.id);
+      let slides: any[] = [];
+      
+      if (postIds.length > 0) {
+        const { data: slidesData, error: slidesError } = await supabase
+          .from("content_plan_slides")
+          .select("*")
+          .in("post_id", postIds)
+          .order("order_index", { ascending: true });
+
+        if (slidesError) {
+          console.error("Error fetching slides:", slidesError);
+        } else {
+          slides = slidesData || [];
+        }
+      }
+
+      // Attach slides to their posts
+      const postsWithSlides = (posts || []).map(post => ({
+        ...post,
+        slides: slides.filter(s => s.post_id === post.id)
+      }));
+
       return new Response(
-        JSON.stringify({ plan, posts: posts || [] }),
+        JSON.stringify({ plan, posts: postsWithSlides }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
