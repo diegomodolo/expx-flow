@@ -28,6 +28,7 @@ import {
   ChevronRight,
   Play,
   Film,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +70,7 @@ interface Post {
   reels_generation_status?: string | null;
   reels_generation_progress?: ReelsProgress | null;
   reels_uploaded_video_url?: string | null;
+  script?: string | null;
 }
 
 interface Plan {
@@ -103,7 +105,7 @@ export default function PublicContentReview() {
   const [updatingPostId, setUpdatingPostId] = useState<string | null>(null);
   const [carouselIndexes, setCarouselIndexes] = useState<Record<string, number>>({});
   const [reelsVideoIndexes, setReelsVideoIndexes] = useState<Record<string, number>>({});
-
+  const [viewingScriptPost, setViewingScriptPost] = useState<Post | null>(null);
   const getCarouselIndex = (postId: string) => carouselIndexes[postId] || 0;
   
   const setCarouselIndex = (postId: string, index: number) => {
@@ -358,6 +360,16 @@ export default function PublicContentReview() {
                             <Play className="w-3 h-3" />
                             Reels
                           </div>
+                          {/* Script button for reels */}
+                          {post.script && (
+                            <button
+                              onClick={() => setViewingScriptPost(post)}
+                              className="absolute top-12 right-2 bg-background/80 backdrop-blur-sm hover:bg-background rounded-full px-2 py-0.5 text-xs font-medium flex items-center gap-1 transition-colors"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Roteiro
+                            </button>
+                          )}
                         </>
                       );
                     }
@@ -433,6 +445,17 @@ export default function PublicContentReview() {
                           <Play className="w-3 h-3" />
                           Reels
                         </div>
+
+                        {/* Script button for reels */}
+                        {post.script && (
+                          <button
+                            onClick={() => setViewingScriptPost(post)}
+                            className="absolute top-12 right-2 bg-background/80 backdrop-blur-sm hover:bg-background rounded-full px-2 py-0.5 text-xs font-medium flex items-center gap-1 transition-colors"
+                          >
+                            <FileText className="w-3 h-3" />
+                            Roteiro
+                          </button>
+                        )}
                       </>
                     );
                   })()
@@ -617,6 +640,33 @@ export default function PublicContentReview() {
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
               Enviar Feedback
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Script Modal */}
+      <Dialog open={!!viewingScriptPost} onOpenChange={() => setViewingScriptPost(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Roteiro do Reels
+            </DialogTitle>
+            {viewingScriptPost?.headline && (
+              <DialogDescription>
+                {viewingScriptPost.headline}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed p-1">
+              {viewingScriptPost?.script}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingScriptPost(null)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
