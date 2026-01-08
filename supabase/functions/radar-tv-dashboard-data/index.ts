@@ -101,15 +101,15 @@ serve(async (req) => {
       googleCampaignsResult,
       syncInfoResult,
     ] = await Promise.all([
-      // All active clients
+      // All active clients (excluding canceled AND paused)
       supabase
         .from('clients')
         .select(`
           id, name, avatar, status, calculated_status, status_explanation,
           monthly_budget, meta_monthly_budget, google_monthly_budget,
-          leads_generated, avg_cpl,
+          leads_generated, avg_cpl, is_paused,
           ad_account_id, google_account_id,
-          facebook_ad_accounts(balance, account_status)
+          facebook_ad_accounts(balance, account_status, can_advertise, is_restricted)
         `)
         .eq('company_id', company.id)
         .eq('is_canceled', false),
@@ -136,12 +136,59 @@ serve(async (req) => {
         .limit(1),
     ]);
 
-    const clients = clientsResult.data || [];
+    const allClients = clientsResult.data || [];
     const metaCampaigns = metaCampaignsResult.data || [];
     const googleCampaigns = googleCampaignsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
 
-    console.log(`[radar-tv] Found ${clients.length} clients, ${metaCampaigns.length} meta campaigns, ${googleCampaigns.length} google campaigns`);
+    // Separate paused clients - they should not appear in risks/opportunities
+    const clients = allClients.filter(c => !c.is_paused);
+    const pausedClients = allClients.filter(c => c.is_paused);
+
+    console.log(`[radar-tv] Found ${allClients.length} total clients (${clients.length} active, ${pausedClients.length} paused), ${metaCampaigns.length} meta campaigns, ${googleCampaigns.length} google campaigns`);
+
+    // Identify restricted accounts (from active clients only)
+    interface RestrictedAccount {
+      id: string;
+      name: string;
+      avatar: string | null;
+      accountStatus: number;
+      reason: string;
+    }
+    
+    const restrictedAccounts: RestrictedAccount[] = [];
+    
+    clients.forEach(client => {
+      const fbAccount = Array.isArray(client.facebook_ad_accounts) 
+        ? client.facebook_ad_accounts[0] 
+        : client.facebook_ad_accounts;
+      
+      if (fbAccount) {
+        const isRestricted = fbAccount.is_restricted === true || 
+                            fbAccount.can_advertise === false ||
+                            (fbAccount.account_status && fbAccount.account_status !== 1);
+        
+        if (isRestricted) {
+          let reason = 'Conta com restrição';
+          const status = fbAccount.account_status;
+          if (status === 2) reason = 'Conta desabilitada';
+          else if (status === 3) reason = 'Pagamento pendente';
+          else if (status === 7) reason = 'Conta pendente de revisão';
+          else if (status === 9) reason = 'Conta em análise';
+          else if (status === 101) reason = 'Conta fechada';
+          else if (fbAccount.is_restricted) reason = 'Conta restrita';
+          else if (fbAccount.can_advertise === false) reason = 'Não pode anunciar';
+          
+          restrictedAccounts.push({
+            id: client.id,
+            name: client.name,
+            avatar: client.avatar,
+            accountStatus: status || 0,
+            reason
+          });
+        }
+      }
+    });
 
     // Build client spend map
     const clientSpend: Record<string, { meta: number; google: number; total: number; conversions: number }> = {};
@@ -331,7 +378,7 @@ serve(async (req) => {
       inactive: risks.filter(r => r.riskType === 'inactive').length
     };
 
-    console.log(`[radar-tv] Returning ${sortedRisks.length} risks, ${sortedOpportunities.length} opportunities, ${metrics.totalClients} clients`);
+    console.log(`[radar-tv] Returning ${sortedRisks.length} risks, ${sortedOpportunities.length} opportunities, ${metrics.totalClients} clients, ${restrictedAccounts.length} restricted accounts`);
 
     return new Response(
       JSON.stringify({
@@ -341,7 +388,8 @@ serve(async (req) => {
         metrics,
         risks: sortedRisks,
         opportunities: sortedOpportunities,
-        riskDistribution
+        riskDistribution,
+        restrictedAccounts
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
