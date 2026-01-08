@@ -114,6 +114,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CRMAuthProvider } from "@/contexts/CRMAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PermissionProtectedRoute } from "@/components/PermissionProtectedRoute";
 import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
@@ -172,64 +173,64 @@ const App = () => {
                  </ProtectedRoute>
                } />
                <Route path="/ia" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="ia">
                    <IAChat />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                <Route path="/ia/agents" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="agentes-ia">
                    <AgentesIA />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                <Route path="/ia/agents/new" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="editar-agentes">
                    <AgentEdit />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                <Route path="/ia/agents/:agentId" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="agentes-ia">
                    <AgentChat />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                <Route path="/ia/agents/:agentId/edit" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="editar-agentes">
                    <AgentEdit />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                 <Route path="/clientes" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="clientes">
                     <Clientes />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/clientes/:id/*" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="clientes">
                      <ClienteDetalhes />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                 <Route path="/campanhas" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="campanhas">
                     <Campanhas />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                 <Route path="/campanhas-unificadas" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="campanhas">
                     <CampanhasUnificadas />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                 <Route path="/campanhas/:id" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="campanhas">
                     <CampanhaDetalhes />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                <Route path="/colaboradores" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="colaboradores">
                    <Colaboradores />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                <Route path="/squad" element={
-                 <ProtectedRoute>
+                 <PermissionProtectedRoute requiredPermission="squad">
                    <Squad />
-                 </ProtectedRoute>
+                 </PermissionProtectedRoute>
                } />
                  <Route path="/tarefas" element={
                   <ProtectedRoute>
@@ -242,84 +243,84 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                  <Route path="/relatorios" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="relatorios">
                     <Relatorios />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                 <Route path="/relatorios/executivo" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="relatorios">
                     <RelatorioExecutivo />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/relatorios/funil" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioFunil />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                   <Route path="/relatorios/concorrencia" element={
-                    <ProtectedRoute>
+                    <PermissionProtectedRoute requiredPermission="relatorios">
                       <RelatorioAnaliseCompetitiva />
-                    </ProtectedRoute>
+                    </PermissionProtectedRoute>
                   } />
                  <Route path="/relatorios/clientes-zona-critica" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioClientesZonaCritica />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/criativos-baixo-desempenho" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioCriativosBaixoDesempenho />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/campanhas-ineficientes" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioCampanhasIneficientes />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/orcamento-mal-distribuido" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioOrcamentoMalDistribuido />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/oportunidades" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioOportunidades />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/performance-cliente" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioPerformanceCliente />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/campanhas" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioCampanhas />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/tarefas-planner" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioTarefasPlanner />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/produtividade-squads" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioProdutividadeSquads />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/rh-colaboradores" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioRHColaboradores />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/alertas-criticos" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioAlertasCriticos />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/relatorios/snapshots-performance" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="relatorios">
                      <RelatorioSnapshotsPerformance />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/leads-desqualificados" element={
                    <ProtectedRoute>
@@ -328,51 +329,51 @@ const App = () => {
                  } />
                  {/* Nova página de Geradores */}
                  <Route path="/geradores" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="geradores">
                     <Geradores />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  {/* Novas rotas dos geradores */}
                  <Route path="/geradores/campanhas" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-campanhas">
                     <GeradorCampanhas />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/geradores/campanhas/:id" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-campanhas">
                     <GeradorCampanhas />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                  } />
                  <Route path="/geradores/conteudo" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-conteudo">
                     <GeradorConteudo />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/geradores/criativos" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-criativos">
                     <GeradorCriativos />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/geradores/apresentacoes" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="geradores">
                     <GeradorApresentacoes />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/geradores/apresentacoes/:id" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="geradores">
                     <ApresentacaoDetalhes />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/geradores/planejamento-conteudo" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-conteudo">
                     <PlanejamentoConteudo />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  {/* Fábrica de Anúncios - Rotas aninhadas */}
                  <Route path="/geradores/fabrica-anuncios" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="geradores">
                     <FabricaAnuncios />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 }>
                   <Route path="dashboard" element={<DashboardFabrica />} />
                   <Route path="revisao-diaria" element={<RevisaoDiaria />} />
@@ -383,9 +384,9 @@ const App = () => {
                 </Route>
                  {/* Fábrica de Criativos - Rotas aninhadas */}
                  <Route path="/geradores/fabrica-criativos" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-criativos">
                     <FabricaCriativos />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 }>
                   <Route path="dashboard" element={<DashboardFabricaCriativos />} />
                   <Route path="revisao-diaria" element={<RevisaoDiariaCriativos />} />
@@ -396,9 +397,9 @@ const App = () => {
                 </Route>
                  {/* Fábrica de Carrosseis - Rotas aninhadas */}
                  <Route path="/geradores/fabrica-carrosseis" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="geradores">
                     <FabricaCarrosseis />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 }>
                   <Route path="dashboard" element={<DashboardFabricaCarrosseis />} />
                   <Route path="revisao-diaria" element={<RevisaoDiariaCarrosseis />} />
@@ -409,40 +410,40 @@ const App = () => {
                 </Route>
                  {/* Repositório de Criativos */}
                  <Route path="/repositorio-criativos" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-criativos">
                     <RepositorioCriativos />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  {/* Rotas antigas - redirects para compatibilidade */}
                  <Route path="/gerador-campanhas" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-campanhas">
                     <GeradorCampanhas />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/gerador-campanhas/:id" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-campanhas">
                     <GeradorCampanhas />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                  } />
                  <Route path="/gerador-conteudo" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-conteudo">
                     <GeradorConteudo />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/gerador-criativos" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="gerador-criativos">
                     <GeradorCriativos />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/editor-funil" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="editor-funil">
                     <EditorFunil />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                  <Route path="/editor-funil/:clientId/:funnelId" element={
-                  <ProtectedRoute>
+                  <PermissionProtectedRoute requiredPermission="editor-funil">
                     <FunnelEditor />
-                  </ProtectedRoute>
+                  </PermissionProtectedRoute>
                 } />
                 <Route path="/automacoes" element={
                   <ProtectedRoute>
@@ -485,9 +486,9 @@ const App = () => {
                     </ProtectedRoute>
                   } />
                   <Route path="/notificacoes/whatsapp" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="whatsapp">
                      <NotificacoesWhatsApp />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                  <Route path="/lead-intelligence" element={
                    <ProtectedRoute>
@@ -560,9 +561,9 @@ const App = () => {
                    </ProtectedRoute>
                  } />
                 <Route path="/configuracoes/*" element={
-                   <ProtectedRoute>
+                   <PermissionProtectedRoute requiredPermission="configuracoes">
                      <Configuracoes />
-                   </ProtectedRoute>
+                   </PermissionProtectedRoute>
                  } />
                 <Route path="/perfil/*" element={
                   <ProtectedRoute>
