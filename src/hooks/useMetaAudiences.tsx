@@ -89,13 +89,17 @@ export function useMetaAudiences(clientId: string | null) {
       });
 
       if (error) throw error;
-      if (!data.success) {
-        // Check for Terms of Service error
-        if (data.error?.includes('custom_audience_tos') || data.error?.includes('Terms of Service')) {
-          throw new Error('TOS_NOT_ACCEPTED');
-        }
-        throw new Error(data.error);
+      
+      // Check for TOS error response
+      if (!data.success && data.error === 'TOS_NOT_ACCEPTED') {
+        throw { 
+          type: 'TOS_NOT_ACCEPTED', 
+          message: data.errorMessage,
+          tosUrl: data.tosUrl 
+        };
       }
+      
+      if (!data.success) throw new Error(data.error);
 
       toast({
         title: 'Público criado',
@@ -107,14 +111,9 @@ export function useMetaAudiences(clientId: string | null) {
     } catch (error: any) {
       console.error('Error creating audience:', error);
       
-      // Check for TOS error (can come from various places)
-      const errorMessage = error.message || '';
-      if (errorMessage === 'TOS_NOT_ACCEPTED' || 
-          errorMessage.includes('custom_audience_tos') || 
-          errorMessage.includes('Terms of Service') ||
-          errorMessage.includes('2200')) {
-        // Return special error object that the component can handle
-        throw { type: 'TOS_NOT_ACCEPTED', message: 'Termos de Serviço não aceitos' };
+      // Re-throw TOS error for component handling
+      if (error?.type === 'TOS_NOT_ACCEPTED') {
+        throw error;
       }
       
       toast({

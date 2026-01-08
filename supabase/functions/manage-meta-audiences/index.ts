@@ -192,6 +192,20 @@ serve(async (req) => {
 
         if (data.error) {
           console.error('[manage-meta-audiences] Create error:', data.error);
+          
+          // Check for TOS error (error_subcode 1870090)
+          if (data.error.error_subcode === 1870090) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'TOS_NOT_ACCEPTED',
+              tosUrl: `https://business.facebook.com/ads/manage/customaudiences/tos/?act=${adAccountId.replace('act_', '')}`,
+              errorMessage: data.error.error_user_msg || 'Você precisa aceitar os Termos de Serviço de Públicos Personalizados.',
+            }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
           throw new Error(data.error.message);
         }
 
