@@ -1,10 +1,20 @@
-import { TVClient } from "@/hooks/useTrafegoDashboard";
 import { AlertCircle, AlertTriangle, CheckCircle2, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+// Interface that works with both hook data and edge function data
+interface ClientOnAlert {
+  id: string;
+  name: string;
+  status: string;
+  statusExplanation?: string | null;
+  avatar?: string | null;
+  isAccountRestricted?: boolean;
+  accountRestrictionReason?: string;
+}
+
 interface TVClientsOnAlertProps {
-  clients: TVClient[];
+  clients: ClientOnAlert[];
 }
 
 const statusConfig = {
