@@ -194,22 +194,18 @@ async function processSync(
 
     console.log('Client found:', { id: client.id, name: client.name, ad_account_id: client.ad_account_id })
 
-    // Check if client is inactive - skip sync only if not explicitly including inactive clients
-    if (client.status === 'red' && client.inactive_reason && !includeInactive) {
-      console.log('Client is inactive, skipping sync for:', client.name, 'Reason:', client.inactive_reason)
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Client is inactive - sync skipped',
-          data: { skipped: true, reason: client.inactive_reason }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Check if client is paused or canceled - skip sync completely
+    if (client.is_paused || client.is_canceled) {
+      const reason = client.is_canceled ? 'Cliente cancelado' : (client.pause_reason || 'Cliente pausado')
+      console.log('Client is paused/canceled, skipping sync for:', client.name, 'Reason:', reason)
+      await completeJob(supabase, jobId, true)
+      return
     }
 
-    // If including inactive clients, log that we're processing an inactive client
-    if (client.status === 'red' && client.inactive_reason && includeInactive) {
-      console.log('Processing inactive client due to includeInactive=true:', client.name, 'Reason:', client.inactive_reason)
+    // Note: We no longer skip based on inactive_reason - we always sync account status
+    // even if the client has no active campaigns
+    if (client.status === 'red' && client.inactive_reason) {
+      console.log('Client has inactive_reason but will still sync account status:', client.name, 'Reason:', client.inactive_reason)
     }
 
     if (!client.ad_account_id) {

@@ -2245,6 +2245,7 @@ export type Database = {
           inactive_reason: string | null
           instagram_account_id: string | null
           is_canceled: boolean
+          is_paused: boolean
           last_sync_at: string | null
           last_sync_period: string | null
           leads_generated: number | null
@@ -2259,6 +2260,8 @@ export type Database = {
           notes: string | null
           objectives: string | null
           offline_event_set_id: string | null
+          pause_reason: string | null
+          paused_at: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
           preferred_platforms: string[] | null
           presentation_bg_image: string | null
@@ -2312,6 +2315,7 @@ export type Database = {
           inactive_reason?: string | null
           instagram_account_id?: string | null
           is_canceled?: boolean
+          is_paused?: boolean
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
@@ -2326,6 +2330,8 @@ export type Database = {
           notes?: string | null
           objectives?: string | null
           offline_event_set_id?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
           preferred_platforms?: string[] | null
           presentation_bg_image?: string | null
@@ -2379,6 +2385,7 @@ export type Database = {
           inactive_reason?: string | null
           instagram_account_id?: string | null
           is_canceled?: boolean
+          is_paused?: boolean
           last_sync_at?: string | null
           last_sync_period?: string | null
           leads_generated?: number | null
@@ -2393,6 +2400,8 @@ export type Database = {
           notes?: string | null
           objectives?: string | null
           offline_event_set_id?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
           preferred_platforms?: string[] | null
           presentation_bg_image?: string | null
@@ -4891,6 +4900,7 @@ export type Database = {
           account_name: string
           account_status: number | null
           balance: number | null
+          can_advertise: boolean
           created_at: string
           currency: string
           disable_reason: string | null
@@ -4900,8 +4910,10 @@ export type Database = {
           integration_id: string
           is_active: boolean
           is_prepaid: boolean | null
+          is_restricted: boolean
           last_balance_check: string | null
           recharge_day: number | null
+          restriction_reason: string | null
           spend_cap: number | null
           updated_at: string
         }
@@ -4910,6 +4922,7 @@ export type Database = {
           account_name: string
           account_status?: number | null
           balance?: number | null
+          can_advertise?: boolean
           created_at?: string
           currency: string
           disable_reason?: string | null
@@ -4919,8 +4932,10 @@ export type Database = {
           integration_id: string
           is_active?: boolean
           is_prepaid?: boolean | null
+          is_restricted?: boolean
           last_balance_check?: string | null
           recharge_day?: number | null
+          restriction_reason?: string | null
           spend_cap?: number | null
           updated_at?: string
         }
@@ -4929,6 +4944,7 @@ export type Database = {
           account_name?: string
           account_status?: number | null
           balance?: number | null
+          can_advertise?: boolean
           created_at?: string
           currency?: string
           disable_reason?: string | null
@@ -4938,8 +4954,10 @@ export type Database = {
           integration_id?: string
           is_active?: boolean
           is_prepaid?: boolean | null
+          is_restricted?: boolean
           last_balance_check?: string | null
           recharge_day?: number | null
+          restriction_reason?: string | null
           spend_cap?: number | null
           updated_at?: string
         }

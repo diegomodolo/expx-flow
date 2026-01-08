@@ -19,7 +19,7 @@ import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog, PauseCircle } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ClientBriefingTab } from "./ClientBriefingTab";
@@ -114,6 +114,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
         is_canceled: client.is_canceled || false,
+        is_paused: (client as any).is_paused || false,
+        pause_reason: (client as any).pause_reason || "",
         gestor_id: client.gestor_id || "none",
       };
     }
@@ -165,6 +167,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       twitter_payment_type: "prepaid",
       twitter_recharge_day: undefined as number | undefined,
       is_canceled: false,
+      is_paused: false,
+      pause_reason: "",
       gestor_id: "none",
     };
   });
@@ -284,6 +288,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: client.twitter_payment_type || "prepaid",
         twitter_recharge_day: client.twitter_recharge_day,
         is_canceled: client.is_canceled || false,
+        is_paused: (client as any).is_paused || false,
+        pause_reason: (client as any).pause_reason || "",
         gestor_id: client.gestor_id || "none",
       });
       setLocalClient(client);
@@ -340,6 +346,8 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
         twitter_payment_type: "prepaid",
         twitter_recharge_day: undefined,
         is_canceled: false,
+        is_paused: false,
+        pause_reason: "",
         gestor_id: "none",
       });
       setLocalClient(undefined);
@@ -384,6 +392,10 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       const wasCanceled = client?.is_canceled || false;
       const isCanceled = formData.is_canceled;
       
+      // Handle is_paused logic: set paused_at when marking as paused
+      const wasPaused = (client as any)?.is_paused || false;
+      const isPaused = formData.is_paused;
+      
       const submitData = {
         ...formData,
         team_id: formData.team_id === 'none' ? null : formData.team_id,
@@ -396,6 +408,13 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
           : isCanceled 
             ? client?.canceled_at 
             : null,
+        is_paused: isPaused,
+        paused_at: isPaused && !wasPaused 
+          ? new Date().toISOString() 
+          : isPaused 
+            ? (client as any)?.paused_at 
+            : null,
+        pause_reason: isPaused ? formData.pause_reason : null,
       };
       
       await onSubmit(submitData);
@@ -834,6 +853,61 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </div>
             )}
 
+            {/* Cliente Pausado - somente em modo de edição */}
+            {client && (
+              <div className={cn(
+                "p-4 rounded-lg border-2 space-y-3",
+                formData.is_paused 
+                  ? "border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20" 
+                  : "border-border bg-muted/20"
+              )}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <PauseCircle className={cn(
+                      "w-5 h-5",
+                      formData.is_paused ? "text-yellow-600 dark:text-yellow-500" : "text-muted-foreground"
+                    )} />
+                    <div>
+                      <Label htmlFor="is_paused" className={cn(
+                        "font-medium cursor-pointer",
+                        formData.is_paused && "text-yellow-700 dark:text-yellow-500"
+                      )}>
+                        Cliente Pausado
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formData.is_paused 
+                          ? "Este cliente pediu para pausar temporariamente"
+                          : "Marcar quando o cliente pedir para pausar as campanhas"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="is_paused"
+                    checked={formData.is_paused}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_paused: checked })}
+                    disabled={readOnly || formData.is_canceled}
+                    className={formData.is_paused ? "data-[state=checked]:bg-yellow-500" : ""}
+                  />
+                </div>
+                {formData.is_paused && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded">
+                      ⏸️ O cliente não será sincronizado e não aparecerá nos alertas de dashboard TV/Radar.
+                    </p>
+                    <Textarea
+                      value={formData.pause_reason}
+                      onChange={(e) => setFormData({ ...formData, pause_reason: e.target.value })}
+                      placeholder="Motivo da pausa (opcional)..."
+                      disabled={readOnly}
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Cliente Cancelado - somente em modo de edição */}
             {client && (
               <div className={cn(
@@ -866,7 +940,7 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
                   <Switch
                     id="is_canceled"
                     checked={formData.is_canceled}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_canceled: checked })}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_canceled: checked, is_paused: checked ? false : formData.is_paused })}
                     disabled={readOnly}
                     className={formData.is_canceled ? "data-[state=checked]:bg-destructive" : ""}
                   />
