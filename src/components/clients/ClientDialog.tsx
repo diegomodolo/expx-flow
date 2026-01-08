@@ -189,35 +189,24 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [uploadingAiRefImage, setUploadingAiRefImage] = useState<1 | 2 | 3 | null>(null);
   const [fetchingInstagramAvatar, setFetchingInstagramAvatar] = useState(false);
 
-  // Function to fetch Instagram avatar and save to storage
+  // Function to fetch Instagram avatar and save to storage using edge function
   const handleFetchInstagramAvatar = async (instagramProfileUrl: string) => {
     if (!instagramProfileUrl) return;
     
     setFetchingInstagramAvatar(true);
     try {
-      // Fetch the image from Instagram URL
-      const response = await fetch(instagramProfileUrl);
-      if (!response.ok) throw new Error('Failed to fetch Instagram image');
-      
-      const blob = await response.blob();
-      const fileName = `instagram-avatar-${Date.now()}.jpg`;
-      
-      // Upload to Supabase storage
-      const { error: uploadError } = await supabase.storage
-        .from('client-avatars')
-        .upload(fileName, blob, {
-          contentType: blob.type || 'image/jpeg',
-          upsert: true
-        });
+      // Use edge function to copy the image to our storage (avoids CORS and link expiration)
+      const { data, error } = await supabase.functions.invoke('copy-external-image', {
+        body: { 
+          imageUrl: instagramProfileUrl,
+          folder: 'client-avatars'
+        }
+      });
 
-      if (uploadError) throw uploadError;
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to copy image');
 
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('client-avatars')
-        .getPublicUrl(fileName);
-
-      setFormData({ ...formData, avatar: publicUrl });
+      setFormData({ ...formData, avatar: data.url });
       toast({
         title: "Foto atualizada",
         description: "Foto do perfil do Instagram salva com sucesso!",
