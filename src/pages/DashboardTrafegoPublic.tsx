@@ -75,6 +75,8 @@ interface TVDashboardResponse {
     avatar: string | null;
     leads: number;
     avgCpl: number;
+    isAccountRestricted?: boolean;
+    accountRestrictionReason?: string;
   }>;
   topClients: Array<{
     id: string;
@@ -261,7 +263,7 @@ export default function DashboardTrafegoPublic() {
     status: c.status,
   }));
 
-  const clients: TVClient[] = data.clientsOnAlert.map(c => ({
+  const clients = data.clientsOnAlert.map(c => ({
     id: c.id,
     name: c.name,
     status: c.status,
@@ -269,6 +271,8 @@ export default function DashboardTrafegoPublic() {
     activeCampaigns: 0,
     avgCpl: c.avgCpl || 0,
     avatar: c.avatar || null,
+    isAccountRestricted: c.isAccountRestricted || false,
+    accountRestrictionReason: c.accountRestrictionReason || '',
   }));
 
   const topClients = data.topClients || [];
