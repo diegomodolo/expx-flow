@@ -50,6 +50,16 @@ import { FundingAlert } from "@/components/alerts/FundingAlert";
 
 type StatusType = "all" | ClientStatus;
 type ClientFilter = "active" | "paused" | "canceled" | "all";
+type RestrictionFilter = "all" | "restricted" | "not_restricted";
+
+// Helper to check if client has account restriction
+const isAccountRestricted = (client: Client): boolean => {
+  if (!client.facebook_ad_accounts) return false;
+  const { can_advertise, is_restricted, account_status } = client.facebook_ad_accounts;
+  return can_advertise === false || 
+         is_restricted === true || 
+         [2, 3, 7, 8, 100, 101].includes(account_status);
+};
 
 const statusConfig = {
   excelente: { 
@@ -368,6 +378,7 @@ const BalanceSufficiencyIcon = ({ client }: { client: Client }) => {
 const Clientes = () => {
   const [clientFilter, setClientFilter] = useState<ClientFilter>("active");
   const [statusFilter, setStatusFilter] = useState<StatusType>("all");
+  const [restrictionFilter, setRestrictionFilter] = useState<RestrictionFilter>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -500,8 +511,14 @@ const Clientes = () => {
       }
       return client.team_id === filters.squad;
     })();
+
+    const matchesRestriction = restrictionFilter === "all" || (() => {
+      const hasRestriction = isAccountRestricted(client);
+      if (restrictionFilter === "restricted") return hasRestriction;
+      return !hasRestriction;
+    })();
     
-    return matchesClientFilter && matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns && matchesSquad;
+    return matchesClientFilter && matchesStatus && matchesSearch && matchesSector && matchesBudget && matchesCampaigns && matchesSquad && matchesRestriction;
   }).sort((a, b) => {
     let aValue: any = a[sortField];
     let bValue: any = b[sortField];
@@ -843,93 +860,114 @@ const Clientes = () => {
                     </div>
                   </div>
 
-                  {/* Second Line: Status Filters */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</span>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={statusFilter === "all" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter("all")}
+                  {/* Second Line: Compact Filters */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {/* Status Performance Filter - Dropdown */}
+                    <div className="flex items-center gap-2">
+                      <Select 
+                        value={statusFilter} 
+                        onValueChange={(value) => setStatusFilter(value as StatusType)}
                       >
-                        Todos
-                      </Button>
-                      <Button
-                        variant={statusFilter === "excelente" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter("excelente")}
-                        className="flex items-center space-x-1"
-                      >
-                        <div className="w-2 h-2 bg-status-excellent rounded-full"></div>
-                        <span>Excelente</span>
-                      </Button>
-                      <Button
-                        variant={statusFilter === "atencao" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter("atencao")}
-                        className="flex items-center space-x-1"
-                      >
-                        <div className="w-2 h-2 bg-status-attention rounded-full"></div>
-                        <span>Atenção</span>
-                      </Button>
-                      <Button
-                        variant={statusFilter === "emergencial" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter("emergencial")}
-                        className="flex items-center space-x-1"
-                      >
-                        <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
-                        <span>Emergencial</span>
-                      </Button>
-                      <Button
-                        variant={statusFilter === "sem_fundos" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter("sem_fundos")}
-                        className="flex items-center space-x-1"
-                      >
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        <span>Sem Fundos</span>
-                      </Button>
-                      <Button
-                        variant={statusFilter === "inativo" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter("inativo")}
-                        className="flex items-center space-x-1"
-                      >
-                        <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
-                        <span>Inativo</span>
-                      </Button>
-                      
-                      {/* Separator */}
-                      <div className="w-px h-6 bg-border mx-1" />
-                      
-                      {/* Client Status Filter */}
-                      <Button
-                        variant={clientFilter === "active" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setClientFilter("active")}
-                      >
-                        Ativos
-                      </Button>
-                      <Button
-                        variant={clientFilter === "paused" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setClientFilter("paused")}
-                        className="flex items-center space-x-1 text-yellow-600 border-yellow-300"
-                      >
-                        <PauseCircle className="w-3 h-3" />
-                        <span>Pausados</span>
-                      </Button>
-                      <Button
-                        variant={clientFilter === "canceled" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setClientFilter("canceled")}
-                        className="flex items-center space-x-1 text-destructive border-destructive/30"
-                      >
-                        <Ban className="w-3 h-3" />
-                        <span>Cancelados</span>
-                      </Button>
+                        <SelectTrigger className="w-[140px] h-8 text-sm">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os status</SelectItem>
+                          <SelectItem value="excelente">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-status-excellent rounded-full"></div>
+                              Excelente
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="atencao">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-status-attention rounded-full"></div>
+                              Atenção
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="emergencial">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
+                              Emergencial
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="sem_fundos">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              Sem Fundos
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="inativo">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
+                              Inativo
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Client State Filter - Dropdown */}
+                    <Select 
+                      value={clientFilter} 
+                      onValueChange={(value) => setClientFilter(value as ClientFilter)}
+                    >
+                      <SelectTrigger className="w-[120px] h-8 text-sm">
+                        <SelectValue placeholder="Clientes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="active">Ativos</SelectItem>
+                        <SelectItem value="paused">
+                          <div className="flex items-center gap-2">
+                            <PauseCircle className="w-3 h-3 text-yellow-600" />
+                            Pausados
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="canceled">
+                          <div className="flex items-center gap-2">
+                            <Ban className="w-3 h-3 text-destructive" />
+                            Cancelados
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Restriction Filter - Dropdown */}
+                    <Select 
+                      value={restrictionFilter} 
+                      onValueChange={(value) => setRestrictionFilter(value as RestrictionFilter)}
+                    >
+                      <SelectTrigger className="w-[130px] h-8 text-sm">
+                        <SelectValue placeholder="Restrições" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas contas</SelectItem>
+                        <SelectItem value="restricted">
+                          <div className="flex items-center gap-2">
+                            <Ban className="w-3 h-3" />
+                            Restritas
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="not_restricted">Sem restrição</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Active filter indicators */}
+                    {(statusFilter !== "all" || clientFilter !== "active" || restrictionFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setStatusFilter("all");
+                          setClientFilter("active");
+                          setRestrictionFilter("all");
+                        }}
+                      >
+                        Limpar filtros
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -1152,7 +1190,23 @@ const Clientes = () => {
                               </div>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
+                              {isAccountRestricted(client) ? (
+                                /* Se conta restrita, mostra apenas badge Restrita */
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant="outline" 
+                                      className="bg-zinc-900 text-white border-zinc-700 text-xs dark:bg-zinc-800 dark:border-zinc-600"
+                                    >
+                                      Restrita
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
+                                    <p>A conta de anúncios do Meta possui restrições ativas.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                /* Se não restrita, mostra badge de status normal */
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Badge 
@@ -1166,27 +1220,7 @@ const Clientes = () => {
                                     <p>{getStatusExplanation(client)}</p>
                                   </TooltipContent>
                                 </Tooltip>
-                                {/* Badge de conta restrita */}
-                                {client.facebook_ad_accounts && (
-                                  client.facebook_ad_accounts.can_advertise === false ||
-                                  client.facebook_ad_accounts.is_restricted === true ||
-                                  [2, 3, 7, 8, 100, 101].includes(client.facebook_ad_accounts.account_status)
-                                ) && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge 
-                                        variant="outline" 
-                                        className="bg-zinc-900 text-white border-zinc-700 text-xs dark:bg-zinc-800 dark:border-zinc-600"
-                                      >
-                                        Restrita
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
-                                      <p>A conta de anúncios do Meta possui restrições ativas.</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                              </div>
+                              )}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
                               <Tooltip>
