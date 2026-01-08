@@ -31,6 +31,9 @@ export interface ClientHealthData {
   balanceStatus: "sufficient" | "tight" | "insufficient" | "no-data";
   projectedSpend: number | null;
   rechargeDay: number | null;
+  // Account restriction info
+  isAccountRestricted: boolean;
+  accountStatus: number | null;
 }
 
 export interface HealthTask {
@@ -81,6 +84,7 @@ interface RawClientData {
   payment_type: string;
   last_sync_at: string | null;
   is_canceled: boolean;
+  is_paused: boolean;
   meta_monthly_budget: number | null;
   google_monthly_budget: number | null;
   ad_account_id: string | null;
@@ -92,6 +96,9 @@ interface AdAccountData {
   id: string;
   balance: number | null;
   recharge_day: number | null;
+  is_restricted: boolean | null;
+  can_advertise: boolean | null;
+  account_status: number | null;
 }
 
 interface BalanceAnalysis {
@@ -195,7 +202,8 @@ function calculateBalanceAnalysis(
 function calculateHealthScore(
   client: RawClientData, 
   balance: number | null,
-  balanceAnalysis: BalanceAnalysis
+  balanceAnalysis: BalanceAnalysis,
+  adAccountRestriction: { isRestricted: boolean; accountStatus: number | null }
 ): ClientHealthData {
   const hasMetaAccount = !!client.ad_account_id;
   const hasGoogleAccount = !!client.google_account_id;
@@ -234,6 +242,12 @@ function calculateHealthScore(
       score -= 15;
       riskFactors.push("Saldo apertado até a recarga");
     }
+  }
+
+  // Account restriction penalization
+  if (adAccountRestriction.isRestricted) {
+    score -= 40;
+    riskFactors.push("Conta de anúncios restrita");
   }
 
   const problemStatus = ["pausado", "paused", "disabled", "problem", "blocked", "suspended"];
@@ -283,6 +297,8 @@ function calculateHealthScore(
     balanceStatus: balanceAnalysis.balanceStatus,
     projectedSpend: balanceAnalysis.projectedSpend,
     rechargeDay: balanceAnalysis.rechargeDay,
+    isAccountRestricted: adAccountRestriction.isRestricted,
+    accountStatus: adAccountRestriction.accountStatus,
   };
 }
 
@@ -296,7 +312,7 @@ export function useHealthDashboard() {
         throw new Error("No active company");
       }
 
-      // Fetch clients
+      // Fetch clients (excluding canceled and paused)
       const { data: clients, error: clientsError } = await supabase
         .from("clients")
         .select(`
@@ -313,6 +329,7 @@ export function useHealthDashboard() {
           payment_type,
           last_sync_at,
           is_canceled,
+          is_paused,
           meta_monthly_budget,
           google_monthly_budget,
           ad_account_id,
@@ -320,7 +337,8 @@ export function useHealthDashboard() {
           meta_recharge_day
         `)
         .eq("company_id", activeCompany.company_id)
-        .eq("is_canceled", false);
+        .eq("is_canceled", false)
+        .eq("is_paused", false);
 
       if (clientsError) throw clientsError;
 
@@ -329,13 +347,13 @@ export function useHealthDashboard() {
         .map(c => c.ad_account_id)
         .filter((id): id is string => id !== null);
       
-      // Fetch ad accounts with balance and recharge_day
+      // Fetch ad accounts with balance, recharge_day, and restriction info
       let adAccountMap = new Map<string, AdAccountData>();
       
       if (adAccountIds.length > 0) {
         const { data: adAccounts, error: accountsError } = await supabase
           .from("facebook_ad_accounts")
-          .select("id, balance, recharge_day")
+          .select("id, balance, recharge_day, is_restricted, can_advertise, account_status")
           .in("id", adAccountIds);
 
         if (!accountsError && adAccounts) {
@@ -345,6 +363,9 @@ export function useHealthDashboard() {
                 id: acc.id,
                 balance: acc.balance !== null ? Number(acc.balance) : null,
                 recharge_day: acc.recharge_day,
+                is_restricted: acc.is_restricted,
+                can_advertise: acc.can_advertise,
+                account_status: acc.account_status,
               });
             }
           });
@@ -413,10 +434,19 @@ export function useHealthDashboard() {
         const rechargeDay = client.meta_recharge_day || adAccount?.recharge_day || null;
         const balanceAnalysis = calculateBalanceAnalysis(balance, monthlyBudget, rechargeDay);
         
+        // Determine account restriction status
+        const restrictedStatuses = [2, 3, 7, 8, 100, 101];
+        const isRestricted = adAccount ? (
+          adAccount.can_advertise === false ||
+          adAccount.is_restricted === true ||
+          (adAccount.account_status !== null && restrictedStatuses.includes(adAccount.account_status))
+        ) : false;
+        
         return calculateHealthScore(
           client as RawClientData, 
           balance,
-          balanceAnalysis
+          balanceAnalysis,
+          { isRestricted, accountStatus: adAccount?.account_status ?? null }
         );
       });
 
@@ -448,10 +478,8 @@ export function useHealthDashboard() {
         return statusOrder[a.balanceStatus] - statusOrder[b.balanceStatus];
       })
 
-      const disabledAccounts = processedClients.filter(c => {
-        const status = c.status.toLowerCase();
-        return ["pausado", "paused", "disabled", "problem", "blocked", "suspended"].some(s => status.includes(s));
-      });
+      // Disabled/Restricted accounts: now uses the isAccountRestricted field
+      const disabledAccounts = processedClients.filter(c => c.isAccountRestricted);
 
       const inactiveClients = processedClients.filter(c => c.activeCampaigns === 0);
 
