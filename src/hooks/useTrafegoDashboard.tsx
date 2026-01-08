@@ -46,6 +46,8 @@ export interface TVClient {
   activeCampaigns: number;
   avgCpl: number;
   avatar?: string | null;
+  isAccountRestricted?: boolean;
+  accountRestrictionReason?: string;
 }
 
 export interface TVTask {
@@ -106,11 +108,17 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
           .gte("created_at", sixtyDaysAgo.toISOString())
           .lt("created_at", thirtyDaysAgo.toISOString()),
         
-        // Clients with status
+        // Clients with status (excluding canceled and paused)
         supabase
           .from("clients")
-          .select("id, name, status, calculated_status, status_explanation, active_campaigns, avg_cpl")
-          .eq("company_id", activeCompany.company_id),
+          .select(`
+            id, name, status, calculated_status, status_explanation, 
+            active_campaigns, avg_cpl, avatar, is_paused, leads_generated,
+            facebook_ad_accounts(account_status, can_advertise, is_restricted)
+          `)
+          .eq("company_id", activeCompany.company_id)
+          .eq("is_canceled", false)
+          .eq("is_paused", false),
         
         // Pending tasks
         supabase
@@ -158,13 +166,13 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
         ctrChange: calcChange(averageCTR, prevAvgCTR),
       };
 
-      // Top campaigns by CPA (lower is better, filter only those with conversions)
+      // Top campaigns by leads (conversions) - higher is better
       const activeCampaigns = campaigns.filter(c => 
         c.status === "active" && (c.conversions || 0) > 0
       );
       
       const topCampaigns: TVCampaign[] = activeCampaigns
-        .sort((a, b) => (a.cpa || 999999) - (b.cpa || 999999))
+        .sort((a, b) => (b.conversions || 0) - (a.conversions || 0))
         .slice(0, 10)
         .map(c => ({
           id: c.id,
@@ -232,20 +240,60 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
           });
         });
 
-      // Clients on alert (yellow/red status)
+      // Helper to check if account is restricted
+      const isAccountRestricted = (client: any): { restricted: boolean; reason: string } => {
+        const fbAccount = Array.isArray(client.facebook_ad_accounts)
+          ? client.facebook_ad_accounts[0]
+          : client.facebook_ad_accounts;
+        
+        if (!fbAccount) return { restricted: false, reason: '' };
+        
+        const isRestricted = fbAccount.is_restricted === true ||
+                            fbAccount.can_advertise === false ||
+                            (fbAccount.account_status && fbAccount.account_status !== 1);
+        
+        if (!isRestricted) return { restricted: false, reason: '' };
+        
+        let reason = 'Conta com restrição';
+        const status = fbAccount.account_status;
+        if (status === 2) reason = 'Conta desabilitada';
+        else if (status === 3) reason = 'Pagamento pendente';
+        else if (status === 7) reason = 'Conta pendente de revisão';
+        else if (status === 9) reason = 'Conta em análise';
+        else if (status === 101) reason = 'Conta fechada';
+        else if (fbAccount.is_restricted) reason = 'Conta restrita';
+        else if (fbAccount.can_advertise === false) reason = 'Não pode anunciar';
+        
+        return { restricted: true, reason };
+      };
+
+      // Clients on alert (yellow/red status OR restricted accounts)
       const clientsOnAlert: TVClient[] = clients
         .filter(c => {
           const status = c.calculated_status || c.status;
-          return status === "atencao" || status === "emergencia";
+          const accountCheck = isAccountRestricted(c);
+          return status === "atencao" || status === "emergencia" || status === "yellow" || status === "red" || accountCheck.restricted;
         })
-        .map(c => ({
-          id: c.id,
-          name: c.name,
-          status: c.calculated_status || c.status,
-          statusExplanation: c.status_explanation,
-          activeCampaigns: c.active_campaigns || 0,
-          avgCpl: c.avg_cpl || 0,
-        }));
+        .map(c => {
+          const accountCheck = isAccountRestricted(c);
+          return {
+            id: c.id,
+            name: c.name,
+            status: c.calculated_status || c.status,
+            statusExplanation: c.status_explanation,
+            activeCampaigns: c.active_campaigns || 0,
+            avgCpl: c.avg_cpl || 0,
+            avatar: c.avatar,
+            isAccountRestricted: accountCheck.restricted,
+            accountRestrictionReason: accountCheck.reason,
+          };
+        })
+        // Sort: restricted accounts first, then by status severity
+        .sort((a, b) => {
+          if (a.isAccountRestricted && !b.isAccountRestricted) return -1;
+          if (!a.isAccountRestricted && b.isAccountRestricted) return 1;
+          return 0;
+        });
 
       // Pending tasks
       const pendingTasks: TVTask[] = tasks.map(t => ({
