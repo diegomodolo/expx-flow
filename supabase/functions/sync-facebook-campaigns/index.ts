@@ -224,14 +224,8 @@ async function processSync(
         console.error('Error updating client with default values:', updateError)
       }
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'No ad account linked',
-          data: { active_campaigns: 0, avg_cpl: 0, leads_generated: 0 }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      await completeJob(supabase, jobId, true)
+      return
     }
 
     // Get ad account info
@@ -244,30 +238,14 @@ async function processSync(
 
     if (adAccountError) {
       console.error('Error fetching ad account:', adAccountError)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Database error while fetching ad account' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      await completeJob(supabase, jobId, false, 'Database error while fetching ad account')
+      return
     }
 
     if (!adAccount) {
       console.error('Ad account not found for ID:', client.ad_account_id)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Ad account not found' 
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      await completeJob(supabase, jobId, false, 'Ad account not found')
+      return
     }
 
     console.log('Ad account found:', { id: adAccount.id, account_id: adAccount.account_id, integration_id: adAccount.integration_id })
@@ -282,46 +260,22 @@ async function processSync(
 
     if (integrationError) {
       console.error('Error fetching integration:', integrationError)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Database error while fetching integration' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      await completeJob(supabase, jobId, false, 'Database error while fetching integration')
+      return
     }
 
     if (!integration) {
       console.error('Integration not found for ID:', adAccount.integration_id)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Facebook integration not found' 
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      await completeJob(supabase, jobId, false, 'Facebook integration not found')
+      return
     }
 
     console.log('Integration found:', { id: integration.id, is_active: integration.is_active })
 
     if (!integration.is_active) {
       console.log('Integration is not active')
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Facebook integration is not active' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      await completeJob(supabase, jobId, false, 'Facebook integration is not active')
+      return
     }
 
     const accessToken = integration.access_token
@@ -1490,17 +1444,8 @@ async function processSync(
       console.error('❌ ERROR UPDATING CLIENT:', updateError)
       console.error('❌ Client ID that failed:', clientId)
       console.error('❌ Data that failed to update:', JSON.stringify(metricsData, null, 2))
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Failed to update client data',
-          details: updateError.message
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      await completeJob(supabase, jobId, false, 'Failed to update client data: ' + updateError.message)
+      return
     }
 
     console.log('✅ CLIENT UPDATE SUCCESSFUL')
@@ -1524,14 +1469,8 @@ async function processSync(
       console.log('  - Status matches expected?', verifyClientData.status === clientStatus)
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Campaigns synced successfully',
-        data: metricsData
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    await completeJob(supabase, jobId, true)
+    console.log('🎉 SYNC JOB COMPLETED SUCCESSFULLY for client:', clientId)
 
   } catch (error: any) {
     console.error('=== ERROR in sync-facebook-campaigns ===')
@@ -1540,15 +1479,6 @@ async function processSync(
     console.error('Error stack:', error?.stack || 'No stack trace')
     console.error('=====================================')
     
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error?.message || error?.toString() || 'Internal server error'
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    await completeJob(supabase, jobId, false, error?.message || 'Internal server error')
   }
 }
