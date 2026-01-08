@@ -34,6 +34,7 @@ async function completeJob(supabase: any, jobId: string, success: boolean, error
 }
 
 Deno.serve(async (req) => {
+  console.log('[sync-facebook-campaigns] version=2026-01-08-disable-reason-fix')
   console.log('=== Sync Facebook Campaigns Function Started ===')
   console.log('Request method:', req.method)
   console.log('Request URL:', req.url)
@@ -284,32 +285,12 @@ async function processSync(
     // Check account balance, funding status, and restrictions
     console.log('Checking account balance for:', accountId)
     
-    // Step 1: Fetch basic account info (v20 - without is_user_allowed_to_advertise which doesn't exist in v20)
+    // Fetch basic account info (v20 - is_user_allowed_to_advertise doesn't exist, so we rely on account_status)
     const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details,is_prepay_account&access_token=${accessToken}`
     console.log('Balance API URL (v20, without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
     
-    // Step 2: Fetch is_user_allowed_to_advertise separately (v16 - this field exists there)
-    const allowedUrl = `https://graph.facebook.com/v16.0/${accountId}?fields=is_user_allowed_to_advertise&access_token=${accessToken}`
-    console.log('Allowed to advertise API URL (v16, without token):', allowedUrl.replace(accessToken, '[REDACTED]'))
-    
     try {
-      // Fetch both in parallel
-      const [balanceResponse, allowedResponse] = await Promise.all([
-        fetch(balanceUrl),
-        fetch(allowedUrl)
-      ])
-      
-      // Parse is_user_allowed_to_advertise from v16 (fallback to true if unavailable)
-      let isUserAllowedToAdvertise = true
-      if (allowedResponse.ok) {
-        const allowedData = await allowedResponse.json()
-        console.log('✅ v16 is_user_allowed_to_advertise response:', allowedData)
-        isUserAllowedToAdvertise = allowedData.is_user_allowed_to_advertise ?? true
-      } else {
-        console.warn('⚠️ v16 is_user_allowed_to_advertise call failed, using fallback true')
-        const errorText = await allowedResponse.text()
-        console.warn('  - Status:', allowedResponse.status, 'Error:', errorText)
-      }
+      const balanceResponse = await fetch(balanceUrl)
       
       if (balanceResponse.ok) {
         const balanceData = await balanceResponse.json()
@@ -334,20 +315,26 @@ async function processSync(
         
         const accountStatus = parseInt(balanceData.account_status || '1')
         const spendCap = parseFloat(balanceData.spend_cap || '0') / 100 // Converter centavos para reais
-        const disableReason = balanceData.disable_reason || null
+        // CRITICAL FIX: disable_reason can be a number, so always convert to string safely
+        const disableReasonRaw = balanceData.disable_reason
+        const disableReason: string | null = disableReasonRaw != null ? String(disableReasonRaw) : null
         const fundingSourceDetails = balanceData.funding_source_details || {}
         
         // Enhanced funding issues detection - more refined logic
         console.log('🔍 DETAILED FUNDING ANALYSIS:')
-        console.log('  - Account Status:', accountStatus, '(1 = ACTIVE, 2 = DISABLED, 3 = UNSETTLED, 7 = PENDING_RISK_REVIEW, 8 = PENDING_SETTLEMENT, 9 = IN_GRACE_PERIOD, 100 = PENDING_CLOSURE, 101 = CLOSED, 201 = ANY_ACTIVE, 202 = ANY_CLOSED)')
+        console.log('  - Account Status:', accountStatus, '(1 = ACTIVE, 2 = DISABLED, 3 = UNSETTLED, 7 = PENDING_RISK_REVIEW, 8 = PENDING_SETTLEMENT, 9 = IN_GRACE_PERIOD, 100 = PENDING_CLOSURE, 101 = CLOSED)')
         console.log('  - Balance:', balance)
-        console.log('  - Disable Reason:', disableReason)
+        console.log('  - Disable Reason (raw):', disableReasonRaw, '(as string):', disableReason)
         console.log('  - Spend Cap:', spendCap)
         console.log('  - Funding Source Details:', fundingSourceDetails)
         console.log('  - Is Prepaid:', isPrepaid)
         
         // Check each condition separately for better debugging
-        const isAccountInactive = accountStatus !== 1
+        // Account statuses that indicate issues: 2 (DISABLED), 3 (UNSETTLED), 7 (PENDING_RISK_REVIEW), 8 (PENDING_SETTLEMENT), 100 (PENDING_CLOSURE), 101 (CLOSED)
+        const restrictedStatuses = [2, 3, 7, 8, 100, 101]
+        const isAccountInactive = restrictedStatuses.includes(accountStatus)
+        
+        // Safe string check for disable reason
         const hasDisableReasonIssues = disableReason && (
           disableReason.includes('FUNDING') || 
           disableReason.includes('PAYMENT') ||
@@ -356,47 +343,44 @@ async function processSync(
         )
         const hasBalanceIssues = isPrepaid && balance <= 0 // Only for prepaid accounts
         
-        console.log('  - Account Inactive?', isAccountInactive)
+        console.log('  - Account Inactive (status in restricted list)?', isAccountInactive)
         console.log('  - Has Disable Reason Issues?', hasDisableReasonIssues)
         console.log('  - Has Balance Issues?', hasBalanceIssues, '(only applies to prepaid)')
         
-        const hasFundingIssues = isAccountInactive || hasDisableReasonIssues || hasBalanceIssues
+        const hasFundingIssues = hasDisableReasonIssues || hasBalanceIssues
         
         console.log(`💰 FUNDING DECISION: Has Issues = ${hasFundingIssues}`)
-        console.log(`  - Logic: accountInactive(${isAccountInactive}) OR disableReasonIssues(${hasDisableReasonIssues}) OR balanceIssues(${hasBalanceIssues})`)
+        console.log(`  - Logic: disableReasonIssues(${hasDisableReasonIssues}) OR balanceIssues(${hasBalanceIssues})`)
         
         // Detect restricted accounts (cannot advertise)
-        // Use is_user_allowed_to_advertise from v16 API (most reliable) + fallback to status codes
         // Status codes that indicate restriction: 2 (DISABLED), 7 (PENDING_RISK_REVIEW), 100 (PENDING_CLOSURE), 101 (CLOSED)
-        const restrictedStatuses = [2, 7, 100, 101]
-        const isRestricted = !isUserAllowedToAdvertise || restrictedStatuses.includes(accountStatus)
-        
-        console.log('🔐 is_user_allowed_to_advertise (from v16):', isUserAllowedToAdvertise)
+        const isRestricted = restrictedStatuses.includes(accountStatus)
         
         // Determine restriction reason
         let restrictionReason: string | null = null
         if (isRestricted) {
-          if (!isUserAllowedToAdvertise && accountStatus === 1) {
-            // Account appears active but user can't advertise - this is a hidden restriction
-            restrictionReason = disableReason || 'Conta com restrição de anúncios pelo Meta'
-          } else if (accountStatus === 2) {
+          if (accountStatus === 2) {
             restrictionReason = disableReason || 'Conta desabilitada pelo Meta'
+          } else if (accountStatus === 3) {
+            restrictionReason = 'Conta com pagamentos pendentes'
           } else if (accountStatus === 7) {
-            restrictionReason = 'Conta em análise de risco'
+            restrictionReason = 'Conta em análise de risco pelo Meta'
+          } else if (accountStatus === 8) {
+            restrictionReason = 'Conta com liquidação pendente'
           } else if (accountStatus === 100) {
             restrictionReason = 'Conta pendente de fechamento'
           } else if (accountStatus === 101) {
-            restrictionReason = 'Conta encerrada'
+            restrictionReason = 'Conta encerrada permanentemente'
           } else {
-            restrictionReason = disableReason || 'Conta com restrições'
+            restrictionReason = disableReason || `Conta com restrições (status: ${accountStatus})`
           }
         }
         
-        // Can advertise: is_user_allowed_to_advertise AND account is active (1) or in grace period (9)
-        const canAdvertise = isUserAllowedToAdvertise && [1, 9].includes(accountStatus)
+        // Can advertise: account is active (1) or in grace period (9)
+        const canAdvertise = [1, 9].includes(accountStatus)
         
         console.log('🚫 RESTRICTION ANALYSIS:')
-        console.log('  - Is User Allowed To Advertise (v16 API):', isUserAllowedToAdvertise)
+        console.log('  - Account Status:', accountStatus)
         console.log('  - Is Restricted:', isRestricted)
         console.log('  - Restriction Reason:', restrictionReason)
         console.log('  - Can Advertise:', canAdvertise)
