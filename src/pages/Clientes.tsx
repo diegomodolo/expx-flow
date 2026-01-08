@@ -648,17 +648,23 @@ const Clientes = () => {
     }
   }, [error, toast]);
 
-  // Calculate status statistics
+  // Calculate status statistics (including paused and restricted)
   const statusStats = React.useMemo(() => {
+    // Note: use clients (not filtered) for pausados/restritas to show total counts
+    const allActiveClients = clients.filter(c => !c.is_canceled);
+    
     const stats = {
       excelente: filteredAndSortedClients.filter(client => client.status === 'excelente').length,
       atencao: filteredAndSortedClients.filter(client => client.status === 'atencao').length,
       emergencial: filteredAndSortedClients.filter(client => client.status === 'emergencial').length,
       sem_fundos: filteredAndSortedClients.filter(client => client.status === 'sem_fundos').length,
       inativo: filteredAndSortedClients.filter(client => client.status === 'inativo').length,
+      pausados: allActiveClients.filter(client => (client as any).is_paused === true).length,
+      restritas: allActiveClients.filter(client => isAccountRestricted(client)).length,
     };
     
     const total = totalClients || 1; // Avoid division by zero
+    const totalActive = allActiveClients.length || 1;
     
     return {
       excelente: { count: stats.excelente, percentage: (stats.excelente / total) * 100 },
@@ -666,8 +672,10 @@ const Clientes = () => {
       emergencial: { count: stats.emergencial, percentage: (stats.emergencial / total) * 100 },
       sem_fundos: { count: stats.sem_fundos, percentage: (stats.sem_fundos / total) * 100 },
       inativo: { count: stats.inativo, percentage: (stats.inativo / total) * 100 },
+      pausados: { count: stats.pausados, percentage: (stats.pausados / totalActive) * 100 },
+      restritas: { count: stats.restritas, percentage: (stats.restritas / totalActive) * 100 },
     };
-  }, [filteredAndSortedClients, totalClients]);
+  }, [clients, filteredAndSortedClients, totalClients]);
 
   return (
     <DashboardLayout>
@@ -696,104 +704,102 @@ const Clientes = () => {
               </Button>
             </div>
 
-            {/* Status Statistics Cards */}
-            <div className="grid grid-cols-5 gap-2 sm:gap-3">
+            {/* Status Statistics Cards - Compact */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
               {/* Excelente */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-status-excellent rounded-full"></div>
-                      <span className="text-sm font-medium text-muted-foreground">Excelente</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground/80">{statusStats.excelente.percentage.toFixed(1)}%</span>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter('excelente')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 bg-status-excellent rounded-full"></div>
+                    <span className="text-xs font-medium text-muted-foreground truncate">Excelente</span>
                   </div>
-                  <div className="text-2xl font-bold text-status-excellent mb-2">{statusStats.excelente.count}</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-status-excellent h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${statusStats.excelente.percentage}%` }}
-                    ></div>
+                  <div className="text-lg sm:text-xl font-bold text-status-excellent">{statusStats.excelente.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-status-excellent h-1 rounded-full" style={{ width: `${statusStats.excelente.percentage}%` }}></div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Atenção */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-status-attention rounded-full"></div>
-                      <span className="text-sm font-medium text-muted-foreground">Atenção</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground/80">{statusStats.atencao.percentage.toFixed(1)}%</span>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter('atencao')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 bg-status-attention rounded-full"></div>
+                    <span className="text-xs font-medium text-muted-foreground truncate">Atenção</span>
                   </div>
-                  <div className="text-2xl font-bold text-status-attention mb-2">{statusStats.atencao.count}</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-status-attention h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${statusStats.atencao.percentage}%` }}
-                    ></div>
+                  <div className="text-lg sm:text-xl font-bold text-status-attention">{statusStats.atencao.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-status-attention h-1 rounded-full" style={{ width: `${statusStats.atencao.percentage}%` }}></div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Emergencial */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-status-emergency rounded-full"></div>
-                      <span className="text-sm font-medium text-muted-foreground">Emergencial</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground/80">{statusStats.emergencial.percentage.toFixed(1)}%</span>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter('emergencial')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
+                    <span className="text-xs font-medium text-muted-foreground truncate">Emergencial</span>
                   </div>
-                  <div className="text-2xl font-bold text-status-emergency mb-2">{statusStats.emergencial.count}</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-status-emergency h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${statusStats.emergencial.percentage}%` }}
-                    ></div>
+                  <div className="text-lg sm:text-xl font-bold text-status-emergency">{statusStats.emergencial.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-status-emergency h-1 rounded-full" style={{ width: `${statusStats.emergencial.percentage}%` }}></div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Sem Fundos */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-muted-foreground">Sem Fundos</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground/80">{statusStats.sem_fundos.percentage.toFixed(1)}%</span>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter('sem_fundos')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-xs font-medium text-muted-foreground truncate">Sem Fundos</span>
                   </div>
-                  <div className="text-2xl font-bold text-orange-600 mb-2">{statusStats.sem_fundos.count}</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-orange-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${statusStats.sem_fundos.percentage}%` }}
-                    ></div>
+                  <div className="text-lg sm:text-xl font-bold text-orange-600">{statusStats.sem_fundos.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-orange-500 h-1 rounded-full" style={{ width: `${statusStats.sem_fundos.percentage}%` }}></div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Inativo */}
-              <Card>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-status-inactive rounded-full"></div>
-                      <span className="text-sm font-medium text-muted-foreground">Inativo</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground/80">{statusStats.inativo.percentage.toFixed(1)}%</span>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter('inativo')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
+                    <span className="text-xs font-medium text-muted-foreground truncate">Inativo</span>
                   </div>
-                  <div className="text-2xl font-bold text-status-inactive mb-2">{statusStats.inativo.count}</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-status-inactive h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${statusStats.inativo.percentage}%` }}
-                    ></div>
+                  <div className="text-lg sm:text-xl font-bold text-status-inactive">{statusStats.inativo.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-status-inactive h-1 rounded-full" style={{ width: `${statusStats.inativo.percentage}%` }}></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pausados */}
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setClientFilter('paused')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <PauseCircle className="w-2.5 h-2.5 text-yellow-500" />
+                    <span className="text-xs font-medium text-muted-foreground truncate">Pausados</span>
+                  </div>
+                  <div className="text-lg sm:text-xl font-bold text-yellow-600">{statusStats.pausados.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-yellow-500 h-1 rounded-full" style={{ width: `${statusStats.pausados.percentage}%` }}></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Restritas */}
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setRestrictionFilter('restricted')}>
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Ban className="w-2.5 h-2.5 text-zinc-700 dark:text-zinc-300" />
+                    <span className="text-xs font-medium text-muted-foreground truncate">Restritas</span>
+                  </div>
+                  <div className="text-lg sm:text-xl font-bold text-zinc-700 dark:text-zinc-300">{statusStats.restritas.count}</div>
+                  <div className="w-full bg-muted rounded-full h-1 mt-1">
+                    <div className="bg-zinc-700 dark:bg-zinc-400 h-1 rounded-full" style={{ width: `${statusStats.restritas.percentage}%` }}></div>
                   </div>
                 </CardContent>
               </Card>
