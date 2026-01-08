@@ -329,7 +329,7 @@ async function processSync(
 
     // Check account balance, funding status, and restrictions
     console.log('Checking account balance for:', accountId)
-    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details,is_prepay_account&access_token=${accessToken}`
+    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details,is_prepay_account,is_user_allowed_to_advertise&access_token=${accessToken}`
     console.log('Balance API URL (without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
     
     try {
@@ -389,14 +389,21 @@ async function processSync(
         console.log(`  - Logic: accountInactive(${isAccountInactive}) OR disableReasonIssues(${hasDisableReasonIssues}) OR balanceIssues(${hasBalanceIssues})`)
         
         // Detect restricted accounts (cannot advertise)
+        // Use is_user_allowed_to_advertise from API (most reliable) + fallback to status codes
         // Status codes that indicate restriction: 2 (DISABLED), 7 (PENDING_RISK_REVIEW), 100 (PENDING_CLOSURE), 101 (CLOSED)
+        const isUserAllowedToAdvertise = balanceData.is_user_allowed_to_advertise ?? true
         const restrictedStatuses = [2, 7, 100, 101]
-        const isRestricted = restrictedStatuses.includes(accountStatus)
+        const isRestricted = !isUserAllowedToAdvertise || restrictedStatuses.includes(accountStatus)
+        
+        console.log('🔐 API is_user_allowed_to_advertise:', balanceData.is_user_allowed_to_advertise, '→ parsed:', isUserAllowedToAdvertise)
         
         // Determine restriction reason
         let restrictionReason: string | null = null
         if (isRestricted) {
-          if (accountStatus === 2) {
+          if (!isUserAllowedToAdvertise && accountStatus === 1) {
+            // Account appears active but user can't advertise - this is a hidden restriction
+            restrictionReason = disableReason || 'Conta com restrição de anúncios pelo Meta'
+          } else if (accountStatus === 2) {
             restrictionReason = disableReason || 'Conta desabilitada pelo Meta'
           } else if (accountStatus === 7) {
             restrictionReason = 'Conta em análise de risco'
@@ -404,13 +411,16 @@ async function processSync(
             restrictionReason = 'Conta pendente de fechamento'
           } else if (accountStatus === 101) {
             restrictionReason = 'Conta encerrada'
+          } else {
+            restrictionReason = disableReason || 'Conta com restrições'
           }
         }
         
-        // Can advertise: account is active (1) or in grace period (9) and not restricted
-        const canAdvertise = [1, 9].includes(accountStatus) && !isRestricted
+        // Can advertise: is_user_allowed_to_advertise AND account is active (1) or in grace period (9)
+        const canAdvertise = isUserAllowedToAdvertise && [1, 9].includes(accountStatus)
         
         console.log('🚫 RESTRICTION ANALYSIS:')
+        console.log('  - Is User Allowed To Advertise (API):', isUserAllowedToAdvertise)
         console.log('  - Is Restricted:', isRestricted)
         console.log('  - Restriction Reason:', restrictionReason)
         console.log('  - Can Advertise:', canAdvertise)
