@@ -40,6 +40,7 @@ export function ClientePublicos() {
   const [pixels, setPixels] = useState<PixelOption[]>([]);
   const [pages, setPages] = useState<PageOption[]>([]);
   const [instagramAccounts, setInstagramAccounts] = useState<InstagramOption[]>([]);
+  const [adAccountId, setAdAccountId] = useState<string | undefined>();
 
   useEffect(() => {
     if (id) {
@@ -51,10 +52,11 @@ export function ClientePublicos() {
   const fetchAdvancedData = async () => {
     if (!id) return;
 
-    // Fetch pixels, pages, and Instagram accounts for this client
+    // Fetch pixels, pages, Instagram accounts, and ad account for this client
     const [pixelsRes, clientRes] = await Promise.all([
       supabase.from('meta_pixels').select('id, pixel_id, pixel_name').eq('client_id', id),
       supabase.from('clients').select(`
+        ad_account_id,
         facebook_page_id,
         instagram_account_id,
         facebook_pages!clients_facebook_page_id_fkey(id, page_id, page_name),
@@ -67,6 +69,11 @@ export function ClientePublicos() {
     }
 
     if (clientRes.data) {
+      // Store ad account ID for TOS link
+      if (clientRes.data.ad_account_id) {
+        setAdAccountId(clientRes.data.ad_account_id);
+      }
+      
       if (clientRes.data.facebook_pages) {
         const page = clientRes.data.facebook_pages as any;
         setPages([{ id: page.id, page_id: page.page_id, name: page.page_name }]);
@@ -217,6 +224,7 @@ export function ClientePublicos() {
         onOpenChange={setCreateModalOpen}
         onSubmit={handleCreateAudience}
         loading={loading}
+        adAccountId={adAccountId}
       />
 
       <CreateAdvancedAudienceModal
