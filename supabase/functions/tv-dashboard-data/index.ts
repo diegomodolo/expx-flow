@@ -130,35 +130,41 @@ serve(async (req) => {
         .eq('company_id', company.id),
 
       // Clients on alert - red or yellow status (calculated_status has priority)
+      // EXCLUDE paused clients
       supabase
         .from('clients')
-        .select('id, name, company, calculated_status, status, avatar, leads_generated, avg_cpl, status_explanation')
+        .select(`
+          id, name, company, calculated_status, status, avatar, leads_generated, avg_cpl, status_explanation, is_paused,
+          facebook_ad_accounts(account_status, can_advertise, is_restricted)
+        `)
         .eq('company_id', company.id)
         .eq('is_canceled', false)
-        .in('calculated_status', ['red', 'yellow']),
+        .eq('is_paused', false),
 
       // Clients with budget/balance info (aligned to Clientes.tsx)
       // IMPORTANT: google_ads_accounts does NOT contain balance/status fields in our schema, so we don't join it here.
       supabase
         .from('clients')
         .select(`
-          id, name, avatar, status, last_sync_period,
+          id, name, avatar, status, last_sync_period, is_paused,
           monthly_budget, meta_monthly_budget, google_monthly_budget,
           meta_payment_type, meta_recharge_day,
           google_payment_type, google_recharge_day,
           payment_type,
           ad_account_id, google_account_id,
-          facebook_ad_accounts(balance, recharge_day, account_status, has_funding_issues, disable_reason)
+          facebook_ad_accounts(balance, recharge_day, account_status, has_funding_issues, disable_reason, can_advertise, is_restricted)
         `)
         .eq('company_id', company.id)
-        .eq('is_canceled', false),
+        .eq('is_canceled', false)
+        .eq('is_paused', false),
 
-      // All clients (to find those without active campaigns)
+      // All clients (to find those without active campaigns) - exclude paused
       supabase
         .from('clients')
-        .select('id, name, avatar, status')
+        .select('id, name, avatar, status, is_paused')
         .eq('company_id', company.id)
-        .eq('is_canceled', false),
+        .eq('is_canceled', false)
+        .eq('is_paused', false),
 
       // Get most recent sync info
       supabase
@@ -392,10 +398,10 @@ serve(async (req) => {
       }
     });
 
-    // Sort campaigns by CPA for ranking, include client name and platform
+    // Sort campaigns by LEADS (conversions) for ranking - higher is better
     const campaignRanking = campaigns
       .filter(c => c.conversions && c.conversions > 0)
-      .sort((a, b) => (a.cpa || 999) - (b.cpa || 999))
+      .sort((a, b) => (b.conversions || 0) - (a.conversions || 0))
       .slice(0, 10)
       .map(c => ({
         id: c.id,
@@ -411,24 +417,68 @@ serve(async (req) => {
         platform: c.platform === 'meta' ? 'Meta' : 'Google'
       }));
 
-    // Format clients on alert with proper status mapping
-    const formattedClientsOnAlert = clientsOnAlert.map(c => {
-      // Map red/yellow to atencao/emergencial for frontend
-      let displayStatus = c.calculated_status || c.status;
-      if (displayStatus === 'red') displayStatus = 'emergencia';
-      if (displayStatus === 'yellow') displayStatus = 'atencao';
+    // Helper to check if account is restricted
+    const isAccountRestricted = (client: any): { restricted: boolean; reason: string } => {
+      const fbAccount = Array.isArray(client.facebook_ad_accounts)
+        ? client.facebook_ad_accounts[0]
+        : client.facebook_ad_accounts;
       
-      return {
-        id: c.id,
-        name: c.name,
-        company: c.company,
-        status: displayStatus,
-        statusExplanation: c.status_explanation,
-        avatar: c.avatar,
-        leads: c.leads_generated || 0,
-        avgCpl: c.avg_cpl || 0
-      };
-    });
+      if (!fbAccount) return { restricted: false, reason: '' };
+      
+      const isRestricted = fbAccount.is_restricted === true ||
+                          fbAccount.can_advertise === false ||
+                          (fbAccount.account_status && fbAccount.account_status !== 1);
+      
+      if (!isRestricted) return { restricted: false, reason: '' };
+      
+      let reason = 'Conta com restrição';
+      const status = fbAccount.account_status;
+      if (status === 2) reason = 'Conta desabilitada';
+      else if (status === 3) reason = 'Pagamento pendente';
+      else if (status === 7) reason = 'Conta pendente de revisão';
+      else if (status === 9) reason = 'Conta em análise';
+      else if (status === 101) reason = 'Conta fechada';
+      else if (fbAccount.is_restricted) reason = 'Conta restrita';
+      else if (fbAccount.can_advertise === false) reason = 'Não pode anunciar';
+      
+      return { restricted: true, reason };
+    };
+
+    // Format clients on alert with proper status mapping
+    // Include clients with red/yellow status OR restricted accounts
+    const formattedClientsOnAlert = clientsOnAlert
+      .filter(c => {
+        const status = c.calculated_status || c.status;
+        const accountCheck = isAccountRestricted(c);
+        return status === 'red' || status === 'yellow' || accountCheck.restricted;
+      })
+      .map(c => {
+        // Map red/yellow to atencao/emergencial for frontend
+        let displayStatus = c.calculated_status || c.status;
+        if (displayStatus === 'red') displayStatus = 'emergencia';
+        if (displayStatus === 'yellow') displayStatus = 'atencao';
+        
+        const accountCheck = isAccountRestricted(c);
+        
+        return {
+          id: c.id,
+          name: c.name,
+          company: c.company,
+          status: displayStatus,
+          statusExplanation: c.status_explanation,
+          avatar: c.avatar,
+          leads: c.leads_generated || 0,
+          avgCpl: c.avg_cpl || 0,
+          isAccountRestricted: accountCheck.restricted,
+          accountRestrictionReason: accountCheck.reason
+        };
+      })
+      // Sort: restricted accounts first
+      .sort((a, b) => {
+        if (a.isAccountRestricted && !b.isAccountRestricted) return -1;
+        if (!a.isAccountRestricted && b.isAccountRestricted) return 1;
+        return 0;
+      });
 
     // Calculate additional metrics
     const activeCampaigns = campaigns.length;
@@ -455,6 +505,7 @@ serve(async (req) => {
       return acc;
     }, {} as Record<string, any>);
 
+    // Get top performing clients - sorted by LEADS (conversions), not CPA
     const topClients = Object.values(clientPerformance)
       .filter((c: any) => c.conversions > 0)
       .map((c: any) => ({
@@ -467,7 +518,7 @@ serve(async (req) => {
         avatar: clientAvatarMap[c.id] || null,
         platforms: Array.from(c.platforms)
       }))
-      .sort((a: any, b: any) => a.cpa - b.cpa)
+      .sort((a: any, b: any) => b.conversions - a.conversions)
       .slice(0, 6);
 
     // Calculate worst performing campaigns (from both platforms)
