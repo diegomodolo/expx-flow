@@ -1152,19 +1152,41 @@ const Clientes = () => {
                               </div>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`${statusConfig[getClientVisualStatus(client)].color} text-xs cursor-help`}
-                                  >
-                                    {statusConfig[getClientVisualStatus(client)].label}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="whitespace-pre-line max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
-                                  <p>{getStatusExplanation(client)}</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <div className="flex items-center gap-1.5">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`${statusConfig[getClientVisualStatus(client)].color} text-xs cursor-help`}
+                                    >
+                                      {statusConfig[getClientVisualStatus(client)].label}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="whitespace-pre-line max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
+                                    <p>{getStatusExplanation(client)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                {/* Badge de conta restrita */}
+                                {client.facebook_ad_accounts && (
+                                  client.facebook_ad_accounts.can_advertise === false ||
+                                  client.facebook_ad_accounts.is_restricted === true ||
+                                  [2, 3, 7, 8, 100, 101].includes(client.facebook_ad_accounts.account_status)
+                                ) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        variant="outline" 
+                                        className="bg-zinc-900 text-white border-zinc-700 text-xs dark:bg-zinc-800 dark:border-zinc-600"
+                                      >
+                                        Restrita
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
+                                      <p>A conta de anúncios do Meta possui restrições ativas.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap">
                               <Tooltip>
