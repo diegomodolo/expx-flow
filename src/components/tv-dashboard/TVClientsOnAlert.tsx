@@ -1,5 +1,5 @@
 import { TVClient } from "@/hooks/useTrafegoDashboard";
-import { AlertCircle, AlertTriangle, CheckCircle2, User } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -15,7 +15,21 @@ const statusConfig = {
     bg: "bg-red-500/10",
     border: "border-l-red-500",
   },
+  red: {
+    label: "Emergência",
+    icon: AlertCircle,
+    color: "text-red-500",
+    bg: "bg-red-500/10",
+    border: "border-l-red-500",
+  },
   atencao: {
+    label: "Atenção",
+    icon: AlertTriangle,
+    color: "text-yellow-500",
+    bg: "bg-yellow-500/10",
+    border: "border-l-yellow-500",
+  },
+  yellow: {
     label: "Atenção",
     icon: AlertTriangle,
     color: "text-yellow-500",
@@ -28,6 +42,13 @@ const statusConfig = {
     color: "text-green-500",
     bg: "bg-green-500/10",
     border: "border-l-green-500",
+  },
+  restricted: {
+    label: "Conta Restrita",
+    icon: Ban,
+    color: "text-purple-500",
+    bg: "bg-purple-500/10",
+    border: "border-l-purple-500",
   },
 };
 
@@ -74,10 +95,16 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
       
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="space-y-1 pr-1">
-          {clients.slice(0, 6).map((client) => {
-            const config = statusConfig[client.status as keyof typeof statusConfig] || statusConfig.atencao;
+          {clients.slice(0, 8).map((client) => {
+            // Use restricted config if account is restricted, otherwise use status config
+            const isRestricted = client.isAccountRestricted;
+            const config = isRestricted 
+              ? statusConfig.restricted
+              : (statusConfig[client.status as keyof typeof statusConfig] || statusConfig.atencao);
             const Icon = config.icon;
-            const reason = extractReason(client.statusExplanation);
+            const reason = isRestricted 
+              ? client.accountRestrictionReason 
+              : extractReason(client.statusExplanation);
             
             return (
               <div
@@ -85,7 +112,8 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
                 className={cn(
                   "rounded-lg p-2 flex items-center gap-2 border-l-2",
                   config.bg,
-                  config.border
+                  config.border,
+                  isRestricted && "animate-pulse"
                 )}
               >
                 {/* Avatar */}
@@ -99,7 +127,10 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate text-xs">{client.name}</p>
                   {reason && (
-                    <p className="text-[10px] text-muted-foreground truncate">
+                    <p className={cn(
+                      "text-[10px] truncate",
+                      isRestricted ? "text-purple-500 font-medium" : "text-muted-foreground"
+                    )}>
                       {reason}
                     </p>
                   )}
