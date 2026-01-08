@@ -548,10 +548,10 @@ export function useClients(options?: { includeCanceled?: boolean }) {
 
       if (error) throw error;
       
-      // Use cached status from database, fallback to calculating if not available
-      const clientsWithStatus = await Promise.all((data || []).map(async (client) => {
+      // OPTIMIZATION: Use cached status only, no recalculation on load
+      // This reduces queries from ~520 to 3 for 65 clients
+      const clientsWithStatus = (data || []).map((client) => {
         // PRIORITY 1: If status is different from calculated_status, it means manual override
-        // Use the manual status from the status field
         if (client.status && client.calculated_status && client.status !== client.calculated_status) {
           return {
             ...client,
@@ -560,62 +560,80 @@ export function useClients(options?: { includeCanceled?: boolean }) {
           };
         }
 
-        // PRIORITY 2: If status was calculated and is recent (less than 24h old), use cached version
-        const statusAge = client.status_calculated_at 
-          ? Date.now() - new Date(client.status_calculated_at).getTime()
-          : Infinity;
-        const isStatusFresh = statusAge < 24 * 60 * 60 * 1000; // 24 hours
-
-        if (client.calculated_status && isStatusFresh) {
+        // PRIORITY 2: Use cached status from database
+        if (client.calculated_status) {
           return {
             ...client,
             status: statusMapping.display[client.calculated_status] as ClientStatus,
             statusExplanation: client.status_explanation || ''
           };
-        } else {
-          // PRIORITY 3: Fallback - calculate on-the-fly if no cached status or stale
-          const { status, explanation } = await calculateClientStatus(client.id, activeCompany.company_id);
-          return {
-            ...client,
-            status,
-            statusExplanation: explanation
-          };
         }
-      }));
-      
-      // Calculate consolidated metrics (Meta + Google) for each client
-      const clientsWithConsolidatedMetrics = await Promise.all(clientsWithStatus.map(async (client) => {
-        // Fetch Meta campaigns (from campaigns table)
-        const { data: metaCampaigns } = await supabase
-          .from('campaigns')
-          .select('spend, conversions, is_active, status')
-          .eq('client_id', client.id);
         
-        // Fetch Google campaigns (from google_campaigns table)
-        const { data: googleCampaigns } = await supabase
-          .from('google_campaigns')
-          .select('spend, conversions, is_active, status')
-          .eq('client_id', client.id);
+        // PRIORITY 3: Fallback to 'atencao' if no cached status
+        // Status will be calculated on next recalculation cycle
+        return {
+          ...client,
+          status: 'atencao' as ClientStatus,
+          statusExplanation: 'Status pendente de cálculo. Clique em "Recalcular Status" para atualizar.'
+        };
+      });
+      
+      // OPTIMIZATION: Batch fetch all campaigns in just 2 queries instead of 130+
+      const clientIds = clientsWithStatus.map(c => c.id);
+      
+      // Fetch ALL Meta campaigns for all clients at once
+      const { data: allMetaCampaigns } = await supabase
+        .from('campaigns')
+        .select('client_id, spend, conversions, is_active, status')
+        .eq('company_id', activeCompany.company_id)
+        .in('client_id', clientIds);
+      
+      // Fetch ALL Google campaigns for all clients at once
+      const { data: allGoogleCampaigns } = await supabase
+        .from('google_campaigns')
+        .select('client_id, spend, conversions, is_active, status')
+        .eq('company_id', activeCompany.company_id)
+        .in('client_id', clientIds);
+      
+      // Group campaigns by client_id in memory (O(n) operation)
+      const metaByClient: Record<string, typeof allMetaCampaigns> = {};
+      const googleByClient: Record<string, typeof allGoogleCampaigns> = {};
+      
+      (allMetaCampaigns || []).forEach(campaign => {
+        if (!metaByClient[campaign.client_id]) {
+          metaByClient[campaign.client_id] = [];
+        }
+        metaByClient[campaign.client_id]!.push(campaign);
+      });
+      
+      (allGoogleCampaigns || []).forEach(campaign => {
+        if (!googleByClient[campaign.client_id]) {
+          googleByClient[campaign.client_id] = [];
+        }
+        googleByClient[campaign.client_id]!.push(campaign);
+      });
+      
+      // Calculate consolidated metrics synchronously (no await needed)
+      const clientsWithConsolidatedMetrics = clientsWithStatus.map((client) => {
+        const metaCampaigns = metaByClient[client.id] || [];
+        const googleCampaigns = googleByClient[client.id] || [];
         
         // Meta metrics
-        const metaSpend = metaCampaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
-        const metaConversions = metaCampaigns?.reduce((sum, c) => sum + (c.conversions || 0), 0) || 0;
-        const metaActiveCampaigns = metaCampaigns?.filter(c => c.is_active && c.status === 'active').length || 0;
+        const metaSpend = metaCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
+        const metaConversions = metaCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
+        const metaActiveCampaigns = metaCampaigns.filter(c => c.is_active && c.status === 'active').length;
         
         // Google metrics
-        const googleSpend = googleCampaigns?.reduce((sum, c) => sum + (c.spend || 0), 0) || 0;
-        const googleConversions = googleCampaigns?.reduce((sum, c) => sum + (c.conversions || 0), 0) || 0;
-        const googleActiveCampaigns = googleCampaigns?.filter(c => c.is_active).length || 0;
+        const googleSpend = googleCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
+        const googleConversions = googleCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
+        const googleActiveCampaigns = googleCampaigns.filter(c => c.is_active).length;
         
         // Consolidated metrics
         const consolidatedSpend = metaSpend + googleSpend;
         const consolidatedConversions = metaConversions + googleConversions;
         const consolidatedActiveCampaigns = metaActiveCampaigns + googleActiveCampaigns;
         
-        // Consolidated budget calculation:
-        // 1. If both platform-specific budgets are set, use their sum
-        // 2. If only one is set and the other platform is configured, use monthly_budget as total
-        // 3. If neither is set, fall back to monthly_budget
+        // Consolidated budget calculation
         const metaBudget = client.meta_monthly_budget || 0;
         const googleBudget = client.google_monthly_budget || 0;
         const hasMetaAccount = !!client.ad_account_id;
@@ -623,17 +641,12 @@ export function useClients(options?: { includeCanceled?: boolean }) {
         
         let consolidatedBudget: number;
         if (metaBudget > 0 && googleBudget > 0) {
-          // Both platform budgets are explicitly set - use their sum
           consolidatedBudget = metaBudget + googleBudget;
         } else if ((hasMetaAccount && hasGoogleAccount) && (metaBudget > 0 || googleBudget > 0)) {
-          // Client uses both platforms but only one budget is set
-          // Use monthly_budget as the total if available, otherwise sum what we have
           consolidatedBudget = client.monthly_budget || (metaBudget + googleBudget);
         } else if (metaBudget > 0 || googleBudget > 0) {
-          // Only one platform budget is set
           consolidatedBudget = metaBudget + googleBudget;
         } else {
-          // No platform-specific budgets, use monthly_budget
           consolidatedBudget = client.monthly_budget || 0;
         }
         
@@ -667,7 +680,7 @@ export function useClients(options?: { includeCanceled?: boolean }) {
           has_meta: hasMeta,
           has_google: hasGoogle,
         };
-      }));
+      });
       
       setClients(clientsWithConsolidatedMetrics);
     } catch (err) {
