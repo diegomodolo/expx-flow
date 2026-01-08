@@ -331,9 +331,9 @@ async function processSync(
     const accessToken = integration.access_token
     const accountId = adAccount.account_id
 
-    // Check account balance and funding status
+    // Check account balance, funding status, and restrictions
     console.log('Checking account balance for:', accountId)
-    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details&access_token=${accessToken}`
+    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details,is_prepay_account&access_token=${accessToken}`
     console.log('Balance API URL (without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
     
     try {
@@ -366,7 +366,7 @@ async function processSync(
         
         // Enhanced funding issues detection - more refined logic
         console.log('🔍 DETAILED FUNDING ANALYSIS:')
-        console.log('  - Account Status:', accountStatus, '(1 = ACTIVE)')
+        console.log('  - Account Status:', accountStatus, '(1 = ACTIVE, 2 = DISABLED, 3 = UNSETTLED, 7 = PENDING_RISK_REVIEW, 8 = PENDING_SETTLEMENT, 9 = IN_GRACE_PERIOD, 100 = PENDING_CLOSURE, 101 = CLOSED, 201 = ANY_ACTIVE, 202 = ANY_CLOSED)')
         console.log('  - Balance:', balance)
         console.log('  - Disable Reason:', disableReason)
         console.log('  - Spend Cap:', spendCap)
@@ -392,6 +392,33 @@ async function processSync(
         console.log(`💰 FUNDING DECISION: Has Issues = ${hasFundingIssues}`)
         console.log(`  - Logic: accountInactive(${isAccountInactive}) OR disableReasonIssues(${hasDisableReasonIssues}) OR balanceIssues(${hasBalanceIssues})`)
         
+        // Detect restricted accounts (cannot advertise)
+        // Status codes that indicate restriction: 2 (DISABLED), 7 (PENDING_RISK_REVIEW), 100 (PENDING_CLOSURE), 101 (CLOSED)
+        const restrictedStatuses = [2, 7, 100, 101]
+        const isRestricted = restrictedStatuses.includes(accountStatus)
+        
+        // Determine restriction reason
+        let restrictionReason: string | null = null
+        if (isRestricted) {
+          if (accountStatus === 2) {
+            restrictionReason = disableReason || 'Conta desabilitada pelo Meta'
+          } else if (accountStatus === 7) {
+            restrictionReason = 'Conta em análise de risco'
+          } else if (accountStatus === 100) {
+            restrictionReason = 'Conta pendente de fechamento'
+          } else if (accountStatus === 101) {
+            restrictionReason = 'Conta encerrada'
+          }
+        }
+        
+        // Can advertise: account is active (1) or in grace period (9) and not restricted
+        const canAdvertise = [1, 9].includes(accountStatus) && !isRestricted
+        
+        console.log('🚫 RESTRICTION ANALYSIS:')
+        console.log('  - Is Restricted:', isRestricted)
+        console.log('  - Restriction Reason:', restrictionReason)
+        console.log('  - Can Advertise:', canAdvertise)
+        
         // Update ad account with financial status
         console.log(`💾 UPDATING ACCOUNT ${adAccount.id}:`)
         console.log(`  - Previous funding_issues: ${adAccount.has_funding_issues}`)
@@ -408,6 +435,9 @@ async function processSync(
             funding_source_details: fundingSourceDetails,
             is_prepaid: isPrepaid,
             has_funding_issues: hasFundingIssues,
+            is_restricted: isRestricted,
+            restriction_reason: restrictionReason,
+            can_advertise: canAdvertise,
             last_balance_check: new Date().toISOString()
           })
           .eq('id', adAccount.id)

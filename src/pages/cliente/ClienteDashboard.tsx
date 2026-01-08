@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { SyncStatusIndicator } from "@/components/clients/SyncStatusIndicator";
 import { FundingAlert } from "@/components/alerts/FundingAlert";
+import { AccountRestrictionAlert } from "@/components/alerts/AccountRestrictionAlert";
 import { AccountBalanceCard } from "@/components/clients/AccountBalanceCard";
 import { ClientSocialAccounts } from "@/components/clients/ClientSocialAccounts";
 import { ClientDialog } from "@/components/clients/ClientDialog";
@@ -164,6 +165,18 @@ export function ClienteDashboard({
           </div>
         </CardContent>
       </Card>
+
+      {/* Account Restriction Alert */}
+      {client.facebook_ad_accounts && (
+        <AccountRestrictionAlert
+          isRestricted={client.facebook_ad_accounts.account_status !== 1}
+          restrictionReason={client.facebook_ad_accounts.disable_reason}
+          canAdvertise={[1, 9].includes(client.facebook_ad_accounts.account_status)}
+          accountStatus={client.facebook_ad_accounts.account_status}
+          accountName={client.facebook_ad_accounts.account_name}
+          className="mb-2"
+        />
+      )}
 
       {/* Funding Alert */}
       {client.facebook_ad_accounts && client.facebook_ad_accounts.has_funding_issues && (
