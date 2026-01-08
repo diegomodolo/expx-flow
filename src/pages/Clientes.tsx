@@ -82,6 +82,18 @@ const statusConfig = {
     dotColor: "bg-status-inactive",
     filterDotColor: "bg-status-inactive"
   },
+  pausado: { 
+    label: "Pausado", 
+    color: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800", 
+    dotColor: "bg-yellow-500",
+    filterDotColor: "bg-yellow-500"
+  },
+  cancelado: { 
+    label: "Cancelado", 
+    color: "bg-destructive/10 text-destructive border-destructive/20", 
+    dotColor: "bg-destructive",
+    filterDotColor: "bg-destructive"
+  },
 };
 
 type SortField = 'name' | 'status' | 'active_campaigns' | 'avg_cpl' | 'conversions' | 'monthly_budget' | 'spend' | 'balance';
@@ -99,6 +111,13 @@ const getStatusConfig = (status: ClientStatus | undefined) => {
     return statusConfig.atencao; // Fallback padrão
   }
   return statusConfig[status];
+};
+
+// Função para obter o status visual do cliente (considera pausado/cancelado primeiro)
+const getClientVisualStatus = (client: Client): keyof typeof statusConfig => {
+  if (client.is_canceled) return "cancelado";
+  if ((client as any).is_paused) return "pausado";
+  return client.status || "atencao";
 };
 
 // Função para calcular se o gasto está dentro do orçamento proporcional
@@ -564,7 +583,7 @@ const Clientes = () => {
         client.email,
         client.company,
         client.sector,
-        getStatusConfig(client.status).label,
+        statusConfig[getClientVisualStatus(client)].label,
         platforms,
         client.consolidated_active_campaigns || client.active_campaigns || 0,
         client.meta_active_campaigns || 0,
@@ -1120,7 +1139,7 @@ const Clientes = () => {
                            <tr key={client.id} className="hover:bg-muted/30 transition-colors">
                              <td className="px-3 py-3">
                                <div className="flex items-center space-x-3">
-                                 <div className={`w-2 h-2 rounded-full ${getStatusConfig(client.status).dotColor}`}></div>
+                                 <div className={`w-2 h-2 rounded-full ${statusConfig[getClientVisualStatus(client)].dotColor}`}></div>
                                  <Avatar className="w-8 h-8 flex-shrink-0">
                                    <AvatarImage src={client.avatar} alt={client.name} />
                                    <AvatarFallback className="text-xs">{client.name.charAt(0)}</AvatarFallback>
@@ -1137,9 +1156,9 @@ const Clientes = () => {
                                 <TooltipTrigger asChild>
                                   <Badge 
                                     variant="outline" 
-                                    className={`${getStatusConfig(client.status).color} text-xs cursor-help`}
+                                    className={`${statusConfig[getClientVisualStatus(client)].color} text-xs cursor-help`}
                                   >
-                                    {getStatusConfig(client.status).label}
+                                    {statusConfig[getClientVisualStatus(client)].label}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent className="whitespace-pre-line max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
@@ -1428,7 +1447,7 @@ const Clientes = () => {
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className={`w-3 h-3 rounded-full ${getStatusConfig(client.status).dotColor} flex-shrink-0`}></div>
+                        <div className={`w-3 h-3 rounded-full ${statusConfig[getClientVisualStatus(client)].dotColor} flex-shrink-0`}></div>
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage src={client.avatar} alt={client.name} />
                           <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
@@ -1483,9 +1502,9 @@ const Clientes = () => {
                         <TooltipTrigger asChild>
                           <Badge 
                             variant="outline" 
-                            className={`${getStatusConfig(client.status).color} cursor-help`}
+                            className={`${statusConfig[getClientVisualStatus(client)].color} cursor-help`}
                           >
-                            {getStatusConfig(client.status).label}
+                            {statusConfig[getClientVisualStatus(client)].label}
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent className="whitespace-pre-line max-w-xs bg-popover shadow-lg border border-border rounded-md p-3 text-sm z-50">
