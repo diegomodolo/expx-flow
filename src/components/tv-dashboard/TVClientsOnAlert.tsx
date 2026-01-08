@@ -105,25 +105,27 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
       
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="space-y-1 pr-1">
-          {clients.slice(0, 8).map((client) => {
+          {clients.slice(0, 8).map((client: any) => {
             // Use restricted config if account is restricted, otherwise use status config
-            const isRestricted = client.isAccountRestricted;
+            const isRestricted = client.isAccountRestricted === true;
             const config = isRestricted 
               ? statusConfig.restricted
               : (statusConfig[client.status as keyof typeof statusConfig] || statusConfig.atencao);
             const Icon = config.icon;
+            
+            // For restricted accounts, ALWAYS show the restriction reason prominently
             const reason = isRestricted 
-              ? client.accountRestrictionReason 
+              ? (client.accountRestrictionReason || 'Conta restrita') 
               : extractReason(client.statusExplanation);
             
             return (
               <div
                 key={client.id}
                 className={cn(
-                  "rounded-lg p-2 flex items-center gap-2 border-l-2",
-                  config.bg,
-                  config.border,
-                  isRestricted && "animate-pulse"
+                  "rounded-lg p-2 flex items-center gap-2 border-l-4",
+                  isRestricted ? "bg-purple-500/20 border-l-purple-500" : config.bg,
+                  !isRestricted && config.border,
+                  isRestricted && "ring-1 ring-purple-500/50"
                 )}
               >
                 {/* Avatar */}
@@ -135,13 +137,18 @@ export function TVClientsOnAlert({ clients }: TVClientsOnAlertProps) {
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-xs">{client.name}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="font-medium truncate text-xs">{client.name}</p>
+                    {isRestricted && (
+                      <Ban className="h-3 w-3 text-purple-500 shrink-0" />
+                    )}
+                  </div>
                   {reason && (
                     <p className={cn(
                       "text-[10px] truncate",
-                      isRestricted ? "text-purple-500 font-medium" : "text-muted-foreground"
+                      isRestricted ? "text-purple-500 font-semibold" : "text-muted-foreground"
                     )}>
-                      {reason}
+                      {isRestricted ? `⚠️ ${reason}` : reason}
                     </p>
                   )}
                 </div>
