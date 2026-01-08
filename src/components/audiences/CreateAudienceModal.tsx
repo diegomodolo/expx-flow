@@ -18,7 +18,6 @@ interface CreateAudienceModalProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (name: string, description?: string) => Promise<void>;
   loading: boolean;
-  adAccountId?: string;
 }
 
 export function CreateAudienceModal({
@@ -26,16 +25,15 @@ export function CreateAudienceModal({
   onOpenChange,
   onSubmit,
   loading,
-  adAccountId,
 }: CreateAudienceModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [tosError, setTosError] = useState(false);
+  const [tosError, setTosError] = useState<{ show: boolean; url?: string }>({ show: false });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    setTosError(false);
+    setTosError({ show: false });
     
     try {
       await onSubmit(name.trim(), description.trim() || undefined);
@@ -43,7 +41,7 @@ export function CreateAudienceModal({
       setDescription("");
     } catch (error: any) {
       if (error?.type === 'TOS_NOT_ACCEPTED') {
-        setTosError(true);
+        setTosError({ show: true, url: error.tosUrl });
       }
     }
   };
@@ -52,15 +50,10 @@ export function CreateAudienceModal({
     if (!open) {
       setName("");
       setDescription("");
-      setTosError(false);
+      setTosError({ show: false });
     }
     onOpenChange(open);
   };
-
-  // Build TOS URL with ad account if available
-  const tosUrl = adAccountId 
-    ? `https://business.facebook.com/ads/manage/customaudiences/tos/?act=${adAccountId.replace('act_', '')}`
-    : 'https://business.facebook.com/ads/manage/customaudiences/tos/';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -70,7 +63,7 @@ export function CreateAudienceModal({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            {tosError && (
+            {tosError.show && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Termos de Serviço não aceitos</AlertTitle>
@@ -83,7 +76,7 @@ export function CreateAudienceModal({
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    onClick={() => window.open(tosUrl, '_blank')}
+                    onClick={() => window.open(tosError.url || 'https://business.facebook.com/ads/manage/customaudiences/tos/', '_blank')}
                   >
                     <ExternalLink className="h-4 w-4" />
                     Aceitar Termos de Serviço
