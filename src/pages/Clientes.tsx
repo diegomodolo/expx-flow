@@ -799,115 +799,78 @@ const Clientes = () => {
               </Card>
             </div>
 
-            {/* Filters and Search - All in One Line */}
+            {/* Filters and Search - Compact Single Line */}
             <Card>
               <CardContent className="p-3 sm:p-4">
-                <div className="space-y-4">
-                  {/* First Line: Search and Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                    {/* Search Input */}
-                    <div className="flex-1 min-w-0">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Buscar clientes..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 w-full"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" className="flex items-center space-x-2" onClick={() => setShowFilters(!showFilters)}>
-                        <Filter className="w-4 h-4" />
-                        <span>Filtros</span>
-                      </Button>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            className="flex items-center space-x-2" 
-                            onClick={() => setSyncDialogOpen(true)}
-                            disabled={syncing}
-                          >
-                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                            <span className="hidden sm:inline">Sincronizar</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Busca dados novos do Facebook (campanhas, métricas)</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            className="flex items-center space-x-2" 
-                            onClick={handleRecalculateStatus}
-                            disabled={loading || recalculating}
-                          >
-                            <RefreshCw className={`w-4 h-4 ${recalculating ? 'animate-spin' : ''}`} />
-                            <span className="hidden sm:inline">Reaplicar Status</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Recalcula os status usando as regras</p>
-                          <p>configuradas em Parâmetros de Performance</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-
-                  {/* Second Line: Compact Filters */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {/* Status Performance Filter - Dropdown */}
-                    <div className="flex items-center gap-2">
-                      <Select 
-                        value={statusFilter} 
-                        onValueChange={(value) => setStatusFilter(value as StatusType)}
-                      >
-                        <SelectTrigger className="w-[140px] h-8 text-sm">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todos os status</SelectItem>
-                          <SelectItem value="excelente">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-status-excellent rounded-full"></div>
-                              Excelente
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="atencao">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-status-attention rounded-full"></div>
-                              Atenção
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="emergencial">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
-                              Emergencial
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="sem_fundos">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                              Sem Fundos
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="inativo">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
-                              Inativo
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                <div className="space-y-3">
+                  {/* Single Line: All controls compact */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Search Input - Compact */}
+                    <div className="relative flex-1 min-w-[180px] max-w-[240px]">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 h-8 text-sm"
+                      />
                     </div>
 
-                    {/* Client State Filter - Dropdown */}
+                    {/* Filter Button - Compact */}
+                    <Button 
+                      variant={showFilters ? "default" : "outline"} 
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setShowFilters(!showFilters)}
+                    >
+                      <Filter className="w-4 h-4 mr-1" />
+                      Filtros
+                    </Button>
+
+                    {/* Status Filter Dropdown */}
+                    <Select 
+                      value={statusFilter} 
+                      onValueChange={(value) => setStatusFilter(value as StatusType)}
+                    >
+                      <SelectTrigger className="w-[140px] h-8 text-sm">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        <SelectItem value="excelente">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-status-excellent rounded-full"></div>
+                            Excelente
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="atencao">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-status-attention rounded-full"></div>
+                            Atenção
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="emergencial">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-status-emergency rounded-full"></div>
+                            Emergencial
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="sem_fundos">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            Sem Fundos
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="inativo">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-status-inactive rounded-full"></div>
+                            Inativo
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Client State Filter Dropdown */}
                     <Select 
                       value={clientFilter} 
                       onValueChange={(value) => setClientFilter(value as ClientFilter)}
@@ -933,7 +896,7 @@ const Clientes = () => {
                       </SelectContent>
                     </Select>
 
-                    {/* Restriction Filter - Dropdown */}
+                    {/* Restriction Filter Dropdown */}
                     <Select 
                       value={restrictionFilter} 
                       onValueChange={(value) => setRestrictionFilter(value as RestrictionFilter)}
@@ -953,7 +916,7 @@ const Clientes = () => {
                       </SelectContent>
                     </Select>
 
-                    {/* Active filter indicators */}
+                    {/* Clear filters button */}
                     {(statusFilter !== "all" || clientFilter !== "active" || restrictionFilter !== "all") && (
                       <Button
                         variant="ghost"
@@ -965,9 +928,46 @@ const Clientes = () => {
                           setRestrictionFilter("all");
                         }}
                       >
-                        Limpar filtros
+                        Limpar
                       </Button>
                     )}
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Actions Menu - Three dots */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover border shadow-lg z-50">
+                        <DropdownMenuItem 
+                          onClick={() => setSyncDialogOpen(true)}
+                          disabled={syncing}
+                          className="cursor-pointer"
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                          Sincronizar Meta
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleRecalculateStatus}
+                          disabled={loading || recalculating}
+                          className="cursor-pointer"
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+                          Reaplicar Status
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={exportToCSV}
+                          className="cursor-pointer"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Exportar Clientes
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardContent>
