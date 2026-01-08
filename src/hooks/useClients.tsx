@@ -747,6 +747,8 @@ export function useClients(options?: { includeCanceled?: boolean }) {
         'linkedin_monthly_budget', 'linkedin_payment_type', 'linkedin_recharge_day',
         'tiktok_monthly_budget', 'tiktok_payment_type', 'tiktok_recharge_day',
         'twitter_monthly_budget', 'twitter_payment_type', 'twitter_recharge_day',
+        // Pause fields
+        'is_paused', 'paused_at', 'pause_reason',
         // Cancellation fields
         'is_canceled', 'canceled_at',
         // Gestor field
