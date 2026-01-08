@@ -89,7 +89,13 @@ export function useMetaAudiences(clientId: string | null) {
       });
 
       if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      if (!data.success) {
+        // Check for Terms of Service error
+        if (data.error?.includes('custom_audience_tos') || data.error?.includes('Terms of Service')) {
+          throw new Error('TOS_NOT_ACCEPTED');
+        }
+        throw new Error(data.error);
+      }
 
       toast({
         title: 'Público criado',
@@ -100,6 +106,17 @@ export function useMetaAudiences(clientId: string | null) {
       return data.audience;
     } catch (error: any) {
       console.error('Error creating audience:', error);
+      
+      // Check for TOS error (can come from various places)
+      const errorMessage = error.message || '';
+      if (errorMessage === 'TOS_NOT_ACCEPTED' || 
+          errorMessage.includes('custom_audience_tos') || 
+          errorMessage.includes('Terms of Service') ||
+          errorMessage.includes('2200')) {
+        // Return special error object that the component can handle
+        throw { type: 'TOS_NOT_ACCEPTED', message: 'Termos de Serviço não aceitos' };
+      }
+      
       toast({
         title: 'Erro ao criar público',
         description: error.message,
