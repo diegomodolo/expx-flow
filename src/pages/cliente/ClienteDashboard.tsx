@@ -169,9 +169,9 @@ export function ClienteDashboard({
       {/* Account Restriction Alert */}
       {client.facebook_ad_accounts && (
         <AccountRestrictionAlert
-          isRestricted={client.facebook_ad_accounts.account_status !== 1}
-          restrictionReason={client.facebook_ad_accounts.disable_reason}
-          canAdvertise={[1, 9].includes(client.facebook_ad_accounts.account_status)}
+          isRestricted={client.facebook_ad_accounts.is_restricted}
+          restrictionReason={client.facebook_ad_accounts.restriction_reason ?? client.facebook_ad_accounts.disable_reason}
+          canAdvertise={client.facebook_ad_accounts.can_advertise}
           accountStatus={client.facebook_ad_accounts.account_status}
           accountName={client.facebook_ad_accounts.account_name}
           className="mb-2"
