@@ -83,6 +83,8 @@ export interface Client {
     is_prepaid: boolean;
     funding_source_details?: any;
     recharge_day?: number;
+    is_restricted?: boolean;
+    can_advertise?: boolean;
   };
   facebook_page?: {
     id: string;
@@ -514,7 +516,9 @@ export function useClients(options?: { includeCanceled?: boolean }) {
             last_balance_check,
             is_prepaid,
             funding_source_details,
-            recharge_day
+            recharge_day,
+            is_restricted,
+            can_advertise
           ),
           facebook_page:facebook_pages!facebook_page_id (
             id,
