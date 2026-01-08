@@ -19,9 +19,21 @@ export const AccountRestrictionAlert = ({
   accountName = "Conta de anúncios",
   className = ""
 }: AccountRestrictionAlertProps) => {
-  // Use new fields if available, otherwise fall back to account_status check
-  const isAccountRestricted = isRestricted ?? (accountStatus !== 1);
-  const canAccountAdvertise = canAdvertise ?? (accountStatus === 1 || accountStatus === 9);
+  // Status codes that indicate restriction: 2 (DISABLED), 3 (UNSETTLED), 7 (PENDING_RISK_REVIEW), 8 (PENDING_SETTLEMENT), 100 (PENDING_CLOSURE), 101 (CLOSED)
+  const restrictedStatuses = [2, 3, 7, 8, 100, 101];
+  
+  // Robust logic: prioritize explicit flags, fallback to status codes
+  // 1. If canAdvertise is explicitly false -> restricted
+  // 2. If isRestricted is explicitly true -> restricted
+  // 3. Fallback: check if accountStatus is in restricted list
+  const isAccountRestricted = 
+    canAdvertise === false || 
+    isRestricted === true || 
+    restrictedStatuses.includes(accountStatus);
+  
+  const canAccountAdvertise = 
+    canAdvertise === true || 
+    (!isRestricted && [1, 9].includes(accountStatus));
   
   if (!isAccountRestricted && canAccountAdvertise) return null;
 
