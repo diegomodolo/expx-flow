@@ -283,11 +283,34 @@ async function processSync(
 
     // Check account balance, funding status, and restrictions
     console.log('Checking account balance for:', accountId)
-    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details,is_prepay_account,is_user_allowed_to_advertise&access_token=${accessToken}`
-    console.log('Balance API URL (without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
+    
+    // Step 1: Fetch basic account info (v20 - without is_user_allowed_to_advertise which doesn't exist in v20)
+    const balanceUrl = `https://graph.facebook.com/v20.0/${accountId}?fields=account_status,balance,spend_cap,disable_reason,funding_source_details,is_prepay_account&access_token=${accessToken}`
+    console.log('Balance API URL (v20, without token):', balanceUrl.replace(accessToken, '[REDACTED]'))
+    
+    // Step 2: Fetch is_user_allowed_to_advertise separately (v16 - this field exists there)
+    const allowedUrl = `https://graph.facebook.com/v16.0/${accountId}?fields=is_user_allowed_to_advertise&access_token=${accessToken}`
+    console.log('Allowed to advertise API URL (v16, without token):', allowedUrl.replace(accessToken, '[REDACTED]'))
     
     try {
-      const balanceResponse = await fetch(balanceUrl)
+      // Fetch both in parallel
+      const [balanceResponse, allowedResponse] = await Promise.all([
+        fetch(balanceUrl),
+        fetch(allowedUrl)
+      ])
+      
+      // Parse is_user_allowed_to_advertise from v16 (fallback to true if unavailable)
+      let isUserAllowedToAdvertise = true
+      if (allowedResponse.ok) {
+        const allowedData = await allowedResponse.json()
+        console.log('✅ v16 is_user_allowed_to_advertise response:', allowedData)
+        isUserAllowedToAdvertise = allowedData.is_user_allowed_to_advertise ?? true
+      } else {
+        console.warn('⚠️ v16 is_user_allowed_to_advertise call failed, using fallback true')
+        const errorText = await allowedResponse.text()
+        console.warn('  - Status:', allowedResponse.status, 'Error:', errorText)
+      }
+      
       if (balanceResponse.ok) {
         const balanceData = await balanceResponse.json()
         console.log('Balance data received:', balanceData)
@@ -343,13 +366,12 @@ async function processSync(
         console.log(`  - Logic: accountInactive(${isAccountInactive}) OR disableReasonIssues(${hasDisableReasonIssues}) OR balanceIssues(${hasBalanceIssues})`)
         
         // Detect restricted accounts (cannot advertise)
-        // Use is_user_allowed_to_advertise from API (most reliable) + fallback to status codes
+        // Use is_user_allowed_to_advertise from v16 API (most reliable) + fallback to status codes
         // Status codes that indicate restriction: 2 (DISABLED), 7 (PENDING_RISK_REVIEW), 100 (PENDING_CLOSURE), 101 (CLOSED)
-        const isUserAllowedToAdvertise = balanceData.is_user_allowed_to_advertise ?? true
         const restrictedStatuses = [2, 7, 100, 101]
         const isRestricted = !isUserAllowedToAdvertise || restrictedStatuses.includes(accountStatus)
         
-        console.log('🔐 API is_user_allowed_to_advertise:', balanceData.is_user_allowed_to_advertise, '→ parsed:', isUserAllowedToAdvertise)
+        console.log('🔐 is_user_allowed_to_advertise (from v16):', isUserAllowedToAdvertise)
         
         // Determine restriction reason
         let restrictionReason: string | null = null
@@ -374,7 +396,7 @@ async function processSync(
         const canAdvertise = isUserAllowedToAdvertise && [1, 9].includes(accountStatus)
         
         console.log('🚫 RESTRICTION ANALYSIS:')
-        console.log('  - Is User Allowed To Advertise (API):', isUserAllowedToAdvertise)
+        console.log('  - Is User Allowed To Advertise (v16 API):', isUserAllowedToAdvertise)
         console.log('  - Is Restricted:', isRestricted)
         console.log('  - Restriction Reason:', restrictionReason)
         console.log('  - Can Advertise:', canAdvertise)
@@ -383,7 +405,9 @@ async function processSync(
         console.log(`💾 UPDATING ACCOUNT ${adAccount.id}:`)
         console.log(`  - Previous funding_issues: ${adAccount.has_funding_issues}`)
         console.log(`  - New funding_issues: ${hasFundingIssues}`)
-        console.log(`  - Change: ${adAccount.has_funding_issues} → ${hasFundingIssues}`)
+        console.log(`  - New is_restricted: ${isRestricted}`)
+        console.log(`  - New can_advertise: ${canAdvertise}`)
+        console.log(`  - New restriction_reason: ${restrictionReason}`)
         
         const { error: adAccountUpdateError } = await supabase
           .from('facebook_ad_accounts')
@@ -408,18 +432,20 @@ async function processSync(
           console.error('❌ Update data was:', {
             balance,
             account_status: accountStatus,
-            has_funding_issues: hasFundingIssues
+            has_funding_issues: hasFundingIssues,
+            is_restricted: isRestricted,
+            can_advertise: canAdvertise
           })
         } else {
           console.log('✅ ACCOUNT UPDATE SUCCESSFUL')
           console.log('✅ Updated account:', adAccount.id)
-          console.log('✅ New values - Balance:', balance, 'Status:', accountStatus, 'Funding Issues:', hasFundingIssues)
+          console.log('✅ New values - Balance:', balance, 'Status:', accountStatus, 'Funding Issues:', hasFundingIssues, 'Restricted:', isRestricted, 'Can Advertise:', canAdvertise)
           
           // Verify the update was successful by reading it back
           console.log('🔍 VERIFYING DATABASE UPDATE...')
           const { data: verifyData, error: verifyError } = await supabase
             .from('facebook_ad_accounts')
-            .select('has_funding_issues, account_status, balance')
+            .select('has_funding_issues, account_status, balance, is_restricted, can_advertise, restriction_reason')
             .eq('id', adAccount.id)
             .single()
           
@@ -430,36 +456,43 @@ async function processSync(
             console.log('  - has_funding_issues:', verifyData.has_funding_issues)
             console.log('  - account_status:', verifyData.account_status)
             console.log('  - balance:', verifyData.balance)
-            console.log('  - Values match expected?', verifyData.has_funding_issues === hasFundingIssues)
+            console.log('  - is_restricted:', verifyData.is_restricted)
+            console.log('  - can_advertise:', verifyData.can_advertise)
+            console.log('  - restriction_reason:', verifyData.restriction_reason)
           }
         }
       } else {
-        console.warn('❌ FAILED TO FETCH ACCOUNT BALANCE')
+        console.warn('❌ FAILED TO FETCH ACCOUNT BALANCE (v20)')
         console.warn('  - Status Code:', balanceResponse.status)
         const errorText = await balanceResponse.text()
         console.warn('  - Error Response:', errorText)
         console.warn('  - Account ID:', adAccount.id)
         
-        // If we can't check balance, mark as potential funding issue to be safe
-        console.log('⚠️ APPLYING FALLBACK: Setting has_funding_issues = true (safe fallback)')
-        const { error: fallbackUpdateError } = await supabase
-          .from('facebook_ad_accounts')
-          .update({
-            has_funding_issues: true,
-            last_balance_check: new Date().toISOString()
-          })
-          .eq('id', adAccount.id)
-          
-        if (fallbackUpdateError) {
-          console.error('❌ FALLBACK UPDATE FAILED:', fallbackUpdateError)
+        // Check if this is a permission error vs field error
+        // Only mark funding issues if it's a real API access error
+        const isPermissionError = errorText.includes('permission') || errorText.includes('token') || errorText.includes('OAuthException')
+        
+        if (isPermissionError) {
+          console.log('⚠️ PERMISSION ERROR: Setting has_funding_issues = true (API access problem)')
+          const { error: fallbackUpdateError } = await supabase
+            .from('facebook_ad_accounts')
+            .update({
+              has_funding_issues: true,
+              last_balance_check: new Date().toISOString()
+            })
+            .eq('id', adAccount.id)
+            
+          if (fallbackUpdateError) {
+            console.error('❌ FALLBACK UPDATE FAILED:', fallbackUpdateError)
+          } else {
+            console.log('✅ FALLBACK UPDATE SUCCESS - Account marked as having funding issues due to API access error')
+          }
         } else {
-          console.log('✅ FALLBACK UPDATE SUCCESS - Account marked as having funding issues')
-        }
-          
-        if (fallbackUpdateError) {
-          console.error('Error updating account with fallback funding issue flag:', fallbackUpdateError)
-        } else {
-          console.log('⚠️ Account marked with funding issues due to API access failure')
+          console.log('⚠️ Non-permission error, not marking funding issues. Updating last check time only.')
+          await supabase
+            .from('facebook_ad_accounts')
+            .update({ last_balance_check: new Date().toISOString() })
+            .eq('id', adAccount.id)
         }
       }
     } catch (balanceError) {
@@ -469,7 +502,7 @@ async function processSync(
       console.error('  - Error Message:', balanceError.message)
       console.error('  - Error Stack:', balanceError.stack)
       
-      // If there's an error checking balance, mark as potential funding issue for safety
+      // Network/transient errors - mark funding issues for safety
       console.log('⚠️ EXCEPTION FALLBACK: Setting has_funding_issues = true (safety measure)')
       const { error: errorFallbackUpdateError } = await supabase
         .from('facebook_ad_accounts')
@@ -483,12 +516,6 @@ async function processSync(
         console.error('❌ EXCEPTION FALLBACK UPDATE FAILED:', errorFallbackUpdateError)
       } else {
         console.log('✅ EXCEPTION FALLBACK UPDATE SUCCESS')
-      }
-        
-      if (errorFallbackUpdateError) {
-        console.error('Error updating account with error fallback funding issue flag:', errorFallbackUpdateError)
-      } else {
-        console.log('⚠️ Account marked with funding issues due to balance check error')
       }
     }
 
