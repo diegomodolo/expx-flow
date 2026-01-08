@@ -63,6 +63,9 @@ export interface Client {
   dashboard_token?: string;
   is_canceled?: boolean;
   canceled_at?: string;
+  is_paused?: boolean;
+  paused_at?: string;
+  pause_reason?: string;
   gestor_id?: string;
   gestor?: {
     id: string;

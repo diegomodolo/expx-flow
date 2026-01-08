@@ -3,9 +3,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Ban, AlertOctagon, Clock, XCircle } from "lucide-react";
 
 interface AccountRestrictionAlertProps {
-  isRestricted: boolean;
+  isRestricted?: boolean;
   restrictionReason?: string;
-  canAdvertise: boolean;
+  canAdvertise?: boolean;
   accountStatus: number;
   accountName?: string;
   className?: string;
@@ -19,9 +19,23 @@ export const AccountRestrictionAlert = ({
   accountName = "Conta de anúncios",
   className = ""
 }: AccountRestrictionAlertProps) => {
-  if (!isRestricted && canAdvertise) return null;
+  // Use new fields if available, otherwise fall back to account_status check
+  const isAccountRestricted = isRestricted ?? (accountStatus !== 1);
+  const canAccountAdvertise = canAdvertise ?? (accountStatus === 1 || accountStatus === 9);
+  
+  if (!isAccountRestricted && canAccountAdvertise) return null;
 
   const getAlertContent = () => {
+    // If we have a restriction reason from the API, use it
+    if (restrictionReason) {
+      return {
+        icon: <Ban className="h-4 w-4" />,
+        title: "Conta Restrita",
+        description: restrictionReason,
+        severity: "high"
+      };
+    }
+    
     // Account status mapping:
     // 1 = ACTIVE, 2 = DISABLED, 3 = UNSETTLED, 7 = PENDING_RISK_REVIEW
     // 8 = PENDING_SETTLEMENT, 9 = IN_GRACE_PERIOD, 100 = PENDING_CLOSURE, 101 = CLOSED
@@ -31,7 +45,7 @@ export const AccountRestrictionAlert = ({
         return {
           icon: <Ban className="h-4 w-4" />,
           title: "Conta Desabilitada",
-          description: restrictionReason || `${accountName} foi desabilitada pelo Meta. Não é possível veicular anúncios.`,
+          description: `${accountName} foi desabilitada pelo Meta. Não é possível veicular anúncios.`,
           severity: "high"
         };
       case 7: // PENDING_RISK_REVIEW
@@ -70,11 +84,11 @@ export const AccountRestrictionAlert = ({
           severity: "low"
         };
       default:
-        if (!canAdvertise) {
+        if (!canAccountAdvertise || isAccountRestricted) {
           return {
             icon: <AlertOctagon className="h-4 w-4" />,
             title: "Anúncios Bloqueados",
-            description: restrictionReason || `${accountName} não pode veicular anúncios no momento.`,
+            description: `${accountName} não pode veicular anúncios no momento.`,
             severity: "high"
           };
         }

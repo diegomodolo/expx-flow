@@ -43,6 +43,9 @@ export interface ClientDetailsData extends Client {
     last_balance_check?: string;
     is_prepaid: boolean;
     funding_source_details?: any;
+    is_restricted?: boolean;
+    restriction_reason?: string;
+    can_advertise?: boolean;
   };
   facebook_page?: {
     id: string;
@@ -96,7 +99,10 @@ export function useClientDetails(clientId: string) {
             has_funding_issues,
             last_balance_check,
             is_prepaid,
-            funding_source_details
+            funding_source_details,
+            is_restricted,
+            restriction_reason,
+            can_advertise
           ),
           facebook_page:facebook_pages!facebook_page_id (
             id,
