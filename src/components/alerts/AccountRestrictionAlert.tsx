@@ -37,20 +37,51 @@ export const AccountRestrictionAlert = ({
   
   if (!isAccountRestricted && canAccountAdvertise) return null;
 
-  const getAlertContent = () => {
-    // If we have a restriction reason from the API, use it
-    if (restrictionReason) {
-      return {
-        icon: <Ban className="h-4 w-4" />,
-        title: "Conta Restrita",
-        description: restrictionReason,
-        severity: "high"
+  // Helper function to get human-readable disable reason
+  const getDisableReasonText = (reason: string | undefined, status: number): string => {
+    if (!reason) return "";
+    
+    // Parse the reason - could be a number or a descriptive string from backend
+    const reasonNum = parseInt(reason, 10);
+    
+    // If it's a number, map to human-readable text
+    if (!isNaN(reasonNum)) {
+      const disableReasonMap: Record<number, string> = {
+        0: "Nenhuma restrição identificada",
+        1: "A conta foi desabilitada por violação das políticas de anúncios do Meta.",
+        2: "A conta foi desabilitada por problemas de pagamento ou faturamento.",
+        3: "A conta foi desabilitada por atividade suspeita detectada.",
+        4: "A conta foi desabilitada por solicitação do usuário.",
+        5: "A conta foi desabilitada por questões legais ou regulatórias.",
       };
+      return disableReasonMap[reasonNum] || `A conta foi desabilitada pelo Meta. (Código: ${reasonNum})`;
     }
+    
+    // If it's already descriptive text (from our backend), clean it up
+    if (reason.startsWith("Meta account_status=")) {
+      return "A conta possui restrições aplicadas pelo Meta. Verifique o Gerenciador de Anúncios para mais detalhes.";
+    }
+    
+    return reason;
+  };
+
+  const getAlertContent = () => {
+    // Get human-readable restriction reason
+    const humanReadableReason = getDisableReasonText(restrictionReason, accountStatus);
     
     // Account status mapping:
     // 1 = ACTIVE, 2 = DISABLED, 3 = UNSETTLED, 7 = PENDING_RISK_REVIEW
     // 8 = PENDING_SETTLEMENT, 9 = IN_GRACE_PERIOD, 100 = PENDING_CLOSURE, 101 = CLOSED
+    
+    // If we have a meaningful restriction reason, use it
+    if (humanReadableReason && humanReadableReason !== "Nenhuma restrição identificada") {
+      return {
+        icon: <Ban className="h-4 w-4" />,
+        title: "Conta Restrita",
+        description: humanReadableReason,
+        severity: "high"
+      };
+    }
     
     switch (accountStatus) {
       case 2: // DISABLED
