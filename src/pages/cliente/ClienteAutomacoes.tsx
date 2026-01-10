@@ -238,9 +238,13 @@ export default function ClienteAutomacoes() {
     await fetchRules();
     await fetchLogs();
   };
-  const handleSaveConditions = async (ruleId: string, updatedConditions: any) => {
+  const handleSaveConditions = async (
+    ruleId: string,
+    updatedConditions: any,
+    timeWindowDays?: number
+  ) => {
     try {
-      await updateRuleConditions(ruleId, updatedConditions);
+      await updateRuleConditions(ruleId, updatedConditions, timeWindowDays);
       setEditDialogOpen(false);
       setRuleToEdit(null);
     } catch (error: any) {
