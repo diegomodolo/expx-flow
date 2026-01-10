@@ -60,6 +60,11 @@ export interface RuleEntityResult {
   status: 'ignored' | 'skipped' | 'actioned' | 'error' | 'processing';
   reason?: string;
   metrics?: MetricsData;
+  cooldown?: {
+    inCooldown: boolean;
+    daysSinceAction?: number;
+    daysRemaining?: number;
+  };
 }
 
 export interface ExecutionPhase {
