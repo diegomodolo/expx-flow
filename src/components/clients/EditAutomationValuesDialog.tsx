@@ -7,14 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, Info } from "lucide-react";
+import { CheckCircle2, Info, Calendar } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface EditAutomationValuesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   rule: any;
-  onSave: (ruleId: string, updatedConditions: any) => Promise<void>;
+  onSave: (ruleId: string, updatedConditions: any, timeWindowDays?: number) => Promise<void>;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -47,10 +47,14 @@ export function EditAutomationValuesDialog({
 }: EditAutomationValuesDialogProps) {
   const [loading, setLoading] = useState(false);
   const [editedConditions, setEditedConditions] = useState<any[]>([]);
+  const [timeWindowDays, setTimeWindowDays] = useState<number>(7);
 
   useEffect(() => {
     if (rule?.conditions?.conditions) {
       setEditedConditions([...rule.conditions.conditions]);
+    }
+    if (rule?.time_window_days) {
+      setTimeWindowDays(rule.time_window_days);
     }
   }, [rule]);
 
@@ -65,7 +69,7 @@ export function EditAutomationValuesDialog({
 
   const isValid = editedConditions.every(
     (c) => c.operator && c.value !== null && c.value !== undefined
-  );
+  ) && timeWindowDays >= 1 && timeWindowDays <= 90;
 
   const handleSave = async () => {
     if (!isValid || !rule) return;
@@ -75,7 +79,7 @@ export function EditAutomationValuesDialog({
       await onSave(rule.id, {
         logic: rule.conditions.logic,
         conditions: editedConditions,
-      });
+      }, timeWindowDays);
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving values:", error);
@@ -111,9 +115,36 @@ export function EditAutomationValuesDialog({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Você pode ajustar os operadores e valores das condições. As mudanças serão aplicadas nas próximas execuções.
+              Você pode ajustar os operadores, valores e janela de tempo. As mudanças serão aplicadas nas próximas execuções.
             </AlertDescription>
           </Alert>
+
+          {/* Janela de Tempo */}
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <Label className="font-medium">Janela de Tempo</Label>
+                </div>
+                <div className="flex-1" />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={timeWindowDays}
+                    onChange={(e) => setTimeWindowDays(parseInt(e.target.value) || 1)}
+                    className="w-20 text-center"
+                  />
+                  <span className="text-sm text-muted-foreground">dias</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Período para análise das métricas (1-90 dias). Atualmente: <strong>{rule.time_window_days || 1} dia(s)</strong>
+              </p>
+            </CardContent>
+          </Card>
 
           <div className="space-y-3">
             <Label className="text-base font-semibold">📊 Condições</Label>
@@ -192,6 +223,9 @@ export function EditAutomationValuesDialog({
                   Resumo da Regra Atualizada
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
+                  <p>
+                    <strong>Janela:</strong> últimos {timeWindowDays} dias
+                  </p>
                   <p>
                     <strong>SE</strong>{" "}
                     {rule.conditions.logic === "AND" ? "todas" : "qualquer uma"} das condições:
