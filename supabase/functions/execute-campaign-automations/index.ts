@@ -374,6 +374,66 @@ Deno.serve(async (req) => {
 
 // ============ FUNÇÕES AUXILIARES ============
 
+// Mapear objetivos do Facebook (API antiga e nova ODAX)
+function normalizeObjective(objective: string): string[] {
+  const objectiveMap: Record<string, string[]> = {
+    // Reconhecimento
+    'BRAND_AWARENESS': ['OUTCOME_AWARENESS', 'BRAND_AWARENESS'],
+    'REACH': ['OUTCOME_AWARENESS', 'REACH'],
+    'OUTCOME_AWARENESS': ['OUTCOME_AWARENESS', 'BRAND_AWARENESS', 'REACH'],
+    
+    // Tráfego
+    'LINK_CLICKS': ['OUTCOME_TRAFFIC', 'LINK_CLICKS'],
+    'OUTCOME_TRAFFIC': ['OUTCOME_TRAFFIC', 'LINK_CLICKS'],
+    
+    // Engajamento
+    'POST_ENGAGEMENT': ['OUTCOME_ENGAGEMENT', 'POST_ENGAGEMENT'],
+    'PAGE_LIKES': ['OUTCOME_ENGAGEMENT', 'PAGE_LIKES'],
+    'EVENT_RESPONSES': ['OUTCOME_ENGAGEMENT', 'EVENT_RESPONSES'],
+    'VIDEO_VIEWS': ['OUTCOME_ENGAGEMENT', 'VIDEO_VIEWS'],
+    'OUTCOME_ENGAGEMENT': ['OUTCOME_ENGAGEMENT', 'POST_ENGAGEMENT', 'PAGE_LIKES', 'VIDEO_VIEWS'],
+    
+    // Leads
+    'LEAD_GENERATION': ['OUTCOME_LEADS', 'LEAD_GENERATION'],
+    'OUTCOME_LEADS': ['OUTCOME_LEADS', 'LEAD_GENERATION'],
+    
+    // Conversões/Vendas
+    'CONVERSIONS': ['OUTCOME_SALES', 'CONVERSIONS'],
+    'CATALOG_SALES': ['OUTCOME_SALES', 'CATALOG_SALES'],
+    'PRODUCT_CATALOG_SALES': ['OUTCOME_SALES', 'PRODUCT_CATALOG_SALES', 'CATALOG_SALES'],
+    'OUTCOME_SALES': ['OUTCOME_SALES', 'CONVERSIONS', 'CATALOG_SALES', 'PRODUCT_CATALOG_SALES'],
+    
+    // App
+    'APP_INSTALLS': ['OUTCOME_APP_PROMOTION', 'APP_INSTALLS'],
+    'OUTCOME_APP_PROMOTION': ['OUTCOME_APP_PROMOTION', 'APP_INSTALLS'],
+    
+    // Mensagens
+    'MESSAGES': ['OUTCOME_ENGAGEMENT', 'MESSAGES'],
+  };
+  
+  return objectiveMap[objective] || [objective];
+}
+
+function objectiveMatchesRule(
+  campaignObjective: string, 
+  ruleObjectives: string[] | undefined
+): boolean {
+  // Sem filtro = aplica a todas
+  if (!ruleObjectives || ruleObjectives.length === 0) {
+    return true;
+  }
+  
+  const normalizedCampaign = normalizeObjective(campaignObjective);
+  
+  // Verificar se algum objetivo da regra corresponde ao objetivo da campanha
+  return ruleObjectives.some(ruleObj => {
+    const normalizedRule = normalizeObjective(ruleObj);
+    // Verificar interseção entre os dois conjuntos normalizados
+    return normalizedCampaign.some(c => normalizedRule.includes(c)) ||
+           normalizedRule.some(r => normalizedCampaign.includes(r));
+  });
+}
+
 async function logProgress(
   supabase: any, 
   executionId: string, 
@@ -620,7 +680,10 @@ async function fetchMetrics(
       frequency,
       ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
       cpc: clicks > 0 ? spend / clicks : 0,
-      cpa: conversions > 0 ? spend / conversions : 0
+      // Se não há conversões, CPA = gasto total (custo efetivo para 0 leads)
+      // Isso faz sentido porque se gastou R$20 e não converteu, 
+      // o "custo por aquisição" é efetivamente >= R$20
+      cpa: conversions > 0 ? spend / conversions : spend
     };
   } catch (error) {
     console.error(`⚠️ Error fetching metrics for ${facebookId}:`, error);
@@ -649,10 +712,11 @@ async function applyRuleToHierarchy(
   let errors = 0;
 
   for (const campaign of hierarchy) {
-    // Verificar se o objetivo da campanha se aplica à regra
-    const objectiveMatches = !rule.campaign_objectives || 
-      rule.campaign_objectives.length === 0 || 
-      rule.campaign_objectives.includes(campaign.objective);
+    // Verificar se o objetivo da campanha se aplica à regra (usando mapeamento)
+    const objectiveMatches = objectiveMatchesRule(
+      campaign.objective, 
+      rule.campaign_objectives
+    );
 
     if (!objectiveMatches) {
       // Log de campanha ignorada por objetivo
