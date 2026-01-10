@@ -458,23 +458,32 @@ async function logProgress(
   });
 }
 
-// Fetch com retry para rate limit
-async function fetchWithRetry(url: string, maxRetries = 5, initialDelay = 3000): Promise<any> {
+// Fetch com retry para rate limit - configuração mais agressiva
+async function fetchWithRetry(url: string, maxRetries = 8, initialDelay = 5000): Promise<any> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.error) {
-        if (data.error.code === 4 || data.error.code === 17 || 
-            data.error.message?.toLowerCase().includes('rate limit') ||
-            data.error.message?.toLowerCase().includes('too many calls')) {
-          if (attempt < maxRetries - 1) {
-            const delay = initialDelay * Math.pow(2, attempt);
-            console.log(`⏳ Rate limit, aguardando ${delay/1000}s...`);
-            await new Promise(r => setTimeout(r, delay));
-            continue;
-          }
+        const errorMessage = data.error.message?.toLowerCase() || '';
+        const isRateLimitError = 
+          data.error.code === 4 || 
+          data.error.code === 17 || 
+          data.error.code === 32 ||
+          data.error.code === 613 ||
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('too many calls') ||
+          errorMessage.includes('user request limit') ||
+          errorMessage.includes('temporarily blocked');
+        
+        if (isRateLimitError && attempt < maxRetries - 1) {
+          // Backoff exponencial mais agressivo: 5s, 15s, 45s, 90s, 180s...
+          const delay = initialDelay * Math.pow(3, attempt);
+          const cappedDelay = Math.min(delay, 180000); // Máximo 3 minutos
+          console.log(`⏳ Rate limit (tentativa ${attempt + 1}/${maxRetries}), aguardando ${cappedDelay/1000}s...`);
+          await new Promise(r => setTimeout(r, cappedDelay));
+          continue;
         }
         throw new Error(`Facebook API Error: ${data.error.message}`);
       }
@@ -483,7 +492,9 @@ async function fetchWithRetry(url: string, maxRetries = 5, initialDelay = 3000):
     } catch (error: any) {
       if (attempt === maxRetries - 1) throw error;
       const delay = initialDelay * Math.pow(2, attempt);
-      await new Promise(r => setTimeout(r, delay));
+      const cappedDelay = Math.min(delay, 60000); // Máximo 1 minuto
+      console.log(`⚠️ Erro de rede (tentativa ${attempt + 1}/${maxRetries}), aguardando ${cappedDelay/1000}s...`);
+      await new Promise(r => setTimeout(r, cappedDelay));
     }
   }
 }
@@ -527,8 +538,8 @@ async function collectFullHierarchy(
       adsets: []
     };
 
-    // Delay para rate limit
-    await new Promise(r => setTimeout(r, 500));
+    // Delay para rate limit (aumentado para evitar bloqueio)
+    await new Promise(r => setTimeout(r, 1000));
 
     // Buscar ad sets da campanha
     const adsets = await fetchAdSets(campaign.id, accessToken);
@@ -542,8 +553,8 @@ async function collectFullHierarchy(
         ads: []
       };
 
-      // Delay para rate limit
-      await new Promise(r => setTimeout(r, 300));
+      // Delay para rate limit (aumentado)
+      await new Promise(r => setTimeout(r, 800));
 
       // Buscar ads do ad set
       const ads = await fetchAds(adset.id, accessToken);
@@ -577,7 +588,7 @@ async function fetchAllCampaigns(adAccountId: string, accessToken: string): Prom
     const data = await fetchWithRetry(url);
     if (data.data) allCampaigns.push(...data.data);
     url = data.paging?.next || null;
-    if (url) await new Promise(r => setTimeout(r, 500));
+    if (url) await new Promise(r => setTimeout(r, 1000));
   }
 
   return allCampaigns;
@@ -620,17 +631,17 @@ async function fetchMetricsForHierarchy(
   for (const campaign of hierarchy) {
     // Métricas da campanha
     campaign.metrics = await fetchMetrics(campaign.id, sinceStr, untilStr, accessToken);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 600));
 
     for (const adset of campaign.adsets) {
       // Métricas do ad set
       adset.metrics = await fetchMetrics(adset.id, sinceStr, untilStr, accessToken);
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 500));
 
       for (const ad of adset.ads) {
         // Métricas do ad
         ad.metrics = await fetchMetrics(ad.id, sinceStr, untilStr, accessToken);
-        await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 400));
       }
     }
   }
