@@ -100,13 +100,14 @@ export function AutomationProgressModal({
       })
       .subscribe();
 
-    // Timeout detection - 60 segundos sem updates
+    // Timeout detection - 5 minutos sem updates (300 segundos)
+    // Aumentado porque execuções com muitas campanhas podem demorar
     timeoutCheckRef.current = setInterval(() => {
       const timeSinceLastUpdate = Date.now() - lastUpdateTimeRef.current;
-      if (timeSinceLastUpdate > 60000 && !isComplete) {
+      if (timeSinceLastUpdate > 300000 && !isComplete) {
         setIsTimedOut(true);
       }
-    }, 5000);
+    }, 10000);
 
     return () => {
       subscription.unsubscribe();
