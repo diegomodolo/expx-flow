@@ -56,6 +56,7 @@ interface AdData {
   id: string;
   name: string;
   status: string;
+  created_time?: string;
   metrics?: MetricsData;
 }
 
@@ -63,6 +64,7 @@ interface AdSetData {
   id: string;
   name: string;
   status: string;
+  created_time?: string;
   metrics?: MetricsData;
   ads: AdData[];
 }
@@ -72,6 +74,7 @@ interface CampaignData {
   name: string;
   status: string;
   objective: string;
+  created_time?: string;
   metrics?: MetricsData;
   adsets: AdSetData[];
 }
@@ -535,6 +538,7 @@ async function collectFullHierarchy(
       name: campaign.name,
       status: campaign.status,
       objective: campaign.objective,
+      created_time: campaign.created_time,
       adsets: []
     };
 
@@ -550,6 +554,7 @@ async function collectFullHierarchy(
         id: adset.id,
         name: adset.name,
         status: adset.status,
+        created_time: adset.created_time,
         ads: []
       };
 
@@ -564,7 +569,8 @@ async function collectFullHierarchy(
         adsetData.ads.push({
           id: ad.id,
           name: ad.name,
-          status: ad.status
+          status: ad.status,
+          created_time: ad.created_time
         });
       }
 
@@ -580,7 +586,7 @@ async function collectFullHierarchy(
 async function fetchAllCampaigns(adAccountId: string, accessToken: string): Promise<any[]> {
   const allCampaigns: any[] = [];
   let url = `https://graph.facebook.com/v20.0/${adAccountId}/campaigns?` +
-    `fields=id,name,status,objective,effective_status&` +
+    `fields=id,name,status,objective,effective_status,created_time&` +
     `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
     `limit=100&access_token=${accessToken}`;
 
@@ -596,7 +602,7 @@ async function fetchAllCampaigns(adAccountId: string, accessToken: string): Prom
 
 async function fetchAdSets(campaignId: string, accessToken: string): Promise<any[]> {
   const url = `https://graph.facebook.com/v20.0/${campaignId}/adsets?` +
-    `fields=id,name,status,effective_status&` +
+    `fields=id,name,status,effective_status,created_time&` +
     `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
     `access_token=${accessToken}`;
 
@@ -606,7 +612,7 @@ async function fetchAdSets(campaignId: string, accessToken: string): Promise<any
 
 async function fetchAds(adSetId: string, accessToken: string): Promise<any[]> {
   const url = `https://graph.facebook.com/v20.0/${adSetId}/ads?` +
-    `fields=id,name,status,effective_status&` +
+    `fields=id,name,status,effective_status,created_time&` +
     `filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE"]}]&` +
     `access_token=${accessToken}`;
 
@@ -763,6 +769,26 @@ async function applyRuleToHierarchy(
 
     // Processar baseado no tipo da regra
     if (rule.entity_type === 'campaign') {
+      // Verificar idade da campanha antes de processar
+      if (!isEntityOldEnough(campaign.created_time, rule.time_window_days)) {
+        const ageInDays = getEntityAgeInDays(campaign.created_time);
+        await logProgress(supabase, executionId, companyId, clientId, {
+          entity_type: 'campaign',
+          entity_name: campaign.name,
+          status: 'skipped',
+          rule_name: rule.rule_name,
+          facebook_id: campaign.id,
+          message: `⏳ Campanha criada há ${ageInDays} dias - aguardando ${rule.time_window_days} dias para avaliar`,
+          metadata: { 
+            created_time: campaign.created_time,
+            age_in_days: ageInDays,
+            time_window_days: rule.time_window_days
+          }
+        });
+        skipped++;
+        continue;
+      }
+
       const result = await processEntity(
         campaign, 
         campaign,
@@ -782,6 +808,27 @@ async function applyRuleToHierarchy(
       // Processar ad sets
       for (const adset of campaign.adsets) {
         if (rule.entity_type === 'adset') {
+          // Verificar idade do ad set antes de processar
+          if (!isEntityOldEnough(adset.created_time, rule.time_window_days)) {
+            const ageInDays = getEntityAgeInDays(adset.created_time);
+            await logProgress(supabase, executionId, companyId, clientId, {
+              entity_type: 'adset',
+              entity_name: adset.name,
+              status: 'skipped',
+              rule_name: rule.rule_name,
+              facebook_id: adset.id,
+              message: `⏳ Conjunto criado há ${ageInDays} dias - aguardando ${rule.time_window_days} dias`,
+              metadata: { 
+                created_time: adset.created_time,
+                age_in_days: ageInDays,
+                time_window_days: rule.time_window_days,
+                parent_campaign: campaign.name
+              }
+            });
+            skipped++;
+            continue;
+          }
+
           const result = await processEntity(
             adset,
             campaign,
@@ -801,6 +848,28 @@ async function applyRuleToHierarchy(
         } else if (rule.entity_type === 'ad') {
           // Processar ads
           for (const ad of adset.ads) {
+            // Verificar idade do ad antes de processar
+            if (!isEntityOldEnough(ad.created_time, rule.time_window_days)) {
+              const ageInDays = getEntityAgeInDays(ad.created_time);
+              await logProgress(supabase, executionId, companyId, clientId, {
+                entity_type: 'ad',
+                entity_name: ad.name,
+                status: 'skipped',
+                rule_name: rule.rule_name,
+                facebook_id: ad.id,
+                message: `⏳ Criativo criado há ${ageInDays} dias - aguardando ${rule.time_window_days} dias`,
+                metadata: { 
+                  created_time: ad.created_time,
+                  age_in_days: ageInDays,
+                  time_window_days: rule.time_window_days,
+                  parent_campaign: campaign.name,
+                  parent_adset: adset.name
+                }
+              });
+              skipped++;
+              continue;
+            }
+
             const result = await processEntity(
               ad,
               campaign,
@@ -951,6 +1020,27 @@ function evaluateConditions(conditions: any, metrics: MetricsData): boolean {
   });
 
   return logic === 'AND' ? results.every((r: boolean) => r) : results.some((r: boolean) => r);
+}
+
+// Verificar se entidade é antiga o suficiente para ser avaliada
+function isEntityOldEnough(createdTime: string | undefined, timeWindowDays: number): boolean {
+  if (!createdTime) {
+    // Se não temos a data de criação, assumimos que é antiga o suficiente
+    return true;
+  }
+  
+  const createdDate = new Date(createdTime);
+  const now = new Date();
+  const ageInDays = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+  
+  return ageInDays >= timeWindowDays;
+}
+
+function getEntityAgeInDays(createdTime: string | undefined): number {
+  if (!createdTime) return 999;
+  const createdDate = new Date(createdTime);
+  const now = new Date();
+  return Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function getActionDescription(actionType: string): string {
