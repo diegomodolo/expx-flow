@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.execute-campaign-automations]
 verify_jwt = false
 
+[functions.start-automation-execution]
+verify_jwt = false
+
 [functions.daily-performance-snapshot]
 verify_jwt = false
 

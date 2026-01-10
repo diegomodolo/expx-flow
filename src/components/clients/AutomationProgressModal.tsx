@@ -23,13 +23,15 @@ interface AutomationProgressModalProps {
   executionId: string;
   clientId: string;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
 export function AutomationProgressModal({
   open,
   executionId,
   clientId,
-  onClose
+  onClose,
+  onComplete
 }: AutomationProgressModalProps) {
   const [updates, setUpdates] = useState<ProgressUpdate[]>([]);
   const [isComplete, setIsComplete] = useState(false);
@@ -79,11 +81,13 @@ export function AutomationProgressModal({
         filter: `execution_id=eq.${executionId}`
       }, payload => {
         const newUpdate = payload.new as ProgressUpdate;
+        console.log('📥 Realtime update received:', newUpdate);
         setUpdates(prev => [...prev, newUpdate]);
         lastUpdateTimeRef.current = Date.now();
         
         if (newUpdate.rule_name === 'Conclusão') {
           setIsComplete(true);
+          onComplete?.();
         }
       })
       .on('postgres_changes', {

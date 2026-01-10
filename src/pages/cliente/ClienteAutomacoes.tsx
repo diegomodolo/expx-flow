@@ -149,25 +149,30 @@ export default function ClienteAutomacoes() {
     setProgressModalOpen(true);
     setExecuting(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('execute-campaign-automations', {
+      // Usar a nova função que retorna imediatamente
+      const { data, error } = await supabase.functions.invoke('start-automation-execution', {
         body: {
           client_id: clientId,
           execution_id: newExecutionId
         }
       });
+      
       if (error) throw error;
-      await fetchLogs();
+      
+      if (!data?.success) {
+        throw new Error(data?.message || 'Erro ao iniciar execução');
+      }
+      
+      // A execução continua em background - o modal acompanha via realtime
       toast({
-        title: "Automações concluídas",
-        description: `${data?.totalActioned || 0} ações executadas com sucesso.`
+        title: "Execução iniciada",
+        description: "Acompanhe o progresso no modal."
       });
     } catch (error: any) {
-      console.error('Error executing automations:', error);
+      console.error('Error starting automations:', error);
+      setProgressModalOpen(false);
       toast({
-        title: "Erro ao executar automações",
+        title: "Erro ao iniciar automações",
         description: error.message,
         variant: "destructive"
       });
@@ -613,6 +618,12 @@ export default function ClienteAutomacoes() {
       </AlertDialog>
 
       {/* Automation Progress Modal */}
-      <AutomationProgressModal open={progressModalOpen} executionId={executionId} clientId={clientId || ''} onClose={() => setProgressModalOpen(false)} />
+      <AutomationProgressModal 
+        open={progressModalOpen} 
+        executionId={executionId} 
+        clientId={clientId || ''} 
+        onClose={() => setProgressModalOpen(false)} 
+        onComplete={() => fetchLogs()}
+      />
     </div>;
 }
