@@ -321,13 +321,20 @@ export const useAutomationRules = (clientId?: string | null) => {
     await fetchRules();
   };
 
-  const updateRuleConditions = async (ruleId: string, newConditions: any) => {
+  const updateRuleConditions = async (ruleId: string, newConditions: any, timeWindowDays?: number) => {
+    const updateData: any = { 
+      conditions: newConditions,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Incluir time_window_days se fornecido
+    if (timeWindowDays !== undefined && timeWindowDays >= 1 && timeWindowDays <= 90) {
+      updateData.time_window_days = timeWindowDays;
+    }
+
     const { error } = await supabase
       .from("campaign_automation_rules")
-      .update({ 
-        conditions: newConditions,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq("id", ruleId);
 
     if (error) {
@@ -340,8 +347,10 @@ export const useAutomationRules = (clientId?: string | null) => {
     }
 
     toast({
-      title: "Condições atualizadas",
-      description: "Os valores foram atualizados com sucesso.",
+      title: "Regra atualizada",
+      description: timeWindowDays 
+        ? `Condições e janela de tempo (${timeWindowDays} dias) atualizados.`
+        : "Os valores foram atualizados com sucesso.",
     });
 
     await fetchRules();

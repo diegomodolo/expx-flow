@@ -571,8 +571,8 @@ Deno.serve(async (req) => {
                   }
                 }
                 
-                // Delay após buscar métricas
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Delay otimizado após buscar métricas
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
                 totalProcessed++;
 
@@ -600,13 +600,13 @@ Deno.serve(async (req) => {
                 else if (result === 'error') totalErrors++;
               }
 
-              // Delay entre ads
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              // Delay menor entre ads (otimizado)
+              await new Promise(resolve => setTimeout(resolve, 500));
             }
           }
 
-          // Delay entre ad sets
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Delay menor entre ad sets (otimizado)
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       } else if (rulesByType.adset.length > 0 || rulesByType.ad.length > 0) {
         console.log(`  ⏭️  Nenhuma regra de ad set ou ad se aplica ao objetivo ${campaign.objective} - pulando busca`);
@@ -623,8 +623,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Delay maior entre campanhas
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Delay menor entre campanhas (otimizado)
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log('\n✨ Automation execution completed:', { 
