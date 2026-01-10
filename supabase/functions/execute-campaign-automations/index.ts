@@ -461,6 +461,85 @@ async function logProgress(
   });
 }
 
+// ============ COOLDOWN SYSTEM ============
+
+// Verificar se a entidade está em período de cooldown
+async function isEntityInCooldown(
+  supabase: any,
+  ruleId: string,
+  facebookId: string,
+  cooldownDays: number
+): Promise<{ inCooldown: boolean; lastAction?: Date; daysSinceAction?: number }> {
+  // Calcular data limite baseada no cooldown
+  const cooldownDate = new Date();
+  cooldownDate.setDate(cooldownDate.getDate() - cooldownDays);
+  
+  // Buscar se há ação recente dessa regra nesta entidade
+  const { data: recentActions } = await supabase
+    .from('campaign_automation_logs')
+    .select('executed_at, metadata')
+    .eq('rule_id', ruleId)
+    .eq('action_result', 'success')
+    .gte('executed_at', cooldownDate.toISOString())
+    .order('executed_at', { ascending: false });
+  
+  // Verificar se alguma ação recente corresponde ao facebook_id
+  if (recentActions && recentActions.length > 0) {
+    for (const action of recentActions) {
+      const metadata = action.metadata || {};
+      if (metadata.facebook_id === facebookId) {
+        const lastActionDate = new Date(action.executed_at);
+        const daysSinceAction = Math.floor((Date.now() - lastActionDate.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          inCooldown: true,
+          lastAction: lastActionDate,
+          daysSinceAction
+        };
+      }
+    }
+  }
+  
+  return { inCooldown: false };
+}
+
+// Salvar log de ação na tabela oficial
+async function saveActionLog(
+  supabase: any,
+  rule: AutomationRule,
+  companyId: string,
+  clientId: string,
+  entityType: string,
+  facebookId: string,
+  entityName: string,
+  metrics: MetricsData | undefined,
+  parentCampaignName?: string,
+  parentAdsetName?: string,
+  campaignId?: string,
+  adsetId?: string,
+  adId?: string
+): Promise<void> {
+  await supabase.from('campaign_automation_logs').insert({
+    rule_id: rule.id,
+    company_id: companyId,
+    client_id: clientId,
+    entity_type: entityType,
+    action_type: rule.action_type,
+    action_result: 'success',
+    campaign_id: campaignId,
+    adset_id: adsetId,
+    ad_id: adId,
+    metadata: {
+      facebook_id: facebookId,
+      entity_name: entityName,
+      metrics: metrics,
+      parent_campaign: parentCampaignName,
+      parent_adset: parentAdsetName,
+      cooldown_days: rule.execution_limits?.entity_cooldown_days || rule.time_window_days || 7
+    },
+    executed_at: new Date().toISOString()
+  });
+}
+
 // Fetch com retry para rate limit - configuração mais agressiva
 async function fetchWithRetry(url: string, maxRetries = 8, initialDelay = 5000): Promise<any> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -930,6 +1009,40 @@ async function processEntity(
     const conditionsMet = evaluateConditions(rule.conditions, metrics);
 
     if (conditionsMet) {
+      // ============ VERIFICAR COOLDOWN ============
+      const cooldownDays = rule.execution_limits?.entity_cooldown_days || rule.time_window_days || 7;
+      
+      const cooldownStatus = await isEntityInCooldown(
+        supabase,
+        rule.id,
+        entity.id,
+        cooldownDays
+      );
+      
+      if (cooldownStatus.inCooldown) {
+        const diasRestantes = cooldownDays - (cooldownStatus.daysSinceAction || 0);
+        
+        await logProgress(supabase, executionId, companyId, clientId, {
+          entity_type: rule.entity_type,
+          entity_name: entity.name,
+          status: 'skipped',
+          rule_name: rule.rule_name,
+          facebook_id: entity.id,
+          message: `⏳ Cooldown: ação executada há ${cooldownStatus.daysSinceAction} dias (aguardando ${diasRestantes} dias)`,
+          metadata: {
+            parent_campaign: parentCampaign.name,
+            parent_adset: parentAdset?.name,
+            metrics: metrics,
+            last_action: cooldownStatus.lastAction?.toISOString(),
+            cooldown_days: cooldownDays,
+            days_remaining: diasRestantes
+          }
+        });
+        
+        console.log(`      ⏳ ${entity.name} - Em cooldown (${cooldownStatus.daysSinceAction}/${cooldownDays} dias)`);
+        return 'skipped';
+      }
+      
       console.log(`      ⚡ ${entity.name} - Condições atendidas, executando ${rule.action_type}`);
       
       const actionResult = await executeAction(
@@ -946,6 +1059,23 @@ async function processEntity(
       );
 
       if (actionResult.success) {
+        // ============ SALVAR LOG OFICIAL DA AÇÃO ============
+        await saveActionLog(
+          supabase,
+          rule,
+          companyId,
+          clientId,
+          rule.entity_type,
+          entity.id,
+          entity.name,
+          metrics,
+          parentCampaign.name,
+          parentAdset?.name,
+          rule.entity_type === 'campaign' ? entity.id : undefined,
+          rule.entity_type === 'adset' ? entity.id : undefined,
+          rule.entity_type === 'ad' ? entity.id : undefined
+        );
+        
         await logProgress(supabase, executionId, companyId, clientId, {
           entity_type: rule.entity_type,
           entity_name: entity.name,
