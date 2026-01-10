@@ -110,8 +110,22 @@ Deno.serve(async (req) => {
           }
         );
 
-        const result = await response.json();
-        console.log('✅ Background execution completed:', result);
+        // Tratar resposta de forma segura - pode estar vazia se conexão foi fechada
+        let result = null;
+        try {
+          const text = await response.text();
+          if (text && text.trim()) {
+            result = JSON.parse(text);
+          }
+        } catch (parseError) {
+          console.log('⚠️ Não foi possível parsear resposta (conexão pode ter sido fechada):', parseError);
+        }
+        
+        if (result) {
+          console.log('✅ Background execution completed:', result);
+        } else {
+          console.log('✅ Background execution completed (sem resposta - execução pode ter terminado normalmente)');
+        }
       } catch (error: any) {
         console.error('❌ Background execution error:', error);
         
