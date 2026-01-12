@@ -1,5 +1,5 @@
-import React from 'react';
-import { Target, DollarSign, TrendingUp, Users, Star, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Target, DollarSign, TrendingUp, Users, Star, Crown, Trophy, MousePointer } from 'lucide-react';
 
 interface PerformanceMetrics {
   totalLeads: number;
@@ -23,11 +23,18 @@ interface FeaturedClient {
   totalAds: number;
   totalConversions?: number;
   totalCampaigns?: number;
+  // Campos para destaque rotativo
+  highlightMetric?: string;
+  highlightLabel?: string;
+  highlightValue?: string;
+  highlightIcon?: string;
 }
 
 interface SocialTVPerformanceHighlightProps {
   performanceMetrics: PerformanceMetrics;
   featuredClient: FeaturedClient | null;
+  featuredClients?: FeaturedClient[];
+  rotationInterval?: number;
 }
 
 function formatCurrency(value: number): string {
@@ -83,10 +90,71 @@ function getStatusLabel(status: string): string {
   }
 }
 
+function getHighlightIcon(iconName?: string) {
+  switch (iconName) {
+    case 'trophy':
+      return <Trophy className="w-4 h-4 text-white" />;
+    case 'trending-up':
+      return <TrendingUp className="w-4 h-4 text-white" />;
+    case 'target':
+      return <Target className="w-4 h-4 text-white" />;
+    case 'dollar-sign':
+      return <DollarSign className="w-4 h-4 text-white" />;
+    case 'mouse-pointer':
+      return <MousePointer className="w-4 h-4 text-white" />;
+    default:
+      return <Crown className="w-4 h-4 text-white" />;
+  }
+}
+
+function getHighlightBgColor(metric?: string): string {
+  switch (metric) {
+    case 'conversions':
+      return 'bg-gradient-to-r from-yellow-500 to-amber-600';
+    case 'ctr':
+      return 'bg-gradient-to-r from-green-500 to-emerald-600';
+    case 'cpa':
+      return 'bg-gradient-to-r from-purple-500 to-violet-600';
+    case 'spend':
+      return 'bg-gradient-to-r from-blue-500 to-indigo-600';
+    case 'clicks':
+      return 'bg-gradient-to-r from-orange-500 to-red-500';
+    default:
+      return 'bg-yellow-500';
+  }
+}
+
 export function SocialTVPerformanceHighlight({ 
   performanceMetrics, 
-  featuredClient 
+  featuredClient,
+  featuredClients = [],
+  rotationInterval = 8000
 }: SocialTVPerformanceHighlightProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Usar featuredClients se disponível, senão usar featuredClient único
+  const clientsToRotate = featuredClients.length > 0 
+    ? featuredClients 
+    : (featuredClient ? [featuredClient] : []);
+
+  // Rotação automática
+  useEffect(() => {
+    if (clientsToRotate.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % clientsToRotate.length);
+        setIsTransitioning(false);
+      }, 300);
+    }, rotationInterval);
+    
+    return () => clearInterval(interval);
+  }, [clientsToRotate.length, rotationInterval]);
+
+  const currentClient = clientsToRotate[currentIndex] || null;
+
   const metrics = [
     {
       icon: Target,
@@ -141,78 +209,98 @@ export function SocialTVPerformanceHighlight({
         <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
           <Star className="w-5 h-5 text-yellow-500" />
           Cliente Destaque
+          {clientsToRotate.length > 1 && (
+            <span className="text-xs text-muted-foreground font-normal ml-2">
+              ({currentIndex + 1} de {clientsToRotate.length})
+            </span>
+          )}
         </h2>
         
-        {featuredClient ? (
-          <div className="relative overflow-hidden rounded-xl bg-card border border-border h-full min-h-[280px]">
+        {currentClient ? (
+          <div 
+            className={`relative overflow-hidden rounded-xl bg-card border border-border h-full min-h-[280px] transition-all duration-300 ${
+              isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+            }`}
+          >
             {/* Background gradient based on team color */}
             <div 
               className="absolute inset-0 opacity-10"
               style={{ 
-                background: featuredClient.teamColor 
-                  ? `linear-gradient(135deg, ${featuredClient.teamColor}40, transparent)`
+                background: currentClient.teamColor 
+                  ? `linear-gradient(135deg, ${currentClient.teamColor}40, transparent)`
                   : 'linear-gradient(135deg, hsl(var(--primary) / 0.4), transparent)'
               }}
             />
             
-            {/* Badge */}
-            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 rounded-full">
-              <Crown className="w-4 h-4 text-white" />
-              <span className="text-sm font-bold text-white">DESTAQUE</span>
+            {/* Badge Dinâmico - Motivo do Destaque */}
+            <div className={`absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg ${getHighlightBgColor(currentClient.highlightMetric)}`}>
+              {getHighlightIcon(currentClient.highlightIcon)}
+              <span className="text-sm font-bold text-white">
+                {currentClient.highlightLabel || 'DESTAQUE'}
+              </span>
             </div>
 
-            <div className="relative z-10 flex flex-col justify-between h-full p-8">
+            {/* Valor em Destaque */}
+            {currentClient.highlightValue && (
+              <div className={`absolute top-4 left-4 px-4 py-2 rounded-xl shadow-lg ${getHighlightBgColor(currentClient.highlightMetric)}`}>
+                <span className="text-2xl font-bold text-white">
+                  {currentClient.highlightValue}
+                </span>
+              </div>
+            )}
+
+            <div className="relative z-10 flex flex-col justify-between h-full p-8 pt-20">
               {/* Client Info - Larger and more prominent */}
               <div className="flex items-center gap-8 mb-8">
                 {/* Avatar - Bigger */}
                 <div 
                   className="w-32 h-32 rounded-2xl flex items-center justify-center text-5xl font-bold text-white shadow-xl flex-shrink-0"
                   style={{ 
-                    backgroundColor: featuredClient.teamColor || 'hsl(var(--primary))',
+                    backgroundColor: currentClient.teamColor || 'hsl(var(--primary))',
                     border: '4px solid hsl(var(--border))'
                   }}
                 >
-                  {featuredClient.avatar ? (
+                  {currentClient.avatar ? (
                     <img 
-                      src={featuredClient.avatar} 
-                      alt={featuredClient.name}
+                      src={currentClient.avatar} 
+                      alt={currentClient.name}
                       className="w-full h-full rounded-2xl object-cover"
                     />
                   ) : (
-                    featuredClient.name.charAt(0).toUpperCase()
+                    currentClient.name.charAt(0).toUpperCase()
                   )}
                 </div>
 
                 {/* Name and Gestor - More prominent */}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-4xl font-bold text-foreground truncate mb-3">
-                    {featuredClient.name}
+                    {currentClient.name}
                   </h3>
                   <div className="flex items-center gap-3 mt-3">
-                    {featuredClient.gestorAvatar ? (
+                    {currentClient.gestorAvatar ? (
                       <img 
-                        src={featuredClient.gestorAvatar} 
-                        alt={featuredClient.gestorName || 'Gestor'}
+                        src={currentClient.gestorAvatar} 
+                        alt={currentClient.gestorName || 'Gestor'}
                         className="w-8 h-8 rounded-full object-cover border-2 border-border"
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center border-2 border-border">
                         <span className="text-sm font-bold text-primary-foreground">
-                          {(featuredClient.gestorName || 'G').charAt(0)}
+                          {(currentClient.gestorName || 'G').charAt(0)}
                         </span>
                       </div>
                     )}
                     <span className="text-lg text-muted-foreground">
-                      Gestor: <span className="font-semibold text-foreground">{featuredClient.gestorName || 'Não atribuído'}</span>
+                      Gestor: <span className="font-semibold text-foreground">{currentClient.gestorName || 'Não atribuído'}</span>
                     </span>
                   </div>
-                  {featuredClient.teamName && (
+                  {currentClient.teamName && (
                     <div className="flex items-center gap-3 mt-3">
                       <div 
                         className="w-5 h-5 rounded-full"
-                        style={{ backgroundColor: featuredClient.teamColor || 'hsl(var(--primary))' }}
+                        style={{ backgroundColor: currentClient.teamColor || 'hsl(var(--primary))' }}
                       />
-                      <span className="text-lg text-muted-foreground">{featuredClient.teamName}</span>
+                      <span className="text-lg text-muted-foreground">{currentClient.teamName}</span>
                     </div>
                   )}
                 </div>
@@ -221,25 +309,41 @@ export function SocialTVPerformanceHighlight({
               {/* Mini Metrics */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-foreground">{formatNumber(featuredClient.totalConversions || 0)}</p>
+                  <p className="text-2xl font-bold text-foreground">{formatNumber(currentClient.totalConversions || 0)}</p>
                   <p className="text-xs text-muted-foreground uppercase mt-1">Conversões</p>
                 </div>
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-foreground">{featuredClient.avgCtr.toFixed(2)}%</p>
+                  <p className="text-2xl font-bold text-foreground">{currentClient.avgCtr.toFixed(2)}%</p>
                   <p className="text-xs text-muted-foreground uppercase mt-1">CTR</p>
                 </div>
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <p className="text-2xl font-bold text-foreground">{featuredClient.totalCampaigns || 0}</p>
+                  <p className="text-2xl font-bold text-foreground">{currentClient.totalCampaigns || 0}</p>
                   <p className="text-xs text-muted-foreground uppercase mt-1">Campanhas</p>
                 </div>
                 <div className="bg-muted rounded-xl p-5 text-center">
-                  <div className={`inline-block px-3 py-1 rounded-full ${getStatusColor(featuredClient.status)}`}>
-                    <p className="text-sm font-bold text-white">{getStatusLabel(featuredClient.status)}</p>
+                  <div className={`inline-block px-3 py-1 rounded-full ${getStatusColor(currentClient.status)}`}>
+                    <p className="text-sm font-bold text-white">{getStatusLabel(currentClient.status)}</p>
                   </div>
                   <p className="text-xs text-muted-foreground uppercase mt-1">Status</p>
                 </div>
               </div>
             </div>
+
+            {/* Indicadores de Rotação */}
+            {clientsToRotate.length > 1 && (
+              <div className="absolute bottom-4 right-4 flex gap-1.5">
+                {clientsToRotate.map((_, idx) => (
+                  <div 
+                    key={idx}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      idx === currentIndex 
+                        ? 'bg-primary scale-125' 
+                        : 'bg-muted-foreground/30'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-xl bg-card border border-border flex items-center justify-center py-16">

@@ -59,6 +59,153 @@ interface FeaturedClient {
   totalAds: number;
   totalConversions: number;
   totalCampaigns: number;
+  avgCpa: number;
+  totalClicks: number;
+  // Campos para destaque rotativo
+  highlightMetric?: string;
+  highlightLabel?: string;
+  highlightValue?: string;
+  highlightIcon?: string;
+}
+
+// Função auxiliar para buscar cliente por métrica
+async function getTopClientByMetric(
+  supabase: any,
+  companyId: string,
+  metric: 'conversions' | 'ctr' | 'cpa' | 'spend' | 'clicks',
+  order: 'asc' | 'desc'
+): Promise<any | null> {
+  // Buscar clientes ativos com campanhas
+  const { data: clients } = await supabase
+    .from('clients')
+    .select(`
+      id,
+      name,
+      avatar,
+      calculated_status,
+      gestor_id,
+      team_id,
+      gestor:employees!gestor_id(id, name, avatar, user_id),
+      team:teams!team_id(id, name, color)
+    `)
+    .eq('company_id', companyId)
+    .eq('is_canceled', false);
+
+  if (!clients || clients.length === 0) return null;
+
+  // Calcular métricas para cada cliente
+  const clientsWithMetrics = [];
+  
+  for (const client of clients) {
+    // Meta campaigns
+    const { data: metaCampaigns } = await supabase
+      .from('campaigns')
+      .select('conversions, ctr, spend, cpa, clicks')
+      .eq('company_id', companyId)
+      .eq('client_id', client.id);
+
+    // Google campaigns
+    const { data: googleCampaigns } = await supabase
+      .from('google_campaigns')
+      .select('conversions, ctr, spend, cost_per_conversion, clicks')
+      .eq('company_id', companyId)
+      .eq('client_id', client.id);
+
+    const metaConversions = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+    const googleConversions = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.conversions || 0), 0);
+    const totalConversions = metaConversions + googleConversions;
+
+    const metaSpend = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
+    const googleSpend = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.spend || 0), 0);
+    const totalSpend = metaSpend + googleSpend;
+
+    const metaClicks = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.clicks || 0), 0);
+    const googleClicks = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.clicks || 0), 0);
+    const totalClicks = metaClicks + googleClicks;
+
+    const metaCtrSum = (metaCampaigns || []).reduce((sum: number, c: any) => sum + (c.ctr || 0), 0);
+    const googleCtrSum = (googleCampaigns || []).reduce((sum: number, c: any) => sum + (c.ctr || 0), 0);
+    const ctrCount = (metaCampaigns || []).filter((c: any) => c.ctr > 0).length + 
+                     (googleCampaigns || []).filter((c: any) => c.ctr > 0).length;
+    const avgCtr = ctrCount > 0 ? (metaCtrSum + googleCtrSum) / ctrCount : 0;
+
+    const avgCpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
+
+    // Count ads and campaigns
+    const { count: adsCount } = await supabase
+      .from('ads')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('client_id', client.id)
+      .eq('is_active', true);
+
+    const { count: campaignsCount } = await supabase
+      .from('campaigns')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('client_id', client.id)
+      .eq('is_active', true);
+
+    clientsWithMetrics.push({
+      ...client,
+      totalConversions,
+      totalSpend,
+      totalClicks,
+      avgCtr,
+      avgCpa,
+      totalAds: adsCount || 0,
+      totalCampaigns: campaignsCount || 0
+    });
+  }
+
+  // Filtrar clientes sem dados relevantes para a métrica
+  let filteredClients = clientsWithMetrics;
+  if (metric === 'cpa') {
+    filteredClients = clientsWithMetrics.filter(c => c.totalConversions > 0 && c.avgCpa > 0);
+  } else if (metric === 'ctr') {
+    filteredClients = clientsWithMetrics.filter(c => c.avgCtr > 0);
+  } else if (metric === 'conversions') {
+    filteredClients = clientsWithMetrics.filter(c => c.totalConversions > 0);
+  } else if (metric === 'spend') {
+    filteredClients = clientsWithMetrics.filter(c => c.totalSpend > 0);
+  } else if (metric === 'clicks') {
+    filteredClients = clientsWithMetrics.filter(c => c.totalClicks > 0);
+  }
+
+  if (filteredClients.length === 0) return null;
+
+  // Ordenar
+  const metricMap: Record<string, string> = {
+    conversions: 'totalConversions',
+    ctr: 'avgCtr',
+    cpa: 'avgCpa',
+    spend: 'totalSpend',
+    clicks: 'totalClicks'
+  };
+  const sortKey = metricMap[metric];
+  
+  filteredClients.sort((a, b) => {
+    const aVal = a[sortKey] || 0;
+    const bVal = b[sortKey] || 0;
+    return order === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+
+  return filteredClients[0];
+}
+
+// Função para formatar valores
+function formatHighlightValue(metric: string, value: number): string {
+  if (metric === 'cpa' || metric === 'spend') {
+    if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `R$ ${(value / 1000).toFixed(1)}k`;
+    return `R$ ${value.toFixed(2)}`;
+  }
+  if (metric === 'ctr') {
+    return `${value.toFixed(2)}%`;
+  }
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return value.toString();
 }
 
 serve(async (req) => {
@@ -165,143 +312,103 @@ serve(async (req) => {
 
     console.log('Performance metrics:', performanceMetrics);
 
-    // ========== FEATURED CLIENT ==========
-    // Top client by total spend using RPC (avoids PostgREST aggregate restriction)
-    let featuredClient: FeaturedClient | null = null;
+    // ========== FEATURED CLIENTS (Rotação por Métrica) ==========
+    console.log('Fetching featured clients by different metrics...');
+    
+    const featuredClients: FeaturedClient[] = [];
+    
+    // Helper para converter cliente para FeaturedClient
+    const toFeaturedClient = async (client: any, highlightMetric: string, highlightLabel: string, highlightIcon: string): Promise<FeaturedClient | null> => {
+      if (!client) return null;
+      
+      const gestor = client.gestor as any;
+      const team = client.team as any;
 
-    const { data: topClientAgg, error: topClientAggError } = await supabase
-      .rpc('social_tv_featured_client_aggregates', { p_company_id: company.id });
-
-    if (topClientAggError) {
-      console.error('Error fetching featured client aggregates:', topClientAggError);
-    }
-
-    const topAggRow = (topClientAgg && topClientAgg[0]) as any;
-    const topClientId: string | undefined = topAggRow?.client_id ?? undefined;
-
-    if (topClientId) {
-      const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select(`
-          id,
-          name,
-          avatar,
-          calculated_status,
-          gestor_id,
-          team_id,
-          ad_account_id,
-          google_account_id,
-          gestor:employees!gestor_id(id, name, avatar, user_id),
-          team:teams!team_id(id, name, color)
-        `)
-        .eq('id', topClientId)
-        .eq('company_id', company.id)
-        .eq('is_canceled', false)
-        .maybeSingle();
-
-      if (clientError) {
-        console.error('Error fetching featured client details:', clientError);
+      // Fetch gestor profile
+      let gestorName = gestor?.name || null;
+      let gestorAvatar = gestor?.avatar || null;
+      
+      if (gestor?.user_id) {
+        const { data: gestorProfile } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('user_id', gestor.user_id)
+          .maybeSingle();
+        
+        if (gestorProfile?.full_name) gestorName = gestorProfile.full_name;
+        if (gestorProfile?.avatar_url) gestorAvatar = gestorProfile.avatar_url;
       }
 
-      if (client) {
-        // Count active ads for featured client
-        const { count: featuredAdsCount, error: featuredAdsError } = await supabase
-          .from('ads')
-          .select('id', { count: 'exact', head: true })
-          .eq('company_id', company.id)
-          .eq('client_id', client.id)
-          .eq('is_active', true);
+      const metricValueMap: Record<string, number> = {
+        conversions: client.totalConversions || 0,
+        ctr: client.avgCtr || 0,
+        cpa: client.avgCpa || 0,
+        spend: client.totalSpend || 0,
+        clicks: client.totalClicks || 0
+      };
 
-        if (featuredAdsError) {
-          console.error('Error counting featured client ads:', featuredAdsError);
-        }
+      return {
+        id: client.id,
+        name: client.name,
+        avatar: client.avatar,
+        gestorName,
+        gestorAvatar,
+        teamName: team?.name || null,
+        teamColor: team?.color || null,
+        status: client.calculated_status || 'ativo',
+        totalSpend: client.totalSpend || 0,
+        avgCtr: client.avgCtr || 0,
+        totalAds: client.totalAds || 0,
+        totalConversions: client.totalConversions || 0,
+        totalCampaigns: client.totalCampaigns || 0,
+        avgCpa: client.avgCpa || 0,
+        totalClicks: client.totalClicks || 0,
+        highlightMetric,
+        highlightLabel,
+        highlightValue: formatHighlightValue(highlightMetric, metricValueMap[highlightMetric]),
+        highlightIcon
+      };
+    };
 
-        // Count active campaigns for featured client
-        const { count: featuredCampaignsCount, error: featuredCampaignsError } = await supabase
-          .from('campaigns')
-          .select('id', { count: 'exact', head: true })
-          .eq('company_id', company.id)
-          .eq('client_id', client.id)
-          .eq('is_active', true);
-
-        if (featuredCampaignsError) {
-          console.error('Error counting featured client campaigns:', featuredCampaignsError);
-        }
-
-        // Get conversions and CTR for featured client - ALL CAMPAIGNS (same logic as clients page)
-        // Meta campaigns (from campaigns table)
-        const { data: metaCampaignsData } = await supabase
-          .from('campaigns')
-          .select('conversions, ctr, spend')
-          .eq('company_id', company.id)
-          .eq('client_id', client.id);
-
-        const metaConversions = (metaCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
-        const metaSpend = (metaCampaignsData || []).reduce((sum, c) => sum + (c.spend || 0), 0);
-        const metaCtrSum = (metaCampaignsData || []).reduce((sum, c) => sum + (c.ctr || 0), 0);
-        const metaCtrCount = (metaCampaignsData || []).filter(c => c.ctr && c.ctr > 0).length;
-
-        // Google campaigns (from google_campaigns table)
-        const { data: googleCampaignsData } = await supabase
-          .from('google_campaigns')
-          .select('conversions, ctr, spend')
-          .eq('company_id', company.id)
-          .eq('client_id', client.id);
-
-        const googleConversions = (googleCampaignsData || []).reduce((sum, c) => sum + (c.conversions || 0), 0);
-        const googleSpend = (googleCampaignsData || []).reduce((sum, c) => sum + (c.spend || 0), 0);
-        const googleCtrSum = (googleCampaignsData || []).reduce((sum, c) => sum + (c.ctr || 0), 0);
-        const googleCtrCount = (googleCampaignsData || []).filter(c => c.ctr && c.ctr > 0).length;
-
-        // Consolidated metrics = Meta + Google (same as clients page)
-        const featuredConversions = metaConversions + googleConversions;
-        const featuredSpend = metaSpend + googleSpend;
-        const totalCtrCount = metaCtrCount + googleCtrCount;
-        const featuredAvgCtr = totalCtrCount > 0 ? (metaCtrSum + googleCtrSum) / totalCtrCount : 0;
-        
-        console.log(`Featured client ${client.name}: Meta conversions=${metaConversions}, Google conversions=${googleConversions}, Total=${featuredConversions}, AvgCTR=${featuredAvgCtr}`);
-
-        const gestor = client.gestor as any;
-        const team = client.team as any;
-
-        // Fetch gestor profile to get updated name
-        let gestorName = gestor?.name || null;
-        let gestorAvatar = gestor?.avatar || null;
-        
-        if (gestor?.user_id) {
-          const { data: gestorProfile } = await supabase
-            .from('profiles')
-            .select('full_name, avatar_url')
-            .eq('user_id', gestor.user_id)
-            .maybeSingle();
-          
-          if (gestorProfile?.full_name) {
-            gestorName = gestorProfile.full_name;
-          }
-          if (gestorProfile?.avatar_url) {
-            gestorAvatar = gestorProfile.avatar_url;
-          }
-        }
-
-        featuredClient = {
-          id: client.id,
-          name: client.name,
-          avatar: client.avatar,
-          gestorName,
-          gestorAvatar,
-          teamName: team?.name || null,
-          teamColor: team?.color || null,
-          status: client.calculated_status || 'ativo',
-          totalSpend: featuredSpend,
-          avgCtr: featuredAvgCtr,
-          totalAds: featuredAdsCount ?? 0,
-          totalConversions: featuredConversions,
-          totalCampaigns: featuredCampaignsCount ?? 0,
-        };
-      }
+    // 1. Cliente com mais conversões
+    const topConversionsClient = await getTopClientByMetric(supabase, company.id, 'conversions', 'desc');
+    if (topConversionsClient) {
+      const featured = await toFeaturedClient(topConversionsClient, 'conversions', 'Mais Conversões', 'trophy');
+      if (featured) featuredClients.push(featured);
     }
 
-    console.log('Featured client:', featuredClient?.name || 'none');
+    // 2. Cliente com melhor CTR
+    const topCtrClient = await getTopClientByMetric(supabase, company.id, 'ctr', 'desc');
+    if (topCtrClient && topCtrClient.id !== topConversionsClient?.id) {
+      const featured = await toFeaturedClient(topCtrClient, 'ctr', 'Melhor CTR', 'trending-up');
+      if (featured) featuredClients.push(featured);
+    }
+
+    // 3. Cliente com menor CPA (eficiência)
+    const topCpaClient = await getTopClientByMetric(supabase, company.id, 'cpa', 'asc');
+    if (topCpaClient && !featuredClients.find(c => c.id === topCpaClient.id)) {
+      const featured = await toFeaturedClient(topCpaClient, 'cpa', 'Menor CPA', 'target');
+      if (featured) featuredClients.push(featured);
+    }
+
+    // 4. Cliente com maior investimento
+    const topSpendClient = await getTopClientByMetric(supabase, company.id, 'spend', 'desc');
+    if (topSpendClient && !featuredClients.find(c => c.id === topSpendClient.id)) {
+      const featured = await toFeaturedClient(topSpendClient, 'spend', 'Maior Investimento', 'dollar-sign');
+      if (featured) featuredClients.push(featured);
+    }
+
+    // 5. Cliente com mais cliques
+    const topClicksClient = await getTopClientByMetric(supabase, company.id, 'clicks', 'desc');
+    if (topClicksClient && !featuredClients.find(c => c.id === topClicksClient.id)) {
+      const featured = await toFeaturedClient(topClicksClient, 'clicks', 'Mais Cliques', 'mouse-pointer');
+      if (featured) featuredClients.push(featured);
+    }
+
+    console.log(`Found ${featuredClients.length} featured clients for rotation`);
+
+    // Para compatibilidade, manter featuredClient como o primeiro da lista
+    const featuredClient = featuredClients.length > 0 ? featuredClients[0] : null;
 
     // ========== GESTOR RANKING ==========
     const { data: clientsWithGestores } = await supabase
@@ -511,6 +618,7 @@ serve(async (req) => {
       lastSync: new Date().toISOString(),
       performanceMetrics,
       featuredClient,
+      featuredClients, // NOVO: Array para rotação
       gestorRanking,
       squadRanking,
       recentWins,
