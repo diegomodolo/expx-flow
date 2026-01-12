@@ -31,6 +31,13 @@ interface FeaturedClient {
   totalSpend: number;
   avgCtr: number;
   totalAds: number;
+  totalConversions?: number;
+  totalCampaigns?: number;
+  // Campos para destaque rotativo
+  highlightMetric?: string;
+  highlightLabel?: string;
+  highlightValue?: string;
+  highlightIcon?: string;
 }
 
 interface SocialTVDashboardData {
@@ -38,6 +45,7 @@ interface SocialTVDashboardData {
   lastSync: string;
   performanceMetrics: PerformanceMetrics;
   featuredClient: FeaturedClient | null;
+  featuredClients?: FeaturedClient[]; // Array para rotação
   gestorRanking: Array<{
     id: string;
     name: string;
@@ -214,6 +222,8 @@ export default function DashboardSocialTVPublic() {
             <SocialTVPerformanceHighlight 
               performanceMetrics={performanceMetrics}
               featuredClient={data.featuredClient}
+              featuredClients={data.featuredClients}
+              rotationInterval={8000}
             />
           </div>
 
