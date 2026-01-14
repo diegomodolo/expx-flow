@@ -254,10 +254,6 @@ export function InstagramMockup({
           </>
         )}
 
-        {/* Aspect ratio badge */}
-        <div className="absolute top-3 right-3 px-2 py-1 bg-black/50 rounded text-white text-xs font-medium">
-          {config.ratio}
-        </div>
       </div>
 
       {/* Instagram Actions */}
