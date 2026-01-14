@@ -45,6 +45,28 @@ interface BudgetAlert {
   sortPriority: number;
 }
 
+interface ClientBenchmark {
+  client_id: string;
+  platform: string;
+  target_cpa: number | null;
+  target_cpl: number | null;
+  target_ctr: number | null;
+  target_cpc: number | null;
+  target_cpm: number | null;
+  target_roas: number | null;
+  target_frequency: number | null;
+}
+
+const DEFAULT_BENCHMARKS = {
+  target_cpa: 50,
+  target_cpl: 100,
+  target_ctr: 1,
+  target_cpc: 5,
+  target_cpm: 50,
+  target_roas: 2,
+  target_frequency: 4,
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -86,7 +108,7 @@ serve(async (req) => {
 
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
-    // Fetch Meta campaigns, Google campaigns, clients and sync info in parallel
+    // Fetch Meta campaigns, Google campaigns, clients, benchmarks and sync info in parallel
     const [
       metaCampaignsResult,
       googleCampaignsResult,
@@ -96,6 +118,7 @@ serve(async (req) => {
       clientsWithBudgetResult,
       allClientsResult,
       syncInfoResult,
+      benchmarksResult,
     ] = await Promise.all([
       // Meta Campaigns with client info (ACTIVE ONLY - for KPIs/rankings)
       supabase
@@ -174,6 +197,13 @@ serve(async (req) => {
         .not('last_sync_at', 'is', null)
         .order('last_sync_at', { ascending: false })
         .limit(1),
+
+      // Get client metric benchmarks
+      supabase
+        .from('client_metric_benchmarks')
+        .select('*')
+        .eq('company_id', company.id)
+        .eq('is_active', true),
     ]);
 
     // Log critical query errors (we still try to return partial data when possible)
@@ -189,6 +219,39 @@ serve(async (req) => {
     const clientsWithBudget = clientsWithBudgetResult.data || [];
     const allClients = allClientsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
+    const benchmarks = benchmarksResult.data || [];
+
+    // Build client benchmarks map
+    const clientBenchmarks: Record<string, { meta?: ClientBenchmark; google?: ClientBenchmark }> = {};
+    benchmarks.forEach((b: ClientBenchmark) => {
+      if (!clientBenchmarks[b.client_id]) {
+        clientBenchmarks[b.client_id] = {};
+      }
+      if (b.platform === 'meta_ads') {
+        clientBenchmarks[b.client_id].meta = b;
+      } else if (b.platform === 'google_ads') {
+        clientBenchmarks[b.client_id].google = b;
+      }
+    });
+
+    // Helper function to get benchmark value with fallback to defaults
+    const getBenchmark = (
+      clientId: string,
+      platform: 'meta' | 'google',
+      metric: keyof typeof DEFAULT_BENCHMARKS
+    ): { value: number; isCustom: boolean } => {
+      const clientBenchmark = clientBenchmarks[clientId];
+      const platformBenchmark = platform === 'meta' ? clientBenchmark?.meta : clientBenchmark?.google;
+      
+      if (platformBenchmark) {
+        const customValue = platformBenchmark[metric as keyof ClientBenchmark] as number | null;
+        if (customValue !== null && customValue > 0) {
+          return { value: customValue, isCustom: true };
+        }
+      }
+      
+      return { value: DEFAULT_BENCHMARKS[metric], isCustom: false };
+    };
 
     // Unify campaigns from both platforms
     const campaigns: UnifiedCampaign[] = [
@@ -366,13 +429,21 @@ serve(async (req) => {
       const clientName = (campaign.clients as any)?.name || clientNameMap[campaign.client_id] || 'Cliente';
       const platformLabel = campaign.platform === 'meta' ? 'Meta' : 'Google';
       
-      if (campaign.cpa && campaign.cpa > 50) {
+      // Get benchmarks for this client and platform
+      const cpaBenchmark = getBenchmark(campaign.client_id, campaign.platform, 'target_cpa');
+      const ctrBenchmark = getBenchmark(campaign.client_id, campaign.platform, 'target_ctr');
+      
+      // CPA Alert - using client benchmark or default
+      if (campaign.cpa && campaign.cpa > cpaBenchmark.value) {
+        const benchmarkLabel = cpaBenchmark.isCustom ? 'meta do cliente' : 'padrão';
+        const severity = campaign.cpa > cpaBenchmark.value * 1.5 ? 'critical' : 'warning';
+        
         alerts.push({
           id: `cpa-${campaign.id}`,
           type: 'high_cpa',
-          severity: 'critical',
+          severity,
           title: 'CPA Alto',
-          description: `CPA de R$ ${campaign.cpa.toFixed(2)} está acima do limite`,
+          description: `CPA de R$ ${campaign.cpa.toFixed(2)} acima do ${benchmarkLabel} (R$ ${cpaBenchmark.value})`,
           campaignId: campaign.id,
           clientName: clientName,
           clientAvatar: clientAvatarMap[campaign.client_id] || null,
@@ -381,13 +452,18 @@ serve(async (req) => {
           platform: platformLabel
         });
       }
-      if (campaign.ctr && campaign.ctr < 1) {
+      
+      // CTR Alert - using client benchmark or default
+      if (campaign.ctr !== undefined && campaign.ctr !== null && campaign.ctr < ctrBenchmark.value) {
+        const benchmarkLabel = ctrBenchmark.isCustom ? 'meta do cliente' : 'padrão';
+        const severity = campaign.ctr < ctrBenchmark.value * 0.5 ? 'critical' : 'warning';
+        
         alerts.push({
           id: `ctr-${campaign.id}`,
           type: 'low_ctr',
-          severity: 'warning',
+          severity,
           title: 'CTR Baixo',
-          description: `CTR de ${campaign.ctr.toFixed(2)}% está abaixo do ideal`,
+          description: `CTR de ${campaign.ctr.toFixed(2)}% abaixo do ${benchmarkLabel} (${ctrBenchmark.value}%)`,
           campaignId: campaign.id,
           clientName: clientName,
           clientAvatar: clientAvatarMap[campaign.client_id] || null,
@@ -521,9 +597,13 @@ serve(async (req) => {
       .sort((a: any, b: any) => b.conversions - a.conversions)
       .slice(0, 6);
 
-    // Calculate worst performing campaigns (from both platforms)
+    // Calculate worst performing campaigns (from both platforms) - using benchmarks
     const worstCampaigns = campaigns
-      .filter(c => c.conversions && c.conversions > 0 && c.cpa && c.cpa > 50)
+      .filter(c => {
+        if (!c.conversions || c.conversions <= 0 || !c.cpa) return false;
+        const cpaBenchmark = getBenchmark(c.client_id, c.platform, 'target_cpa');
+        return c.cpa > cpaBenchmark.value;
+      })
       .sort((a, b) => (b.cpa || 0) - (a.cpa || 0))
       .slice(0, 6)
       .map(c => ({
