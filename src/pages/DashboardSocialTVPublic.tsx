@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabasePublic } from '@/integrations/supabase/publicClient';
 import { Loader2, AlertTriangle, Tv } from 'lucide-react';
 import { SocialTVHeader } from '@/components/social-tv-dashboard/SocialTVHeader';
 import { SocialTVPerformanceHighlight } from '@/components/social-tv-dashboard/SocialTVPerformanceHighlight';
@@ -107,7 +107,7 @@ export default function DashboardSocialTVPublic() {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['social-tv-dashboard', token],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<SocialTVDashboardData>(
+      const { data, error } = await supabasePublic.functions.invoke<SocialTVDashboardData>(
         'social-tv-dashboard-data',
         { body: { token } }
       );
