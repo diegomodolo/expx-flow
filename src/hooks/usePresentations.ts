@@ -22,6 +22,11 @@ export interface ContentPresentation {
     name: string;
     company: string;
     avatar: string | null;
+    team_id?: string | null;
+    teams?: {
+      id: string;
+      name: string;
+    } | null;
   };
 }
 
@@ -72,7 +77,12 @@ export function usePresentations(clientId?: string) {
           clients (
             name,
             company,
-            avatar
+            avatar,
+            team_id,
+            teams (
+              id,
+              name
+            )
           )
         `)
         .eq('company_id', activeCompany.company_id)
