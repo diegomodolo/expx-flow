@@ -57,14 +57,15 @@ interface ClientBenchmark {
   target_frequency: number | null;
 }
 
-const DEFAULT_BENCHMARKS = {
-  target_cpa: 50,
-  target_cpl: 100,
+// System fallback defaults (used when company has no configuration)
+const SYSTEM_FALLBACK_BENCHMARKS = {
+  target_cpa: 100,
+  target_cpl: 50,
   target_ctr: 1,
-  target_cpc: 5,
-  target_cpm: 50,
-  target_roas: 2,
-  target_frequency: 4,
+  target_cpc: 3,
+  target_cpm: 30,
+  target_roas: 3,
+  target_frequency: 3,
 };
 
 serve(async (req) => {
@@ -108,7 +109,7 @@ serve(async (req) => {
 
     console.log(`[tv-dashboard-data] Company found: ${company.name}`);
 
-    // Fetch Meta campaigns, Google campaigns, clients, benchmarks and sync info in parallel
+    // Fetch Meta campaigns, Google campaigns, clients, benchmarks, company settings and sync info in parallel
     const [
       metaCampaignsResult,
       googleCampaignsResult,
@@ -119,6 +120,7 @@ serve(async (req) => {
       allClientsResult,
       syncInfoResult,
       benchmarksResult,
+      companySettingsResult,
     ] = await Promise.all([
       // Meta Campaigns with client info (ACTIVE ONLY - for KPIs/rankings)
       supabase
@@ -204,6 +206,13 @@ serve(async (req) => {
         .select('*')
         .eq('company_id', company.id)
         .eq('is_active', true),
+
+      // Get company settings for default benchmarks
+      supabase
+        .from('company_settings')
+        .select('default_target_cpa, default_target_cpl, default_target_ctr, default_target_cpc, default_target_cpm, default_target_roas, default_target_frequency')
+        .eq('company_id', company.id)
+        .maybeSingle(),
     ]);
 
     // Log critical query errors (we still try to return partial data when possible)
@@ -220,6 +229,20 @@ serve(async (req) => {
     const allClients = allClientsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
     const benchmarks = benchmarksResult.data || [];
+    const companySettings = companySettingsResult.data;
+
+    // Build company default benchmarks (from settings or fallback to system defaults)
+    const DEFAULT_BENCHMARKS = {
+      target_cpa: companySettings?.default_target_cpa ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpa,
+      target_cpl: companySettings?.default_target_cpl ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpl,
+      target_ctr: companySettings?.default_target_ctr ?? SYSTEM_FALLBACK_BENCHMARKS.target_ctr,
+      target_cpc: companySettings?.default_target_cpc ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpc,
+      target_cpm: companySettings?.default_target_cpm ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpm,
+      target_roas: companySettings?.default_target_roas ?? SYSTEM_FALLBACK_BENCHMARKS.target_roas,
+      target_frequency: companySettings?.default_target_frequency ?? SYSTEM_FALLBACK_BENCHMARKS.target_frequency,
+    };
+
+    console.log(`[tv-dashboard-data] Using default benchmarks: CPA=${DEFAULT_BENCHMARKS.target_cpa}, CTR=${DEFAULT_BENCHMARKS.target_ctr}`);
 
     // Build client benchmarks map
     const clientBenchmarks: Record<string, { meta?: ClientBenchmark; google?: ClientBenchmark }> = {};
