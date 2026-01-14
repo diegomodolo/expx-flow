@@ -164,6 +164,7 @@ function SlideCard({
   const [showExtraPromptDialog, setShowExtraPromptDialog] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState("");
+  const [useCurrentImageAsReference, setUseCurrentImageAsReference] = useState(false);
   const headlineTimeoutRef = useRef<NodeJS.Timeout>();
   const contentTimeoutRef = useRef<NodeJS.Timeout>();
   const { activeCompany } = useCompany();
@@ -229,16 +230,23 @@ function SlideCard({
       // Texto que DEVE aparecer na imagem (headline + content do slide)
       const approvedText = [localHeadline, localContent].filter(Boolean).join('\n');
       
-      // Buscar slides anteriores com imagem para usar como referência visual
-      const previousSlidesWithImages = allSlides
-        .slice(0, slideIndex)
-        .filter(s => s.image_url)
-        .map(s => s.image_url as string);
+      // Se usar imagem atual como referência, priorizar ela
+      let referenceImages: string[] = [];
       
-      // Usar a última imagem gerada como referência principal para consistência
-      const referenceImages = previousSlidesWithImages.length > 0 
-        ? [previousSlidesWithImages[previousSlidesWithImages.length - 1]]
-        : [];
+      if (useCurrentImageAsReference && slide.image_url) {
+        // Usar a imagem atual do slide como referência principal
+        referenceImages = [slide.image_url];
+      } else {
+        // Comportamento original: usar slides anteriores para consistência
+        const previousSlidesWithImages = allSlides
+          .slice(0, slideIndex)
+          .filter(s => s.image_url)
+          .map(s => s.image_url as string);
+        
+        referenceImages = previousSlidesWithImages.length > 0 
+          ? [previousSlidesWithImages[previousSlidesWithImages.length - 1]]
+          : [];
+      }
       
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
@@ -256,7 +264,8 @@ function SlideCard({
               slideIndex: slideIndex + 1,
               totalSlides: allSlides.length,
               postObjective: postObjective,
-              isSlideReference: referenceImages.length > 0,
+              isSlideReference: referenceImages.length > 0 && !useCurrentImageAsReference,
+              isEditingExisting: useCurrentImageAsReference,
             },
           },
         },
@@ -269,6 +278,7 @@ function SlideCard({
         onRefetch();
         toast.success('Imagem do slide gerada com sucesso!');
         setExtraPrompt("");
+        setUseCurrentImageAsReference(false);
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
@@ -420,9 +430,33 @@ function SlideCard({
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {/* Opção de usar imagem atual como referência */}
+            {slide.image_url && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                <Switch 
+                  checked={useCurrentImageAsReference}
+                  onCheckedChange={setUseCurrentImageAsReference}
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Usar imagem atual como referência</p>
+                  <p className="text-xs text-muted-foreground">
+                    A IA vai editar esta imagem baseada nas suas instruções
+                  </p>
+                </div>
+                {useCurrentImageAsReference && (
+                  <div className="w-12 h-12 rounded border overflow-hidden flex-shrink-0">
+                    <img src={slide.image_url} alt="Referência" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            )}
+            
             <Textarea
-              placeholder="Ex: Use cores mais vibrantes, estilo minimalista..."
+              placeholder={useCurrentImageAsReference 
+                ? "Ex: Mude a cor do fundo para azul, ajuste o contraste..." 
+                : "Ex: Use cores mais vibrantes, estilo minimalista..."
+              }
               value={extraPrompt}
               onChange={(e) => setExtraPrompt(e.target.value)}
               className="min-h-[80px]"
@@ -431,7 +465,10 @@ function SlideCard({
           </div>
           
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setExtraPrompt("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setExtraPrompt("");
+              setUseCurrentImageAsReference(false);
+            }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleGenerateSlideImage}
               disabled={generatingImage}
