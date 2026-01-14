@@ -253,7 +253,30 @@ Deno.serve(async (req) => {
     const generateSingleImage = async (slidePrompt: string, slideNumber?: number): Promise<string> => {
       const slideMessageContent: any[] = [...messageContent]; // Copia referências
 
-      const fullPrompt = `Generate a professional marketing creative image with the following specifications:
+    // Verifica se é modo de edição de imagem existente
+    const isEditingExisting = context?.contextOnly?.isEditingExisting === true;
+
+    const fullPrompt = isEditingExisting 
+      ? `EDIT the provided reference image with the following modifications:
+
+${extraPrompt ? `REQUESTED CHANGES:
+${extraPrompt}
+
+Apply ONLY these specific changes to the image. Keep everything else EXACTLY as it is in the original image.` : 'Keep the image style but regenerate with slight improvements.'}
+
+CRITICAL RULES FOR EDITING:
+- This is an EDIT operation, not a new generation
+- Preserve the original composition, layout, and style
+- Only modify what was explicitly requested
+- The output should look like a refined version of the input
+- Maintain the same aspect ratio: ${aspectRatio}
+${targetSize ? `- Output size: ${targetSize.width}x${targetSize.height} pixels` : ''}
+- Keep the same visual language, colors, and design approach unless specifically asked to change them
+- If text changes are requested, spell the new text EXACTLY as provided
+
+Generate the edited image now.`
+      
+      : `Generate a professional marketing creative image with the following specifications:
 
 IMAGE FORMAT:
 - Aspect ratio: ${aspectRatio}

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -492,6 +493,7 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [allSlidesProgress, setAllSlidesProgress] = useState({ current: 0, total: 0 });
   const [showAllSlidesPromptDialog, setShowAllSlidesPromptDialog] = useState(false);
   const [allSlidesExtraPrompt, setAllSlidesExtraPrompt] = useState("");
+  const [useCurrentImageAsReference, setUseCurrentImageAsReference] = useState(false);
   
   const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
@@ -714,6 +716,11 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       // Texto que DEVE aparecer na imagem (apenas headline + subheadline)
       const approvedText = [post.headline, post.subheadline].filter(Boolean).join('\n');
       
+      // Se usar imagem atual como referência, enviar a URL
+      const references = useCurrentImageAsReference && post.image_url 
+        ? [post.image_url] 
+        : [];
+      
       const { data, error } = await supabase.functions.invoke('generate-visual-creative', {
         body: {
           clientId: clientId,
@@ -722,6 +729,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
           theme: post.headline || post.objective || 'Post Estático',
           approvedText: approvedText || undefined,
           extraPrompt: extraPrompt.trim() || undefined,
+          references: references.length > 0 ? references : undefined,
           context: {
             title: post.headline,
             description: post.subheadline,
@@ -729,6 +737,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
             contextOnly: {
               objective: post.objective,
               caption: post.caption,
+              isEditingExisting: useCurrentImageAsReference, // Flag para modo de edição
             },
           },
         },
@@ -739,8 +748,9 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       if (data?.imageUrl) {
         await onUpdate({ image_url: data.imageUrl });
         onRefetch();
-        toast.success('Criativo gerado com sucesso!');
+        toast.success(useCurrentImageAsReference ? 'Imagem editada com sucesso!' : 'Criativo gerado com sucesso!');
         setExtraPrompt(""); // Limpar instruções após sucesso
+        setUseCurrentImageAsReference(false); // Resetar estado
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
@@ -1396,21 +1406,53 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
       </AlertDialog>
 
       {/* Extra Prompt Dialog for Generate New */}
-      <AlertDialog open={showExtraPromptDialog} onOpenChange={setShowExtraPromptDialog}>
+      <AlertDialog open={showExtraPromptDialog} onOpenChange={(open) => {
+        setShowExtraPromptDialog(open);
+        if (!open) {
+          setExtraPrompt("");
+          setUseCurrentImageAsReference(false);
+        }
+      }}>
         <AlertDialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Wand2 className="w-5 h-5 text-primary" />
-              Gerar Nova Imagem
+              {useCurrentImageAsReference ? 'Editar Imagem com IA' : 'Gerar Nova Imagem'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Adicione instruções extras para a IA ou deixe em branco para gerar com as configurações padrão.
+              {useCurrentImageAsReference 
+                ? 'Descreva as alterações que deseja fazer na imagem atual.'
+                : 'Adicione instruções extras para a IA ou deixe em branco para gerar com as configurações padrão.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {/* Opção de usar imagem atual como referência */}
+            {post.image_url && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                <Switch 
+                  checked={useCurrentImageAsReference}
+                  onCheckedChange={setUseCurrentImageAsReference}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Usar imagem atual como referência</p>
+                  <p className="text-xs text-muted-foreground">
+                    A IA vai editar a imagem existente baseada nas suas instruções
+                  </p>
+                </div>
+                {useCurrentImageAsReference && (
+                  <div className="w-12 h-12 rounded border overflow-hidden flex-shrink-0">
+                    <img src={post.image_url} alt="Referência" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            )}
+            
             <Textarea
-              placeholder="Ex: Use cores mais vibrantes, adicione elementos de tecnologia, estilo minimalista..."
+              placeholder={useCurrentImageAsReference 
+                ? "Ex: Mude a cor do botão de azul para vermelho, adicione mais contraste, remova o texto..." 
+                : "Ex: Use cores mais vibrantes, adicione elementos de tecnologia, estilo minimalista..."
+              }
               value={extraPrompt}
               onChange={(e) => setExtraPrompt(e.target.value)}
               className="min-h-[100px]"
@@ -1419,7 +1461,10 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
           </div>
           
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setExtraPrompt("")}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setExtraPrompt("");
+              setUseCurrentImageAsReference(false);
+            }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleGenerateCreative}
               disabled={generatingCreative}
@@ -1430,7 +1475,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              Gerar Imagem
+              {useCurrentImageAsReference ? 'Editar Imagem' : 'Gerar Imagem'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
