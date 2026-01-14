@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
@@ -17,26 +18,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  // Public pages should not attempt to recover/refresh auth sessions.
+  const isPublicRoute =
+    /^\/(dashboard-publico|tv|social-tv|radar-tv|apresentacao|resultados|crm|report-lead-desqualificado)(\/|$)/.test(
+      location.pathname
+    );
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+    let isMounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const run = async () => {
+      setLoading(true);
+
+      if (isPublicRoute) {
+        try {
+          await supabase.auth.stopAutoRefresh();
+        } catch {
+          // ignore
+        }
+
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        await supabase.auth.startAutoRefresh();
+      } catch {
+        // ignore
+      }
+
+      // Set up auth state listener FIRST
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-      }
-    );
+      });
+      subscription = data.subscription;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      // THEN check for existing session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      setSession(sessionData.session);
+      setUser(sessionData.session?.user ?? null);
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    run();
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [isPublicRoute]);
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { data, error } = await supabase.auth.signUp({

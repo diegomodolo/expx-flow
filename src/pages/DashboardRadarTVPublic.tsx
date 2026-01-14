@@ -10,7 +10,7 @@ import { RadarTVOpportunitiesList } from "@/components/radar-tv-dashboard/RadarT
 import { RadarTVRiskDistribution } from "@/components/radar-tv-dashboard/RadarTVRiskDistribution";
 import { RadarTVControls } from "@/components/radar-tv-dashboard/RadarTVControls";
 import { RadarTVRestrictedAccounts } from "@/components/radar-tv-dashboard/RadarTVRestrictedAccounts";
-import { supabase } from "@/integrations/supabase/client";
+import { supabasePublic } from "@/integrations/supabase/publicClient";
 
 interface RadarTVDashboardData {
   companyName: string;
@@ -90,7 +90,7 @@ export default function DashboardRadarTVPublic() {
   const { data, isLoading, error, refetch, isFetching } = useQuery<RadarTVDashboardData>({
     queryKey: ['radar-tv-dashboard', token],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('radar-tv-dashboard-data', {
+      const { data, error } = await supabasePublic.functions.invoke('radar-tv-dashboard-data', {
         body: { token: token! },
       });
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabasePublic } from "@/integrations/supabase/publicClient";
 
 export interface DashboardMetrics {
   spend: number;
@@ -161,7 +161,7 @@ export const useClientDashboard = (
   return useQuery({
     queryKey: ['client-dashboard', token, startDate, endDate, preset],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await supabasePublic.functions.invoke(
         'client-dashboard-data',
         { 
           body: { 
