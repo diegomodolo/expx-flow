@@ -1246,6 +1246,7 @@ Deno.serve(async (req) => {
     const totalMessages = facebookResult?.totalMessages || 0;
     const totalImpressions = (facebookResult?.totalImpressions || 0) + (googleResult?.totalImpressions || 0);
     const totalClicks = (facebookResult?.totalClicks || 0) + (googleResult?.totalClicks || 0);
+    const totalReach = facebookResult?.totalReach || 0;
 
     console.log(`Combined totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, messages=${totalMessages}`);
 
