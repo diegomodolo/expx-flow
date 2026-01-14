@@ -646,7 +646,7 @@ async function fetchGoogleAdsData(
     // 2. Get Google Ads integration with token
     const { data: integration, error: integrationError } = await supabase
       .from('google_ads_integrations')
-      .select('id, access_token, refresh_token, expires_at, is_active, parent_customer_id')
+      .select('id, access_token, refresh_token, expires_at, is_active')
       .eq('id', googleAccount.integration_id)
       .single();
 
@@ -672,7 +672,7 @@ async function fetchGoogleAdsData(
     }
 
     const customerId = googleAccount.google_customer_id.replace(/-/g, '');
-    const loginCustomerId = integration.parent_customer_id?.replace(/-/g, '') || customerId;
+    const loginCustomerId = googleAccount.parent_customer_id?.replace(/-/g, '') || customerId;
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${accessToken}`,
@@ -680,7 +680,7 @@ async function fetchGoogleAdsData(
       'Content-Type': 'application/json',
     };
 
-    // Only add login-customer-id if different from customer_id
+    // Only add login-customer-id if different from customerId
     if (loginCustomerId !== customerId) {
       headers['login-customer-id'] = loginCustomerId;
     }
@@ -1177,20 +1177,10 @@ Deno.serve(async (req) => {
       hasGoogleData: !!googleResult 
     });
 
-    // If no data from any platform
+    // If no data from any platform, keep going and return a "social-only" dashboard
+    // (this avoids the public dashboard showing "Token inválido" when the real issue is ad-platform connectivity)
     if (!facebookResult && !googleResult) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not fetch data from any ad platform',
-          client: {
-            name: client.name,
-            company: client.company,
-            avatar_url: client.avatar,
-          },
-          social_metrics: socialMetrics,
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.warn('No data returned from any ad platform; returning social-only dashboard response');
     }
 
     // Combine campaigns from both platforms
