@@ -841,10 +841,10 @@ Deno.serve(async (req) => {
       .map(([date, data]) => ({ date, ...data }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    timeline.forEach((point: any) => {
-      totalConversions += parseFloat(point.leads || 0);
-      totalMessages += parseFloat(point.messages || 0);
-    });
+    // Totais: usar o agregado por campanha (mesma fonte do Spend)
+    // Obs: o endpoint diário (timeline) pode subcontar ações dependendo da agregação do Meta.
+    totalConversions = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.conversions) || 0), 0);
+    totalMessages = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.messages) || 0), 0);
 
     const totalConversionsAll = totalConversions + totalMessages;
     const cpl = totalConversionsAll > 0 ? totalSpend / totalConversionsAll : 0;
@@ -923,7 +923,8 @@ Deno.serve(async (req) => {
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300'
+        // Evita cache durante uso do dashboard público (senão parece que “não atualiza”)
+        'Cache-Control': 'no-store'
       },
     });
   } catch (error) {
