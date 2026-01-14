@@ -10,9 +10,19 @@ import { cn } from "@/lib/utils";
 
 type PeriodPreset = "today" | "7days" | "14days" | "30days" | "quarter" | "custom";
 
+// Mapeia o preset do frontend para o preset do Meta API
+export const presetToMetaPreset: Record<PeriodPreset, string | null> = {
+  today: 'today',
+  '7days': 'last_7d',
+  '14days': 'last_14d',
+  '30days': 'last_30d',
+  quarter: 'last_90d',
+  custom: null,
+};
+
 interface PeriodSelectorProps {
   dateRange: { from: Date; to: Date };
-  onDateRangeChange: (range: { from: Date; to: Date }) => void;
+  onDateRangeChange: (range: { from: Date; to: Date }, metaPreset?: string | null) => void;
 }
 
 export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorProps) => {
@@ -55,13 +65,16 @@ export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorP
         return;
     }
 
-    onDateRangeChange({ from, to });
+    // Enviar também o metaPreset para usar date_preset na API do Meta
+    const metaPreset = presetToMetaPreset[preset];
+    onDateRangeChange({ from, to }, metaPreset);
   };
 
   const handleCustomDateSelect = (range: { from?: Date; to?: Date } | undefined) => {
     if (range?.from && range?.to) {
       setSelectedPreset("custom");
-      onDateRangeChange({ from: range.from, to: range.to });
+      // Custom range não usa meta preset
+      onDateRangeChange({ from: range.from, to: range.to }, null);
       setIsCustomOpen(false);
     }
   };

@@ -25,9 +25,10 @@ const ClientDashboardPublic = () => {
   const { theme, setTheme } = useTheme();
   const [period, setPeriod] = useState(30);
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000), // 30 dias = hoje + 29 anteriores
     to: new Date()
   });
+  const [metaPreset, setMetaPreset] = useState<string | null>('last_30d'); // Preset inicial
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState("5");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -41,7 +42,8 @@ const ClientDashboardPublic = () => {
   const startDate = format(dateRange.from, 'yyyy-MM-dd');
   const endDate = format(dateRange.to, 'yyyy-MM-dd');
   
-  const { data, isLoading, error, refetch } = useClientDashboard(token || "", startDate, endDate);
+  // Passar o preset para usar date_preset do Meta (alinha com sync-facebook-campaigns)
+  const { data, isLoading, error, refetch } = useClientDashboard(token || "", startDate, endDate, metaPreset || undefined);
 
   useEffect(() => {
     setMounted(true);
@@ -88,8 +90,9 @@ const ClientDashboardPublic = () => {
     };
   }, [kioskMode]);
 
-  const handleDateRangeChange = (range: { from: Date; to: Date }) => {
+  const handleDateRangeChange = (range: { from: Date; to: Date }, preset?: string | null) => {
     setDateRange(range);
+    setMetaPreset(preset ?? null);
     const days = Math.ceil((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24));
     setPeriod(days);
   };
