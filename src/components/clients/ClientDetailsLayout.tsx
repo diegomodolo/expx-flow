@@ -38,15 +38,17 @@ import {
   Sparkles,
   Factory,
   Palette,
+  ExternalLink,
 } from "lucide-react";
 
 interface ClientDetailsLayoutProps {
   children: ReactNode;
   clientId: string;
   clientName: string;
+  dashboardToken?: string | null;
 }
 
-export function ClientDetailsLayout({ children, clientId, clientName }: ClientDetailsLayoutProps) {
+export function ClientDetailsLayout({ children, clientId, clientName, dashboardToken }: ClientDetailsLayoutProps) {
   const location = useLocation();
   const [activeSyncJobId, setActiveSyncJobId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -310,6 +312,17 @@ export function ClientDetailsLayout({ children, clientId, clientName }: ClientDe
                 <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                 Sincronizando {progressPercentage}%
               </Badge>
+            )}
+            {dashboardToken && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={() => window.open(`${window.location.origin}/dashboard-publico/${dashboardToken}`, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Dashboard Público
+              </Button>
             )}
           </div>
           
