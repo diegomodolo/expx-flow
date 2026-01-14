@@ -21,26 +21,35 @@ export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorP
 
   const handlePresetSelect = (preset: PeriodPreset) => {
     setSelectedPreset(preset);
-    const now = new Date();
-    let from: Date;
-    let to = new Date();
 
+    const now = new Date();
+    const to = new Date(now);
+    to.setHours(23, 59, 59, 999);
+
+    const from = new Date(now);
+
+    // Presets devem ser “dias completos” e com contagem inclusiva.
+    // Ex: "7 dias" = hoje + 6 dias anteriores (total 7).
     switch (preset) {
       case "today":
-        from = new Date(now.setHours(0, 0, 0, 0));
-        to = new Date(now.setHours(23, 59, 59, 999));
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
         break;
       case "7days":
-        from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        from.setDate(from.getDate() - 6);
+        from.setHours(0, 0, 0, 0);
         break;
       case "14days":
-        from = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+        from.setDate(from.getDate() - 13);
+        from.setHours(0, 0, 0, 0);
         break;
       case "30days":
-        from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        from.setDate(from.getDate() - 29);
+        from.setHours(0, 0, 0, 0);
         break;
       case "quarter":
-        from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        from.setDate(from.getDate() - 89);
+        from.setHours(0, 0, 0, 0);
         break;
       default:
         return;
@@ -74,8 +83,8 @@ export const PeriodSelector = ({ dateRange, onDateRangeChange }: PeriodSelectorP
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
             <p className="text-xs">
-              Os dados mostram conversões com janela de atribuição de <strong>7 dias após clique</strong>, 
-              que é o padrão do Facebook Ads Manager.
+              Os dados mostram conversões com janela de atribuição de <strong>7 dias após clique</strong> +{" "}
+              <strong>1 dia após visualização</strong>.
             </p>
           </TooltipContent>
         </Tooltip>
