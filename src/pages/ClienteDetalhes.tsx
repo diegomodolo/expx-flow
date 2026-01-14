@@ -200,7 +200,7 @@ const ClienteDetalhes = () => {
   return (
     <DashboardLayout>
       <ClientContextProvider value={contextValue}>
-        <ClientDetailsLayout clientId={id || ""} clientName={client.name}>
+        <ClientDetailsLayout clientId={id || ""} clientName={client.name} dashboardToken={client.dashboard_token}>
           <Routes>
             <Route 
               index 
