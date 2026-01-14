@@ -146,6 +146,8 @@ function delay(ms: number): Promise<void> {
 async function generateSingleImage(
   imagePrompt: string,
   referenceImages: string[],
+  clientLogo: string | null,
+  clientCompanyName: string,
   scheduledDateFormatted: string,
   config: any,
   clientSector: string,
@@ -161,9 +163,18 @@ async function generateSingleImage(
     try {
       const messageContent: any[] = [];
       
+      // CRITICAL: Add client logo as FIRST reference (highest priority for accurate reproduction)
+      if (clientLogo) {
+        console.log(`[generateSingleImage] Adding client logo as PRIMARY reference: ${clientLogo.substring(0, 80)}...`);
+        messageContent.push({
+          type: 'image_url',
+          image_url: { url: clientLogo }
+        });
+      }
+      
       console.log(`[generateSingleImage] Processing ${referenceImages.length} reference images...`);
       
-      // Add reference images FIRST with explicit labeling
+      // Add reference images after logo
       for (let i = 0; i < referenceImages.length; i++) {
         const refImageUrl = referenceImages[i];
         console.log(`[generateSingleImage] Reference image ${i + 1}: ${refImageUrl.substring(0, 80)}...`);
@@ -177,6 +188,28 @@ async function generateSingleImage(
         ? `\n\nThis is SLIDE ${slideNumber} of ${totalSlides} in a carousel. Make sure it connects visually with other slides while having its own distinct focus.`
         : '';
       
+      // LOGO INSTRUCTIONS - Critical for brand consistency
+      const logoInstructions = clientLogo ? `
+═══════════════════════════════════════════════════════════════════════════════════════
+🏷️ INSTRUÇÕES CRÍTICAS PARA O LOGOTIPO - "${clientCompanyName}" 🏷️
+═══════════════════════════════════════════════════════════════════════════════════════
+
+A PRIMEIRA imagem de referência fornecida é o LOGOTIPO OFICIAL da empresa "${clientCompanyName}".
+
+⚠️ REGRAS OBRIGATÓRIAS PARA O LOGOTIPO:
+
+1. SE a imagem incluir um logotipo, você DEVE usar EXATAMENTE o logotipo fornecido
+2. NÃO invente, modifique ou crie um novo logotipo - use a imagem do logo REAL
+3. Preserve as cores EXATAS, proporções e todos elementos de design do logotipo original
+4. Posicione o logotipo de forma apropriada (canto inferior direito ou posição sutil)
+5. NÃO gere texto tentando replicar o nome da marca - use a imagem do logotipo real
+6. Se não for possível incluir o logotipo exato com fidelidade, é MELHOR NÃO incluir nenhum logotipo
+7. O logo deve ser pequeno e discreto (não maior que 15% da imagem)
+
+═══════════════════════════════════════════════════════════════════════════════════════
+
+` : '';
+
       // Build a MUCH stronger prompt that emphasizes COPYING the reference style exactly
       const referenceInstructions = referenceImages.length > 0 ? `
 ═══════════════════════════════════════════════════════════════════════════════════════
@@ -235,7 +268,7 @@ DO NOT include ANY dates, days of the week, or calendar references in the image.
 The image must be TIMELESS - no "Friday", no "January 9", no "2026", no date references whatsoever.
 If the content prompt mentions a date, IGNORE IT and create the image without any date text.`;
 
-      const geminiPrompt = `${referenceInstructions}
+      const geminiPrompt = `${logoInstructions}${referenceInstructions}
 NOW, create a vertical 3:4 Instagram feed image (1080x1350 pixels).
 
 CONTENT TO INCLUDE (with IDENTICAL STYLE to the reference images above):
@@ -378,12 +411,15 @@ Deno.serve(async (req) => {
         clients (
           id,
           name,
+          company,
           sector,
           ai_briefing,
           target_audience,
           ai_reference_image_1,
           ai_reference_image_2,
-          ai_reference_image_3
+          ai_reference_image_3,
+          presentation_logo,
+          avatar
         )
       `)
       .eq('id', configId)
@@ -398,6 +434,13 @@ Deno.serve(async (req) => {
     const clientName = client?.name || config.name || 'Automação';
     const clientSector = client?.sector || 'Geral';
     const clientTargetAudience = client?.target_audience || 'Geral';
+    
+    // LOGO: Prioritize presentation_logo, fallback to avatar
+    const clientLogo = client?.presentation_logo || client?.avatar || null;
+    const clientCompanyName = client?.company || clientName;
+    
+    console.log('Client logo URL:', clientLogo ? 'Found' : 'Not found');
+    console.log('Client company name:', clientCompanyName);
 
     // Fetch knowledge base: YouTube videos
     const { data: knowledgeVideos } = await supabase
@@ -843,6 +886,8 @@ Responda APENAS com o prompt em inglês.`
       const base64Url = await generateSingleImage(
         prompt,
         referenceImages,
+        clientLogo,
+        clientCompanyName,
         scheduledDateFormatted,
         config,
         clientSector,
