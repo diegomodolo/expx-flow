@@ -163,24 +163,23 @@ async function generateSingleImage(
     try {
       const messageContent: any[] = [];
       
-      // CRITICAL: Add client logo as FIRST reference (highest priority for accurate reproduction)
-      if (clientLogo) {
-        console.log(`[generateSingleImage] Adding client logo as PRIMARY reference: ${clientLogo.substring(0, 80)}...`);
-        messageContent.push({
-          type: 'image_url',
-          image_url: { url: clientLogo }
-        });
-      }
-      
-      console.log(`[generateSingleImage] Processing ${referenceImages.length} reference images...`);
-      
-      // Add reference images after logo
+      // FIRST: Add visual reference images (PRIMARY STYLE GUIDE)
+      console.log(`[generateSingleImage] Processing ${referenceImages.length} reference images as PRIMARY STYLE GUIDE...`);
       for (let i = 0; i < referenceImages.length; i++) {
         const refImageUrl = referenceImages[i];
-        console.log(`[generateSingleImage] Reference image ${i + 1}: ${refImageUrl.substring(0, 80)}...`);
+        console.log(`[generateSingleImage] Style reference ${i + 1}: ${refImageUrl.substring(0, 80)}...`);
         messageContent.push({
           type: 'image_url',
           image_url: { url: refImageUrl }
+        });
+      }
+      
+      // LAST: Add client logo as COMPLEMENTARY reference (for accurate reproduction when needed)
+      if (clientLogo) {
+        console.log(`[generateSingleImage] Adding client logo as COMPLEMENTARY reference: ${clientLogo.substring(0, 80)}...`);
+        messageContent.push({
+          type: 'image_url',
+          image_url: { url: clientLogo }
         });
       }
       
@@ -188,72 +187,76 @@ async function generateSingleImage(
         ? `\n\nThis is SLIDE ${slideNumber} of ${totalSlides} in a carousel. Make sure it connects visually with other slides while having its own distinct focus.`
         : '';
       
-      // LOGO INSTRUCTIONS - Critical for brand consistency
+      // LOGO INSTRUCTIONS - Complementary to visual style (secondary priority)
       const logoInstructions = clientLogo ? `
 ═══════════════════════════════════════════════════════════════════════════════════════
-🏷️ INSTRUÇÕES CRÍTICAS PARA O LOGOTIPO - "${clientCompanyName}" 🏷️
+🏷️ LOGOTIPO COMPLEMENTAR - "${clientCompanyName}" 🏷️
 ═══════════════════════════════════════════════════════════════════════════════════════
 
-A PRIMEIRA imagem de referência fornecida é o LOGOTIPO OFICIAL da empresa "${clientCompanyName}".
+A ÚLTIMA imagem de referência fornecida é o LOGOTIPO da empresa "${clientCompanyName}".
 
-⚠️ REGRAS OBRIGATÓRIAS PARA O LOGOTIPO:
+📌 REGRAS PARA O LOGOTIPO (secundário ao estilo visual):
 
-1. SE a imagem incluir um logotipo, você DEVE usar EXATAMENTE o logotipo fornecido
-2. NÃO invente, modifique ou crie um novo logotipo - use a imagem do logo REAL
-3. Preserve as cores EXATAS, proporções e todos elementos de design do logotipo original
-4. Posicione o logotipo de forma apropriada (canto inferior direito ou posição sutil)
-5. NÃO gere texto tentando replicar o nome da marca - use a imagem do logotipo real
-6. Se não for possível incluir o logotipo exato com fidelidade, é MELHOR NÃO incluir nenhum logotipo
-7. O logo deve ser pequeno e discreto (não maior que 15% da imagem)
+1. O ESTILO VISUAL das PRIMEIRAS imagens de referência é PRIORITÁRIO
+2. Se incluir logotipo, use EXATAMENTE o logotipo fornecido (última imagem)
+3. Posicione discretamente no canto inferior (máximo 10% da imagem)
+4. NÃO invente ou modifique o logotipo
+5. Se não conseguir reproduzir fielmente, NÃO inclua logotipo
+
+⚠️ IMPORTANTE: O logotipo é um DETALHE COMPLEMENTAR.
+O ESTILO VISUAL das referências principais é o que deve guiar a criação da imagem.
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 
 ` : '';
 
       // Build a MUCH stronger prompt that emphasizes COPYING the reference style exactly
+      // The first images are the PRIMARY STYLE GUIDE
       const referenceInstructions = referenceImages.length > 0 ? `
 ═══════════════════════════════════════════════════════════════════════════════════════
 🚨🚨🚨 MANDATORY INSTRUCTION - COPY REFERENCE IMAGES EXACTLY 🚨🚨🚨
 ═══════════════════════════════════════════════════════════════════════════════════════
 
-I have provided ${referenceImages.length} REFERENCE IMAGES above. These are your MANDATORY STYLE TEMPLATE.
+I have provided ${referenceImages.length} REFERENCE IMAGES at the START. 
+These are your PRIMARY STYLE TEMPLATE and MUST BE FOLLOWED WITH 100% FIDELITY.
 
-⚠️ THE OUTPUT IMAGE MUST BE A VISUAL CARBON COPY OF THE REFERENCES ⚠️
+⚠️ THE FIRST ${referenceImages.length} IMAGES ARE YOUR PRIMARY STYLE GUIDE ⚠️
+⚠️ ANY LOGO IMAGE (if present) IS JUST A SMALL COMPLEMENTARY ELEMENT ⚠️
 
-You MUST REPLICATE these elements with 100% fidelity:
+You MUST REPLICATE these elements from the FIRST ${referenceImages.length} images with 100% fidelity:
 
-🎨 1. COLOR PALETTE - COPY EXACTLY:
-   - Look at the reference images and identify ALL colors used
+🎨 1. COLOR PALETTE - COPY EXACTLY from style references:
+   - Look at the FIRST ${referenceImages.length} reference images and identify ALL colors used
    - Use those EXACT SAME COLORS in your output - NOT similar colors, the SAME colors
    - If references use red (#E53935) and green (#4CAF50), use those EXACT shades
    - Match color ratios (if red is dominant in references, red must be dominant in output)
 
-✏️ 2. TYPOGRAPHY - COPY EXACTLY:
+✏️ 2. TYPOGRAPHY - COPY EXACTLY from style references:
    - Same font weight (bold stays bold, thin stays thin)
    - Same text size hierarchy (large headlines, smaller subtext)
    - Same text positioning (centered, left-aligned, overlaid on images)
    - Same text colors and any text effects (shadows, outlines)
 
-📐 3. LAYOUT & COMPOSITION - COPY EXACTLY:
+📐 3. LAYOUT & COMPOSITION - COPY EXACTLY from style references:
    - Same structural layout (where elements are positioned)
    - Same spacing and margins between elements
    - Same visual hierarchy (what draws attention first, second, third)
    - If references show device mockups, YOUR OUTPUT MUST INCLUDE DEVICE MOCKUPS
    - If references show product photos, YOUR OUTPUT MUST INCLUDE PRODUCT PHOTOS
 
-🎭 4. GRAPHIC ELEMENTS - COPY EXACTLY:
+🎭 4. GRAPHIC ELEMENTS - COPY EXACTLY from style references:
    - Same icon styles (if any)
    - Same badge/button styles
    - Same decorative elements (arrows, shapes, borders)
-   - Same logo treatment and placement if visible
+   - Same overall design aesthetic
 
-🌄 5. BACKGROUND - COPY EXACTLY:
+🌄 5. BACKGROUND - COPY EXACTLY from style references:
    - Same background type (solid color, gradient, pattern, photo)
    - Same background colors
    - Same level of visual complexity
 
 ═══════════════════════════════════════════════════════════════════════════════════════
-⚠️ YOUR OUTPUT SHOULD BE INDISTINGUISHABLE IN STYLE FROM THE REFERENCES ⚠️
+⚠️ YOUR OUTPUT SHOULD BE INDISTINGUISHABLE IN STYLE FROM THE FIRST ${referenceImages.length} REFERENCES ⚠️
 ⚠️ IT SHOULD LOOK LIKE THE NEXT POST IN THE SAME INSTAGRAM FEED ⚠️
 ═══════════════════════════════════════════════════════════════════════════════════════
 
@@ -268,7 +271,7 @@ DO NOT include ANY dates, days of the week, or calendar references in the image.
 The image must be TIMELESS - no "Friday", no "January 9", no "2026", no date references whatsoever.
 If the content prompt mentions a date, IGNORE IT and create the image without any date text.`;
 
-      const geminiPrompt = `${logoInstructions}${referenceInstructions}
+      const geminiPrompt = `${referenceInstructions}${logoInstructions}
 NOW, create a vertical 3:4 Instagram feed image (1080x1350 pixels).
 
 CONTENT TO INCLUDE (with IDENTICAL STYLE to the reference images above):
