@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
+import { getValidGoogleAdsToken, isTokenExpiredOrExpiring, refreshGoogleAdsToken } from '../_shared/googleAdsTokenRefresh.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -607,6 +608,235 @@ function mapPresetToMeta(preset: string): string | null {
   return presetMap[preset] || null;
 }
 
+// ========================== Google Ads Integration ==========================
+
+interface GoogleAdsMetrics {
+  campaigns: any[];
+  totalSpend: number;
+  totalConversions: number;
+  totalImpressions: number;
+  totalClicks: number;
+  timeline: Map<string, { leads: number; spend: number }>;
+}
+
+async function fetchGoogleAdsData(
+  supabase: any,
+  clientId: string,
+  googleAccountId: string,
+  period: { since: string; until: string }
+): Promise<GoogleAdsMetrics | null> {
+  console.log('=== Fetching Google Ads data ===');
+  console.log('Client ID:', clientId, 'Google Account ID:', googleAccountId);
+
+  try {
+    // 1. Get Google Ads account details
+    const { data: googleAccount, error: accountError } = await supabase
+      .from('google_ads_accounts')
+      .select('id, customer_id, integration_id, descriptive_name')
+      .eq('id', googleAccountId)
+      .single();
+
+    if (accountError || !googleAccount) {
+      console.error('Google Ads account not found:', accountError);
+      return null;
+    }
+
+    console.log('Google Ads account found:', googleAccount.descriptive_name);
+
+    // 2. Get Google Ads integration with token
+    const { data: integration, error: integrationError } = await supabase
+      .from('google_ads_integrations')
+      .select('id, access_token, refresh_token, expires_at, is_active, parent_customer_id')
+      .eq('id', googleAccount.integration_id)
+      .single();
+
+    if (integrationError || !integration) {
+      console.error('Google Ads integration not found:', integrationError);
+      return null;
+    }
+
+    if (!integration.is_active) {
+      console.error('Google Ads integration is not active');
+      return null;
+    }
+
+    // 3. Get valid access token (refresh if needed)
+    const { accessToken, wasRefreshed } = await getValidGoogleAdsToken(supabase, integration);
+    console.log('Token obtained, was refreshed:', wasRefreshed);
+
+    // 4. Call Google Ads API
+    const developerToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN');
+    if (!developerToken) {
+      console.error('GOOGLE_ADS_DEVELOPER_TOKEN not configured');
+      return null;
+    }
+
+    const customerId = googleAccount.customer_id.replace(/-/g, '');
+    const loginCustomerId = integration.parent_customer_id?.replace(/-/g, '') || customerId;
+
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+    };
+
+    // Only add login-customer-id if different from customer_id
+    if (loginCustomerId !== customerId) {
+      headers['login-customer-id'] = loginCustomerId;
+    }
+
+    // 5. Build GAQL query for campaigns
+    const gaqlQuery = `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        campaign.status,
+        campaign.advertising_channel_type,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.conversions,
+        metrics.cost_micros
+      FROM campaign
+      WHERE segments.date BETWEEN '${period.since}' AND '${period.until}'
+      ORDER BY metrics.cost_micros DESC
+    `;
+
+    console.log('Calling Google Ads API for campaigns...');
+
+    const campaignsResponse = await fetch(
+      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query: gaqlQuery }),
+      }
+    );
+
+    if (!campaignsResponse.ok) {
+      const errorText = await campaignsResponse.text();
+      console.error('Google Ads API error:', errorText);
+      return null;
+    }
+
+    const campaignsData = await campaignsResponse.json();
+    console.log('Google Ads campaigns response received');
+
+    // 6. Process campaigns data
+    const campaignsMap = new Map<string, any>();
+    
+    if (Array.isArray(campaignsData) && campaignsData.length > 0) {
+      campaignsData.forEach((chunk: any) => {
+        const results = chunk.results || [];
+        results.forEach((result: any) => {
+          const campaignId = result.campaign?.id;
+          if (!campaignId) return;
+
+          const existingCampaign = campaignsMap.get(campaignId);
+          const costMicros = Number(result.metrics?.costMicros || 0);
+          const impressions = Number(result.metrics?.impressions || 0);
+          const clicks = Number(result.metrics?.clicks || 0);
+          const conversions = Number(result.metrics?.conversions || 0);
+
+          if (existingCampaign) {
+            existingCampaign.spend += costMicros / 1_000_000;
+            existingCampaign.impressions += impressions;
+            existingCampaign.clicks += clicks;
+            existingCampaign.conversions += conversions;
+          } else {
+            const status = result.campaign?.status;
+            campaignsMap.set(campaignId, {
+              id: campaignId,
+              name: result.campaign?.name || 'Unknown',
+              status: status === 'ENABLED' ? 'ACTIVE' : status || 'UNKNOWN',
+              channelType: result.campaign?.advertisingChannelType,
+              spend: costMicros / 1_000_000,
+              impressions,
+              clicks,
+              conversions,
+              platform: 'google',
+            });
+          }
+        });
+      });
+    }
+
+    const campaigns = Array.from(campaignsMap.values());
+    console.log(`Processed ${campaigns.length} Google Ads campaigns`);
+
+    // 7. Calculate totals
+    let totalSpend = 0;
+    let totalConversions = 0;
+    let totalImpressions = 0;
+    let totalClicks = 0;
+
+    campaigns.forEach((c) => {
+      totalSpend += c.spend;
+      totalConversions += c.conversions;
+      totalImpressions += c.impressions;
+      totalClicks += c.clicks;
+    });
+
+    console.log(`Google Ads totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}`);
+
+    // 8. Fetch daily timeline data
+    const timelineQuery = `
+      SELECT 
+        segments.date,
+        metrics.conversions,
+        metrics.cost_micros
+      FROM campaign
+      WHERE segments.date BETWEEN '${period.since}' AND '${period.until}'
+    `;
+
+    const timelineResponse = await fetch(
+      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query: timelineQuery }),
+      }
+    );
+
+    const timeline = new Map<string, { leads: number; spend: number }>();
+
+    if (timelineResponse.ok) {
+      const timelineData = await timelineResponse.json();
+      
+      if (Array.isArray(timelineData)) {
+        timelineData.forEach((chunk: any) => {
+          const results = chunk.results || [];
+          results.forEach((result: any) => {
+            const date = result.segments?.date;
+            if (!date) return;
+
+            const costMicros = Number(result.metrics?.costMicros || 0);
+            const conversions = Number(result.metrics?.conversions || 0);
+
+            const existing = timeline.get(date) || { leads: 0, spend: 0 };
+            existing.leads += conversions;
+            existing.spend += costMicros / 1_000_000;
+            timeline.set(date, existing);
+          });
+        });
+      }
+    }
+
+    console.log(`Google Ads timeline: ${timeline.size} days`);
+
+    return {
+      campaigns,
+      totalSpend,
+      totalConversions,
+      totalImpressions,
+      totalClicks,
+      timeline,
+    };
+  } catch (error) {
+    console.error('Error fetching Google Ads data:', error);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   console.log('=== Client Dashboard Data Edge Function ===');
   console.log('Request method:', req.method);
@@ -636,7 +866,7 @@ Deno.serve(async (req) => {
 
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, name, company, ad_account_id, avatar')
+      .select('id, name, company, ad_account_id, google_account_id, avatar')
       .eq('dashboard_token', token)
       .single();
 
@@ -651,12 +881,16 @@ Deno.serve(async (req) => {
     // Buscar métricas sociais em paralelo
     const socialMetricsPromise = fetchSocialMetrics(supabase, client.id);
 
-    if (!client.ad_account_id) {
+    // Check if client has any ad platform configured
+    const hasFacebook = !!client.ad_account_id;
+    const hasGoogle = !!client.google_account_id;
+
+    if (!hasFacebook && !hasGoogle) {
       const socialMetrics = await socialMetricsPromise;
       
       return new Response(
         JSON.stringify({ 
-          error: 'No Facebook ad account linked to this client',
+          error: 'No ad account linked to this client (Facebook or Google)',
           client: {
             name: client.name,
             company: client.company,
@@ -668,59 +902,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Fetching Facebook ad account:', client.ad_account_id);
+    console.log('Ad platforms configured:', { hasFacebook, hasGoogle });
 
-    const { data: adAccount, error: adAccountError } = await supabase
-      .from('facebook_ad_accounts')
-      .select('account_id, integration_id')
-      .eq('id', client.ad_account_id)
-      .single();
-
-    if (adAccountError || !adAccount) {
-      console.error('Ad account not found:', adAccountError);
-      return new Response(
-        JSON.stringify({ error: 'Facebook ad account not found' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Fetching Facebook integration:', adAccount.integration_id);
-
-    const { data: integration, error: integrationError } = await supabase
-      .from('facebook_integrations')
-      .select('access_token, is_active')
-      .eq('id', adAccount.integration_id)
-      .single();
-
-    if (integrationError || !integration) {
-      console.error('Integration not found:', integrationError);
-      return new Response(
-        JSON.stringify({ error: 'Facebook integration not found' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!integration.is_active) {
-      return new Response(
-        JSON.stringify({ error: 'Facebook integration is not active. Please reconnect.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Integration found, active:', integration.is_active);
-
-    const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
-    
-    // Determinar o parâmetro de período: usar date_preset quando preset disponível
+    // Determinar o período
     const metaPreset = preset ? mapPresetToMeta(preset) : null;
-    let dateParam: string;
     let since: string;
     let until: string;
     
     if (metaPreset) {
-      // Usar date_preset do Meta (mesmo comportamento do sync-facebook-campaigns)
-      dateParam = `.date_preset(${metaPreset})`;
-      // Para o response, calcular as datas correspondentes
       const now = new Date();
       until = now.toISOString().split('T')[0];
       
@@ -738,230 +927,327 @@ Deno.serve(async (req) => {
       
       console.log(`Using Meta date_preset: ${metaPreset} (calculated: ${since} to ${until})`);
     } else {
-      // Usar time_range explícito
       since = start_date;
       until = end_date;
-      dateParam = `.time_range({since:'${since}',until:'${until}'})`;
       console.log(`Using time_range: ${since} to ${until}`);
     }
 
-    console.log(`Fetching campaigns from Facebook for period ${since} to ${until}`);
-
-    // IMPORTANTE: Buscar também o array "conversions" além de "actions"
-    const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
-      `fields=id,name,status,objective,` +
-      `insights${dateParam}` +
-      `.action_report_time(conversion)` +
-      `.action_attribution_windows(["7d_click","1d_view"])` +
-      `{date_start,date_stop,impressions,clicks,spend,actions,conversions,reach,frequency}` +
-      `&limit=500&access_token=${integration.access_token}`;
-
-    console.log('Fetching campaigns from Meta (aggregated data)');
-
-    const campaignsResponse = await fetch(campaignsUrl);
+    // ===================== Fetch Data from Both Platforms in Parallel =====================
     
-    // Timeline também com date_preset quando disponível
-    let timelineUrl: string;
-    if (metaPreset) {
-      timelineUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
-        `date_preset=${metaPreset}` +
-        `&time_increment=1` +
-        `&fields=date_start,actions,conversions,spend` +
-        `&action_attribution_windows=["7d_click","1d_view"]` +
-        `&action_report_time=conversion` +
-        `&level=account` +
-        `&access_token=${integration.access_token}`;
-    } else {
-      timelineUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
-        `time_range={'since':'${since}','until':'${until}'}` +
-        `&time_increment=1` +
-        `&fields=date_start,actions,conversions,spend` +
-        `&action_attribution_windows=["7d_click","1d_view"]` +
-        `&action_report_time=conversion` +
-        `&level=account` +
-        `&access_token=${integration.access_token}`;
-    }
+    let facebookResult: {
+      campaigns: any[];
+      processedCampaigns: any[];
+      timelineMap: Map<string, { leads: number; messages: number; spend: number }>;
+      totalSpend: number;
+      totalConversions: number;
+      totalMessages: number;
+      totalImpressions: number;
+      totalClicks: number;
+      totalReach: number;
+      debugCampaigns: any[];
+    } | null = null;
 
-    console.log('Fetching timeline data from Meta (daily breakdown)');
+    let googleResult: GoogleAdsMetrics | null = null;
 
-    const timelineResponse = await fetch(timelineUrl);
-    
-    if (!campaignsResponse.ok) {
-      const errorData = await campaignsResponse.json();
-      console.error('Facebook API error:', errorData);
-      
-      if (campaignsResponse.status === 190 || campaignsResponse.status === 401) {
-        return new Response(
-          JSON.stringify({ error: 'Facebook token expired. Please reconnect your account.' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    // Start Google Ads fetch if configured
+    const googlePromise = hasGoogle 
+      ? fetchGoogleAdsData(supabase, client.id, client.google_account_id, { since, until })
+      : Promise.resolve(null);
+
+    // Fetch Facebook data if configured
+    if (hasFacebook) {
+      console.log('Fetching Facebook ad account:', client.ad_account_id);
+
+      const { data: adAccount, error: adAccountError } = await supabase
+        .from('facebook_ad_accounts')
+        .select('account_id, integration_id')
+        .eq('id', client.ad_account_id)
+        .single();
+
+      if (!adAccountError && adAccount) {
+        const { data: integration, error: integrationError } = await supabase
+          .from('facebook_integrations')
+          .select('access_token, is_active')
+          .eq('id', adAccount.integration_id)
+          .single();
+
+        if (!integrationError && integration && integration.is_active) {
+          console.log('Facebook integration found, active:', integration.is_active);
+
+          const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
+          
+          const dateParam = metaPreset 
+            ? `.date_preset(${metaPreset})` 
+            : `.time_range({since:'${since}',until:'${until}'})`;
+
+          const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
+            `fields=id,name,status,objective,` +
+            `insights${dateParam}` +
+            `.action_report_time(conversion)` +
+            `.action_attribution_windows(["7d_click","1d_view"])` +
+            `{date_start,date_stop,impressions,clicks,spend,actions,conversions,reach,frequency}` +
+            `&limit=500&access_token=${integration.access_token}`;
+
+          const timelineUrl = metaPreset
+            ? `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
+              `date_preset=${metaPreset}` +
+              `&time_increment=1` +
+              `&fields=date_start,actions,conversions,spend` +
+              `&action_attribution_windows=["7d_click","1d_view"]` +
+              `&action_report_time=conversion` +
+              `&level=account` +
+              `&access_token=${integration.access_token}`
+            : `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
+              `time_range={'since':'${since}','until':'${until}'}` +
+              `&time_increment=1` +
+              `&fields=date_start,actions,conversions,spend` +
+              `&action_attribution_windows=["7d_click","1d_view"]` +
+              `&action_report_time=conversion` +
+              `&level=account` +
+              `&access_token=${integration.access_token}`;
+
+          console.log('Fetching campaigns from Meta (aggregated data)');
+
+          const [campaignsResponse, timelineResponse] = await Promise.all([
+            fetch(campaignsUrl),
+            fetch(timelineUrl)
+          ]);
+
+          if (campaignsResponse.ok) {
+            const fbData = await campaignsResponse.json();
+            const timelineData = timelineResponse.ok ? await timelineResponse.json() : { data: [] };
+            
+            console.log(`Fetched ${fbData.data?.length || 0} campaigns from Facebook`);
+
+            const campaigns = fbData.data || [];
+            const timelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
+            
+            if (timelineData.data && Array.isArray(timelineData.data)) {
+              timelineData.data.forEach((insight: any) => {
+                const date = insight.date_start;
+                if (date) {
+                  const combinedMetrics = [
+                    ...(Array.isArray(insight.actions) ? insight.actions : []),
+                    ...(Array.isArray(insight.conversions) ? insight.conversions : [])
+                  ];
+                  
+                  const conversions = countConversionsFromActions(combinedMetrics, undefined, `Timeline ${date}`);
+                  const messages = insight.actions?.find(
+                    (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                  )?.value || 0;
+                  const spend = parseFloat(insight.spend || '0');
+                  
+                  timelineMap.set(date, {
+                    leads: conversions,
+                    messages: parseFloat(messages),
+                    spend,
+                  });
+                }
+              });
+            }
+
+            let totalSpend = 0;
+            let totalImpressions = 0;
+            let totalClicks = 0;
+            let totalReach = 0;
+            const debugCampaigns: any[] = [];
+
+            const processedCampaigns = campaigns.map((campaign: any) => {
+              const insights = campaign.insights?.data || [];
+              
+              if (insights.length === 0) {
+                return {
+                  id: campaign.id,
+                  name: campaign.name,
+                  status: campaign.status,
+                  objective: campaign.objective,
+                  spend: 0,
+                  conversions: 0,
+                  impressions: 0,
+                  clicks: 0,
+                  reach: 0,
+                  frequency: 0,
+                  platform: 'facebook',
+                };
+              }
+
+              let totalCampaignSpend = 0;
+              let totalCampaignConversions = 0;
+              let totalCampaignMessages = 0;
+              let totalCampaignImpressions = 0;
+              let totalCampaignClicks = 0;
+              let totalCampaignReach = 0;
+              
+              insights.forEach((insight: any) => {
+                const spend = parseFloat(insight.spend || '0');
+                const impressions = parseInt(insight.impressions || '0', 10);
+                const clicks = parseInt(insight.clicks || '0', 10);
+                const reach = parseInt(insight.reach || '0', 10);
+                
+                const combinedMetrics = [
+                  ...(Array.isArray(insight.actions) ? insight.actions : []),
+                  ...(Array.isArray(insight.conversions) ? insight.conversions : [])
+                ];
+                
+                const conversions = countConversionsFromActions(combinedMetrics, campaign.objective, campaign.name);
+                
+                const messages = insight.actions?.find(
+                  (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
+                )?.value || 0;
+                const messagesValue = parseFloat(messages);
+                
+                totalCampaignSpend += spend;
+                totalCampaignConversions += conversions;
+                totalCampaignMessages += messagesValue;
+                totalCampaignImpressions += impressions;
+                totalCampaignClicks += clicks;
+                totalCampaignReach += reach;
+
+                if (debug && debugCampaigns.length < 5) {
+                  debugCampaigns.push({
+                    id: campaign.id,
+                    name: campaign.name,
+                    objective: campaign.objective,
+                    platform: 'facebook',
+                    spend,
+                    conversions,
+                  });
+                }
+              });
+
+              totalSpend += totalCampaignSpend;
+              totalImpressions += totalCampaignImpressions;
+              totalClicks += totalCampaignClicks;
+              totalReach += totalCampaignReach;
+
+              return {
+                id: campaign.id,
+                name: campaign.name,
+                status: campaign.status,
+                objective: campaign.objective,
+                spend: totalCampaignSpend,
+                conversions: totalCampaignConversions,
+                messages: totalCampaignMessages,
+                impressions: totalCampaignImpressions,
+                clicks: totalCampaignClicks,
+                reach: totalCampaignReach,
+                frequency: totalCampaignReach > 0 ? totalCampaignImpressions / totalCampaignReach : 0,
+                platform: 'facebook',
+              };
+            });
+
+            const totalConversions = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.conversions) || 0), 0);
+            const totalMessages = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.messages) || 0), 0);
+
+            facebookResult = {
+              campaigns,
+              processedCampaigns,
+              timelineMap,
+              totalSpend,
+              totalConversions,
+              totalMessages,
+              totalImpressions,
+              totalClicks,
+              totalReach,
+              debugCampaigns,
+            };
+
+            console.log(`Facebook totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}`);
+          } else {
+            console.error('Facebook API error:', await campaignsResponse.text());
+          }
+        } else {
+          console.error('Facebook integration not active or not found');
+        }
+      } else {
+        console.error('Facebook ad account not found:', adAccountError);
       }
-      
-      return new Response(
-        JSON.stringify({ error: `Facebook API error: ${errorData.error?.message || 'Unknown error'}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    if (!timelineResponse.ok) {
-      const timelineError = await timelineResponse.json();
-      console.error('Facebook Timeline API error:', timelineError);
-    }
-
-    const fbData = await campaignsResponse.json();
-    const timelineData = timelineResponse.ok ? await timelineResponse.json() : { data: [] };
+    // Await Google Ads data
+    googleResult = await googlePromise;
     
     // Aguardar métricas sociais
     const socialMetrics = await socialMetricsPromise;
-    
-    console.log(`Fetched ${fbData.data?.length || 0} campaigns from Facebook`);
-    console.log(`Fetched ${timelineData.data?.length || 0} daily timeline insights`);
 
-    const campaigns = fbData.data || [];
+    // ===================== Combine Data from Both Platforms =====================
     
-    const timelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
+    console.log('Combining data from platforms:', { 
+      hasFacebookData: !!facebookResult, 
+      hasGoogleData: !!googleResult 
+    });
+
+    // If no data from any platform
+    if (!facebookResult && !googleResult) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Could not fetch data from any ad platform',
+          client: {
+            name: client.name,
+            company: client.company,
+            avatar_url: client.avatar,
+          },
+          social_metrics: socialMetrics,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Combine campaigns from both platforms
+    const allProcessedCampaigns: any[] = [];
     
-    if (timelineData.data && Array.isArray(timelineData.data)) {
-      timelineData.data.forEach((insight: any) => {
-        const date = insight.date_start;
-        if (date) {
-          // Combinar actions + conversions para timeline também
-          const combinedMetrics = [
-            ...(Array.isArray(insight.actions) ? insight.actions : []),
-            ...(Array.isArray(insight.conversions) ? insight.conversions : [])
-          ];
-          
-          const conversions = countConversionsFromActions(combinedMetrics, undefined, `Timeline ${date}`);
-          const messages = insight.actions?.find(
-            (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-          )?.value || 0;
-          const spend = parseFloat(insight.spend || '0');
-          
-          timelineMap.set(date, {
-            leads: conversions,
-            messages: parseFloat(messages),
-            spend,
-          });
-        }
+    if (facebookResult) {
+      allProcessedCampaigns.push(...facebookResult.processedCampaigns);
+    }
+    
+    if (googleResult) {
+      googleResult.campaigns.forEach((c) => {
+        allProcessedCampaigns.push({
+          id: c.id,
+          name: c.name,
+          status: c.status,
+          spend: c.spend,
+          conversions: c.conversions,
+          messages: 0, // Google doesn't have messages
+          impressions: c.impressions,
+          clicks: c.clicks,
+          reach: 0,
+          frequency: 0,
+          platform: 'google',
+        });
+      });
+    }
+
+    // Combine timeline data
+    const combinedTimelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
+    
+    if (facebookResult) {
+      facebookResult.timelineMap.forEach((data, date) => {
+        combinedTimelineMap.set(date, { ...data });
       });
     }
     
-    console.log('Timeline daily data points:', timelineMap.size);
-    
-    let totalSpend = 0;
-    let totalConversions = 0;
-    let totalMessages = 0;
-    let totalImpressions = 0;
-    let totalClicks = 0;
-    let totalReach = 0;
-
-    // Debug info para campanhas (se solicitado)
-    const debugCampaigns: any[] = [];
-
-    const processedCampaigns = campaigns.map((campaign: any) => {
-      const insights = campaign.insights?.data || [];
-      
-      if (insights.length === 0) {
-        return {
-          id: campaign.id,
-          name: campaign.name,
-          status: campaign.status,
-          objective: campaign.objective,
-          spend: 0,
-          conversions: 0,
-          impressions: 0,
-          clicks: 0,
-          reach: 0,
-          frequency: 0,
-        };
-      }
-
-      let totalCampaignSpend = 0;
-      let totalCampaignConversions = 0;
-      let totalCampaignMessages = 0;
-      let totalCampaignImpressions = 0;
-      let totalCampaignClicks = 0;
-      let totalCampaignReach = 0;
-      
-      insights.forEach((insight: any) => {
-        const spend = parseFloat(insight.spend || '0');
-        const impressions = parseInt(insight.impressions || '0', 10);
-        const clicks = parseInt(insight.clicks || '0', 10);
-        const reach = parseInt(insight.reach || '0', 10);
-        
-        // IMPORTANTE: Combinar actions + conversions (igual ao sync-facebook-campaigns)
-        const combinedMetrics = [
-          ...(Array.isArray(insight.actions) ? insight.actions : []),
-          ...(Array.isArray(insight.conversions) ? insight.conversions : [])
-        ];
-        
-        const conversions = countConversionsFromActions(combinedMetrics, campaign.objective, campaign.name);
-        
-        const messages = insight.actions?.find(
-          (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
-        )?.value || 0;
-        const messagesValue = parseFloat(messages);
-        
-        totalCampaignSpend += spend;
-        totalCampaignConversions += conversions;
-        totalCampaignMessages += messagesValue;
-        totalCampaignImpressions += impressions;
-        totalCampaignClicks += clicks;
-        totalCampaignReach += reach;
-
-        // Coletar debug info
-        if (debug && debugCampaigns.length < 5) {
-          debugCampaigns.push({
-            id: campaign.id,
-            name: campaign.name,
-            objective: campaign.objective,
-            spend,
-            conversions,
-            actions_summary: (insight.actions || []).slice(0, 10).map((a: any) => ({
-              type: a.action_type,
-              value: a.value,
-              '7d_click': a?.['7d_click'],
-              '1d_view': a?.['1d_view'],
-            })),
-            conversions_summary: (insight.conversions || []).slice(0, 10).map((a: any) => ({
-              type: a.action_type,
-              value: a.value,
-              '7d_click': a?.['7d_click'],
-              '1d_view': a?.['1d_view'],
-            })),
-          });
-        }
+    if (googleResult) {
+      googleResult.timeline.forEach((data, date) => {
+        const existing = combinedTimelineMap.get(date) || { leads: 0, messages: 0, spend: 0 };
+        existing.leads += data.leads;
+        existing.spend += data.spend;
+        combinedTimelineMap.set(date, existing);
       });
+    }
 
-      totalSpend += totalCampaignSpend;
-      totalImpressions += totalCampaignImpressions;
-      totalClicks += totalCampaignClicks;
-      totalReach += totalCampaignReach;
-
-      return {
-        id: campaign.id,
-        name: campaign.name,
-        status: campaign.status,
-        objective: campaign.objective,
-        spend: totalCampaignSpend,
-        conversions: totalCampaignConversions,
-        messages: totalCampaignMessages,
-        impressions: totalCampaignImpressions,
-        clicks: totalCampaignClicks,
-        reach: totalCampaignReach,
-        frequency: totalCampaignReach > 0 ? totalCampaignImpressions / totalCampaignReach : 0,
-      };
-    });
-
-    const timeline = Array.from(timelineMap.entries())
+    const timeline = Array.from(combinedTimelineMap.entries())
       .map(([date, data]) => ({ date, ...data }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Totais: usar o agregado por campanha (mesma fonte do Spend)
-    totalConversions = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.conversions) || 0), 0);
-    totalMessages = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.messages) || 0), 0);
+    // Calculate combined totals
+    const totalSpend = (facebookResult?.totalSpend || 0) + (googleResult?.totalSpend || 0);
+    const totalConversions = (facebookResult?.totalConversions || 0) + (googleResult?.totalConversions || 0);
+    const totalMessages = facebookResult?.totalMessages || 0;
+    const totalImpressions = (facebookResult?.totalImpressions || 0) + (googleResult?.totalImpressions || 0);
+    const totalClicks = (facebookResult?.totalClicks || 0) + (googleResult?.totalClicks || 0);
 
-    console.log(`Total from campaigns: conversions=${totalConversions}, messages=${totalMessages}, spend=${totalSpend.toFixed(2)}`);
+    console.log(`Combined totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, messages=${totalMessages}`);
 
     const totalConversionsAll = totalConversions + totalMessages;
     const cpl = totalConversionsAll > 0 ? totalSpend / totalConversionsAll : 0;
@@ -993,7 +1279,7 @@ Deno.serve(async (req) => {
       frequency,
     };
 
-    const topCampaigns = processedCampaigns
+    const topCampaigns = allProcessedCampaigns
       .filter((c: any) => c.conversions > 0)
       .sort((a: any, b: any) => b.conversions - a.conversions)
       .slice(0, 5)
@@ -1002,18 +1288,20 @@ Deno.serve(async (req) => {
         conversions: c.conversions,
         spend: c.spend,
         percentage: totalConversions > 0 ? (c.conversions / totalConversions) * 100 : 0,
+        platform: c.platform,
       }));
 
-    const campaignsTable = processedCampaigns.map((c: any) => ({
+    const campaignsTable = allProcessedCampaigns.map((c: any) => ({
       name: c.name,
       ad_sets_count: 0,
       ads_count: 0,
       spend: c.spend,
       leads: c.conversions,
       cpl: c.conversions > 0 ? c.spend / c.conversions : 0,
-      messages: c.messages,
+      messages: c.messages || 0,
       cpm: c.impressions > 0 ? (c.spend / c.impressions) * 1000 : 0,
       status: c.status,
+      platform: c.platform,
     }));
 
     const daysDiff = Math.ceil((new Date(until).getTime() - new Date(since).getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -1035,6 +1323,10 @@ Deno.serve(async (req) => {
       top_campaigns: topCampaigns,
       campaigns_table: campaignsTable,
       social_metrics: socialMetrics,
+      platforms: {
+        facebook: !!facebookResult,
+        google: !!googleResult,
+      },
     };
 
     // Adicionar debug info se solicitado
@@ -1042,8 +1334,8 @@ Deno.serve(async (req) => {
       response.debug = {
         period_received: { start_date, end_date, preset },
         period_used: { since, until, meta_preset: metaPreset },
-        campaigns_count: campaigns.length,
-        top_campaigns_debug: debugCampaigns,
+        facebook_campaigns: facebookResult?.processedCampaigns?.length || 0,
+        google_campaigns: googleResult?.campaigns?.length || 0,
       };
     }
 

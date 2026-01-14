@@ -42,6 +42,7 @@ export interface CampaignTableRow {
   messages: number;
   cpm: number;
   status: string;
+  platform?: 'facebook' | 'google';
 }
 
 export interface TopEngagementPost {
