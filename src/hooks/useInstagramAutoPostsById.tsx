@@ -141,15 +141,29 @@ export function useInstagramAutoPostsByConfigId(configId: string) {
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['instagram-auto-posts-by-config', configId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Buscar posts pendentes primeiro (mais importantes)
+      const { data: pendingData, error: pendingError } = await supabase
         .from('instagram_auto_posts')
         .select('*')
         .eq('config_id', configId)
-        .order('scheduled_at', { ascending: true })
-        .limit(100);
+        .in('status', ['pending', 'publishing'])
+        .order('scheduled_at', { ascending: true });
 
-      if (error) throw error;
-      return data as InstagramAutoPost[];
+      if (pendingError) throw pendingError;
+
+      // Buscar últimos 50 posts publicados para histórico
+      const { data: publishedData, error: publishedError } = await supabase
+        .from('instagram_auto_posts')
+        .select('*')
+        .eq('config_id', configId)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(50);
+
+      if (publishedError) throw publishedError;
+
+      // Combinar: todos os pendentes + últimos publicados
+      return [...(pendingData || []), ...(publishedData || [])] as InstagramAutoPost[];
     },
     enabled: !!configId
   });
