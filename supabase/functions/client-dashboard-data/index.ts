@@ -114,39 +114,63 @@ interface SocialMetrics {
   } | null;
 }
 
-const VALID_LEAD_ACTIONS = [
-  'lead', 'leadgen.other', 'onsite_conversion.lead_grouped',
-  'offsite_conversion.fb_pixel_lead', 'onsite_conversion.messaging_conversation_started_7d'
-];
-
 function extractConversions(actions: any[], campaignName?: string): number {
   if (!actions || !Array.isArray(actions)) return 0;
   
-  const leadActions = actions.filter(action => 
-    VALID_LEAD_ACTIONS.includes(action.action_type)
-  );
+  const norm = (s: any) => (s ?? '').toString().trim().toLowerCase();
+  const getVal = (a: any) => {
+    const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v));
+    const click = toNum(a?.['7d_click']);
+    const view = toNum(a?.['1d_view']);
+    const val = toNum(a?.value);
+    const sumCv = (Number.isFinite(click) ? click : 0) + (Number.isFinite(view) ? view : 0);
+    const candidates = [sumCv, val, click, view].map(n => (Number.isFinite(n) ? n : 0));
+    const best = Math.max(...candidates, 0);
+    return Math.round(best > 0 ? best : 0);
+  };
   
-  if (leadActions.length > 0) {
-    console.log(`\n=== Campaign: ${campaignName} ===`);
-    console.log(`Total action types found: ${leadActions.length}`);
-    leadActions.forEach(action => {
-      console.log(`  - ${action.action_type}: ${action.value}`);
-    });
-    
-    if (leadActions.length > 1) {
-      const total = leadActions.reduce((sum, action) => sum + (parseFloat(action.value) || 0), 0);
-      console.log(`  ⚠️ MULTIPLE ACTION TYPES - Total if summed: ${total}`);
+  // Hierarquia de prioridade para ações de lead (maior para menor)
+  const leadPriorityTypes = [
+    'lead',
+    'offsite_conversion.fb_pixel_lead',
+    'messaging_conversation_started',
+    'conversation_started',
+    'offsite_conversion.fb_pixel_custom',
+    'onsite_conversion.lead',
+    'omni_lead',
+    'on_facebook_lead',
+    'on_facebook_conversation_started',
+    'onsite_conversion.lead_grouped',
+    'website_lead',
+    'onsite_conversion.messaging_conversation_started_7d'
+  ];
+
+  const normalized = actions.map(a => ({ 
+    type: norm(a?.action_type), 
+    val: getVal(a) 
+  }));
+
+  // Encontrar a ação de lead de maior prioridade com valor > 0
+  for (const priorityType of leadPriorityTypes) {
+    const found = normalized.find(n => n.type === priorityType && n.val > 0);
+    if (found) {
+      console.log(`Campaign ${campaignName}: Using priority "${priorityType}" = ${found.val}`);
+      return found.val;
     }
   }
+
+  // Fallback: qualquer ação contendo "lead" ou "conversation"
+  const leadCandidates = normalized.filter(n => 
+    (n.type.includes('lead') || n.type.includes('conversation')) && n.val > 0
+  );
   
-  const leadAction = actions.find(action => action.action_type === 'lead');
-  const result = leadAction ? parseFloat(leadAction.value) || 0 : 0;
-  
-  if (leadActions.length > 0) {
-    console.log(`  ✅ Using only 'lead' action: ${result}`);
+  if (leadCandidates.length > 0) {
+    const maxVal = Math.max(...leadCandidates.map(n => n.val));
+    console.log(`Campaign ${campaignName}: Fallback max = ${maxVal}`);
+    return maxVal;
   }
-  
-  return result;
+
+  return 0;
 }
 
 async function fetchSocialMetrics(supabase: any, clientId: string): Promise<SocialMetrics> {
@@ -668,7 +692,7 @@ Deno.serve(async (req) => {
       `fields=id,name,status,objective,` +
       `insights.time_range({since:'${since}',until:'${until}'})` +
       `.action_report_time(conversion)` +
-      `.action_attribution_windows(["7d_click"])` +
+      `.action_attribution_windows(["7d_click","1d_view"])` +
       `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
       `&limit=500&access_token=${integration.access_token}`;
 
@@ -680,7 +704,7 @@ Deno.serve(async (req) => {
       `time_range={'since':'${since}','until':'${until}'}` +
       `&time_increment=1` +
       `&fields=date_start,actions,spend` +
-      `&action_attribution_windows=["7d_click"]` +
+      `&action_attribution_windows=["7d_click","1d_view"]` +
       `&action_report_time=conversion` +
       `&level=account` +
       `&access_token=${integration.access_token}`;
