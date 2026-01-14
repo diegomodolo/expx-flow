@@ -629,10 +629,10 @@ async function fetchGoogleAdsData(
   console.log('Client ID:', clientId, 'Google Account ID:', googleAccountId);
 
   try {
-    // 1. Get Google Ads account details
+    // 1. Get Google Ads account details (include parent_customer_id for MCC accounts)
     const { data: googleAccount, error: accountError } = await supabase
       .from('google_ads_accounts')
-      .select('id, google_customer_id, integration_id, account_name')
+      .select('id, google_customer_id, integration_id, account_name, parent_customer_id')
       .eq('id', googleAccountId)
       .single();
 
@@ -641,7 +641,7 @@ async function fetchGoogleAdsData(
       return null;
     }
 
-    console.log('Google Ads account found:', googleAccount.account_name);
+    console.log('Google Ads account found:', googleAccount.account_name, 'customerId:', googleAccount.google_customer_id);
 
     // 2. Get Google Ads integration with token
     const { data: integration, error: integrationError } = await supabase
@@ -672,6 +672,7 @@ async function fetchGoogleAdsData(
     }
 
     const customerId = googleAccount.google_customer_id.replace(/-/g, '');
+    // Use parent_customer_id from the google_ads_accounts table if available (for MCC accounts)
     const loginCustomerId = googleAccount.parent_customer_id?.replace(/-/g, '') || customerId;
 
     const headers: Record<string, string> = {
@@ -680,9 +681,10 @@ async function fetchGoogleAdsData(
       'Content-Type': 'application/json',
     };
 
-    // Only add login-customer-id if different from customerId
+    // Only add login-customer-id if different from customerId (for MCC access)
     if (loginCustomerId !== customerId) {
       headers['login-customer-id'] = loginCustomerId;
+      console.log('Using MCC login-customer-id:', loginCustomerId.slice(0, 4) + '***');
     }
 
     // 5. Build GAQL query for campaigns
@@ -701,69 +703,95 @@ async function fetchGoogleAdsData(
       ORDER BY metrics.cost_micros DESC
     `;
 
-    console.log('Calling Google Ads API for campaigns...');
+    // Use googleAds:search (v22) instead of searchStream (v18) - aligned with sync-google-ads-campaigns
+    const apiVersion = 'v22';
+    const apiEndpoint = `https://googleads.googleapis.com/${apiVersion}/customers/${customerId}/googleAds:search`;
+    
+    console.log('Calling Google Ads API for campaigns using googleAds:search v22...');
 
-    const campaignsResponse = await fetch(
-      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
-      {
+    // Fetch campaigns with pagination support
+    const campaignsMap = new Map<string, any>();
+    let nextPageToken: string | undefined = undefined;
+    let pageCount = 0;
+    const maxPages = 10; // Safety limit
+
+    do {
+      const requestBody: any = { query: gaqlQuery, pageSize: 1000 };
+      if (nextPageToken) {
+        requestBody.pageToken = nextPageToken;
+      }
+
+      const campaignsResponse = await fetch(apiEndpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ query: gaqlQuery }),
-      }
-    );
-
-    if (!campaignsResponse.ok) {
-      const errorText = await campaignsResponse.text();
-      console.error('Google Ads API error:', errorText);
-      return null;
-    }
-
-    const campaignsData = await campaignsResponse.json();
-    console.log('Google Ads campaigns response received');
-
-    // 6. Process campaigns data
-    const campaignsMap = new Map<string, any>();
-    
-    if (Array.isArray(campaignsData) && campaignsData.length > 0) {
-      campaignsData.forEach((chunk: any) => {
-        const results = chunk.results || [];
-        results.forEach((result: any) => {
-          const campaignId = result.campaign?.id;
-          if (!campaignId) return;
-
-          const existingCampaign = campaignsMap.get(campaignId);
-          const costMicros = Number(result.metrics?.costMicros || 0);
-          const impressions = Number(result.metrics?.impressions || 0);
-          const clicks = Number(result.metrics?.clicks || 0);
-          const conversions = Number(result.metrics?.conversions || 0);
-
-          if (existingCampaign) {
-            existingCampaign.spend += costMicros / 1_000_000;
-            existingCampaign.impressions += impressions;
-            existingCampaign.clicks += clicks;
-            existingCampaign.conversions += conversions;
-          } else {
-            const status = result.campaign?.status;
-            campaignsMap.set(campaignId, {
-              id: campaignId,
-              name: result.campaign?.name || 'Unknown',
-              status: status === 'ENABLED' ? 'ACTIVE' : status || 'UNKNOWN',
-              channelType: result.campaign?.advertisingChannelType,
-              spend: costMicros / 1_000_000,
-              impressions,
-              clicks,
-              conversions,
-              platform: 'google',
-            });
-          }
-        });
+        body: JSON.stringify(requestBody),
       });
-    }
+
+      if (!campaignsResponse.ok) {
+        const errorText = await campaignsResponse.text();
+        let errorJson: any = {};
+        try {
+          errorJson = JSON.parse(errorText);
+        } catch {
+          // Not JSON
+        }
+        console.error('Google Ads API error:', {
+          status: campaignsResponse.status,
+          statusText: campaignsResponse.statusText,
+          endpoint: apiEndpoint,
+          customerId: customerId.slice(0, 4) + '***',
+          errorCode: errorJson?.error?.code,
+          errorStatus: errorJson?.error?.status,
+          errorMessage: errorJson?.error?.message?.substring(0, 200),
+        });
+        return null;
+      }
+
+      const responseData = await campaignsResponse.json();
+      pageCount++;
+      
+      // Process results from this page
+      const results = responseData.results || [];
+      console.log(`Google Ads campaigns page ${pageCount}: ${results.length} results`);
+      
+      results.forEach((result: any) => {
+        const campaignId = result.campaign?.id;
+        if (!campaignId) return;
+
+        const existingCampaign = campaignsMap.get(campaignId);
+        const costMicros = Number(result.metrics?.costMicros || 0);
+        const impressions = Number(result.metrics?.impressions || 0);
+        const clicks = Number(result.metrics?.clicks || 0);
+        const conversions = Number(result.metrics?.conversions || 0);
+
+        if (existingCampaign) {
+          existingCampaign.spend += costMicros / 1_000_000;
+          existingCampaign.impressions += impressions;
+          existingCampaign.clicks += clicks;
+          existingCampaign.conversions += conversions;
+        } else {
+          const status = result.campaign?.status;
+          campaignsMap.set(campaignId, {
+            id: campaignId,
+            name: result.campaign?.name || 'Unknown',
+            status: status === 'ENABLED' ? 'ACTIVE' : status || 'UNKNOWN',
+            channelType: result.campaign?.advertisingChannelType,
+            spend: costMicros / 1_000_000,
+            impressions,
+            clicks,
+            conversions,
+            platform: 'google',
+          });
+        }
+      });
+
+      nextPageToken = responseData.nextPageToken;
+    } while (nextPageToken && pageCount < maxPages);
 
     const campaigns = Array.from(campaignsMap.values());
-    console.log(`Processed ${campaigns.length} Google Ads campaigns`);
+    console.log(`Processed ${campaigns.length} Google Ads campaigns across ${pageCount} page(s)`);
 
-    // 7. Calculate totals
+    // 6. Calculate totals
     let totalSpend = 0;
     let totalConversions = 0;
     let totalImpressions = 0;
@@ -776,9 +804,9 @@ async function fetchGoogleAdsData(
       totalClicks += c.clicks;
     });
 
-    console.log(`Google Ads totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}`);
+    console.log(`Google Ads totals: spend=${totalSpend.toFixed(2)}, conversions=${totalConversions}, impressions=${totalImpressions}, clicks=${totalClicks}`);
 
-    // 8. Fetch daily timeline data
+    // 7. Fetch daily timeline data using googleAds:search v22
     const timelineQuery = `
       SELECT 
         segments.date,
@@ -788,40 +816,54 @@ async function fetchGoogleAdsData(
       WHERE segments.date BETWEEN '${period.since}' AND '${period.until}'
     `;
 
-    const timelineResponse = await fetch(
-      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:searchStream`,
-      {
+    const timeline = new Map<string, { leads: number; spend: number }>();
+    let timelineNextPageToken: string | undefined = undefined;
+    let timelinePageCount = 0;
+
+    console.log('Fetching Google Ads timeline data...');
+
+    do {
+      const timelineRequestBody: any = { query: timelineQuery, pageSize: 1000 };
+      if (timelineNextPageToken) {
+        timelineRequestBody.pageToken = timelineNextPageToken;
+      }
+
+      const timelineResponse = await fetch(apiEndpoint, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ query: timelineQuery }),
-      }
-    );
+        body: JSON.stringify(timelineRequestBody),
+      });
 
-    const timeline = new Map<string, { leads: number; spend: number }>();
-
-    if (timelineResponse.ok) {
-      const timelineData = await timelineResponse.json();
-      
-      if (Array.isArray(timelineData)) {
-        timelineData.forEach((chunk: any) => {
-          const results = chunk.results || [];
-          results.forEach((result: any) => {
-            const date = result.segments?.date;
-            if (!date) return;
-
-            const costMicros = Number(result.metrics?.costMicros || 0);
-            const conversions = Number(result.metrics?.conversions || 0);
-
-            const existing = timeline.get(date) || { leads: 0, spend: 0 };
-            existing.leads += conversions;
-            existing.spend += costMicros / 1_000_000;
-            timeline.set(date, existing);
-          });
+      if (!timelineResponse.ok) {
+        const errorText = await timelineResponse.text();
+        console.warn('Google Ads timeline API error (continuing without timeline):', {
+          status: timelineResponse.status,
+          error: errorText.substring(0, 200),
         });
+        break;
       }
-    }
 
-    console.log(`Google Ads timeline: ${timeline.size} days`);
+      const timelineData = await timelineResponse.json();
+      timelinePageCount++;
+      
+      const results = timelineData.results || [];
+      results.forEach((result: any) => {
+        const date = result.segments?.date;
+        if (!date) return;
+
+        const costMicros = Number(result.metrics?.costMicros || 0);
+        const conversions = Number(result.metrics?.conversions || 0);
+
+        const existing = timeline.get(date) || { leads: 0, spend: 0 };
+        existing.leads += conversions;
+        existing.spend += costMicros / 1_000_000;
+        timeline.set(date, existing);
+      });
+
+      timelineNextPageToken = timelineData.nextPageToken;
+    } while (timelineNextPageToken && timelinePageCount < maxPages);
+
+    console.log(`Google Ads timeline: ${timeline.size} days across ${timelinePageCount} page(s)`);
 
     return {
       campaigns,
