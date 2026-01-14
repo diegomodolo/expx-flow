@@ -649,6 +649,8 @@ export function ContentPlanEditor({ planId, onBack }: ContentPlanEditorProps) {
           subheadline: p.subheadline,
           caption: p.caption,
           post_type: p.post_type,
+          slides: p.slides,
+          reels_uploaded_video_url: p.reels_uploaded_video_url,
         })) || []}
       />
     </div>

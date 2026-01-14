@@ -21,6 +21,14 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ContentPlanPost } from "@/hooks/useContentPlans";
 
+interface SlideToSend {
+  id: string;
+  image_url: string | null;
+  headline: string | null;
+  content: string | null;
+  order_index: number;
+}
+
 interface PostToSend {
   id: string;
   image_url?: string | null;
@@ -28,6 +36,8 @@ interface PostToSend {
   subheadline?: string | null;
   caption?: string | null;
   post_type: string;
+  slides?: SlideToSend[];
+  reels_uploaded_video_url?: string | null;
 }
 
 interface SendPostsToPresentationDialogProps {
@@ -126,46 +136,127 @@ export function SendPostsToPresentationDialog({
       let successCount = 0;
 
       for (const post of posts) {
-        // Skip posts without images
-        if (!post.image_url) continue;
-
         const mappedType = postTypeMap[post.post_type] || "post_unico";
 
-        // Create the creative in the presentation
-        const { data: creative, error: creativeError } = await supabase
-          .from("presentation_creatives")
-          .insert({
-            presentation_id: presentationId,
-            creative_type: mappedType,
-            order_index: nextOrderIndex,
-            caption: post.caption || "",
-            current_status: "pending",
-          })
-          .select()
-          .single();
+        // Handle each post type differently
+        if (post.post_type === "estatico") {
+          // Skip static posts without images
+          if (!post.image_url) continue;
 
-        if (creativeError) {
-          console.error("Error creating creative:", creativeError);
-          continue;
+          // Create the creative in the presentation
+          const { data: creative, error: creativeError } = await supabase
+            .from("presentation_creatives")
+            .insert({
+              presentation_id: presentationId,
+              creative_type: mappedType,
+              order_index: nextOrderIndex,
+              caption: post.caption || "",
+              current_status: "pending",
+            })
+            .select()
+            .single();
+
+          if (creativeError) {
+            console.error("Error creating creative:", creativeError);
+            continue;
+          }
+
+          // Add the media to the creative
+          const { error: mediaError } = await supabase
+            .from("creative_media")
+            .insert({
+              creative_id: creative.id,
+              media_url: post.image_url,
+              media_type: "image",
+              order_index: 0,
+            });
+
+          if (mediaError) {
+            console.error("Error adding media:", mediaError);
+            continue;
+          }
+
+          successCount++;
+          nextOrderIndex++;
+
+        } else if (post.post_type === "carrossel") {
+          // Filter slides with images
+          const slidesWithImages = post.slides?.filter(s => s.image_url) || [];
+          if (slidesWithImages.length === 0) continue;
+
+          // Create the creative in the presentation
+          const { data: creative, error: creativeError } = await supabase
+            .from("presentation_creatives")
+            .insert({
+              presentation_id: presentationId,
+              creative_type: "carrossel",
+              order_index: nextOrderIndex,
+              caption: post.caption || "",
+              current_status: "pending",
+            })
+            .select()
+            .single();
+
+          if (creativeError) {
+            console.error("Error creating creative:", creativeError);
+            continue;
+          }
+
+          // Add ALL slide images as creative_media
+          for (let i = 0; i < slidesWithImages.length; i++) {
+            const slide = slidesWithImages[i];
+            await supabase.from("creative_media").insert({
+              creative_id: creative.id,
+              media_url: slide.image_url,
+              media_type: "image",
+              order_index: i,
+            });
+          }
+
+          successCount++;
+          nextOrderIndex++;
+
+        } else if (post.post_type === "reels") {
+          // Reels can have video or image (thumbnail)
+          const mediaUrl = post.reels_uploaded_video_url || post.image_url;
+          if (!mediaUrl) continue;
+
+          // Create the creative in the presentation
+          const { data: creative, error: creativeError } = await supabase
+            .from("presentation_creatives")
+            .insert({
+              presentation_id: presentationId,
+              creative_type: "reels",
+              order_index: nextOrderIndex,
+              caption: post.caption || "",
+              current_status: "pending",
+            })
+            .select()
+            .single();
+
+          if (creativeError) {
+            console.error("Error creating creative:", creativeError);
+            continue;
+          }
+
+          // Add the media (video or image)
+          const { error: mediaError } = await supabase
+            .from("creative_media")
+            .insert({
+              creative_id: creative.id,
+              media_url: mediaUrl,
+              media_type: post.reels_uploaded_video_url ? "video" : "image",
+              order_index: 0,
+            });
+
+          if (mediaError) {
+            console.error("Error adding media:", mediaError);
+            continue;
+          }
+
+          successCount++;
+          nextOrderIndex++;
         }
-
-        // Add the media to the creative
-        const { error: mediaError } = await supabase
-          .from("creative_media")
-          .insert({
-            creative_id: creative.id,
-            media_url: post.image_url,
-            media_type: "image",
-            order_index: 0,
-          });
-
-        if (mediaError) {
-          console.error("Error adding media:", mediaError);
-          continue;
-        }
-
-        successCount++;
-        nextOrderIndex++;
       }
 
       // Invalidate queries to refresh data
@@ -188,7 +279,20 @@ export function SendPostsToPresentationDialog({
     }
   };
 
-  const postsWithImages = posts.filter(p => p.image_url);
+  // Filter posts that have valid media based on type
+  const postsWithMedia = posts.filter(p => {
+    if (p.post_type === 'estatico') {
+      return !!p.image_url;
+    }
+    if (p.post_type === 'carrossel') {
+      return p.slides?.some(s => s.image_url) ?? false;
+    }
+    if (p.post_type === 'reels') {
+      return !!p.reels_uploaded_video_url || !!p.image_url;
+    }
+    return false;
+  });
+  const postsWithoutMedia = posts.length - postsWithMedia.length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,14 +306,14 @@ export function SendPostsToPresentationDialog({
 
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            {postsWithImages.length === 1 ? (
+            {postsWithMedia.length === 1 ? (
               <span>1 post será enviado</span>
             ) : (
-              <span>{postsWithImages.length} posts serão enviados</span>
+              <span>{postsWithMedia.length} posts serão enviados</span>
             )}
-            {posts.length !== postsWithImages.length && (
+            {postsWithoutMedia > 0 && (
               <span className="text-amber-600 ml-1">
-                ({posts.length - postsWithImages.length} sem imagem serão ignorados)
+                ({postsWithoutMedia} sem mídia serão ignorados)
               </span>
             )}
           </div>
@@ -270,7 +374,7 @@ export function SendPostsToPresentationDialog({
                     <Button
                       className="flex-1"
                       onClick={handleSendToExisting}
-                      disabled={!selectedPresentationId || isSending || postsWithImages.length === 0}
+                      disabled={!selectedPresentationId || isSending || postsWithMedia.length === 0}
                     >
                       {isSending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -311,7 +415,7 @@ export function SendPostsToPresentationDialog({
                     <Button
                       className="flex-1"
                       onClick={handleCreateAndSend}
-                      disabled={!newPresentationName.trim() || isSending || postsWithImages.length === 0}
+                      disabled={!newPresentationName.trim() || isSending || postsWithMedia.length === 0}
                     >
                       {isSending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />

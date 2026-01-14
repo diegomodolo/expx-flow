@@ -1491,6 +1491,8 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
             subheadline: post.subheadline,
             caption: post.caption,
             post_type: post.post_type,
+            slides: post.slides,
+            reels_uploaded_video_url: post.reels_uploaded_video_url,
           }]}
         />
       )}
