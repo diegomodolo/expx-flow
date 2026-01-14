@@ -2857,6 +2857,14 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          default_target_conversion_rate: number | null
+          default_target_cpa: number | null
+          default_target_cpc: number | null
+          default_target_cpl: number | null
+          default_target_cpm: number | null
+          default_target_ctr: number | null
+          default_target_frequency: number | null
+          default_target_roas: number | null
           id: string
           listacnae_token: string | null
           updated_at: string
@@ -2864,6 +2872,14 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          default_target_conversion_rate?: number | null
+          default_target_cpa?: number | null
+          default_target_cpc?: number | null
+          default_target_cpl?: number | null
+          default_target_cpm?: number | null
+          default_target_ctr?: number | null
+          default_target_frequency?: number | null
+          default_target_roas?: number | null
           id?: string
           listacnae_token?: string | null
           updated_at?: string
@@ -2871,6 +2887,14 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          default_target_conversion_rate?: number | null
+          default_target_cpa?: number | null
+          default_target_cpc?: number | null
+          default_target_cpl?: number | null
+          default_target_cpm?: number | null
+          default_target_ctr?: number | null
+          default_target_frequency?: number | null
+          default_target_roas?: number | null
           id?: string
           listacnae_token?: string | null
           updated_at?: string

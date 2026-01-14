@@ -56,15 +56,15 @@ interface ClientBenchmark {
   is_active: boolean;
 }
 
-// Default benchmarks used when client has no specific configuration
-const DEFAULT_BENCHMARKS = {
-  target_cpa: 200,
-  target_cpl: 100,
-  target_ctr: 0.8,
-  target_cpc: 5,
-  target_cpm: 50,
-  target_roas: 2,
-  target_frequency: 4,
+// System fallback defaults (used when company has no configuration)
+const SYSTEM_FALLBACK_BENCHMARKS = {
+  target_cpa: 100,
+  target_cpl: 50,
+  target_ctr: 1,
+  target_cpc: 3,
+  target_cpm: 30,
+  target_roas: 3,
+  target_frequency: 3,
 };
 
 serve(async (req) => {
@@ -125,6 +125,7 @@ serve(async (req) => {
       googleCampaignsResult,
       syncInfoResult,
       benchmarksResult,
+      companySettingsResult,
     ] = await Promise.all([
       // All active clients (excluding canceled AND paused)
       supabase
@@ -166,6 +167,13 @@ serve(async (req) => {
         .select('*')
         .eq('company_id', company.id)
         .eq('is_active', true),
+
+      // Company settings for default benchmarks
+      supabase
+        .from('company_settings')
+        .select('default_target_cpa, default_target_cpl, default_target_ctr, default_target_cpc, default_target_cpm, default_target_roas, default_target_frequency')
+        .eq('company_id', company.id)
+        .maybeSingle(),
     ]);
 
     const allClients = clientsResult.data || [];
@@ -173,6 +181,20 @@ serve(async (req) => {
     const googleCampaigns = googleCampaignsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
     const benchmarks = (benchmarksResult.data || []) as ClientBenchmark[];
+    const companySettings = companySettingsResult.data;
+
+    // Build company default benchmarks (from settings or fallback to system defaults)
+    const DEFAULT_BENCHMARKS = {
+      target_cpa: companySettings?.default_target_cpa ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpa,
+      target_cpl: companySettings?.default_target_cpl ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpl,
+      target_ctr: companySettings?.default_target_ctr ?? SYSTEM_FALLBACK_BENCHMARKS.target_ctr,
+      target_cpc: companySettings?.default_target_cpc ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpc,
+      target_cpm: companySettings?.default_target_cpm ?? SYSTEM_FALLBACK_BENCHMARKS.target_cpm,
+      target_roas: companySettings?.default_target_roas ?? SYSTEM_FALLBACK_BENCHMARKS.target_roas,
+      target_frequency: companySettings?.default_target_frequency ?? SYSTEM_FALLBACK_BENCHMARKS.target_frequency,
+    };
+
+    console.log(`[radar-tv] Using default benchmarks: CPA=${DEFAULT_BENCHMARKS.target_cpa}, CTR=${DEFAULT_BENCHMARKS.target_ctr}`);
 
     // Build benchmarks map by client_id and platform
     const clientBenchmarks: Record<string, { meta?: ClientBenchmark; google?: ClientBenchmark }> = {};
