@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CampaignTableRow } from "@/hooks/useClientDashboard";
 import { useEffect, useState } from "react";
+import { FaFacebook, FaGoogle } from "react-icons/fa";
 
 interface CampaignsTableProps {
   campaigns: CampaignTableRow[];
@@ -111,7 +112,14 @@ export const CampaignsTable = ({ campaigns }: CampaignsTableProps) => {
                 style={{ animationDelay: `${index * 30}ms` }}
               >
                 <TableCell className="text-body-sm font-medium max-w-xs truncate">
-                  {campaign.name}
+                  <div className="flex items-center gap-2">
+                    {campaign.platform === 'google' ? (
+                      <FaGoogle className="h-4 w-4 text-[#4285F4] flex-shrink-0" />
+                    ) : (
+                      <FaFacebook className="h-4 w-4 text-[#1877F2] flex-shrink-0" />
+                    )}
+                    <span className="truncate">{campaign.name}</span>
+                  </div>
                 </TableCell>
                 <TableCell className="text-center text-body-sm">{campaign.ad_sets_count}</TableCell>
                 <TableCell className="text-center text-body-sm">{campaign.ads_count}</TableCell>
