@@ -632,7 +632,7 @@ async function fetchGoogleAdsData(
     // 1. Get Google Ads account details
     const { data: googleAccount, error: accountError } = await supabase
       .from('google_ads_accounts')
-      .select('id, customer_id, integration_id, descriptive_name')
+      .select('id, google_customer_id, integration_id, account_name')
       .eq('id', googleAccountId)
       .single();
 
@@ -641,7 +641,7 @@ async function fetchGoogleAdsData(
       return null;
     }
 
-    console.log('Google Ads account found:', googleAccount.descriptive_name);
+    console.log('Google Ads account found:', googleAccount.account_name);
 
     // 2. Get Google Ads integration with token
     const { data: integration, error: integrationError } = await supabase
@@ -671,7 +671,7 @@ async function fetchGoogleAdsData(
       return null;
     }
 
-    const customerId = googleAccount.customer_id.replace(/-/g, '');
+    const customerId = googleAccount.google_customer_id.replace(/-/g, '');
     const loginCustomerId = integration.parent_customer_id?.replace(/-/g, '') || customerId;
 
     const headers: Record<string, string> = {
