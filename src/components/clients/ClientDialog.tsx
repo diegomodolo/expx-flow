@@ -19,7 +19,7 @@ import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog, PauseCircle } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog, PauseCircle, Target } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ClientBriefingTab } from "./ClientBriefingTab";
@@ -28,6 +28,8 @@ import { ReferenceSelectionDialog } from "./ReferenceSelectionDialog";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useClientBenchmarks, BenchmarkFormData, emptyBenchmarkFormData } from "@/hooks/useClientBenchmarks";
+import { ClientMetricBenchmarksSection } from "./ClientMetricBenchmarksSection";
 
 interface ClientDialogProps {
   open: boolean;
@@ -38,7 +40,7 @@ interface ClientDialogProps {
   readOnly?: boolean;
 }
 
-type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'apresentacao' | 'identidade_ia' | 'contatos' | 'briefing';
+type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'metricas' | 'apresentacao' | 'identidade_ia' | 'contatos' | 'briefing';
 
 const sections: { id: SectionType; label: string; icon: React.ElementType; editOnly?: boolean }[] = [
   { id: 'cadastro', label: 'Cadastro', icon: User },
@@ -46,6 +48,7 @@ const sections: { id: SectionType; label: string; icon: React.ElementType; editO
   { id: 'integracoes', label: 'Contas & Integrações', icon: Link },
   { id: 'copywriting', label: 'Copywriting', icon: Pencil },
   { id: 'produto', label: 'Produto & Público', icon: Package },
+  { id: 'metricas', label: 'Métricas Ideais', icon: Target, editOnly: true },
   { id: 'apresentacao', label: 'Apresentação', icon: Presentation },
   { id: 'identidade_ia', label: 'Identidade Visual IA', icon: Sparkles },
   { id: 'contatos', label: 'Contatos', icon: Users, editOnly: true },
@@ -192,6 +195,21 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
   const [uploadingPresentationBg, setUploadingPresentationBg] = useState(false);
   const [uploadingAiRefImage, setUploadingAiRefImage] = useState<1 | 2 | 3 | null>(null);
   const [fetchingInstagramAvatar, setFetchingInstagramAvatar] = useState(false);
+
+  // Benchmark states
+  const { getBenchmarkByPlatform, benchmarkToFormData, saveBothBenchmarks, loading: benchmarksLoading } = useClientBenchmarks(client?.id, activeCompany?.company_id);
+  const [metaBenchmarkFormData, setMetaBenchmarkFormData] = useState<BenchmarkFormData>(emptyBenchmarkFormData);
+  const [googleBenchmarkFormData, setGoogleBenchmarkFormData] = useState<BenchmarkFormData>(emptyBenchmarkFormData);
+
+  // Load benchmarks when client changes
+  useEffect(() => {
+    if (client?.id) {
+      const metaBenchmark = getBenchmarkByPlatform('meta_ads');
+      const googleBenchmark = getBenchmarkByPlatform('google_ads');
+      setMetaBenchmarkFormData(benchmarkToFormData(metaBenchmark));
+      setGoogleBenchmarkFormData(benchmarkToFormData(googleBenchmark));
+    }
+  }, [client?.id, benchmarksLoading]);
 
   // Function to fetch Instagram avatar and save to storage using edge function
   const handleFetchInstagramAvatar = async (instagramProfileUrl: string) => {
@@ -418,6 +436,11 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
       };
       
       await onSubmit(submitData);
+
+      // Save benchmarks if editing an existing client
+      if (client?.id && activeCompany?.company_id) {
+        await saveBothBenchmarks(metaBenchmarkFormData, googleBenchmarkFormData);
+      }
       
       if (client?.facebook_ad_accounts?.id) {
         const { error: accountError } = await supabase
@@ -1944,6 +1967,17 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
               </ul>
             </div>
           </div>
+        );
+
+      case 'metricas':
+        return (
+          <ClientMetricBenchmarksSection
+            metaFormData={metaBenchmarkFormData}
+            googleFormData={googleBenchmarkFormData}
+            onMetaChange={setMetaBenchmarkFormData}
+            onGoogleChange={setGoogleBenchmarkFormData}
+            readOnly={readOnly}
+          />
         );
 
       case 'contatos':

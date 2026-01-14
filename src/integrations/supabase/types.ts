@@ -2086,6 +2086,75 @@ export type Database = {
           },
         ]
       }
+      client_metric_benchmarks: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          platform: string
+          target_conversion_rate: number | null
+          target_cpa: number | null
+          target_cpc: number | null
+          target_cpl: number | null
+          target_cpm: number | null
+          target_ctr: number | null
+          target_frequency: number | null
+          target_roas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform: string
+          target_conversion_rate?: number | null
+          target_cpa?: number | null
+          target_cpc?: number | null
+          target_cpl?: number | null
+          target_cpm?: number | null
+          target_ctr?: number | null
+          target_frequency?: number | null
+          target_roas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          platform?: string
+          target_conversion_rate?: number | null
+          target_cpa?: number | null
+          target_cpc?: number | null
+          target_cpl?: number | null
+          target_cpm?: number | null
+          target_ctr?: number | null
+          target_frequency?: number | null
+          target_roas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_metric_benchmarks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_metric_benchmarks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_notes: {
         Row: {
           client_id: string
