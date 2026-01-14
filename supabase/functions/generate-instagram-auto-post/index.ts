@@ -190,21 +190,27 @@ async function generateSingleImage(
       // LOGO INSTRUCTIONS - Complementary to visual style (secondary priority)
       const logoInstructions = clientLogo ? `
 ═══════════════════════════════════════════════════════════════════════════════════════
-🏷️ LOGOTIPO COMPLEMENTAR - "${clientCompanyName}" 🏷️
+🏷️ LOGOTIPO DA EMPRESA - "${clientCompanyName}" 🏷️
 ═══════════════════════════════════════════════════════════════════════════════════════
 
-A ÚLTIMA imagem de referência fornecida é o LOGOTIPO da empresa "${clientCompanyName}".
+A ÚLTIMA imagem de referência fornecida é o LOGOTIPO OFICIAL da empresa "${clientCompanyName}".
 
-📌 REGRAS PARA O LOGOTIPO (secundário ao estilo visual):
-
+📌 REGRAS PARA O LOGOTIPO:
 1. O ESTILO VISUAL das PRIMEIRAS imagens de referência é PRIORITÁRIO
-2. Se incluir logotipo, use EXATAMENTE o logotipo fornecido (última imagem)
-3. Posicione discretamente no canto inferior (máximo 10% da imagem)
-4. NÃO invente ou modifique o logotipo
-5. Se não conseguir reproduzir fielmente, NÃO inclua logotipo
+2. Se incluir o logotipo da empresa, use EXATAMENTE a imagem do logo fornecido
+3. Posicione discretamente (máximo 10% da imagem)
 
-⚠️ IMPORTANTE: O logotipo é um DETALHE COMPLEMENTAR.
-O ESTILO VISUAL das referências principais é o que deve guiar a criação da imagem.
+🚫🚫🚫 PROIBIÇÃO CRÍTICA 🚫🚫🚫
+
+❌ NÃO INVENTE um logotipo alternativo para "${clientCompanyName}"
+❌ NÃO CRIE texto com o nome da empresa em estilo diferente do logo fornecido
+❌ NÃO GERE versões "artísticas" ou "estilizadas" do nome da empresa
+❌ Se quiser incluir a marca do cliente, use SOMENTE a imagem do logo fornecida
+
+⚠️ USE APENAS o logo fornecido (última imagem de referência)
+⚠️ NÃO crie variações, textos ou gráficos adicionais representando a marca do cliente
+
+Nota: Marcas de terceiros (iFood, Uber, Google, etc.) podem ser usadas se fizerem sentido no contexto.
 
 ═══════════════════════════════════════════════════════════════════════════════════════
 
@@ -262,6 +268,22 @@ You MUST REPLICATE these elements from the FIRST ${referenceImages.length} image
 
 ` : '';
 
+      // TEXT INSTRUCTIONS - Ensure text is included if references have text
+      const textInstructions = `
+═══════════════════════════════════════════════════════════════════════════════════════
+📝 INSTRUÇÕES PARA TEXTO 📝
+═══════════════════════════════════════════════════════════════════════════════════════
+
+ANALISE as imagens de referência:
+- SE as referências contêm TEXTO/TÍTULOS/FRASES → SUA imagem DEVE conter texto
+- O texto deve seguir o MESMO ESTILO (tamanho, cor, posição) das referências
+- Use o conteúdo do CONTENT TO INCLUDE como base para o texto
+
+⚠️ NÃO gere imagens "apenas visuais" se as referências têm texto promocional ou headlines
+
+═══════════════════════════════════════════════════════════════════════════════════════
+`;
+
       // Date instruction - CRITICAL: enforce no date if config says so
       const dateInstruction = includeDateInImage 
         ? `SCHEDULED POST DATE: ${scheduledDateFormatted}
@@ -271,7 +293,7 @@ DO NOT include ANY dates, days of the week, or calendar references in the image.
 The image must be TIMELESS - no "Friday", no "January 9", no "2026", no date references whatsoever.
 If the content prompt mentions a date, IGNORE IT and create the image without any date text.`;
 
-      const geminiPrompt = `${referenceInstructions}${logoInstructions}
+      const geminiPrompt = `${referenceInstructions}${textInstructions}${logoInstructions}
 NOW, create a vertical 3:4 Instagram feed image (1080x1350 pixels).
 
 CONTENT TO INCLUDE (with IDENTICAL STYLE to the reference images above):
@@ -279,7 +301,10 @@ ${imagePrompt}${slideContext}
 
 ${dateInstruction}
 
-FINAL REMINDER: The visual style must be a PERFECT MATCH to the reference images. Only the specific content/text changes, NOT the style.
+🚨 LEMBRETES FINAIS:
+1. O estilo visual deve ser IDÊNTICO às referências (incluindo TEXTO se as referências têm)
+2. Para a marca do cliente "${clientCompanyName}": use APENAS o logo fornecido, NÃO invente variações
+3. Marcas de terceiros (iFood, Uber, etc.) podem ser usadas normalmente se relevantes ao contexto
 
 Generate the image now. Return image only.`;
 
