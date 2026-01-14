@@ -151,14 +151,24 @@ export interface DashboardData {
   social_metrics?: SocialMetrics;
 }
 
-export const useClientDashboard = (token: string, startDate: string, endDate: string) => {
+export const useClientDashboard = (
+  token: string, 
+  startDate: string, 
+  endDate: string,
+  preset?: string // 'last_7d', 'last_14d', 'last_30d', 'last_90d', 'today'
+) => {
   return useQuery({
-    queryKey: ['client-dashboard', token, startDate, endDate],
+    queryKey: ['client-dashboard', token, startDate, endDate, preset],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke(
         'client-dashboard-data',
         { 
-          body: { token, start_date: startDate, end_date: endDate } 
+          body: { 
+            token, 
+            start_date: startDate, 
+            end_date: endDate,
+            preset // Enviar o preset para usar date_preset do Meta
+          } 
         }
       );
       

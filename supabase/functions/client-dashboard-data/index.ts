@@ -84,18 +84,13 @@ interface SocialMetrics {
     total_likes: number;
     total_comments: number;
     avg_engagement: number;
-    // Insights data (requires instagram_manage_insights permission)
     reach?: number;
     impressions?: number;
     profile_views?: number;
     website_clicks?: number;
-    // Posts (for feed)
     recent_posts?: InstagramFeedPost[];
-    // Top engagement posts
     top_posts?: TopEngagementPost[];
-    // Timeline data (30 days)
     timeline?: InstagramTimeline;
-    // Comparison data (7d vs 7d)
     comparison?: InstagramComparison;
   } | null;
   facebook: {
@@ -114,9 +109,20 @@ interface SocialMetrics {
   } | null;
 }
 
-function extractConversions(actions: any[], campaignName?: string): number {
-  if (!actions || !Array.isArray(actions)) return 0;
-  
+/**
+ * Função unificada para contar conversões, alinhada com sync-facebook-campaigns.
+ * Combina actions + conversions e aplica lógica de prioridade para campanhas de Lead,
+ * ou soma para campanhas não-Lead.
+ */
+function countConversionsFromActions(
+  actions: any[] | undefined, 
+  campaignObjective?: string, 
+  campaignName?: string
+): number {
+  if (!actions || !Array.isArray(actions)) {
+    return 0;
+  }
+
   const norm = (s: any) => (s ?? '').toString().trim().toLowerCase();
   const getVal = (a: any) => {
     const toNum = (v: any) => (typeof v === 'string' ? parseFloat(v) : Number(v));
@@ -128,55 +134,125 @@ function extractConversions(actions: any[], campaignName?: string): number {
     const best = Math.max(...candidates, 0);
     return Math.round(best > 0 ? best : 0);
   };
-  
-  // Hierarquia de prioridade para ações de lead (maior para menor)
-  const leadPriorityTypes = [
-    'lead',
-    'offsite_conversion.fb_pixel_lead',
-    'messaging_conversation_started',
-    'conversation_started',
-    'offsite_conversion.fb_pixel_custom',
-    'onsite_conversion.lead',
-    'omni_lead',
-    'on_facebook_lead',
-    'on_facebook_conversation_started',
-    'onsite_conversion.lead_grouped',
-    'website_lead',
-    'onsite_conversion.messaging_conversation_started_7d'
-  ];
 
-  const normalized = actions.map(a => ({ 
-    type: norm(a?.action_type), 
-    val: getVal(a) 
-  }));
+  // Determine if this is a Lead objective campaign
+  const isLeadObjective = (campaignObjective || '').toUpperCase() === 'OUTCOME_LEADS';
 
-  // Encontrar a ação de lead de maior prioridade com valor > 0
-  for (const priorityType of leadPriorityTypes) {
-    const found = normalized.find(n => n.type === priorityType && n.val > 0);
-    if (found) {
-      console.log(`Campaign ${campaignName}: Using priority "${priorityType}" = ${found.val}`);
-      return found.val;
+  if (isLeadObjective) {
+    // Lead campaigns: choose a single best source to avoid duplication
+    const leadPriorityTypes = [
+      'lead',
+      'offsite_conversion.fb_pixel_lead',
+      'messaging_conversation_started',
+      'conversation_started',
+      'offsite_conversion.fb_pixel_custom',
+      'onsite_conversion.lead',
+      'omni_lead',
+      'on_facebook_lead',
+      'on_facebook_conversation_started',
+      'onsite_conversion.lead_grouped',
+      'website_lead',
+      'onsite_conversion.messaging_conversation_started_7d'
+    ];
+
+    const normalized = actions.map(a => ({ 
+      type: norm(a?.action_type), 
+      val: getVal(a) 
+    }));
+
+    // Find the highest priority lead action with value > 0
+    for (const priorityType of leadPriorityTypes) {
+      const found = normalized.find(n => n.type === priorityType && n.val > 0);
+      if (found) {
+        console.log(`Campaign ${campaignName}: Using priority "${priorityType}" = ${found.val}`);
+        return found.val;
+      }
     }
-  }
 
-  // Fallback: qualquer ação contendo "lead" ou "conversation"
-  const leadCandidates = normalized.filter(n => 
-    (n.type.includes('lead') || n.type.includes('conversation')) && n.val > 0
-  );
-  
-  if (leadCandidates.length > 0) {
-    const maxVal = Math.max(...leadCandidates.map(n => n.val));
-    console.log(`Campaign ${campaignName}: Fallback max = ${maxVal}`);
-    return maxVal;
-  }
+    // Fallback: any action type containing "lead" or "conversation"
+    const leadCandidates = normalized.filter(n => 
+      (n.type.includes('lead') || n.type.includes('conversation')) && n.val > 0
+    );
+    
+    if (leadCandidates.length > 0) {
+      const maxVal = Math.max(...leadCandidates.map(n => n.val));
+      console.log(`Campaign ${campaignName}: Fallback max = ${maxVal}`);
+      return maxVal;
+    }
 
-  return 0;
+    return 0;
+  } else {
+    // Non-lead campaigns: sum allowed conversion-like actions
+    const subscriptionConversions = [
+      'subscribe',
+      'subscription', 
+      'complete_registration',
+      'lead',
+      'offsite_conversion.fb_pixel_subscribe',
+      'offsite_conversion.fb_pixel_complete_registration',
+      'offsite_conversion.fb_pixel_lead',
+      'offsite_conversion.fb_pixel_custom',
+      'onsite_conversion.subscribe',
+      'onsite_conversion.subscription',
+      'onsite_conversion.lead_grouped',
+      'website_lead',
+      'messaging_conversation_started',
+      'messaging_conversation_started_7d',
+      'on_facebook_conversation_started',
+      'conversation_started'
+    ];
+    
+    const excludedTypes = [
+      'link_click',
+      'landing_page_view', 
+      'page_engagement',
+      'post_engagement',
+      'video_view',
+      'post_reaction',
+      'like',
+      'comment',
+      'share',
+      'post',
+      'omni_landing_page_view'
+    ];
+    
+    let total = 0;
+    
+    for (const a of actions) {
+      const type = norm(a?.action_type);
+      const val = getVal(a);
+      
+      if (!type || !Number.isFinite(val)) {
+        continue;
+      }
+      
+      if (excludedTypes.some(excluded => type.includes(excluded))) {
+        continue;
+      }
+      
+      const isSubscriptionConversion = subscriptionConversions.some(sub => type.includes(sub)) ||
+                                       type.includes('subscribe') ||
+                                       type.includes('subscription') ||
+                                       (type.includes('lead') && !type.includes('link')) ||
+                                       type.includes('complete_registration') ||
+                                       type.includes('messaging_conversation') ||
+                                       type.includes('conversation_started');
+      
+      if (isSubscriptionConversion) {
+        total += val;
+      }
+    }
+    
+    if (total > 0) {
+      console.log(`Campaign ${campaignName}: Non-lead total = ${total}`);
+    }
+    return total;
+  }
 }
 
 async function fetchSocialMetrics(supabase: any, clientId: string): Promise<SocialMetrics> {
   console.log('Fetching social metrics for client:', clientId);
   
-  // Buscar cliente com Instagram e Facebook Page vinculados
   const { data: clientFull, error: clientError } = await supabase
     .from('clients')
     .select(`
@@ -221,7 +297,6 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     console.log('Fetching Instagram data for:', igAccount.username);
     
     try {
-      // Buscar últimos 25 posts com dados completos
       const mediaUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/media?` +
         `fields=id,caption,media_type,media_url,thumbnail_url,like_count,comments_count,permalink` +
         `&limit=25&access_token=${pageAccessToken}`;
@@ -249,15 +324,12 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           media_type: p.media_type,
         }));
 
-        // Feed: manter ordem do Instagram (mais recentes primeiro)
-        // Retornamos mais que 6 para permitir "Carregar mais" no frontend
         recentPosts = mappedPosts.slice(0, 30);
 
         totalLikes = mappedPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
         totalComments = mappedPosts.reduce((sum: number, p: any) => sum + (p.comments_count || 0), 0);
         avgEngagement = postsCount > 0 ? (totalLikes + totalComments) / postsCount : 0;
 
-        // Ordenar por engajamento e pegar top 6
         topPosts = mappedPosts
           .map((p: InstagramFeedPost) => ({
             ...p,
@@ -266,16 +338,14 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           .sort((a: TopEngagementPost, b: TopEngagementPost) => b.engagement - a.engagement)
           .slice(0, 6);
 
-        console.log(`Fetched ${postsCount} Instagram posts, returning ${recentPosts.length} recent and top ${topPosts.length}`);
+        console.log(`Fetched ${postsCount} Instagram posts`);
       }
 
-      // Buscar insights do Instagram (requer instagram_manage_insights)
       let reach = 0;
       let impressions = 0;
       let profileViews = 0;
       let websiteClicks = 0;
       
-      // Timeline data for charts
       let timeline: InstagramTimeline = {
         reach: [],
         accounts_engaged: [],
@@ -284,7 +354,6 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         follower_count: [],
       };
       
-      // Comparison data
       let comparison: InstagramComparison = {
         reach_change_pct: 0,
         accounts_engaged_change_pct: 0,
@@ -294,25 +363,21 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
       };
 
       try {
-        // Calculate date range (last 30 days)
         const now = new Date();
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const since = Math.floor(thirtyDaysAgo.getTime() / 1000);
         const until = Math.floor(now.getTime() / 1000);
         
-        // Chamada 1: Métricas com period=day (reach, follower_count)
         const dailyMetricsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
           `metric=reach,follower_count` +
           `&period=day` +
           `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Instagram daily metrics (reach, follower_count)...');
         const dailyResponse = await fetch(dailyMetricsUrl);
         
         if (dailyResponse.ok) {
           const dailyData = await dailyResponse.json();
-          console.log('Instagram daily metrics received');
           
           if (dailyData.data) {
             dailyData.data.forEach((metric: any) => {
@@ -335,13 +400,8 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
               }
             });
           }
-        } else {
-          const errorData = await dailyResponse.json();
-          console.log('Instagram daily metrics error:', errorData.error?.message);
         }
         
-        // Chamada 2: Métricas com metric_type=total_value (accounts_engaged, profile_views, website_clicks)
-        // Essas métricas retornam valor total, não série temporal
         const totalMetricsUrl = `https://graph.facebook.com/v20.0/${igAccount.instagram_id}/insights?` +
           `metric=accounts_engaged,profile_views,website_clicks` +
           `&period=day` +
@@ -349,12 +409,10 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
           `&since=${since}&until=${until}` +
           `&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Instagram total metrics (accounts_engaged, profile_views, website_clicks)...');
         const totalResponse = await fetch(totalMetricsUrl);
         
         if (totalResponse.ok) {
           const totalData = await totalResponse.json();
-          console.log('Instagram total metrics received');
           
           if (totalData.data) {
             totalData.data.forEach((metric: any) => {
@@ -364,7 +422,6 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
               switch (metricName) {
                 case 'accounts_engaged':
                   impressions = totalValue;
-                  // Create a single point for display (total for period)
                   timeline.accounts_engaged = [{ date: new Date().toISOString().split('T')[0], value: totalValue }];
                   break;
                 case 'profile_views':
@@ -378,12 +435,8 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
               }
             });
           }
-        } else {
-          const errorData = await totalResponse.json();
-          console.log('Instagram total metrics error:', errorData.error?.message);
         }
         
-        // Calculate comparison (last 7 days vs previous 7 days) - only for reach and follower_count
         const calcComparison = (data: TimelineDataPoint2[]) => {
           if (data.length < 14) return 0;
           const last7 = data.slice(-7).reduce((sum, v) => sum + v.value, 0);
@@ -393,24 +446,12 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
         };
         
         comparison.reach_change_pct = calcComparison(timeline.reach);
-        // These will be 0 since we don't have daily breakdown for them
-        comparison.accounts_engaged_change_pct = 0;
-        comparison.profile_views_change_pct = 0;
-        comparison.website_clicks_change_pct = 0;
         
-        // Calculate followers gained in last 7 days
         if (timeline.follower_count.length >= 7) {
           const lastFollowers = timeline.follower_count[timeline.follower_count.length - 1]?.value || 0;
           const weekAgoFollowers = timeline.follower_count[timeline.follower_count.length - 7]?.value || 0;
           comparison.followers_gained = lastFollowers - weekAgoFollowers;
         }
-        
-        console.log('Timeline processed:', {
-          reach_points: timeline.reach.length,
-          follower_points: timeline.follower_count.length,
-          accounts_engaged_total: impressions,
-          profile_views_total: profileViews,
-        });
       } catch (insightsError) {
         console.log('Error fetching Instagram insights:', insightsError);
       }
@@ -435,7 +476,6 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
     } catch (error) {
       console.error('Error fetching Instagram data:', error);
       
-      // Retornar dados básicos do banco
       instagramData = {
         username: igAccount.username,
         profile_picture_url: igAccount.profile_picture_url || '',
@@ -466,105 +506,81 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
 
     if (pageAccessToken) {
       try {
-        // Buscar followers count e fans (likes)
         const pageInfoUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}?` +
           `fields=followers_count,fan_count&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Facebook Page info...');
         const pageInfoResponse = await fetch(pageInfoUrl);
         if (pageInfoResponse.ok) {
           const pageInfo = await pageInfoResponse.json();
           followersCount = pageInfo.followers_count || 0;
           pageFans = pageInfo.fan_count || 0;
-          console.log('Facebook Page info received:', { followersCount, pageFans });
-        } else {
-          const errorData = await pageInfoResponse.json();
-          console.log('Facebook Page info error:', errorData.error?.message);
         }
 
-        // Buscar insights da página com métricas válidas
-        // Métricas disponíveis: page_impressions_unique (reach), page_post_engagements, page_consumptions, page_views_total
         const pageInsightsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/insights?` +
           `metric=page_impressions_unique,page_post_engagements,page_consumptions,page_views_total` +
           `&period=day&date_preset=last_28d` +
           `&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Facebook Page insights with valid metrics...');
         const pageInsightsResponse = await fetch(pageInsightsUrl);
-        
         if (pageInsightsResponse.ok) {
           const insightsData = await pageInsightsResponse.json();
-          console.log('Facebook Page insights data received');
           
           if (insightsData.data) {
             insightsData.data.forEach((metric: any) => {
-              // Somar valores dos últimos 28 dias
               const values = metric.values || [];
-              const total = values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
+              const totalValue = values.reduce((sum: number, v: any) => sum + (v.value || 0), 0);
               
               switch (metric.name) {
                 case 'page_impressions_unique':
-                  pageReach = total;
+                  pageReach = totalValue;
                   break;
                 case 'page_post_engagements':
-                  pageEngagedUsers = total;
-                  pagePostEngagements = total;
+                  pagePostEngagements = totalValue;
                   break;
                 case 'page_consumptions':
-                  pageConsumptions = total;
+                  pageConsumptions = totalValue;
                   break;
                 case 'page_views_total':
-                  pageViews = total;
+                  pageViews = totalValue;
                   break;
               }
             });
-            console.log('Facebook insights processed:', { pageReach, pageEngagedUsers, pageConsumptions, pageViews });
           }
-        } else {
-          const errorData = await pageInsightsResponse.json();
-          console.log('Facebook Page insights not available:', errorData.error?.message);
         }
 
-        // Buscar posts recentes da página do Facebook
-        const postsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/published_posts?` +
-          `fields=id,message,created_time,full_picture,permalink_url,likes.summary(true),comments.summary(true),shares` +
-          `&limit=12&access_token=${pageAccessToken}`;
+        const postsUrl = `https://graph.facebook.com/v20.0/${fbPage.page_id}/posts?` +
+          `fields=id,message,created_time,full_picture,permalink_url,` +
+          `likes.summary(true),comments.summary(true),shares` +
+          `&limit=10&access_token=${pageAccessToken}`;
         
-        console.log('Fetching Facebook Page posts...');
         const postsResponse = await fetch(postsUrl);
-        
         if (postsResponse.ok) {
           const postsData = await postsResponse.json();
-          console.log('Facebook posts received:', postsData.data?.length || 0);
+          const posts = postsData.data || [];
           
-          if (postsData.data) {
-            recentPosts = postsData.data.map((post: any) => ({
-              id: post.id,
-              message: post.message || '',
-              created_time: post.created_time,
-              full_picture: post.full_picture || '',
-              permalink_url: post.permalink_url || `https://www.facebook.com/${post.id}`,
-              likes_count: post.likes?.summary?.total_count || 0,
-              comments_count: post.comments?.summary?.total_count || 0,
-              shares_count: post.shares?.count || 0,
-            }));
-          }
-        } else {
-          const errorData = await postsResponse.json();
-          console.log('Facebook Page posts not available:', errorData.error?.message);
+          recentPosts = posts.map((p: any) => ({
+            id: p.id,
+            message: p.message || '',
+            created_time: p.created_time,
+            full_picture: p.full_picture,
+            permalink_url: p.permalink_url,
+            likes_count: p.likes?.summary?.total_count || 0,
+            comments_count: p.comments?.summary?.total_count || 0,
+            shares_count: p.shares?.count || 0,
+          }));
         }
       } catch (fbError) {
-        console.log('Error fetching Facebook Page data:', fbError);
+        console.error('Error fetching Facebook Page data:', fbError);
       }
     }
 
     facebookData = {
       page_name: fbPage.page_name,
       page_category: fbPage.page_category || '',
-      followers_count: followersCount || pageFans,
+      followers_count: followersCount,
       page_fans: pageFans,
       page_reach: pageReach,
-      page_impressions: pageReach,
+      page_impressions: pageImpressions,
       page_engaged_users: pageEngagedUsers,
       page_post_engagements: pagePostEngagements,
       page_consumptions: pageConsumptions,
@@ -577,24 +593,37 @@ async function fetchSocialMetrics(supabase: any, clientId: string): Promise<Soci
   return { instagram: instagramData, facebook: facebookData };
 }
 
+/**
+ * Mapeia presets do frontend para date_preset do Meta
+ */
+function mapPresetToMeta(preset: string): string | null {
+  const presetMap: Record<string, string> = {
+    'today': 'today',
+    'last_7d': 'last_7d',
+    'last_14d': 'last_14d',
+    'last_30d': 'last_30d',
+    'last_90d': 'last_90d',
+  };
+  return presetMap[preset] || null;
+}
+
 Deno.serve(async (req) => {
+  console.log('=== Client Dashboard Data Edge Function ===');
+  console.log('Request method:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { token, start_date, end_date } = await req.json();
+    const body = await req.json();
+    const { token, start_date, end_date, preset, debug } = body;
+    
+    console.log('Request params:', { token, start_date, end_date, preset, debug });
 
     if (!token) {
       return new Response(
         JSON.stringify({ error: 'Token is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!start_date || !end_date) {
-      return new Response(
-        JSON.stringify({ error: 'start_date and end_date are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -623,7 +652,6 @@ Deno.serve(async (req) => {
     const socialMetricsPromise = fetchSocialMetrics(supabase, client.id);
 
     if (!client.ad_account_id) {
-      // Se não tem ad account, ainda retornar dados sociais
       const socialMetrics = await socialMetricsPromise;
       
       return new Response(
@@ -681,33 +709,78 @@ Deno.serve(async (req) => {
 
     console.log('Integration found, active:', integration.is_active);
 
-    const since = start_date;
-    const until = end_date;
+    const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
+    
+    // Determinar o parâmetro de período: usar date_preset quando preset disponível
+    const metaPreset = preset ? mapPresetToMeta(preset) : null;
+    let dateParam: string;
+    let since: string;
+    let until: string;
+    
+    if (metaPreset) {
+      // Usar date_preset do Meta (mesmo comportamento do sync-facebook-campaigns)
+      dateParam = `.date_preset(${metaPreset})`;
+      // Para o response, calcular as datas correspondentes
+      const now = new Date();
+      until = now.toISOString().split('T')[0];
+      
+      const daysMap: Record<string, number> = {
+        'today': 0,
+        'last_7d': 6,
+        'last_14d': 13,
+        'last_30d': 29,
+        'last_90d': 89,
+      };
+      const daysBack = daysMap[metaPreset] || 29;
+      const fromDate = new Date(now);
+      fromDate.setDate(fromDate.getDate() - daysBack);
+      since = fromDate.toISOString().split('T')[0];
+      
+      console.log(`Using Meta date_preset: ${metaPreset} (calculated: ${since} to ${until})`);
+    } else {
+      // Usar time_range explícito
+      since = start_date;
+      until = end_date;
+      dateParam = `.time_range({since:'${since}',until:'${until}'})`;
+      console.log(`Using time_range: ${since} to ${until}`);
+    }
 
     console.log(`Fetching campaigns from Facebook for period ${since} to ${until}`);
 
-    const cleanAccountId = adAccount.account_id.replace(/^act_/, '');
-
+    // IMPORTANTE: Buscar também o array "conversions" além de "actions"
     const campaignsUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/campaigns?` +
       `fields=id,name,status,objective,` +
-      `insights.time_range({since:'${since}',until:'${until}'})` +
+      `insights${dateParam}` +
       `.action_report_time(conversion)` +
       `.action_attribution_windows(["7d_click","1d_view"])` +
-      `{date_start,date_stop,impressions,clicks,spend,actions,reach,frequency}` +
+      `{date_start,date_stop,impressions,clicks,spend,actions,conversions,reach,frequency}` +
       `&limit=500&access_token=${integration.access_token}`;
 
     console.log('Fetching campaigns from Meta (aggregated data)');
 
     const campaignsResponse = await fetch(campaignsUrl);
     
-    const timelineUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
-      `time_range={'since':'${since}','until':'${until}'}` +
-      `&time_increment=1` +
-      `&fields=date_start,actions,spend` +
-      `&action_attribution_windows=["7d_click","1d_view"]` +
-      `&action_report_time=conversion` +
-      `&level=account` +
-      `&access_token=${integration.access_token}`;
+    // Timeline também com date_preset quando disponível
+    let timelineUrl: string;
+    if (metaPreset) {
+      timelineUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
+        `date_preset=${metaPreset}` +
+        `&time_increment=1` +
+        `&fields=date_start,actions,conversions,spend` +
+        `&action_attribution_windows=["7d_click","1d_view"]` +
+        `&action_report_time=conversion` +
+        `&level=account` +
+        `&access_token=${integration.access_token}`;
+    } else {
+      timelineUrl = `https://graph.facebook.com/v20.0/act_${cleanAccountId}/insights?` +
+        `time_range={'since':'${since}','until':'${until}'}` +
+        `&time_increment=1` +
+        `&fields=date_start,actions,conversions,spend` +
+        `&action_attribution_windows=["7d_click","1d_view"]` +
+        `&action_report_time=conversion` +
+        `&level=account` +
+        `&access_token=${integration.access_token}`;
+    }
 
     console.log('Fetching timeline data from Meta (daily breakdown)');
 
@@ -746,20 +819,28 @@ Deno.serve(async (req) => {
 
     const campaigns = fbData.data || [];
     
-    const timelineMap = new Map<string, { leads: number; messages: number }>();
+    const timelineMap = new Map<string, { leads: number; messages: number; spend: number }>();
     
     if (timelineData.data && Array.isArray(timelineData.data)) {
       timelineData.data.forEach((insight: any) => {
         const date = insight.date_start;
         if (date) {
-          const conversions = extractConversions(insight.actions, `Timeline ${date}`);
+          // Combinar actions + conversions para timeline também
+          const combinedMetrics = [
+            ...(Array.isArray(insight.actions) ? insight.actions : []),
+            ...(Array.isArray(insight.conversions) ? insight.conversions : [])
+          ];
+          
+          const conversions = countConversionsFromActions(combinedMetrics, undefined, `Timeline ${date}`);
           const messages = insight.actions?.find(
             (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
           )?.value || 0;
+          const spend = parseFloat(insight.spend || '0');
           
           timelineMap.set(date, {
             leads: conversions,
             messages: parseFloat(messages),
+            spend,
           });
         }
       });
@@ -774,6 +855,9 @@ Deno.serve(async (req) => {
     let totalClicks = 0;
     let totalReach = 0;
 
+    // Debug info para campanhas (se solicitado)
+    const debugCampaigns: any[] = [];
+
     const processedCampaigns = campaigns.map((campaign: any) => {
       const insights = campaign.insights?.data || [];
       
@@ -782,6 +866,7 @@ Deno.serve(async (req) => {
           id: campaign.id,
           name: campaign.name,
           status: campaign.status,
+          objective: campaign.objective,
           spend: 0,
           conversions: 0,
           impressions: 0,
@@ -803,7 +888,14 @@ Deno.serve(async (req) => {
         const impressions = parseInt(insight.impressions || '0', 10);
         const clicks = parseInt(insight.clicks || '0', 10);
         const reach = parseInt(insight.reach || '0', 10);
-        const conversions = extractConversions(insight.actions, campaign.name);
+        
+        // IMPORTANTE: Combinar actions + conversions (igual ao sync-facebook-campaigns)
+        const combinedMetrics = [
+          ...(Array.isArray(insight.actions) ? insight.actions : []),
+          ...(Array.isArray(insight.conversions) ? insight.conversions : [])
+        ];
+        
+        const conversions = countConversionsFromActions(combinedMetrics, campaign.objective, campaign.name);
         
         const messages = insight.actions?.find(
           (a: any) => a.action_type === 'onsite_conversion.messaging_conversation_started_7d'
@@ -816,6 +908,29 @@ Deno.serve(async (req) => {
         totalCampaignImpressions += impressions;
         totalCampaignClicks += clicks;
         totalCampaignReach += reach;
+
+        // Coletar debug info
+        if (debug && debugCampaigns.length < 5) {
+          debugCampaigns.push({
+            id: campaign.id,
+            name: campaign.name,
+            objective: campaign.objective,
+            spend,
+            conversions,
+            actions_summary: (insight.actions || []).slice(0, 10).map((a: any) => ({
+              type: a.action_type,
+              value: a.value,
+              '7d_click': a?.['7d_click'],
+              '1d_view': a?.['1d_view'],
+            })),
+            conversions_summary: (insight.conversions || []).slice(0, 10).map((a: any) => ({
+              type: a.action_type,
+              value: a.value,
+              '7d_click': a?.['7d_click'],
+              '1d_view': a?.['1d_view'],
+            })),
+          });
+        }
       });
 
       totalSpend += totalCampaignSpend;
@@ -827,6 +942,7 @@ Deno.serve(async (req) => {
         id: campaign.id,
         name: campaign.name,
         status: campaign.status,
+        objective: campaign.objective,
         spend: totalCampaignSpend,
         conversions: totalCampaignConversions,
         messages: totalCampaignMessages,
@@ -842,9 +958,10 @@ Deno.serve(async (req) => {
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Totais: usar o agregado por campanha (mesma fonte do Spend)
-    // Obs: o endpoint diário (timeline) pode subcontar ações dependendo da agregação do Meta.
     totalConversions = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.conversions) || 0), 0);
     totalMessages = processedCampaigns.reduce((sum: number, c: any) => sum + (Number(c.messages) || 0), 0);
+
+    console.log(`Total from campaigns: conversions=${totalConversions}, messages=${totalMessages}, spend=${totalSpend.toFixed(2)}`);
 
     const totalConversionsAll = totalConversions + totalMessages;
     const cpl = totalConversionsAll > 0 ? totalSpend / totalConversionsAll : 0;
@@ -901,7 +1018,7 @@ Deno.serve(async (req) => {
 
     const daysDiff = Math.ceil((new Date(until).getTime() - new Date(since).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const response = {
+    const response: any = {
       client: {
         name: client.name,
         company: client.company,
@@ -911,6 +1028,7 @@ Deno.serve(async (req) => {
         start_date: since,
         end_date: until,
         days: daysDiff,
+        preset: preset || null,
       },
       metrics,
       timeline,
@@ -919,11 +1037,20 @@ Deno.serve(async (req) => {
       social_metrics: socialMetrics,
     };
 
+    // Adicionar debug info se solicitado
+    if (debug) {
+      response.debug = {
+        period_received: { start_date, end_date, preset },
+        period_used: { since, until, meta_preset: metaPreset },
+        campaigns_count: campaigns.length,
+        top_campaigns_debug: debugCampaigns,
+      };
+    }
+
     return new Response(JSON.stringify(response), {
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json',
-        // Evita cache durante uso do dashboard público (senão parece que “não atualiza”)
         'Cache-Control': 'no-store'
       },
     });
