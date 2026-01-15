@@ -6,6 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface GestorClient {
+  id: string;
+  name: string;
+  avatar: string | null;
+  conversions: number;
+  spend: number;
+}
+
 interface GestorRanking {
   id: string;
   name: string;
@@ -14,6 +22,7 @@ interface GestorRanking {
   conversions: number;
   clientsCount: number;
   totalSpend: number;
+  clients: GestorClient[];
 }
 
 interface SquadRanking {
@@ -415,6 +424,9 @@ serve(async (req) => {
     const { data: clientsWithGestores } = await supabase
       .from('clients')
       .select(`
+        id,
+        name,
+        avatar,
         gestor_id,
         user_id,
         gestor:employees!gestor_id(id, name, avatar, user_id),
@@ -423,8 +435,14 @@ serve(async (req) => {
       .eq('company_id', company.id)
       .eq('is_canceled', false);
 
-    // Aggregate by gestor_id
-    const gestorStats = new Map<string, { conversions: number; clientsCount: number; totalSpend: number; gestorUserId?: string }>();
+    // Aggregate by gestor_id - now includes client details
+    const gestorStats = new Map<string, { 
+      conversions: number; 
+      clientsCount: number; 
+      totalSpend: number; 
+      gestorUserId?: string;
+      clients: GestorClient[];
+    }>();
     
     if (clientsWithGestores) {
       for (const client of clientsWithGestores) {
@@ -435,16 +453,29 @@ serve(async (req) => {
         if (!gestorId) continue;
         
         if (!gestorStats.has(gestorId)) {
-          gestorStats.set(gestorId, { conversions: 0, clientsCount: 0, totalSpend: 0, gestorUserId });
+          gestorStats.set(gestorId, { conversions: 0, clientsCount: 0, totalSpend: 0, gestorUserId, clients: [] });
         }
         const stats = gestorStats.get(gestorId)!;
         stats.clientsCount++;
         
         const campaigns = client.campaigns as any[] || [];
+        let clientConversions = 0;
+        let clientSpend = 0;
         for (const campaign of campaigns) {
+          clientConversions += campaign.conversions || 0;
+          clientSpend += campaign.spend || 0;
           stats.conversions += campaign.conversions || 0;
           stats.totalSpend += campaign.spend || 0;
         }
+        
+        // Add client to gestor's client list
+        stats.clients.push({
+          id: client.id,
+          name: client.name,
+          avatar: client.avatar,
+          conversions: clientConversions,
+          spend: clientSpend
+        });
       }
     }
 
@@ -473,6 +504,9 @@ serve(async (req) => {
       const employee = employeeData?.find(e => e.id === gestorId);
       const profile = gestorProfiles?.find(p => p.user_id === stats.gestorUserId || p.user_id === gestorId);
       
+      // Sort clients by conversions descending
+      const sortedClients = stats.clients.sort((a, b) => b.conversions - a.conversions);
+      
       gestorRanking.push({
         id: gestorId,
         name: profile?.full_name || employee?.name || 'Gestor',
@@ -480,7 +514,8 @@ serve(async (req) => {
         position: position++,
         conversions: stats.conversions,
         clientsCount: stats.clientsCount,
-        totalSpend: stats.totalSpend
+        totalSpend: stats.totalSpend,
+        clients: sortedClients
       });
     }
 
