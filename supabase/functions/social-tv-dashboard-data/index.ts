@@ -163,7 +163,8 @@ async function getTopClientByMetric(
   if (metric === 'cpa') {
     filteredClients = clientsWithMetrics.filter(c => c.totalConversions > 0 && c.avgCpa > 0);
   } else if (metric === 'ctr') {
-    filteredClients = clientsWithMetrics.filter(c => c.avgCtr > 0);
+    // Só considera clientes com CTR > 0 E pelo menos 1 conversão (vitória real)
+    filteredClients = clientsWithMetrics.filter(c => c.avgCtr > 0 && c.totalConversions > 0);
   } else if (metric === 'conversions') {
     filteredClients = clientsWithMetrics.filter(c => c.totalConversions > 0);
   } else if (metric === 'spend') {
