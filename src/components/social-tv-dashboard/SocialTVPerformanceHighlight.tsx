@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, DollarSign, TrendingUp, Users, Star, Crown, Trophy, MousePointer } from 'lucide-react';
+import { Target, DollarSign, TrendingUp, Star, Crown, Trophy, MousePointer } from 'lucide-react';
 
 interface PerformanceMetrics {
   totalLeads: number;
@@ -35,6 +35,7 @@ interface SocialTVPerformanceHighlightProps {
   featuredClient: FeaturedClient | null;
   featuredClients?: FeaturedClient[];
   rotationInterval?: number;
+  totalClicks?: number;
 }
 
 function formatCurrency(value: number): string {
@@ -128,7 +129,8 @@ export function SocialTVPerformanceHighlight({
   performanceMetrics, 
   featuredClient,
   featuredClients = [],
-  rotationInterval = 8000
+  rotationInterval = 8000,
+  totalClicks = 0,
 }: SocialTVPerformanceHighlightProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -172,9 +174,9 @@ export function SocialTVPerformanceHighlight({
       value: `${performanceMetrics.avgCtr.toFixed(2)}%`,
     },
     {
-      icon: Users,
-      label: 'Clientes Ativos',
-      value: formatNumber(performanceMetrics.activeClients),
+      icon: MousePointer,
+      label: 'Cliques',
+      value: formatNumber(totalClicks),
     },
   ];
 

@@ -229,6 +229,7 @@ export default function DashboardSocialTVPublic() {
           <div className="flex-1 min-h-0 px-4" style={{ flex: '1 1 50%' }}>
             <SocialTVPerformanceHighlight 
               performanceMetrics={performanceMetrics}
+              totalClicks={data.metrics?.totalClicks || 0}
               featuredClient={data.featuredClient}
               featuredClients={data.featuredClients}
               rotationInterval={8000}
