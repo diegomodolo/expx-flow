@@ -639,8 +639,20 @@ serve(async (req) => {
     }
 
     // ========== LEGACY METRICS (for backwards compatibility) ==========
-    // Calculate total clicks from all clients
-    const totalClicks = clientsWithMetrics.reduce((sum, c) => sum + (c.totalClicks || 0), 0);
+    // Calculate total clicks from campaigns
+    const { data: metaClicksAgg } = await supabase
+      .from('campaigns')
+      .select('clicks')
+      .eq('company_id', company.id);
+    
+    const { data: googleClicksAgg } = await supabase
+      .from('google_campaigns')
+      .select('clicks')
+      .eq('company_id', company.id);
+    
+    const totalMetaClicks = (metaClicksAgg || []).reduce((sum, c: any) => sum + (c.clicks || 0), 0);
+    const totalGoogleClicks = (googleClicksAgg || []).reduce((sum, c: any) => sum + (c.clicks || 0), 0);
+    const totalClicks = totalMetaClicks + totalGoogleClicks;
     
     const metrics = {
       totalCreatives: totalAds,
