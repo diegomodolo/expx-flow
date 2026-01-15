@@ -639,11 +639,15 @@ serve(async (req) => {
     }
 
     // ========== LEGACY METRICS (for backwards compatibility) ==========
+    // Calculate total clicks from all clients
+    const totalClicks = clientsWithMetrics.reduce((sum, c) => sum + (c.totalClicks || 0), 0);
+    
     const metrics = {
       totalCreatives: totalAds,
       creativesActive: totalAds,
       avgEngagement: avgCtr,
-      totalConversions: totalLeads
+      totalConversions: totalLeads,
+      totalClicks
     };
 
     const response = {

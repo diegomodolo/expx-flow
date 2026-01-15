@@ -1,11 +1,12 @@
 import React from 'react';
-import { Image, CheckCircle, TrendingUp, Target } from 'lucide-react';
+import { Image, MousePointerClick, TrendingUp, Target } from 'lucide-react';
 
 interface Metrics {
   totalCreatives: number;
   creativesActive: number;
   avgEngagement: number;
   totalConversions: number;
+  totalClicks?: number;
 }
 
 interface SocialTVMetricsBadgesProps {
@@ -13,6 +14,12 @@ interface SocialTVMetricsBadgesProps {
 }
 
 export function SocialTVMetricsBadges({ metrics }: SocialTVMetricsBadgesProps) {
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toLocaleString('pt-BR');
+  };
+
   const badges = [
     {
       icon: Image,
@@ -20,9 +27,9 @@ export function SocialTVMetricsBadges({ metrics }: SocialTVMetricsBadgesProps) {
       label: 'Criativos',
     },
     {
-      icon: CheckCircle,
-      value: metrics.creativesActive,
-      label: 'Ativos',
+      icon: MousePointerClick,
+      value: formatNumber(metrics.totalClicks || 0),
+      label: 'Cliques',
     },
     {
       icon: TrendingUp,
