@@ -571,8 +571,12 @@ serve(async (req) => {
       return sum + ((c.meta_monthly_budget || 0) + (c.google_monthly_budget || 0) || c.monthly_budget || 0);
     }, 0);
 
-    const totalSpend = Object.values(clientSpend).reduce((sum, s) => sum + s.total, 0);
-    const totalConversions = Object.values(clientSpend).reduce((sum, s) => sum + s.conversions, 0);
+    // IMPORTANTE: Calcular totalSpend de TODAS as campanhas (Meta + Google), 
+    // independente do status do cliente (pausado ou não)
+    const totalSpend = metaCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0) +
+                       googleCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0);
+    const totalConversions = metaCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0) +
+                             googleCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
 
     // Count unique clients at risk (not counting same client twice for different risk types)
     const uniqueRiskClientIds = new Set(risks.map(r => r.id));
