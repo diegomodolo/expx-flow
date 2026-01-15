@@ -140,10 +140,10 @@ serve(async (req) => {
         .eq('company_id', company.id)
         .eq('is_canceled', false),
 
-      // Meta campaigns
+      // Meta campaigns (removed cpm as it doesn't exist in schema)
       supabase
         .from('campaigns')
-        .select('id, name, client_id, spend, conversions, cpa, ctr, cpc, cpm, frequency, status, is_active')
+        .select('id, name, client_id, spend, conversions, cpa, ctr, cpc, frequency, status, is_active')
         .eq('company_id', company.id),
 
       // Google campaigns
@@ -176,12 +176,30 @@ serve(async (req) => {
         .maybeSingle(),
     ]);
 
+    // Log any query errors for debugging
+    if (metaCampaignsResult.error) {
+      console.error('[radar-tv] Meta campaigns query error:', JSON.stringify(metaCampaignsResult.error));
+    }
+    if (googleCampaignsResult.error) {
+      console.error('[radar-tv] Google campaigns query error:', JSON.stringify(googleCampaignsResult.error));
+    }
+    if (clientsResult.error) {
+      console.error('[radar-tv] Clients query error:', JSON.stringify(clientsResult.error));
+    }
+
     const allClients = clientsResult.data || [];
     const metaCampaigns = metaCampaignsResult.data || [];
     const googleCampaigns = googleCampaignsResult.data || [];
     const syncInfo = syncInfoResult.data?.[0] || null;
     const benchmarks = (benchmarksResult.data || []) as ClientBenchmark[];
     const companySettings = companySettingsResult.data;
+
+    // Log campaign counts with spend totals for debugging
+    const metaSpendTotal = metaCampaigns.reduce((sum, c) => sum + (Number(c.spend) || 0), 0);
+    const googleSpendTotal = googleCampaigns.reduce((sum, c) => sum + (Number(c.spend) || 0), 0);
+    console.log(`[radar-tv] Company ID: ${company.id}`);
+    console.log(`[radar-tv] Meta campaigns: count=${metaCampaigns.length}, totalSpend=${metaSpendTotal.toFixed(2)}`);
+    console.log(`[radar-tv] Google campaigns: count=${googleCampaigns.length}, totalSpend=${googleSpendTotal.toFixed(2)}`);
 
     // Build company default benchmarks (from settings or fallback to system defaults)
     const DEFAULT_BENCHMARKS = {
