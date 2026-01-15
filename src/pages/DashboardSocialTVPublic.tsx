@@ -86,6 +86,7 @@ interface SocialTVDashboardData {
     creativesActive: number;
     avgEngagement: number;
     totalConversions: number;
+    totalClicks?: number;
   };
 }
 
