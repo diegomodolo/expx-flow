@@ -367,13 +367,20 @@ serve(async (req) => {
       }
     });
 
-    console.log(`[tv-dashboard-data] Found ${metaCampaigns.length} Meta campaigns, ${googleCampaigns.length} Google campaigns, ${clientsOnAlert.length} clients on alert`);
+    console.log(`[tv-dashboard-data] Found ${metaCampaigns.length} Meta campaigns (active), ${googleCampaigns.length} Google campaigns (active)`);
+    console.log(`[tv-dashboard-data] Found ${allMetaCampaigns.length} Meta campaigns (all), ${allGoogleCampaigns.length} Google campaigns (all)`);
+    console.log(`[tv-dashboard-data] ${clientsOnAlert.length} clients on alert`);
 
-    // Calculate metrics (combined from both platforms)
-    const totalInvestment = campaigns.reduce((sum, c) => sum + c.spend, 0);
-    const totalLeads = campaigns.reduce((sum, c) => sum + c.conversions, 0);
+    // Calculate metrics using ALL campaigns (not just active) - matches Dashboard principal
+    // This ensures TV Dashboard shows the same investment as other dashboards
+    const totalInvestment = [...allMetaCampaigns, ...allGoogleCampaigns].reduce((sum, c: any) => sum + (Number(c.spend) || 0), 0);
+    const totalLeads = [...allMetaCampaigns, ...allGoogleCampaigns].reduce((sum, c: any) => sum + (Number(c.conversions) || 0), 0);
+    
+    // For clicks/impressions, we still use active campaigns since ALL campaigns don't have these fields
     const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
     const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0);
+    
+    console.log(`[tv-dashboard-data] KPIs: totalInvestment=${totalInvestment.toFixed(2)}, totalLeads=${totalLeads}`);
     
     const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
     const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
@@ -387,18 +394,13 @@ serve(async (req) => {
       ? campaignsWithFrequency.reduce((sum, c) => sum + (c.frequency || 0), 0) / campaignsWithFrequency.length 
       : 0;
 
-    // Investment by platform (combined)
+    // Investment by platform (using ALL campaigns to match totalInvestment)
+    const metaInvestment = allMetaCampaigns.reduce((sum, c: any) => sum + (Number(c.spend) || 0), 0);
+    const googleInvestment = allGoogleCampaigns.reduce((sum, c: any) => sum + (Number(c.spend) || 0), 0);
     const investmentByPlatform: Record<string, number> = {
-      'Meta Ads': 0,
-      'Google Ads': 0
+      'Meta Ads': metaInvestment,
+      'Google Ads': googleInvestment
     };
-    campaigns.forEach(c => {
-      if (c.platform === 'meta') {
-        investmentByPlatform['Meta Ads'] += c.spend;
-      } else {
-        investmentByPlatform['Google Ads'] += c.spend;
-      }
-    });
     
     const platformData = Object.entries(investmentByPlatform)
       .filter(([_, spend]) => spend > 0)
