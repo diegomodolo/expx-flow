@@ -54,6 +54,13 @@ interface SocialTVDashboardData {
     conversions: number;
     clientsCount: number;
     totalSpend: number;
+    clients?: Array<{
+      id: string;
+      name: string;
+      avatar: string | null;
+      conversions: number;
+      spend: number;
+    }>;
   }>;
   squadRanking: Array<{
     id: string;
