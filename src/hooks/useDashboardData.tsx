@@ -84,7 +84,7 @@ export const useDashboardData = () => {
       const sixtyDaysAgo = new Date();
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-      // 1. Métricas principais (últimos 30 dias vs período anterior)
+      // 1. Métricas principais (últimos 30 dias vs período anterior) - Meta Campaigns
       const { data: currentPeriodCampaigns } = await supabase
         .from('campaigns')
         .select(`
@@ -101,12 +101,30 @@ export const useDashboardData = () => {
         .gte('created_at', sixtyDaysAgo.toISOString())
         .lt('created_at', thirtyDaysAgo.toISOString());
 
-      // 2. Performance por cliente
+      // 1b. Google Campaigns (últimos 30 dias vs período anterior)
+      const { data: currentGoogleCampaigns } = await supabase
+        .from('google_campaigns')
+        .select(`
+          *,
+          clients!inner(name, company, status)
+        `)
+        .eq('company_id', activeCompany.company_id)
+        .gte('created_at', thirtyDaysAgo.toISOString());
+
+      const { data: previousGoogleCampaigns } = await supabase
+        .from('google_campaigns')
+        .select('*')
+        .eq('company_id', activeCompany.company_id)
+        .gte('created_at', sixtyDaysAgo.toISOString())
+        .lt('created_at', thirtyDaysAgo.toISOString());
+
+      // 2. Performance por cliente (incluindo Google Campaigns)
       const { data: clientsData } = await supabase
         .from('clients')
         .select(`
           *,
-          campaigns(spend, conversions, cpa, status)
+          campaigns(spend, conversions, cpa, status),
+          google_campaigns(spend, conversions, cost_per_conversion, status)
         `)
         .eq('company_id', activeCompany.company_id);
 
@@ -128,9 +146,19 @@ export const useDashboardData = () => {
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: true });
 
-      // Processar métricas principais
-      const currentMetrics = calculateMetrics(currentPeriodCampaigns || []);
-      const previousMetrics = calculateMetrics(previousPeriodCampaigns || []);
+      // Combinar Meta + Google campaigns
+      const allCurrentCampaigns = [
+        ...(currentPeriodCampaigns || []),
+        ...(currentGoogleCampaigns || [])
+      ];
+      const allPreviousCampaigns = [
+        ...(previousPeriodCampaigns || []),
+        ...(previousGoogleCampaigns || [])
+      ];
+
+      // Processar métricas principais (Meta + Google combinados)
+      const currentMetrics = calculateMetrics(allCurrentCampaigns);
+      const previousMetrics = calculateMetrics(allPreviousCampaigns);
       
       const processedMetrics: DashboardMetrics = {
         ...currentMetrics,
@@ -197,11 +225,22 @@ export const useDashboardData = () => {
     };
   };
 
-  // Função para processar performance dos clientes
+  // Função para processar performance dos clientes (Meta + Google combinados)
   const processClientsPerformance = (clients: any[]): ClientPerformance[] => {
     return clients.map(client => {
-      const totalInvestment = client.campaigns?.reduce((sum: number, c: any) => sum + (c.spend || 0), 0) || 0;
-      const totalLeads = client.campaigns?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
+      // Meta campaigns
+      const metaInvestment = client.campaigns?.reduce((sum: number, c: any) => sum + (c.spend || 0), 0) || 0;
+      const metaLeads = client.campaigns?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
+      const metaActiveCampaigns = client.campaigns?.filter((c: any) => c.status === 'active').length || 0;
+      
+      // Google campaigns
+      const googleInvestment = client.google_campaigns?.reduce((sum: number, c: any) => sum + (c.spend || 0), 0) || 0;
+      const googleLeads = client.google_campaigns?.reduce((sum: number, c: any) => sum + (c.conversions || 0), 0) || 0;
+      const googleActiveCampaigns = client.google_campaigns?.filter((c: any) => c.status === 'ENABLED').length || 0;
+      
+      // Totais combinados
+      const totalInvestment = metaInvestment + googleInvestment;
+      const totalLeads = metaLeads + googleLeads;
       const averageCPA = totalLeads > 0 ? totalInvestment / totalLeads : 0;
 
       return {
@@ -212,7 +251,7 @@ export const useDashboardData = () => {
         investment: totalInvestment,
         totalLeads,
         leads_generated: totalLeads,
-        active_campaigns: client.campaigns?.filter(campaign => campaign.status === 'active').length || 0,
+        active_campaigns: metaActiveCampaigns + googleActiveCampaigns,
         averageCPA,
         avg_cpl: averageCPA,
         status: client.status,
