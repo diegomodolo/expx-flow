@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, FileSpreadsheet, Check, AlertCircle, ChevronRight, ChevronLeft, Phone } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, AlertCircle, ChevronRight, ChevronLeft, Phone, RefreshCw, Ban } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useCompany } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -80,8 +82,9 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
   const [fieldMapping, setFieldMapping] = useState<FieldMapping>({});
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
-  const [importResult, setImportResult] = useState<{ success: number; duplicates: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; duplicates: number; updated?: number } | null>(null);
   const [mergeDddWithPhone, setMergeDddWithPhone] = useState(false);
+  const [importMode, setImportMode] = useState<'ignore' | 'update'>('ignore');
 
   const resetState = useCallback(() => {
     setStep('upload');
@@ -92,6 +95,7 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
     setImportProgress(0);
     setImportResult(null);
     setMergeDddWithPhone(false);
+    setImportMode('ignore');
   }, []);
 
   const handleClose = useCallback(() => {
@@ -293,7 +297,7 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
             .from('cnae_lead_pool' as any)
             .upsert(leadsToInsert as any, { 
               onConflict: 'cnpj,company_id',
-              ignoreDuplicates: true 
+              ignoreDuplicates: importMode === 'ignore'
             })
             .select('id');
 
@@ -302,14 +306,27 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
             throw error;
           }
 
-          successCount += data?.length || 0;
-          duplicateCount += leadsToInsert.length - (data?.length || 0);
+          const returnedCount = data?.length || 0;
+          const batchTotal = leadsToInsert.length;
+          
+          if (importMode === 'update') {
+            // In update mode, all returned are either new or updated
+            successCount += returnedCount;
+          } else {
+            // In ignore mode, returned = new, difference = duplicates ignored
+            successCount += returnedCount;
+            duplicateCount += batchTotal - returnedCount;
+          }
         }
 
         setImportProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / parsedData.rows.length) * 100)));
       }
 
-      setImportResult({ success: successCount, duplicates: duplicateCount });
+      setImportResult({ 
+        success: successCount, 
+        duplicates: importMode === 'ignore' ? duplicateCount : 0,
+        updated: importMode === 'update' ? successCount : undefined
+      });
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['cnae-catalog'] });
@@ -473,6 +490,42 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
                     )}
                   </div>
 
+                  {/* Import Mode Selection */}
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <h4 className="font-medium text-sm">Modo de Importação</h4>
+                    <RadioGroup
+                      value={importMode}
+                      onValueChange={(value) => setImportMode(value as 'ignore' | 'update')}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                        <RadioGroupItem value="ignore" id="mode-ignore" className="mt-0.5" />
+                        <Label htmlFor="mode-ignore" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <Ban className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Ignorar duplicados</span>
+                            <Badge variant="secondary" className="text-xs">Padrão</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Leads com mesmo CNPJ já existentes serão ignorados
+                          </p>
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                        <RadioGroupItem value="update" id="mode-update" className="mt-0.5" />
+                        <Label htmlFor="mode-update" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4 text-primary" />
+                            <span className="font-medium">Atualizar existentes</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Leads com mesmo CNPJ terão seus dados atualizados (útil para corrigir telefones, emails, etc)
+                          </p>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
                   {isImporting && (
                     <div className="space-y-2">
                       <Progress value={importProgress} className="w-full" />
@@ -489,11 +542,17 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
                   </div>
                   <h3 className="text-lg font-medium">Importação Concluída!</h3>
                   <div className="space-y-1 text-sm">
-                    <p><strong>{importResult.success.toLocaleString('pt-BR')}</strong> leads importados com sucesso</p>
-                    {importResult.duplicates > 0 && (
-                      <p className="text-muted-foreground">
-                        {importResult.duplicates.toLocaleString('pt-BR')} duplicatas ignoradas
-                      </p>
+                    {importResult.updated !== undefined ? (
+                      <p><strong>{importResult.success.toLocaleString('pt-BR')}</strong> leads importados/atualizados</p>
+                    ) : (
+                      <>
+                        <p><strong>{importResult.success.toLocaleString('pt-BR')}</strong> leads importados com sucesso</p>
+                        {importResult.duplicates > 0 && (
+                          <p className="text-muted-foreground">
+                            {importResult.duplicates.toLocaleString('pt-BR')} duplicatas ignoradas
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
