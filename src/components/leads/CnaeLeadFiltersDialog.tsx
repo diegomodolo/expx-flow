@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Building2, DollarSign, Calendar, Mail, Phone, RotateCcw, X, Loader2 } from "lucide-react";
+import { MapPin, Building2, DollarSign, Calendar, Mail, Phone, RotateCcw, X, Loader2, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -83,10 +83,21 @@ export function CnaeLeadFiltersDialog({
   cnaeCode,
 }: CnaeLeadFiltersDialogProps) {
   const [localFilters, setLocalFilters] = useState<CnaeLeadFilters>(filters);
+  const [searchUf, setSearchUf] = useState("");
+  const [searchMunicipio, setSearchMunicipio] = useState("");
 
   useEffect(() => {
     setLocalFilters(filters);
+    if (!open) {
+      setSearchUf("");
+      setSearchMunicipio("");
+    }
   }, [filters, open]);
+
+  // Filter states by search term
+  const filteredEstados = ESTADOS_BR.filter(uf =>
+    uf.toLowerCase().includes(searchUf.toLowerCase())
+  );
 
   // Fetch municipalities based on selected states
   const { data: availableMunicipios, isLoading: isLoadingMunicipios } = useQuery({
@@ -126,6 +137,12 @@ export function CnaeLeadFiltersDialog({
     },
     enabled: !!companyId && !!cnaeCode && open
   });
+
+  // Filter municipalities by search term (must be after useQuery)
+  const filteredMunicipios = (availableMunicipios || []).filter(item =>
+    item.municipio.toLowerCase().includes(searchMunicipio.toLowerCase()) ||
+    item.uf.toLowerCase().includes(searchMunicipio.toLowerCase())
+  );
 
   const handleClearFilters = () => {
     setLocalFilters({});
@@ -262,9 +279,20 @@ export function CnaeLeadFiltersDialog({
                 </div>
               )}
 
+              {/* Search input for states */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar estado..."
+                  value={searchUf}
+                  onChange={(e) => setSearchUf(e.target.value)}
+                  className="pl-9 h-8"
+                />
+              </div>
+
               <ScrollArea className="h-32 border rounded-md p-2">
                 <div className="grid grid-cols-6 gap-2">
-                  {ESTADOS_BR.map((uf) => {
+                  {filteredEstados.map((uf) => {
                     const isSelected = localFilters.ufs?.includes(uf) || false;
                     const isAllSelected = allUfsSelected;
                     
@@ -326,6 +354,17 @@ export function CnaeLeadFiltersDialog({
                 </div>
               )}
 
+              {/* Search input for municipalities */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar município..."
+                  value={searchMunicipio}
+                  onChange={(e) => setSearchMunicipio(e.target.value)}
+                  className="pl-9 h-8"
+                />
+              </div>
+
               <ScrollArea className="h-40 border rounded-md p-2">
                 {isLoadingMunicipios ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -336,9 +375,13 @@ export function CnaeLeadFiltersDialog({
                   <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                     Nenhum município encontrado
                   </div>
+                ) : filteredMunicipios.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                    Nenhum município encontrado para "{searchMunicipio}"
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-1">
-                    {availableMunicipios.map((item) => {
+                    {filteredMunicipios.map((item) => {
                       const isSelected = localFilters.municipios?.includes(item.municipio) || false;
                       const isAllSelected = allMunicipiosSelected;
                       
