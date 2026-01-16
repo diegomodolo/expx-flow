@@ -18,11 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Building2, DollarSign, Calendar, Mail, Phone, RotateCcw } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Building2, DollarSign, Calendar, Mail, Phone, RotateCcw, X, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface CnaeLeadFilters {
-  uf?: string;
-  municipio?: string;
+  ufs?: string[];
+  municipios?: string[];
   situacaoCadastral?: string;
   porte?: string;
   simplesOption?: string;
@@ -40,6 +44,8 @@ interface CnaeLeadFiltersDialogProps {
   onOpenChange: (open: boolean) => void;
   filters: CnaeLeadFilters;
   onApplyFilters: (filters: CnaeLeadFilters) => void;
+  companyId?: string;
+  cnaeCode?: string;
 }
 
 const ESTADOS_BR = [
@@ -73,12 +79,53 @@ export function CnaeLeadFiltersDialog({
   onOpenChange,
   filters,
   onApplyFilters,
+  companyId,
+  cnaeCode,
 }: CnaeLeadFiltersDialogProps) {
   const [localFilters, setLocalFilters] = useState<CnaeLeadFilters>(filters);
 
   useEffect(() => {
     setLocalFilters(filters);
   }, [filters, open]);
+
+  // Fetch municipalities based on selected states
+  const { data: availableMunicipios, isLoading: isLoadingMunicipios } = useQuery({
+    queryKey: ['cnae-municipios', companyId, cnaeCode, localFilters.ufs],
+    queryFn: async () => {
+      if (!companyId || !cnaeCode) return [];
+      
+      let query = supabase
+        .from('cnae_lead_pool' as any)
+        .select('municipio, uf')
+        .eq('company_id', companyId)
+        .eq('cnae_code', cnaeCode)
+        .not('municipio', 'is', null);
+
+      // Filter by selected states if any
+      if (localFilters.ufs && localFilters.ufs.length > 0) {
+        query = query.in('uf', localFilters.ufs);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+
+      // Get unique municipalities with their UF
+      const municipiosMap = new Map<string, { municipio: string; uf: string }>();
+      (data || []).forEach((item: any) => {
+        if (item.municipio) {
+          const key = `${item.municipio}-${item.uf}`;
+          if (!municipiosMap.has(key)) {
+            municipiosMap.set(key, { municipio: item.municipio, uf: item.uf });
+          }
+        }
+      });
+
+      return Array.from(municipiosMap.values())
+        .sort((a, b) => a.municipio.localeCompare(b.municipio));
+    },
+    enabled: !!companyId && !!cnaeCode && open
+  });
 
   const handleClearFilters = () => {
     setLocalFilters({});
@@ -89,10 +136,64 @@ export function CnaeLeadFiltersDialog({
     onOpenChange(false);
   };
 
+  const toggleUf = (uf: string) => {
+    const currentUfs = localFilters.ufs || [];
+    let newUfs: string[];
+    
+    if (currentUfs.includes(uf)) {
+      newUfs = currentUfs.filter(u => u !== uf);
+    } else {
+      newUfs = [...currentUfs, uf];
+    }
+    
+    // When states change, clear municipios that are no longer valid
+    const validMunicipios = (localFilters.municipios || []).filter(m => {
+      const mData = availableMunicipios?.find(am => am.municipio === m);
+      return mData && (newUfs.length === 0 || newUfs.includes(mData.uf));
+    });
+
+    setLocalFilters({
+      ...localFilters,
+      ufs: newUfs.length > 0 ? newUfs : undefined,
+      municipios: validMunicipios.length > 0 ? validMunicipios : undefined
+    });
+  };
+
+  const selectAllUfs = () => {
+    setLocalFilters({
+      ...localFilters,
+      ufs: undefined,
+      municipios: undefined
+    });
+  };
+
+  const toggleMunicipio = (municipio: string) => {
+    const currentMunicipios = localFilters.municipios || [];
+    let newMunicipios: string[];
+    
+    if (currentMunicipios.includes(municipio)) {
+      newMunicipios = currentMunicipios.filter(m => m !== municipio);
+    } else {
+      newMunicipios = [...currentMunicipios, municipio];
+    }
+    
+    setLocalFilters({
+      ...localFilters,
+      municipios: newMunicipios.length > 0 ? newMunicipios : undefined
+    });
+  };
+
+  const selectAllMunicipios = () => {
+    setLocalFilters({
+      ...localFilters,
+      municipios: undefined
+    });
+  };
+
   const countActiveFilters = () => {
     let count = 0;
-    if (localFilters.uf) count++;
-    if (localFilters.municipio) count++;
+    if (localFilters.ufs && localFilters.ufs.length > 0) count++;
+    if (localFilters.municipios && localFilters.municipios.length > 0) count++;
     if (localFilters.situacaoCadastral) count++;
     if (localFilters.porte) count++;
     if (localFilters.simplesOption) count++;
@@ -106,9 +207,12 @@ export function CnaeLeadFiltersDialog({
     return count;
   };
 
+  const allUfsSelected = !localFilters.ufs || localFilters.ufs.length === 0;
+  const allMunicipiosSelected = !localFilters.municipios || localFilters.municipios.length === 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
@@ -126,39 +230,140 @@ export function CnaeLeadFiltersDialog({
               <MapPin className="h-4 w-4 text-primary" />
               Localização
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="uf">Estado (UF)</Label>
-                <Select
-                  value={localFilters.uf || "ALL"}
-                  onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, uf: value === "ALL" ? undefined : value })
-                  }
+            
+            {/* Estados */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Estados (UF)</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAllUfs}
+                  className="h-7 text-xs"
                 >
-                  <SelectTrigger id="uf">
-                    <SelectValue placeholder="Selecione o estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todos</SelectItem>
-                    {ESTADOS_BR.map((uf) => (
-                      <SelectItem key={uf} value={uf}>
+                  {allUfsSelected ? "Todos selecionados" : "Selecionar todos"}
+                </Button>
+              </div>
+              
+              {/* Selected states badges */}
+              {localFilters.ufs && localFilters.ufs.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {localFilters.ufs.map(uf => (
+                    <Badge
+                      key={uf}
+                      variant="secondary"
+                      className="gap-1 cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => toggleUf(uf)}
+                    >
+                      {uf}
+                      <X className="h-3 w-3" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <ScrollArea className="h-32 border rounded-md p-2">
+                <div className="grid grid-cols-6 gap-2">
+                  {ESTADOS_BR.map((uf) => {
+                    const isSelected = localFilters.ufs?.includes(uf) || false;
+                    const isAllSelected = allUfsSelected;
+                    
+                    return (
+                      <div
+                        key={uf}
+                        className={`
+                          flex items-center justify-center p-2 rounded-md cursor-pointer text-sm font-medium transition-colors
+                          ${isSelected 
+                            ? 'bg-primary text-primary-foreground' 
+                            : isAllSelected 
+                              ? 'bg-muted/50 text-foreground hover:bg-muted'
+                              : 'bg-background border text-muted-foreground hover:bg-muted'
+                          }
+                        `}
+                        onClick={() => toggleUf(uf)}
+                      >
                         {uf}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Municípios */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>
+                  Municípios
+                  {isLoadingMunicipios && (
+                    <Loader2 className="h-3 w-3 ml-2 inline animate-spin" />
+                  )}
+                </Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAllMunicipios}
+                  className="h-7 text-xs"
+                >
+                  {allMunicipiosSelected ? "Todos selecionados" : "Selecionar todos"}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="municipio">Município</Label>
-                <Input
-                  id="municipio"
-                  placeholder="Digite o município"
-                  value={localFilters.municipio || ""}
-                  onChange={(e) =>
-                    setLocalFilters({ ...localFilters, municipio: e.target.value || undefined })
-                  }
-                />
-              </div>
+
+              {/* Selected municipios badges */}
+              {localFilters.municipios && localFilters.municipios.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2 max-h-20 overflow-y-auto">
+                  {localFilters.municipios.map(m => (
+                    <Badge
+                      key={m}
+                      variant="secondary"
+                      className="gap-1 cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => toggleMunicipio(m)}
+                    >
+                      {m}
+                      <X className="h-3 w-3" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <ScrollArea className="h-40 border rounded-md p-2">
+                {isLoadingMunicipios ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Carregando municípios...
+                  </div>
+                ) : !availableMunicipios || availableMunicipios.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                    Nenhum município encontrado
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-1">
+                    {availableMunicipios.map((item) => {
+                      const isSelected = localFilters.municipios?.includes(item.municipio) || false;
+                      const isAllSelected = allMunicipiosSelected;
+                      
+                      return (
+                        <div
+                          key={`${item.municipio}-${item.uf}`}
+                          className={`
+                            flex items-center gap-2 p-2 rounded-md cursor-pointer text-sm transition-colors
+                            ${isSelected 
+                              ? 'bg-primary text-primary-foreground' 
+                              : isAllSelected
+                                ? 'bg-muted/50 text-foreground hover:bg-muted'
+                                : 'bg-background border text-muted-foreground hover:bg-muted'
+                            }
+                          `}
+                          onClick={() => toggleMunicipio(item.municipio)}
+                        >
+                          <span className="truncate flex-1">{item.municipio}</span>
+                          <span className="text-xs opacity-70">{item.uf}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
             </div>
           </div>
 

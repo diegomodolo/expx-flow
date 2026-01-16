@@ -71,7 +71,11 @@ export default function CnaeLeadsView() {
   const [filters, setFilters] = useState<CnaeLeadFilters>({});
 
   // Count active filters
-  const activeFiltersCount = Object.values(filters).filter(v => v !== undefined && v !== false && v !== "").length;
+  const activeFiltersCount = Object.entries(filters).filter(([_, v]) => {
+    if (v === undefined || v === false || v === "") return false;
+    if (Array.isArray(v) && v.length === 0) return false;
+    return true;
+  }).length;
 
   // Fetch CNAE info
   const { data: cnaeInfo } = useQuery({
@@ -110,11 +114,11 @@ export default function CnaeLeadsView() {
       }
 
       // Apply filters
-      if (filters.uf) {
-        query = query.eq('uf', filters.uf);
+      if (filters.ufs && filters.ufs.length > 0) {
+        query = query.in('uf', filters.ufs);
       }
-      if (filters.municipio) {
-        query = query.ilike('municipio', `%${filters.municipio}%`);
+      if (filters.municipios && filters.municipios.length > 0) {
+        query = query.in('municipio', filters.municipios);
       }
       if (filters.situacaoCadastral) {
         query = query.eq('situacao_cadastral', filters.situacaoCadastral);
@@ -429,6 +433,8 @@ export default function CnaeLeadsView() {
           onOpenChange={setIsFiltersOpen}
           filters={filters}
           onApplyFilters={handleApplyFilters}
+          companyId={companyId}
+          cnaeCode={decodedCnaeCode}
         />
       </LeadIntelligenceLayout>
     </DashboardLayout>
