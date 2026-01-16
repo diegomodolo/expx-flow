@@ -130,16 +130,16 @@ export function CnaeLeadFiltersDialog({
               <div className="space-y-2">
                 <Label htmlFor="uf">Estado (UF)</Label>
                 <Select
-                  value={localFilters.uf || ""}
+                  value={localFilters.uf || "ALL"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, uf: value || undefined })
+                    setLocalFilters({ ...localFilters, uf: value === "ALL" ? undefined : value })
                   }
                 >
                   <SelectTrigger id="uf">
                     <SelectValue placeholder="Selecione o estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="ALL">Todos</SelectItem>
                     {ESTADOS_BR.map((uf) => (
                       <SelectItem key={uf} value={uf}>
                         {uf}
@@ -172,16 +172,16 @@ export function CnaeLeadFiltersDialog({
               <div className="space-y-2">
                 <Label htmlFor="situacao">Situação Cadastral</Label>
                 <Select
-                  value={localFilters.situacaoCadastral || ""}
+                  value={localFilters.situacaoCadastral || "ALL"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, situacaoCadastral: value || undefined })
+                    setLocalFilters({ ...localFilters, situacaoCadastral: value === "ALL" ? undefined : value })
                   }
                 >
                   <SelectTrigger id="situacao">
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="ALL">Todas</SelectItem>
                     {SITUACAO_CADASTRAL_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -193,16 +193,16 @@ export function CnaeLeadFiltersDialog({
               <div className="space-y-2">
                 <Label htmlFor="porte">Porte</Label>
                 <Select
-                  value={localFilters.porte || ""}
+                  value={localFilters.porte || "ALL"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, porte: value || undefined })
+                    setLocalFilters({ ...localFilters, porte: value === "ALL" ? undefined : value })
                   }
                 >
                   <SelectTrigger id="porte">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="ALL">Todos</SelectItem>
                     {PORTE_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -214,16 +214,16 @@ export function CnaeLeadFiltersDialog({
               <div className="space-y-2">
                 <Label htmlFor="simples">Simples Nacional</Label>
                 <Select
-                  value={localFilters.simplesOption || ""}
+                  value={localFilters.simplesOption || "ALL"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, simplesOption: value || undefined })
+                    setLocalFilters({ ...localFilters, simplesOption: value === "ALL" ? undefined : value })
                   }
                 >
                   <SelectTrigger id="simples">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="ALL">Todos</SelectItem>
                     {SIM_NAO_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -235,16 +235,16 @@ export function CnaeLeadFiltersDialog({
               <div className="space-y-2">
                 <Label htmlFor="mei">MEI</Label>
                 <Select
-                  value={localFilters.meiOption || ""}
+                  value={localFilters.meiOption || "ALL"}
                   onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, meiOption: value || undefined })
+                    setLocalFilters({ ...localFilters, meiOption: value === "ALL" ? undefined : value })
                   }
                 >
                   <SelectTrigger id="mei">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="ALL">Todos</SelectItem>
                     {SIM_NAO_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
