@@ -222,10 +222,7 @@ export function SendToSegmentModal({
                       >
                         <RadioGroupItem value={segment.id} id={segment.id} />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{segment.icon || '📁'}</span>
-                            <span className="font-medium truncate">{segment.name}</span>
-                          </div>
+                          <span className="font-medium truncate">{segment.name}</span>
                           {segment.description && (
                             <p className="text-xs text-muted-foreground truncate mt-0.5">
                               {segment.description}
