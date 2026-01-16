@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, Building2, Phone, Mail, MapPin, Calendar, Smartphone, Filter } from "lucide-react";
+import { ArrowLeft, Search, Building2, Phone, Mail, MapPin, Calendar, Smartphone, Filter, Send } from "lucide-react";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Link, useParams } from "react-router-dom";
@@ -29,6 +29,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CnaeLeadFiltersDialog, CnaeLeadFilters } from "@/components/leads/CnaeLeadFiltersDialog";
+import { SendToSegmentModal } from "@/components/leads/SendToSegmentModal";
+import { useLeadScoring } from "@/hooks/useLeadScoring";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 50;
 
@@ -60,14 +63,27 @@ interface CnaeCatalogItem {
   cnae_description: string | null;
 }
 
+// Helper to generate hash
+async function generateHash(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value.toLowerCase().trim());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default function CnaeLeadsView() {
   const { cnaeCode } = useParams<{ cnaeCode: string }>();
   const decodedCnaeCode = decodeURIComponent(cnaeCode || '');
   const { activeCompany } = useCompany();
   const companyId = activeCompany?.company_id;
+  const queryClient = useQueryClient();
+  const { scoreAllCompanyLeads } = useLeadScoring();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [filters, setFilters] = useState<CnaeLeadFilters>({});
 
   // Count active filters
@@ -76,6 +92,57 @@ export default function CnaeLeadsView() {
     if (Array.isArray(v) && v.length === 0) return false;
     return true;
   }).length;
+
+  // Build filter query helper
+  const buildFilteredQuery = () => {
+    let query = supabase
+      .from('cnae_lead_pool' as any)
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('cnae_code', decodedCnaeCode);
+
+    if (searchTerm) {
+      query = query.or(`razao_social.ilike.%${searchTerm}%,cnpj.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+    }
+    if (filters.ufs && filters.ufs.length > 0) {
+      query = query.in('uf', filters.ufs);
+    }
+    if (filters.municipios && filters.municipios.length > 0) {
+      query = query.in('municipio', filters.municipios);
+    }
+    if (filters.situacaoCadastral) {
+      query = query.eq('situacao_cadastral', filters.situacaoCadastral);
+    }
+    if (filters.porte) {
+      query = query.eq('porte', filters.porte);
+    }
+    if (filters.simplesOption) {
+      query = query.eq('simples_option', filters.simplesOption);
+    }
+    if (filters.meiOption) {
+      query = query.eq('mei_option', filters.meiOption);
+    }
+    if (filters.capitalSocialMin) {
+      query = query.gte('capital_social', filters.capitalSocialMin);
+    }
+    if (filters.capitalSocialMax) {
+      query = query.lte('capital_social', filters.capitalSocialMax);
+    }
+    if (filters.dataAberturaFrom) {
+      query = query.gte('data_abertura', filters.dataAberturaFrom);
+    }
+    if (filters.dataAberturaTo) {
+      query = query.lte('data_abertura', filters.dataAberturaTo);
+    }
+    if (filters.hasEmail) {
+      query = query.not('email', 'is', null);
+    }
+    if (filters.hasPhone) {
+      query = query.not('phone', 'is', null);
+    }
+
+    return query;
+  };
 
   // Fetch CNAE info
   const { data: cnaeInfo } = useQuery({
@@ -108,12 +175,9 @@ export default function CnaeLeadsView() {
         .eq('company_id', companyId)
         .eq('cnae_code', decodedCnaeCode);
 
-      // Text search
       if (searchTerm) {
         query = query.or(`razao_social.ilike.%${searchTerm}%,cnpj.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
-
-      // Apply filters
       if (filters.ufs && filters.ufs.length > 0) {
         query = query.in('uf', filters.ufs);
       }
@@ -176,6 +240,168 @@ export default function CnaeLeadsView() {
   const handleApplyFilters = (newFilters: CnaeLeadFilters) => {
     setFilters(newFilters);
     setCurrentPage(1);
+  };
+
+  // Handle send to segment
+  const handleSendToSegment = async (segmentId: string, segmentName: string, isNew: boolean) => {
+    if (!companyId) return;
+
+    const toastId = toast.loading(`Enviando leads para "${segmentName}"...`);
+
+    try {
+      // Fetch all filtered leads (without pagination)
+      const allLeadsQuery = buildFilteredQuery();
+      const { data: allLeads, error: fetchError } = await allLeadsQuery;
+
+      if (fetchError) throw fetchError;
+      if (!allLeads || allLeads.length === 0) {
+        toast.error("Nenhum lead para enviar", { id: toastId });
+        return;
+      }
+
+      const cnaeLeads = allLeads as unknown as CnaeLead[];
+      let imported = 0;
+      let duplicates = 0;
+
+      // Process leads in batches
+      const batchSize = 100;
+      const insertedLeadIds: string[] = [];
+
+      for (let i = 0; i < cnaeLeads.length; i += batchSize) {
+        const batch = cnaeLeads.slice(i, i + batchSize);
+        
+        // Transform CNAE leads to lead_master_pool format
+        const leadsToInsert = await Promise.all(batch.map(async (lead) => {
+          const emailHash = lead.email ? await generateHash(lead.email) : null;
+          const phoneHash = lead.phone ? await generateHash(lead.phone) : null;
+
+          return {
+            company_id: companyId,
+            email: lead.email,
+            email_hash: emailHash,
+            phone: lead.phone,
+            phone_hash: phoneHash,
+            full_name: lead.razao_social,
+            company_name: lead.razao_social,
+            company_trade_name: lead.nome_fantasia,
+            cnpj: lead.cnpj,
+            city: lead.municipio,
+            state: lead.uf,
+            cnae: lead.cnae_code,
+            original_source: `CNAE ${lead.cnae_code}`,
+            global_score: 0,
+            total_conversions: 0,
+            total_value: 0,
+            first_captured_at: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          };
+        }));
+
+        // Check for existing leads by email_hash or phone_hash
+        const emailHashes = leadsToInsert.map(l => l.email_hash).filter(Boolean) as string[];
+        const phoneHashes = leadsToInsert.map(l => l.phone_hash).filter(Boolean) as string[];
+
+        const existingHashes = new Set<string>();
+
+        if (emailHashes.length > 0) {
+          const { data: existingEmails } = await supabase
+            .from('lead_master_pool')
+            .select('email_hash')
+            .eq('company_id', companyId)
+            .in('email_hash', emailHashes);
+          existingEmails?.forEach(e => e.email_hash && existingHashes.add(e.email_hash));
+        }
+
+        if (phoneHashes.length > 0) {
+          const { data: existingPhones } = await supabase
+            .from('lead_master_pool')
+            .select('phone_hash')
+            .eq('company_id', companyId)
+            .in('phone_hash', phoneHashes);
+          existingPhones?.forEach(p => p.phone_hash && existingHashes.add(p.phone_hash));
+        }
+
+        // Filter out duplicates
+        const newLeads = leadsToInsert.filter(lead => {
+          const isDuplicate = 
+            (lead.email_hash && existingHashes.has(lead.email_hash)) ||
+            (lead.phone_hash && existingHashes.has(lead.phone_hash));
+          if (isDuplicate) {
+            duplicates++;
+            return false;
+          }
+          return true;
+        });
+
+        // Insert new leads
+        if (newLeads.length > 0) {
+          const { data: insertedBatch, error: insertError } = await supabase
+            .from('lead_master_pool')
+            .insert(newLeads)
+            .select('id');
+
+          if (insertError) {
+            console.error("Batch insert error:", insertError);
+          } else if (insertedBatch) {
+            insertedBatch.forEach(l => insertedLeadIds.push(l.id));
+            imported += insertedBatch.length;
+          }
+        }
+      }
+
+      // Assign leads to segment
+      if (insertedLeadIds.length > 0) {
+        const segmentAssignments = insertedLeadIds.map(leadId => ({
+          lead_id: leadId,
+          segment_id: segmentId
+        }));
+
+        for (let i = 0; i < segmentAssignments.length; i += batchSize) {
+          const batch = segmentAssignments.slice(i, i + batchSize);
+          await supabase.from('lead_segment_assignments').insert(batch);
+        }
+
+        // Update segment lead count
+        await supabase
+          .from('lead_segments')
+          .update({ 
+            lead_count: insertedLeadIds.length,
+            last_calculated_at: new Date().toISOString()
+          })
+          .eq('id', segmentId);
+      }
+
+      // Show result
+      if (imported > 0) {
+        toast.success(
+          `${imported} leads enviados para "${segmentName}"${duplicates > 0 ? ` (${duplicates} duplicados ignorados)` : ''}`,
+          { id: toastId }
+        );
+
+        // Recalculate scores in background
+        toast.info("Recalculando scores em segundo plano...");
+        scoreAllCompanyLeads()
+          .then((scoredCount) => {
+            queryClient.invalidateQueries({ queryKey: ['lead-pool'] });
+            queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
+            queryClient.invalidateQueries({ queryKey: ['lead-segments-dashboard'] });
+            toast.success(`${scoredCount} leads recalculados!`);
+          })
+          .catch((err) => {
+            console.error("Error recalculating scores:", err);
+          });
+      } else {
+        toast.warning(`Todos os ${duplicates} leads já existem no sistema`, { id: toastId });
+      }
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['lead-segments'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-segments-for-send'] });
+
+    } catch (error) {
+      console.error("Error sending to segment:", error);
+      toast.error("Erro ao enviar leads para o segmento", { id: toastId });
+    }
   };
 
   // Render phone numbers
@@ -241,9 +467,20 @@ export default function CnaeLeadsView() {
                   {cnaeInfo?.cnae_description || 'Leads desta atividade econômica'}
                 </p>
               </div>
-              <Badge variant="secondary" className="text-lg px-4 py-2">
-                {leadsData?.count?.toLocaleString('pt-BR') || 0} leads
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-lg px-4 py-2">
+                  {leadsData?.count?.toLocaleString('pt-BR') || 0} leads
+                </Badge>
+                {(leadsData?.count || 0) > 0 && (
+                  <Button
+                    onClick={() => setIsSendModalOpen(true)}
+                    className="gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    Enviar para Segmento
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -436,6 +673,17 @@ export default function CnaeLeadsView() {
           companyId={companyId}
           cnaeCode={decodedCnaeCode}
         />
+
+        {/* Send to Segment Modal */}
+        {companyId && (
+          <SendToSegmentModal
+            open={isSendModalOpen}
+            onOpenChange={setIsSendModalOpen}
+            companyId={companyId}
+            leadsCount={leadsData?.count || 0}
+            onConfirm={handleSendToSegment}
+          />
+        )}
       </LeadIntelligenceLayout>
     </DashboardLayout>
   );
