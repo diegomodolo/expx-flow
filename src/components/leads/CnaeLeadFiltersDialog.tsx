@@ -70,8 +70,8 @@ const PORTE_OPTIONS = [
 ];
 
 const SIM_NAO_OPTIONS = [
-  { value: "SIM", label: "Sim" },
-  { value: "NAO", label: "Não" },
+  { value: "S", label: "Sim" },
+  { value: "N", label: "Não" },
 ];
 
 export function CnaeLeadFiltersDialog({
