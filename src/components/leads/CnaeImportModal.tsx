@@ -258,8 +258,22 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
       const phone2Header = Object.entries(fieldMapping).find(([, v]) => v === 'phone_2')?.[0];
       const phone3Header = Object.entries(fieldMapping).find(([, v]) => v === 'phone_3')?.[0];
 
-      for (let i = 0; i < parsedData.rows.length; i += BATCH_SIZE) {
-        const batch = parsedData.rows.slice(i, i + BATCH_SIZE);
+      // First, deduplicate all rows by CNPJ (keep last occurrence for most recent data)
+      const deduplicatedRows = new Map<string, Record<string, string>>();
+      parsedData.rows.forEach(row => {
+        const cnpjHeader = Object.entries(fieldMapping).find(([, v]) => v === 'cnpj')?.[0];
+        if (cnpjHeader) {
+          const cnpj = (row[cnpjHeader] || '').trim();
+          if (cnpj) {
+            deduplicatedRows.set(cnpj, row);
+          }
+        }
+      });
+      
+      const uniqueRows = Array.from(deduplicatedRows.values());
+
+      for (let i = 0; i < uniqueRows.length; i += BATCH_SIZE) {
+        const batch = uniqueRows.slice(i, i + BATCH_SIZE);
         
         const leadsToInsert = batch.map(row => {
           const lead: Record<string, string | number | boolean | null> = {
@@ -319,7 +333,7 @@ export function CnaeImportModal({ open, onOpenChange }: CnaeImportModalProps) {
           }
         }
 
-        setImportProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / parsedData.rows.length) * 100)));
+        setImportProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / uniqueRows.length) * 100)));
       }
 
       setImportResult({ 
