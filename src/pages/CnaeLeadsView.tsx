@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, Building2, Phone, Mail, MapPin, Calendar, Smartphone } from "lucide-react";
+import { ArrowLeft, Search, Building2, Phone, Mail, MapPin, Calendar, Smartphone, Filter } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { CnaeLeadFiltersDialog, CnaeLeadFilters } from "@/components/leads/CnaeLeadFiltersDialog";
 
 const PAGE_SIZE = 50;
 
@@ -48,6 +49,11 @@ interface CnaeLead {
   uf: string | null;
   capital_social: number | null;
   created_at: string;
+  situacao_cadastral: string | null;
+  porte: string | null;
+  simples_option: string | null;
+  mei_option: string | null;
+  data_abertura: string | null;
 }
 
 interface CnaeCatalogItem {
@@ -61,6 +67,11 @@ export default function CnaeLeadsView() {
   const companyId = activeCompany?.company_id;
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<CnaeLeadFilters>({});
+
+  // Count active filters
+  const activeFiltersCount = Object.values(filters).filter(v => v !== undefined && v !== false && v !== "").length;
 
   // Fetch CNAE info
   const { data: cnaeInfo } = useQuery({
@@ -81,9 +92,9 @@ export default function CnaeLeadsView() {
     enabled: !!companyId && !!decodedCnaeCode
   });
 
-  // Fetch leads for this CNAE with pagination
+  // Fetch leads for this CNAE with pagination and filters
   const { data: leadsData, isLoading } = useQuery({
-    queryKey: ['cnae-leads', companyId, decodedCnaeCode, currentPage, searchTerm],
+    queryKey: ['cnae-leads', companyId, decodedCnaeCode, currentPage, searchTerm, filters],
     queryFn: async () => {
       if (!companyId || !decodedCnaeCode) return { leads: [], count: 0 };
       
@@ -93,8 +104,47 @@ export default function CnaeLeadsView() {
         .eq('company_id', companyId)
         .eq('cnae_code', decodedCnaeCode);
 
+      // Text search
       if (searchTerm) {
         query = query.or(`razao_social.ilike.%${searchTerm}%,cnpj.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      }
+
+      // Apply filters
+      if (filters.uf) {
+        query = query.eq('uf', filters.uf);
+      }
+      if (filters.municipio) {
+        query = query.ilike('municipio', `%${filters.municipio}%`);
+      }
+      if (filters.situacaoCadastral) {
+        query = query.eq('situacao_cadastral', filters.situacaoCadastral);
+      }
+      if (filters.porte) {
+        query = query.eq('porte', filters.porte);
+      }
+      if (filters.simplesOption) {
+        query = query.eq('simples_option', filters.simplesOption);
+      }
+      if (filters.meiOption) {
+        query = query.eq('mei_option', filters.meiOption);
+      }
+      if (filters.capitalSocialMin) {
+        query = query.gte('capital_social', filters.capitalSocialMin);
+      }
+      if (filters.capitalSocialMax) {
+        query = query.lte('capital_social', filters.capitalSocialMax);
+      }
+      if (filters.dataAberturaFrom) {
+        query = query.gte('data_abertura', filters.dataAberturaFrom);
+      }
+      if (filters.dataAberturaTo) {
+        query = query.lte('data_abertura', filters.dataAberturaTo);
+      }
+      if (filters.hasEmail) {
+        query = query.not('email', 'is', null);
+      }
+      if (filters.hasPhone) {
+        query = query.not('phone', 'is', null);
       }
 
       const { data, count, error } = await query
@@ -116,6 +166,12 @@ export default function CnaeLeadsView() {
     } catch {
       return '-';
     }
+  };
+
+  // Handle filter application
+  const handleApplyFilters = (newFilters: CnaeLeadFilters) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
   };
 
   // Render phone numbers
@@ -194,17 +250,32 @@ export default function CnaeLeadsView() {
               <CardDescription>
                 Lista de empresas com este código de atividade
               </CardDescription>
-              <div className="relative mt-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, CNPJ ou email..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="pl-10"
-                />
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, CNPJ ou email..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsFiltersOpen(true)}
+                  className="gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filtros
+                  {activeFiltersCount > 0 && (
+                    <Badge variant="default" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -219,11 +290,20 @@ export default function CnaeLeadsView() {
                   <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Nenhum lead encontrado</h3>
                   <p className="text-muted-foreground">
-                    {searchTerm 
-                      ? "Tente buscar por outro termo" 
+                    {searchTerm || activeFiltersCount > 0
+                      ? "Tente ajustar seus filtros ou buscar por outro termo" 
                       : "Não há leads cadastrados para este CNAE"
                     }
                   </p>
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setFilters({})}
+                      className="mt-4"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
@@ -342,6 +422,14 @@ export default function CnaeLeadsView() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Filters Dialog */}
+        <CnaeLeadFiltersDialog
+          open={isFiltersOpen}
+          onOpenChange={setIsFiltersOpen}
+          filters={filters}
+          onApplyFilters={handleApplyFilters}
+        />
       </LeadIntelligenceLayout>
     </DashboardLayout>
   );
