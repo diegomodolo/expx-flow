@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "./useAuth";
 
+// Objetivos de campanha que focam em conversão/leads (devem ter alertas de CPA)
+const CONVERSION_OBJECTIVES = [
+  'OUTCOME_LEADS',
+  'LEAD_GENERATION',
+  'CONVERSIONS',
+  'OUTCOME_CONVERSIONS',
+  'OUTCOME_SALES',
+];
 export interface TVMetrics {
   totalInvestment: number;
   totalLeads: number;
@@ -189,9 +197,14 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
       // Generate alerts
       const alerts: TVAlert[] = [];
       
-      // High CPA alerts
+      // High CPA alerts - only for conversion-focused campaigns
       activeCampaigns
-        .filter(c => (c.cpa || 0) > 50 && (c.conversions || 0) > 0)
+        .filter(c => 
+          (c.cpa || 0) > 50 && 
+          (c.conversions || 0) > 0 &&
+          // Só gera alerta se for campanha de conversão/leads
+          (!c.objective || CONVERSION_OBJECTIVES.includes(c.objective))
+        )
         .slice(0, 3)
         .forEach(c => {
           alerts.push({
@@ -223,9 +236,14 @@ export function useTrafegoDashboard(refreshInterval: number = 5 * 60 * 1000) {
           });
         });
 
-      // Scaling opportunities
+      // Scaling opportunities - only for conversion-focused campaigns
       activeCampaigns
-        .filter(c => (c.cpa || 999) < 30 && (c.conversions || 0) >= 5)
+        .filter(c => 
+          (c.cpa || 999) < 30 && 
+          (c.conversions || 0) >= 5 &&
+          // Só gera oportunidade se for campanha de conversão/leads
+          (!c.objective || CONVERSION_OBJECTIVES.includes(c.objective))
+        )
         .slice(0, 3)
         .forEach(c => {
           alerts.push({
