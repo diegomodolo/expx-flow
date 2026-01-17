@@ -8,6 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+// Objetivos de campanha que focam em conversão/leads (devem ter alertas de CPA)
+const CONVERSION_OBJECTIVES = [
+  'OUTCOME_LEADS',
+  'LEAD_GENERATION',
+  'CONVERSIONS',
+  'OUTCOME_CONVERSIONS',
+  'OUTCOME_SALES',
+];
+
 interface UnifiedCampaign {
   id: string;
   name: string;
@@ -24,6 +33,7 @@ interface UnifiedCampaign {
   updated_at: string;
   platform: 'meta' | 'google';
   frequency: number | null;
+  objective?: string | null;
   clients?: { id: string; name: string; company: string };
 }
 
@@ -126,7 +136,7 @@ serve(async (req) => {
       supabase
         .from('campaigns')
         .select(`
-          id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at, platforms, frequency,
+          id, name, status, spend, conversions, clicks, impressions, ctr, cpc, cpa, client_id, is_active, updated_at, platforms, frequency, objective,
           clients!inner(id, name, company)
         `)
         .eq('company_id', company.id)
@@ -294,6 +304,7 @@ serve(async (req) => {
         updated_at: c.updated_at,
         platform: 'meta' as const,
         frequency: c.frequency,
+        objective: c.objective || null,
         clients: c.clients
       })),
       ...googleCampaigns.map(c => ({
@@ -312,6 +323,7 @@ serve(async (req) => {
         updated_at: c.updated_at,
         platform: 'google' as const,
         frequency: c.frequency,
+        objective: null, // Google campaigns don't have objective in our schema
         clients: c.clients
       }))
     ];
@@ -459,7 +471,16 @@ serve(async (req) => {
       const ctrBenchmark = getBenchmark(campaign.client_id, campaign.platform, 'target_ctr');
       
       // CPA Alert - using client benchmark or default
-      if (campaign.cpa && campaign.cpa > cpaBenchmark.value) {
+      // Só gera alerta de CPA se:
+      // 1. Tem conversões > 0 (CPA só faz sentido com conversões)
+      // 2. Para Meta: objetivo deve ser de conversão/leads (não tráfego)
+      // 3. Para Google: sempre gera (não temos objective no schema)
+      const shouldCheckCPA = campaign.conversions > 0 && (
+        campaign.platform === 'google' || 
+        (campaign.platform === 'meta' && campaign.objective && CONVERSION_OBJECTIVES.includes(campaign.objective))
+      );
+      
+      if (shouldCheckCPA && campaign.cpa && campaign.cpa > cpaBenchmark.value) {
         const benchmarkLabel = cpaBenchmark.isCustom ? 'meta do cliente' : 'padrão';
         const severity = campaign.cpa > cpaBenchmark.value * 1.5 ? 'critical' : 'warning';
         
