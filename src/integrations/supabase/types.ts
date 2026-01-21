@@ -6062,38 +6062,44 @@ export type Database = {
       }
       instagram_accounts: {
         Row: {
+          business_id: string | null
           company_id: string
           created_at: string | null
-          facebook_page_id: string
+          facebook_page_id: string | null
           followers_count: number | null
           id: string
           instagram_id: string
           is_active: boolean | null
           profile_picture_url: string | null
+          source: string | null
           updated_at: string | null
           username: string
         }
         Insert: {
+          business_id?: string | null
           company_id: string
           created_at?: string | null
-          facebook_page_id: string
+          facebook_page_id?: string | null
           followers_count?: number | null
           id?: string
           instagram_id: string
           is_active?: boolean | null
           profile_picture_url?: string | null
+          source?: string | null
           updated_at?: string | null
           username: string
         }
         Update: {
+          business_id?: string | null
           company_id?: string
           created_at?: string | null
-          facebook_page_id?: string
+          facebook_page_id?: string | null
           followers_count?: number | null
           id?: string
           instagram_id?: string
           is_active?: boolean | null
           profile_picture_url?: string | null
+          source?: string | null
           updated_at?: string | null
           username?: string
         }

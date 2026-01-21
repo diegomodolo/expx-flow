@@ -81,7 +81,9 @@ serve(async (req) => {
 
     const pages = [];
     const instagramAccounts = [];
+    const processedInstagramIds = new Set<string>();
 
+    // Process Facebook Pages and their linked Instagram accounts
     for (const page of allPagesData) {
       // Insert/update Facebook page
       const { data: fbPage, error: pageError } = await supabase
@@ -118,9 +120,9 @@ serve(async (req) => {
 
           if (igResponse.ok) {
             const igData = await igResponse.json();
-            console.log(`Found Instagram account: @${igData.username}`);
+            console.log(`Found Instagram account via page: @${igData.username}`);
 
-            // Insert/update Instagram account
+            // Insert/update Instagram account (source: page)
             const { data: igAccount, error: igError } = await supabase
               .from('instagram_accounts')
               .upsert({
@@ -130,22 +132,169 @@ serve(async (req) => {
                 username: igData.username,
                 profile_picture_url: igData.profile_picture_url,
                 followers_count: igData.followers_count || 0,
+                source: 'page',
+                business_id: null,
                 is_active: true,
                 updated_at: new Date().toISOString(),
               }, {
-                onConflict: 'facebook_page_id,instagram_id'
+                onConflict: 'company_id,instagram_id'
               })
               .select()
               .single();
 
             if (!igError && igAccount) {
               instagramAccounts.push(igAccount);
+              processedInstagramIds.add(igData.id);
             }
           }
         } catch (igError) {
-          console.error('Error fetching Instagram account:', igError);
+          console.error('Error fetching Instagram account from page:', igError);
         }
       }
+    }
+
+    // ========================================
+    // NEW: Fetch Instagram accounts directly from Business Manager
+    // ========================================
+    console.log('Fetching Business Managers...');
+    
+    try {
+      const businessesResponse = await fetch(
+        `https://graph.facebook.com/v20.0/me/businesses?fields=id,name&limit=100&access_token=${accessToken}`
+      );
+
+      if (businessesResponse.ok) {
+        const businessesData = await businessesResponse.json();
+        const businesses = businessesData.data || [];
+        console.log(`Found ${businesses.length} Business Manager(s)`);
+
+        for (const business of businesses) {
+          console.log(`Processing Business Manager: ${business.name} (${business.id})`);
+
+          // Fetch owned_instagram_accounts (accounts the BM owns)
+          try {
+            let ownedIgUrl: string | null = `https://graph.facebook.com/v20.0/${business.id}/owned_instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;
+            
+            while (ownedIgUrl) {
+              const ownedIgResponse = await fetch(ownedIgUrl);
+              
+              if (ownedIgResponse.ok) {
+                const ownedIgData = await ownedIgResponse.json();
+                const ownedAccounts = ownedIgData.data || [];
+                console.log(`Found ${ownedAccounts.length} owned Instagram account(s) in BM ${business.name}`);
+
+                for (const igData of ownedAccounts) {
+                  // Skip if already processed via page
+                  if (processedInstagramIds.has(igData.id)) {
+                    console.log(`Instagram @${igData.username} already processed via page, skipping...`);
+                    continue;
+                  }
+
+                  console.log(`Found Instagram account via Business Manager: @${igData.username}`);
+
+                  const { data: igAccount, error: igError } = await supabase
+                    .from('instagram_accounts')
+                    .upsert({
+                      facebook_page_id: null,
+                      company_id: companyId,
+                      instagram_id: igData.id,
+                      username: igData.username,
+                      profile_picture_url: igData.profile_picture_url,
+                      followers_count: igData.followers_count || 0,
+                      source: 'business_manager',
+                      business_id: business.id,
+                      is_active: true,
+                      updated_at: new Date().toISOString(),
+                    }, {
+                      onConflict: 'company_id,instagram_id'
+                    })
+                    .select()
+                    .single();
+
+                  if (!igError && igAccount) {
+                    instagramAccounts.push(igAccount);
+                    processedInstagramIds.add(igData.id);
+                  } else if (igError) {
+                    console.error('Error saving Instagram account from BM:', igError);
+                  }
+                }
+
+                ownedIgUrl = ownedIgData.paging?.next || null;
+              } else {
+                const errorData = await ownedIgResponse.json();
+                console.log(`Could not fetch owned_instagram_accounts for BM ${business.id}:`, errorData.error?.message);
+                break;
+              }
+            }
+          } catch (ownedError) {
+            console.error(`Error fetching owned Instagram accounts for BM ${business.id}:`, ownedError);
+          }
+
+          // Fetch instagram_accounts (accounts the BM has access to, but may not own)
+          try {
+            let sharedIgUrl: string | null = `https://graph.facebook.com/v20.0/${business.id}/instagram_accounts?fields=id,username,profile_picture_url,followers_count&limit=100&access_token=${accessToken}`;
+            
+            while (sharedIgUrl) {
+              const sharedIgResponse = await fetch(sharedIgUrl);
+              
+              if (sharedIgResponse.ok) {
+                const sharedIgData = await sharedIgResponse.json();
+                const sharedAccounts = sharedIgData.data || [];
+                console.log(`Found ${sharedAccounts.length} shared Instagram account(s) in BM ${business.name}`);
+
+                for (const igData of sharedAccounts) {
+                  // Skip if already processed
+                  if (processedInstagramIds.has(igData.id)) {
+                    console.log(`Instagram @${igData.username} already processed, skipping...`);
+                    continue;
+                  }
+
+                  console.log(`Found Instagram account via Business Manager (shared): @${igData.username}`);
+
+                  const { data: igAccount, error: igError } = await supabase
+                    .from('instagram_accounts')
+                    .upsert({
+                      facebook_page_id: null,
+                      company_id: companyId,
+                      instagram_id: igData.id,
+                      username: igData.username,
+                      profile_picture_url: igData.profile_picture_url,
+                      followers_count: igData.followers_count || 0,
+                      source: 'business_manager',
+                      business_id: business.id,
+                      is_active: true,
+                      updated_at: new Date().toISOString(),
+                    }, {
+                      onConflict: 'company_id,instagram_id'
+                    })
+                    .select()
+                    .single();
+
+                  if (!igError && igAccount) {
+                    instagramAccounts.push(igAccount);
+                    processedInstagramIds.add(igData.id);
+                  } else if (igError) {
+                    console.error('Error saving shared Instagram account from BM:', igError);
+                  }
+                }
+
+                sharedIgUrl = sharedIgData.paging?.next || null;
+              } else {
+                const errorData = await sharedIgResponse.json();
+                console.log(`Could not fetch instagram_accounts for BM ${business.id}:`, errorData.error?.message);
+                break;
+              }
+            }
+          } catch (sharedError) {
+            console.error(`Error fetching shared Instagram accounts for BM ${business.id}:`, sharedError);
+          }
+        }
+      } else {
+        const errorData = await businessesResponse.json();
+        console.log('Could not fetch Business Managers:', errorData.error?.message);
+      }
+    } catch (businessError) {
+      console.error('Error fetching Business Managers:', businessError);
     }
 
     console.log(`Successfully saved ${pages.length} pages and ${instagramAccounts.length} Instagram accounts`);

@@ -450,11 +450,26 @@ export const FacebookIntegrationSettings = () => {
                             <div className="font-medium text-sm">@{account.username}</div>
                             <div className="text-xs text-muted-foreground">
                               ID: {account.instagram_id}
+                              {account.facebook_page?.page_name && (
+                                <> • Via: {account.facebook_page.page_name}</>
+                              )}
                             </div>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {account.followers_count?.toLocaleString() || 0} seguidores
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                account.source === 'business_manager' 
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                              }`}
+                            >
+                              {account.source === 'business_manager' ? 'Business Manager' : 'Via Página'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {account.followers_count?.toLocaleString() || 0} seguidores
+                            </Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -464,7 +479,7 @@ export const FacebookIntegrationSettings = () => {
                     </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Nenhuma conta do Instagram vinculada às páginas.
+                      Nenhuma conta do Instagram encontrada. Clique em "Atualizar Contas" para buscar.
                     </p>
                   )}
                 </CardContent>
