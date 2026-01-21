@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Palette, Sparkles, History, Settings, Home } from "lucide-react";
+import { Palette, Sparkles, History, Settings, Home, Copy } from "lucide-react";
 import { CreativeGeneratorSimplified } from "@/components/creative-generator/CreativeGeneratorSimplified";
 import { CreativeHistory } from "@/components/creative-generator/CreativeHistory";
+import { CreativeVariationGenerator } from "@/components/creative-generator/CreativeVariationGenerator";
 import { IdeogramPromptConfigModal } from "@/components/creative-generator/IdeogramPromptConfigModal";
 
 export default function GeradorCriativos() {
@@ -53,10 +54,14 @@ export default function GeradorCriativos() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="generate" className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
               Gerar Novo
+            </TabsTrigger>
+            <TabsTrigger value="variations" className="flex items-center gap-2">
+              <Copy className="w-4 h-4" />
+              Variações
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="w-4 h-4" />
@@ -66,6 +71,10 @@ export default function GeradorCriativos() {
           
           <TabsContent value="generate" className="mt-6">
             <CreativeGeneratorSimplified />
+          </TabsContent>
+          
+          <TabsContent value="variations" className="mt-6">
+            <CreativeVariationGenerator />
           </TabsContent>
           
           <TabsContent value="history" className="mt-6">

@@ -316,3 +316,6 @@ verify_jwt = false
 
 [functions.generate-reels-video]
 verify_jwt = true
+
+[functions.generate-creative-variations]
+verify_jwt = true
