@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield, Instagram, ChevronDown, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CalendarDays, Building2, DollarSign, CheckCircle, AlertTriangle, Facebook, Unlink, RefreshCw, Shield, Instagram, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { useFacebookIntegration } from "@/hooks/useFacebookIntegration";
 import { useFacebookPages } from "@/hooks/useFacebookPages";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -35,6 +36,39 @@ export const FacebookIntegrationSettings = () => {
   const [adAccountsOpen, setAdAccountsOpen] = useState(false);
   const [pagesOpen, setPagesOpen] = useState(false);
   const [instagramOpen, setInstagramOpen] = useState(false);
+  
+  // Search states
+  const [adAccountSearch, setAdAccountSearch] = useState("");
+  const [pagesSearch, setPagesSearch] = useState("");
+  const [instagramSearch, setInstagramSearch] = useState("");
+  
+  // Filtered lists
+  const filteredAdAccounts = useMemo(() => {
+    if (!adAccountSearch.trim()) return adAccounts;
+    const search = adAccountSearch.toLowerCase();
+    return adAccounts.filter(account => 
+      account.account_name?.toLowerCase().includes(search) ||
+      account.id?.toLowerCase().includes(search)
+    );
+  }, [adAccounts, adAccountSearch]);
+  
+  const filteredPages = useMemo(() => {
+    if (!pagesSearch.trim()) return pages;
+    const search = pagesSearch.toLowerCase();
+    return pages.filter(page => 
+      page.page_name?.toLowerCase().includes(search) ||
+      page.page_id?.toLowerCase().includes(search)
+    );
+  }, [pages, pagesSearch]);
+  
+  const filteredInstagramAccounts = useMemo(() => {
+    if (!instagramSearch.trim()) return instagramAccounts;
+    const search = instagramSearch.toLowerCase();
+    return instagramAccounts.filter(account => 
+      account.username?.toLowerCase().includes(search) ||
+      account.instagram_id?.toLowerCase().includes(search)
+    );
+  }, [instagramAccounts, instagramSearch]);
 
   const handleCheckScopes = async () => {
     if (!activeCompany?.company_id) return;
@@ -244,10 +278,21 @@ export const FacebookIntegrationSettings = () => {
                 </CardTitle>
               </CardHeader>
               <CollapsibleContent>
-                <CardContent>
-                  {adAccounts.length > 0 ? (
+                <CardContent className="space-y-4">
+                  {adAccounts.length > 0 && (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar conta de anúncios..."
+                        value={adAccountSearch}
+                        onChange={(e) => setAdAccountSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  )}
+                  {filteredAdAccounts.length > 0 ? (
                     <div className="space-y-3">
-                      {adAccounts.map((account) => (
+                      {filteredAdAccounts.map((account) => (
                         <div
                           key={account.id}
                           className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
@@ -271,6 +316,10 @@ export const FacebookIntegrationSettings = () => {
                         </div>
                       ))}
                     </div>
+                  ) : adAccounts.length > 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma conta encontrada para "{adAccountSearch}".
+                    </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       Nenhuma conta de anúncios encontrada.
@@ -306,10 +355,21 @@ export const FacebookIntegrationSettings = () => {
                 </CardTitle>
               </CardHeader>
               <CollapsibleContent>
-                <CardContent>
-                  {pages.length > 0 ? (
+                <CardContent className="space-y-4">
+                  {pages.length > 0 && (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar página..."
+                        value={pagesSearch}
+                        onChange={(e) => setPagesSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  )}
+                  {filteredPages.length > 0 ? (
                     <div className="space-y-3">
-                      {pages.map((page) => (
+                      {filteredPages.map((page) => (
                         <div
                           key={page.id}
                           className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
@@ -328,6 +388,10 @@ export const FacebookIntegrationSettings = () => {
                         </div>
                       ))}
                     </div>
+                  ) : pages.length > 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma página encontrada para "{pagesSearch}".
+                    </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       {refreshingPages ? 'Buscando páginas...' : 'Nenhuma página encontrada. Clique em "Atualizar Páginas" para buscar.'}
@@ -363,10 +427,21 @@ export const FacebookIntegrationSettings = () => {
                 </CardTitle>
               </CardHeader>
               <CollapsibleContent>
-                <CardContent>
-                  {instagramAccounts.length > 0 ? (
+                <CardContent className="space-y-4">
+                  {instagramAccounts.length > 0 && (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar conta do Instagram..."
+                        value={instagramSearch}
+                        onChange={(e) => setInstagramSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  )}
+                  {filteredInstagramAccounts.length > 0 ? (
                     <div className="space-y-3">
-                      {instagramAccounts.map((account) => (
+                      {filteredInstagramAccounts.map((account) => (
                         <div
                           key={account.id}
                           className="flex items-center justify-between p-4 border rounded-lg bg-muted/30"
@@ -383,6 +458,10 @@ export const FacebookIntegrationSettings = () => {
                         </div>
                       ))}
                     </div>
+                  ) : instagramAccounts.length > 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma conta encontrada para "{instagramSearch}".
+                    </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       Nenhuma conta do Instagram vinculada às páginas.
