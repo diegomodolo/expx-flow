@@ -19,7 +19,7 @@ export interface FacebookPage {
 
 export interface InstagramAccount {
   id: string;
-  facebook_page_id: string;
+  facebook_page_id: string | null;
   company_id: string;
   instagram_id: string;
   username: string;
@@ -28,7 +28,9 @@ export interface InstagramAccount {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  facebook_page?: FacebookPage;
+  source?: 'page' | 'business_manager';
+  business_id?: string | null;
+  facebook_page?: FacebookPage | null;
 }
 
 export const useFacebookPages = () => {
