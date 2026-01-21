@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Upload, Image, Loader2, Sparkles, X } from "lucide-react";
+import { Upload, Image, Loader2, Sparkles, X, ScanText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VariationOptionsCard, VariationOptions } from "./VariationOptionsCard";
@@ -31,6 +31,30 @@ export function CreativeVariationGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [variations, setVariations] = useState<GeneratedVariation[]>([]);
   const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
+  const [isExtractingText, setIsExtractingText] = useState(false);
+
+  const extractTextFromImage = useCallback(async (imageBase64: string) => {
+    setIsExtractingText(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-image-text", {
+        body: { imageBase64 },
+      });
+
+      if (error) {
+        console.error("Error extracting text:", error);
+        return;
+      }
+
+      if (data?.hasText && data?.text) {
+        setTextOverlay(data.text);
+        toast.success("Texto extraído da imagem automaticamente!");
+      }
+    } catch (err) {
+      console.error("Error extracting text:", err);
+    } finally {
+      setIsExtractingText(false);
+    }
+  }, []);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,15 +72,20 @@ export function CreativeVariationGenerator() {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setBaseImage(event.target?.result as string);
+      const imageData = event.target?.result as string;
+      setBaseImage(imageData);
       setBaseImageFile(file);
+      
+      // Auto-extract text from image
+      extractTextFromImage(imageData);
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [extractTextFromImage]);
 
   const removeImage = useCallback(() => {
     setBaseImage(null);
     setBaseImageFile(null);
+    setTextOverlay("");
   }, []);
 
   const generateVariations = async () => {
@@ -293,7 +322,15 @@ export function CreativeVariationGenerator() {
           {/* Text Overlay */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Texto na Imagem</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                Texto na Imagem
+                {isExtractingText && (
+                  <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                    <ScanText className="w-3 h-3 animate-pulse" />
+                    Extraindo texto...
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
@@ -301,7 +338,14 @@ export function CreativeVariationGenerator() {
                 value={textOverlay}
                 onChange={(e) => setTextOverlay(e.target.value)}
                 rows={3}
+                disabled={isExtractingText}
               />
+              {isExtractingText && (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Analisando imagem para extrair texto...
+                </p>
+              )}
             </CardContent>
           </Card>
 
