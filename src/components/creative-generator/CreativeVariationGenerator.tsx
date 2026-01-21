@@ -1,16 +1,16 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Upload, Image, Loader2, Sparkles, X, ScanText } from "lucide-react";
+import { Upload, Image, Loader2, Sparkles, X, ScanText, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VariationOptionsCard, VariationOptions } from "./VariationOptionsCard";
 import { VariationsGrid, GeneratedVariation } from "./VariationsGrid";
+import { Label } from "@/components/ui/label";
 
 export function CreativeVariationGenerator() {
   // Form state
@@ -26,12 +26,14 @@ export function CreativeVariationGenerator() {
   });
   const [selectedFormats, setSelectedFormats] = useState<string[]>(["instagram_feed"]);
   const [quantity, setQuantity] = useState(4);
+  const [accumulateMode, setAccumulateMode] = useState(true);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [variations, setVariations] = useState<GeneratedVariation[]>([]);
   const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
   const [isExtractingText, setIsExtractingText] = useState(false);
+  const [totalToGenerate, setTotalToGenerate] = useState(0);
 
   const extractTextFromImage = useCallback(async (imageBase64: string) => {
     setIsExtractingText(true);
@@ -101,12 +103,13 @@ export function CreativeVariationGenerator() {
 
     setIsGenerating(true);
 
-    // Create placeholder variations
+    // Create placeholder variations with unique IDs
+    const timestamp = Date.now();
     const placeholders: GeneratedVariation[] = [];
     selectedFormats.forEach((format) => {
       for (let i = 0; i < quantity; i++) {
         placeholders.push({
-          id: `${format}-${i}`,
+          id: `${format}-${timestamp}-${i}`,
           imageUrl: "",
           format,
           variationIndex: i,
@@ -115,7 +118,20 @@ export function CreativeVariationGenerator() {
         });
       }
     });
-    setVariations(placeholders);
+
+    // Set total to generate for progress bar
+    setTotalToGenerate(placeholders.length);
+
+    // Either replace or accumulate variations
+    if (accumulateMode) {
+      // Limit to max 24 variations when accumulating
+      const currentSuccessful = variations.filter(v => v.status === 'success');
+      const maxToKeep = Math.max(0, 24 - placeholders.length);
+      const keptVariations = currentSuccessful.slice(-maxToKeep);
+      setVariations([...keptVariations, ...placeholders]);
+    } else {
+      setVariations(placeholders);
+    }
 
     try {
       // Generate each variation sequentially to avoid rate limits
@@ -180,6 +196,7 @@ export function CreativeVariationGenerator() {
       toast.error("Erro ao gerar variações: " + error.message);
     } finally {
       setIsGenerating(false);
+      setTotalToGenerate(0);
     }
   };
 
@@ -267,7 +284,13 @@ export function CreativeVariationGenerator() {
     // TODO: Implement saving to database
   };
 
+  const handleClearVariations = () => {
+    setVariations([]);
+    toast.info("Variações limpas");
+  };
+
   const canGenerate = baseImage && selectedFormats.length > 0 && !isGenerating;
+  const successfulCount = variations.filter(v => v.status === 'success').length;
 
   return (
     <div className="space-y-6">
@@ -420,6 +443,41 @@ export function CreativeVariationGenerator() {
             </CardContent>
           </Card>
 
+          {/* Accumulate Mode Toggle */}
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <Label htmlFor="accumulate-mode" className="cursor-pointer">
+                    Acumular variações
+                  </Label>
+                </div>
+                <Switch
+                  id="accumulate-mode"
+                  checked={accumulateMode}
+                  onCheckedChange={setAccumulateMode}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {accumulateMode 
+                  ? "Novas variações serão adicionadas às existentes (máx. 24)"
+                  : "Novas variações substituirão as anteriores"
+                }
+              </p>
+              {successfulCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearVariations}
+                  className="mt-2 text-xs h-7"
+                >
+                  Limpar todas ({successfulCount})
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Generate Button */}
           <Button
             onClick={generateVariations}
@@ -450,6 +508,8 @@ export function CreativeVariationGenerator() {
         onDownloadSelected={handleDownloadSelected}
         onSaveSelected={handleSaveSelected}
         isRegenerating={isRegenerating}
+        baseImage={baseImage || undefined}
+        totalToGenerate={totalToGenerate}
       />
     </div>
   );

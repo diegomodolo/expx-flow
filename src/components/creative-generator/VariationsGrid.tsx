@@ -3,8 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Download, RefreshCw, Calendar, Save, Loader2, Check, X, ZoomIn } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Download, RefreshCw, Save, Loader2, Check, X, ZoomIn, ArrowLeftRight } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { BeforeAfterComparison } from "./BeforeAfterComparison";
 
 export interface GeneratedVariation {
   id: string;
@@ -23,6 +25,9 @@ interface VariationsGridProps {
   onDownloadSelected: () => void;
   onSaveSelected: () => void;
   isRegenerating?: string | null;
+  baseImage?: string;
+  generatingCount?: number;
+  totalToGenerate?: number;
 }
 
 export function VariationsGrid({
@@ -32,17 +37,30 @@ export function VariationsGrid({
   onDownloadSelected,
   onSaveSelected,
   isRegenerating,
+  baseImage,
+  generatingCount = 0,
+  totalToGenerate = 0,
 }: VariationsGridProps) {
+  const [compareVariation, setCompareVariation] = useState<GeneratedVariation | null>(null);
+  
   const selectedCount = variations.filter((v) => v.selected && v.status === 'success').length;
   const successCount = variations.filter((v) => v.status === 'success').length;
+  const generatingNow = variations.filter((v) => v.status === 'generating').length;
+  const completedCount = variations.filter((v) => v.status === 'success' || v.status === 'error').length;
+  
+  const isGenerating = totalToGenerate > 0 && completedCount < totalToGenerate;
+  const progressPercent = totalToGenerate > 0 ? (completedCount / totalToGenerate) * 100 : 0;
 
   const getFormatLabel = (format: string) => {
     switch (format) {
       case 'instagram_story':
+      case 'story':
         return 'Story';
       case 'instagram_feed':
+      case 'feed':
         return 'Feed';
       case 'instagram_reels':
+      case 'reels':
         return 'Reels';
       default:
         return format;
@@ -68,9 +86,34 @@ export function VariationsGrid({
 
   return (
     <div className="space-y-4">
+      {/* Progress Bar - Only show when generating */}
+      {isGenerating && (
+        <div className="bg-muted/50 rounded-lg p-4 space-y-2 border">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              Gerando variações...
+            </span>
+            <span className="text-muted-foreground">
+              {completedCount} de {totalToGenerate} concluídas
+            </span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+          <p className="text-xs text-muted-foreground">
+            {generatingNow > 0 && `${generatingNow} em processamento... `}
+            Aguarde enquanto a IA cria suas variações.
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">
           Variações Geradas ({successCount})
+          {selectedCount > 0 && (
+            <span className="text-muted-foreground font-normal text-sm ml-2">
+              • {selectedCount} selecionadas
+            </span>
+          )}
         </h3>
         <div className="flex items-center gap-2">
           <Button
@@ -123,7 +166,7 @@ export function VariationsGrid({
             {/* Image Container */}
             <div
               className={`aspect-square bg-muted flex items-center justify-center ${
-                variation.format === 'instagram_story' ? 'aspect-[9/16]' : ''
+                variation.format === 'instagram_story' || variation.format === 'story' ? 'aspect-[9/16]' : ''
               }`}
             >
               {variation.status === 'generating' ? (
@@ -154,12 +197,13 @@ export function VariationsGrid({
                         alt={`Variação ${variation.variationIndex + 1}`}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2">
                         <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl p-0">
+                    <DialogTitle className="sr-only">Preview da variação</DialogTitle>
                     <img
                       src={variation.imageUrl}
                       alt={`Variação ${variation.variationIndex + 1}`}
@@ -180,6 +224,7 @@ export function VariationsGrid({
                   size="sm"
                   onClick={() => onRegenerate(variation.id)}
                   disabled={isRegenerating === variation.id}
+                  title="Regenerar"
                 >
                   {isRegenerating === variation.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -187,11 +232,33 @@ export function VariationsGrid({
                     <RefreshCw className="w-4 h-4" />
                   )}
                 </Button>
+                {baseImage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCompareVariation(variation)}
+                    title="Comparar com original"
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             )}
           </Card>
         ))}
       </div>
+
+      {/* Before/After Comparison Dialog */}
+      {baseImage && compareVariation && (
+        <BeforeAfterComparison
+          open={!!compareVariation}
+          onOpenChange={(open) => !open && setCompareVariation(null)}
+          beforeImage={baseImage}
+          afterImage={compareVariation.imageUrl}
+          beforeLabel="Imagem Original"
+          afterLabel={`Variação ${compareVariation.variationIndex + 1}`}
+        />
+      )}
     </div>
   );
 }
