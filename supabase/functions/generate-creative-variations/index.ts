@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface VariationRequest {
   baseImage: string;
+  personImage?: string;
   text: string;
   designGuidance: string;
   variationOptions: {
@@ -35,7 +36,7 @@ serve(async (req) => {
     }
 
     const body: VariationRequest = await req.json();
-    const { baseImage, text, designGuidance, variationOptions, format, variationIndex } = body;
+    const { baseImage, personImage, text, designGuidance, variationOptions, format, variationIndex } = body;
 
     console.log(`Generating variation ${variationIndex + 1} for format ${format}`);
 
@@ -76,17 +77,29 @@ serve(async (req) => {
       variationInstructions.push("- Keep a similar background style");
     }
 
+    // Build identity reference instruction if person image is provided
+    const identityInstruction = personImage 
+      ? `
+=== PERSON IDENTITY REFERENCE (CRITICAL) ===
+A separate reference photo of the person has been provided as the SECOND image.
+Use this clean reference photo as the ABSOLUTE source of truth for the person's identity.
+The first image is the creative design reference, the second image is the person identity reference.
+NEVER deviate from the facial features, skin tone, and physical characteristics shown in the person reference photo.
+`
+      : '';
+
     // Build the prompt for image generation
     const prompt = `
 CREATIVE VARIATION MODE - CRITICAL INSTRUCTIONS:
 
-You are creating variation #${variationIndex + 1} of a marketing creative based on the reference image provided.
+You are creating variation #${variationIndex + 1} of a marketing creative based on the reference image(s) provided.
+${personImage ? 'TWO IMAGES PROVIDED: First = Creative Design Reference, Second = Person Identity Reference' : 'ONE IMAGE PROVIDED: Creative Design Reference'}
 
 === ABSOLUTE REQUIREMENTS (NEVER VIOLATE) ===
-1. The person in the reference image MUST be 100% recognizable in the output
+1. The person ${personImage ? 'shown in the SECOND reference image' : 'in the reference image'} MUST be 100% recognizable in the output
 2. Maintain EXACT facial features, skin tone, hair color, and overall physical appearance
 3. This is NOT a new person - it's the SAME person from the reference in a new creative
-
+${identityInstruction}
 === VARIATION INSTRUCTIONS ===
 ${variationInstructions.join("\n")}
 
@@ -107,6 +120,31 @@ Generate a high-quality marketing creative that maintains the person's identity 
 
     console.log("Calling Gemini API for image generation...");
 
+    // Build content array with images
+    const contentArray: any[] = [
+      {
+        type: "text",
+        text: prompt,
+      },
+      {
+        type: "image_url",
+        image_url: {
+          url: baseImage,
+        },
+      },
+    ];
+
+    // Add person image as second reference if provided
+    if (personImage) {
+      console.log("Person image provided - adding as identity reference");
+      contentArray.push({
+        type: "image_url",
+        image_url: {
+          url: personImage,
+        },
+      });
+    }
+
     // Call the Gemini API for image generation with the base image as reference
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -119,18 +157,7 @@ Generate a high-quality marketing creative that maintains the person's identity 
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: prompt,
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: baseImage,
-                },
-              },
-            ],
+            content: contentArray,
           },
         ],
         modalities: ["image", "text"],

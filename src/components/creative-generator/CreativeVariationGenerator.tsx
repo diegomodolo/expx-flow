@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Upload, Image, Loader2, Sparkles, X, ScanText, Layers } from "lucide-react";
+import { Upload, Image, Loader2, Sparkles, X, ScanText, Layers, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VariationOptionsCard, VariationOptions } from "./VariationOptionsCard";
@@ -16,6 +16,8 @@ export function CreativeVariationGenerator() {
   // Form state
   const [baseImage, setBaseImage] = useState<string | null>(null);
   const [baseImageFile, setBaseImageFile] = useState<File | null>(null);
+  const [personImage, setPersonImage] = useState<string | null>(null);
+  const [personImageFile, setPersonImageFile] = useState<File | null>(null);
   const [textOverlay, setTextOverlay] = useState("");
   const [designGuidance, setDesignGuidance] = useState("");
   const [variationOptions, setVariationOptions] = useState<VariationOptions>({
@@ -90,6 +92,34 @@ export function CreativeVariationGenerator() {
     setTextOverlay("");
   }, []);
 
+  const handlePersonImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem válida");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 10MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageData = event.target?.result as string;
+      setPersonImage(imageData);
+      setPersonImageFile(file);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const removePersonImage = useCallback(() => {
+    setPersonImage(null);
+    setPersonImageFile(null);
+  }, []);
+
   const generateVariations = async () => {
     if (!baseImage) {
       toast.error("Por favor, faça upload de uma imagem base");
@@ -151,6 +181,7 @@ export function CreativeVariationGenerator() {
             {
               body: {
                 baseImage,
+                personImage: personImage || undefined,
                 text: textOverlay,
                 designGuidance,
                 variationOptions,
@@ -221,6 +252,7 @@ export function CreativeVariationGenerator() {
         {
           body: {
             baseImage,
+            personImage: personImage || undefined,
             text: textOverlay,
             designGuidance,
             variationOptions,
@@ -297,50 +329,93 @@ export function CreativeVariationGenerator() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Left Column - Input */}
         <div className="space-y-4">
-          {/* Image Upload */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Image className="w-4 h-4 text-primary" />
-                Foto Base
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {baseImage ? (
-                <div className="relative">
-                  <img
-                    src={baseImage}
-                    alt="Base"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2"
-                    onClick={removeImage}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
-                  <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">
-                    Clique para fazer upload
-                  </span>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG até 10MB
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                </label>
-              )}
-            </CardContent>
-          </Card>
+          {/* Image Uploads - Two columns */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Base Image Upload */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Image className="w-4 h-4 text-primary" />
+                  Foto Base (Criativo)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {baseImage ? (
+                  <div className="relative">
+                    <img
+                      src={baseImage}
+                      alt="Base"
+                      className="w-full h-36 object-cover rounded-lg"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={removeImage}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-36 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                    <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                    <span className="text-xs text-muted-foreground text-center px-2">
+                      Upload do criativo
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Person Image Upload */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  Foto da Pessoa
+                  <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {personImage ? (
+                  <div className="relative">
+                    <img
+                      src={personImage}
+                      alt="Person"
+                      className="w-full h-36 object-cover rounded-lg"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={removePersonImage}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-36 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                    <User className="w-6 h-6 text-muted-foreground mb-1" />
+                    <span className="text-xs text-muted-foreground text-center px-2">
+                      Foto limpa para melhor reconhecimento
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePersonImageUpload}
+                    />
+                  </label>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Text Overlay */}
           <Card>
