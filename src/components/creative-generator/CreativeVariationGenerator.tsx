@@ -5,12 +5,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Upload, Image, Loader2, Sparkles, X, ScanText, Layers, User } from "lucide-react";
+import { Upload, Image, Loader2, Sparkles, X, ScanText, Layers, User, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { VariationOptionsCard, VariationOptions } from "./VariationOptionsCard";
 import { VariationsGrid, GeneratedVariation } from "./VariationsGrid";
 import { Label } from "@/components/ui/label";
+
+type ModelType = "flash" | "pro";
+
+// Batch size for parallel generation
+const BATCH_SIZE = 3;
 
 export function CreativeVariationGenerator() {
   // Form state
@@ -29,6 +34,7 @@ export function CreativeVariationGenerator() {
   const [selectedFormats, setSelectedFormats] = useState<string[]>(["instagram_feed"]);
   const [quantity, setQuantity] = useState(4);
   const [accumulateMode, setAccumulateMode] = useState(true);
+  const [modelType, setModelType] = useState<ModelType>("flash");
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -164,60 +170,66 @@ export function CreativeVariationGenerator() {
     }
 
     try {
-      // Generate each variation sequentially to avoid rate limits
-      for (let i = 0; i < placeholders.length; i++) {
-        const placeholder = placeholders[i];
+      // Generate in batches for parallel processing
+      for (let batchStart = 0; batchStart < placeholders.length; batchStart += BATCH_SIZE) {
+        const batch = placeholders.slice(batchStart, batchStart + BATCH_SIZE);
         
-        // Update status to generating
-        setVariations((prev) =>
-          prev.map((v) =>
-            v.id === placeholder.id ? { ...v, status: "generating" as const } : v
-          )
-        );
-
-        try {
-          const { data, error } = await supabase.functions.invoke(
-            "generate-creative-variations",
-            {
-              body: {
-                baseImage,
-                personImage: personImage || undefined,
-                text: textOverlay,
-                designGuidance,
-                variationOptions,
-                format: placeholder.format,
-                variationIndex: placeholder.variationIndex,
-              },
-            }
-          );
-
-          if (error) throw error;
-
-          if (data?.imageUrl) {
+        // Process batch in parallel
+        await Promise.all(
+          batch.map(async (placeholder) => {
+            // Update status to generating
             setVariations((prev) =>
               prev.map((v) =>
-                v.id === placeholder.id
-                  ? { ...v, imageUrl: data.imageUrl, status: "success" as const }
-                  : v
+                v.id === placeholder.id ? { ...v, status: "generating" as const } : v
               )
             );
-          } else {
-            throw new Error("Nenhuma imagem gerada");
-          }
-        } catch (err: any) {
-          console.error(`Error generating variation ${placeholder.id}:`, err);
-          setVariations((prev) =>
-            prev.map((v) =>
-              v.id === placeholder.id
-                ? { ...v, status: "error" as const, error: err.message }
-                : v
-            )
-          );
-        }
 
-        // Small delay between generations to avoid rate limits
-        if (i < placeholders.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+            try {
+              const { data, error } = await supabase.functions.invoke(
+                "generate-creative-variations",
+                {
+                  body: {
+                    baseImage,
+                    personImage: personImage || undefined,
+                    text: textOverlay,
+                    designGuidance,
+                    variationOptions,
+                    format: placeholder.format,
+                    variationIndex: placeholder.variationIndex,
+                    modelType,
+                  },
+                }
+              );
+
+              if (error) throw error;
+
+              if (data?.imageUrl) {
+                setVariations((prev) =>
+                  prev.map((v) =>
+                    v.id === placeholder.id
+                      ? { ...v, imageUrl: data.imageUrl, status: "success" as const }
+                      : v
+                  )
+                );
+              } else {
+                throw new Error(data?.error || "Nenhuma imagem gerada");
+              }
+            } catch (err: any) {
+              console.error(`Error generating variation ${placeholder.id}:`, err);
+              setVariations((prev) =>
+                prev.map((v) =>
+                  v.id === placeholder.id
+                    ? { ...v, status: "error" as const, error: err.message }
+                    : v
+                )
+              );
+            }
+          })
+        );
+
+        // Small delay between batches to avoid overwhelming the API
+        if (batchStart + BATCH_SIZE < placeholders.length) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
         }
       }
 
@@ -258,6 +270,7 @@ export function CreativeVariationGenerator() {
             variationOptions,
             format: variation.format,
             variationIndex: variation.variationIndex,
+            modelType,
           },
         }
       );
@@ -484,7 +497,7 @@ export function CreativeVariationGenerator() {
                 className="justify-start flex-wrap"
               >
                 <ToggleGroupItem value="instagram_feed" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                  Feed (1:1)
+                  Feed (4:5)
                 </ToggleGroupItem>
                 <ToggleGroupItem value="instagram_story" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                   Story (9:16)
@@ -493,6 +506,46 @@ export function CreativeVariationGenerator() {
                   Reels (9:16)
                 </ToggleGroupItem>
               </ToggleGroup>
+            </CardContent>
+          </Card>
+
+          {/* AI Model Selection */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                Modelo de IA
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ToggleGroup
+                type="single"
+                value={modelType}
+                onValueChange={(value) => value && setModelType(value as ModelType)}
+                className="grid grid-cols-2 gap-2"
+              >
+                <ToggleGroupItem
+                  value="flash"
+                  className="flex flex-col items-center gap-1 p-3 h-auto data-[state=on]:bg-primary data-[state=on]:text-primary-foreground border"
+                >
+                  <Zap className="h-4 w-4" />
+                  <span className="font-medium text-sm">Flash</span>
+                  <span className="text-[10px] opacity-80">Rápido (~5s)</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="pro"
+                  className="flex flex-col items-center gap-1 p-3 h-auto data-[state=on]:bg-primary data-[state=on]:text-primary-foreground border"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="font-medium text-sm">Pro</span>
+                  <span className="text-[10px] opacity-80">Qualidade (~15s)</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <p className="text-xs text-muted-foreground">
+                {modelType === "flash" 
+                  ? "⚡ 3x mais rápido, ideal para testes e iterações" 
+                  : "✨ Máxima qualidade, ideal para versão final"}
+              </p>
             </CardContent>
           </Card>
 
