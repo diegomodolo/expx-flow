@@ -18,45 +18,45 @@
 
 @layer base {
   :root {
-    /* Google-inspired color palette */
+    /* Expx Flow Green color palette */
     --background: 0 0% 98%;
-    --foreground: 213 5% 16%;
+    --foreground: 0 0% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 213 5% 16%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 213 5% 16%;
+    --popover-foreground: 0 0% 10%;
 
-    /* Google Blue as primary */
-    --primary: 217 91% 60%;
+    /* Primary - Expx Green */
+    --primary: 142 71% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary-glow: 142 71% 55%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 213 5% 16%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 14% 46%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 213 5% 16%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 10%;
 
     --destructive: 4 90% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 142 71% 45%;
 
-    /* Google-style subtle gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 70%));
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(240 65% 45%) 50%, hsl(280 70% 40%) 100%);
-    --gradient-accent: linear-gradient(45deg, hsl(217 91% 70%), hsl(240 65% 55%));
+    /* Expx Green gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(152 65% 40%) 50%, hsl(162 60% 35%) 100%);
+    --gradient-accent: linear-gradient(45deg, hsl(142 71% 55%), hsl(160 70% 45%));
 
     --radius: 0.75rem;
     
-    /* Google-style status colors (softer) */
+    /* Status colors */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 36 100% 50%;
@@ -70,26 +70,26 @@
     --metric-negative: 4 90% 58%;
     --metric-neutral: 36 100% 50%;
     
-    /* Status badge colors - Google-like pastels */
+    /* Status badge colors */
     --status-excellent: 142 71% 45%;
     --status-excellent-foreground: 0 0% 100%;
     --status-attention: 36 100% 50%;
     --status-attention-foreground: 0 0% 100%;
     --status-emergency: 4 90% 58%;
     --status-emergency-foreground: 0 0% 100%;
-    --status-inactive: 220 9% 53%;
+    --status-inactive: 0 0% 53%;
     --status-inactive-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 213 5% 16%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-foreground: 0 0% 40%;
+    --sidebar-primary: 142 71% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 213 5% 16%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 142 71% 45%;
 
-    /* Google Material elevation shadows */
+    /* Elevation shadows */
     --shadow-sm: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
     --shadow-md: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 2px 6px 2px rgb(60 64 67 / 0.15);
     --shadow-lg: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
@@ -106,10 +106,10 @@
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 95%;
 
-    /* Google Blue - slightly brighter in dark mode */
-    --primary: 217 91% 65%;
-    --primary-foreground: 0 0% 7%;
-    --primary-glow: 217 91% 75%;
+    /* Expx Green - slightly brighter in dark mode */
+    --primary: 142 71% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 142 71% 60%;
 
     --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 95%;
@@ -125,7 +125,7 @@
 
     --border: 0 0% 18%;
     --input: 0 0% 18%;
-    --ring: 217 91% 65%;
+    --ring: 142 71% 50%;
     
     /* Status colors - dark mode */
     --success: 142 71% 45%;
@@ -154,12 +154,12 @@
     /* Sidebar */
     --sidebar-background: 0 0% 7%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 217 91% 65%;
+    --sidebar-primary: 142 71% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 217 91% 65%;
+    --sidebar-ring: 142 71% 50%;
 
     /* Dark mode shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 1px 3px 1px rgb(0 0 0 / 0.25);
