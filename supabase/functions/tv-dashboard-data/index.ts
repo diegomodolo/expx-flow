@@ -131,6 +131,7 @@ serve(async (req) => {
       syncInfoResult,
       benchmarksResult,
       companySettingsResult,
+      problematicUrlsResult,
     ] = await Promise.all([
       // Meta Campaigns with client info (ACTIVE ONLY - for KPIs/rankings)
       supabase
@@ -223,6 +224,9 @@ serve(async (req) => {
         .select('default_target_cpa, default_target_cpl, default_target_ctr, default_target_cpc, default_target_cpm, default_target_roas, default_target_frequency')
         .eq('company_id', company.id)
         .maybeSingle(),
+
+      // Problematic URLs with active campaigns
+      supabase.rpc('get_problematic_urls_for_tv', { p_company_id: company.id }),
     ]);
 
     // Log critical query errors (we still try to return partial data when possible)
@@ -240,6 +244,24 @@ serve(async (req) => {
     const syncInfo = syncInfoResult.data?.[0] || null;
     const benchmarks = benchmarksResult.data || [];
     const companySettings = companySettingsResult.data;
+    const problematicUrlsRaw = problematicUrlsResult.data || [];
+
+    // Process problematic URLs into the expected format
+    const problematicUrls = problematicUrlsRaw.map((url: any) => ({
+      id: url.url_id,
+      url: url.url,
+      clientName: url.client_name,
+      clientAvatar: url.client_avatar,
+      status: url.validation_status as 'error' | 'timeout',
+      statusCode: url.validation_status_code,
+      activeCampaigns: url.active_campaign_count,
+    }));
+
+    if (problematicUrlsResult.error) {
+      console.error('[tv-dashboard-data] Problematic URLs query error:', JSON.stringify(problematicUrlsResult.error));
+    } else {
+      console.log(`[tv-dashboard-data] Found ${problematicUrls.length} problematic URLs with active campaigns`);
+    }
 
     // Build company default benchmarks (from settings or fallback to system defaults)
     const DEFAULT_BENCHMARKS = {
@@ -1033,7 +1055,8 @@ serve(async (req) => {
       worstCampaigns,
       budgetAlerts: budgetAlerts.slice(0, 10),
       platformData,
-      inactiveClients
+      inactiveClients,
+      problematicUrls
     };
 
     console.log(`[tv-dashboard-data] Response prepared successfully`);

@@ -13,6 +13,7 @@ import { TVBudgetAlerts } from '@/components/tv-dashboard/TVBudgetAlerts';
 import { TVPlatformChart } from '@/components/tv-dashboard/TVPlatformChart';
 import { TVConversionMetrics } from '@/components/tv-dashboard/TVConversionMetrics';
 import { TVInactiveClients } from '@/components/tv-dashboard/TVInactiveClients';
+import { TVProblematicUrls } from '@/components/tv-dashboard/TVProblematicUrls';
 import type { TVMetrics, TVAlert, TVCampaign, TVClient } from '@/hooks/useTrafegoDashboard';
 
 interface TVDashboardResponse {
@@ -121,6 +122,15 @@ interface TVDashboardResponse {
     id: string;
     name: string;
     avatar: string | null;
+    activeCampaigns: number;
+  }>;
+  problematicUrls: Array<{
+    id: string;
+    url: string;
+    clientName: string;
+    clientAvatar: string | null;
+    status: 'error' | 'timeout';
+    statusCode: number | null;
     activeCampaigns: number;
   }>;
 }
@@ -280,6 +290,7 @@ export default function DashboardTrafegoPublic() {
   const budgetAlerts = data.budgetAlerts || [];
   const platformData = data.platformData || [];
   const inactiveClients = data.inactiveClients || [];
+  const problematicUrls = data.problematicUrls || [];
 
   return (
     <div className="h-screen bg-background overflow-hidden">
@@ -310,6 +321,13 @@ export default function DashboardTrafegoPublic() {
               syncInfo={data.syncInfo}
             />
           </div>
+
+          {/* Row 1.5: Problematic URLs Alert (if any) */}
+          {problematicUrls.length > 0 && (
+            <div className="shrink-0">
+              <TVProblematicUrls urls={problematicUrls} />
+            </div>
+          )}
 
           {/* Row 2: Alerts, Campaign Ranking, Clients on Alert */}
           <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
