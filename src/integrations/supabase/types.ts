@@ -8891,6 +8891,7 @@ export type Database = {
       }
       recurring_task_templates: {
         Row: {
+          active_days_of_week: number[] | null
           assigned_to: string
           client_id: string | null
           company_id: string
@@ -8913,6 +8914,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_days_of_week?: number[] | null
           assigned_to: string
           client_id?: string | null
           company_id: string
@@ -8935,6 +8937,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_days_of_week?: number[] | null
           assigned_to?: string
           client_id?: string | null
           company_id?: string
