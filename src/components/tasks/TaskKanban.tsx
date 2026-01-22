@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MoreHorizontal, CheckCircle2, ChevronRight, Plus, Settings, Layout } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -49,6 +50,7 @@ interface TaskKanbanProps {
   onEditTask: (task: Task) => void;
   onUpdateTaskStatus: (taskId: string, status: string) => void;
   onDeleteTask: (taskId: string) => void;
+  isCompactMode?: boolean;
 }
 
 // Default columns as fallback
@@ -59,7 +61,7 @@ const DEFAULT_COLUMNS: TaskBoardColumn[] = [
   { id: 'default-done', name: 'Concluída', status: 'done', color: '#22C55E', order_index: 3, user_id: '', company_id: '', created_at: '', updated_at: '' },
 ];
 
-export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask }: TaskKanbanProps) {
+export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask, isCompactMode = false }: TaskKanbanProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [completedTasksModalOpen, setCompletedTasksModalOpen] = useState(false);
@@ -240,9 +242,12 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   const renderTaskCard = (task: Task, columnColor: string, inModal = false) => (
     <Card 
       key={task.id} 
-      className={`p-4 shadow-google-sm hover:shadow-google-md transition-all ${inModal ? 'cursor-pointer' : 'cursor-move'} border-l-4 bg-card ${
-        !inModal && draggedTask?.id === task.id ? 'opacity-50 rotate-3 scale-105' : ''
-      }`}
+      className={cn(
+        "shadow-google-sm hover:shadow-google-md transition-all border-l-4 bg-card",
+        inModal ? 'cursor-pointer' : 'cursor-move',
+        !inModal && draggedTask?.id === task.id && 'opacity-50 rotate-3 scale-105',
+        isCompactMode ? "p-2" : "p-4"
+      )}
       style={{ borderLeftColor: priorityColors[task.priority] }}
       draggable={!inModal}
       onDragStart={!inModal ? (e) => handleDragStart(e, task) : undefined}
@@ -251,18 +256,22 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     >
       <CardContent className="p-0">
         <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
+          <div className={cn("flex items-start flex-1", isCompactMode ? "gap-2" : "gap-3")}>
             <div 
-              className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
+              className={cn("rounded-full mt-1 flex-shrink-0", isCompactMode ? "w-2 h-2" : "w-3 h-3")}
               style={{ backgroundColor: priorityColors[task.priority] }}
             />
             
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-foreground text-sm leading-tight mb-2 line-clamp-2">
+              <h4 className={cn(
+                "font-medium text-foreground leading-tight line-clamp-2",
+                isCompactMode ? "text-xs mb-1" : "text-sm mb-2"
+              )}>
                 {task.title}
               </h4>
 
-              {(task.client?.name || task.campaign?.name) && (
+              {/* Ocultar cliente/campanha no modo compacto */}
+              {!isCompactMode && (task.client?.name || task.campaign?.name) && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {task.client?.name && (
                     <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
@@ -277,7 +286,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                 </div>
               )}
               
-              {task.description && (
+              {/* Ocultar descrição no modo compacto */}
+              {!isCompactMode && task.description && (
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                   {task.description}
                 </p>
@@ -286,19 +296,21 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               {task.due_date && (
                 <div className="flex items-center gap-2">
                    <div className="flex items-center gap-1">
-                     <Avatar className="h-4 w-4">
+                     <Avatar className={cn(isCompactMode ? "h-3 w-3" : "h-4 w-4")}>
                        <AvatarImage 
                          src={task.responsible_avatar || task.user_profile?.avatar_url || ''} 
                          alt={task.responsible_name || 'Responsável'}
                          className="object-cover"
                        />
-                       <AvatarFallback className="text-[8px] bg-muted text-muted-foreground">
+                       <AvatarFallback className={cn("bg-muted text-muted-foreground", isCompactMode ? "text-[6px]" : "text-[8px]")}>
                          {(task.responsible_name || 'U')?.charAt(0)?.toUpperCase()}
                        </AvatarFallback>
                      </Avatar>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      {task.responsible_name}
-                    </span>
+                     {!isCompactMode && (
+                       <span className="text-xs text-muted-foreground font-medium">
+                         {task.responsible_name}
+                       </span>
+                     )}
                   </div>
                   
                   <p className={`text-xs font-medium ${
@@ -352,7 +364,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   return (
     <>
 
-      <div className="flex gap-6 h-full overflow-x-auto pb-4">
+      <div className={cn("flex h-full overflow-x-auto", isCompactMode ? "gap-3 pb-2" : "gap-6 pb-4")}>
         {/* Track which tasks have been assigned to prevent duplicates */}
         {(() => {
           const assignedTaskIds = new Set<string>();
@@ -383,9 +395,12 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
             return (
               <div 
                 key={column.id} 
-                className={`flex flex-col min-w-[280px] flex-1 transition-all ${
-                  isBeingDragged ? 'opacity-50 scale-95' : ''
-                } ${isColumnDragTarget ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}
+                className={cn(
+                  "flex flex-col flex-1 transition-all",
+                  isCompactMode ? "min-w-[200px]" : "min-w-[280px]",
+                  isBeingDragged && 'opacity-50 scale-95',
+                  isColumnDragTarget && 'ring-2 ring-primary ring-offset-2 rounded-lg'
+                )}
                 onDragOver={handleColumnDragOver}
                 onDragEnter={() => handleColumnDragEnter(column.id)}
                 onDragLeave={handleColumnDragLeave}
@@ -397,36 +412,43 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                 }}
             >
               <div 
-                className={`p-4 rounded-t-lg border-b border-border flex items-center justify-between ${
-                  !isUsingDefaults ? 'cursor-grab active:cursor-grabbing' : ''
-                }`}
+                className={cn(
+                  "rounded-t-lg border-b border-border flex items-center justify-between",
+                  !isUsingDefaults && 'cursor-grab active:cursor-grabbing',
+                  isCompactMode ? "p-2" : "p-4"
+                )}
                 style={{ backgroundColor: `${column.color}20` }}
                 draggable={!isUsingDefaults}
                 onDragStart={(e) => handleColumnDragStart(e, column)}
                 onDragEnd={handleColumnDragEnd}
               >
-                <h3 className="font-semibold flex items-center gap-2" style={{ color: column.color }}>
+                <h3 className={cn(
+                  "font-semibold flex items-center gap-2",
+                  isCompactMode && "text-sm"
+                )} style={{ color: column.color }}>
                   {!isUsingDefaults && (
                     <span className="opacity-40 mr-1">⋮⋮</span>
                   )}
                   {column.name}
-                  <Badge variant="secondary" className="bg-background/80">{columnTasks.length}</Badge>
+                  <Badge variant="secondary" className={cn("bg-background/80", isCompactMode && "text-xs px-1.5 py-0")}>{columnTasks.length}</Badge>
                 </h3>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-60 hover:opacity-100"
+                  className={cn("opacity-60 hover:opacity-100", isCompactMode ? "h-5 w-5" : "h-6 w-6")}
                   onClick={() => handleOpenColumnDialog(column)}
                   title="Configurações da coluna"
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  <MoreHorizontal className={cn(isCompactMode ? "h-3 w-3" : "h-3.5 w-3.5")} />
                 </Button>
               </div>
               
               <div 
-                className={`flex-1 p-4 space-y-3 bg-muted/30 min-h-[500px] rounded-b-lg border border-t-0 border-border transition-colors ${
-                  isDropTarget && canDrop ? 'bg-primary/10 border-2 border-primary border-dashed' : ''
-                }`}
+                className={cn(
+                  "flex-1 bg-muted/30 rounded-b-lg border border-t-0 border-border transition-colors",
+                  isCompactMode ? "p-2 space-y-2 min-h-[250px]" : "p-4 space-y-3 min-h-[500px]",
+                  isDropTarget && canDrop && 'bg-primary/10 border-2 border-primary border-dashed'
+                )}
                 onDragOver={handleDragOver}
                 onDragEnter={() => handleDragEnter(column.id)}
                 onDragLeave={handleDragLeave}
