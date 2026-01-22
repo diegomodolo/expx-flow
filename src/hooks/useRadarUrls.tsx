@@ -14,8 +14,8 @@ export interface RadarUrl {
   label: string | null;
   is_active: boolean;
   validation_status: ValidationStatus;
-  validation_http_code: number | null;
-  validation_response_time_ms: number | null;
+  validation_status_code: number | null;
+  validation_load_time_ms: number | null;
   validation_final_url: string | null;
   validation_error: string | null;
   last_validated_at: string | null;
@@ -105,7 +105,7 @@ export function useRadarUrls(filters: UrlFilters = {}) {
     timeout: urls.filter(u => u.validation_status === 'timeout').length,
     redirect: urls.filter(u => u.validation_status === 'redirect').length,
     pending: urls.filter(u => !u.validation_status || u.validation_status === 'pending').length,
-    slow: urls.filter(u => u.validation_response_time_ms && u.validation_response_time_ms > 3000).length,
+    slow: urls.filter(u => u.validation_load_time_ms && u.validation_load_time_ms > 3000).length,
   };
 
   // Get problematic URLs (error or timeout)
@@ -115,7 +115,7 @@ export function useRadarUrls(filters: UrlFilters = {}) {
 
   // Get slow URLs (> 3s response time)
   const slowUrls = urls.filter(u => 
-    u.validation_response_time_ms && u.validation_response_time_ms > 3000
+    u.validation_load_time_ms && u.validation_load_time_ms > 3000
   );
 
   // Get redirect URLs

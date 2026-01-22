@@ -186,17 +186,17 @@ export function UrlsTable({ urls, onValidate, isValidating, onFilterChange }: Ur
                         {getStatusBadge(url.validation_status)}
                       </TableCell>
                       <TableCell className="py-1.5">
-                        <span className="text-xs">
-                          {url.validation_http_code || '-'}
+                        <span className="text-xs font-mono">
+                          {url.validation_status_code || '-'}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
-                        <span className={`text-xs ${
-                          url.validation_response_time_ms && url.validation_response_time_ms > 3000 
+                        <span className={`text-xs font-mono ${
+                          url.validation_load_time_ms && url.validation_load_time_ms > 3000 
                             ? 'text-orange-600 dark:text-orange-500 font-medium' 
                             : ''
                         }`}>
-                          {formatResponseTime(url.validation_response_time_ms)}
+                          {formatResponseTime(url.validation_load_time_ms)}
                         </span>
                       </TableCell>
                       <TableCell className="py-1.5">
