@@ -149,8 +149,10 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
 
   const handleSaveColumn = (data: { name: string; status: 'todo' | 'progress' | 'review' | 'done'; color: string }) => {
     if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
+      // Editing existing custom column
       updateColumn({ columnId: selectedColumn.id, updates: data });
     } else {
+      // Creating new column (or converting default to custom)
       createColumn(data);
     }
     setColumnDialogOpen(false);
@@ -160,9 +162,9 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   const handleDeleteColumn = () => {
     if (selectedColumn && selectedColumn.id && !selectedColumn.id.startsWith('default-')) {
       deleteColumn(selectedColumn.id);
-      setColumnDialogOpen(false);
-      setSelectedColumn(null);
     }
+    setColumnDialogOpen(false);
+    setSelectedColumn(null);
   };
 
   // Render task card
@@ -294,16 +296,15 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
                   {column.name}
                   <Badge variant="secondary" className="bg-background/80">{columnTasks.length}</Badge>
                 </h3>
-                {!isDefaultColumn && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-60 hover:opacity-100"
-                    onClick={() => handleOpenColumnDialog(column)}
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-60 hover:opacity-100"
+                  onClick={() => handleOpenColumnDialog(column)}
+                  title="Configurações da coluna"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
               </div>
               
               <div 
