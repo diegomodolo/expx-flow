@@ -2,14 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
-import { KanbanTemplate } from "@/data/kanbanTemplates";
+import { KanbanTemplate, TaskStatus } from "@/data/kanbanTemplates";
 
 export interface TaskBoardColumn {
   id: string;
   user_id: string;
   company_id: string;
   name: string;
-  status: 'todo' | 'progress' | 'review' | 'done';
+  status: TaskStatus;
   color: string;
   order_index: number;
   created_at: string;
@@ -18,7 +18,7 @@ export interface TaskBoardColumn {
 
 interface CreateColumnData {
   name: string;
-  status: 'todo' | 'progress' | 'review' | 'done';
+  status: TaskStatus;
   color: string;
 }
 

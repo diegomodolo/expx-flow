@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TaskBoardColumn } from "@/hooks/useTaskBoardColumns";
+import { TaskStatus } from "@/data/kanbanTemplates";
 import { Trash2 } from "lucide-react";
 
 const COLOR_PALETTE = [
@@ -40,7 +41,7 @@ interface ColumnSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   column?: TaskBoardColumn | null;
-  onSave: (data: { name: string; status: 'todo' | 'progress' | 'review' | 'done'; color: string }) => void;
+  onSave: (data: { name: string; status: TaskStatus; color: string }) => void;
   onDelete?: () => void;
   isEditing?: boolean;
 }
@@ -54,7 +55,7 @@ export function ColumnSettingsDialog({
   isEditing = false,
 }: ColumnSettingsDialogProps) {
   const [name, setName] = useState(column?.name || '');
-  const [status, setStatus] = useState<'todo' | 'progress' | 'review' | 'done'>(column?.status || 'todo');
+  const [status, setStatus] = useState<TaskStatus>(column?.status || 'todo');
   const [color, setColor] = useState(column?.color || '#6B7280');
 
   React.useEffect(() => {

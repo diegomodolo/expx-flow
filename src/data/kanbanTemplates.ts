@@ -1,3 +1,5 @@
+export type TaskStatus = 'todo' | 'progress' | 'review' | 'done' | 'waiting_approval' | 'cancelled' | 'blocked' | 'paused';
+
 export interface KanbanTemplate {
   id: string;
   name: string;
@@ -5,7 +7,7 @@ export interface KanbanTemplate {
   icon: string;
   columns: Array<{
     name: string;
-    status: 'todo' | 'progress' | 'review' | 'done';
+    status: TaskStatus;
     color: string;
   }>;
 }
