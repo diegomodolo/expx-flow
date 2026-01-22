@@ -363,30 +363,48 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
       </div>
 
       <div className="flex gap-6 h-full overflow-x-auto pb-4">
-        {columns.map((column) => {
-          const columnTasks = tasks.filter(task => task.status === column.status);
-          const isDropTarget = dragOverColumn === column.id;
-          const canDrop = draggedTask && draggedTask.status !== column.status;
-          const isDoneColumn = column.status === 'done';
-          const isDefaultColumn = column.id.startsWith('default-');
-          const isColumnDragTarget = dragOverColumnId === column.id && draggedColumn?.id !== column.id;
-          const isBeingDragged = draggedColumn?.id === column.id;
+        {/* Track which tasks have been assigned to prevent duplicates */}
+        {(() => {
+          const assignedTaskIds = new Set<string>();
           
-          return (
-            <div 
-              key={column.id} 
-              className={`flex flex-col min-w-[280px] flex-1 transition-all ${
-                isBeingDragged ? 'opacity-50 scale-95' : ''
-              } ${isColumnDragTarget ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}
-              onDragOver={handleColumnDragOver}
-              onDragEnter={() => handleColumnDragEnter(column.id)}
-              onDragLeave={handleColumnDragLeave}
-              onDrop={(e) => {
-                // Only handle column drop if we're dragging a column
-                if (draggedColumn) {
-                  handleColumnDrop(e, column);
-                }
-              }}
+          return columns.map((column, columnIndex) => {
+            // Get tasks for this status that haven't been assigned yet
+            const columnTasks = tasks.filter(task => {
+              if (task.status !== column.status) return false;
+              if (assignedTaskIds.has(task.id)) return false;
+              return true;
+            });
+            
+            // Mark these tasks as assigned (only for the first column of each status)
+            const isFirstColumnOfStatus = columns.findIndex(c => c.status === column.status) === columnIndex;
+            if (isFirstColumnOfStatus) {
+              columnTasks.forEach(task => assignedTaskIds.add(task.id));
+            } else {
+              // For subsequent columns of the same status, show no tasks
+              columnTasks.length = 0;
+            }
+            const isDropTarget = dragOverColumn === column.id;
+            const canDrop = draggedTask && draggedTask.status !== column.status;
+            const isDoneColumn = column.status === 'done';
+            const isDefaultColumn = column.id.startsWith('default-');
+            const isColumnDragTarget = dragOverColumnId === column.id && draggedColumn?.id !== column.id;
+            const isBeingDragged = draggedColumn?.id === column.id;
+            
+            return (
+              <div 
+                key={column.id} 
+                className={`flex flex-col min-w-[280px] flex-1 transition-all ${
+                  isBeingDragged ? 'opacity-50 scale-95' : ''
+                } ${isColumnDragTarget ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : ''}`}
+                onDragOver={handleColumnDragOver}
+                onDragEnter={() => handleColumnDragEnter(column.id)}
+                onDragLeave={handleColumnDragLeave}
+                onDrop={(e) => {
+                  // Only handle column drop if we're dragging a column
+                  if (draggedColumn) {
+                    handleColumnDrop(e, column);
+                  }
+                }}
             >
               <div 
                 className={`p-4 rounded-t-lg border-b border-border flex items-center justify-between ${
@@ -514,7 +532,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
               </div>
             </div>
           );
-        })}
+        });
+      })()}
         
         {/* Add Column Button */}
         <div className="flex flex-col min-w-[200px]">
