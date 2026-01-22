@@ -23,7 +23,8 @@ import {
   Hash,
   ToggleLeft,
   ToggleRight,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -363,8 +364,20 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
     updateUrl, 
     deleteUrl, 
     toggleActive,
+    importExistingUrls,
     isAdding 
   } = useClientUrls({ clientId, companyId });
+  
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImport = async () => {
+    setIsImporting(true);
+    try {
+      await importExistingUrls();
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -390,7 +403,19 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
           <h3 className="text-lg font-medium">URLs do Cliente</h3>
           <Badge variant="secondary">{urls.length}</Badge>
         </div>
-        <AddUrlDialog onAdd={addUrl} isAdding={isAdding} />
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleImport}
+            disabled={isImporting}
+          >
+            <Download className="w-4 h-4" />
+            {isImporting ? 'Importando...' : 'Importar do Banco'}
+          </Button>
+          <AddUrlDialog onAdd={addUrl} isAdding={isAdding} />
+        </div>
       </div>
 
       {urls.length === 0 ? (
@@ -399,9 +424,20 @@ export function ClientUrlsTab({ clientId, companyId }: ClientUrlsTabProps) {
             <Link2 className="w-12 h-12 text-muted-foreground mb-4" />
             <h4 className="text-lg font-medium mb-2">Nenhuma URL cadastrada</h4>
             <p className="text-sm text-muted-foreground mb-4">
-              As URLs serão capturadas automaticamente durante a sincronização de campanhas ou você pode adicionar manualmente.
+              As URLs serão capturadas automaticamente durante a sincronização de campanhas ou você pode importar as existentes.
             </p>
-            <AddUrlDialog onAdd={addUrl} isAdding={isAdding} />
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleImport}
+                disabled={isImporting}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {isImporting ? 'Importando...' : 'Importar URLs Existentes'}
+              </Button>
+              <AddUrlDialog onAdd={addUrl} isAdding={isAdding} />
+            </div>
           </CardContent>
         </Card>
       ) : (
