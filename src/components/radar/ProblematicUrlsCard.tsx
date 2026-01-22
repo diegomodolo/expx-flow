@@ -22,13 +22,13 @@ export function ProblematicUrlsCard({
 }: ProblematicUrlsCardProps) {
   return (
     <Card className="border-destructive/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-            URLs Problemáticas
+      <CardHeader className="pb-2 px-3 pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-1.5 text-sm">
+            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+            Problemáticas
             {urls.length > 0 && (
-              <Badge variant="destructive" className="ml-2">
+              <Badge variant="destructive" className="ml-1 h-5 text-xs">
                 {urls.length}
               </Badge>
             )}
@@ -39,6 +39,7 @@ export function ProblematicUrlsCard({
               size="sm"
               onClick={onValidateAll}
               disabled={isValidating}
+              className="h-7 px-2 text-xs"
             >
               <RefreshCw className={`h-3 w-3 mr-1 ${isValidating ? 'animate-spin' : ''}`} />
               Revalidar
@@ -46,58 +47,53 @@ export function ProblematicUrlsCard({
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-3 pb-3">
         {urls.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-xs text-muted-foreground text-center py-4">
             Nenhuma URL com erro ou timeout
           </p>
         ) : (
-          <ScrollArea className="h-[280px] pr-4">
-            <div className="space-y-3">
+          <ScrollArea className="h-[200px] pr-2">
+            <div className="space-y-2">
               {urls.slice(0, 10).map((url) => (
                 <div 
                   key={url.id} 
-                  className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  className="flex items-start justify-between gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm truncate">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="font-medium text-xs truncate">
                         {url.client_name}
                       </span>
                       {url.validation_status === 'error' ? (
-                        <Badge variant="destructive" className="text-xs shrink-0">
-                          <XCircle className="h-3 w-3 mr-1" />
+                        <Badge variant="destructive" className="text-[10px] h-4 px-1">
+                          <XCircle className="h-2.5 w-2.5 mr-0.5" />
                           {url.validation_http_code || 'Erro'}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs text-orange-600 border-orange-600 shrink-0">
-                          <Clock className="h-3 w-3 mr-1" />
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 text-orange-600 border-orange-600">
+                          <Clock className="h-2.5 w-2.5 mr-0.5" />
                           Timeout
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mb-1">
+                    <p className="text-[10px] text-muted-foreground truncate">
                       {url.url}
                     </p>
-                    {url.validation_error && (
-                      <p className="text-xs text-destructive truncate">
-                        {url.validation_error}
-                      </p>
-                    )}
                     {url.last_validated_at && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Validado {formatDistanceToNow(new Date(url.last_validated_at), { 
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {formatDistanceToNow(new Date(url.last_validated_at), { 
                           addSuffix: true, 
                           locale: ptBR 
                         })}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-0.5 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-6 w-6"
                       onClick={() => onValidate(url.id)}
                       disabled={isValidating}
                     >
@@ -106,7 +102,7 @@ export function ProblematicUrlsCard({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-6 w-6"
                       asChild
                     >
                       <a href={url.url} target="_blank" rel="noopener noreferrer">
@@ -117,7 +113,7 @@ export function ProblematicUrlsCard({
                 </div>
               ))}
               {urls.length > 10 && (
-                <p className="text-xs text-muted-foreground text-center py-2">
+                <p className="text-[10px] text-muted-foreground text-center py-1">
                   E mais {urls.length - 10} URLs...
                 </p>
               )}

@@ -12,48 +12,48 @@ interface RedirectUrlsCardProps {
 export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
   return (
     <Card className="border-blue-500/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ArrowRightLeft className="h-4 w-4 text-blue-600" />
-          URLs com Redirect
+      <CardHeader className="pb-2 px-3 pt-3">
+        <CardTitle className="flex items-center gap-1.5 text-sm">
+          <ArrowRightLeft className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500" />
+          Redirects
           {urls.length > 0 && (
-            <Badge variant="outline" className="ml-2 text-blue-600 border-blue-600">
+            <Badge variant="outline" className="ml-1 h-5 text-xs text-blue-600 dark:text-blue-500 border-blue-600">
               {urls.length}
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-3 pb-3">
         {urls.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-xs text-muted-foreground text-center py-4">
             Nenhuma URL com redirecionamento
           </p>
         ) : (
-          <ScrollArea className="h-[280px] pr-4">
-            <div className="space-y-3">
+          <ScrollArea className="h-[200px] pr-2">
+            <div className="space-y-2">
               {urls.slice(0, 10).map((url) => (
                 <div 
                   key={url.id} 
-                  className="flex items-start justify-between gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  className="flex items-start justify-between gap-2 p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm truncate">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="font-medium text-xs truncate">
                         {url.client_name}
                       </span>
                       {url.validation_http_code && (
-                        <Badge variant="outline" className="text-xs text-blue-600 border-blue-600 shrink-0">
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 text-blue-600 dark:text-blue-500 border-blue-600">
                           {url.validation_http_code}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mb-1">
+                    <p className="text-[10px] text-muted-foreground truncate">
                       {url.url}
                     </p>
                     {url.validation_final_url && url.validation_final_url !== url.url && (
-                      <div className="flex items-center gap-1 text-xs">
-                        <ArrowRight className="h-3 w-3 text-blue-600 shrink-0" />
-                        <span className="text-blue-600 truncate">
+                      <div className="flex items-center gap-0.5 text-[10px] mt-0.5">
+                        <ArrowRight className="h-2.5 w-2.5 text-blue-600 dark:text-blue-500 shrink-0" />
+                        <span className="text-blue-600 dark:text-blue-500 truncate">
                           {url.validation_final_url}
                         </span>
                       </div>
@@ -62,7 +62,7 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0"
+                    className="h-6 w-6 shrink-0"
                     asChild
                   >
                     <a href={url.url} target="_blank" rel="noopener noreferrer">
@@ -72,7 +72,7 @@ export function RedirectUrlsCard({ urls }: RedirectUrlsCardProps) {
                 </div>
               ))}
               {urls.length > 10 && (
-                <p className="text-xs text-muted-foreground text-center py-2">
+                <p className="text-[10px] text-muted-foreground text-center py-1">
                   E mais {urls.length - 10} URLs...
                 </p>
               )}
