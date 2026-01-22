@@ -121,7 +121,7 @@ export function useGoogleAdsCampaignSync() {
         toast.loading("Sincronizando campanhas do Google Ads...", { id: "google-sync" });
       }
 
-      const { data, error } = await supabase.functions.invoke('sync-google-ads-campaigns', {
+      const response = await supabase.functions.invoke('sync-google-ads-campaigns', {
         body: {
           clientId,
           companyId,
@@ -134,9 +134,26 @@ export function useGoogleAdsCampaignSync() {
         },
       });
 
-      if (error) throw error;
+      const data = response.data;
+      const error = response.error;
 
-      if (data.error) {
+      // Extract detailed error message from response
+      if (error) {
+        let errorMessage = error.message || 'Unknown error';
+        // Try to get detailed error from context body
+        const contextBody = (error as any).context?.body;
+        if (typeof contextBody === 'string' && contextBody.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(contextBody);
+            errorMessage = parsed.error || errorMessage;
+          } catch (e) {
+            // Keep original
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (data?.error) {
         throw new Error(data.error);
       }
 
