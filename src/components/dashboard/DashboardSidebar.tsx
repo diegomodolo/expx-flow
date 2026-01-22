@@ -212,7 +212,7 @@ export function DashboardSidebar() {
         {/* Logo area */}
         <div className="h-16 flex items-center px-5 flex-shrink-0">
           <img 
-            src="/logo-icon.png" 
+            src="/lovable-uploads/9e57fd65-0f5a-477a-99bb-948a28292f48.png" 
             alt="Expx Flow" 
             className="w-8 h-8 object-contain flex-shrink-0"
           />
