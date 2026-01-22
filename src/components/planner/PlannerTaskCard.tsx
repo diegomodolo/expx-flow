@@ -133,13 +133,21 @@ export const PlannerTaskCard: React.FC<PlannerTaskCardProps> = ({ task, onEdit, 
                 className={`text-xs font-medium ${
                   task.status === 'done' ? 'bg-green-100 text-green-700 hover:bg-green-100' :
                   task.status === 'progress' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' :
-                  task.status === 'review' ? 'bg-orange-100 text-orange-700 hover:bg-orange-100' :
+                  task.status === 'review' ? 'bg-purple-100 text-purple-700 hover:bg-purple-100' :
+                  task.status === 'waiting_approval' ? 'bg-amber-100 text-amber-700 hover:bg-amber-100' :
+                  task.status === 'blocked' ? 'bg-red-100 text-red-700 hover:bg-red-100' :
+                  task.status === 'paused' ? 'bg-orange-100 text-orange-700 hover:bg-orange-100' :
+                  task.status === 'cancelled' ? 'bg-slate-100 text-slate-700 hover:bg-slate-100' :
                   'bg-gray-100 text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 {task.status === 'done' ? 'Concluído' : 
                  task.status === 'progress' ? 'Em Andamento' : 
-                 task.status === 'review' ? 'Em Revisão' : 'A Fazer'}
+                 task.status === 'review' ? 'Em Revisão' : 
+                 task.status === 'waiting_approval' ? 'Aguardando Aprovação' :
+                 task.status === 'blocked' ? 'Bloqueada' :
+                 task.status === 'paused' ? 'Pausada' :
+                 task.status === 'cancelled' ? 'Cancelada' : 'A Fazer'}
               </Badge>
             </Button>
             
