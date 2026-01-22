@@ -291,7 +291,7 @@ serve(async (req) => {
         try {
           console.log(`Syncing client ${client.name} (${client.id})`);
 
-          const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-google-ads-campaigns', {
+          const response = await supabase.functions.invoke('sync-google-ads-campaigns', {
             headers: {
               'Authorization': `Bearer ${supabaseServiceKey}`,
             },
@@ -307,9 +307,28 @@ serve(async (req) => {
             },
           });
 
+          const syncData = response.data;
+          const syncError = response.error;
+
+          // Extract the actual error message from various sources
+          let errorMessage = '';
           if (syncError) {
-            console.error(`Error syncing client ${client.name}:`, syncError);
-            const classification = classifyGoogleAdsError(syncError.message || '');
+            // Try to get the detailed error from the context
+            errorMessage = syncError.context?.body || syncError.message || 'Unknown error';
+            // If context.body is a string that looks like JSON, try to parse it
+            if (typeof errorMessage === 'string' && errorMessage.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(errorMessage);
+                errorMessage = parsed.error || errorMessage;
+              } catch (e) {
+                // Keep original
+              }
+            }
+          }
+
+          if (syncError) {
+            console.error(`Error syncing client ${client.name}:`, errorMessage);
+            const classification = classifyGoogleAdsError(errorMessage);
             failedClients++;
             clientResults.push({
               client_id: client.id,
