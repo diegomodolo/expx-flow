@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { TaskKanban } from "@/components/tasks/TaskKanban";
 import { TaskList } from "@/components/tasks/TaskList";
@@ -86,12 +88,22 @@ export default function Tarefas() {
   const [isCompactMode, setIsCompactMode] = useState(() => {
     return localStorage.getItem('tasks-compact-mode') === 'true';
   });
+  // Estado para modal de filtros (modo compacto)
+  const [filtersModalOpen, setFiltersModalOpen] = useState(false);
 
   const toggleCompactMode = () => {
     const newValue = !isCompactMode;
     setIsCompactMode(newValue);
     localStorage.setItem('tasks-compact-mode', newValue.toString());
   };
+
+  // Contar filtros ativos
+  const activeFiltersCount = [
+    statusFilter !== 'all',
+    priorityFilter !== 'all',
+    responsibleFilter !== 'all',
+    searchTerm !== '',
+  ].filter(Boolean).length;
 
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
   const { data: taskStats } = useTaskStats();
@@ -848,97 +860,241 @@ export default function Tarefas() {
           "flex flex-col lg:flex-row lg:items-center lg:justify-between",
           isCompactMode ? "gap-2" : "gap-4"
         )}>
-          {/* Filtros */}
-          <div className={cn(
-            "flex flex-wrap items-center",
-            isCompactMode ? "gap-2" : "gap-3"
-          )}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Buscar tarefas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64"
-              />
+          {/* Filtros - Modo compacto: botão que abre Sheet */}
+          {isCompactMode ? (
+            <div className="flex items-center gap-2">
+              <Sheet open={filtersModalOpen} onOpenChange={setFiltersModalOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    Filtros
+                    {activeFiltersCount > 0 && (
+                      <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                        {activeFiltersCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80">
+                  <SheetHeader>
+                    <SheetTitle>Filtros</SheetTitle>
+                  </SheetHeader>
+                  <div className="space-y-4 mt-6">
+                    {/* Busca */}
+                    <div className="space-y-2">
+                      <Label>Buscar</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          placeholder="Buscar tarefas..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos Status</SelectItem>
+                          <SelectItem value="todo">Pendente</SelectItem>
+                          <SelectItem value="progress">Em Andamento</SelectItem>
+                          <SelectItem value="review">Em Revisão</SelectItem>
+                          <SelectItem value="waiting_approval">Aguardando Aprovação</SelectItem>
+                          <SelectItem value="blocked">Bloqueada</SelectItem>
+                          <SelectItem value="paused">Pausada</SelectItem>
+                          <SelectItem value="done">Concluída</SelectItem>
+                          <SelectItem value="cancelled">Cancelada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Prioridade */}
+                    <div className="space-y-2">
+                      <Label>Prioridade</Label>
+                      <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Prioridade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas</SelectItem>
+                          <SelectItem value="high">Alta</SelectItem>
+                          <SelectItem value="medium">Média</SelectItem>
+                          <SelectItem value="low">Baixa</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Responsável */}
+                    <div className="space-y-2">
+                      <Label>Responsável</Label>
+                      <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Responsável" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos Responsáveis</SelectItem>
+                          {uniqueResponsibles.map((responsible) => (
+                            <SelectItem key={responsible} value={responsible}>
+                              {responsible}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Ordenação */}
+                    {(view === 'list' || view === 'kanban') && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Ordenar por</Label>
+                          <Select value={sortField} onValueChange={setSortField}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Ordenar por" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sortFieldOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Direção</Label>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                          >
+                            {sortOrder === 'asc' ? (
+                              <ArrowUp className="w-4 h-4 mr-2" />
+                            ) : (
+                              <ArrowDown className="w-4 h-4 mr-2" />
+                            )}
+                            {sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Botão Limpar Filtros */}
+                    {activeFiltersCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setStatusFilter('all');
+                          setPriorityFilter('all');
+                          setResponsibleFilter('all');
+                        }}
+                      >
+                        Limpar Filtros
+                      </Button>
+                    )}
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
+          ) : (
+            /* Filtros - Modo normal: inline */
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Buscar tarefas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="todo">Pendente</SelectItem>
-                <SelectItem value="progress">Em Andamento</SelectItem>
-                <SelectItem value="review">Em Revisão</SelectItem>
-                <SelectItem value="waiting_approval">Aguardando Aprovação</SelectItem>
-                <SelectItem value="blocked">Bloqueada</SelectItem>
-                <SelectItem value="paused">Pausada</SelectItem>
-                <SelectItem value="done">Concluída</SelectItem>
-                <SelectItem value="cancelled">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  <SelectItem value="todo">Pendente</SelectItem>
+                  <SelectItem value="progress">Em Andamento</SelectItem>
+                  <SelectItem value="review">Em Revisão</SelectItem>
+                  <SelectItem value="waiting_approval">Aguardando Aprovação</SelectItem>
+                  <SelectItem value="blocked">Bloqueada</SelectItem>
+                  <SelectItem value="paused">Pausada</SelectItem>
+                  <SelectItem value="done">Concluída</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Prioridade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="high">Alta</SelectItem>
-                <SelectItem value="medium">Média</SelectItem>
-                <SelectItem value="low">Baixa</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
+                  <SelectItem value="low">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Responsáveis</SelectItem>
-                {uniqueResponsibles.map((responsible) => (
-                  <SelectItem key={responsible} value={responsible}>
-                    {responsible}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Responsáveis</SelectItem>
+                  {uniqueResponsibles.map((responsible) => (
+                    <SelectItem key={responsible} value={responsible}>
+                      {responsible}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {/* Controles de Ordenação - Visíveis apenas para lista e kanban */}
-            {(view === 'list' || view === 'kanban') && (
-              <>
-                <Select value={sortField} onValueChange={setSortField}>
-                  <SelectTrigger className="w-48">
-                    <ArrowUpDown className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Ordenar por" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sortFieldOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Controles de Ordenação - Visíveis apenas para lista e kanban */}
+              {(view === 'list' || view === 'kanban') && (
+                <>
+                  <Select value={sortField} onValueChange={setSortField}>
+                    <SelectTrigger className="w-48">
+                      <ArrowUpDown className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Ordenar por" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sortFieldOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="flex items-center gap-2"
-                >
-                  {sortOrder === 'asc' ? (
-                    <ArrowUp className="w-4 h-4" />
-                  ) : (
-                    <ArrowDown className="w-4 h-4" />
-                  )}
-                  {sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}
-                </Button>
-              </>
-            )}
-          </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="flex items-center gap-2"
+                  >
+                    {sortOrder === 'asc' ? (
+                      <ArrowUp className="w-4 h-4" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4" />
+                    )}
+                    {sortOrder === 'asc' ? 'Crescente' : 'Decrescente'}
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Controles de Visualização */}
           <div className="flex items-center gap-2">
