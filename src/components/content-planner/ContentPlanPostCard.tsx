@@ -165,6 +165,9 @@ function SlideCard({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState("");
   const [useCurrentImageAsReference, setUseCurrentImageAsReference] = useState(false);
+  const [additionalImageToMerge, setAdditionalImageToMerge] = useState<string | null>(null);
+  const [uploadingAdditionalImage, setUploadingAdditionalImage] = useState(false);
+  const additionalImageInputRef = useRef<HTMLInputElement>(null);
   const headlineTimeoutRef = useRef<NodeJS.Timeout>();
   const contentTimeoutRef = useRef<NodeJS.Timeout>();
   const { activeCompany } = useCompany();
@@ -257,6 +260,7 @@ function SlideCard({
           approvedText: approvedText || undefined,
           extraPrompt: extraPrompt.trim() || undefined,
           references: referenceImages,
+          additionalImageToMerge: additionalImageToMerge || undefined,
           context: {
             title: localHeadline,
             description: localContent,
@@ -266,6 +270,7 @@ function SlideCard({
               postObjective: postObjective,
               isSlideReference: referenceImages.length > 0 && !useCurrentImageAsReference,
               isEditingExisting: useCurrentImageAsReference,
+              hasMergeImage: !!additionalImageToMerge,
             },
           },
         },
@@ -279,6 +284,7 @@ function SlideCard({
         toast.success('Imagem do slide gerada com sucesso!');
         setExtraPrompt("");
         setUseCurrentImageAsReference(false);
+        setAdditionalImageToMerge(null);
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
@@ -452,10 +458,94 @@ function SlideCard({
               </div>
             )}
             
+            {/* Seção de imagem adicional para mesclagem */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Imagem para incorporar (opcional)</span>
+              </div>
+              {additionalImageToMerge ? (
+                <div className="relative inline-block">
+                  <div className="w-20 h-20 rounded-lg border overflow-hidden">
+                    <img src={additionalImageToMerge} alt="Imagem adicional" className="w-full h-full object-cover" />
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-5 w-5"
+                    onClick={(e) => { e.stopPropagation(); setAdditionalImageToMerge(null); }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div 
+                  className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); additionalImageInputRef.current?.click(); }}
+                >
+                  {uploadingAdditionalImage ? (
+                    <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground text-center">
+                        Clique para adicionar uma imagem que será incorporada ao criativo
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                ref={additionalImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  if (file.size > 5 * 1024 * 1024) {
+                    toast.error('Imagem muito grande. Máximo: 5MB');
+                    return;
+                  }
+                  
+                  setUploadingAdditionalImage(true);
+                  try {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `content-plans/${postId}/merge-ref-${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                      .from('client-media')
+                      .upload(fileName, file);
+                    
+                    if (uploadError) throw uploadError;
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('client-media')
+                      .getPublicUrl(fileName);
+                    
+                    setAdditionalImageToMerge(publicUrl);
+                    toast.success('Imagem carregada!');
+                  } catch (error: any) {
+                    console.error('Error uploading image:', error);
+                    toast.error('Erro ao carregar imagem');
+                  } finally {
+                    setUploadingAdditionalImage(false);
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                💡 Ex: screenshot de sistema, logo, foto de produto para inserir no criativo
+              </p>
+            </div>
+            
             <Textarea
-              placeholder={useCurrentImageAsReference 
-                ? "Ex: Mude a cor do fundo para azul, ajuste o contraste..." 
-                : "Ex: Use cores mais vibrantes, estilo minimalista..."
+              placeholder={additionalImageToMerge 
+                ? "Ex: Coloque esta imagem na tela do tablet, substitua o fundo por esta imagem..." 
+                : useCurrentImageAsReference 
+                  ? "Ex: Mude a cor do fundo para azul, ajuste o contraste..." 
+                  : "Ex: Use cores mais vibrantes, estilo minimalista..."
               }
               value={extraPrompt}
               onChange={(e) => setExtraPrompt(e.target.value)}
@@ -468,6 +558,7 @@ function SlideCard({
             <AlertDialogCancel onClick={() => {
               setExtraPrompt("");
               setUseCurrentImageAsReference(false);
+              setAdditionalImageToMerge(null);
             }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleGenerateSlideImage}
@@ -531,6 +622,9 @@ export const ContentPlanPostCard = forwardRef<ContentPlanPostCardRef, ContentPla
   const [showAllSlidesPromptDialog, setShowAllSlidesPromptDialog] = useState(false);
   const [allSlidesExtraPrompt, setAllSlidesExtraPrompt] = useState("");
   const [useCurrentImageAsReference, setUseCurrentImageAsReference] = useState(false);
+  const [additionalImageToMerge, setAdditionalImageToMerge] = useState<string | null>(null);
+  const [uploadingAdditionalImage, setUploadingAdditionalImage] = useState(false);
+  const additionalImageInputRef = useRef<HTMLInputElement>(null);
   
   const { activeCompany } = useCompany();
   const { addSlide, updateSlide, deleteSlide } = useContentPlans();
@@ -767,6 +861,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
           approvedText: approvedText || undefined,
           extraPrompt: extraPrompt.trim() || undefined,
           references: references.length > 0 ? references : undefined,
+          additionalImageToMerge: additionalImageToMerge || undefined,
           context: {
             title: post.headline,
             description: post.subheadline,
@@ -775,6 +870,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
               objective: post.objective,
               caption: post.caption,
               isEditingExisting: useCurrentImageAsReference, // Flag para modo de edição
+              hasMergeImage: !!additionalImageToMerge,
             },
           },
         },
@@ -788,6 +884,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
         toast.success(useCurrentImageAsReference ? 'Imagem editada com sucesso!' : 'Criativo gerado com sucesso!');
         setExtraPrompt(""); // Limpar instruções após sucesso
         setUseCurrentImageAsReference(false); // Resetar estado
+        setAdditionalImageToMerge(null); // Resetar imagem adicional
       } else {
         throw new Error('Nenhuma imagem foi gerada');
       }
@@ -1448,6 +1545,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
         if (!open) {
           setExtraPrompt("");
           setUseCurrentImageAsReference(false);
+          setAdditionalImageToMerge(null);
         }
       }}>
         <AlertDialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -1485,10 +1583,94 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
               </div>
             )}
             
+            {/* Seção de imagem adicional para mesclagem */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Imagem para incorporar (opcional)</span>
+              </div>
+              {additionalImageToMerge ? (
+                <div className="relative inline-block">
+                  <div className="w-20 h-20 rounded-lg border overflow-hidden">
+                    <img src={additionalImageToMerge} alt="Imagem adicional" className="w-full h-full object-cover" />
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-5 w-5"
+                    onClick={(e) => { e.stopPropagation(); setAdditionalImageToMerge(null); }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div 
+                  className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); additionalImageInputRef.current?.click(); }}
+                >
+                  {uploadingAdditionalImage ? (
+                    <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground text-center">
+                        Clique para adicionar uma imagem que será incorporada ao criativo
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                ref={additionalImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  if (file.size > 5 * 1024 * 1024) {
+                    toast.error('Imagem muito grande. Máximo: 5MB');
+                    return;
+                  }
+                  
+                  setUploadingAdditionalImage(true);
+                  try {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `content-plans/${post.id}/merge-ref-${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                      .from('client-media')
+                      .upload(fileName, file);
+                    
+                    if (uploadError) throw uploadError;
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('client-media')
+                      .getPublicUrl(fileName);
+                    
+                    setAdditionalImageToMerge(publicUrl);
+                    toast.success('Imagem carregada!');
+                  } catch (error: any) {
+                    console.error('Error uploading image:', error);
+                    toast.error('Erro ao carregar imagem');
+                  } finally {
+                    setUploadingAdditionalImage(false);
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                💡 Ex: screenshot de sistema, logo, foto de produto para inserir no criativo
+              </p>
+            </div>
+            
             <Textarea
-              placeholder={useCurrentImageAsReference 
-                ? "Ex: Mude a cor do botão de azul para vermelho, adicione mais contraste, remova o texto..." 
-                : "Ex: Use cores mais vibrantes, adicione elementos de tecnologia, estilo minimalista..."
+              placeholder={additionalImageToMerge 
+                ? "Ex: Coloque esta imagem na tela do tablet, substitua o fundo por esta imagem..." 
+                : useCurrentImageAsReference 
+                  ? "Ex: Mude a cor do botão de azul para vermelho, adicione mais contraste, remova o texto..." 
+                  : "Ex: Use cores mais vibrantes, adicione elementos de tecnologia, estilo minimalista..."
               }
               value={extraPrompt}
               onChange={(e) => setExtraPrompt(e.target.value)}
@@ -1501,6 +1683,7 @@ Responda APENAS com o texto solicitado, sem explicações adicionais.`;
             <AlertDialogCancel onClick={() => {
               setExtraPrompt("");
               setUseCurrentImageAsReference(false);
+              setAdditionalImageToMerge(null);
             }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleGenerateCreative}
