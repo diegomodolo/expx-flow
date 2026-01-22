@@ -24,7 +24,7 @@ export default function LandingPage() {
             {/* Logo */}
             <div className="flex items-center space-x-3">
               <img 
-                src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
+                src="/logo-full.png" 
                 alt="Expx Flow" 
                 className="h-8 w-auto"
               />
@@ -120,7 +120,7 @@ export default function LandingPage() {
             <div className="space-y-8">
               <div className="flex items-center space-x-4 mb-6">
                 <img 
-                  src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
+                  src="/logo-full.png" 
                   alt="Expx Flow" 
                   className="h-16 w-auto"
                 />
@@ -499,7 +499,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-4 mb-4 md:mb-0">
               <img 
-                src="/lovable-uploads/0f70dd7b-b5bf-435e-b784-8d6110fb199b.png" 
+                src="/logo-full.png" 
                 alt="Expx Flow" 
                 className="h-8 w-auto brightness-0 invert"
               />
