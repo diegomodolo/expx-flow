@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MoreHorizontal, CheckCircle2, ChevronRight, Plus, Settings } from "lucide-react";
+import { MoreHorizontal, CheckCircle2, ChevronRight, Plus, Settings, Layout } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -16,6 +16,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTaskBoardColumns, TaskBoardColumn } from "@/hooks/useTaskBoardColumns";
 import { ColumnSettingsDialog } from "./ColumnSettingsDialog";
+import { TemplateSelector } from "./TemplateSelector";
+import { KanbanTemplate } from "@/data/kanbanTemplates";
 
 interface Task {
   id: string;
@@ -61,6 +63,7 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
   const [completedTasksModalOpen, setCompletedTasksModalOpen] = useState(false);
   const [columnDialogOpen, setColumnDialogOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState<TaskBoardColumn | null>(null);
+  const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
   
   // Column reordering state
   const [draggedColumn, setDraggedColumn] = useState<TaskBoardColumn | null>(null);
@@ -73,6 +76,8 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     updateColumn,
     deleteColumn,
     reorderColumns,
+    applyTemplate,
+    isApplyingTemplate,
   } = useTaskBoardColumns();
 
   // Use user columns if available, otherwise fall back to defaults
@@ -338,8 +343,25 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
     </Card>
   );
 
+  const handleApplyTemplate = (template: KanbanTemplate) => {
+    applyTemplate(template);
+  };
+
   return (
     <>
+      {/* Template Button Header */}
+      <div className="flex justify-end mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setTemplateSelectorOpen(true)}
+          className="gap-2"
+        >
+          <Layout className="h-4 w-4" />
+          Templates
+        </Button>
+      </div>
+
       <div className="flex gap-6 h-full overflow-x-auto pb-4">
         {columns.map((column) => {
           const columnTasks = tasks.filter(task => task.status === column.status);
@@ -539,6 +561,15 @@ export function TaskKanban({ tasks, onEditTask, onUpdateTaskStatus, onDeleteTask
         onSave={handleSaveColumn}
         onDelete={handleDeleteColumn}
         isEditing={!!selectedColumn && !selectedColumn.id.startsWith('default-')}
+      />
+
+      {/* Template Selector Dialog */}
+      <TemplateSelector
+        open={templateSelectorOpen}
+        onOpenChange={setTemplateSelectorOpen}
+        onApplyTemplate={handleApplyTemplate}
+        isApplying={isApplyingTemplate}
+        hasExistingColumns={!isUsingDefaults}
       />
     </>
   );

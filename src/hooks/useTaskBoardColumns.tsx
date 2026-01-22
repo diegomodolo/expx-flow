@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
+import { KanbanTemplate } from "@/data/kanbanTemplates";
 
 export interface TaskBoardColumn {
   id: string;
@@ -156,6 +157,46 @@ export function useTaskBoardColumns() {
     },
   });
 
+  const applyTemplateMutation = useMutation({
+    mutationFn: async (template: KanbanTemplate) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !companyId) throw new Error('User or company not found');
+
+      // 1. Delete all existing columns for this user/company
+      const { error: deleteError } = await supabase
+        .from('task_board_columns' as any)
+        .delete()
+        .eq('user_id', user.id)
+        .eq('company_id', companyId);
+
+      if (deleteError) throw deleteError;
+
+      // 2. Insert new columns from template
+      const columnsToInsert = template.columns.map((col, index) => ({
+        user_id: user.id,
+        company_id: companyId,
+        name: col.name,
+        status: col.status,
+        color: col.color,
+        order_index: index,
+      }));
+
+      const { error: insertError } = await supabase
+        .from('task_board_columns' as any)
+        .insert(columnsToInsert);
+
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-board-columns'] });
+      toast.success('Template aplicado com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Error applying template:', error);
+      toast.error('Erro ao aplicar template');
+    },
+  });
+
   return {
     columns,
     isLoading,
@@ -163,8 +204,10 @@ export function useTaskBoardColumns() {
     updateColumn: updateColumnMutation.mutate,
     deleteColumn: deleteColumnMutation.mutate,
     reorderColumns: reorderColumnsMutation.mutate,
+    applyTemplate: applyTemplateMutation.mutate,
     isCreating: createColumnMutation.isPending,
     isUpdating: updateColumnMutation.isPending,
     isDeleting: deleteColumnMutation.isPending,
+    isApplyingTemplate: applyTemplateMutation.isPending,
   };
 }
