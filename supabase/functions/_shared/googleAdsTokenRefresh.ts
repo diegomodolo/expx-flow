@@ -73,6 +73,63 @@ export async function refreshGoogleAdsToken(
  * Obtém um token válido para a integração, renovando automaticamente se necessário.
  * Atualiza o banco de dados se o token foi renovado.
  */
+/**
+ * Força a renovação do token, independente de estar expirado ou não.
+ * Use esta função no início de sincronizações agendadas para garantir token válido por 1 hora.
+ */
+export async function forceRefreshGoogleAdsToken(
+  supabaseClient: any,
+  integration: GoogleAdsIntegration
+): Promise<RefreshResult> {
+  console.log('🔄 Forçando renovação do token (scheduled sync)...');
+  
+  const clientId = Deno.env.get('GOOGLE_ADS_CLIENT_ID')?.trim();
+  const clientSecret = Deno.env.get('GOOGLE_ADS_CLIENT_SECRET')?.trim();
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Google Ads OAuth credentials not configured');
+  }
+
+  if (!integration.refresh_token) {
+    throw new Error('No refresh token available. User needs to reconnect Google Ads.');
+  }
+
+  // Renovar o token incondicionalmente
+  const { accessToken, expiresIn } = await refreshGoogleAdsToken(
+    integration.refresh_token,
+    clientId,
+    clientSecret
+  );
+
+  const newExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+  // Atualizar no banco de dados
+  const { error: updateError } = await supabaseClient
+    .from('google_ads_integrations')
+    .update({
+      access_token: accessToken,
+      expires_at: newExpiresAt,
+    })
+    .eq('id', integration.id);
+
+  if (updateError) {
+    console.error('Failed to update token in database:', updateError);
+  } else {
+    console.log('✅ Token renovado e salvo, nova expiração:', newExpiresAt);
+  }
+
+  return {
+    accessToken,
+    wasRefreshed: true,
+    newExpiresAt,
+  };
+}
+
+/**
+ * Obtém um token válido para a integração, renovando automaticamente se necessário.
+ * Atualiza o banco de dados se o token foi renovado.
+ * Use esta função para chamadas manuais (UI) - só renova se estiver expirando.
+ */
 export async function getValidGoogleAdsToken(
   supabaseClient: any,
   integration: GoogleAdsIntegration
