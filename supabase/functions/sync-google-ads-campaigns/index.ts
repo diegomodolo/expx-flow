@@ -840,6 +840,35 @@ serve(async (req) => {
                 console.error(`   ⚠️ Error upserting ad:`, upsertError);
               } else {
                 totalAds++;
+                
+                // Register URL in client_urls table if final_url exists
+                const finalUrl = ad.finalUrls?.[0];
+                if (finalUrl && finalUrl.trim() !== '') {
+                  try {
+                    const fullUrl = finalUrl.trim();
+                    // Remove UTM parameters for cleaner URL storage
+                    const urlWithoutParams = fullUrl.split('?')[0];
+                    const urlObj = new URL(fullUrl);
+                    const domain = urlObj.hostname.replace(/^www\./, '');
+                    
+                    // Use upsert to avoid duplicates and update last_seen_at
+                    const { error: urlError } = await supabase.rpc('upsert_client_url', {
+                      p_client_id: clientId,
+                      p_company_id: effectiveCompanyId,
+                      p_url: urlWithoutParams,
+                      p_domain: domain,
+                      p_source: 'google_sync'
+                    });
+                    
+                    if (urlError) {
+                      console.log('Error saving URL to client_urls:', urlError.message);
+                    } else {
+                      console.log('URL registered for client:', domain);
+                    }
+                  } catch (urlParseError) {
+                    console.log('Error parsing URL:', urlParseError);
+                  }
+                }
               }
             }
           }

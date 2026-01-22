@@ -19,7 +19,7 @@ import { useClients } from "@/hooks/useClients";
 import { useTeams } from "@/hooks/useTeams";
 import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog, PauseCircle, Target } from "lucide-react";
+import { Upload, X, Plus, Check, ChevronsUpDown, Instagram, Facebook, User, DollarSign, Link, Pencil, Package, FileText, Presentation, Users, Sparkles, Lightbulb, ImageIcon, Youtube, Ban, UserCog, PauseCircle, Target, Link2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ClientBriefingTab } from "./ClientBriefingTab";
@@ -30,6 +30,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useClientBenchmarks, BenchmarkFormData, emptyBenchmarkFormData } from "@/hooks/useClientBenchmarks";
 import { ClientMetricBenchmarksSection } from "./ClientMetricBenchmarksSection";
+import { ClientUrlsTab } from "./ClientUrlsTab";
 
 interface ClientDialogProps {
   open: boolean;
@@ -40,7 +41,7 @@ interface ClientDialogProps {
   readOnly?: boolean;
 }
 
-type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'metricas' | 'apresentacao' | 'identidade_ia' | 'contatos' | 'briefing';
+type SectionType = 'cadastro' | 'financeiro' | 'integracoes' | 'copywriting' | 'produto' | 'metricas' | 'apresentacao' | 'identidade_ia' | 'contatos' | 'briefing' | 'urls';
 
 const sections: { id: SectionType; label: string; icon: React.ElementType; editOnly?: boolean }[] = [
   { id: 'cadastro', label: 'Cadastro', icon: User },
@@ -53,6 +54,7 @@ const sections: { id: SectionType; label: string; icon: React.ElementType; editO
   { id: 'identidade_ia', label: 'Identidade Visual IA', icon: Sparkles },
   { id: 'contatos', label: 'Contatos', icon: Users, editOnly: true },
   { id: 'briefing', label: 'Briefing', icon: FileText, editOnly: true },
+  { id: 'urls', label: 'URLs', icon: Link2, editOnly: true },
 ];
 
 export function ClientDialog({ open, onOpenChange, onSubmit, client, title, readOnly = false }: ClientDialogProps) {
@@ -1996,6 +1998,14 @@ export function ClientDialog({ open, onOpenChange, onSubmit, client, title, read
             onBriefingUpdate={handleBriefingUpdate}
           />
         );
+
+      case 'urls':
+        return client && activeCompany ? (
+          <ClientUrlsTab 
+            clientId={client.id} 
+            companyId={activeCompany.id}
+          />
+        ) : null;
 
       default:
         return null;
