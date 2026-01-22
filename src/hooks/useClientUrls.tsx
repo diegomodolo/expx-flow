@@ -135,6 +135,95 @@ export function useClientUrls({ clientId, companyId }: UseClientUrlsOptions) {
     }
   }, [urls, updateUrlMutation]);
 
+  // Import existing URLs from ads tables
+  const importExistingUrls = useCallback(async () => {
+    try {
+      // Fetch URLs from Meta Ads
+      const { data: metaAds, error: metaError } = await supabase
+        .from('ads')
+        .select('link_url')
+        .eq('client_id', clientId)
+        .not('link_url', 'is', null)
+        .not('link_url', 'eq', '');
+      
+      if (metaError) throw metaError;
+
+      // Fetch URLs from Google Ads
+      const { data: googleAds, error: googleError } = await supabase
+        .from('google_ads')
+        .select('final_url')
+        .eq('client_id', clientId)
+        .not('final_url', 'is', null)
+        .not('final_url', 'eq', '');
+      
+      if (googleError) throw googleError;
+
+      // Combine and deduplicate URLs
+      const urlSet = new Map<string, { url: string; source: string }>();
+      
+      metaAds?.forEach(ad => {
+        if (ad.link_url) {
+          const cleanUrl = ad.link_url.split('?')[0];
+          if (!urlSet.has(cleanUrl)) {
+            urlSet.set(cleanUrl, { url: cleanUrl, source: 'meta_sync' });
+          }
+        }
+      });
+
+      googleAds?.forEach(ad => {
+        if (ad.final_url) {
+          const cleanUrl = ad.final_url.split('?')[0];
+          if (!urlSet.has(cleanUrl)) {
+            urlSet.set(cleanUrl, { url: cleanUrl, source: 'google_sync' });
+          }
+        }
+      });
+
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      // Insert each URL using RPC function
+      for (const [cleanUrl, { source }] of urlSet) {
+        try {
+          const urlObj = new URL(cleanUrl);
+          const domain = urlObj.hostname.replace(/^www\./, '');
+          
+          const { error } = await supabase.rpc('upsert_client_url', {
+            p_client_id: clientId,
+            p_company_id: companyId,
+            p_url: cleanUrl,
+            p_domain: domain,
+            p_source: source
+          });
+
+          if (error) {
+            skippedCount++;
+          } else {
+            importedCount++;
+          }
+        } catch {
+          skippedCount++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey });
+      
+      if (importedCount > 0) {
+        toast.success(`${importedCount} URL(s) importada(s) com sucesso`);
+      } else if (urlSet.size === 0) {
+        toast.info('Nenhuma URL encontrada nos anúncios sincronizados');
+      } else {
+        toast.info('Todas as URLs já estavam cadastradas');
+      }
+
+      return { imported: importedCount, skipped: skippedCount };
+    } catch (error) {
+      console.error('Error importing URLs:', error);
+      toast.error('Erro ao importar URLs');
+      throw error;
+    }
+  }, [clientId, companyId, queryClient, queryKey]);
+
   // Group URLs by domain
   const urlsByDomain = urls.reduce((acc, url) => {
     if (!acc[url.domain]) {
@@ -152,6 +241,7 @@ export function useClientUrls({ clientId, companyId }: UseClientUrlsOptions) {
     updateUrl: (id: string, data: Partial<ClientUrl>) => updateUrlMutation.mutateAsync({ id, data }),
     deleteUrl: (id: string) => deleteUrlMutation.mutateAsync(id),
     toggleActive,
+    importExistingUrls,
     refetch,
     isAdding: addUrlMutation.isPending,
     isUpdating: updateUrlMutation.isPending,
