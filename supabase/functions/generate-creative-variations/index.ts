@@ -245,9 +245,27 @@ COLOR PALETTE - PRESERVE EXACTLY:
 - Do NOT change the color scheme`);
     }
 
-    // Build the main prompt
+    // Build text instruction with detailed legibility requirements for professional advertising
     const textInstruction = text 
-      ? `INCLUDE THIS TEXT IN THE IMAGE: "${text}" - Make the text clearly readable and well-integrated into the design.`
+      ? `TEXT CONTENT AND LEGIBILITY - THIS IS CRITICAL FOR PAID ADVERTISING:
+
+Include this exact text in the image: "${text}"
+
+PROFESSIONAL TYPOGRAPHY REQUIREMENTS (MANDATORY):
+- Text MUST be instantly readable at first glance - this is for paid social media advertising campaigns
+- ALWAYS ensure strong contrast between text and background (minimum contrast ratio for readability)
+- If placing text over images, photos, or complex backgrounds, you MUST use one of these techniques:
+  * Solid or semi-transparent color block/banner behind the text
+  * Strong drop shadow on text (dark shadow for light text, light shadow for dark text)
+  * Text outline/stroke for additional contrast
+  * Gradient overlay on background to create a dedicated contrast zone for text
+- NEVER place text directly on busy, complex, textured, or low-contrast backgrounds without treatment
+- Use bold or semibold font weights for headlines and important text
+- Maintain clear visual hierarchy (headlines should be larger and bolder than secondary text)
+- Ensure adequate spacing and padding around text elements
+- Text should look professional, polished, and premium - like a real marketing campaign from a top brand
+- Consider using colored text banners, ribbons, or callout boxes for emphasis and clarity
+- The text must be the focal point and draw attention immediately`
       : "Do NOT include any text in the image.";
 
     const designInstruction = designGuidance 
